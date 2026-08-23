@@ -1906,39 +1906,6 @@ A worker makes one repair proposal per attempt. The supervisor owns retry count,
 
 > Integrated principle: the model proposes the construction strategy; deterministic Nirman authorities validate, apply, observe, repair, roll back, and promote only evidence-backed Android artifacts.
 
----
-
-## References
-
-[1]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model reference"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine reference"
-[3]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract reference"
-[4]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence reference"
-[5]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment reference"
-[6]: /home/ubuntu/upload/TOOLCHAIN_MANIFEST.md "Toolchain Manifest reference"
-[7]: /home/ubuntu/upload/TOOLCHAIN_ISOLATION.md "Toolchain Isolation reference"
-[8]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System reference"
-[9]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns reference"
-[10]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine reference"
-[11]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference reference"
-[12]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer reference"
-[13]: /home/ubuntu/upload/AI_MINI_SERVICE_IMPLEMENTATION.md "AI Mini Service Implementation reference"
-[14]: /home/ubuntu/upload/UI_IMPLEMENTATION.md "UI Implementation reference"
-[15]: /home/ubuntu/upload/USER_WORKFLOWS.md "User Workflows reference"
-[16]: /home/ubuntu/upload/STRUCTURED_SPEC_FORMAT.md "Structured Spec Format reference"
-[17]: /home/ubuntu/upload/TARGET_APP_ARCHITECTURE.md "Target App Architecture reference"
-[18]: /home/ubuntu/upload/DATA_LAYER_GENERATION.md "Data Layer Generation reference"
-[19]: /home/ubuntu/upload/UI_GENERATION_RULES.md "UI Generation Rules reference"
-[20]: /home/ubuntu/upload/SYSTEM_ARCHITECTURE.md "System Architecture reference"
-[21]: /home/ubuntu/upload/PROJECT_ARCHETYPE_RESOLUTION.md "Project Archetype Resolution reference"
-[22]: /home/ubuntu/upload/PROJECT_HANDBOOK.md "Project Handbook reference"
-[23]: /home/ubuntu/upload/WINDOWS_PACKAGING_AND_PERMISSION_AUTOMATION.md "Packaging reference"
-[24]: /home/ubuntu/upload/AI_AGENTS_AND_PLANNING.md "AI Agents and Planning reference"
-
-The Windows-specific implementation details from the reference documents are not generated-target requirements for Nirman and are intentionally excluded from this Android-only specification.
-
----
-
 # 34. Android Code Intelligence and Mutation Contract
 
 ## 34.1 Language-Neutral Android Code Intelligence
@@ -2652,7 +2619,3 @@ Compaction must preserve semantic summaries, evidence links, revision identity, 
 The AgentExecutionKernel release is complete only when Nirman can run one Android goal through the loop state machine, execute a skill composition, dynamically configure a worker profile, delegate a typed task, exchange knowledge artifacts, lease a workspace, reconnect a ToolSession, plan environment capabilities, select affected validation, replay the trajectory without side effects, simulate the plan without mutation, detect a deadlock, apply backpressure, propagate cancellation, pause and resume a worker, surface a decision node, track uncertainty, recompile a plan, compact execution history, and deliver an evidence-backed APK/AAB.
 
 The user-facing stream must show concise structured events for these transitions without exposing private chain-of-thought. The deterministic runtime remains the only authority over mutation, tools, permissions, lifecycle, evidence, recovery, and artifact promotion.
-
-## References
-
-[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"

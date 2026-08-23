@@ -1011,32 +1011,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman is permanently an Android-only autonomous application builder. Windows is the desktop host, not a generated application target.
 
 **Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK/AAB artifacts.
-
-## References
-
-[1]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[3]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
-[4]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[5]: /home/ubuntu/upload/TOOLCHAIN_MANIFEST.md "Toolchain Manifest"
-[6]: /home/ubuntu/upload/TOOLCHAIN_ISOLATION.md "Toolchain Isolation"
-[7]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[8]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[9]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[10]: /home/ubuntu/upload/AI_MINI_SERVICE_IMPLEMENTATION.md "AI Mini Service Implementation"
-[11]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
-[12]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
-[13]: /home/ubuntu/upload/STRUCTURED_SPEC_FORMAT.md "Structured Spec Format"
-[14]: /home/ubuntu/upload/TARGET_APP_ARCHITECTURE.md "Target App Architecture"
-[15]: /home/ubuntu/upload/DATA_LAYER_GENERATION.md "Data Layer Generation"
-[16]: /home/ubuntu/upload/UI_GENERATION_RULES.md "UI Generation Rules"
-[17]: /home/ubuntu/upload/UI_IMPLEMENTATION.md "UI Implementation"
-[18]: /home/ubuntu/upload/USER_WORKFLOWS.md "User Workflows"
-[19]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-
-
----
-
 # ADR-082: Integrated Android workflow coordinator
 
 **Status:** Accepted
@@ -1166,20 +1140,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** The README’s implementation stack is not compatible with Nirman’s product boundary.
 
 **Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK/AAB deliverables.
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[3]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[4]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[5]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[6]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[7]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-
-
----
-
 # ADR-095: Private internal reasoning with visible structured summaries
 
 **Status:** Accepted
@@ -1249,18 +1209,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Different providers expose different streaming formats and may emit incomplete or unsafe output.
 
 **Consequences:** Complete structured responses must pass schema, policy, scope, and transaction validation before execution.
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[3]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[4]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[5]: /home/ubuntu/upload/UI_IMPLEMENTATION.md "UI Implementation"
-
-
----
-
 # ADR-102: Branding and visual assets are first-class Android requirements
 
 **Status:** Accepted
@@ -1320,17 +1268,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Branding changes should be fast and should not unnecessarily regenerate unrelated application logic or assets.
 
 **Consequences:** Asset impact analysis and revision binding are required for preview and artifact promotion.
-
-## References
-
-[1]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
-[2]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
-[3]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[4]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-
-
----
-
 # ADR-108: Lock Tauri 2 and React/TypeScript/Vite for the Windows application
 
 **Status:** Accepted
@@ -1430,17 +1367,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A separate server would add process, protocol, packaging, and failure surface before the control-plane contracts are proven.
 
 **Consequences:** The internal interfaces must be process-boundary-ready so the extraction to NirmanSupervisor.exe does not change product behavior.
-
-## References
-
-[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman architecture review"
-[2]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
-[3]: /home/ubuntu/Nirman/nirman-technical-architecture.md "Nirman technical architecture"
-[4]: /home/ubuntu/Nirman/nirman-development-plan.md "Nirman development plan"
-
-
----
-
 # ADR-118: Make AgentExecutionKernel a first-class runtime subsystem
 
 **Status:** Accepted
@@ -1660,7 +1586,3 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
 
 **Consequences:** The single-worker and durable-supervisor gates remain mandatory prerequisites for expanded autonomy.
-
-## References
-
-[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"

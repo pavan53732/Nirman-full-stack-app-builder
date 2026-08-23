@@ -902,23 +902,6 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 | Preview | Revision-bound emulator/device evidence |
 | Resource governance | Pressure tests without gate weakening |
 | Artifact completion | APK/AAB checksum, signing, environment, and validation proof |
-
-## References
-
-[1]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[3]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
-[4]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[5]: /home/ubuntu/upload/TOOLCHAIN_MANIFEST.md "Toolchain Manifest"
-[6]: /home/ubuntu/upload/TOOLCHAIN_ISOLATION.md "Toolchain Isolation"
-[7]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[8]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[9]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[10]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-
-
----
-
 # M51–M58: Integrated Workflow and Quality Intelligence Milestones
 
 These milestones add the accepted README-derived capabilities to the existing Nirman roadmap. They do not change the Android-only generated target.
@@ -987,20 +970,6 @@ Implement independent-fixture validation for learned repair patterns, bounded al
 | Worker metrics | Routing metrics without authority escalation |
 | Repair promotion | Independent validation before trusted reuse |
 | Scope integrity | Android-only generated-target audit |
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[3]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[4]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[5]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[6]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[7]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-
-
----
-
 # M59–M61: Reasoning Visibility and Streaming Milestones
 
 ## M59 — PrivateReasoningRuntime and StructuredReasoningSummarizer
@@ -1033,17 +1002,6 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 | Replay | Side-effect-free reconstruction from filtered events |
 | Status truthfulness | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
 | Back-pressure | UI disconnect cannot stop autonomous execution |
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[3]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[4]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-
-
----
-
 # M62–M64: Brand and Asset Completion Milestones
 
 ## M62 — BrandManifest, AssetManifest, and BrandAssetWorker
@@ -1077,16 +1035,6 @@ Implement built APK/AAB extraction, asset presence and reachability checks, cont
 | Accessibility | Contrast, transparency, silhouette, and theme checks |
 | Change handling | Affected assets regenerate and stale evidence is invalidated |
 | Completion gate | Missing or placeholder-only requested branding blocks promotion |
-
-## References
-
-[1]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
-[2]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
-[3]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-
-
----
-
 # 5A. Locked Implementation Stages
 
 The detailed milestones below are executed through four architectural stages. Nirman must not attempt every autonomous capability simultaneously.
@@ -1134,16 +1082,6 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 ## 5C. Sequencing invariant
 
 Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK/AAB artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
-
-## References
-
-[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman architecture review"
-[2]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
-[3]: /home/ubuntu/Nirman/nirman-technical-architecture.md "Nirman technical architecture"
-
-
----
-
 # M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.

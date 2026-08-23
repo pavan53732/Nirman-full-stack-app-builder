@@ -2051,33 +2051,6 @@ The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradl
 # 48. Technical Acceptance Tests
 
 The architecture is accepted only when killing the supervisor during a transaction leaves a recoverable event log and checkpoint; replaying events reconstructs the same authoritative session state; stale worker proposals are rejected without changing the project; changed files or toolchain locks invalidate pending transactions through TOCTOU checks; parallel workers can analyze and propose while conflicting writes are serialized; provider bridge restart and protocol mismatch do not corrupt the session; builds use the locked Android toolchain; preview promotion rejects stale source or artifact revisions; resource pressure changes scheduling without bypassing completion gates; and an APK/AAB is not promoted without revision, checksum, environment, validation, and signing evidence.
-
-## References
-
-[1]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[3]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
-[4]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[5]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-[6]: /home/ubuntu/upload/TOOLCHAIN_MANIFEST.md "Toolchain Manifest"
-[7]: /home/ubuntu/upload/TOOLCHAIN_ISOLATION.md "Toolchain Isolation"
-[8]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[9]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[10]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[11]: /home/ubuntu/upload/AI_MINI_SERVICE_IMPLEMENTATION.md "AI Mini Service Implementation"
-[12]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
-[13]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
-[14]: /home/ubuntu/upload/STRUCTURED_SPEC_FORMAT.md "Structured Spec Format"
-[15]: /home/ubuntu/upload/TARGET_APP_ARCHITECTURE.md "Target App Architecture"
-[16]: /home/ubuntu/upload/PROJECT_HANDBOOK.md "Project Handbook"
-[17]: /home/ubuntu/upload/UI_IMPLEMENTATION.md "UI Implementation"
-[18]: /home/ubuntu/upload/USER_WORKFLOWS.md "User Workflows"
-
-The Windows target-generation rules in the reference set are not adopted. Only general runtime, isolation, orchestration, preview, recovery, and UX principles are adapted for Android generation.
-
-
----
-
 # 49. Integrated Workflow and Quality Services
 
 ## 49.1 WorkflowCoordinator
@@ -2218,21 +2191,6 @@ Nirman must not advertise a module count, mechanism count, percentage of impleme
 ## 50.3 Technical acceptance additions
 
 The architecture is complete when the coordinator can run preflight before expensive work, independent quality gates can block promotion, every mandatory requirement maps to executable tests, contract and architecture drift is detected, runtime traces feed repair classification, dependency health is checked before commit, handbook and release reports are generated from validated state, worker metrics are recorded, learned repairs require independent validation, and native isolation or remote side effects cannot weaken the core authority model.
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[3]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[4]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
-[5]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[6]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
-[7]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
-[8]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
-
-
----
-
 # 51. Private Reasoning and Visible ReasoningStream Architecture
 
 ## 51.1 Reasoning boundary
@@ -2366,19 +2324,6 @@ If summarization fails, Nirman emits a safe generic progress event and continues
 8. Stream back-pressure or UI disconnection never stops the autonomous session.
 9. Cancellation stops provider generation and records the last valid revision.
 10. Calm, Inspect, and Developer modes change presentation only, not runtime behavior.
-
-## References
-
-[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
-[3]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
-[4]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
-[5]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
-[6]: /home/ubuntu/upload/UI_IMPLEMENTATION.md "UI Implementation"
-
-
----
-
 # 52. Brand and Asset Runtime Architecture
 
 ## 52.1 BrandAssetWorker
@@ -2496,18 +2441,6 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 7. Branding changes invalidate affected evidence and regenerate only impacted assets.
 8. Provider failure and fallback behavior are explicit and replayable.
 9. Placeholder-only output blocks completion when branded assets were requested.
-
-## References
-
-[1]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
-[2]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
-[3]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
-[4]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
-[5]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
-
-
----
-
 # 53. Locked Implementation Stack and Supervisor Process Architecture
 
 ## 53.1 Implementation stack
@@ -2975,7 +2908,3 @@ Compaction must preserve semantic summaries, evidence links, revision identity, 
 10. Cancellation reaches every descendant execution node.
 11. A predicted result cannot be represented as observed evidence.
 12. History compaction cannot remove required proof.
-
-## References
-
-[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"
