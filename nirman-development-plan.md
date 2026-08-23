@@ -1,0 +1,1142 @@
+# Nirman Engineering Development Plan
+
+## Ordered Build Plan for the Desktop Application
+
+**Document status:** Initial implementation roadmap  
+**Application:** Nirman  
+**Primary engineering rule:** Build the local control plane and recovery model before attempting broad autonomous capabilities.
+
+---
+
+## 1. Development Strategy
+
+Nirman should be built in vertical slices. Every milestone must produce a usable and testable part of the application instead of completing isolated infrastructure with no end-to-end workflow.
+
+The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, approve a file edit, run an emulator or device preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
+
+The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in `nirman-decisions.md`.
+
+---
+
+## 2. Delivery Milestones
+
+| Milestone | Focus | Main output |
+|---|---|---|
+| M0 | Repository and engineering foundation | Source repository, conventions, CI, fixture projects |
+| M1 | Desktop shell and local workspace | Windows application shell and project manager |
+| M2 | Control plane and persistent state | Background task daemon, SQLite state, event stream |
+| M3 | Provider and model runtime | Provider profiles, keychain, streaming, usage telemetry |
+| M4 | Dynamic Android synthesis and local runtime | Instruction/screenshot analysis, framework resolver, emulator/device preview, process manager, diagnostics |
+| M5 | Single-worker agent loop | Plan, inspect, edit, test, repair, checkpoint, undo |
+| M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
+| M7 | Background execution and recovery | Resume after UI close or restart, notifications, adaptive guardrails |
+| M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
+| M9 | Android device and visual testing | Emulator/device profiles, screenshots, Logcat, phone/tablet checks |
+| M10 | Android packaging | APK/AAB build, artifact validation, signing boundaries |
+| M11 | Complete Android technology coverage | AI-selected Java/Kotlin/Compose/Views/React Native/native modules and device capabilities |
+| M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
+| M13 | Goal Mode and non-blocking background work | Durable goals, resumable tasks, background control |
+| M14 | Lifecycle hooks | Deterministic pre/post action hooks and policy interception |
+| M15 | Scheduled automations | Persistent local schedules, fairness, safe recurring tasks |
+| M16 | Granular checkpoints and backtracking | File/task checkpoints, retention, restore, strategy changes |
+| M17 | Context scaling and external tools | Retrieval/large-context modes and mediated adapters |
+| M18 | Durable task graph and execution tree | Nested live progress, worker nodes, evidence links |
+| M19 | Evidence-backed status and telemetry | Event ledger, heartbeats, resource and validation telemetry |
+| M20 | Autonomous validation coordinator | Dependency-aware checks, affected tests, regression sharding |
+| M21 | Policy-boundary approvals and termination | Unattended profile, truthful termination, hard safety boundaries |
+| M22 | Provider-neutral AI settings and model gateway | Chat, response-item, message protocols, tools, streaming |
+| M23 | Controlled self-development loop | Candidate build, health checks, promotion, rollback |
+| M24 | Adaptive long-horizon provider execution | Context compaction, routing, continuation, provider recovery |
+| M25 | Runtime supervisor and durable execution loop | Runtime ticks, leases, restart recovery, continuity |
+| M26 | Graduated recovery ladder | Failure fingerprints, strategy changes, backtracking |
+| M27 | Self-observation and episode evaluation | Quality metrics, fixtures, trajectory replay |
+| M28 | Self-improvement proposal manager | Improvement hypotheses, scoped candidates, test plans |
+| M29 | Candidate canary, promotion, and rollback | Baselines, canaries, post-promotion monitoring |
+| M30 | Canonical documentation and worker registry | Renumbered sections, one role taxonomy, roadmap crosswalk |
+| M31 | Unattended / Full Autonomy profile | Routine in-workspace actions allowed; deployment and signing gated |
+| M32 | Persistent terminal subsystem | PTYs, interactive prompts, shell profiles, multi-terminal logs |
+| M33 | Skills registry and invocation contract | Skill schema, scanning, permissions, versioning, rollback |
+| M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
+| M35 | Long-horizon scale and unified execution surface | Map sharding, checkpoint retention, affected tests, side-by-side preview |
+| M36 | Runtime authority and autonomous recovery invariants | Deterministic authorities, model non-authority, safe recovery, evidence gates |
+| M37 | Android-only target contract | Android profiles, emulator/device validation, APK/AAB artifacts, and Android-only project resolution |
+| M38 | Complete Android technology coverage | AI-selected stacks, mixed architectures, all Android capability classes, end-to-end APK/AAB validation |
+
+---
+
+## 3. M0: Repository and Engineering Foundation
+
+### Objectives
+
+Create the source repository and define the code-quality baseline before implementing agent behavior. The repository should include separate packages for the desktop UI, control plane, agent runtime, policy engine, provider runtime, project runtime, and tests.
+
+### Work items
+
+| Work item | Acceptance condition |
+|---|---|
+| Repository layout | Modules follow the architecture boundaries |
+| TypeScript and Rust conventions | Formatting, linting, and type checks run locally and in CI |
+| Configuration model | Development, test, and production settings are separate |
+| Logging standard | Structured logs include task, worker, project, and correlation IDs |
+| Test fixtures | At least three representative Android projects exist |
+| Security baseline | Secret files are excluded from logs and test fixtures |
+| CI pipeline | Unit tests and static checks run on every change |
+
+### Exit gate
+
+A clean checkout can install dependencies, run static checks, execute unit tests, and start the development shell without manually editing configuration files.
+
+---
+
+## 4. M1: Desktop Shell and Local Workspace
+
+### Objectives
+
+Build the visible Windows application shell and the project-management experience. The shell should open local folders, display the workspace layout, and communicate with a placeholder control plane.
+
+### Work items
+
+1. Implement the Tauri shell and React interface.
+2. Add welcome, create-project, open-project, and recent-project screens.
+3. Add the main workspace layout with chat, file tree, editor, preview, tasks, and logs regions.
+4. Add project metadata storage without secrets.
+5. Add application-level error handling and restart messaging.
+6. Add keyboard navigation and accessible status indicators.
+
+### Exit gate
+
+A user can create a workspace, reopen it, view project metadata, close the application, and return to the same project without data loss.
+
+---
+
+## 5. M2: Control Plane and Persistent State
+
+### Objectives
+
+Implement the local control plane before building the autonomous agent. The control plane must own tasks, workers, events, approvals, checkpoints, and recovery.
+
+### Work items
+
+| Component | Required behavior |
+|---|---|
+| IPC API | Authenticated local communication between UI and daemon |
+| SQLite store | Versioned schema with migrations and transactions |
+| Event bus | Durable events with task sequence numbers and replay |
+| Task scheduler | Idempotent state transitions and resource reservations |
+| Process registry | Track process trees, ports, output, and ownership |
+| Recovery scanner | Rehydrate interrupted tasks after restart |
+| Notification adapter | Surface approvals and failures while minimized |
+
+### Exit gate
+
+A test task can be created, persisted, streamed to the UI, paused, resumed, cancelled, and recovered after stopping and restarting the control plane.
+
+---
+
+## 6. M3: Provider and Model Runtime
+
+### Objectives
+
+Allow users to configure cloud or local AI providers with custom endpoint, API key, model ID, optional vision model, and capability settings.
+
+### Work items
+
+1. Build a provider adapter interface for text, structured output, tools, vision, streaming, cancellation, and usage.
+2. Add provider profiles and secure keychain references.
+3. Add connection testing and capability detection.
+4. Add model routing profiles for planning, implementation, visual QA, and lightweight tasks.
+5. Add request timeout, retry, fallback, and cancellation behavior.
+6. Add token, duration, request-count, and estimated-cost telemetry.
+7. Redact secrets from requests, logs, and task summaries.
+
+### Exit gate
+
+A user can configure a provider, test it, select a model, run a streamed request, cancel it, and inspect normalized usage without the API key appearing in the project or logs.
+
+---
+
+## 7. M4: Dynamic Android Project Synthesis and Local Runtime
+
+### Objectives
+
+Create the dynamic Android project-synthesis engine and local runtime needed to analyze instructions and screenshots, choose technologies, create a project, install, run, inspect, and validate it on an emulator or device.
+
+### Work items
+
+1. Implement project synthesis from a goal contract, visual references, assets, device requirements, and technology plan.
+2. Implement environment diagnostics for Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator/device tooling, and Git.
+3. Implement workspace process start, stop, timeout, output capture, and port management.
+4. Implement the Android preview manager with emulator/device readiness checks, installation state, Logcat capture, and runtime-error capture.
+5. Implement project indexing for files, symbols, routes, components, scripts, and dependencies.
+6. Add checkpoint creation and Git integration.
+
+### Exit gate
+
+A user can create an Android project, install dependencies, start an emulator or device preview, inspect it inside Nirman, run checks, create a checkpoint, and export the source code or APK/AAB artifact.
+
+---
+
+## 8. M5: Single-Worker Autonomous Development Loop
+
+### Objectives
+
+Implement the first complete agent loop with one worker. Do not add parallel workers until this path is reliable.
+
+### Agent stages
+
+```text
+Inspect → Clarify → Plan → Checkpoint → Edit → Preview → Validate → Repair → Summarize
+```
+
+### Work items
+
+1. Implement structured tools for inspect, search, read, write, patch, command, preview, screenshot, checks, diff, and export.
+2. Add plan and acceptance-criteria generation.
+3. Add file-change grouping and diff display.
+4. Add command policy checks and approval cards.
+5. Add automatic checkpoint before multi-file work.
+6. Add test, lint, type-check, and build execution.
+7. Add failure classification and focused repair prompts.
+8. Add retry limits and escalation when the worker is stuck.
+9. Add final structured task result and evidence summary.
+
+### Exit gate
+
+The agent can complete at least five fixture tasks, including a new component, a route, a form validation change, a bug repair, and a visual design change. Each task must produce a reviewable diff, validation result, checkpoint, and undo path.
+
+---
+
+## 9. M6: Permissions and Sandbox Profiles
+
+### Objectives
+
+Make execution safe before enabling autonomous background work.
+
+### Work items
+
+1. Implement allow, ask, and deny policy outcomes.
+2. Add path rules, command patterns, external-directory rules, network categories, and worker-specific policies.
+3. Add protected-file defaults for environment secrets, keychains, personal directories, and credentials.
+4. Add process-tree cancellation and resource quotas.
+5. Implement the restricted Windows process profile.
+6. Add native Windows restricted-process, ACL, Job Object, resource-quota, toolchain-isolation, and disposable-emulator-snapshot boundaries.
+7. Add dependency and artifact safety checks.
+8. Add repeated-action and doom-loop detection.
+
+### Exit gate
+
+A restricted worker cannot read protected files, write outside its workspace, execute denied commands, exceed its quota without a durable event, or bypass an explicit deny rule through autonomous mode.
+
+---
+
+## 10. M7: Background Execution and Recovery
+
+### Objectives
+
+Allow tasks to continue when the UI is minimized or closed and recover safely after control-plane or operating-system restart.
+
+### Work items
+
+1. Run the control plane as a user-scoped background process when enabled.
+2. Persist task, worker, event, approval, checkpoint, and recovery records.
+3. Add heartbeats and stale-worker detection.
+4. Add pause, resume, cancel, retry-from-checkpoint, and fork behavior.
+5. Add operating-system notifications for approval and failure events.
+6. Add adaptive telemetry and guardrails for time, turns, tokens, cost, disk, and processes; do not impose a fixed completion deadline unless the user explicitly configures a hard safety cap.
+7. Add a startup recovery scan and repairable-interruption state.
+8. Add optional local interval and schedule support for safe tasks.
+
+### Exit gate
+
+A task can run while the application is minimized, can request approval, can be approved after the UI returns, can survive application restart, and can resume from a verified checkpoint after a simulated process failure.
+
+---
+
+## 11. M8: Multi-Worker Coordination
+
+### Objectives
+
+Add specialized workers and isolated parallel execution only after the single-worker loop and background runtime are reliable.
+
+### Work items
+
+1. Implement worker roles and task contracts.
+2. Implement durable worker messages and acknowledgements.
+3. Implement a shared task ledger with atomic task claims.
+4. Add dependency-aware scheduling.
+5. Add isolated Git worktrees or copy-on-write workspace fallback.
+6. Add worker heartbeats, crash recovery, and per-worker budgets.
+7. Implement review, test, debug, and reconciliation worker chains.
+8. Implement changed-file and changed-symbol conflict detection.
+9. Add transactional integration checkpoints.
+
+### Exit gate
+
+Three independent workers can work on isolated tasks, return structured handoffs, and integrate without changing the main workspace until reconciliation and validation succeed. A forced conflict must be detected and presented rather than silently overwritten.
+
+---
+
+## 12. M9: Android Device Testing and Visual QA
+
+### Objectives
+
+Add visual and Android emulator/device verification without exposing personal credentials or unapproved device state.
+
+### Work items
+
+1. Launch a disposable Android emulator snapshot or connect an explicitly selected physical device.
+2. Add screen and flow navigation, synthetic form interaction, Logcat capture, and screenshot capture.
+3. Add named Android device profiles, orientation profiles, and custom device testing.
+4. Add visual baseline storage and comparison metadata.
+5. Add accessibility and responsive-layout checks.
+6. Add screenshot references to worker handoffs and final task results.
+
+### Exit gate
+
+A device worker can test an Android fixture on selected phone and tablet profiles using synthetic data and return reproducible screenshots, Logcat diagnostics, permission results, and crash traces without reading personal device data.
+
+---
+
+## 13. M10: Android Packaging
+
+### Objectives
+
+Package supported Android projects as APK or AAB artifacts and provide reliable local build outputs.
+
+### Work items
+
+1. Add Android application metadata, icons, package identifiers, and build profiles.
+2. Add local debug and release build profiles and artifact directories.
+3. Add APK/AAB generation and installation workflows.
+4. Add build logs, checksums, and artifact scanning.
+5. Add release review and explicit publish/signing approval.
+6. Add emulator and device installation validation.
+
+### Exit gate
+
+A supported Android project can be built into an APK or AAB artifact, the artifact path and checksum are recorded, secrets are scanned, and the user can install or locate the result without a hosted build service.
+
+---
+
+## 14. M11: Complete Android Technology Coverage
+
+### Objectives
+
+Implement AI-driven selection and composition of Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, device APIs, background services, and mixed architectures, with end-to-end Android build and validation support.
+
+### Work items
+
+1. Add the Android technology capability registry and project-plan schema.
+2. Add Java, Android SDK, emulator, device, and package-manager diagnostics.
+3. Add device-manager abstraction and connection state.
+4. Add Android logs, install, reload, and build status.
+5. Add APK/AAB build profiles where the local environment supports them.
+6. Add signing configuration with secrets stored outside project source.
+
+### Exit gate
+
+A supported mobile fixture can be generated, launched on one emulator or device, tested with synthetic data, and built into a local artifact with clear environment diagnostics.
+
+---
+
+## 15. M12: Advanced Extensibility
+
+### Objectives
+
+Add reusable skills, hooks, external tools, model routing, scheduled local tasks, and deeper project memory.
+
+### Work items
+
+1. Implement project-local and user-level skill packages.
+2. Add skill discovery, compatibility metadata, and permission control.
+3. Add pre-action and post-action hooks.
+4. Add external-tool adapters with isolated permissions.
+5. Add model fallback and task-to-model routing.
+6. Add bounded long-term project memory.
+7. Add scheduled safe tasks and notification policies.
+8. Add advanced native project profiles.
+
+### Exit gate
+
+A project can install a skill, use it only when relevant, enforce its permissions, record its actions, and remove it without modifying the core runtime.
+
+---
+
+## 16. Test Strategy
+
+### 16.1 Unit tests
+
+Unit tests should cover state transitions, policy evaluation, path validation, command classification, message validation, provider normalization, resource accounting, repository-map ranking, and checksum generation.
+
+### 16.2 Integration tests
+
+Integration tests should run the control plane, database, scheduler, worker mock, event bus, and process manager together. They should simulate approval, timeout, cancellation, restart, duplicate events, stale workers, and recovery.
+
+### 16.3 Fixture-task evaluations
+
+The team should maintain fixture projects that represent Android dashboards, authenticated utilities, offline-first apps, forms, API integrations, notification flows, device-permission workflows, and intentionally broken Android projects. Every release should run a fixed set of prompts and score changed-file scope, successful Android build, emulator/device behavior, test status, visual behavior, recovery, and safety policy compliance.
+
+### 16.4 Security tests
+
+Security tests should verify that protected files cannot enter model context, denied commands cannot run, external directories require approval, personal credentials and unapproved device data are never used, untrusted packages are restricted, and secrets do not appear in logs or artifacts.
+
+### 16.5 Recovery tests
+
+Recovery tests should forcibly close the UI, terminate the control plane, kill a worker, fill the disk quota, cross an adaptive time or usage threshold, interrupt a database transaction, create a merge conflict, and disconnect the provider. Crossing an ordinary threshold must verify that the task adapts or continues rather than ending automatically. Every scenario should end in a clear resumable, escalated, or safely rolled-back state.
+
+---
+
+## 17. Release Gates
+
+A milestone can be released only when its functional acceptance criteria, security checks, recovery tests, documentation, and migration behavior pass. “The agent usually works” is not a release gate.
+
+Each release should publish a short engineering report containing completed milestones, known limitations, fixture-task results, failed tests, changes to permissions, schema migration notes, and environment compatibility.
+
+---
+
+## 18. Recommended Team Sequence
+
+The recommended sequence is to build the control plane and state model first, then the provider runtime, then dynamic Android project synthesis and one reliable end-to-end agent loop. Security and recovery must be implemented before background autonomy. Multi-worker coordination must be implemented only after single-worker recovery is dependable.
+
+This sequence reduces the risk of building a visually impressive chat interface around an unreliable execution engine.
+
+---
+
+## 19. Immediate Next Tasks
+
+1. Create the source repository using the module boundaries in the technical architecture.
+2. Define the SQLite schema and migration strategy.
+3. Define the IPC API and event envelope.
+4. Implement the control-plane health endpoint and task lifecycle.
+5. Build the desktop shell around a mock task stream.
+6. Implement provider profiles and secure credential references.
+7. Add the first screenshot-and-instruction-driven Android fixture generation task.
+8. Implement a single safe file-edit task end to end.
+9. Add checkpoint and undo behavior.
+10. Add process quotas and restricted execution before enabling autonomous mode.
+
+---
+
+## 20. Extension Milestones from the Advanced Autonomy Requirements
+
+### M13: Goal Mode and non-blocking background work
+
+Implement durable goal contracts, completion-condition evaluation, resource budgets, stop conditions, progress tracking, reconnectable task streams, background UI behavior, and operating-system notifications. The task must continue without stealing user focus and must survive a controlled UI restart.
+
+**Exit gate:** A user can define a goal once, continue working elsewhere, close and reopen the desktop interface, and inspect objective completion results rather than relying on a final model message.
+
+### M14: Lifecycle hooks
+
+Implement the named hook-event table defined in the master specification. Add blocking and non-blocking hook types, timeouts, deduplication, failure policies, policy enforcement, and audit records.
+
+**Exit gate:** A pre-tool security hook can block an unsafe action, a post-tool hook can update the project index, and a worker-failure hook can start a recovery action without bypassing permissions.
+
+### M15: Scheduled automations
+
+Implement local recurring task definitions with interval, calendar, project-change, failed-validation, and manual triggers. Add schedule persistence, duplicate-run prevention, budgets, inherited permissions, pause/disable controls, run history, and notifications.
+
+**Exit gate:** A safe local test or documentation task can run on a schedule, recover correctly after a control-plane restart, and never publish or use personal credentials without per-run approval.
+
+### M16: Granular checkpoints and backtracking
+
+Implement file-level checkpoints alongside task-level checkpoints. Add last-known-good restoration, strategy history, failure fingerprinting, materially different recovery plans, and preview invalidation after rollback.
+
+**Exit gate:** A repeated failing implementation is restored to a known-good state, retried using a different worker or approach, and reported with a complete strategy history.
+
+### M17: Context scaling and external-tool compatibility
+
+Implement retrieval-based and large-context modes, context-package reports, secret filtering, token-budget fallback, external-tool capability discovery, scoped connections, health checks, and policy mediation.
+
+**Exit gate:** A small-context provider uses repository retrieval, a large-context provider can use a filtered near-full repository, and an external tool cannot bypass Nirman path, network, or approval rules.
+
+## 21. Revised Fixture and Recovery Evaluation Matrix
+
+| Evaluation | Required behavior |
+|---|---|
+| Goal completion | Task ends only when objective conditions pass or a defined stop condition is reached |
+| UI disconnect | Background task continues and event sequence replays after reconnect |
+| Hook enforcement | Blocking safety hook prevents the action and records the reason |
+| Scheduled run | A recurring task runs once per trigger and survives daemon restart |
+| File checkpoint | One file restores without changing unrelated files |
+| Backtracking | Failed strategy returns to a known-good state before trying a different strategy |
+| Context scaling | Mode selection is visible and falls back safely when budget is insufficient |
+| External tool | Tool is scoped, audited, and cannot bypass the policy engine |
+| Subagent isolation | Parallel workers cannot mutate the main workspace before reconciliation |
+
+## 22. Execution-Surface Milestones
+
+### M18: Durable task graph and nested execution tree
+
+Add a persisted task graph that represents the goal, extracted requirements, phases, dependencies, worker handoffs, commands, previews, tests, builds, approvals, checkpoints, recovery attempts, and final evidence. Build an expandable execution tree in the task view with node states, timestamps, owners, workspaces, heartbeats, warnings, and evidence links.
+
+**Exit gate:** A task can be inspected as a nested tree while running, after completion, and after a control-plane restart. Child events replay in order and no completed node lacks evidence.
+
+### M19: Evidence-backed status and telemetry
+
+Add an evidence ledger for command results, test reports, build artifacts, screenshots, device results, security scans, review findings, approvals, and environment diagnostics. Add runtime telemetry for elapsed time, turns, provider requests, token/resource usage, active workers, last checkpoint, current blocker, and next action.
+
+**Exit gate:** A model summary alone cannot mark a task or phase complete. The final result links each completion claim to captured evidence and exposes the task’s resource and recovery history.
+
+### M20: Autonomous validation coordinator
+
+Implement the default validation loop: emulator/device preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
+
+**Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation.
+
+### M21: Policy-boundary approvals and termination coordinator
+
+Refine approvals so routine reversible actions in an approved workspace do not interrupt the user, while protected-file access, risky dependencies, external services, credentials, destructive actions, publishing, and signing create precise approval requests. Implement terminal classifications for completed, completed with warnings, blocked, escalated, cancelled, and failed.
+
+**Exit gate:** Safe work runs without approval spam, privileged work pauses at the exact boundary, ordinary usage thresholds trigger adaptation rather than termination, and tasks stop only for a defined completion, decision, explicit hard safety or policy limit, cancellation, environment failure, or unrecoverable error.
+
+## 23. Execution-Surface Evaluation Matrix
+
+| Evaluation | Required result |
+|---|---|
+| Task launcher | Chat starts a durable background task without owning its execution loop |
+| Plan visibility | User can see phases, dependencies, progress, checkpoints, and completion state |
+| Nested activity | Commands, tests, builds, worker handoffs, approvals, and repairs appear as expandable child nodes |
+| Evidence status | Completed claims link to execution or review evidence |
+| Worker observability | Active action, heartbeat, elapsed time, workspace, and resource usage are visible |
+| Validation loop | Required preview, tests, build, security, reliability, and visual/device checks run or block completion |
+| Policy boundaries | Routine actions are not approval-blocked; privileged actions create precise approval requests |
+| Reconnection | UI close or disconnect does not lose task state or event history |
+| Termination | Task stops only at a defined completion, decision, limit, cancellation, environment failure, or unrecoverable failure |
+| Final result | Changed files, checkpoints, evidence, tests, warnings, blockers, usage, and completion classification are available |
+
+## 24. Provider Runtime and Self-Development Milestones
+
+### M22: Provider-neutral AI settings and model gateway
+
+Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, and health status. Implement canonical adapters for OpenAI-compatible chat-completion requests, response-item requests, message-oriented requests, streaming, tool calls, structured output, multimodal input, cancellation, usage, request IDs, and error normalization.
+
+**Exit gate:** The user can configure a provider manually, test the selected model, see detected capabilities, run a multi-turn message request, execute a tool call, stream or emulate events, cancel a request, and inspect normalized usage and request IDs without exposing the key.
+
+### M23: Controlled self-development loop
+
+Implement the stable launcher/controller, isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
+
+**Exit gate:** Nirman can modify its own source in isolation, build a candidate, launch it separately, run static/unit/integration/provider/sandbox/recovery/smoke checks, promote it through the controller, and roll back after an injected startup, migration, IPC, or health-check failure.
+
+### M24: Adaptive long-horizon provider execution
+
+Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, and task-state persistence. User-configured hard caps remain available but are opt-in.
+
+**Exit gate:** A long-running fixture task can continue through multiple provider requests and context compactions, adapt its model or worker strategy, recover from a transient provider failure, and complete without being stopped by an ordinary usage threshold.
+
+## 25. Provider and Self-Development Evaluation Matrix
+
+| Evaluation | Required result |
+|---|---|
+| Custom provider | Base URL, key reference, protocol, and model ID can be configured manually |
+| Capability detection | Text, vision, tools, structured output, streaming, cancellation, and context behavior are tested or explicitly overridden |
+| Protocol normalization | Chat, response-item, and message-oriented requests reach the same internal gateway |
+| Tool continuity | Tool-call IDs and tool results remain correctly associated across turns |
+| Streaming | Partial events are durable and reconnectable; non-streaming providers still produce lifecycle events |
+| Self-update isolation | Current installation is unchanged until candidate validation succeeds |
+| Candidate health | Candidate launches in a temporary profile and passes IPC, database, provider, preview, and smoke checks |
+| Migration safety | Failed migration leaves the previous version and recoverable database available |
+| Rollback | Injected candidate failure atomically restores the previous version and task state |
+| Long horizon | Ordinary token/time usage thresholds adapt execution rather than terminating the goal |
+
+## 26. Complete Runtime and Self-Improvement Milestones
+
+### M25: Runtime supervisor and durable execution loop
+
+Implement the stable supervisor, control-plane ownership, idempotent runtime ticks, task-graph scheduling, worker leases, launch intents, heartbeats, reconnectable events, and restart recovery. The runtime must continue after each model response and provider request rather than treating a response as the end of the task.
+
+**Exit gate:** A broad goal can run through multiple provider requests, worker handoffs, validation cycles, and application restarts while preserving the task graph, checkpoints, evidence, and next action.
+
+### M26: Graduated recovery ladder
+
+Implement transient retry, focused diagnostics, context/index refresh, strategy change, checkpoint backtracking, model or worker escalation, specialist delegation, isolated alternative solutions, and precise escalation. Add failure fingerprints, progress-quality measurement, and duplicate-strategy detection.
+
+**Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
+
+### M27: Self-observation and episode evaluation
+
+Implement episode records, validated task summaries, project-scoped memory, runtime quality metrics, fixture evaluation runs, trajectory replay, and regression comparison by runtime version, provider profile, model profile, project type, and worker role.
+
+**Exit gate:** The system can explain why a task succeeded or failed, compare two runtime candidates on the same fixture suite, and identify whether the main weakness was requirements, context, planning, tool use, editing, environment, or validation.
+
+### M28: Self-improvement proposal manager
+
+Implement recurring-failure clustering, improvement hypotheses, proposal records, affected-component analysis, expected-metric definitions, safety impact, test plans, rollback plans, and scoped promotion policies. Restrict high-risk components such as the supervisor, sandbox, policy engine, credentials, updater, migrations, and evidence engine to the highest validation level.
+
+**Exit gate:** Nirman can create a proposal from repeated validated failures, generate an isolated candidate, and show the evidence and expected improvement before changing runtime behavior.
+
+### M29: Candidate canary, promotion, and rollback
+
+Implement observe-only, candidate-only, canary, trusted auto-promotion, and manual-promotion modes. Run targeted tests, broad regression fixtures, provider tests, sandbox tests, migration tests, recovery tests, smoke tasks, and representative task replay before promotion. Monitor post-promotion quality and automatically roll back or disable a degraded scope.
+
+**Exit gate:** An injected candidate failure, migration error, IPC failure, crash loop, regression, or safety degradation restores the previous version and preserves user projects and task state.
+
+## 27. Complete Runtime and Self-Improvement Evaluation Matrix
+
+| Evaluation | Required result |
+|---|---|
+| Runtime continuity | Provider responses are intermediate steps, not task termination |
+| Supervisor recovery | UI, worker, or control-plane restart preserves task state |
+| Lease correctness | A crashed worker cannot permanently claim a task |
+| Strategy diversity | Repeated failures cause materially different recovery attempts |
+| Progress quality | The runtime detects when requests are not producing verified progress |
+| Episode analysis | Completed and failed tasks produce structured, privacy-filtered records |
+| Candidate quality | Improvements are judged against fixed fixtures and baseline metrics |
+| Scoped promotion | A candidate can be limited to a project, provider, worker role, or task class |
+| Rollback | Post-promotion regressions automatically restore the known-good runtime |
+| Memory safety | Long-term memory contains validated, privacy-filtered records only |
+
+## 28. Core Autonomous Runtime Acceptance Criteria
+
+The following acceptance criteria are mandatory for the core autonomous runtime. They should be evaluated independently and as part of full end-to-end fixture tasks.
+
+| Capability | Acceptance criterion |
+|---|---|
+| **Specialized workers** | A representative task can assign architecture, implementation, debugging, testing, security, visual QA, performance, and release work to separate scoped workers, and each worker returns a durable handoff with evidence. |
+| **Self-healing loop** | Injected compiler, runtime, test, environment, provider, and merge failures cause classification, a materially different strategy, checkpoint backtracking where needed, continued validation, and no repeated identical loop. |
+| **Evidence-based completion** | A task cannot be marked complete from model text alone; completion links to passing tests, builds, screenshots, health checks, security results, device results, review findings, or validated artifacts. |
+| **Adaptive resource management** | A long-running fixture task crosses ordinary time, token, or usage thresholds and continues by compacting context, changing models, reducing concurrency, retrying transient failures, or repairing the environment rather than stopping automatically. |
+| **Self-development mode** | Nirman changes its own source only in an isolated worktree, builds and launches a candidate separately, runs health and smoke checks, promotes through the stable controller, and rolls back after an injected failure. |
+| **Project memory** | A later task can recall a validated architecture decision, previous fix, failed strategy, convention, and user preference while excluding credentials and protected content. |
+| **Environment repair** | A fixture with missing or incompatible SDKs, dependencies, ports, emulators, or toolchains is diagnosed and repaired or clearly escalated according to policy, with the repair recorded as evidence. |
+
+A release cannot claim complete autonomous-runtime support until all seven criteria pass in isolated tests and in at least one combined end-to-end fixture task.
+
+## 29. Audit Closure Milestones
+
+### M30: Canonical documentation and worker registry
+
+Renumber the advanced product-specification sections, remove duplicate roadmap references, create one crosswalk between roadmap phases and milestones, and make the canonical worker registry the only role taxonomy used by the product, architecture, tests, and decision records. The registry must include the Performance Worker and define every worker’s scope, tools, workspace, and mutation authority.
+
+**Exit gate:** All cross-document references resolve to one section or milestone, all worker names match exactly, the Performance Worker has a contract, and a registry test rejects undefined or duplicate roles.
+
+### M31: Unattended / Full Autonomy policy profile
+
+Implement a named project-scoped profile for Goal Mode background tasks. It allows routine reversible actions inside the workspace, including dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair. It denies external-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission.
+
+**Exit gate:** A background fixture task completes a dependency install, local commit, build, preview restart, and repair without approval pauses, while deployment, signing, credential access, destructive commands, and remote pushes remain hard-gated.
+
+### M32: Persistent terminal subsystem
+
+Implement per-worker PTY or equivalent terminal sessions with persistent working directory and environment state, explicit Windows shell profiles, controlled stdin, interactive-prompt detection, unattended prompt policy, long-running process registration, multi-terminal UI, rolling log storage, rotation, compression, and raw evidence retention.
+
+**Exit gate:** An unattended fixture can activate an environment, install dependencies, start a dev server, respond to a declared safe prompt, detect an unsafe prompt, preserve the terminal session after UI disconnect, and reconnect with searchable logs.
+
+### M33: Skills registry and invocation contract
+
+Implement the SkillPackage schema, trigger and explicit invocation, worker compatibility, required tools, permission requests, input/output schemas, scanning, trust status, versioning, health checks, update, disable, and rollback. Loading a skill must never grant permissions automatically.
+
+**Exit gate:** A safe skill can be discovered, scanned, invoked by a matching task, execute only declared tools through the policy engine, and roll back after a failed update. An unsafe or undeclared skill action must be rejected.
+
+### M34: Windows lifecycle and multi-project resilience
+
+Implement active-task login startup, boot/resume/suspend/hibernate event handling, execution power requests, process and emulator restoration, notification fallback, startup summaries, weighted fair-share scheduling, priority aging, and cross-project resource accounting.
+
+**Exit gate:** After an injected reboot, suspend/resume, suppressed notification, and competing multi-project workload, eligible tasks resume from checkpoints, hard decisions remain visible, and no project starves another.
+
+### M35: Long-horizon scale and unified execution surface
+
+Implement incremental repository-map shards, dependency fingerprints, checkpoint retention and content-addressed compaction, Android-profile disk quotas, affected-test computation, cached results, regression sharding, architectural-drift checks, and the side-by-side Android preview plus execution-surface layout.
+
+**Exit gate:** A large Android fixture updates only affected map shards, retains a valid restore path while pruning safe intermediates, runs affected tests before sharded regressions, detects architectural drift, and shows the correct emulator/device preview revision beside the live task tree.
+
+## 30. Audit Closure Evaluation Matrix
+
+| Audit area | Required evidence |
+|---|---|
+| Documentation consistency | Renumbered sections, one roadmap crosswalk, no duplicate role taxonomy |
+| Unattended autonomy | Routine project-local actions complete without approval pauses |
+| Terminal reliability | Persistent session, prompt handling, shell selection, multi-terminal logs |
+| Background resilience | Reboot, sleep/resume, notification fallback, fair scheduling |
+| Skills | Schema, scan, invocation, permissions, versioning, rollback |
+| Long-horizon coding | Incremental map, affected tests, retention, drift checks |
+| Swarm coordination | Decomposition heuristic, interface agreement, bounded nesting, reconciliation |
+| Preview visibility | Preview revision and nested execution tree visible together |
+
+### M36: Runtime authority and autonomous recovery invariants
+
+Implement and test the rule that models propose work but deterministic lifecycle, permission, sandbox, storage, evidence, recovery, promotion, and termination authorities control execution. The runtime must recover, retry, checkpoint, repair, reconcile, degrade, or fail safely without trusting model claims or uncommitted model memory.
+
+**Exit gate:** Fault-injection tests prove that model output cannot grant permissions, bypass sandbox rules, mark tasks complete without evidence, delete recovery state, promote an unvalidated candidate, disable mandatory hooks, or suppress a hard safety termination. Recovery tests prove that the last known-good state remains restorable across worker, process, provider, UI, database, and self-update failures.
+
+### M37: Android-only target contract
+
+Make Android project profiles, emulator/device validation, Logcat, Gradle, APK/AAB artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
+
+**Exit gate:** A scope test accepts supported Android project requests, resolves the correct Android profile, launches emulator/device validation, produces Android artifact evidence, and confirms that every project-generation path resolves only to an Android profile.
+
+### M38: Complete Android technology coverage
+
+Implement the capability registry, technology planner, framework resolver, mixed-architecture project synthesis, native-module integration, device-capability resolution, and end-to-end validation for the full Android technology surface. The user must describe the application rather than select a framework or template.
+
+**Exit gate:** A capability fixture suite covering JavaScript, Java, Kotlin, Views, Compose, native modules, background services, device APIs, offline behavior, notifications, media, location, sensors, and mixed projects can be generated from instructions and optional screenshots, built, installed or launched, tested, visually validated, repaired, and packaged as APK/AAB artifacts.
+
+## 31. Definition of Done for Nirman v1
+
+Nirman v1 is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman.
+
+The product is not considered autonomous-ready unless the runtime, rather than the model, remains the authority over lifecycle, permissions, sandboxing, storage, evidence, recovery, promotion, rollback, and termination.
+
+
+## 32. End-to-End Autonomous Android Session
+
+Implement one durable session that owns the complete path from a chat instruction and optional screenshots to a validated Android artifact. The session must persist the application contract, visual specification, technology plan, task graph, workers, terminals, sandbox, preview revision, checkpoints, validation, recovery, and artifact state independently of the chat interface.
+
+### Acceptance criteria
+
+1. One instruction plus optional screenshots creates one resumable autonomous Android session.
+2. The session continues while the chat view is closed or the user opens another task.
+3. The session selects Android technologies without requiring a framework or template choice.
+4. The session creates an isolated project workspace and starts the required terminals and device runtime.
+5. The session updates the Android preview after validated changes.
+6. Every preview state is linked to a project revision and checkpoint.
+7. The session records worker handoffs, commands, tests, screenshots, recovery attempts, and evidence.
+8. The session produces an APK or AAB when the project contract requires packaging.
+
+## 33. Progress Ledger and Stall Recovery
+
+Implement a progress ledger and stall detector that measure changed files, new evidence, preview movement, test transitions, worker handoffs, strategy changes, validated requirements, and artifact transitions.
+
+### Acceptance criteria
+
+1. Repeated commands, repeated patches, repeated failures, unchanged workspaces, missing evidence, stale emulators, and unresponsive processes are detected.
+2. A detected stall causes a meaningful strategy change, context refresh, environment repair, delegation, checkpoint restore, technology change, or isolated alternative.
+3. The same failed action is not repeated indefinitely.
+4. Fault-injection tests prove that the runtime can recover from worker, process, provider, emulator, device, Gradle, and preview failures.
+5. The task either continues toward completion or reports a precise evidence-backed blocker.
+
+## 34. Live Preview and APK/AAB Completion Gate
+
+Make the Android emulator or connected device a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
+
+### Acceptance criteria
+
+1. The preview displays the active device, project revision, checkpoint, installation state, reload state, Logcat, runtime errors, screenshots, and visual comparison results.
+2. A broken candidate never replaces the last valid preview revision.
+3. The final completion gate verifies build success, APK/AAB existence, checksum, artifact scan, installation or launch, main-flow execution, visual validation, permissions, and fatal runtime errors.
+4. The final report links the artifact to the source revision and evidence ledger.
+
+## 35. Full Android Capability Fixture Coverage
+
+Maintain generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK/AAB delivery.
+
+These fixtures are internal acceptance categories, not user-facing templates. The user must be able to describe the application without selecting a framework.
+
+### Acceptance criteria
+
+Every capability fixture can be generated from an instruction and optional screenshots, built, installed or launched, tested, visually validated, repaired, reconciled, and packaged as an APK or AAB where applicable. The technology plan must explain the selected stack and the evidence ledger must prove the result.
+
+## 36. No-Routine-Intervention Gate
+
+The Unattended / Full Autonomy profile must allow routine project-local actions to continue without approval pauses while preserving deterministic authority boundaries.
+
+### Acceptance criteria
+
+Editing, dependency installation, terminal execution, emulator launch, testing, screenshots, repair, checkpoints, worker handoffs, reconciliation, and local artifact creation proceed automatically under the configured policy. Credentials, destructive operations, publishing, signing, protected paths, hard safety violations, and unrecoverable blockers remain gated or terminate safely.
+
+
+## 37. Production Runtime Contracts and Lifecycle Authority
+
+Implement versioned contracts for sessions, application requirements, visual specifications, technology plans, task graphs, workers, terminal sessions, preview revisions, evidence, recovery, artifacts, and provider profiles. Implement the authoritative session lifecycle and safe terminal states.
+
+### Acceptance criteria
+
+1. Every durable runtime object validates against a versioned schema.
+2. State transitions are deterministic, persisted, replayable, and rejected when invalid.
+3. Model output, worker messages, skills, hooks, and UI events cannot commit lifecycle transitions directly.
+4. Corrupt state triggers migration, backup restoration, or safe execution disablement without destroying projects.
+
+## 38. Renewable Leases and Operation Capabilities
+
+Implement renewable session leases for long-running Android work and single-use operation capabilities for sensitive operations. Capabilities must bind session, worker, workspace, project revision, scope, action type, policy, and expiry.
+
+### Acceptance criteria
+
+Session leases renew only with valid heartbeats and progress or a classified external wait. Operation capabilities reject reuse, expiry, policy mismatch, scope mismatch, revision mismatch, and unauthorized action types. Models cannot mint, extend, or broaden capabilities.
+
+## 39. Android Project Ingestion and Integrity
+
+Implement Android-aware project discovery for Gradle files, manifests, resources, assets, localization, native modules, generated outputs, device configuration, secrets, keystores, local properties, and repository state. Add canonical paths, exclusions, project fingerprints, scope fingerprints, dependency graphs, and TOCTOU checks.
+
+### Acceptance criteria
+
+External changes between planning, editing, reconciliation, preview installation, packaging, and promotion are detected. Stale revisions are rejected and re-ingested. Secrets, signing material, generated outputs, and unrelated personal data are excluded from model context by default.
+
+## 40. Provider Gateway and Controlled Tool Protocol
+
+Implement a provider gateway for Chat Completions, Responses-style requests, messages, screenshots, structured outputs, typed tool calls, tool results, streaming task events, cancellation, usage, context limits, and normalized provider errors. Add role-based provider profiles for planning, coding, vision, debugging, testing, and review.
+
+### Acceptance criteria
+
+Every tool call is schema-validated, permission-checked, session-bound, worker-bound, sandbox-bound, privacy-classified, and recorded with evidence. Unknown tools, arguments, provider routes, and secret-access attempts are rejected. Provider failures are classified and routed through the recovery policy.
+
+## 41. Sandbox and Process Separation
+
+Implement separate authority and process domains for the desktop shell, control-plane supervisor, workers, Android build processes, emulator/device manager, preview application, provider transport, and credential service.
+
+### Acceptance criteria
+
+Generated code cannot access personal files, browser data, SSH keys, unrelated projects, signing keys, or arbitrary credentials. A worker cannot escape its workspace or broaden its network, process, device, or filesystem permissions. Fault injection proves policy enforcement at every boundary.
+
+## 42. Evidence, Memory, Replay, and Task History
+
+Implement separate event, evidence, memory, and replay stores. Add session/project/runtime memory boundaries, source and confidence metadata, retention and deletion, task reopening, validation reruns, strategy forks, provider comparisons, checkpoint restore, preview revision comparison, and artifact/evidence downloads.
+
+### Acceptance criteria
+
+A model claim cannot mark a requirement complete without evidence. Users can inspect, correct, export, delete, reopen, replay, fork, restore, and revalidate tasks without exposing credentials or unclassified private data to models.
+
+## 43. Production Windows Host Reliability
+
+Implement offline startup, atomic state writes, file locks, migrations, crash recovery, signed per-user installers, upgrade rollback, state preservation, virtualized large-project views, local editor assets, privacy-filtered logs, and memory-leak tests.
+
+### Acceptance criteria
+
+The host opens projects, settings, history, and checkpoints without a provider. Provider unavailability disables execution without crashing startup. Reboot, sleep/resume, upgrade failure, corrupted state, and process crash preserve recoverable task and project state.
+
+## 44. Device Matrix and Productivity Surface
+
+Implement device-matrix testing across phone, tablet, Android API levels, densities, orientations, and connected devices. Add one-click goal launch, technology rationale, changed-files timeline, build-health view, artifact center, recovery explanation, project-memory editor, privacy/network panel, and environment-repair center.
+
+### Acceptance criteria
+
+The user can start one Android goal, observe the live preview beside the execution tree, inspect technology selection and recovery, compare device results, restore a checkpoint, and download a validated APK/AAB with evidence.
+
+## 45. Integrated Production Readiness Gate
+
+Nirman is not production-ready until a complete Android fixture passes the following path without routine approval pauses: one instruction plus screenshots → contract extraction → technology selection → environment preparation → synthesis → worker/tool execution → emulator preview → failure injection and recovery → device validation → APK/AAB packaging → evidence report → task replay and checkpoint restore.
+
+
+---
+
+# M39–M50: Integrated Android Construction Runtime Milestones
+
+These milestones extend the existing Nirman roadmap with the accepted construction, orchestration, toolchain, code-intelligence, repair, preview, UX, and resource-governance requirements. They preserve Android-only generated output and the existing autonomous session contract.
+
+## M39 — AndroidConstructionContract and schema authority
+
+Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, Android requirements, device matrix, validation model, and artifact model. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
+
+**Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; all downstream workers consume the same contract; contract versions can be migrated and replayed.
+
+## M40 — Pure session reducer and event replay
+
+Implement the side-effect-free session reducer, append-only event store, monotonic event sequences, transition validation, and crash reconstruction. Add impossible-transition tests and replay tests.
+
+**Exit gate:** forced supervisor termination followed by restart reconstructs the same session state from durable events and checkpoints.
+
+## M41 — ConstructionTransaction and commit barrier
+
+Implement pre-mutation checkpointing, project revisions, transaction workspaces, mutation budgets, conflict detection, serialized per-revision commits, semantic reconciliation, rollback, and evidence-linked promotion.
+
+**Exit gate:** stale and conflicting worker proposals are rejected or reconciled without corrupting the project; failed transactions roll back atomically.
+
+## M42 — Renewable leases and operation capabilities
+
+Implement renewable SessionLease records, progress-aware heartbeat renewal, worker lease revocation, single-use operation capabilities, scope fingerprints, base-revision binding, and consumption before external side effects.
+
+**Exit gate:** expired leases cannot mutate; capability reuse is rejected; provider/device/signing operations require valid scoped capabilities; restart resumes only from durable boundaries.
+
+## M43 — AndroidToolchainManifest and clean-machine authority
+
+Implement Android toolchain discovery, lock generation, version/hash/license validation, isolated environment construction, environment snapshots, and authorized toolchain repair for JDK, Gradle, AGP, Kotlin, SDK, build tools, platform tools, NDK, CMake, ADB, emulator, Node/package manager, and selected React Native/Expo tooling.
+
+**Exit gate:** a clean-machine fixture builds using only the locked Android toolchain; host PATH and unrelated SDK installations cannot change the result.
+
+## M44 — Provider bridge protocol and supervision
+
+Implement protocol handshake, loopback authentication, provider/model capability validation, health states, request normalization for Chat Completions/Responses/message protocols, streaming events, cancellation, restart, offline mode, and privacy-filtered logging.
+
+**Exit gate:** bridge crash, protocol mismatch, authentication failure, provider outage, malformed output, rate limit, and unsupported capability all produce deterministic recoverable states without session corruption.
+
+## M45 — Multi-language AndroidCodeIntelligence
+
+Implement language adapters and graph indexing for Kotlin, Java, XML, manifests, Gradle Kotlin DSL/Groovy, TypeScript/JavaScript, C/C++ native modules, JSON/YAML/TOML, SQL, and lockfiles. Add file/module/symbol/resource/permission/navigation/test/device impact graphs.
+
+**Exit gate:** lightweight discovery upgrades to full semantic mode before mutation; affected files and tests are computed for representative Android projects across selected technology plans.
+
+## M46 — Structured mutation broker
+
+Implement parser-aware and schema-aware mutations, path and revision validation, file ownership, dependency policy, mutation budgets, whole-file fallback restrictions, formatting, syntax validation, and content-integrity checks.
+
+**Exit gate:** direct model writes and unsafe blind replacements are rejected; valid structured changes commit with evidence; invalid syntax or out-of-scope paths never reach the project.
+
+## M47 — AndroidRequirementManifest and repair registry
+
+Implement Android capability/requirement inference, missing and over-permission detection, manifest/resource validation, and deterministic repair patterns for toolchain, dependency, source/build, runtime, visual, accessibility, emulator, ADB, APK/AAB, and signing failures.
+
+**Exit gate:** representative failure fixtures classify correctly, select an allowed repair, respect retry budgets, restore checkpoints when required, and produce validation evidence.
+
+## M48 — Preview fallback matrix and revision binding
+
+Implement incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, physical-device preview, headless smoke tests, diagnostic preview, stale-preview detection, screenshot capture, interaction evidence, and Logcat binding.
+
+**Exit gate:** stale previews cannot satisfy completion; every promoted PreviewRevision identifies source revision, artifact, device, API level, mode, and evidence.
+
+## M49 — Decision trace, progressive disclosure, and resource governor
+
+Implement concise decision traces without hidden chain-of-thought, Calm/Inspect/Developer UI modes, environment and health dashboards, adaptive CPU/RAM/disk/emulator/worker/provider/context governance, safe cache pruning, and non-bypassable evidence gates.
+
+**Exit gate:** the user can understand progress, waiting, recovery, blocking, and evidence without reading raw logs; resource pressure changes scheduling but never weakens security or completion criteria.
+
+## M50 — End-to-end production acceptance
+
+Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, screenshots, API integrations, emulator/device validation, dependency repair, provider outage, bridge restart, worker crash, reboot, sleep, disk pressure, stale revision, conflict reconciliation, APK/AAB packaging, signing, and artifact export.
+
+**Exit gate:** a single instruction plus optional screenshots can produce a validated Android APK/AAB with source revision, checksum, environment snapshot, preview evidence, validation evidence, and replayable session history without routine human intervention.
+
+## Integrated acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| Construction contract | Validated versioned contract consumed by all workers |
+| Reducer/replay | Identical reconstructed state after restart |
+| Transactionality | Atomic commit/rollback and stale revision rejection |
+| Leases/capabilities | Expiry, scope, nonce, and revocation tests |
+| Toolchain authority | Clean-machine locked-toolchain build |
+| Provider supervision | Health, handshake, outage, restart, and privacy tests |
+| Code intelligence | Multi-language indexing and affected-test computation |
+| Mutation broker | Structured-only mutation and scope enforcement |
+| Android requirements | Permission/manifest/resource drift detection |
+| Repair registry | Classified fixtures with evidence-backed fixes |
+| Preview | Revision-bound emulator/device evidence |
+| Resource governance | Pressure tests without gate weakening |
+| Artifact completion | APK/AAB checksum, signing, environment, and validation proof |
+
+## References
+
+[1]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
+[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
+[3]: /home/ubuntu/upload/AGENT_EXECUTION_CONTRACT.md "Agent Execution Contract"
+[4]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
+[5]: /home/ubuntu/upload/TOOLCHAIN_MANIFEST.md "Toolchain Manifest"
+[6]: /home/ubuntu/upload/TOOLCHAIN_ISOLATION.md "Toolchain Isolation"
+[7]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
+[8]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
+[9]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
+[10]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
+
+
+---
+
+# M51–M58: Integrated Workflow and Quality Intelligence Milestones
+
+These milestones add the accepted README-derived capabilities to the existing Nirman roadmap. They do not change the Android-only generated target.
+
+## M51 — IntegratedAndroidWorkflowCoordinator
+
+Implement the canonical coordinator connecting prompt normalization, AndroidConstructionContract, preflight, AndroidTechnologyPlan, task graph, worker allocation, ConstructionTransaction, build, preview, testing, quality review, recovery, packaging, and evidence promotion.
+
+**Exit gate:** one session can traverse every boundary with durable events, idempotent command handling, and restart recovery from the last validated boundary.
+
+## M52 — Preflight risk and feasibility engine
+
+Implement `PreflightService`, `PreflightReport`, and `RiskAndFeasibilityEngine` for provider, toolchain, workspace, dependency, device, permissions, signing, storage, and validation-capacity checks.
+
+**Exit gate:** known blockers are identified before expensive generation; routine local repairs are dispatched through policy; unavailable credentials, devices, and prohibited actions become explicit states.
+
+## M53 — Independent Android quality gate
+
+Implement independent correctness, architecture, build, security, dependency, runtime, UI, accessibility, performance, test, and release reviews. Add blocking, warning, and informational finding classes.
+
+**Exit gate:** quality workers can block artifact promotion with evidence-backed findings, and a quality score alone cannot mark a session complete.
+
+## M54 — Failure-mode prevention catalogue
+
+Implement `FailureModeRegistry` with triggers, prevention checks, classification, permitted scope, recovery strategies, retry budgets, stop conditions, and evidence requirements for Android toolchain, dependency, source, runtime, device, visual, accessibility, packaging, and signing failures.
+
+**Exit gate:** representative fault fixtures classify consistently and select deterministic recovery or safe states.
+
+## M55 — Acceptance-test traceability
+
+Implement `TestTraceabilityService` mapping every mandatory contract requirement to acceptance criteria, tests, devices, results, evidence, and artifact revisions. Support honest skipped, blocked, flaky, and not-applicable states.
+
+**Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception.
+
+## M56 — Architecture and contract drift detection
+
+Implement `ArchitectureDriftDetector` and `ContractDriftDetector` for missing features, unreachable screens, undocumented permissions, missing migrations, untested criteria, unauthorized dependencies, stale generated files, architecture violations, and revision mismatch.
+
+**Exit gate:** drift cannot be silently hidden by editing the approved contract in place; changes require versioned reconciliation and revalidation.
+
+## M57 — Project handbook, release intelligence, and runtime analysis
+
+Implement generated project handbooks, release-intelligence reports, Logcat/ANR/native crash analysis, dependency health checks, vulnerability/license/provenance checks, and worker-quality metrics.
+
+**Exit gate:** every managed project has a concise validated handbook; every promoted artifact has a release report; runtime findings and dependency changes are evidence-linked.
+
+## M58 — Validated repair promotion and final integration
+
+Implement independent-fixture validation for learned repair patterns, bounded alternative strategy branches, and end-to-end regression testing across native, Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, emulators, physical devices, provider failures, toolchain failures, and artifact gates.
+
+**Exit gate:** capability support is reported from passing fixtures and retained evidence, not module counts or unsupported percentages.
+
+## Integrated acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| Workflow coordinator | Idempotent end-to-end session with restart recovery |
+| Preflight | Blocker/risk report before expensive work |
+| Quality gate | Independent findings and promotion blocking |
+| Failure modes | Deterministic classification and recovery fixtures |
+| Test traceability | Requirement-to-test-to-evidence matrix |
+| Drift detection | Contract and architecture mismatch detection |
+| Runtime analysis | Crash/ANR/Logcat fingerprinting linked to repair |
+| Dependency health | Compatibility, security, license, and lock checks |
+| Handbook/release report | Revision-bound generated documentation |
+| Worker metrics | Routing metrics without authority escalation |
+| Repair promotion | Independent validation before trusted reuse |
+| Scope integrity | Android-only generated-target audit |
+
+## References
+
+[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
+[2]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
+[3]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
+[4]: /home/ubuntu/upload/REPAIR_PATTERNS.md "Repair Patterns"
+[5]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
+[6]: /home/ubuntu/upload/CODE_INTELLIGENCE.md "Code Intelligence"
+[7]: /home/ubuntu/upload/EXECUTION_ENVIRONMENT.md "Execution Environment"
+
+
+---
+
+# M59–M61: Reasoning Visibility and Streaming Milestones
+
+## M59 — PrivateReasoningRuntime and StructuredReasoningSummarizer
+
+Implement the internal reasoning boundary for planning, self-critique, hypothesis generation, alternative comparison, diagnosis, and strategy selection. Add schema-validated summaries containing objectives, constraints, alternatives, selected action, uncertainty, confidence, expected validation, and next step.
+
+**Exit gate:** private reasoning is never exposed verbatim, persisted as a transcript, sent in worker handoffs, used as evidence, or treated as a runtime command.
+
+## M60 — ReasoningStreamEvent, filtering, and authenticated delivery
+
+Implement allowed event types, deterministic redaction, session/task/worker/revision binding, monotonic sequencing, durable persistence, authenticated local streaming, acknowledgements, reconnect, back-pressure, and UI filters.
+
+**Exit gate:** understanding, constraints, plan, alternatives, decisions, actions, observations, recovery, evidence, waiting, next-step, and completion events stream in order; secrets, source content, personal data, hidden instructions, and private reasoning are withheld.
+
+## M61 — Reasoning replay and presentation modes
+
+Implement Calm, Inspect, and Developer presentations, event replay without side effects, summary requests, pause-auto-scroll behavior, event filtering, evidence links, stale-state indicators, and fault-injection tests for disconnects, duplicate events, gaps, provider cancellation, and summarization failure.
+
+**Exit gate:** the user can reconnect after UI/control-plane restart and recover the filtered stream; presentation changes do not alter execution or policy behavior.
+
+## Integrated acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| Private reasoning boundary | No verbatim private reasoning in UI, storage, logs, handoffs, or exports |
+| Structured summary | Valid schema with constraints, decision, uncertainty, and next step |
+| Filtering | Deterministic redaction and withholding of unsafe summaries |
+| Streaming | Authenticated, ordered, durable, reconnectable delivery |
+| Runtime separation | Visible decisions cannot authorize tools or mutations |
+| Replay | Side-effect-free reconstruction from filtered events |
+| Status truthfulness | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
+| Back-pressure | UI disconnect cannot stop autonomous execution |
+
+## References
+
+[1]: /home/ubuntu/upload/README.md "Attached autonomous app-builder README"
+[2]: /home/ubuntu/upload/AI_RUNTIME_MODEL.md "AI Runtime Model"
+[3]: /home/ubuntu/upload/AI_SERVICE_LAYER.md "AI Service Layer"
+[4]: /home/ubuntu/upload/ORCHESTRATION_ENGINE.md "Orchestration Engine"
+
+
+---
+
+# M62–M64: Brand and Asset Completion Milestones
+
+## M62 — BrandManifest, AssetManifest, and BrandAssetWorker
+
+Implement versioned BrandManifest and AssetManifest schemas, brand-intent extraction, screenshot references, asset provenance, content hashes, regeneration history, and the scoped BrandAssetWorker.
+
+**Exit gate:** a user request for a logo, icon, splash screen, notification icon, illustration, or visual identity creates explicit asset requirements and a traceable asset plan.
+
+## M63 — Android asset integration and validation
+
+Implement adaptive launcher icon, legacy icon, monochrome icon where applicable, splash, notification, in-app, theme, density, format, dimension, contrast, accessibility, resource-reference, and manifest integration validation.
+
+**Exit gate:** requested assets resolve in the Android project, pass validators, appear in the live preview, and stale or invalid asset revisions are rejected.
+
+## M64 — ArtifactAssetInspector and final completion gate
+
+Implement built APK/AAB extraction, asset presence and reachability checks, content-hash comparison, placeholder detection, preview binding, fallback records, and branding-change invalidation.
+
+**Exit gate:** an APK/AAB cannot be promoted when requested branding assets are missing, stale, unintegrated, invalid, or placeholder-only. A complete artifact includes asset evidence, provenance, preview verification, and release-report references.
+
+## Integrated acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| Brand intent | Versioned BrandManifest from user request and screenshots |
+| Asset planning | AssetManifest with explicit requested types and statuses |
+| Generation | Provider or approved local/vector fallback with provenance |
+| Integration | Correct Android resources, references, and manifest entries |
+| Preview | Current AssetManifest displayed in PreviewRevision |
+| Artifact inspection | APK/AAB contains requested assets and matching hashes |
+| Accessibility | Contrast, transparency, silhouette, and theme checks |
+| Change handling | Affected assets regenerate and stale evidence is invalidated |
+| Completion gate | Missing or placeholder-only requested branding blocks promotion |
+
+## References
+
+[1]: /home/ubuntu/upload/BRANDING_INFERENCE_HEURISTICS.md "Branding Inference Heuristics"
+[2]: /home/ubuntu/upload/PLATFORM_REQUIREMENTS_ENGINE.md "Platform Requirements Engine"
+[3]: /home/ubuntu/upload/PREVIEW_SYSTEM.md "Preview System"
+
+
+---
+
+# 5A. Locked Implementation Stages
+
+The detailed milestones below are executed through four architectural stages. Nirman must not attempt every autonomous capability simultaneously.
+
+## Stage 1 — Foundation
+
+Build Tauri 2, React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Rust/Tokio, SQLite, Git, native Windows process controls, the provider gateway, project management, CodeMirror 6, xterm.js, Android toolchain detection, basic Android build and preview, checkpoints, and undo.
+
+**Stage 1 exit gate:** a user can open or create an Android workspace, configure a provider, chat, inspect files, edit a file, run a supervised terminal, build or preview an Android project, create a checkpoint, and undo a change.
+
+## Stage 2 — Reliable single-worker autonomy
+
+Implement the authoritative session state machine, ToolBroker, PolicyAuthority, operation capabilities, ConstructionTransactionManager, EvidenceAuthority, RecoveryAuthority, process supervision, and one reliable autonomous worker.
+
+**Stage 2 exit gate:** a single worker can inspect, plan, mutate, build, preview, test, repair, checkpoint, roll back, and produce an evidence-backed Android artifact across injected provider, process, toolchain, emulator, and source failures.
+
+## Stage 3 — Durable autonomy
+
+Extract or launch `NirmanSupervisor.exe` as the durable runtime. Add worker leases, background execution, persistent ConPTY terminals, Windows login/reboot/sleep recovery, ResourceGovernor, Android device management, PreviewCoordinator, provider supervision, reconnectable event streaming, and UI projection recovery.
+
+**Stage 3 exit gate:** the supervisor continues eligible work when the UI closes, reconnects after UI restart, recovers after Windows restart, preserves SQLite execution state, and resumes from a validated checkpoint without routine human intervention.
+
+## Stage 4 — Swarm and self-development
+
+Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git worktrees, reconciliation, Goal Mode, schedules, self-observation, self-improvement, candidate promotion, rollback, and advanced long-horizon optimization.
+
+**Stage 4 exit gate:** parallel proposals reconcile through serialized commit barriers, self-development candidates run separately from the stable runtime, and every promotion or rollback is evidence-backed.
+
+## 5B. Stack-lock implementation tasks
+
+| Task | Required result |
+|---|---|
+| Desktop shell | Tauri 2 Windows shell and bundler |
+| UI | React/TypeScript/Vite with Tailwind and shadcn/ui |
+| UI state | Presentation-only Zustand or equivalent projection store |
+| Rust runtime | Tokio supervisor interfaces and typed commands/events |
+| Database | SQLite migrations, execution-ledger schema, SQLx evaluation |
+| Editor | CodeMirror 6 first-release integration |
+| Terminal | xterm.js renderer with Rust ConPTY supervisor |
+| Provider | ModelGateway, adapters, streaming, capability detection, tool normalization |
+| Android | Toolchain manifest, JDK/Gradle/SDK/ADB/emulator health and build |
+| Windows | Restricted tokens, Job Objects, ACLs, environment filtering, process supervision |
+| Packaging | Nirman.exe and Windows installer path |
+
+## 5C. Sequencing invariant
+
+Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK/AAB artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
+
+## References
+
+[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman architecture review"
+[2]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
+[3]: /home/ubuntu/Nirman/nirman-technical-architecture.md "Nirman technical architecture"
