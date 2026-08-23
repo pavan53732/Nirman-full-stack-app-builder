@@ -1140,3 +1140,63 @@ Swarm work and self-development cannot begin until the single-worker runtime pas
 [1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman architecture review"
 [2]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
 [3]: /home/ubuntu/Nirman/nirman-technical-architecture.md "Nirman technical architecture"
+
+
+---
+
+# M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
+
+These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.
+
+| Milestone | Focus | Required result |
+|---|---|---|
+| M65 | AgentExecutionKernel and loop reducer | Observe, understand, plan, select, authorize, execute, observe result, update, evaluate, continue/recover/delegate/validate/complete |
+| M66 | SkillRuntime and composition | Discover, select, bind, execute, validate, compose compatible skills, and record SkillExecutionRecord |
+| M67 | Dynamic worker instances and AgentProfiles | Construct bounded workers from role, profile, skills, tools, workspace, permissions, resources, context, and recovery policy |
+| M68 | DelegationProtocol and knowledge ledger | Typed delegate/spawn/handoff/resume/cancel/replace/retry/escalate/merge operations and scoped KnowledgeArtifacts |
+| M69 | TaskBlackboard and WorkspaceLeaseManager | Controlled task blackboard, renewable workspace ownership, stale lease recovery, and no duplicate workspace writes |
+| M70 | Stateful ToolSessions and capability graph | Reconnectable terminal, ADB, emulator, debugger, LSP, and preview sessions mapped to required capabilities |
+| M71 | EnvironmentCapabilityPlanner | Classify prerequisites as AVAILABLE, REPAIRABLE, USER_REQUIRED, or UNAVAILABLE before expensive work |
+| M72 | ValidationPlanner | Select focused or expanded Android validation from changed files, symbols, graph impact, risk, requirements, and devices |
+| M73 | Mutation and regression intelligence | Predict affected behavior using call, route, dependency, traceability, and historical-failure relationships |
+| M74 | TrajectoryReplayEngine | Replay decisions and tool results against new models, prompts, skills, schemas, and runtimes without side effects |
+| M75 | SimulationExecutor | Provide clearly labeled dry-run predictions without mutating source, executing commands, or claiming observed evidence |
+| M76 | Deadlock and backpressure controls | Detect dependency/resource/approval cycles and reserve scarce Gradle, emulator, device, GPU, storage, and provider capacity |
+| M77 | Cancellation and independent pause/resume | Propagate cancellation through every descendant and preserve exact pause/resume state for workers and skills |
+| M78 | Decision, uncertainty, contradiction, and replanning services | Add structured decision nodes, fact states, contradiction revisions, and evidence-triggered plan recompilation |
+| M79 | ExecutionHistoryManager | Implement hot, warm, cold, and archived history with safe compaction and evidence-preserving garbage collection |
+| M80 | End-to-end autonomous-runtime certification | Prove one long-running Android goal through dynamic allocation, failure recovery, replanning, device validation, APK/AAB packaging, replay, and history compaction |
+
+## M65–M80 acceptance gates
+
+### Kernel and authority gate
+
+A model cannot execute directly. Every proposal passes schema, revision, capability, policy, transaction, observation, evidence, and reducer checks. Invalid transitions are rejected and replayable.
+
+### Skill and worker gate
+
+A composed Android workflow can allocate compatible skills and dynamically configured worker instances without granting new permissions. Every skill and worker produces a typed handoff and evidence record.
+
+### Resource and liveness gate
+
+Injected task cycles, worker waits, resource starvation, approval waits, stale leases, provider delays, and emulator contention produce deadlock or backpressure findings rather than indefinite waiting or uncontrolled spawning.
+
+### Recovery gate
+
+Cancellation, pause, worker replacement, process failure, provider failure, emulator loss, and tool-session reconnect preserve checkpoints, leases, context references, and evidence. Resumption does not repeat completed side effects.
+
+### Traceability gate
+
+An evaluator can select any mandatory requirement and follow it through acceptance criterion, task node, worker contract, skill, code change, validation run, evidence, and APK/AAB artifact.
+
+### Replay and simulation gate
+
+A recorded trajectory can be replayed against a changed model or runtime without touching the real project. A dry run clearly distinguishes predicted commands and tests from observed and verified results.
+
+### Long-horizon history gate
+
+A multi-hour Android task can compact active state, move old records to warm/cold/archive tiers, restore a historical trace, and retain all required completion evidence, checkpoint parents, and artifact provenance.
+
+### M80 certification fixture
+
+The certification fixture should include a user instruction and optional screenshots for an Android application with multiple screens, offline data, a device capability, branded assets, background work, and a release artifact. The fixture must inject a dependency failure, a provider interruption, a stale worker, an emulator interruption, a contradiction in requirements, and a validation failure. Nirman must recover, replan, validate, produce the APK/AAB, and retain an inspectable trajectory without routine human intervention.

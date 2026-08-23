@@ -2399,3 +2399,260 @@ xterm.js is only a terminal renderer. Rust owns ConPTY sessions, shell profiles,
 ## 42.5 Completion invariants
 
 The stack is considered correctly implemented only when the UI can restart without losing a session, the supervisor can continue without the UI, Android toolchains execute through supervised local processes, model proposals pass through ModelGateway, ToolBroker, and PolicyAuthority, and APK/AAB promotion remains evidence-backed. No framework selector, web target, Windows generated target, or cloud execution environment is introduced.
+
+
+---
+
+# 43. Core Agent Execution Kernel and Autonomous Loop Contract
+
+## 43.1 Purpose
+
+Nirman must expose a first-class **AgentExecutionKernel** between the goal/task graph and worker, skill, and tool execution. Existing worker lifecycle states describe whether a process is created, active, waiting, or stopped; the kernel describes how autonomous reasoning and verified execution progress from an observation to the next evidence-backed state.
+
+The kernel must be deterministic at the authority boundary. Models may propose interpretations, plans, actions, delegations, repairs, and validation strategies. The kernel, reducer, policy authority, transaction manager, process supervisor, and evidence authority decide what may actually happen.
+
+The mandatory control invariant is:
+
+```text
+Model output
+    ↓
+Structured proposal
+    ↓
+Schema validation
+    ↓
+Revision and scope validation
+    ↓
+Policy and capability authorization
+    ↓
+Construction transaction or supervised tool session
+    ↓
+Observation and evidence
+    ↓
+State transition
+```
+
+Nirman must never implement a direct `model → execute` path.
+
+## 43.2 Agent loop states
+
+The kernel must maintain a separate reasoning/execution state machine from the worker-process lifecycle state machine:
+
+```text
+OBSERVE
+   ↓
+UNDERSTAND
+   ↓
+PLAN
+   ↓
+SELECT_ACTION
+   ↓
+AUTHORIZE
+   ↓
+EXECUTE
+   ↓
+OBSERVE_RESULT
+   ↓
+UPDATE_STATE
+   ↓
+EVALUATE_PROGRESS
+   ├── CONTINUE
+   ├── VALIDATE
+   ├── RECOVER
+   ├── DELEGATE
+   ├── REPLAN
+   └── COMPLETE
+```
+
+Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition. Impossible transitions must be rejected and recorded as runtime faults.
+
+## 43.3 Progress evaluation
+
+After every meaningful observation, the kernel must determine whether the current goal is progressing, blocked, contradicted, unsafe, stale, or satisfied. Progress evaluation must consider requirement coverage, changed files, test results, preview revision, environment capability state, worker handoffs, unresolved uncertainty, failure fingerprints, resource pressure, and artifact readiness.
+
+Completion is permitted only when the appropriate requirement, test, preview, device, quality, branding, and APK/AAB evidence gates pass. A model statement that a task is complete is never sufficient evidence.
+
+## 43.4 SkillRuntime and skill composition
+
+The existing skill registry describes packages and permissions. Nirman must also provide a `SkillRuntime` that performs:
+
+```text
+DISCOVER
+  ↓
+SELECT
+  ↓
+CHECK_COMPATIBILITY
+  ↓
+BIND_INPUT
+  ↓
+ASSEMBLE_CONTEXT
+  ↓
+EXECUTE
+  ↓
+MEDIATE_TOOLS
+  ↓
+VALIDATE_OUTPUT
+  ↓
+CAPTURE_EVIDENCE
+  ↓
+RETURN_RESULT
+```
+
+A skill lifecycle must include `DISCOVERED`, `INSTALLED`, `SCANNED`, `TRUSTED`, `AVAILABLE`, `SELECTED`, `BOUND`, `RUNNING`, `WAITING_TOOL`, `WAITING_APPROVAL`, `VALIDATING`, `COMPLETED`, `FAILED`, and `ROLLED_BACK`.
+
+Skills may compose into bounded Android workflows. For example, Android UI implementation may compose with accessibility review, visual regression, Android build diagnostics, and release validation. Composition must check skill dependencies, version compatibility, required worker roles, required tools, required Android profiles, input/output schemas, resource limits, and permissions.
+
+Loading or composing a skill never grants a permission. The PolicyAuthority must authorize every capability independently.
+
+Every invocation must produce a `SkillExecutionRecord` containing the skill version, worker, task, input hash, context references, tools used, permissions used, files changed, evidence IDs, duration, model usage, result status, and rollback reference.
+
+## 43.5 Agent profiles and dynamic worker instances
+
+A worker role defines responsibility. An `AgentProfile` defines how a particular instance operates:
+
+```text
+AgentProfile
+├── model profile
+├── reasoning mode
+├── context strategy
+├── skill set
+├── tool set
+├── permission profile
+├── autonomy level
+├── generation parameters
+├── maximum child count
+├── resource policy
+├── recovery policy
+├── validation policy
+└── memory policy
+```
+
+A worker instance must be constructed from a role, task contract, profile, skills, model, tools, workspace lease, permission profile, resource profile, context profile, parent task, and recovery policy. Dynamic creation must remain bounded and must not expand permissions or workspace scope.
+
+## 43.6 SwarmPlanner and DelegationProtocol
+
+Nirman must add a `SwarmPlanner` that decides whether a goal can be parallelized. It must analyze requirements, dependency graph, change surface, file and symbol boundaries, validation cost, workspace availability, tool capability requirements, risk, and resource capacity before selecting workers.
+
+The planner must optimize for correct integration and evidence, not maximum worker count:
+
+```text
+Goal
+  ↓
+Dependency analysis
+  ↓
+Change-surface analysis
+  ↓
+Work decomposition
+  ↓
+Parallelism analysis
+  ↓
+Worker/profile selection
+  ↓
+Interface agreement
+  ↓
+Workspace allocation
+  ↓
+Swarm execution
+  ↓
+Reconciliation and validation
+```
+
+The typed delegation protocol must support `delegate`, `spawn`, `handoff`, `resume`, `cancel`, `replace`, `retry`, `escalate`, and `merge`. A delegation request must include the required capability, proposed role/profile, task scope, input references, expected outputs, validation requirements, parent task, workspace lease, and cancellation lineage.
+
+## 43.7 KnowledgeLedger and TaskBlackboard
+
+Workers must communicate through typed, scoped knowledge rather than a shared mutable prompt or unbounded common memory. Nirman must maintain a `KnowledgeLedger` and a task-scoped `TaskBlackboard` containing goals, requirements, architecture facts, decisions, constraints, assumptions, active workers, completed work, blocked work, findings, conflicts, evidence, known failures, and next actions.
+
+A `KnowledgeArtifact` may be a finding, decision, constraint, assumption, architecture fact, failure pattern, test result, artifact, or environment fact. It must include the source worker, source task, project revision, confidence, evidence IDs, validity period, and scope.
+
+Workers may read relevant entries, propose artifacts, attach evidence, request changes, and retrieve facts. Only deterministic authorities may commit decisions, mutate the task graph, mark requirements complete, change policy, or promote artifacts.
+
+## 43.8 Workspace leases and stateful ToolSessions
+
+Every isolated worktree, copy-on-write workspace, terminal, ADB session, emulator, debugger, LSP, preview process, and other long-lived execution resource must be represented by an ownership and lifecycle record.
+
+A `WorkspaceLease` must include workspace ID, owner worker, task ID, parent checkpoint, lease state, acquisition time, heartbeat, expiration, cleanup policy, recovery policy, current revision, and stale-owner handling. Lease recovery must prevent orphan worktrees, duplicate ownership, zombie builds, and stale writes.
+
+A `ToolSession` must include session ID, tool type, owner, task and project scope, environment fingerprint, process group, current state, capability scope, input policy, output reference, heartbeat, reconnect policy, cleanup policy, and evidence references. Sessions must support reconnect after worker replacement or UI restart without granting a new scope.
+
+## 43.9 Tool Capability Graph and environment capability planning
+
+Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a physical device or emulator capability, and device validation.
+
+Each required environment capability must be classified as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a validation path. The planner must surface the distinction early instead of discovering an impossible prerequisite after a long build.
+
+## 43.10 ValidationPlanner and mutation/regression intelligence
+
+The `ValidationPlanner` must choose checks from changed files, changed symbols, call graph, route graph, dependency graph, requirements, acceptance criteria, project type, risk level, previous failures, device profiles, and available resources.
+
+A change to an Android screen, repository, permission, navigation route, data model, manifest, native module, or build file must expand validation to the affected behavior. The planner may select focused checks for low-risk changes and automatically expand to instrumentation, accessibility, security, visual, device, performance, regression, and release checks for high-risk changes.
+
+The planner must emit a traceability chain:
+
+```text
+Requirement
+  ↓
+Acceptance criterion
+  ↓
+Task graph node
+  ↓
+Worker contract
+  ↓
+Skill execution
+  ↓
+Code change
+  ↓
+Validation run
+  ↓
+Evidence
+  ↓
+APK/AAB artifact
+```
+
+## 43.11 Trajectory Replay and Simulation mode
+
+Nirman must provide a side-effect-free `TrajectoryReplayEngine` that can replay a recorded goal, context references, structured model proposals, tool calls, tool results, state changes, observations, and next decisions against a new model, prompt, skill, tool schema, or runtime without touching the real project.
+
+Nirman must also provide a clearly labeled **Simulation/Dry-Run Mode**. It may predict workers, skills, files, commands, permissions, devices, tests, resources, risks, and expected validation, but it must not mutate files, execute commands, start devices, or claim that predicted checks actually ran. Simulation output must be labeled `PREDICTED`, while executed evidence must be labeled `OBSERVED` or `VERIFIED`.
+
+## 43.12 Deadlock, backpressure, cancellation, and pause/resume
+
+The runtime must detect dependency cycles across tasks, workers, resource reservations, approvals, workspace leases, and ToolSessions. A detected deadlock must produce a typed finding and trigger safe recovery, reordering, worker replacement, or a structured decision node.
+
+Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, physical devices, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
+
+Cancellation must propagate from goal to task graph, workers, skills, ToolSessions, processes, PTY sessions, emulator operations, and pending provider requests. Each layer must support graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
+
+Workers and skills must support independent pause and resume. Pausing must preserve context references, ToolSessions, leases, checkpoints, and unresolved questions while allowing unrelated work to continue.
+
+## 43.13 Decision nodes, uncertainty, contradiction, and plan recompilation
+
+When multiple valid Android architectures or recovery strategies exist, Nirman must represent a `DecisionNode` containing the question, options, evidence, trade-offs, recommendation, impact, and resume conditions. It is distinct from a generic command approval.
+
+The runtime must track uncertainty as first-class state: `KNOWN`, `PROBABLE`, `ASSUMED`, `UNKNOWN`, `CONTRADICTED`, `VERIFIED`, and `BLOCKED`. Each uncertainty record must identify its scope, source, evidence, confidence, expiration, and next resolution action.
+
+A contradiction detector must identify conflicting requirements, stale assumptions, invalidated decisions, changed device constraints, and architecture drift. It must create a controlled decision revision rather than silently selecting whichever statement appeared most recently.
+
+The `PlanCompiler` and `Replanner` must produce plan revisions when evidence, environment, requirements, toolchain, worker availability, or validation results invalidate the current plan. Each plan revision must record `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and migration/recovery action.
+
+## 43.14 Execution history tiers
+
+Long-running Android sessions must not retain every event, terminal output, screenshot, failed strategy, intermediate plan, and checkpoint in active memory. The `ExecutionHistoryManager` must provide:
+
+| Tier | Contents | Retrieval behavior |
+|---|---|---|
+| Hot | Current graph, active workers, current plan, latest evidence, unresolved blockers | Always available to the kernel |
+| Warm | Recent events, recent terminal summaries, recent checkpoints, recent preview and test results | Loaded on task or worker request |
+| Cold | Older events, completed handoffs, historical failures, superseded plans, old screenshots | Retrieved by indexed query or replay request |
+| Archived | Content-addressed logs, full traces, old artifacts, crash dumps, retired sessions | Restored explicitly for audit or investigation |
+
+Compaction must preserve semantic summaries, evidence links, revision identity, and replay references. Garbage collection must never delete required completion evidence, active checkpoint parents, unresolved failure evidence, or artifact provenance.
+
+## 43.15 Product acceptance invariants
+
+The AgentExecutionKernel release is complete only when Nirman can run one Android goal through the loop state machine, execute a skill composition, dynamically configure a worker profile, delegate a typed task, exchange knowledge artifacts, lease a workspace, reconnect a ToolSession, plan environment capabilities, select affected validation, replay the trajectory without side effects, simulate the plan without mutation, detect a deadlock, apply backpressure, propagate cancellation, pause and resume a worker, surface a decision node, track uncertainty, recompile a plan, compact execution history, and deliver an evidence-backed APK/AAB.
+
+The user-facing stream must show concise structured events for these transitions without exposing private chain-of-thought. The deterministic runtime remains the only authority over mutation, tools, permissions, lifecycle, evidence, recovery, and artifact promotion.
+
+## References
+
+[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"

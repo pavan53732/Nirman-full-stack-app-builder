@@ -1437,3 +1437,230 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 [2]: /home/ubuntu/Nirman/nirman-build-spec.md "Nirman product specification"
 [3]: /home/ubuntu/Nirman/nirman-technical-architecture.md "Nirman technical architecture"
 [4]: /home/ubuntu/Nirman/nirman-development-plan.md "Nirman development plan"
+
+
+---
+
+# ADR-118: Make AgentExecutionKernel a first-class runtime subsystem
+
+**Status:** Accepted
+
+**Decision:** Nirman will expose an AgentExecutionKernel between goal/task compilation and worker, skill, and tool execution.
+
+**Rationale:** Planning, execution, observation, recovery, delegation, and validation must form one durable runtime loop rather than remain scattered across worker prompts.
+
+**Consequences:** The kernel produces proposals and transitions, while policy, transaction, evidence, lifecycle, and artifact authorities remain non-delegable.
+
+# ADR-119: Separate agent-loop state from worker-process lifecycle state
+
+**Status:** Accepted
+
+**Decision:** Nirman will maintain a reasoning/execution loop state machine separately from process lifecycle states. The loop includes observe, understand, plan, select, authorize, execute, observe-result, update, evaluate, continue, validate, recover, delegate, replan, and complete.
+
+**Rationale:** A worker process may be alive while its reasoning loop is blocked, validating, recovering, or waiting for a decision.
+
+**Consequences:** Both state machines require durable sequence numbers, impossible-transition checks, and replayable events.
+
+# ADR-120: Use SkillRuntime for compatibility, composition, execution, and evidence
+
+**Status:** Accepted
+
+**Decision:** Skills will execute through SkillRuntime, which verifies discovery, trust, compatibility, inputs, context, tools, permissions, outputs, and evidence. Compatible Android skills may compose into a bounded directed acyclic workflow.
+
+**Rationale:** A skill registry alone does not define safe execution or provenance.
+
+**Consequences:** Loading or composing a skill never grants a permission. Every invocation creates SkillExecutionRecord.
+
+# ADR-121: Use SwarmPlanner to decide parallelism
+
+**Status:** Accepted
+
+**Decision:** SwarmPlanner will analyze dependency, change-surface, validation, capability, workspace, device, provider, and resource constraints before selecting parallel work.
+
+**Rationale:** Correct integration and evidence matter more than maximizing worker count.
+
+**Consequences:** Some complex goals remain serialized when parallelism would increase conflict or validation risk.
+
+# ADR-122: Represent each worker as a runtime-configured instance
+
+**Status:** Accepted
+
+**Decision:** Each worker instance is constructed from a role, AgentProfile, task contract, skills, tools, permissions, resources, context, workspace lease, parent, and recovery policy.
+
+**Rationale:** Responsibility and operating behavior are separate concerns.
+
+**Consequences:** Worker creation is bounded and cannot expand authority or scope.
+
+# ADR-123: Formalize typed delegation and replacement operations
+
+**Status:** Accepted
+
+**Decision:** Nirman will formalize delegate, spawn, handoff, resume, cancel, replace, retry, escalate, and merge operations with typed inputs, outputs, lineage, and validation requirements.
+
+**Rationale:** Long-running autonomy needs explicit worker replacement and recovery semantics.
+
+**Consequences:** Unstructured worker-to-worker instructions cannot change the task graph or authority policy.
+
+# ADR-124: Share typed knowledge through a controlled ledger and blackboard
+
+**Status:** Accepted
+
+**Decision:** Workers exchange scoped KnowledgeArtifacts through KnowledgeLedger and TaskBlackboard. Only authoritative services may commit decisions, mutate the graph, mark requirements complete, change policy, or promote artifacts.
+
+**Rationale:** Shared mutable memory causes stale assumptions, context pollution, and conflicting writes.
+
+**Consequences:** Every artifact has source, revision, confidence, scope, validity, and evidence.
+
+# ADR-125: Use renewable WorkspaceLease records
+
+**Status:** Accepted
+
+**Decision:** Every isolated worktree or copy-on-write workspace requires a renewable lease with owner, parent checkpoint, heartbeat, expiration, cleanup, recovery, and stale-owner handling.
+
+**Rationale:** Long-running swarms need protection against orphan workspaces, duplicate ownership, zombie builds, and stale writes.
+
+**Consequences:** A stale lease cannot write until recovery verifies process and revision state.
+
+# ADR-126: Model long-lived tools as ToolSessions
+
+**Status:** Accepted
+
+**Decision:** Terminals, ADB, emulators, debuggers, LSPs, and preview processes will be represented as reconnectable ToolSessions with ownership, scope, environment fingerprint, process group, heartbeat, input policy, and cleanup.
+
+**Rationale:** Stateful tools outlive individual worker messages and sometimes the UI connection.
+
+**Consequences:** Reconnect preserves scope; it never grants additional capabilities.
+
+# ADR-127: Plan through a Tool Capability Graph and Environment Capability Planner
+
+**Status:** Accepted
+
+**Decision:** Nirman will map goals to required capabilities, skills, workers, tools, and environment prerequisites, then classify prerequisites as AVAILABLE, REPAIRABLE, USER_REQUIRED, or UNAVAILABLE before expensive work.
+
+**Rationale:** Early capability planning prevents late discovery of impossible Android validation paths.
+
+**Consequences:** Physical-device access, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
+
+# ADR-128: Make ValidationPlanner and mutation/regression analysis authoritative for test selection
+
+**Status:** Accepted
+
+**Decision:** ValidationPlanner and MutationRegressionAnalyzer will select focused or expanded Android checks using files, symbols, call/route/dependency graphs, requirements, risk, prior failures, project type, and device profiles.
+
+**Rationale:** Running the same fixed test set after every change is inefficient and can miss affected behavior.
+
+**Consequences:** A high-risk manifest, permission, data, navigation, native-module, or build change expands validation automatically.
+
+# ADR-129: Use side-effect-free trajectory replay
+
+**Status:** Accepted
+
+**Decision:** TrajectoryReplayEngine will replay recorded observations, proposals, tool calls, results, state changes, and evidence references against new models, prompts, skills, schemas, or runtimes without touching real projects or sending external side effects.
+
+**Rationale:** Replay is required for model, skill, prompt, runtime, and self-improvement regression testing.
+
+**Consequences:** Replay results are clearly separate from production execution evidence.
+
+# ADR-130: Provide Simulation/Dry-Run Mode
+
+**Status:** Accepted
+
+**Decision:** SimulationExecutor will predict workers, skills, files, commands, permissions, devices, tests, resources, and risks without mutation or execution.
+
+**Rationale:** Users and engineers need to inspect a proposed plan and test runtime behavior safely.
+
+**Consequences:** Predicted, simulated, observed, and verified statuses must never be conflated.
+
+# ADR-131: Detect deadlocks and apply agent-level backpressure
+
+**Status:** Accepted
+
+**Decision:** DeadlockDetector will analyze task, worker, resource, approval, lease, and ToolSession cycles. BackpressureController will reserve scarce Android and provider resources and expose queue, priority, fairness, and waiting state.
+
+**Rationale:** Autonomous swarms can stall without repeating the same failed action.
+
+**Consequences:** The scheduler may reduce concurrency or reorder work rather than launch additional workers.
+
+# ADR-132: Propagate cancellation through the complete execution tree
+
+**Status:** Accepted
+
+**Decision:** Cancellation will propagate from goal to tasks, workers, skills, ToolSessions, child processes, PTY, emulator actions, and pending provider requests with graceful, forced, cleanup, checkpoint, and rollback semantics.
+
+**Rationale:** Partial cancellation leaves resource leaks, stale leases, and misleading task state.
+
+**Consequences:** Every descendant must acknowledge cancellation or be forcibly terminated under policy.
+
+# ADR-133: Support independent worker and skill pause/resume
+
+**Status:** Accepted
+
+**Decision:** Nirman will pause and resume individual workers and skills while preserving context, leases, ToolSessions, checkpoints, and unresolved questions.
+
+**Rationale:** Long-running goals may contain independent work that should continue while one branch is paused.
+
+**Consequences:** Paused branches remain visible and cannot silently expire without recovery handling.
+
+# ADR-134: Represent ambiguity as structured Human Decision Nodes
+
+**Status:** Accepted
+
+**Decision:** Multiple valid Android architectures or recovery paths will be represented as DecisionNodes containing question, options, evidence, trade-offs, recommendation, impact, and resume conditions.
+
+**Rationale:** A decision node is richer and more durable than an unstructured approval request.
+
+**Consequences:** The task can resume from the selected option without reconstructing context from chat history.
+
+# ADR-135: Track uncertainty and contradiction as evidence-bound state
+
+**Status:** Accepted
+
+**Decision:** Nirman will track KNOWN, PROBABLE, ASSUMED, UNKNOWN, CONTRADICTED, VERIFIED, and BLOCKED facts with source, confidence, scope, expiry, evidence, and next action.
+
+**Rationale:** Long tasks accumulate stale assumptions and conflicting requirements.
+
+**Consequences:** Contradictions create controlled decision revisions instead of silent last-write-wins behavior.
+
+# ADR-136: Recompile plans when evidence invalidates them
+
+**Status:** Accepted
+
+**Decision:** PlanCompiler and Replanner will create revisions recording planRevision, supersedesPlan, reason, trigger evidence, affected nodes, and recovery or migration action.
+
+**Rationale:** A long-horizon plan must adapt to environment, requirements, toolchain, worker, and validation changes.
+
+**Consequences:** Completed side effects remain immutable and the new plan starts from verified state.
+
+# ADR-137: Tier execution history
+
+**Status:** Accepted
+
+**Decision:** ExecutionHistoryManager will maintain hot, warm, cold, and archived history tiers with evidence-preserving compaction and retrieval.
+
+**Rationale:** Multi-hour Android tasks can produce more events and artifacts than active memory can retain.
+
+**Consequences:** Garbage collection cannot delete required evidence, active checkpoint parents, unresolved failure evidence, or artifact provenance.
+
+# ADR-138: Score workers using validated outcomes
+
+**Status:** Accepted
+
+**Decision:** AgentQualityScorer will evaluate correctness, evidence quality, regression rate, repair success, unnecessary actions, tool/context efficiency, error rate, handoff quality, and recovery quality.
+
+**Rationale:** Model and worker routing should learn from validated results rather than configuration alone.
+
+**Consequences:** Scores are advisory routing signals and cannot override policy or evidence authorities.
+
+# ADR-139: Require end-to-end autonomous-runtime certification
+
+**Status:** Accepted
+
+**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK/AAB packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
+
+**Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
+
+**Consequences:** The single-worker and durable-supervisor gates remain mandatory prerequisites for expanded autonomy.
+
+## References
+
+[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"

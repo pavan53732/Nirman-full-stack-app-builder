@@ -2658,3 +2658,324 @@ Git is a first-class subsystem for checkpoints, rollback, worker isolation, reco
 ## 53.10 Technical acceptance tests
 
 The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; CodeMirror and xterm.js remain presentation components; Android toolchains are supervised locally; and the final APK/AAB remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
+
+
+---
+
+# 54. Agent Execution Kernel and Runtime Formalization
+
+## 54.1 Module topology
+
+The following modules make autonomous reasoning and execution explicit without creating a second runtime authority:
+
+```text
+GoalInterpreter
+      ↓
+TaskGraphCompiler
+      ↓
+AgentExecutionKernel
+      ├── AgentLoopReducer
+      ├── ProgressEvaluator
+      ├── SkillRuntime
+      ├── WorkerRuntime
+      ├── SwarmPlanner
+      ├── DelegationProtocol
+      ├── KnowledgeLedger / TaskBlackboard
+      ├── WorkspaceLeaseManager
+      ├── ToolSessionRegistry
+      ├── ToolCapabilityGraph
+      ├── EnvironmentCapabilityPlanner
+      ├── ValidationPlanner
+      ├── MutationRegressionAnalyzer
+      ├── TrajectoryReplayEngine
+      ├── SimulationExecutor
+      ├── DeadlockDetector
+      ├── BackpressureController
+      ├── CancellationPropagationManager
+      ├── DecisionNodeManager
+      ├── UncertaintyRegistry
+      ├── PlanCompiler / Replanner
+      └── ExecutionHistoryManager
+```
+
+These modules produce proposals and state transitions, but LifecycleAuthority, PolicyAuthority, ToolBroker, ConstructionTransactionManager, EvidenceAuthority, and ArtifactAuthority remain the non-delegable authorities.
+
+## 54.2 AgentExecutionKernel contract
+
+```text
+AgentExecutionKernel
+- start(goal_id, session_id)
+- observe(observation)
+- propose(proposal)
+- authorize(proposal)
+- execute(authorized_action)
+- observe_result(result)
+- evaluate_progress()
+- continue_or_recover()
+- delegate(request)
+- validate(plan)
+- replan(trigger)
+- complete(evidence_set)
+```
+
+The kernel loop is:
+
+```text
+OBSERVE
+  ↓
+UNDERSTAND
+  ↓
+PLAN
+  ↓
+SELECT_ACTION
+  ↓
+AUTHORIZE
+  ↓
+EXECUTE
+  ↓
+OBSERVE_RESULT
+  ↓
+UPDATE_STATE
+  ↓
+EVALUATE_PROGRESS
+  ├── CONTINUE
+  ├── VALIDATE
+  ├── RECOVER
+  ├── DELEGATE
+  ├── REPLAN
+  └── COMPLETE
+```
+
+Only `AgentLoopReducer` may commit a lifecycle transition. A provider delta, partial stream, worker message, or UI action may request a transition but cannot apply one directly.
+
+## 54.3 Durable schemas
+
+```text
+AgentLoopRecord
+- loop_id
+- session_id
+- task_id
+- agent_instance_id
+- state
+- state_version
+- goal_revision
+- plan_revision
+- project_revision
+- last_observation_id
+- last_proposal_id
+- progress_status
+- retry_strategy
+- cancellation_scope
+- created_at
+- updated_at
+
+AgentProposal
+- proposal_id
+- source_provider
+- source_worker
+- input_revision
+- action_type
+- action_arguments
+- expected_observation
+- required_capabilities
+- risk_class
+- schema_status
+- policy_status
+- transaction_status
+- evidence_status
+
+AgentProfile
+- profile_id
+- model_profile
+- reasoning_mode
+- context_strategy
+- skill_ids
+- tool_capabilities
+- permission_profile
+- autonomy_level
+- generation_parameters
+- max_children
+- resource_policy
+- recovery_policy
+- validation_policy
+- memory_policy
+```
+
+A proposal is immutable after validation. Any change creates a new proposal revision linked to the evidence or contradiction that caused it.
+
+## 54.4 SkillRuntime
+
+`SkillRuntime` resolves skill discovery, compatibility, composition, input binding, context assembly, execution, tool mediation, output validation, and evidence capture. It verifies skill version, required ToolBroker version, Android profile, worker role, input/output schema, permissions, and resource requirements before execution.
+
+```text
+SkillExecutionRecord
+- execution_id
+- skill_id
+- skill_version
+- task_id
+- worker_id
+- agent_instance_id
+- input_hash
+- context_references
+- tools_used
+- permissions_used
+- files_changed
+- evidence_ids
+- duration_ms
+- model_usage
+- result_status
+- rollback_reference
+```
+
+A skill composition is a directed acyclic graph with bounded depth, explicit inputs/outputs, shared revision identity, and a single validation contract. A composed skill cannot grant another skill permissions.
+
+## 54.5 SwarmPlanner and delegation
+
+`SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, device availability, provider concurrency, and resource pressure. It emits a `SwarmPlan` containing parallel groups, serialized dependencies, worker profiles, interfaces, leases, capacity reservations, and integration checkpoints.
+
+`DelegationProtocol` supports:
+
+```text
+delegate(request)
+spawn(worker_instance)
+handoff(contract)
+resume(scope)
+cancel(scope)
+replace(worker)
+retry(strategy)
+escalate(reason)
+merge(results)
+```
+
+Every operation carries parent task, cancellation lineage, input references, expected outputs, required capabilities, profile, permissions, resource reservation, workspace lease, and validation requirements. Dynamic worker creation is bounded by policy and never changes the authority graph.
+
+## 54.6 KnowledgeLedger and TaskBlackboard
+
+`KnowledgeLedger` stores typed, scoped `KnowledgeArtifact` records. `TaskBlackboard` is a task-scoped projection containing the goal, requirements, architecture, decisions, constraints, assumptions, active workers, completed/blocked work, findings, conflicts, evidence, known failures, and next actions.
+
+Workers may read, propose, attach evidence, request changes, and retrieve relevant entries. Only authoritative services may commit a decision, change the task graph, mark a requirement complete, change policy, or promote an artifact.
+
+```text
+KnowledgeArtifact
+- artifact_id
+- kind: finding | decision | constraint | assumption | architecture_fact |
+        failure_pattern | test_result | artifact | environment_fact
+- source_worker
+- source_task
+- project_revision
+- confidence
+- evidence_ids
+- valid_from
+- valid_until
+- scope
+- supersedes
+```
+
+## 54.7 WorkspaceLeaseManager and ToolSessionRegistry
+
+`WorkspaceLeaseManager` gives every worktree or copy-on-write workspace one owner, one parent checkpoint, a renewable heartbeat, an expiration, cleanup rules, and recovery rules. Stale leases become recoverable resources only after process and revision checks.
+
+`ToolSessionRegistry` represents terminals, ADB, emulators, debuggers, LSPs, preview processes, and other long-lived tools as reconnectable sessions:
+
+```text
+ToolSession
+- session_id
+- tool_type
+- owner_worker
+- task_id
+- project_id
+- environment_fingerprint
+- process_group
+- state
+- capability_scope
+- input_policy
+- output_reference
+- heartbeat
+- reconnect_policy
+- cleanup_policy
+- evidence_ids
+```
+
+A tool session may be reattached after worker replacement or UI restart, but reattachment does not expand its capability scope.
+
+## 54.8 Tool Capability Graph and environment planning
+
+`ToolCapabilityGraph` maps an outcome to capability requirements, skills, worker profiles, tools, and environment prerequisites. For example, Android BLE validation may require Android APIs, a compatible SDK, a native module, Bluetooth permissions, ADB, an emulator or selected physical device, and device-test capability.
+
+`EnvironmentCapabilityPlanner` evaluates each prerequisite before expensive execution and classifies it as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE`. It records the toolchain lock, environment fingerprint, repair attempt, and evidence used for the classification.
+
+## 54.9 ValidationPlanner and mutation regression analysis
+
+`ValidationPlanner` chooses validation from changed files, symbols, call graph, route graph, dependency graph, requirement traceability, project type, risk, previous failures, device profiles, and resource availability. `MutationRegressionAnalyzer` predicts affected behavior and expands validation when a change touches a manifest, permission, navigation route, data model, native module, build file, authentication boundary, or shared UI component.
+
+```text
+ValidationPlan
+- plan_id
+- task_id
+- project_revision
+- affected_nodes
+- required_checks
+- focused_checks
+- expanded_checks
+- risk_score
+- device_matrix
+- resource_reservations
+- stop_conditions
+- evidence_requirements
+```
+
+## 54.10 TrajectoryReplayEngine and SimulationExecutor
+
+`TrajectoryReplayEngine` replays recorded observations, structured proposals, tool calls, tool results, state transitions, evidence references, and next decisions against a new model, prompt, skill, schema, or runtime. Replay is read-only with respect to real projects and cannot send external side effects.
+
+`SimulationExecutor` produces a dry-run plan with predicted workers, skills, files, commands, permissions, devices, tests, resources, and risks. It uses explicit statuses: `PREDICTED`, `SIMULATED`, `OBSERVED`, and `VERIFIED`. It must not mutate source files, execute commands, start an emulator, or claim that a predicted test passed.
+
+## 54.11 Deadlock, backpressure, and cancellation
+
+`DeadlockDetector` analyzes cycles across task dependencies, worker waits, resource reservations, approvals, workspace leases, and ToolSessions. A detected cycle produces a typed finding and may trigger reorder, replacement, lease recovery, cancellation, replanning, or a `DecisionNode`.
+
+`BackpressureController` reserves and queues Gradle processes, emulator slots, physical devices, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
+
+`CancellationPropagationManager` propagates cancellation from goal to task graph, workers, skills, ToolSessions, child processes, PTY, emulator actions, and pending provider requests. Each node supports graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
+
+Independent worker or skill pause must preserve context references, leases, ToolSessions, checkpoints, and unresolved questions. Unrelated workers may continue.
+
+## 54.12 DecisionNodeManager, uncertainty, and replanning
+
+`DecisionNodeManager` represents ambiguous architecture or recovery choices with a question, options, evidence, trade-offs, recommendation, impact, and resume conditions. A decision node is separate from a generic command approval and remains bound to a task and plan revision.
+
+`UncertaintyRegistry` tracks `KNOWN`, `PROBABLE`, `ASSUMED`, `UNKNOWN`, `CONTRADICTED`, `VERIFIED`, and `BLOCKED` facts with source, confidence, evidence, expiry, scope, and next action. `ContradictionDetector` creates a controlled decision revision when requirements, assumptions, device constraints, toolchains, or architecture facts conflict.
+
+`PlanCompiler` and `Replanner` compile a new plan when evidence invalidates the current one. Each revision records `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and recovery/migration action.
+
+## 54.13 ExecutionHistoryManager
+
+`ExecutionHistoryManager` separates active state from retained history:
+
+| Tier | Content | Access |
+|---|---|---|
+| Hot | Current graph, active workers, current plan, latest evidence, blockers | Kernel context |
+| Warm | Recent events, terminal summaries, checkpoints, preview/test results | Task request |
+| Cold | Older events, handoffs, failures, superseded plans, screenshots | Indexed retrieval or replay |
+| Archived | Full traces, old artifacts, crash dumps, retired sessions | Explicit audit restore |
+
+Compaction must preserve semantic summaries, evidence links, revision identity, artifact provenance, and replay references. Garbage collection cannot delete active checkpoint parents, mandatory completion evidence, unresolved failure evidence, or artifact provenance.
+
+## 54.14 Runtime invariants
+
+1. Only the reducer commits lifecycle state.
+2. Only the ToolBroker executes tools.
+3. Only PolicyAuthority grants capabilities.
+4. Only ConstructionTransactionManager mutates the project.
+5. Only EvidenceAuthority confirms completion.
+6. Only ArtifactAuthority promotes APK/AAB output.
+7. Replay and simulation are side-effect free.
+8. Dynamic workers and skills cannot expand permissions.
+9. A stale lease cannot write to a workspace.
+10. Cancellation reaches every descendant execution node.
+11. A predicted result cannot be represented as observed evidence.
+12. History compaction cannot remove required proof.
+
+## References
+
+[1]: /home/ubuntu/upload/pasted_content.txt "User-provided Nirman runtime architecture review"
