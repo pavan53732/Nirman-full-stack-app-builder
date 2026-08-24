@@ -2,8 +2,9 @@
 """
 Nirman contract-graph verifier — implements build spec §67.11.
 
-Runs all ten certification checks over the four canonical documents in both
-traversal directions (§67.9). Exits 1 on any defect.
+Runs all eleven §67.11 contract-graph checks over the four canonical
+documents in both traversal directions (§67.9), plus the document-structure
+check required by the verifier harness. Exits 1 on any defect.
 
 Registries consumed:
   §5.6   Capability Registry           (CapabilityId -> required contracts, test, evidence)

@@ -2031,3 +2031,19 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A streamed model response, a progress spinner, a file timestamp, or a successful compilation can be mistaken for actual execution. Separating presentation from authority prevents false progress and false completion.
 
 **Consequences:** UI reconnect and replay reconstruct the durable projection from the event ledger. A disconnected or stale stream cannot advance status locally. Prompt or model claims are retained only as proposals or explanations and never as proof.
+
+## ADR-184: Normalize provider-native reasoning without exposing or delegating runtime authority
+
+**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+
+**Status:** Accepted
+
+**Decision:** Nirman will treat provider-native reasoning effort and runtime deliberation as separate but composable resources. The ModelGateway will normalize provider-specific reasoning controls into the runtime's NORMAL, EXTENDED, DEEP, and EXHAUSTIVE effort levels, while the deterministic runtime remains responsible for effort grants, reasoning budgets, pass limits, evidence requirements, and authority. Provider-native reasoning tokens or equivalent usage will be recorded as reported, estimated, or unavailable and will never be fabricated.
+
+A provider that cannot satisfy the minimum reasoning capability required by the current deliberation must not silently downgrade the task. The runtime must select an approved compatible provider/model, explicitly downgrade when policy permits, or terminate with a typed capability gap.
+
+No provider-native reasoning stream containing private model reasoning may be persisted or exposed verbatim. Only approved structured summaries and runtime events may enter the visible reasoning stream.
+
+**Rationale:** A hard-problem-solving runtime needs to use models that support deeper inference when available, but provider-specific reasoning controls cannot become a second authority system. Separating native reasoning from runtime deliberation also prevents the system from treating one expensive model request as equivalent to evidence-producing iterative problem solving.
+
+**Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, deliberation budgets must reserve and settle reasoning expenditure transactionally, and provider failover must revalidate reasoning capability before continuation.

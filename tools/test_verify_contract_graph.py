@@ -303,7 +303,7 @@ def main():
         "duplicate authority", "unregistered contract", "undeclared extension",
         "authority cycle", "clause contradiction", "unversioned override",
         "dangling reference", "forward break", "reverse break", "orphan contract",
-        "structure",
+        "canonical identity", "structure",
     }
     # FATAL is a harness-synthesised class, not a §67.11 check; exclude it from
     # coverage accounting so the ratio cannot exceed the number of real checks.
@@ -319,7 +319,7 @@ def main():
             bad += 1
         print(f"{'PASS' if ok else 'FAIL'}  {name:<{width}}  {detail}")
     print(f"\n{len(results) - bad}/{len(results)} checks passed")
-    print(f"§67.11 checks proven non-vacuous: "
+    print(f"verifier detection classes proven non-vacuous: "
           f"{len(covered_checks)}/{len(expected_checks)}")
     extra = sorted(covered - expected_checks)
     if extra:

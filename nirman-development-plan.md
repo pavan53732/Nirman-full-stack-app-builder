@@ -508,9 +508,13 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 ### M22: Provider-neutral AI settings and model gateway
 
-Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, and health status. Implement canonical adapters for OpenAI-compatible chat-completion requests, response-item requests, message-oriented requests, streaming, tool calls, structured output, multimodal input, cancellation, usage, request IDs, and error normalization.
+Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
 
-**Exit gate:** The user can configure a provider manually, test the selected model, see detected capabilities, run a multi-turn message request, execute a tool call, stream or emulate events, cancel a request, and inspect normalized usage and request IDs without exposing the key.
+The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible local-provider requests. It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
+
+Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
+
+**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, stream or emulate events, cancel a request, and inspect normalized usage and request IDs without exposing the key.
 
 ### M23: Controlled self-development loop
 
@@ -520,7 +524,11 @@ Implement the stable launcher/controller, isolated self-development worktree, so
 
 ### M24: Adaptive long-horizon provider execution
 
-Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, and task-state persistence. User-configured hard caps remain available but are opt-in.
+Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, reasoning-effort routing, reasoning-budget reservation and settlement, provider-native reasoning normalization, provider capability gaps, and task-state persistence.
+
+Native provider reasoning and runtime deliberation must remain separate resources. The runtime must be able to combine higher provider-native reasoning effort with multiple bounded deliberation passes while preserving the total deliberation budget, evidence requirements, and authority boundaries.
+
+User-configured hard caps remain available but are opt-in.
 
 **Exit gate:** A long-running fixture task can continue through multiple provider requests and context compactions, adapt its model or worker strategy, recover from a transient provider failure, and complete without being stopped by an ordinary usage threshold.
 
@@ -533,6 +541,11 @@ Implement continuation across provider request boundaries without a default time
 | Protocol normalization | Chat, response-item, and message-oriented requests reach the same internal gateway |
 | Tool continuity | Tool-call IDs and tool results remain correctly associated across turns |
 | Streaming | Partial events are durable and reconnectable; non-streaming providers still produce lifecycle events |
+| Reasoning capability | Provider reports whether native reasoning is supported and which normalized effort levels it can satisfy |
+| Reasoning normalization | NORMAL/EXTENDED/DEEP/EXHAUSTIVE requests map deterministically to provider-specific parameters |
+| Reasoning accounting | Reported reasoning usage is distinguished from estimated or unavailable usage |
+| Reasoning budget | Concurrent provider requests cannot consume the same remaining deliberation budget |
+| Reasoning capability gap | A provider unable to satisfy the required minimum effort produces a typed capability gap or approved failover |
 | Self-update isolation | Current installation is unchanged until candidate validation succeeds |
 | Candidate health | Candidate launches in a temporary profile and passes IPC, database, provider, preview, and smoke checks |
 | Migration safety | Failed migration leaves the previous version and recoverable database available |
@@ -1238,10 +1251,10 @@ Each milestone implements exactly one registered contract from build spec §67.8
 | M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-VER-001 | EV-VER-001 | Speculation gate |
 | M93 | CONTRACT.RUNTIME.INVARIANTS | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
 | M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
-| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation gate |
+| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
 | M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
 
-M93 must additionally run the contract-graph verifier of build spec §67.11 across all ten checks in both traversal directions, and must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, or orphan contract.
+M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
 ### M93 documentation certification fixture
 
@@ -1302,7 +1315,7 @@ Any mutation event carrying a deliberation pass as its originating context is a 
 
 ### M95 fault-injection fixtures
 
-The gate above states required behavior. These four fixtures inject the specific
+The gate above states required behavior. These seven fixtures inject the specific
 fault each rule exists to prevent, so the rule is proven rather than asserted.
 Each runs against a real Android fixture project with a configured
 `DeliberationBudget`, and each must produce the stated observable outcome.
@@ -1312,7 +1325,10 @@ Each runs against a real Android fixture project with a configured
 | FIX-DEL-01 no-evidence loop | A question the model cannot resolve from the current observation set | Passes proceed until `maxToollessPasses`, then the runtime refuses a further plain pass and either acquires evidence or terminates; it never loops indefinitely |
 | FIX-DEL-02 budget exhaustion | A budget too small to reach sufficiency | Terminates `BUDGET_EXHAUSTED`; the leading strategy is not executed; the cycle yields `WAITING`, `SAFELY_FAILED`, or `ESCALATED` |
 | FIX-DEL-03 forced compaction | Context compaction triggered mid-deliberation with several hypotheses rejected | Session resumes with active hypotheses and rejected strategies intact; no rejected hypothesis is re-derived or retested against unchanged evidence |
-| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes on the replacement provider at the same effort level with the same remaining budget; continuation state is not reset |
+| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes from the last deliberation checkpoint with the same remaining runtime budget and required effort level. The replacement provider's reasoning capability is revalidated before continuation. If it supports the required level, continuation occurs at that level; otherwise the runtime selects another approved provider/model or terminates with a typed capability gap. Continuation state is never reset silently |
+| FIX-DEL-05 native reasoning normalization | Provider exposes native reasoning with a provider-specific effort parameter | NORMAL/EXTENDED/DEEP/EXHAUSTIVE runtime requests are translated into the provider's declared parameter space; the normalized request and granted capability are recorded; no provider-specific setting bypasses the runtime budget |
+| FIX-DEL-06 reasoning usage accounting | Provider reports reasoning usage for one pass | Reported reasoning usage is recorded and settled against the reserved budget; the ledger distinguishes reported usage from runtime wall-clock and model-request counts |
+| FIX-DEL-07 reasoning capability gap | Provider does not support the requested minimum reasoning effort | The runtime records the capability gap and either selects an approved compatible provider/model or terminates safely; it never claims the requested effort was performed |
 
 Each fixture must also assert the two invariants that hold across all of them:
 the ledger contains zero project mutation events before the `AUTHORIZE` grant,

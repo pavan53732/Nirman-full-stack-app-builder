@@ -412,16 +412,34 @@ Nirman should allow users to configure their own AI provider without changing ap
 | Embedding model ID | Optional model used for project retrieval |
 | Token limit | Provider-specific output limit |
 | Temperature | Optional creativity control |
-| Reasoning configuration | Optional provider capability setting |
-| Timeout | Maximum request duration |
-| Enabled capabilities | Text, vision, structured output, tool calling, embeddings |
+| Reasoning capability | Whether the selected model supports provider-native reasoning |
+| Reasoning effort levels | Provider-supported mapping for NORMAL, EXTENDED, DEEP, and EXHAUSTIVE |
+| Maximum reasoning tokens | Provider-reported or configured upper bound when supported |
+| Reasoning usage reporting | Whether reasoning-token or equivalent effort usage is reported, estimated, or unavailable |
+| Reasoning configuration | Provider-specific settings normalized by the ModelGateway |
+| Timeout | Maximum provider request duration, bounded by the active deliberation budget |
+| Enabled capabilities | Text, vision, structured output, tool calling, reasoning, embeddings |
 | Test connection | Sends a safe validation request before saving |
 
 ### 8.2 Provider adapter interface
 
-The internal provider interface should normalize differences between services. It should support text generation, structured JSON output, tool calls, vision input, streaming responses, cancellation, error normalization, and capability discovery.
+The internal provider interface must normalize differences between services. It must support text generation, structured JSON output, tool calls, vision input, streaming responses, cancellation, error normalization, capability discovery, reasoning-effort configuration, reasoning-token accounting, context-capacity discovery, and provider-specific continuation behavior.
 
-A provider adapter should return a normalized result containing the model ID, response text, tool calls, usage information when available, finish reason, request duration, and any provider warning.
+The normalized provider capability descriptor must distinguish:
+
+- native reasoning support;
+- supported reasoning effort levels;
+- maximum reasoning-token capacity when known;
+- whether reasoning usage is provider-reported, estimated, or unavailable;
+- whether reasoning effort can be changed between requests;
+- whether reasoning continues across provider requests;
+- whether the provider supports background or asynchronous requests.
+
+Provider-specific reasoning controls must never be passed through as opaque authority-bearing settings. The ModelGateway maps the runtime's normalized effort request to provider-specific parameters and records the mapping.
+
+A provider that cannot represent the requested reasoning effort must not claim that it did so. The runtime must either downgrade the effort level according to policy and record the constraint, select another approved provider/model, or terminate deliberation with a typed capability gap.
+
+A provider adapter should return a normalized result containing the model ID, response text, tool calls, structured output, reasoning usage when available, capability metadata, usage information, finish reason, request duration, and any provider warning.
 
 ### 8.3 Privacy behavior
 
@@ -2246,6 +2264,13 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 | `EVIDENCE` | Report proof collected | “Reminder instrumentation test passed on the API 35 emulator.” |
 | `NEXT_STEP` | State the immediate planned continuation | “Running accessibility and visual validation next.” |
 | `WAITING` | Explain a blocked or waiting condition | “Waiting for the approved physical device to reconnect.” |
+| `DELIBERATION` | Show that the runtime entered bounded additional reasoning | “Deep deliberation started because two competing hypotheses remain unresolved.” |
+| `EFFORT` | Show requested versus granted effort | “Requested DEEP; granted DEEP within the task policy and remaining budget.” |
+| `HYPOTHESIS` | Show competing diagnostic candidates | “Three plausible causes remain.” |
+| `REFUTATION` | Show evidence that eliminated a hypothesis | “The discriminating test ruled out the dependency-initialization hypothesis.” |
+| `MODEL_ESCALATION` | Show a provider/model capability change | “Escalating to the approved reasoning-capable model because uncertainty remained above threshold.” |
+| `NO_PROGRESS` | Show why the current reasoning approach stopped | “Further reasoning produced no measurable movement; gathering new evidence.” |
+| `DELIBERATION_RESUMED` | Show continuation after compaction/failover | “Resumed deliberation with two rejected hypotheses and remaining budget intact.” |
 | `COMPLETION` | Summarize validated output | “APK and AAB passed the required gates and are ready for export.” |
 
 Every event MUST contain a concise title, human-readable summary, event sequence, session/task/worker IDs, project revision, timestamp, status, provenance references, and evidence IDs when applicable.
@@ -3717,7 +3742,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179 | M95 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
@@ -3899,7 +3924,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.SPECULATION | CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §51 | TA §65.4 | BS §65 | TA §51.1 | TA §65.6 | ADR-156 | M92 | TEST-VER-001 | EV-VER-001 |
 | CONTRACT.RUNTIME.SKILL | CAP.ANDROID.SKILL_WORKFLOW | BS §23 | BS §23 | TA §19 | TA §19.1 | BS §23 | TA §19.1 | TA §19.1 | ADR-154 | M66 | TEST-SKL-001 | EV-SKL-001 |
 | CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
-| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172 | M95 | TEST-DEL-001 | EV-DEL-001 |
+| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
@@ -3956,32 +3981,52 @@ Deliberation is bounded by the same boundary §66.2 establishes. Additional reas
 
 ```text
 DeliberationRecord
-- deliberationId
-- cycleId
-- taskId
-- effortLevel: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
-- objective
-- question
-- passCount
-- hypothesesConsidered
-- hypothesesRejected
-- evidenceAcquired
-- alternativesConsidered
-- selectedStrategy
-- rejectedStrategies
-- uncertaintyBefore
-- uncertaintyAfter
-- confidenceBefore
-- confidenceAfter
-- reasonForContinuation
-- reasonForTermination
-- modelProfilesUsed
-- providerRequestRefs
-- resourceUsage
+- deliberationId: uuid
+- cycleId: uuid
+- taskId: uuid
+- effortLevelRequested: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
+- effortLevelGranted: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
+- grantDecisionReason: text
+- escalationTriggerEventId: eventId | null
+- objective: text
+- question: text
+- passCount: int
+- toollessPassCount: int
+- hypothesesConsidered: hypothesisId[]
+- hypothesesRejected: hypothesisId[]
+- evidenceAcquired: evidenceRef[]
+- evidenceDeltaByPass: { pass, evidenceRefs }[]
+- alternativesConsidered: { strategy, rejectionReason }[]
+- selectedStrategy: text
+- rejectedStrategies: { strategy, refutingEvidenceRef }[]
+- strategyRevisionRefs: evidenceRef[]
+- refutationAttemptedByPass: { pass, attempted: true | false }[]
+- uncertaintyBefore: float
+- uncertaintyAfter: float
+- confidenceBefore: float
+- confidenceAfter: float
+- continuationReasons: { pass, reason }[]
+- reasonForTermination: text
+- modelProfilesUsed: profileId[]
+- providerRequestRefs: requestId[]
+- reasoningUsage: {
+    reasoningTokensReported,
+    reasoningTokensEstimated,
+    accountingStatus
+  }
+- resourceUsage: {
+    reasoningTimeMs,
+    modelRequests,
+    wallClockMs
+  }
 - outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED
 ```
 
-A record whose `passCount` exceeds one must state `reasonForContinuation` for each additional pass. Continuation without a stated reason is not admissible, which prevents unbounded thinking presented as diligence.
+A record whose `passCount` exceeds one must contain one `continuationReasons` entry for each additional pass. Continuation without a stated reason is not admissible. Each continuation reason must identify the condition that justified another pass and must be associated with the pass that consumed the additional deliberation budget. This prevents unbounded thinking presented as diligence.
+
+The runtime must never fabricate provider-reported reasoning usage. If the provider does not expose reasoning-token usage, the record must state `estimated` or `unavailable` in `accountingStatus`. Estimates are telemetry only and cannot satisfy a sufficiency or certification requirement.
+
+This schema is the single canonical `DeliberationRecord` representation; the technical architecture (TA §72.3) implements this exact field set and must not invent alternative representations of any field.
 
 ### 68.3 The deliberation decision
 
@@ -4014,11 +4059,20 @@ DeliberationBudget
 - maxStrategyCandidates
 - maxSpecialistConsultations
 - maxCandidateBranches
+- maxReasoningTokensPerPass
+- maxReasoningTimePerPass
+- maxProviderRequestsPerPass
 - escalationThreshold
 - diminishingReturnThreshold
 ```
 
 `maxToollessPasses` is required: consecutive reasoning passes without new observation are the dominant failure mode of extended thinking, and the runtime must force evidence acquisition rather than permit indefinite unlit reasoning.
+
+Before each provider request, the deterministic runtime must reserve the maximum permitted reasoning expenditure for that request from the remaining deliberation budget. The provider request cannot begin until the reservation succeeds.
+
+When the request completes, the runtime settles the reservation against observed usage when available, or against the configured maximum when usage is unavailable, and returns unused capacity to the deliberation budget when safe to do so.
+
+Budget reservation and settlement are transactional. Two concurrent deliberation requests must never be able to consume the same remaining reasoning budget.
 
 ### 68.5 The runtime grants the budget
 
@@ -4027,6 +4081,14 @@ The agent may request an effort level. It may never grant its own. The determini
 A request exceeding what policy or capacity permits is downgraded to the highest permitted level and recorded, never denied silently and never satisfied beyond the ceiling. This is the §33 authority principle applied to reasoning effort: the model proposes how hard to think; the runtime decides.
 
 Every grant above the task's baseline level must record the observed condition that triggered it. An escalation whose `grantDecisionReason` cites no observed condition is not an adaptive escalation and must be rejected: effort level differing before and after is not evidence that the runtime recognised anything. This makes escalation causally auditable rather than merely observable.
+
+Native provider reasoning and runtime deliberation are separate resources.
+
+Provider-native reasoning increases computation within one model request. Runtime deliberation increases the number of bounded reasoning/evidence iterations across requests. Either may be used independently or together.
+
+A DEEP deliberation may therefore use a single provider request with high native reasoning effort, multiple provider requests at a lower native effort, or multiple requests whose native effort is itself escalated, provided the total deliberation budget and provider capability constraints are respected.
+
+The runtime must never treat a provider's native reasoning effort as proof that runtime deliberation occurred.
 
 ### 68.6 Reasoning effort levels
 
@@ -4038,6 +4100,27 @@ Every grant above the task's baseline level must record the observed condition t
 | EXHAUSTIVE | High-risk architectural or destructive change unresolved at DEEP | Candidate branching or escalation required at termination |
 
 Escalation must be justified by a recorded condition, not by preference. De-escalation is permitted when uncertainty resolves. Effort level never alters permissions, evidence requirements, or authority.
+
+The levels are behavioral contracts, not model-name aliases:
+
+```text
+NORMAL
+    one bounded reasoning pass.
+
+EXTENDED
+    additional bounded passes are permitted when uncertainty remains,
+    with evidence acquisition required at the configured observation-free bound.
+
+DEEP
+    competing hypotheses, discriminating tests, refutation attempts, and
+    adversarial critique are mandatory.
+
+EXHAUSTIVE
+    DEEP behavior plus candidate branching or specialist escalation when
+    unresolved high-risk uncertainty remains at termination.
+```
+
+Selecting a higher level does not require a different model. Selecting a stronger model does not automatically increase the effort level.
 
 ### 68.7 Sufficiency is not confidence
 
