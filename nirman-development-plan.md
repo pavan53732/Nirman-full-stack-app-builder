@@ -1334,3 +1334,41 @@ Passing this fixture requires the deliberation runtime to demonstrably change th
 A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
 
 This is the anti-vacuity rule of §57.5 applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.
+
+
+## M96 — IntentSynthesisPromptContract and no-template enforcement
+
+Implement the shared prompt-builder contract for coordinator, worker, skill, review, and deliberation prompts. Prompts must extract Android product intent, distinguish facts from assumptions, propose an Android technology plan without a framework or template choice, and produce schema-validated proposals rather than executable commands. Add negative fixtures for template-selection requests, app-archetype assumptions, non-Android target proposals, and model claims that predicted work was executed.
+
+**Exit gate:** prompt fixtures reject user-facing template selection, reject non-Android generated targets, preserve user intent and uncertainty, and route every accepted proposal through schema validation, policy, ToolBroker, transaction, observation, and evidence authorities.
+
+## M97 — Revision-bound PreviewCoordinator
+
+Implement `PreviewCoordinator`, `PreviewRequest`, and immutable `PreviewRevision` identity binding project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact, device, execution truth, runtime state, validation state, and evidence IDs. The coordinator is the only service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview.
+
+**Exit gate:** a preview cannot be created as current from model text, a prediction, a simulation, or a build result alone; every current preview has observed build, install, launch, device, and revision evidence.
+
+## M98 — Truthful stepwise preview projection
+
+Implement the side-by-side Android preview and execution/evidence surface with `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, and `INVALIDATED` truth labels. Add the preview state machine, last-known-good protection, stale-candidate display, evidence drawer, revision comparison, reconnectable event projection, and no-fabrication presentation tests.
+
+**Exit gate:** a failed candidate cannot replace the last-known-good preview; UI disconnect and reconnect reconstruct the same projection; predicted or simulated stages are never displayed as running, passed, or verified.
+
+## M99 — End-to-end synthesis and preview certification
+
+Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the emulator/device preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK/AAB whose source, assets, preview, tests, and evidence identities match.
+
+**Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK/AAB.
+
+### M96–M99 acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| No-template synthesis | Negative prompt fixtures reject template, archetype, and non-Android proposals |
+| Intent contract | User intent, screenshots, assets, constraints, and uncertainty are persisted in a versioned contract |
+| Prompt authority boundary | Model output becomes a proposal and cannot authorize tools, mutations, or completion |
+| Preview identity | Every current PreviewRevision has project revision, checkpoint, source, asset, device, and evidence identity |
+| Truth labels | Predicted, simulated, requested, observed, verified, stale, and invalidated states remain distinct |
+| Last-known-good | Failed candidates preserve the previous valid preview and evidence |
+| Reconnect | UI restart, supervisor restart, and event replay reconstruct the same preview projection |
+| Final artifact | APK/AAB source, asset, preview, validation, checksum, and release evidence refer to the same revision |

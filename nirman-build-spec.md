@@ -74,7 +74,7 @@ The product must not force a user-facing technology shortlist. The user describe
 
 Nirman is intended for independent developers, startup founders, designers who can describe product requirements, students learning application development, small agencies, internal tools teams, and experienced engineers who want to accelerate repetitive implementation work.
 
-The product should support both technical and semi-technical users. Beginners need guided setup, explanations, templates, and safe defaults. Experienced developers need direct access to files, commands, diffs, logs, provider settings, and project configuration.
+The product should support both technical and semi-technical users. Beginners need guided setup, explanations, and safe defaults. Experienced developers need direct access to files, commands, diffs, logs, provider settings, and project configuration. Nirman must never present a user-facing template catalog or require an app archetype selection.
 
 ### 2.2 Core use cases
 
@@ -664,7 +664,7 @@ Nirman/
 │   ├── compatible-provider/
 │   ├── local-models/
 │   └── capability-detection/
-├── templates/
+├── android_bootstraps/
 │   ├── expo-react-native/
 │   ├── android-native-compose/
 │   └── android-device-profiles/
@@ -694,9 +694,9 @@ Implement provider profiles with custom base URL, API key, model ID, optional vi
 
 **Exit criteria:** A user can configure a compatible cloud or local provider and receive a validated response without exposing the API key in logs or project files.
 
-### Phase 3: Project templates
+### Phase 3: Intent-to-Android contract and dynamic project synthesis
 
-Create the initial React and TypeScript web template. Add project metadata, scripts, formatting, linting, type checking, and a clear convention for components, routes, assets, and configuration.
+Create the AndroidConstructionContract from the user’s intent, screenshots, assets, constraints, and device requirements. Resolve an Android technology plan and synthesize the required project structure, resources, build configuration, tests, and preview target. Any internal bootstrap is an implementation detail and must not appear as a selectable user-facing template.
 
 **Exit criteria:** A new project can be created locally, installed, started, and opened in the live preview.
 
@@ -720,15 +720,15 @@ Add Git export, Android debug/release build artifacts, APK/AAB packaging, signin
 
 ### Phase 7: Android generation
 
-Add Expo and React Native templates, Android environment diagnostics, emulator or device connection information, Android logs, and APK/AAB build workflows where the local environment supports them.
+Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, emulator or device connection information, Android logs, and APK/AAB build workflows where the local environment supports them.
 
 **Exit criteria:** Nirman can create and build a supported Android project and clearly identify environmental limitations.
 
 ### Phase 8: Advanced features
 
-Add visual element selection, project memory, reusable components, database and authentication templates, multi-agent task specialization, regression screenshots, and more native project profiles.
+Add visual element selection, project memory, reusable components, Android data and authentication capabilities, multi-agent task specialization, regression screenshots, and more native Android capability profiles.
 
-**Exit criteria:** Advanced capabilities remain optional and do not reduce the reliability of the core web and desktop workflows.
+**Exit criteria:** Advanced capabilities remain optional and do not reduce the reliability of the core Android workflow or the Windows desktop host.
 
 ---
 
@@ -764,7 +764,7 @@ The first usable release should satisfy the following conditions:
 | Cloud providers receive sensitive project data | High | Provide context exclusions, privacy notices, local models, and redaction |
 | Different models support different tool protocols | Medium | Normalize providers through adapters and capability discovery |
 | The UI looks correct but behavior is broken | Medium | Combine visual screenshots with tests, type checks, and runtime inspection |
-| Universal framework support increases complexity too quickly | High | Add templates only after the core workflow is reliable |
+| Universal framework support increases complexity too quickly | High | Add broader Android capability fixtures only after the core workflow is reliable |
 | Users expect a perfect final product from one prompt | High | Show supported capabilities, validation status, and remaining risks |
 
 ---
@@ -4136,3 +4136,155 @@ The deliberation contract is satisfied only when an agent request for a higher e
 **Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK/AAB export
 
 
+
+
+## 69. Intent-Driven Android Synthesis and Truthful Live Preview Contract
+
+**Contract scope:** This section extends the existing Android scope, end-to-end verification, reasoning, and evidence contracts. It does not introduce another generated target or a user-facing template system.
+
+### 69.1 No-template product invariant
+
+Nirman MUST begin every new Android application session from the user’s intent, product concept, natural-language requirements, optional screenshots, supplied assets, device requirements, privacy constraints, and requested integrations. The user MUST NOT be required to choose an app archetype, framework, technology, starter template, or project template.
+
+The technology resolver MUST infer and compose the Android implementation from evidence. It may select native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, or a mixed Android architecture when the requirements justify that choice. These are implementation strategies, not user-facing choices or templates.
+
+Internal bootstraps, dependency starters, component libraries, generated resource scaffolds, and build profiles MAY be used to make construction reliable. They MUST remain implementation details, MUST be selected by the runtime, and MUST NOT constrain the user’s app concept or be presented as the source of the product design.
+
+A session is non-compliant if a worker asks the user to select a framework or template merely because the resolver has not completed its analysis. The correct behavior is to continue intent interpretation, request only product-requirement ambiguity, or choose and record a technology plan autonomously.
+
+### 69.2 IntentSynthesisPromptContract
+
+All system, coordinator, worker, skill, and deliberation prompts that can influence Android construction MUST conform to an `IntentSynthesisPromptContract`. The prompt contract MUST require the model to:
+
+1. Extract user goals, user-visible behavior, screens, navigation, data, integrations, device capabilities, accessibility, branding, privacy, and release requirements.
+2. Separate user facts from model inferences, assumptions, alternatives, and unresolved uncertainty.
+3. Propose an Android technology plan without asking the user to choose a framework or template.
+4. Treat any internal bootstrap as replaceable implementation machinery rather than a product limitation.
+5. Produce schema-validated proposals for requirements, architecture, mutations, tools, tests, preview actions, recovery, and evidence.
+6. Identify the smallest safe next action and the evidence required to evaluate it.
+7. Never claim that predicted, simulated, proposed, or model-generated work was executed or verified.
+8. Never authorize a tool, permission, mutation, process, preview, or artifact promotion through prompt text.
+
+Worker prompts MUST receive the current contract version, project revision, checkpoint, relevant evidence, assigned scope, allowed capabilities, and unresolved questions. They MUST NOT replace the contract with a template-specific assumption or silently change the generated target.
+
+### 69.3 Construction and preview truth labels
+
+Every plan item, command, file change, preview update, test result, and artifact claim MUST carry one of these execution truth labels:
+
+| Label | Meaning | May satisfy completion evidence? |
+|---|---|---:|
+| `PREDICTED` | Model or runtime forecast; no action has occurred | No |
+| `SIMULATED` | Dry-run result produced without mutation or execution | No |
+| `REQUESTED` | An action has been authorized or queued but has not completed | No |
+| `OBSERVED` | A supervised process, device, preview, or validator produced a result | Only when the evidence kind allows observation |
+| `VERIFIED` | An independent validator confirmed the observed result against a requirement | Yes |
+| `STALE` | Evidence belongs to an older revision, checkpoint, device state, or environment | No |
+| `INVALIDATED` | Previously valid evidence was invalidated by a relevant change | No |
+
+The UI MUST never render `PREDICTED`, `SIMULATED`, or `REQUESTED` as a running application, passed test, completed task, or verified artifact.
+
+### 69.4 Revision-bound PreviewRevision
+
+Every preview panel state MUST be represented by a revision-bound `PreviewRevision` containing at least:
+
+```text
+previewRevisionId
+projectId
+projectRevisionId
+checkpointId
+sourceFingerprint
+contractVersion
+technologyPlanVersion
+assetManifestVersion
+buildVariant
+artifactId
+artifactFingerprint
+deviceId
+androidApiLevel
+previewMode
+executionTruth
+buildStatus
+installStatus
+runtimeStatus
+validationStatus
+createdAt
+observedAt
+invalidatedAt
+invalidatedReason
+evidenceIds
+```
+
+A preview is current only when its project revision, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, and device state are compatible with the active session. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
+
+### 69.5 Live preview panel layout
+
+The default preview surface MUST show the Android application beside its execution and evidence context. It MUST provide:
+
+| Panel region | Required information |
+|---|---|
+| Application viewport | Actual emulator or connected-device frames; device identity; orientation; density; API level |
+| Revision header | Project revision, checkpoint, PreviewRevision, source fingerprint, artifact ID, and truth label |
+| Execution timeline | Contract stage, task, worker, skill, command, observation, and next action |
+| Build/install strip | Build variant, build status, install status, package ID, launch status, and timestamps |
+| Evidence drawer | Tests, screenshots, Logcat, accessibility, performance, security, and artifact evidence linked to the revision |
+| Recovery banner | Candidate failure, last-known-good revision, recovery strategy, and current recovery state |
+| Preview controls | Start, stop, reload, reinstall, capture, device selection, compare revision, and open evidence |
+
+The panel MUST distinguish the last-known-good preview from a broken or incomplete candidate. It MUST never silently replace a valid preview with a predicted screen or a failed candidate.
+
+### 69.6 Evidence-based preview transitions
+
+A preview update follows this sequence:
+
+```text
+Intent/contract accepted
+    → plan and mutation authorized
+    → transaction checkpoint created
+    → source revision committed
+    → Android build observed
+    → install observed
+    → process launch observed
+    → runtime interaction observed
+    → screenshot/Logcat/test evidence captured
+    → revision validated
+    → PreviewRevision promoted
+```
+
+Each transition MUST produce a durable event and evidence reference. A model statement such as “the app is now running” is not sufficient. `RUNNING` may be displayed only after a supervised launch or reload has been observed for the declared device and revision.
+
+### 69.7 Step-by-step preview stages
+
+Nirman SHOULD expose meaningful validated stages rather than streaming every token or unverified file prediction:
+
+| Stage | Minimum proof before display as completed |
+|---|---|
+| Intent understood | Contract schema validation and extracted requirement record |
+| Product shell | Source revision committed; build/install/launch observed |
+| Branding | AssetManifest integrated; asset preview observed; asset checks passed |
+| Navigation | Declared routes or destinations exercised on the device/emulator |
+| Core behavior | Acceptance scenarios observed and required assertions pass |
+| Data/integrations | Local or authorized integration tests and error states observed |
+| Android capabilities | Relevant permission, device API, background, or service behavior observed |
+| Quality revision | Independent visual, accessibility, security, performance, and regression results |
+| Release candidate | APK/AAB exists, checksum and artifact inspection pass, launch evidence is linked |
+
+An incomplete stage MAY be shown as in progress, predicted, simulated, blocked, or recovering, but MUST NOT be shown as completed.
+
+### 69.8 Last-known-good and stale-candidate behavior
+
+Before a candidate preview is installed or promoted, Nirman MUST retain the last-known-good `PreviewRevision` and its checkpoint. If build, install, launch, runtime, visual, or validation evidence fails, the candidate MUST remain visible as failed or recovering while the last-known-good preview remains available.
+
+Rollback or repair MUST invalidate only the affected candidate evidence and MUST preserve the known-good evidence. A new preview may be promoted only after it satisfies the revision identity checks and the declared preview evidence gate.
+
+### 69.9 Acceptance criteria
+
+1. A new Android session can be created from an intent and optional screenshots without exposing a template or framework picker.
+2. Prompt and worker contract fixtures reject template-selection instructions and non-Android target proposals.
+3. An internal bootstrap, if used, is not exposed as a user-facing app archetype or technology requirement.
+4. Every preview state identifies project revision, checkpoint, source fingerprint, device, artifact, truth label, and evidence.
+5. Predicted, simulated, requested, stale, and invalidated states cannot satisfy completion.
+6. The live panel shows the actual observed emulator/device state beside the execution timeline and evidence.
+7. A failed candidate cannot replace the last-known-good preview.
+8. Closing or reconnecting the UI does not change preview truth or revision identity.
+9. A user can compare preview revisions and open the evidence that caused a promotion, invalidation, recovery, or rollback.
+10. The final APK/AAB release report proves that the promoted preview corresponds to the packaged source revision and current asset manifest.

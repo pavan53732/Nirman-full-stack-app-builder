@@ -555,9 +555,9 @@ The following decisions remain intentionally open:
 **Status:** Accepted  
 **Decision:** All documents and runtime components use one worker taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker.
 
-**Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests. The data-layer role is named "Android Data and Integration Worker" rather than "Backend Worker" because the latter invites reading Nirman as a generator of separate web backends, which §5 excludes. The role builds the generated Android application's data layer, persistence, and outbound integrations; it never produces a server-side deployable.
+**Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests. The data-layer role is named "Android Data and Integration Worker" so it cannot be mistaken for a separate server-side generator. The role builds the generated Android application's data layer, persistence, and outbound integrations; it never produces a server-side deployable.
 
-**Trade-off:** Existing role labels must be migrated to the canonical names, but the registry becomes implementable and auditable. The former "Backend Worker" label is superseded by "Android Data and Integration Worker" and must not appear in any document or runtime component.
+**Trade-off:** Existing role labels must be migrated to the canonical names, but the registry becomes implementable and auditable. Any legacy data-layer label is superseded by "Android Data and Integration Worker" and must not appear in any document or runtime component.
 
 ---
 
@@ -1994,3 +1994,40 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Effort should be a property of the work rather than a guess made per invocation. A data-layer migration inherently needs schema analysis, compatibility analysis, data-loss analysis, a rollback plan, and a test strategy; encoding that in the skill makes it unforgettable.
 
 **Consequences:** Skill authors must characterise their reasoning needs, and a skill can be blocked by environment limitations before it produces a partial migration.
+
+
+## ADR-181: Enforce intent-driven Android synthesis without user-facing templates
+
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
+
+**Status:** Accepted
+
+**Decision:** Every new Android application session begins from user intent, product concept, optional screenshots, supplied assets, device requirements, privacy constraints, and requested integrations. Nirman must not expose a template catalog, ask the user to choose an app archetype, require a framework selection, or treat an internal bootstrap as the product design. The technology resolver selects and composes Android implementation styles from evidence.
+
+**Rationale:** Users describe the product they want, not the framework they happen to know. A template or framework picker would make the product dependent on predefined shapes and could cause the implementation to follow a starter structure rather than the actual requirements.
+
+**Consequences:** Internal bootstraps, component libraries, and build profiles may improve reliability but have no user-facing identity or authority. Prompt, worker, skill, and deliberation contracts must reject template-selection requirements, archetype assumptions, and non-Android target proposals.
+
+## ADR-182: Make the live preview a revision- and checkpoint-bound evidence projection
+
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. Every `PreviewRevision` binds project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact identity, device identity, execution truth, runtime state, validation state, and evidence IDs.
+
+**Rationale:** A preview is trustworthy only when the user can identify exactly which source and checkpoint produced it and which observations prove that it is running. A build result or model statement alone cannot prove device behavior.
+
+**Consequences:** A candidate preview cannot replace the last-known-good revision until the declared build, install, launch, interaction, and validation observations pass. Stale, predicted, simulated, requested, and invalidated states remain visible but cannot satisfy completion.
+
+## ADR-183: Keep prompt and presentation layers subordinate to execution evidence
+
+**Locks:** `CONTRACT.RUNTIME.REASONING`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** Prompt builders and UI projections may explain intent, plans, predicted stages, observed actions, recovery, and evidence, but they cannot authorize tools, mutate source, promote previews, or mark tests and artifacts complete. Preview and execution screens must distinguish `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, and `INVALIDATED` states. Only supervised observations and independent validators can produce completion evidence.
+
+**Rationale:** A streamed model response, a progress spinner, a file timestamp, or a successful compilation can be mistaken for actual execution. Separating presentation from authority prevents false progress and false completion.
+
+**Consequences:** UI reconnect and replay reconstruct the durable projection from the event ledger. A disconnected or stale stream cannot advance status locally. Prompt or model claims are retained only as proposals or explanations and never as proof.

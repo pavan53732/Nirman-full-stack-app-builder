@@ -3949,3 +3949,185 @@ The threshold is configuration, not a runtime constant. No component may hardcod
 
 ---
 
+
+
+## 73. IntentSynthesisPromptContract and Truthful Preview Architecture
+
+### 73.1 Prompt contract boundary
+
+All coordinator, worker, skill, deliberation, and review prompts that can influence Android construction must implement the `IntentSynthesisPromptContract`. The prompt builder supplies the current contract version, project revision, checkpoint, selected evidence, assigned scope, allowed capabilities, and unresolved questions. It must not inject a user-facing template or framework choice.
+
+The prompt contract requires the model to extract product intent, screens, navigation, behavior, data, integrations, device capabilities, accessibility, branding, privacy, and release requirements; distinguish user facts from assumptions; propose an Android technology plan; identify uncertainty; propose a bounded next action; and name the evidence required to evaluate that action.
+
+The prompt contract explicitly forbids a model from claiming that predicted, simulated, requested, or proposed work was executed; treating an internal bootstrap as a product template; selecting a non-Android generated target; authorizing tools or permissions; mutating files outside a transaction; or marking requirements, previews, tests, or artifacts complete.
+
+Prompt output is accepted only as a schema-validated proposal. The execution path is:
+
+```text
+Prompt builder
+    → provider/model
+    → proposal parser and schema validator
+    → policy and capability evaluation
+    → ConstructionTransaction / ToolBroker
+    → supervised observation
+    → EvidenceAuthority
+    → AgentLoopReducer
+```
+
+A prompt, model response, reasoning stream, or worker handoff cannot bypass this sequence.
+
+### 73.2 No-template enforcement
+
+The `AndroidTechnologyResolver` receives requirements and evidence, not a template identifier. The runtime rejects any proposal containing a user-facing template selection, a framework-selection requirement, an app-archetype dependency, or a non-Android target. Internal bootstraps are represented as implementation adapters with no user-visible catalog identity and no authority to constrain the contract.
+
+The machine-checked project invariant remains:
+
+```text
+Project.targetPlatforms == ["android"]
+Project.generatedDeliverables ⊆ {APK, AAB, Android source project}
+```
+
+The resolver may select Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence.
+
+### 73.3 PreviewCoordinator and revision identity
+
+`PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. It consumes a `PreviewRequest` only after the source transaction has committed a project revision or a declared preview-only diagnostic operation has been authorized.
+
+```text
+PreviewRequest
+- requestId
+- projectId
+- taskId
+- projectRevisionId
+- checkpointId
+- sourceFingerprint
+- contractVersion
+- technologyPlanVersion
+- assetManifestVersion
+- buildVariant
+- deviceId
+- requestedMode
+- requiredEvidenceKinds
+- policyDecisionId
+```
+
+The resulting `PreviewRevision` is immutable and contains:
+
+```text
+PreviewRevision
+- previewRevisionId
+- projectRevisionId
+- checkpointId
+- sourceFingerprint
+- artifactId
+- artifactFingerprint
+- deviceId
+- androidApiLevel
+- buildVariant
+- previewMode
+- executionTruth
+- buildStatus
+- installStatus
+- launchStatus
+- runtimeStatus
+- validationStatus
+- evidenceIds
+- createdAt
+- observedAt
+- invalidatedAt
+- invalidatedReason
+```
+
+### 73.4 Preview state machine
+
+```text
+NOT_REQUESTED
+    ↓
+REQUEST_AUTHORIZED
+    ↓
+BUILDING
+    ↓
+BUILD_OBSERVED
+    ↓
+INSTALLING
+    ↓
+INSTALL_OBSERVED
+    ↓
+LAUNCHING
+    ↓
+RUNNING_OBSERVED
+    ↓
+INTERACTION_OBSERVED
+    ↓
+VALIDATING
+    ├── PROMOTED_CURRENT
+    ├── FAILED_CANDIDATE
+    ├── STALE
+    ├── INVALIDATED
+    └── RECOVERING
+```
+
+`RUNNING_OBSERVED` requires a supervised process or device observation associated with the declared project revision. `PROMOTED_CURRENT` requires the required preview and validation evidence. A model claim or a successful build alone cannot produce either state.
+
+### 73.5 Truth labels and evidence classes
+
+All preview, execution, and validation projections carry one of `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, or `INVALIDATED`. The UI may show predicted or simulated information as a forecast, but it must label it clearly and must never render it as a running application or passed validation.
+
+Evidence is classified separately:
+
+| Evidence class | Produced by | Completion use |
+|---|---|---|
+| `PLAN_EVIDENCE` | Contract/planning services | Explains intended work; cannot prove execution |
+| `PROCESS_EVIDENCE` | Process supervisor | Proves command/process observation |
+| `DEVICE_EVIDENCE` | Emulator/device manager | Proves install, launch, interaction, or device state |
+| `VISUAL_EVIDENCE` | Screenshot and comparison service | Proves a declared visual check |
+| `TEST_EVIDENCE` | Test runner and oracle | Proves declared assertions |
+| `ARTIFACT_EVIDENCE` | APK/AAB inspector | Proves artifact presence, hash, and contents |
+| `PROMOTION_EVIDENCE` | EvidenceAuthority | Proves all required gates passed |
+
+### 73.6 Stepwise preview projection
+
+The UI projection groups real events into understandable stages without fabricating execution:
+
+```text
+INTENT_ACCEPTED
+  → CONTRACT_VALIDATED
+  → PLAN_RECORDED
+  → CHECKPOINT_CREATED
+  → SOURCE_REVISION_COMMITTED
+  → BUILD_OBSERVED
+  → INSTALL_OBSERVED
+  → LAUNCH_OBSERVED
+  → INTERACTION_OBSERVED
+  → VALIDATION_OBSERVED
+  → PREVIEW_PROMOTED
+```
+
+A stage is marked complete only when its declared evidence exists and is current. While work is pending, the projection uses `PLANNED`, `QUEUED`, `RUNNING`, `WAITING`, `RECOVERING`, `FAILED`, or `BLOCKED`; none of these statuses is converted into `VERIFIED` by the presentation layer.
+
+### 73.7 Last-known-good protection
+
+Before a candidate preview is installed or promoted, the coordinator stores the active last-known-good `PreviewRevision`, checkpoint, artifact fingerprint, device identity, and evidence set. A candidate failure cannot overwrite or delete this record. Repair and rollback invalidate candidate evidence by reason and preserve the known-good evidence.
+
+When the active project revision changes, the coordinator calculates compatibility. If source, asset, toolchain, device, contract, or artifact identity no longer matches, the previous preview becomes `STALE` rather than silently representing the new source. The preview panel must show both the stale/failed candidate and the available last-known-good revision until a new candidate is observed and promoted.
+
+### 73.8 UI projection and reconnect
+
+The preview panel is a read model of durable control-plane events. It never infers execution from model text, terminal color, file timestamps, or a heartbeat alone. It subscribes by project and task, records the last acknowledged event sequence, and reconstructs the same preview projection after reconnect, UI restart, sleep/resume, or supervisor restart.
+
+If the event stream is unavailable, the panel shows the last durable state with a stale-stream indicator. It does not advance the preview, progress stage, or evidence status locally. A reconnect replays missing events and recomputes the projection through the same reducer.
+
+### 73.9 Architecture tests
+
+The preview architecture must pass tests proving that:
+
+1. A predicted or simulated preview cannot become current.
+2. A successful build without launch observation cannot become `RUNNING_OBSERVED`.
+3. A stale revision cannot satisfy a current completion gate.
+4. A failed candidate preserves the last-known-good preview.
+5. A UI disconnect does not stop execution or change preview truth.
+6. Duplicate and out-of-order events reconstruct one deterministic projection.
+7. Rollback invalidates affected evidence and restores the correct preview identity.
+8. A template-selection proposal and a non-Android target proposal are rejected before mutation.
+9. The final APK/AAB evidence refers to the same source, asset, and preview revisions.
+10. The panel never labels a model statement as process, device, test, or artifact evidence.
