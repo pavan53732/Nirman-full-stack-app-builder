@@ -220,6 +220,52 @@ When a requested capability requires a missing SDK, device, vendor tool, native 
 
 ---
 
+
+
+### 5.5 Android Capability Coverage Matrix
+
+Every Android capability supported by product intent must belong to one of:
+
+| Status | Meaning |
+|---|---|
+| **SUPPORTED** | Explicit implementation contract, validation path, recovery behavior, and fixture evidence exist. |
+| **SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS** | Implementation exists but requires SDK, device, vendor, or toolchain capabilities that may be absent. |
+| **DEGRADED** | Capability can operate with a documented reduced behavior. |
+| **USER_REQUIRED** | Required credential, device, hardware, approval, or external dependency is unavailable. |
+| **UNAVAILABLE** | The current runtime cannot safely provide the capability. |
+| **PLANNED** | Accepted product scope but lacks an implemented runtime contract. |
+
+A model response, worker claim, template existence, or code generation attempt does not make a capability SUPPORTED. A capability becomes SUPPORTED only when its implementation contract, validation path, recovery behavior, and fixture evidence exist.
+
+The runtime must report the current status of each capability in the preflight report and must not claim SUPPORTED status for any capability whose fixture evidence is missing.
+
+
+### 5.6 Capability Registry
+
+The §5.5 matrix defines capability *status*. This section defines capability *identity* and is the addressing source for the traceability chain of §67.3 and the reachability rule of §67.10.
+
+Every user-facing product capability has a stable `CapabilityId`. A capability that is not registered here does not exist for certification purposes, and a contract that no registered capability requires is subject to the orphan rule of §67.10.
+
+| CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
+|---|---|---|---|---|---|
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |
+| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
+| CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
+| CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
+| CAP.ANDROID.E2E_VERIFY | Verify stateful application behavior, not first-screen appearance | CONTRACT.RUNTIME.E2E, CONTRACT.RUNTIME.EVIDENCE | TEST-E2E-001 | EV-E2E-001 | PLANNED |
+| CAP.ANDROID.QUALITY_GATE | Prevent unverified mutations from reaching a deliverable | CONTRACT.RUNTIME.VERIFICATION, CONTRACT.RUNTIME.SPECULATION | TEST-VER-001 | EV-VER-001 | PLANNED |
+| CAP.ANDROID.REGRESSION_REPAIR | Repair a regression at its cause without broad regeneration | CONTRACT.RUNTIME.LOCALIZATION | TEST-LOC-001 | EV-LOC-001 | PLANNED |
+| CAP.ANDROID.SECURE_RELEASE | Produce a packaged artifact with verified dependencies and provenance | CONTRACT.RUNTIME.SUPPLY_CHAIN | TEST-SEC-001 | EV-SEC-001 | PLANNED |
+| CAP.ANDROID.DEVICE_COVERAGE | Report honest verification coverage across a device matrix | CONTRACT.RUNTIME.DEVICE_MATRIX | TEST-DEV-001 | EV-DEV-001 | PLANNED |
+| CAP.ANDROID.LIVE_STEER | Change direction mid-run, inspect runtime state, and plan within host capacity | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER, CONTRACT.RUNTIME.PROFILING | TEST-DIR-001 | EV-DIR-001 | PLANNED |
+| CAP.ANDROID.AUTOMATED_START | Begin work from an authenticated external event | CONTRACT.RUNTIME.TRIGGER | TEST-TRG-001 | EV-TRG-001 | PLANNED |
+| CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
+| CAP.ANDROID.AUTONOMOUS_REASONING | Decide what to do next from evidence, and delegate within bounded authority | CONTRACT.RUNTIME.REASONING | TEST-RSN-001 | EV-RSN-001 | PLANNED |
+| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
+| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold | CONTRACT.RUNTIME.INVARIANTS | TEST-INV-001 | EV-INV-001 | PLANNED |
+
+Capability status uses the §5.5 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
+
 ## 6. High-Level Architecture
 
 Nirman should be composed as a Windows-first desktop application with independent internal modules. The architecture should allow the project runtime and agent system to evolve without coupling the interface to one particular AI provider.
@@ -777,6 +823,9 @@ The most important strategic decision is to build the **local Android runtime, t
 
 ## 22. Advanced Autonomous Development and Swarm Execution Capabilities
 
+**ContractId:** `CONTRACT.RUNTIME.WORKSPACE`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.WORKSPACE` (see §67.8)
+
 This section incorporates advanced patterns from modern autonomous agent frameworks—specifically focusing on **parallel agent orchestration (swarms)**, **long-running continuous background execution**, **persistent problem-solving loops**, **anti-thrashing error recovery**, and **shared task state coordination**. All descriptions are tailored to Nirman's local desktop application architecture without referencing external agent brand names.
 
 ### 22.1 Parallel Agent Orchestration (Swarm Architecture)
@@ -825,6 +874,9 @@ For multi-worker tasks and parallel swarms, Nirman maintains a centralized, mach
 ---
 
 ## 23. Advanced Autonomous Development Capabilities
+
+**ContractId:** `CONTRACT.RUNTIME.SKILL`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.SKILL` (see §67.8)
 
 This section expands Nirman with capabilities observed across mature autonomous software-development workflows. The capabilities are expressed as Nirman requirements and design patterns rather than as references to any other application or product.
 
@@ -1617,38 +1669,15 @@ Nirman’s first-class autonomous behavior is defined by the following seven cap
 
 A task is not considered autonomously complete unless the relevant capabilities have either succeeded or been explicitly classified as unnecessary, unavailable, or blocked with evidence. The runtime should continue automatically through these capabilities whenever a safe next action exists.
 
-## References
-
-[1]: https://tauri.app/ "Tauri Documentation"
-
-[2]: https://react.dev/ "React Documentation"
-
-[3]: https://www.typescriptlang.org/docs/ "TypeScript Documentation"
-
-[4]: https://docs.expo.dev/ "Expo Documentation"
-
-[5]: https://reactnative.dev/docs/getting-started "React Native Documentation"
-
-[6]: https://git-scm.com/doc "Git Documentation"
-
-[7]: https://www.electronjs.org/docs/latest/ "Electron Documentation"
-
----
-
-**Document owner:** Nirman product team  
-**Recommended application name:** Nirman  
-**Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK/AAB export
-
-
-## 28. End-to-End Android Generation Contract
+## 29. End-to-End Android Generation Contract
 
 The primary product promise is that one user instruction and optional screenshots launch one durable Android engineering session. The session must continue through input analysis, visual specification, technology selection, project synthesis, live preview, implementation, testing, repair, validation, packaging, and evidence-backed completion without routine human intervention.
 
-### 24.1 Input fusion
+### 29.1 Input fusion
 
 The session combines the user’s chat instruction, screenshots, supplied assets, existing project files, device requirements, integrations, and delivery requirements into three authoritative inputs: an `AndroidApplicationContract`, a `VisualSpecification`, and an `AndroidTechnologyPlan`. The user does not select a framework or template. The configured AI resolves the implementation from these inputs.
 
-### 24.2 Autonomous Android session
+### 29.2 Autonomous Android session
 
 ```text
 AutonomousAndroidSession
@@ -1673,43 +1702,43 @@ AutonomousAndroidSession
 
 The session owns the complete task independently of the chat interface. It remains resumable after the interface closes, the process restarts, or the host resumes from sleep where the operating system permits it.
 
-### 24.3 Live preview and execution synchronization
+### 29.3 Live preview and execution synchronization
 
 The live Android emulator or connected device is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, device identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
 
 If a candidate change breaks the application, the preview must show the last valid revision and identify the failed candidate. The execution tree and preview must share a revision identifier so the user can see exactly which work produced the running application.
 
-### 24.4 Progress ledger and stall detection
+### 29.4 Progress ledger and stall detection
 
 The runtime must maintain a progress ledger recording changed files, new evidence, preview revision movement, test transitions, worker handoffs, strategy changes, and validated requirements. A stall detector must identify repeated commands, repeated patches, repeated failure fingerprints, unchanged workspaces, unchanged previews, missing evidence, unresponsive processes, and heartbeats without useful progress.
 
 When a stall is detected, the runtime must refresh context, change strategy, change technology, delegate diagnosis, repair the environment, restore a checkpoint, or construct an isolated alternative. It must not repeat the same action indefinitely.
 
-### 24.5 Swarm handoff and reconciliation
+### 29.5 Swarm handoff and reconciliation
 
 Parallel workers must receive explicit contracts and isolated workspaces. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
 
-### 24.6 APK/AAB completion gates
+### 29.6 APK/AAB completion gates
 
 A task is complete only when its applicable completion conditions are proven. For Android delivery, the evidence must include a successful build, an APK or AAB artifact, a checksum, artifact scanning, installation or launch evidence, main-flow results, screenshot or visual validation, required permission behavior, and no unresolved fatal runtime errors. The final artifact must link to the project revision and evidence ledger.
 
-### 24.7 No-routine-intervention policy
+### 29.7 No-routine-intervention policy
 
 Routine project-local actions may continue automatically under the configured Unattended / Full Autonomy policy, including editing, dependency installation, terminal commands, emulator launches, builds, tests, screenshots, repair attempts, checkpoints, worker handoffs, and local artifact creation. Only protected credentials, destructive operations, external publishing, signing policy, protected paths, missing required information, hard safety violations, or unrecoverable technical blockers may interrupt the session.
 
-### 24.8 Full Android capability acceptance
+### 29.8 Full Android capability acceptance
 
 The product must validate AI-selected generation across JavaScript-driven Android projects, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK/AAB delivery. These are internal acceptance categories, not user-facing templates.
 
 ---
 
-## 29. Android Completion Report
+## 30. Android Completion Report
 
 The final completion screen must show the application identity, selected technology plan and reasons, final emulator or device state, build and validation results, APK/AAB paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
 
 ---
 
-## 30. Final System Principle
+## 31. Final System Principle
 
 > **The user gives one Android application idea and optional screenshots once. The system works continuously in the background, dynamically chooses the Android implementation, updates the live preview, coordinates terminals and workers, heals failures, validates the result, and returns a working APK/AAB with evidence.**
 
@@ -1717,18 +1746,21 @@ The complexity belongs inside the runtime rather than inside the user’s workfl
 
 ---
 
-## 31. Autonomous Runtime Capability Contract
+## 32. Autonomous Runtime Capability Contract
 
 The runtime must provide specialized workers, a self-healing loop, evidence-based completion, adaptive resource management, self-development, project memory, and environment repair as core capabilities. These capabilities are mandatory parts of the end-to-end Android session rather than optional extensions.
 
 **Acceptance statement:** A representative Android task can be launched from one instruction and optional screenshots, continue through background implementation, update the live preview, recover from injected worker/process/provider/device failures, produce evidence for each completion condition, and return a validated APK/AAB without routine approval pauses.
 
 
-## 32. Production Runtime Contract
+## 33. Production Runtime Contract
+
+**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.AUTHORITY` (see §67.8)
 
 Nirman must treat the autonomous Android build as a deterministic runtime session rather than a sequence of independent chat responses. The model proposes plans and actions; the runtime owns lifecycle, permissions, filesystem access, process execution, device access, persistence, evidence, recovery, promotion, rollback, and termination.
 
-### 32.1 Canonical runtime contracts
+### 33.1 Canonical runtime contracts
 
 The implementation must define versioned, validated contracts for:
 
@@ -1749,7 +1781,7 @@ The implementation must define versioned, validated contracts for:
 
 All durable contracts require explicit versioning, schema validation, atomic persistence, migration, backup, and rollback. No model output may create undocumented fields or alter authority rules.
 
-### 32.2 Authoritative lifecycle
+### 33.2 Authoritative lifecycle
 
 The session lifecycle must be explicit and persisted:
 
@@ -1761,19 +1793,19 @@ Created → Understanding → Planning → EnvironmentPreparing
 
 Safe terminal states are `BlockedByPolicy`, `BlockedByMissingInformation`, `ProviderUnavailable`, `EnvironmentUnrecoverable`, `Cancelled`, and `SafelyFailed`. Models, workers, skills, hooks, and UI events may propose transitions but cannot commit them directly.
 
-### 32.3 Renewable leases and operation capabilities
+### 33.3 Renewable leases and operation capabilities
 
 Long-running work must use a renewable session lease rather than a short fixed execution token. The supervisor renews the lease only while heartbeats, progress, and authority checks remain valid. Individual sensitive operations use scoped, single-use operation capabilities bound to the session, worker, workspace, project revision, action type, and expiry.
 
 An operation capability is required for actions such as installing a risky dependency, changing protected configuration, accessing a device capability, signing an artifact, publishing, or promoting a self-update. A model cannot mint, extend, or broaden a capability.
 
-## 33. Android Project Ingestion and Integrity
+## 34. Android Project Ingestion and Integrity
 
 The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, JavaScript package manifests where selected, native-module boundaries, emulator/device configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
 
 The layer must apply hard exclusions, canonical path normalization, project-root boundaries, scope fingerprints, content hashes, and revision checks. Before reconciliation, preview installation, packaging, or self-development promotion, it must detect external changes and revalidate the active project revision. A stale or mismatched revision must be rejected rather than silently overwritten.
 
-## 34. Provider Gateway and Controlled Tool Protocol
+## 35. Provider Gateway and Controlled Tool Protocol
 
 The Model Gateway must normalize configured Chat Completions, Responses-style requests, message history, screenshot inputs, structured outputs, tool calls, tool results, streaming task events, cancellation, usage, context limits, provider errors, and model capabilities.
 
@@ -1781,37 +1813,52 @@ The user owns each endpoint, API key, base URL, and model ID. Nirman must not si
 
 Every tool call must have a typed name, version, schema-validated arguments, session ID, worker ID, project policy, privacy classification, requested capabilities, and evidence result. Unknown tools, unknown arguments, unapproved routing, secret access, and malformed tool results must be rejected before execution.
 
-## 35. Execution Isolation and Sandbox Boundaries
+## 36. Execution Isolation and Sandbox Boundaries
 
 The runtime must separate the Windows host, control-plane supervisor, worker processes, Android build processes, emulator/device processes, preview application, provider network access, project files, credentials, and signing material.
 
 Generated code must not automatically access personal files, browser cookies, SSH keys, API keys, signing keys, unrelated projects, or arbitrary network resources. Each process receives the minimum filesystem, network, process, and device permissions required by its contract. Sandbox policy is enforced by deterministic runtime authorities and cannot be weakened by model output.
 
-## 36. Event, Evidence, and Completion Authority
+## 37. Event, Evidence, and Completion Authority
+
+**ContractId:** `CONTRACT.RUNTIME.EVIDENCE`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.EVIDENCE` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.AUTHORITY
+- authoritySection: §33
+- extendingSection: §37
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
+- nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION
 
 Nirman must distinguish among model claims, runtime events, and evidence records. A model statement such as “the login screen is complete” is not completion evidence. Completion requires applicable proof from builds, installation, automated flows, screenshots, visual comparison, Logcat, permissions, security scans, performance checks, and APK/AAB metadata.
 
 The final report must identify what passed, what failed, what was repaired, what could not be tested, the source revision, the active checkpoint, the artifact checksum, and any unresolved warnings. No model claim may mark a requirement complete without a corresponding evidence record.
 
-## 37. Privacy-Scoped Memory, Replay, and Recovery History
+## 38. Privacy-Scoped Memory, Replay, and Recovery History
+
+**ContractId:** `CONTRACT.RUNTIME.MEMORY`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.MEMORY` (see §67.8)
 
 Memory must be divided into session memory, project memory, runtime-improvement memory, and credential storage. Every memory entry must include source, confidence, project scope, timestamp, revision, retention policy, and deletion support. Credentials, signing keys, raw secrets, and unclassified private content must never enter semantic memory.
 
 Users must be able to reopen a completed or failed session, inspect the task and worker timeline, compare preview revisions, rerun validation, fork a failed task into a new strategy, replay a task with an approved provider, restore a checkpoint, download APK/AAB evidence, and inspect why the technology resolver selected a particular implementation.
 
-## 38. Production Windows Host Requirements
+## 39. Production Windows Host Requirements
 
 The desktop host must use backend-only file access, explicit capability permissions, atomic state writes, file locking, versioned migrations, crash recovery, offline startup, prerequisite validation, signed per-user installers, upgrade rollback, state preservation, memory-leak testing, large-project virtualization, local editor assets, and privacy-filtered local logs.
 
 Provider unavailability must not prevent the host from opening projects, history, checkpoints, and settings. Execution must be disabled or marked unavailable until an approved provider is ready.
 
-## 39. User-Facing Productivity Features
+## 40. User-Facing Productivity Features
 
 The core workspace must provide one-click goal launch, live task tree beside the Android preview, pause/resume/cancel/fork/retry-from-checkpoint, a technology rationale panel, a changed-files timeline, device-matrix testing, visual comparison, build-health status, an APK/AAB artifact center, recovery explanations, an editable project-memory view, task replay, a privacy/network context panel, and an environment-repair center.
 
 These features expose the runtime’s state without forcing the user to understand internal worker orchestration. The user gives the goal; Nirman manages the complexity.
 
-## 40. Production Readiness Principle
+## 41. Production Readiness Principle
 
 > **Nirman must be autonomous in execution and recovery, but deterministic in authority.**
 
@@ -1820,11 +1867,11 @@ The application may continue automatically through routine project-local work, b
 
 ---
 
-# 33. Integrated Android Construction and Runtime Contracts
+## 42. Integrated Android Construction and Runtime Contracts
 
 This section incorporates the strongest reusable construction and runtime principles identified in the Sync-AI reference set. It does not change Nirman’s product scope: Nirman remains a Windows-first desktop host that generates Android applications only. No user-facing framework catalog is exposed, and the AI remains responsible for selecting and composing the Android implementation.
 
-## 33.1 AndroidConstructionContract
+### 42.1 AndroidConstructionContract
 
 Every autonomous build session MUST produce a versioned AndroidConstructionContract before implementation begins. The contract is the canonical handoff between user intent, planning, workers, preview, validation, and artifact production.
 
@@ -1844,7 +1891,7 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 
 The contract MUST use explicit schema versions, reject unknown fields where strict validation is required, record source references for inferred fields, and distinguish user-provided facts from model inferences. A worker MUST NOT invent a contract field absent from the canonical schema.
 
-## 33.2 ConstructionTransaction
+### 42.2 ConstructionTransaction
 
 Every mutation, dependency change, toolchain repair, preview promotion, signing operation, and artifact promotion MUST be represented by a ConstructionTransaction.
 
@@ -1877,7 +1924,7 @@ PROPOSED → SCOPED → SNAPSHOTTED → VALIDATED → APPLIED
 
 Any failed stage transitions to REJECTED, ROLLED_BACK, WAITING, RETRYABLE_FAILURE, or SAFE_FAILURE. A model response is never a commit. The runtime authority owns transaction acceptance, rollback, and promotion.
 
-## 33.3 Pure Reducer and Replayable State
+### 42.3 Pure Reducer and Replayable State
 
 The autonomous session state MUST be reconstructed by a deterministic reducer:
 
@@ -1889,7 +1936,7 @@ The reducer MUST be side-effect free. Filesystem writes, process launch, provide
 
 The reducer MUST reject events for unknown sessions or tasks, stale project revisions, completion events without required evidence, promotion events without artifact checksums, worker events from expired leases, preview events for unrelated revisions, and transitions that bypass checkpoint, policy, or validation gates.
 
-## 33.4 Recovery Governance
+### 42.4 Recovery Governance
 
 Nirman MUST provide autonomous recovery without uncontrolled mutation loops. Availability waits such as provider outage, emulator offline, device unavailable, or temporary locks may renew under an active session lease. Code, dependency, manifest, resource, and architecture changes use bounded attempts per strategy, checkpoint restoration, strategy changes, and escalation.
 
@@ -1906,15 +1953,15 @@ A worker makes one repair proposal per attempt. The supervisor owns retry count,
 
 > Integrated principle: the model proposes the construction strategy; deterministic Nirman authorities validate, apply, observe, repair, roll back, and promote only evidence-backed Android artifacts.
 
-# 34. Android Code Intelligence and Mutation Contract
+## 43. Android Code Intelligence and Mutation Contract
 
-## 34.1 Language-Neutral Android Code Intelligence
+### 43.1 Language-Neutral Android Code Intelligence
 
 Nirman MUST use a language-neutral Android code-intelligence layer with adapters for Kotlin, Java, XML, Android manifests, Gradle Kotlin DSL, Gradle Groovy, TypeScript, JavaScript, C/C++ native modules, JSON, YAML, TOML, SQL, and lockfiles.
 
 The graph MUST track files, modules, symbols, references, Gradle dependencies, manifest permissions, resource references, navigation routes, native-module boundaries, test-to-source relationships, API-level compatibility, and generated artifacts. Lightweight indexing may support discovery and browsing; full semantic indexing is required before high-impact mutation, reconciliation, packaging, signing, or promotion.
 
-## 34.2 Structured Mutation Broker
+### 43.2 Structured Mutation Broker
 
 Model output MUST pass through the mutation broker. Direct model writes to project files are forbidden. The broker validates project scope, path normalization, base revision, file ownership, schema, syntax, mutation budget, dependency policy, and evidence requirements.
 
@@ -1930,15 +1977,15 @@ Model output MUST pass through the mutation broker. Direct model writes to proje
 
 The broker MUST reject blind search-and-replace mutations for high-risk source files. Whole-file generation is allowed only inside an isolated transaction and only when the resulting file passes syntax, graph, build, test, and content-integrity gates.
 
-## 34.3 Project Impact Graph
+### 43.3 Project Impact Graph
 
 Before a refinement, Nirman MUST calculate affected files, modules, resources, tests, permissions, preview surfaces, and artifact outputs. The impact graph MUST support incremental indexing, affected-test selection, dependency conflict analysis, navigation and resource reachability, manifest/API usage correlation, long-horizon map sharding, checkpoint-aware invalidation, and reconciliation conflict detection.
 
 ---
 
-# 35. Preview, Branding, and Data-Layer Requirements
+## 44. Preview, Branding, and Data-Layer Requirements
 
-## 35.1 Preview Fallback Matrix
+### 44.1 Preview Fallback Matrix
 
 The live preview coordinator MUST select a preview mode appropriate to the selected Android technology and current revision.
 
@@ -1954,13 +2001,13 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 
 Every preview is bound to PreviewRevision, project revision, device identity, build variant, and technology plan. A stale preview MUST be visibly labeled and MUST NOT satisfy final completion gates.
 
-## 35.2 Android BrandManifest
+### 44.2 Android BrandManifest
 
 Nirman may infer branding from the application contract, screenshots, domain semantics, and user preferences, but it MUST not use Windows-specific visual assumptions. BrandManifest covers display name, semantic description, light/dark colors, typography, spacing, adaptive icon assets, splash assets, notification icons, empty states, density variants, accessibility contrast, provenance, prompt hash, provider/model ID, and output hashes.
 
 AI image seeds are recorded as inputs, but exact reproducibility MUST be verified from output hashes rather than assumed. Content-addressed caching and explicit regeneration records are required.
 
-## 35.3 Android Data-Layer Resolver
+### 44.3 Android Data-Layer Resolver
 
 Nirman MUST choose a data strategy from the application contract rather than enforcing one fixed database technology. Valid choices include Room with SQLite, direct SQLite, DataStore, encrypted local storage, a justified alternative local store, network cache/synchronization, or a composed strategy.
 
@@ -1968,9 +2015,9 @@ The resolver MUST produce migration rules, corruption recovery rules, seed-data 
 
 ---
 
-# 36. Autonomous UX, Decision Trace, and Resource Governance
+## 45. Autonomous UX, Decision Trace, and Resource Governance
 
-## 36.1 Progressive Disclosure
+### 45.1 Progressive Disclosure
 
 Nirman MUST hide unnecessary implementation complexity by default without hiding truth. The UI provides three levels:
 
@@ -1982,38 +2029,56 @@ Nirman MUST hide unnecessary implementation complexity by default without hiding
 
 Raw secrets, private keys, and unfiltered prompts are never displayed. Blocked, waiting, recovering, and safely-failed states MUST be explicit.
 
-## 36.2 DecisionTrace
+### 45.2 DecisionTrace
 
 For each material autonomous decision, Nirman records a concise DecisionTrace containing decision ID, session/task/worker IDs, input references, constraints, candidate actions, selected action, deterministic policy checks, provider/model provenance, confidence, outcome event, and evidence IDs. Hidden chain-of-thought is not stored or exposed.
 
-## 36.3 ResourceGovernor
+### 45.3 ResourceGovernor
 
 The resource governor monitors CPU, memory, disk, checkpoint storage, emulator memory, Gradle memory, worker concurrency, provider concurrency, context size, log volume, build duration, and device slots.
 
 Under pressure it may compact context, reduce concurrency, prune safe caches, stop redundant workers, run affected tests, defer nonessential visual checks, or switch to an approved lighter provider profile. It MUST NOT silently weaken sandboxing, permissions, evidence, signing, or artifact gates.
 
-## 36.4 EnvironmentSnapshot
+### 45.4 EnvironmentSnapshot
 
 Every substantial build, recovery cycle, and final artifact MUST include an environment snapshot recording operating-system host metadata, toolchain versions and hashes, relevant environment variables, device identity/API level, provider profile and model metadata without secrets, workspace revision, lockfile hashes, and build flags.
 
 ---
 
-# 37. Non-Goals Preserved by This Integration
+## 46. Non-Goals Preserved by This Integration
 
 The following remain explicitly outside Nirman’s generated-target scope: Windows application generation; web application generation; WinUI, WPF, WinForms, Win32, WinRT, MSBuild, MSIX, MSI, or Windows-manifest target generation; Roslyn, XAML, or EF Core as mandatory implementation technologies; a user-facing framework or template catalog; direct model writes to files; unrestricted model shell authority; unauthenticated local provider access; uncontrolled infinite mutation retries; and completion based solely on model claims.
 
 Internal bootstrap scaffolding is permitted only when required to create a valid Android project; it is not a user-facing template limitation and does not constrain the AI’s technology selection.
 
-## 37.1 Product Acceptance Additions
+### 46.1 Product Acceptance Additions
 
 The integration is complete only when a complete AndroidConstructionContract can be created, versioned, validated, and replayed; every mutation is represented by a ConstructionTransaction with a checkpoint and project revision; the session can be reconstructed after forced process termination; a clean-machine build uses only the locked Android toolchain; provider bridge failures are handled without corrupting the session; multi-language changes pass the structured mutation broker; parallel workers reconcile through a serialized commit barrier; Android permission and requirement drift is detected before artifact promotion; preview is revision-bound; resource pressure changes scheduling without weakening safety; and a completed APK/AAB contains checksums, environment snapshot, validation evidence, source revision, and artifact provenance.
 
 
 ---
 
-# 38. Integrated Android Workflow and Quality Intelligence
+## 47. Integrated Android Workflow and Quality Intelligence
 
-## 38.1 IntegratedAndroidWorkflowCoordinator
+**ContractId:** `CONTRACT.RUNTIME.EVIDENCE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.EVIDENCE
+- authoritySection: §37
+- extendingSection: §47
+- extensionType: adds_verification
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
+
+**ContractId:** `CONTRACT.RUNTIME.VERIFICATION`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.VERIFICATION
+- authoritySection: §57
+- extendingSection: §47
+- extensionType: adds_verification
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.VERIFY.IN_LOOP, CLAUSE.VERIFY.ASSERTION_ORDER, CLAUSE.VERIFY.NON_VACUITY
+
+### 47.1 IntegratedAndroidWorkflowCoordinator
 
 Nirman MUST provide one canonical coordinator for the complete Android construction lifecycle. This is a runtime service, not a single oversized prompt. It connects user input, screenshots, contract generation, feasibility analysis, technology selection, worker allocation, transactional mutation, build, preview, testing, self-critique, repair, packaging, and evidence-backed promotion.
 
@@ -2043,7 +2108,7 @@ APK/AAB packaging and evidence promotion
 
 The coordinator MUST persist each boundary as a durable event and MUST be able to resume from the last validated boundary after a supervisor, worker, provider, emulator, or host interruption.
 
-## 38.2 PreflightReport and feasibility gate
+### 47.2 PreflightReport and feasibility gate
 
 Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The report evaluates the selected or candidate technology plan against the local environment, project constraints, provider capabilities, privacy policy, device availability, and expected validation work.
 
@@ -2059,7 +2124,7 @@ Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The
 
 Each risk records severity, probability, affected phase, evidence, mitigation, fallback, and whether autonomous repair is permitted. Routine toolchain or cache repair may proceed under policy. Credentials, privileged access, unavailable required devices, and policy restrictions become explicit waiting or blocked conditions rather than endless retries.
 
-## 38.3 AndroidQualityGate
+### 47.3 AndroidQualityGate
 
 Before artifact promotion, independent review workers MUST evaluate correctness, architecture, security, dependencies, runtime behavior, visual fidelity, accessibility, performance, test coverage, and release integrity.
 
@@ -2071,13 +2136,13 @@ Before artifact promotion, independent review workers MUST evaluate correctness,
 
 The quality gate MUST be independent from the worker that produced the implementation. A quality score alone is never completion evidence.
 
-## 38.4 FailureModeRecord
+### 47.4 FailureModeRecord
 
 Nirman MUST maintain a proactive Android failure-mode catalogue. Every important failure mode has a trigger, prevention check, classifier, recovery strategy, scope, stop condition, and evidence requirement.
 
 Initial failure families include toolchain incompatibility, missing SDK components, dependency conflicts, lockfile drift, resource linking failures, manifest merge failures, duplicate classes, DEX/R8 errors, native-module failures, emulator and ADB failures, install failures, runtime crashes, ANRs, permission denials, offline-data corruption, visual regressions, inaccessible controls, signing failures, and invalid APK/AAB metadata.
 
-## 38.5 Acceptance-test traceability
+### 47.5 Acceptance-test traceability
 
 Every mandatory requirement MUST map to at least one executable acceptance criterion and one validation path.
 
@@ -2087,31 +2152,31 @@ Requirement → acceptance criterion → test → execution result → evidence 
 
 The traceability matrix records skipped, blocked, flaky, and passing tests honestly. A final artifact cannot claim complete implementation when a mandatory requirement has no executable validation or has unresolved blocking evidence.
 
-## 38.6 Architecture and contract drift
+### 47.6 Architecture and contract drift
 
 After every major transaction, Nirman MUST compare the project against the approved `AndroidConstructionContract` and `AndroidTechnologyPlan`. Drift detection identifies missing features, undocumented permissions, unreachable screens, data models without migrations, acceptance criteria without tests, dependencies outside the approved plan, unauthorized architecture changes, stale generated files, and preview or artifact outputs from unrelated revisions.
 
 Drift findings are classified as blocking, repairable, warning, or informational. A worker cannot silently update the contract to make drift disappear; contract changes require a versioned plan update and reconciliation event.
 
-## 38.7 Project handbook and release intelligence
+### 47.7 Project handbook and release intelligence
 
 Each managed Android workspace MUST contain a concise generated project handbook describing purpose, selected technology plan, modules, commands, toolchain lock, environment assumptions, privacy rules, permissions, build/test instructions, known limitations, current revision, and recovery notes.
 
 Each promoted APK/AAB MUST have a release-intelligence report containing dependency inventory, permission inventory, data-handling summary, test and device results, performance summary, known warnings, artifact hashes, signing status, source revision, toolchain lock, and environment snapshot.
 
-## 38.8 Worker quality metrics and validated repair promotion
+### 47.8 Worker quality metrics and validated repair promotion
 
 Nirman SHOULD measure worker and strategy quality using success rate, regression rate, time-to-evidence, false-positive review rate, repair reuse rate, handoff completeness, affected-test precision, and rollback frequency. Metrics are for routing and improvement; they do not grant permissions.
 
 A learned repair or pattern may enter the trusted registry only after repeated successful validation on the originating project and independent fixtures. The stored record includes failure fingerprint, environment, strategy, changed scope, validation evidence, regression results, and confidence. Model suggestions remain untrusted until promoted by deterministic evidence.
 
-## 38.9 Bounded structured reasoning
+### 47.9 Bounded structured reasoning
 
 Nirman MAY use prompt normalization, self-critique, logical consistency checks, alternative-solution analysis, risk prediction, reflection, and strategy scoring. These services MUST return bounded structured outputs such as assumptions, alternatives, selected action, constraints, confidence, and evidence references. Hidden chain-of-thought MUST NOT be stored or shown. No reasoning service may override the runtime authorities.
 
 ---
 
-# 39. Product Scope Decisions from the Integrated Review
+## 48. Product Scope Decisions from the Integrated Review
 
 The following are explicitly not adopted: web application generation, Windows application generation, PWA delivery, a universal web-wrapper architecture, exposed hidden reasoning transcripts, unbounded recursive worker spawning, automatic remote publication, and completion claims based on module counts or unsupported implementation percentages.
 
@@ -2121,7 +2186,7 @@ The central product rule remains:
 
 > **One instruction plus optional screenshots should produce a complete, validated Android application through a durable, recoverable, inspectable, and evidence-backed autonomous workflow.**
 
-## 39.1 Additional acceptance criteria
+### 48.1 Additional acceptance criteria
 
 1. A preflight report identifies blockers before expensive generation.
 2. The integrated coordinator resumes from durable boundaries after interruption.
@@ -2135,9 +2200,9 @@ The central product rule remains:
 
 ---
 
-# 40. Private Internal Reasoning and Visible Structured Reasoning Stream
+## 49. Private Internal Reasoning and Visible Structured Reasoning Stream
 
-## 40.1 Product decision
+### 49.1 Product decision
 
 Nirman MAY use private internal model reasoning to support planning, hypothesis generation, self-critique, alternative comparison, error diagnosis, and strategy selection. Private reasoning is an internal computation boundary; it is not displayed to users, persisted as a verbatim transcript, treated as evidence, or granted runtime authority.
 
@@ -2145,7 +2210,7 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 
 > **Private reasoning may guide the strategy. Visible structured reasoning explains the strategy. Deterministic runtime authorities control execution.**
 
-## 40.2 Visible reasoning event types
+### 49.2 Visible reasoning event types
 
 | Event type | User-visible purpose | Example |
 |---|---|---|
@@ -2164,7 +2229,7 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 
 Every event MUST contain a concise title, human-readable summary, event sequence, session/task/worker IDs, project revision, timestamp, status, provenance references, and evidence IDs when applicable.
 
-## 40.3 Stream behavior
+### 49.3 Stream behavior
 
 The stream MUST be available while the desktop UI is open and MUST remain recoverable after reconnect, minimization, sleep, reboot, provider restart, or control-plane restart. The UI must show the newest event immediately while retaining a scrollable session history.
 
@@ -2172,13 +2237,13 @@ The user can pause visual auto-scroll without pausing execution, collapse repeat
 
 Streaming must not imply that a model has authority. A visible `DECISION` event means that a strategy was selected; it does not mean that a tool, mutation, permission, or artifact promotion was authorized. The runtime must emit a separate policy and execution event for those actions.
 
-## 40.4 Privacy and safety filters
+### 49.4 Privacy and safety filters
 
 Before a reasoning summary reaches the UI or durable history, `ReasoningStreamFilter` MUST remove or mask API keys, access tokens, private keys, passwords, cookies, personally identifying data, complete source-file contents, sensitive user data, hidden system instructions, raw provider messages, and private internal reasoning.
 
 The stream must not reveal unrestricted shell commands when the command contains secrets or sensitive paths. It may show a safe command category, redacted arguments, operation ID, and result. Detailed diagnostics remain available only through policy-controlled Developer mode and still undergo redaction.
 
-## 40.5 Honest status semantics
+### 49.5 Honest status semantics
 
 The stream MUST distinguish:
 
@@ -2194,13 +2259,13 @@ The stream MUST distinguish:
 
 An unchanged stream, repeated message, or active spinner is not sufficient evidence of progress. Stall detection must operate independently of the stream.
 
-## 40.6 User controls
+### 49.6 User controls
 
 The user may hide or show the stream, change its detail level, filter event categories, inspect evidence, pause new autonomous work, cancel the session, request a summary, or open the relevant checkpoint. Hiding the stream does not stop execution or delete history.
 
 The user cannot edit a stream event, mark an unsupported event as evidence, approve a mutation by editing text, or use the stream to bypass policy. Any approval remains a separate explicit runtime action.
 
-## 40.7 Acceptance criteria
+### 49.7 Acceptance criteria
 
 1. A long-running session streams understanding, plan, action, observation, recovery, evidence, and next-step events in order.
 2. Stream reconnection resumes from the last acknowledged sequence without duplicate or missing events.
@@ -2214,15 +2279,15 @@ The user cannot edit a stream event, mark an unsupported event as evidence, appr
 
 ---
 
-# 41. Mandatory Brand and Asset Completion Gate
+## 50. Mandatory Brand and Asset Completion Gate
 
-## 41.1 Product requirement
+### 50.1 Product requirement
 
 Branding and visual assets are first-class Android product requirements. When the user requests a logo, icon, splash screen, notification icon, illustration, branded color system, or visual identity, Nirman MUST generate or safely derive the requested assets, integrate them into the Android project, show them in the live preview, and validate them before the APK/AAB can be promoted.
 
 The implementation must not finish at source-code generation while leaving the application with missing, generic, stale, or unintegrated branding.
 
-## 41.2 BrandAssetPipeline
+### 50.2 BrandAssetPipeline
 
 ```text
 User instruction and screenshots
@@ -2248,7 +2313,7 @@ BrandAssetCompletionGate
 
 The pipeline covers the application label, adaptive launcher icon, legacy launcher variants where required, monochrome icon where supported, splash screen, notification icon, in-app logo, color system, theme tokens, typography intent, empty-state art, onboarding illustrations, and other assets explicitly requested by the user.
 
-## 41.3 BrandManifest and AssetManifest
+### 50.3 BrandManifest and AssetManifest
 
 `BrandManifest` records display name, semantic brand description, logo/icon/splash intent, source screenshot references, light and dark colors, typography and spacing intent, theme behavior, asset requirements, accessibility expectations, and manifest version.
 
@@ -2256,17 +2321,17 @@ The pipeline covers the application label, adaptive launcher icon, legacy launch
 
 Provider/model metadata and prompt hashes are retained for provenance, but raw prompts, private data, and secrets are not exposed in the user-facing stream or ordinary logs. A seed may be recorded when available, but exact reproducibility is verified from output hashes rather than assumed.
 
-## 41.4 Asset completion rules
+### 50.4 Asset completion rules
 
 The final artifact MUST NOT be marked complete when a requested asset is missing, references an invalid path, is not packaged, is stale relative to the source revision, fails format/dimension/transparency/contrast checks, or has not been verified in the active preview. A temporary placeholder may be used during recovery, but it cannot silently satisfy the final gate when branded assets were requested.
 
 The gate must inspect the built APK/AAB, not only the workspace. It must confirm that launcher resources, splash resources, notification assets, in-app assets, theme resources, and referenced fonts or illustrations are present and reachable in the final artifact.
 
-## 41.5 Asset change behavior
+### 50.5 Asset change behavior
 
 When the user requests a branding change, Nirman creates a new BrandManifest revision, regenerates only affected assets, updates Android resources, refreshes the preview, invalidates stale asset evidence, and reruns the asset gate. Unaffected source code and assets should remain unchanged where impact analysis proves they are independent.
 
-## 41.6 Visible asset progress
+### 50.6 Visible asset progress
 
 The reasoning stream should show safe events such as:
 
@@ -2279,7 +2344,7 @@ Validation: “Launcher icon and splash screen verified on the API 35 emulator.�
 Next step: “Running final APK asset inspection.”
 ```
 
-## 41.7 Acceptance criteria
+### 50.7 Acceptance criteria
 
 1. A user request for branded assets creates a versioned BrandManifest and AssetManifest.
 2. Requested launcher, adaptive, monochrome, splash, notification, in-app, and theme assets are generated or explicitly governed by a fallback record.
@@ -2293,9 +2358,9 @@ Next step: “Running final APK asset inspection.”
 
 ---
 
-# 42. Locked Nirman Implementation Stack and Executable Architecture
+## 51. Locked Nirman Implementation Stack and Executable Architecture
 
-## 42.1 Stack decision
+### 51.1 Stack decision
 
 The following stack is the implementation baseline for Nirman v1. It does not change the Android-only generated target.
 
@@ -2324,7 +2389,7 @@ The following stack is the implementation baseline for Nirman v1. It does not ch
 
 Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP, Android SDK, ADB, emulator, Node, Metro, Expo, native compilers, or Git.
 
-## 42.2 Two-executable production architecture
+### 51.2 Two-executable production architecture
 
 The first vertical slice may embed the control plane in the Tauri Rust backend to reduce initial process complexity. The production durable-autonomy architecture separates presentation from the long-running supervisor:
 
@@ -2353,26 +2418,44 @@ NirmanSupervisor.exe
 
 `Nirman.exe` is a reconnectable client. It must not own authoritative task state, credentials, lifecycle, worker leases, filesystem authority, process supervision, recovery, evidence, or artifact promotion. `NirmanSupervisor.exe` starts with Windows user login when eligible work exists, survives UI closure, scans SQLite after reboot or sleep/resume, and allows the UI to reconnect later.
 
-## 42.3 User-visible implementation contract
+### 51.3 User-visible implementation contract
 
 Nirman should feel like one application even when the supervisor is a separate executable. The UI must show supervisor health, connection state, session state, reasoning stream, task progress, terminal summaries, preview revision, evidence, and recovery status. Supervisor installation, update, version handshake, and graceful shutdown are runtime concerns and must not require users to manually operate a second application.
 
-## 42.4 First-release editor and terminal boundaries
+### 51.4 First-release editor and terminal boundaries
 
 CodeMirror 6 is the first editor implementation because Nirman’s primary product is autonomous construction, preview, validation, recovery, and artifact delivery rather than a full standalone IDE. Monaco may be evaluated later without changing the control-plane architecture.
 
 xterm.js is only a terminal renderer. Rust owns ConPTY sessions, shell profiles, process trees, input policy, output capture, cancellation, resource limits, and recovery. Supported shells may include PowerShell, `cmd.exe`, Git Bash, or another explicitly approved profile.
 
-## 42.5 Completion invariants
+### 51.5 Completion invariants
 
 The stack is considered correctly implemented only when the UI can restart without losing a session, the supervisor can continue without the UI, Android toolchains execute through supervised local processes, model proposals pass through ModelGateway, ToolBroker, and PolicyAuthority, and APK/AAB promotion remains evidence-backed. No framework selector, web target, Windows generated target, or cloud execution environment is introduced.
 
 
 ---
 
-# 43. Core Agent Execution Kernel and Autonomous Loop Contract
+## 52. Core Agent Execution Kernel and Autonomous Loop Contract
 
-## 43.1 Purpose
+**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.AUTHORITY
+- authoritySection: §33
+- extendingSection: §52
+- extensionType: adds_component
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION
+
+**ContractId:** `CONTRACT.RUNTIME.SKILL`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.SKILL
+- authoritySection: §23
+- extendingSection: §52
+- extensionType: adds_component
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.SKILL.NO_PERMISSION_GRANT, CLAUSE.SKILL.SESSION_PINNING
+
+### 52.1 Purpose
 
 Nirman must expose a first-class **AgentExecutionKernel** between the goal/task graph and worker, skill, and tool execution. Existing worker lifecycle states describe whether a process is created, active, waiting, or stopped; the kernel describes how autonomous reasoning and verified execution progress from an observation to the next evidence-backed state.
 
@@ -2400,7 +2483,7 @@ State transition
 
 Nirman must never implement a direct `model → execute` path.
 
-## 43.2 Agent loop states
+### 52.2 Agent loop states
 
 The kernel must maintain a separate reasoning/execution state machine from the worker-process lifecycle state machine:
 
@@ -2432,13 +2515,13 @@ EVALUATE_PROGRESS
 
 Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition. Impossible transitions must be rejected and recorded as runtime faults.
 
-## 43.3 Progress evaluation
+### 52.3 Progress evaluation
 
 After every meaningful observation, the kernel must determine whether the current goal is progressing, blocked, contradicted, unsafe, stale, or satisfied. Progress evaluation must consider requirement coverage, changed files, test results, preview revision, environment capability state, worker handoffs, unresolved uncertainty, failure fingerprints, resource pressure, and artifact readiness.
 
 Completion is permitted only when the appropriate requirement, test, preview, device, quality, branding, and APK/AAB evidence gates pass. A model statement that a task is complete is never sufficient evidence.
 
-## 43.4 SkillRuntime and skill composition
+### 52.4 SkillRuntime and skill composition
 
 The existing skill registry describes packages and permissions. Nirman must also provide a `SkillRuntime` that performs:
 
@@ -2472,7 +2555,7 @@ Loading or composing a skill never grants a permission. The PolicyAuthority must
 
 Every invocation must produce a `SkillExecutionRecord` containing the skill version, worker, task, input hash, context references, tools used, permissions used, files changed, evidence IDs, duration, model usage, result status, and rollback reference.
 
-## 43.5 Agent profiles and dynamic worker instances
+### 52.5 Agent profiles and dynamic worker instances
 
 A worker role defines responsibility. An `AgentProfile` defines how a particular instance operates:
 
@@ -2495,7 +2578,7 @@ AgentProfile
 
 A worker instance must be constructed from a role, task contract, profile, skills, model, tools, workspace lease, permission profile, resource profile, context profile, parent task, and recovery policy. Dynamic creation must remain bounded and must not expand permissions or workspace scope.
 
-## 43.6 SwarmPlanner and DelegationProtocol
+### 52.6 SwarmPlanner and DelegationProtocol
 
 Nirman must add a `SwarmPlanner` that decides whether a goal can be parallelized. It must analyze requirements, dependency graph, change surface, file and symbol boundaries, validation cost, workspace availability, tool capability requirements, risk, and resource capacity before selecting workers.
 
@@ -2525,7 +2608,7 @@ Reconciliation and validation
 
 The typed delegation protocol must support `delegate`, `spawn`, `handoff`, `resume`, `cancel`, `replace`, `retry`, `escalate`, and `merge`. A delegation request must include the required capability, proposed role/profile, task scope, input references, expected outputs, validation requirements, parent task, workspace lease, and cancellation lineage.
 
-## 43.7 KnowledgeLedger and TaskBlackboard
+### 52.7 KnowledgeLedger and TaskBlackboard
 
 Workers must communicate through typed, scoped knowledge rather than a shared mutable prompt or unbounded common memory. Nirman must maintain a `KnowledgeLedger` and a task-scoped `TaskBlackboard` containing goals, requirements, architecture facts, decisions, constraints, assumptions, active workers, completed work, blocked work, findings, conflicts, evidence, known failures, and next actions.
 
@@ -2533,7 +2616,7 @@ A `KnowledgeArtifact` may be a finding, decision, constraint, assumption, archit
 
 Workers may read relevant entries, propose artifacts, attach evidence, request changes, and retrieve facts. Only deterministic authorities may commit decisions, mutate the task graph, mark requirements complete, change policy, or promote artifacts.
 
-## 43.8 Workspace leases and stateful ToolSessions
+### 52.8 Workspace leases and stateful ToolSessions
 
 Every isolated worktree, copy-on-write workspace, terminal, ADB session, emulator, debugger, LSP, preview process, and other long-lived execution resource must be represented by an ownership and lifecycle record.
 
@@ -2541,13 +2624,13 @@ A `WorkspaceLease` must include workspace ID, owner worker, task ID, parent chec
 
 A `ToolSession` must include session ID, tool type, owner, task and project scope, environment fingerprint, process group, current state, capability scope, input policy, output reference, heartbeat, reconnect policy, cleanup policy, and evidence references. Sessions must support reconnect after worker replacement or UI restart without granting a new scope.
 
-## 43.9 Tool Capability Graph and environment capability planning
+### 52.9 Tool Capability Graph and environment capability planning
 
 Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a physical device or emulator capability, and device validation.
 
 Each required environment capability must be classified as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a validation path. The planner must surface the distinction early instead of discovering an impossible prerequisite after a long build.
 
-## 43.10 ValidationPlanner and mutation/regression intelligence
+### 52.10 ValidationPlanner and mutation/regression intelligence
 
 The `ValidationPlanner` must choose checks from changed files, changed symbols, call graph, route graph, dependency graph, requirements, acceptance criteria, project type, risk level, previous failures, device profiles, and available resources.
 
@@ -2575,13 +2658,13 @@ Evidence
 APK/AAB artifact
 ```
 
-## 43.11 Trajectory Replay and Simulation mode
+### 52.11 Trajectory Replay and Simulation mode
 
 Nirman must provide a side-effect-free `TrajectoryReplayEngine` that can replay a recorded goal, context references, structured model proposals, tool calls, tool results, state changes, observations, and next decisions against a new model, prompt, skill, tool schema, or runtime without touching the real project.
 
 Nirman must also provide a clearly labeled **Simulation/Dry-Run Mode**. It may predict workers, skills, files, commands, permissions, devices, tests, resources, risks, and expected validation, but it must not mutate files, execute commands, start devices, or claim that predicted checks actually ran. Simulation output must be labeled `PREDICTED`, while executed evidence must be labeled `OBSERVED` or `VERIFIED`.
 
-## 43.12 Deadlock, backpressure, cancellation, and pause/resume
+### 52.12 Deadlock, backpressure, cancellation, and pause/resume
 
 The runtime must detect dependency cycles across tasks, workers, resource reservations, approvals, workspace leases, and ToolSessions. A detected deadlock must produce a typed finding and trigger safe recovery, reordering, worker replacement, or a structured decision node.
 
@@ -2591,7 +2674,7 @@ Cancellation must propagate from goal to task graph, workers, skills, ToolSessio
 
 Workers and skills must support independent pause and resume. Pausing must preserve context references, ToolSessions, leases, checkpoints, and unresolved questions while allowing unrelated work to continue.
 
-## 43.13 Decision nodes, uncertainty, contradiction, and plan recompilation
+### 52.13 Decision nodes, uncertainty, contradiction, and plan recompilation
 
 When multiple valid Android architectures or recovery strategies exist, Nirman must represent a `DecisionNode` containing the question, options, evidence, trade-offs, recommendation, impact, and resume conditions. It is distinct from a generic command approval.
 
@@ -2601,7 +2684,7 @@ A contradiction detector must identify conflicting requirements, stale assumptio
 
 The `PlanCompiler` and `Replanner` must produce plan revisions when evidence, environment, requirements, toolchain, worker availability, or validation results invalidate the current plan. Each plan revision must record `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and migration/recovery action.
 
-## 43.14 Execution history tiers
+### 52.14 Execution history tiers
 
 Long-running Android sessions must not retain every event, terminal output, screenshot, failed strategy, intermediate plan, and checkpoint in active memory. The `ExecutionHistoryManager` must provide:
 
@@ -2614,8 +2697,1417 @@ Long-running Android sessions must not retain every event, terminal output, scre
 
 Compaction must preserve semantic summaries, evidence links, revision identity, and replay references. Garbage collection must never delete required completion evidence, active checkpoint parents, unresolved failure evidence, or artifact provenance.
 
-## 43.15 Product acceptance invariants
+### 52.15 Product acceptance invariants
 
 The AgentExecutionKernel release is complete only when Nirman can run one Android goal through the loop state machine, execute a skill composition, dynamically configure a worker profile, delegate a typed task, exchange knowledge artifacts, lease a workspace, reconnect a ToolSession, plan environment capabilities, select affected validation, replay the trajectory without side effects, simulate the plan without mutation, detect a deadlock, apply backpressure, propagate cancellation, pause and resume a worker, surface a decision node, track uncertainty, recompile a plan, compact execution history, and deliver an evidence-backed APK/AAB.
 
 The user-facing stream must show concise structured events for these transitions without exposing private chain-of-thought. The deterministic runtime remains the only authority over mutation, tools, permissions, lifecycle, evidence, recovery, and artifact promotion.
+
+## 53. Agent Memory and Context Architecture
+
+**ContractId:** `CONTRACT.RUNTIME.CONTEXT`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.CONTEXT` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.MEMORY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.MEMORY
+- authoritySection: §38
+- extendingSection: §53
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.CONTEXT.CONSTRAINT_PRIORITY, CLAUSE.CONTEXT.SOURCE_REQUIRED
+- nonOverriddenClauses: CLAUSE.MEMORY.SCOPES, CLAUSE.MEMORY.RETENTION_AUTHORITY, CLAUSE.MEMORY.SECRET_EXCLUSION
+
+
+This section extends §38 (Privacy-Scoped Memory, Replay, and Recovery History). §38 remains the authority on memory scopes, retention, and deletion. This section adds the retrieval and context-assembly contract that §38 does not specify, and does not redefine memory scopes.
+
+### 53.1 Product requirement
+
+A long-horizon Android session must not degrade because earlier decisions fell out of the working context. The runtime must be able to reconstruct why a decision was made after thousands of intervening actions, and must not re-derive a decision that was already locked.
+
+### 53.2 Memory record classes
+
+Every memory write must be classified as exactly one of:
+
+| Class | Contents | Written from |
+|---|---|---|
+| DECISION | A locked choice and its evidence | Approved decision nodes and validated outcomes |
+| CONSTRAINT | A rule the runtime must not violate later | User instruction, policy, or contract |
+| FACT | An observed property of the project or environment | Validated tool output |
+| FAILURE | A failed approach and its symptom signature | Evidence-backed failure records |
+| ARTIFACT | A produced file, build, or report reference | Artifact provenance records |
+
+A model statement is never a memory write. Only validated events, approved decisions, and user confirmations produce memory records, consistent with §37 (Event, Evidence, and Completion Authority).
+
+### 53.3 Context assembly contract
+
+Before any model call, the runtime must assemble a context package that declares:
+
+```text
+ContextPackage
+- taskId
+- assembledAt
+- mode: retrieval | large_context
+- includedPaths
+- excludedPaths
+- includedMemoryRecords
+- activeConstraints
+- lockedDecisions
+- tokenEstimate
+- tokenBudget
+- redactions
+- selectionReason
+- omittedForBudget
+```
+
+Active constraints and locked decisions must never be dropped for budget reasons. If they cannot fit, the runtime must reduce file content, not constraint content, and must record the reduction in `omittedForBudget`.
+
+### 53.4 Re-grounding requirement
+
+At every long-horizon checkpoint the runtime must re-ground the working context by re-reading the original goal, the active constraints, the locked decisions, and the current evidence state. Re-grounding must be an explicit recorded step, not an implicit prompt behavior, and must occur before plan recompilation.
+
+### 53.5 Cross-project isolation
+
+Project memory must never be read across project boundaries. Runtime-improvement memory may cross projects only in anonymized form with no file paths, identifiers, source content, or credentials.
+
+### 53.6 Acceptance criteria
+
+The memory and context contract is satisfied only when a session can be interrupted, resumed after a runtime restart, and continue without re-asking a settled question; when a locked decision is never contradicted by a later action; when every memory record cites its source evidence; and when a context package can be reproduced from the event ledger for any historical model call.
+
+## 54. Swarm Coordination and Concurrent Change Management
+
+**ContractId:** `CONTRACT.RUNTIME.RESERVATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.RESERVATION` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.WORKSPACE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.WORKSPACE
+- authoritySection: §22
+- extendingSection: §54
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.RESERVATION.GRANT_AUTHORITY, CLAUSE.RESERVATION.STALE_INVALIDATION
+- nonOverriddenClauses: CLAUSE.WORKSPACE.SINGLE_WRITER
+
+
+This section extends §22 and §23 (Advanced Autonomous Development and Swarm Execution) and §52 (Core Agent Execution Kernel). Those sections remain the authority on worker lifecycle, delegation, and workspace leases. This section adds semantic conflict prevention, which lease ownership alone does not provide.
+
+### 54.1 The gap addressed
+
+Workspace leases prevent two workers from writing the same file. They do not prevent two workers from making semantically incompatible changes in different files — for example one worker renaming a data model field while another writes code against the old field name.
+
+### 54.2 Semantic reservations
+
+A worker must reserve the semantic surfaces it intends to change before mutating them:
+
+```text
+SemanticReservation
+- reservationId
+- workerId
+- taskId
+- surfaceKind: symbol | route | schema_table | resource_id | permission | dependency | build_config
+- surfaceIdentifier
+- intent: read_stable | modify | delete | create
+- grantedAt
+- expiresAt
+- renewedAt
+- state: granted | renewed | released | expired | revoked
+```
+
+A `modify` or `delete` reservation conflicts with any other reservation on the same surface. A `read_stable` reservation means the holder has generated code that depends on the surface remaining unchanged.
+
+### 54.3 Stale-contract invalidation
+
+When a surface changes, every `read_stable` reservation on that surface must be invalidated. Each holder must be notified, its affected work marked unvalidated, and its output revalidated before it may be promoted. Silent acceptance of work built against an invalidated contract is prohibited.
+
+### 54.4 Peer coordination without peer authority
+
+Workers may exchange knowledge artifacts, publish reservations, and request handoffs. Workers must never grant permissions to each other, approve each other's evidence, mark each other's work complete, or override an authority decision. All authority remains with the deterministic runtime, consistent with §33 and §52.
+
+### 54.5 Serialized commit barrier
+
+Parallel proposals must be reconciled through a serialized commit barrier. At the barrier the runtime must verify that every reservation held by the proposing worker is still valid, that no dependent surface changed since generation, and that validation evidence postdates the last relevant surface change. A proposal failing any check is rejected and returned for revalidation, not merged.
+
+### 54.6 Acceptance criteria
+
+Coordination is satisfied only when a fixture with two workers changing interdependent Android code produces either a correct merged result or an explicit rejection with a stale-contract reason, and never a build that compiled per-worker but fails after merge.
+
+## 55. User/Edit Reconciliation
+
+**ContractId:** `CONTRACT.RUNTIME.RECONCILIATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.RECONCILIATION` (see §67.8)
+
+
+No existing section covers concurrent human editing. This section is new and does not overlap §22, §23, or §52, which address worker-to-worker coordination only.
+
+### 55.1 Product requirement
+
+The user may edit project files in Nirman's editor or in an external tool while an autonomous run is active. The runtime must never silently overwrite a user edit, and must never treat a user edit as its own output.
+
+### 55.2 External change detection
+
+The runtime must watch the project tree and classify every observed change as:
+
+| Origin | Meaning | Required behavior |
+|---|---|---|
+| RUNTIME | Written by an authorized mutation | Continue |
+| USER | Written by the user | Reconcile before further mutation of that surface |
+| EXTERNAL | Written by another process or tool | Reconcile and record provenance as unknown |
+| GENERATED | Produced by a build or toolchain step | Ignore for reconciliation, exclude from context |
+
+Origin classification must come from mutation records and file fingerprints, not from timestamps alone.
+
+### 55.3 Reconciliation behavior
+
+On a USER or EXTERNAL change to a surface the runtime holds a reservation on, the runtime must pause mutation of that surface, re-read the changed file, invalidate affected validation evidence, re-derive whether the active plan is still correct, and either continue with the user's version as the new baseline or surface a decision node when the change contradicts a locked decision.
+
+### 55.4 Prohibited behaviors
+
+The runtime must not revert a user edit to reapply its own version, must not include a user edit in its own completion evidence without revalidation, and must not report a requirement complete on the basis of validation that predates a user edit to the same surface.
+
+### 55.5 Acceptance criteria
+
+Reconciliation is satisfied only when a fixture in which the user edits a Kotlin file mid-run results in the user's content preserved, affected validation re-run, and the final report attributing the change to the user rather than to the runtime.
+
+## 56. Stateful End-to-End Verification
+
+**ContractId:** `CONTRACT.RUNTIME.E2E`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.E2E` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.EVIDENCE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.EVIDENCE
+- authoritySection: §37
+- extendingSection: §56
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.E2E.DETERMINISM, CLAUSE.E2E.SEED_PROVENANCE
+- nonOverriddenClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
+
+
+This section extends §29 (End-to-End Android Generation Contract) and §36 (Complete Android Capability Fixture references). Those sections require end-to-end validation; this section specifies stateful scenarios, which single-screen validation cannot cover.
+
+### 56.1 The gap addressed
+
+Launching an app and screenshotting the first screen does not prove the app works. A real Android application has authenticated states, persisted data, navigation depth, process death, and configuration changes. Verification must exercise those states.
+
+### 56.2 Scenario contract
+
+```text
+E2EScenario
+- scenarioId
+- requirementIds
+- preconditions
+- seedData
+- steps: ordered UI and system actions
+- assertions
+- expectedPersistedState
+- teardown
+- devices
+- deterministic: true | false
+```
+
+A scenario must be deterministic. Non-deterministic scenarios must be marked and must not be used as completion evidence.
+
+### 56.3 Required scenario classes
+
+| Class | Must verify |
+|---|---|
+| Cold start | First launch with no data behaves correctly |
+| Authenticated flow | Login state reached and persisted across restart |
+| Data persistence | Written data survives process death |
+| Navigation depth | Deep navigation and back-stack correctness |
+| Configuration change | Rotation and theme change preserve state |
+| Permission flow | Grant and deny paths both handled |
+| Offline behavior | Network-absent path produces defined behavior |
+| Process death | System-initiated death and restore |
+
+### 56.4 Data seeding
+
+Seed data must be created through the application's own data layer or an explicit test fixture, never by asserting state the app never produced. Seed provenance must be recorded so evidence cannot be confused with production behavior.
+
+### 56.5 Evidence requirements
+
+Each scenario run must produce step results, assertion results, screenshots at asserted steps, Logcat for the run window, persisted-state verification, device identity, and the source revision. A scenario without assertion results is not evidence.
+
+### 56.6 Acceptance criteria
+
+Stateful verification is satisfied only when every functional requirement maps to at least one deterministic scenario, and when a requirement cannot be marked complete while its scenario is missing, skipped, or non-deterministic.
+
+## 57. Advanced Verification Architecture
+
+**ContractId:** `CONTRACT.RUNTIME.VERIFICATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.VERIFICATION` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.EVIDENCE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.EVIDENCE
+- authoritySection: §37
+- extendingSection: §57
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.VERIFY.IN_LOOP, CLAUSE.VERIFY.ASSERTION_ORDER, CLAUSE.VERIFY.NON_VACUITY
+- nonOverriddenClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
+
+
+This section extends §47 (Integrated Android Workflow and Quality Intelligence) and §52.10 (ValidationPlanner). Those remain the authority on validation selection. This section adds verification methods that execution-based testing alone does not provide.
+
+### 57.1 Static analysis inside the loop
+
+Static analysis must run inside the generation loop, not as a terminal gate. After each structured mutation the runtime must run compiler diagnostics, lint, and null-safety and type checks on the affected surface before proceeding to the next mutation. A mutation that introduces a new diagnostic must be repaired or reverted before dependent work continues.
+
+### 57.2 Incremental compilation gate
+
+The runtime must compile incrementally at mutation granularity rather than only at task completion. A worker must not accumulate multiple unverified mutations when incremental compilation is available for the affected module.
+
+### 57.3 Test-before-code
+
+For any requirement with observable behavior, the runtime must define the assertion before generating the implementation. The assertion must be recorded, must fail before implementation, and must pass after. An assertion authored after a passing implementation must be marked as `post_hoc` and carries lower evidence weight.
+
+### 57.4 Verification method matrix
+
+| Method | Applies to | Evidence produced |
+|---|---|---|
+| Compiler diagnostics | Every mutation | Diagnostic set |
+| Lint and static rules | Every mutation | Rule violations |
+| Unit assertions | Logic and data transformation | Assertion results |
+| Instrumentation scenarios | UI and stateful behavior | Scenario results per §56 |
+| Screenshot comparison | Visual requirements | Image diff with threshold |
+| Mutation probing | Critical logic | Whether assertions detect injected faults |
+| Property probing | Input-domain logic | Counterexamples or pass |
+| Performance measurement | Non-functional requirements | Measured metrics |
+
+### 57.5 Assertion quality requirement
+
+Assertions that cannot fail are not evidence. For critical logic the runtime must confirm that the assertion set detects at least one injected fault. An assertion set that passes against a deliberately broken implementation must be rejected as vacuous.
+
+### 57.6 Acceptance criteria
+
+Advanced verification is satisfied only when no mutation advances with an unresolved new diagnostic, when behavioral requirements have assertions authored before implementation, and when critical-logic assertion sets are proven non-vacuous.
+
+## 58. Adversarial Security and Supply-Chain Verification
+
+**ContractId:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.SUPPLY_CHAIN` (see §67.8)
+
+
+This section extends §11 (Security and Trust Model) and §36 (Execution Isolation and Sandbox Boundaries). Those remain the authority on host isolation and permissions. This section adds verification of the generated application and its dependencies.
+
+### 58.1 Two distinct security surfaces
+
+| Surface | Threat | Authority |
+|---|---|---|
+| Host runtime | Nirman itself executing untrusted model output | §11, §36 |
+| Generated application | The produced Android app being insecure | This section |
+| Dependency supply chain | Malicious or vulnerable third-party packages | This section |
+
+The existing sections protect the host. They do not verify that the generated app is secure. Both are required.
+
+### 58.2 Generated-application security checks
+
+Before packaging, the runtime must verify the generated application for hardcoded secrets and API keys, insecure network configuration including cleartext traffic, exported components without permission guards, insecure data storage of sensitive values, unsafe WebView configuration, unguarded intent handling, over-broad permission requests, debuggable release configuration, and missing certificate handling for pinned endpoints.
+
+### 58.3 Dependency verification
+
+Every declared dependency must be resolved to an exact version with an integrity hash. The runtime must reject a dependency that cannot be resolved reproducibly, that resolves to a different artifact than previously recorded, or whose name closely resembles a known package in a way consistent with substitution attacks.
+
+### 58.4 Artifact provenance and SBOM
+
+Every produced APK or AAB must have a software bill of materials recording every dependency with version and integrity hash, the toolchain versions used, the source revision, the signing identity class, and the checksum of the produced artifact. An artifact without a complete SBOM must not be promoted as a deliverable.
+
+### 58.5 Findings are blocking or declared
+
+A security finding must either block packaging or be explicitly recorded as an accepted risk with a reason. A finding must never be silently dropped, and the final report must list all findings and their dispositions.
+
+### 58.6 Acceptance criteria
+
+Supply-chain verification is satisfied only when a fixture containing a deliberately hardcoded secret and an unpinned dependency is blocked before packaging, and when every promoted artifact has a reproducible SBOM.
+
+## 59. Multi-Device Android Scenario Coordination
+
+**ContractId:** `CONTRACT.RUNTIME.DEVICE_MATRIX`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.DEVICE_MATRIX` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.E2E`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.E2E
+- authoritySection: §56
+- extendingSection: §59
+- extensionType: adds_verification
+- extendedClauses: CLAUSE.DEVICE.PRIMARY_REQUIRED
+- nonOverriddenClauses: CLAUSE.E2E.DETERMINISM, CLAUSE.E2E.SEED_PROVENANCE
+
+
+This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across a device matrix.
+
+### 59.1 Product requirement
+
+An Android application that works on one emulator is not verified. Behavior varies by API level, screen size, density, form factor, and vendor behavior. Verification must state which devices were covered and which were not.
+
+### 59.2 Device matrix declaration
+
+```text
+DeviceMatrixEntry
+- deviceId
+- kind: emulator | physical
+- apiLevel
+- formFactor: phone | tablet | foldable
+- density
+- screenSize
+- abi
+- availability: available | unavailable | user_required
+- role: primary | secondary | optional
+```
+
+The primary device must be available for a run to proceed. Unavailable secondary devices produce a declared coverage gap, not a silent pass.
+
+### 59.3 Scenario distribution
+
+Scenarios from §56 must be distributed across the matrix. The runtime must record, per scenario and per device, whether the scenario ran, passed, failed, or was skipped with a reason. A pass on the primary device with skips elsewhere must be reported as partial coverage.
+
+### 59.4 Divergence handling
+
+When the same scenario passes on one device and fails on another, the runtime must treat the divergence as a defect, not as device noise, and must record the divergence with both device profiles before attempting repair.
+
+### 59.5 Capability status integration
+
+Multi-device coverage must be reported through the capability status vocabulary of §5.5. A capability verified only on the primary device is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`.
+
+### 59.6 Acceptance criteria
+
+Multi-device coordination is satisfied only when the final report states per-device scenario outcomes, when device unavailability produces a declared gap rather than an implicit pass, and when a device-specific failure is recorded as a defect.
+
+## 60. External Event Trigger Gateway
+
+**ContractId:** `CONTRACT.RUNTIME.TRIGGER`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.TRIGGER` (see §67.8)
+
+
+This section extends §28 (Product Requirements for Goal-Based and Persistent Autonomy) and its scheduling material. Scheduling covers time-based initiation; this section covers externally originated initiation.
+
+### 60.1 Product requirement
+
+A long-running project may need work initiated by an external event rather than by a user sitting at the application. Any such path must be authenticated, bounded, and auditable, and must never widen the permission surface.
+
+### 60.2 Trigger contract
+
+```text
+ExternalTrigger
+- triggerId
+- source: schedule | filesystem | version_control | manual_api | external_webhook
+- authenticationMethod
+- projectScope
+- allowedGoalKinds
+- permissionCeiling
+- rateLimit
+- requiresApproval: true | false
+- enabled
+- lastFiredAt
+```
+
+### 60.3 Authority constraints
+
+An external trigger may only request work. It may never grant permissions, raise the permission ceiling, approve a decision node, bypass a policy gate, or promote an artifact. A trigger whose requested goal exceeds its permission ceiling must be rejected and recorded.
+
+### 60.4 Default posture
+
+External network-originated triggers must be disabled by default. Enabling one must be an explicit user action recorded in the decision trace with the authentication method and permission ceiling stated.
+
+### 60.5 Auditability
+
+Every trigger firing must record the source, authentication result, requested goal, admission decision, and resulting task identifier. A trigger that fires without an audit record is a defect.
+
+### 60.6 Acceptance criteria
+
+The trigger gateway is satisfied only when a disabled trigger cannot start work, when an over-scoped trigger request is rejected with a recorded reason, and when every admitted trigger produces a task traceable to its originating event.
+
+## 61. Runtime Directives and Live Operational Control
+
+**ContractId:** `CONTRACT.RUNTIME.DIRECTIVE`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.DIRECTIVE` (see §67.8)
+
+
+This section extends §27 and §28 (implementation-level and goal-based autonomy requirements) and §52.12 (cancellation and pause/resume). Those remain the authority on lifecycle transitions. This section adds mid-run steering without restart.
+
+### 61.1 Product requirement
+
+During a long-horizon run the user must be able to change direction without discarding validated work. Restarting a multi-hour Android build to correct one instruction is unacceptable.
+
+### 61.2 Directive contract
+
+```text
+RuntimeDirective
+- directiveId
+- issuedAt
+- issuedBy: user | policy
+- kind: constrain | reprioritize | forbid | require | refocus | halt_surface
+- target: goal | task | worker | surface | capability
+- statement
+- bindingScope: remainder_of_session | current_task | until_revoked
+- acknowledgedAt
+- effectOnPlan
+```
+
+### 61.3 Application semantics
+
+A directive takes effect at the next kernel decision point, not mid-mutation. The runtime must acknowledge the directive, record it as an active constraint per §53.2, re-ground context per §53.4, and recompile the plan when the directive invalidates it.
+
+### 61.4 Directive precedence
+
+A user directive outranks a model plan and a learned preference. A user directive may not override a policy gate, a permission ceiling, an evidence requirement, or a safety boundary. A directive requesting prohibited behavior must be rejected with a stated reason.
+
+### 61.5 Work preservation
+
+Applying a directive must preserve validated work that the directive does not invalidate. The runtime must state which completed work remains valid, which becomes unvalidated, and which is abandoned.
+
+### 61.6 Acceptance criteria
+
+Runtime directives are satisfied only when a directive issued mid-run changes subsequent behavior without a restart, when it appears as an active constraint in later context packages, and when the run reports exactly which prior work survived.
+
+## 62. Regression Localization
+
+**ContractId:** `CONTRACT.RUNTIME.LOCALIZATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.LOCALIZATION` (see §67.8)
+
+
+This section extends §52.10 (mutation and regression intelligence) and §47 (quality intelligence). Those predict which validation to run. This section specifies identifying the cause after a regression is observed.
+
+### 62.1 Product requirement
+
+When something that previously passed now fails, the runtime must identify the causing change rather than regenerate broadly. Broad regeneration destroys validated work and hides the defect.
+
+### 62.2 Localization inputs
+
+```text
+RegressionCase
+- caseId
+- failingAssertionOrScenario
+- lastKnownPassingRevision
+- currentFailingRevision
+- candidateChanges: ordered mutation records between the two revisions
+- affectedSurfaces
+- localizationMethod: impact_graph | history_correlation | bisect
+- identifiedCause
+- confidence
+```
+
+### 62.3 Localization order
+
+The runtime must attempt localization in increasing cost order: first the impact graph to find mutations touching the failing surface, then historical correlation with known failure signatures, then revision bisection using the recorded checkpoint sequence. Bisection must reuse existing checkpoints rather than rebuilding from scratch when checkpoints are available.
+
+### 62.4 Repair constraint
+
+Repair must target the identified cause. When localization fails to identify a cause, the runtime must record an unlocalized regression and escalate rather than rewriting unrelated code. Rewriting code outside the identified cause surface is prohibited without a recorded reason.
+
+### 62.5 Failure signature learning
+
+Each localized regression must produce a failure signature linking the symptom, the cause class, and the successful repair, written to memory as a FAILURE record per §53.2 so later occurrences are localized faster.
+
+### 62.6 Acceptance criteria
+
+Regression localization is satisfied only when an injected regression in a fixture is localized to the causing mutation, when repair is confined to the identified cause, and when an unlocalized regression escalates instead of triggering broad regeneration.
+
+## 63. Agent Runtime Debugger
+
+**ContractId:** `CONTRACT.RUNTIME.DEBUGGER`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.DEBUGGER` (see §67.8)
+
+
+This section extends §49 (Private Internal Reasoning and Visible Structured Reasoning Stream) and §52.11 (trajectory replay). Those cover user-facing streaming and replay. This section adds operator-grade inspection of a live run.
+
+### 63.1 Product requirement
+
+When an autonomous run behaves wrongly, the user must be able to inspect why without reading private chain-of-thought and without stopping the run.
+
+### 63.2 Inspectable state
+
+The debugger must expose, for any live or completed run: the kernel state machine position, the active plan and its revision, the active constraints and locked decisions, the current context package manifest, the pending and completed tool calls with results, held reservations and leases, the evidence ledger for the current task, the recovery ladder position, and the resource reservations in effect.
+
+### 63.3 Privacy boundary
+
+The debugger exposes structured runtime state, tool inputs and outputs, and decision records. It must not expose private model reasoning tokens. This preserves the §49 boundary while making the runtime diagnosable.
+
+### 63.4 Inspection operations
+
+| Operation | Effect |
+|---|---|
+| Snapshot | Capture full inspectable state at a point in time |
+| Step boundary pause | Pause at the next kernel decision point |
+| Surface trace | Show every mutation and validation touching one surface |
+| Decision trace | Show why a plan step was selected, with cited evidence |
+| Evidence gap query | List requirements lacking evidence and the missing kind |
+
+### 63.5 Read-only default
+
+Debugger operations must be read-only except for explicit pause and resume. Inspection must never mutate project files, alter evidence, or change authority decisions.
+
+### 63.6 Acceptance criteria
+
+The debugger is satisfied only when a live run can be snapshotted and paused at a decision boundary, when the reason for a specific mutation can be traced to a cited requirement and decision, and when inspection produces no project mutation.
+
+## 64. Historical Resource Profiling
+
+**ContractId:** `CONTRACT.RUNTIME.PROFILING`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.PROFILING` (see §67.8)
+
+
+This section extends §52.12 backpressure and resource reservation. That section reserves scarce capacity. This section supplies the historical measurements that make reservation and estimation accurate.
+
+### 64.1 Product requirement
+
+The runtime must predict from measured history rather than guess. Gradle builds, emulator boots, instrumentation runs, and provider calls have measurable cost profiles that determine whether a plan is feasible on the current host.
+
+### 64.2 Profile record
+
+```text
+ResourceProfile
+- operationClass: gradle_build | gradle_incremental | emulator_boot | instrumentation_run | apk_package | provider_call | static_analysis
+- projectFingerprint
+- hostFingerprint
+- samples
+- medianDuration
+- p90Duration
+- peakMemory
+- peakCpu
+- diskDelta
+- failureRate
+- lastUpdatedAt
+```
+
+Profiles are keyed by project and host fingerprint because the same operation costs differently on different projects and machines.
+
+### 64.3 Planning use
+
+Before committing to a plan the runtime must estimate total cost from profiles and compare it against available host capacity and any user-declared time bound. When the estimate exceeds capacity the runtime must reduce scope, sequence work differently, or surface the constraint. It must not begin work it can predict will exhaust the host.
+
+### 64.4 Honest estimation
+
+Estimates must be labeled as estimates with sample counts. An operation class with fewer than a defined minimum of samples must be reported as unprofiled rather than given a fabricated estimate.
+
+### 64.5 Degradation detection
+
+A sustained increase in an operation's duration or failure rate relative to its profile must raise a host or project health signal, since it commonly indicates disk pressure, a corrupted cache, or a degraded emulator.
+
+### 64.6 Acceptance criteria
+
+Resource profiling is satisfied only when repeated fixture runs produce stable profiles, when an over-capacity plan is reduced or declared before execution, and when unprofiled operations are reported as unprofiled rather than estimated.
+
+## 65. Speculative Candidate Branching
+
+**ContractId:** `CONTRACT.RUNTIME.SPECULATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.SPECULATION` (see §67.8)
+
+
+This section extends §29 and §30 self-improvement and candidate-promotion material, and §52.11 simulation. Those cover promoting a validated candidate. This section specifies producing competing candidates safely.
+
+### 65.1 Product requirement
+
+For high-uncertainty work the runtime may attempt more than one approach and keep the one that validates best. This must never double-write the workspace or produce ambiguous evidence.
+
+### 65.2 Candidate branch contract
+
+```text
+CandidateBranch
+- branchId
+- parentRevision
+- approach
+- isolatedWorkspace
+- resourceBudget
+- validationPlan
+- outcome: pending | validated | failed | abandoned
+- comparableMetrics
+- selectedAsWinner: true | false
+```
+
+Every candidate must run in an isolated workspace with its own revision lineage. Candidates must never share a working tree.
+
+### 65.3 Admission conditions
+
+Speculative branching is permitted only when the task has a declared uncertainty, when host capacity per §64 allows the additional cost, and when the candidates are comparable by an objective validation metric. Otherwise the runtime must execute a single approach.
+
+### 65.4 Selection rules
+
+Selection must be decided by validation evidence, not by model preference. Candidates must be compared on identical validation plans. When candidates tie or all fail, the runtime must record the outcome and escalate rather than selecting arbitrarily.
+
+### 65.5 Discard hygiene
+
+Losing candidates must be discarded from the deliverable path while their evidence and failure signatures are retained in memory per §53.2. A losing candidate's code must never appear in the promoted artifact, and a losing candidate's validation must never be cited as completion evidence.
+
+### 65.6 Acceptance criteria
+
+Speculative branching is satisfied only when parallel candidates leave the primary workspace untouched, when the winner is selected by identical validation evidence, and when discarded candidates contribute learning without contributing code.
+
+
+## 66. Agent Reasoning, Capability Selection, and Delegation Contract
+
+**ContractId:** `CONTRACT.RUNTIME.REASONING`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.REASONING` (see BS §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.AUTHORITY
+- authoritySection: §33
+- extendingSection: §66
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.REASONING.ARTIFACT_ONLY, CLAUSE.REASONING.NO_AUTHORITY, CLAUSE.REASONING.AGENT_INVOCATION, CLAUSE.REASONING.CHILD_CAPABILITY_CEILING, CLAUSE.REASONING.CHILD_RESOURCE_CEILING, CLAUSE.REASONING.HYPOTHESIS_EVIDENCE, CLAUSE.REASONING.MODE_WITHIN_POLICY
+- nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION
+
+This section extends §33 (authority) and §52 (Core Agent Execution Kernel and Autonomous Loop Contract). §33 remains the authority on who decides. §52 remains the authority on the execution loop. This section adds the reasoning cycle that drives that loop, the rule that every autonomous capability is agent-invocable, and the constraints that bound recursive delegation. It defines no second execution loop.
+
+### 66.1 The gap addressed
+
+The runtime has an execution loop, skills, workers, swarms, and evidence authorities. What it lacks is a contract for how the agent decides what to do next: how a goal becomes hypotheses, how hypotheses become a selected strategy, how a strategy becomes a capability invocation, and how the observed result revises the plan.
+
+Without that contract, capability invocation defaults to whatever the user interface exposes, and the agent becomes a text generator wired to buttons rather than an autonomous engineer.
+
+### 66.2 Private reasoning boundary
+
+Private reasoning may be used for understanding, constraint identification, hypothesis generation, strategy comparison, risk prediction, diagnosis, and self-critique. Verbatim private reasoning is never persisted, never exposed, never replayed, and never cited as evidence or authority. This preserves the boundary established in §49 and extends it with what the runtime does retain.
+
+What the runtime retains is a structured reasoning artifact:
+
+```text
+ReasoningArtifact
+- artifactId
+- cycleId
+- taskId
+- producedAtEventId
+- objective
+- assumptions
+- activeConstraints
+- lockedDecisions
+- hypotheses: HypothesisRef[]
+- alternativesConsidered
+- selectedStrategy
+- selectionBasis
+- confidence
+- uncertainties
+- expectedEffect
+- nextAction
+- requiredCapabilities
+- delegationPlan
+- validationPlan
+```
+
+`selectionBasis` must cite evidence, constraints, or prior failure signatures. It must not contain reasoning prose offered as its own justification. An artifact whose `selectionBasis` cites nothing is not admissible.
+
+### 66.3 The reasoning cycle
+
+The cycle is a state machine driven by, and subordinate to, the kernel loop of §52:
+
+```text
+OBSERVE      -> read current state, evidence, and constraints
+UNDERSTAND   -> re-ground against goal, constraints, locked decisions (§53.4)
+HYPOTHESIZE  -> generate candidate explanations or approaches
+STRATEGIZE   -> generate and compare alternatives
+SELECT       -> choose a strategy and emit a ReasoningArtifact
+AUTHORIZE    -> submit the proposed action to the deterministic authorities
+EXECUTE      -> invoke the granted capability
+OBSERVE      -> collect results and evidence
+REFLECT      -> compare expected against actual, classify the outcome
+UPDATE       -> revise hypotheses, memory, and plan
+DECIDE       -> continue | repair | replan | delegate | branch | terminate
+```
+
+`AUTHORIZE` is not a formality. The cycle cannot transition from `SELECT` to `EXECUTE` without an authority grant, and a denied action returns to `STRATEGIZE` with the denial recorded as a constraint.
+
+### 66.4 Termination states
+
+A cycle terminates in exactly one of:
+
+| State | Meaning |
+|---|---|
+| COMPLETED | The objective is satisfied with evidence of an applicable kind |
+| BLOCKED | A prerequisite is unavailable and no strategy can proceed |
+| WAITING | Progress requires a user decision or an external dependency |
+| RECOVERED | The original strategy failed and a later strategy succeeded |
+| SAFELY_FAILED | No strategy succeeded; state is consistent and the failure is recorded |
+| ESCALATED | The runtime cannot decide and requires a human decision node |
+
+`SAFELY_FAILED` is a legitimate terminal state and must never be reported as completion. A cycle that stops without recording one of these states is a defect.
+
+### 66.5 Reflection record
+
+Every executed action produces a reflection record before the next cycle begins:
+
+```text
+ReflectionRecord
+- reflectionId
+- cycleId
+- actionRef
+- outcome: SUCCESS | PARTIAL | FAILURE | UNKNOWN
+- expected
+- observed
+- deviation
+- evidenceRefs
+- rootCauseHypothesis
+- confidence
+- planImpact: none | revise_step | replan | change_strategy | escalate
+- nextAction
+```
+
+`UNKNOWN` must be recorded when the result cannot be determined from evidence. Recording `SUCCESS` without an evidence reference is prohibited by §37.
+
+### 66.6 Hypothesis lifecycle
+
+Failure handling is hypothesis-driven rather than retry-driven:
+
+```text
+CREATED -> TESTED -> SUPPORTED
+                  -> REJECTED
+                  -> SUPERSEDED
+```
+
+```text
+Hypothesis
+- hypothesisId
+- statement
+- predictedObservation
+- discriminatingTest
+- state: CREATED | TESTED | SUPPORTED | REJECTED | SUPERSEDED
+- supportingEvidenceRefs
+- refutingEvidenceRefs
+- supersededBy
+- resultingRepairKind
+```
+
+A rejected hypothesis must be recorded with its refuting evidence, not discarded. Rejection is a durable structured record and feeds the failure signatures of §62.5. The runtime must not retest a rejected hypothesis on the same evidence, and must not attempt an untargeted repair while an untested discriminating test remains available.
+
+### 66.7 Agent-invocable capabilities
+
+Every autonomous capability is invocable by the agent through the capability layer. The user interface may request goals, issue directives per §61, and observe the reasoning stream, but it is not the owner or trigger of any capability.
+
+```text
+CapabilityInvocation
+- invocationId
+- cycleId
+- capabilityId
+- kind: skill | tool | worker | swarm | session | analysis | packaging
+- arguments
+- requestedPermissions
+- authorityDecision: granted | denied | requires_approval
+- denialReason
+- resourceReservation
+- resultRef
+```
+
+The set of capabilities is discoverable at runtime rather than hardcoded into the agent. The agent may query available capabilities for an objective and receive those the current environment and policy permit, so a newly installed skill or tool becomes usable without changing the agent.
+
+Discovery reports capability availability using the status vocabulary of §5.5. Discovery grants nothing: an invocation still passes through the policy engine, and a capability reported as available may still be denied.
+
+### 66.8 Recursive delegation ceilings
+
+An agent may instantiate a child agent. Delegation never widens authority:
+
+```text
+DelegationGrant
+- grantId
+- parentAgentId
+- childAgentId
+- depth
+- maxDepth
+- capabilityCeiling
+- resourceBudget
+- timeBudget
+- workspaceScope
+- terminationPolicy
+```
+
+Two invariants bind every grant:
+
+```text
+ChildCapabilityCeiling  ⊆  ParentCapabilityCeiling
+ChildResourceBudget     ≤  ParentRemainingResourceBudget
+```
+
+These are restrictions on delegation, not grants of permission. A child may hold strictly less than its parent and never more, and the sum of outstanding child budgets may never exceed the parent's remaining budget. A delegation request violating either invariant is denied and recorded.
+
+Depth and fan-out are bounded. A grant exceeding `maxDepth`, exceeding the configured child limit, or requesting a workspace outside the parent's scope is denied.
+
+### 66.9 Swarm evolution
+
+A swarm is a live execution graph the agent may revise, not a fixed job queue. On observing that a worker is blocked, has finished, or has produced a conflicting result, the agent may propose spawning a diagnostic worker, cancelling obsolete work, adding a dependency edge, rerouting a task, or adjusting a resource reservation.
+
+Every such revision is a proposal subject to the same authority path as any other action, and every reservation change respects the reservation contract of §54 and the backpressure controls of §52.12. Cross-worker review may inform reconciliation but never substitutes for evidence: one worker's approval of another's output is not evidence, per §54.4.
+
+### 66.10 Execution mode selection
+
+The agent selects the execution strategy for a goal, within policy:
+
+| Mode | Applies when |
+|---|---|
+| INTERACTIVE | The user is present and iterating |
+| BACKGROUND | Work proceeds without attention but is bounded |
+| LONG_HORIZON | Work spans sessions and requires durable continuation |
+| DEEP_EXECUTION | Many iterations with repeated validation are required |
+| SWARM | Independent parallel workstreams are decomposable |
+| UNATTENDED | No user is available to answer decisions |
+| RECOVERY | The runtime is repairing a failed or interrupted state |
+| VERIFICATION | Only validation and evidence collection remain |
+
+Mode selection is a proposal. It never raises a permission ceiling, never suppresses an evidence requirement, and never converts a decision node into an assumption. In `UNATTENDED` mode a required decision produces `WAITING` or `ESCALATED` rather than a guess.
+
+### 66.11 Acceptance criteria
+
+The reasoning contract is satisfied only when a goal produces a recorded reasoning artifact with a cited selection basis before any mutation; when no verbatim private reasoning is persisted; when every executed action produces a reflection record; when a rejected hypothesis is retained with refuting evidence and not retested on the same evidence; when a capability invocation denied by policy returns to strategy selection with the denial recorded; when a delegation violating either ceiling invariant is denied; when a swarm revision passes the same authority path as any other action; and when every cycle terminates in exactly one declared termination state.
+
+## 67. Runtime Safety, Consistency, and Documentation Coverage Contract
+
+**ContractId:** `CONTRACT.RUNTIME.INVARIANTS`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.INVARIANTS` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.AUTHORITY
+- authoritySection: §33
+- extendingSection: §67
+- extensionType: adds_verification
+- extendedClauses: CLAUSE.INVARIANT.LEDGER_VERIFIABLE
+- nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION
+
+**ContractId:** `CONTRACT.RUNTIME.EVIDENCE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.EVIDENCE
+- authoritySection: §37
+- extendingSection: §67
+- extensionType: adds_verification
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
+
+
+This section defines the invariants that must hold across every preceding section and the documentation coverage gate that governs this document set. It is the certification authority for this specification: every other section, including any added after it, is subject to the invariants of §67.1 and the coverage chain of §67.3.
+
+This section is not the last section by position. Sections added after it extend the contracts it certifies and must register in §67.8, declare their clauses in §67.12, and resolve a complete chain in §67.15. Certification authority does not depend on document order.
+
+### 67.1 Runtime invariants
+
+The following invariants must hold at every point in every run. Any violation is a defect, not a degraded mode.
+
+| Invariant | Statement |
+|---|---|
+| Authority | The model proposes; deterministic authorities decide mutation, permission, lifecycle, evidence, recovery, and promotion |
+| Evidence | No requirement is complete without an evidence record of an applicable kind |
+| Provenance | Every mutation is attributable to a worker, a task, and a requirement |
+| Reservation | No mutation occurs on a surface without a valid reservation |
+| Freshness | No completion evidence predates the last change to the surface it validates |
+| Constraint | No active constraint or locked decision is contradicted by a later action |
+| Isolation | No project memory crosses a project boundary in identifiable form |
+| Honesty | Estimated, simulated, seeded, and unprofiled values are labeled as such |
+| Recoverability | Every interrupted run resumes from durable state without re-asking settled questions |
+| Ceiling | No component raises its own permission ceiling |
+
+### 67.2 Invariant verification
+
+Invariants must be verifiable from the event ledger, not asserted in prose. The runtime must provide an invariant check that replays a completed session's ledger and reports any violation with the violating event. A release whose certification fixture produces an invariant violation must not be promoted.
+
+### 67.3 Documentation coverage contract
+
+Every capability in this document set must have a complete traceability chain. The chain is:
+
+Capability → Requirement → Build-spec contract → Architecture contract → Schema or state machine → Authority → Persistence → Failure and recovery → ADR → Milestone → Acceptance test → Evidence
+
+### 67.4 Coverage edge definitions
+
+| Edge | Satisfied when |
+|---|---|
+| Capability → Requirement | The capability is stated as a numbered requirement, not implied |
+| Requirement → Build-spec contract | A section of this document defines the required behavior |
+| → Architecture contract | The technical architecture defines the component that implements it |
+| → Schema or state machine | A typed record or explicit state machine exists |
+| → Authority | The deciding authority is named |
+| → Persistence | What is stored, where, and its retention is stated |
+| → Failure and recovery | The failure modes and recovery behavior are stated |
+| → ADR | A decision record states what was locked and why |
+| → Milestone | A development milestone sequences the implementation |
+| → Acceptance test | A named test or fixture proves the behavior |
+| → Evidence | The test produces a durable evidence artifact |
+
+### 67.5 Defect rule
+
+Any missing edge in the chain is a documentation defect. A missing edge must be recorded and resolved; it must not be interpreted as out of scope, deferred by omission, or resolved by asserting that the capability is obvious. A capability with a missing edge may not be reported as `SUPPORTED` under §5.5.
+
+### 67.6 Documentation certification
+
+This document set is certified only when every capability in the §5.5 coverage matrix resolves to a complete twelve-edge chain, when no section defines a contract that contradicts another section, when every referenced schema exists in the technical architecture, when every ADR referenced by a section exists in the decision log, and when every milestone referenced by a section exists in the development plan.
+
+### 67.7 Contract Authority Registry
+
+Precedence is not resolved by reading. Every normative contract in this document set has exactly one registered authoritative definition, identified by a stable `ContractId`. All other sections that speak to that contract are extensions and must declare themselves as such.
+
+Each extension must declare:
+
+```text
+ExtensionDeclaration
+- contractId
+- authoritySection
+- extendingSection
+- extensionType: adds_clauses | adds_schema | adds_component | adds_verification
+- extendedClauses
+- nonOverriddenClauses
+```
+
+The following rules are binding and are verified mechanically, not by inspection:
+
+| Rule | Statement |
+|---|---|
+| Single authority | A `ContractId` has exactly one authoritative section. Two sections claiming authority over the same `ContractId` is a certification failure. |
+| Declared extension | A section addressing a registered contract without declaring `contractId` and `authoritySection` is a certification failure. |
+| Acyclicity | Authority and extension relationships must form a directed acyclic graph. Any cycle is a certification failure. |
+| No silent override | An extension may add clauses, schemas, components, and verification. It may not redefine an authoritative clause. |
+| Versioned supersession | An authoritative clause may change only by creating a new versioned contract that supersedes the previous one through a recorded ADR. The superseded contract is retained and marked `DEPRECATED`. |
+| Contradiction | Any extension clause whose value conflicts with the corresponding authoritative clause is a certification failure, regardless of which section is read first. |
+| Consumption is not extension | A section that merely consumes an artifact defined by another contract is a consumer, not an extension, and declares no authority relationship. Only a section that adds normative clauses to a contract is an extension. Consumer references form no edge in the authority graph. |
+
+The resulting shape is one authority per contract with N declared extensions, never a pairwise relationship between sections:
+
+```text
+ContractId
+    |
+    +-- AUTHORITATIVE SECTION (exactly one)
+          |
+          +-- Extension (declared)
+          +-- Extension (declared)
+          +-- Extension (declared)
+```
+
+Where ambiguity exists, certification fails and the document set is corrected. Ambiguity is never resolved by interpretation at implementation time.
+
+
+### 67.8 Registered contract identifiers
+
+The following `ContractId` values are the registered normative contracts of this document set. Each row names the single authoritative section, the declared extensions, the implementing architecture section, the locking ADR, and the implementing milestone. This table is the resolution source for §67.7 and the addressing source for §67.3.
+
+| ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
+|---|---|---|---|---|---|---|
+| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141 | M81 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.RECONCILIATION | BS §55 | — | TA §61 | ADR-144 | M83 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.E2E | BS §56 | BS §59 | TA §62 | ADR-146 | M84 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.VERIFICATION | BS §57 | BS §47 | TA §64 | ADR-148 | M85 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.LOCALIZATION | BS §62 | — | TA §63 | ADR-147 | M86 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.SUPPLY_CHAIN | BS §58 | — | TA §70 | ADR-149 | M87 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DEVICE_MATRIX | BS §59 | — | TA §65 | ADR-150 | M88 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DIRECTIVE | BS §61 | — | TA §66 | ADR-145 | M89 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DEBUGGER | BS §63 | — | TA §67 | ADR-152 | M89 | INTERNAL |
+| CONTRACT.RUNTIME.PROFILING | BS §64 | — | TA §69 | ADR-153 | M90 | INTERNAL |
+| CONTRACT.RUNTIME.TRIGGER | BS §60 | — | TA §68 | ADR-151 | M91 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.SPECULATION | BS §65 | — | TA §51, TA §65 | ADR-156 | M92 | INTERNAL |
+| CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179 | M95 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
+
+Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
+
+Section references in this table are document-qualified exactly as in §67.15: `BS §n` addresses this build specification and `TA §n` addresses the technical architecture. The authority and extension columns are BS-scoped; the architecture column is TA-scoped. An unqualified reference is not resolvable and is a certification failure.
+
+No `ContractId` may be introduced without a row in this table. A section declaring a `ContractId` absent from this table is a certification failure.
+
+### 67.9 Bidirectional traceability
+
+Certification must traverse the traceability chain in both directions. Forward traversal proves that every capability is implemented. Reverse traversal proves that nothing is implemented without a reason.
+
+Forward direction, per §67.3:
+
+```text
+Capability -> Requirement -> Build spec -> Architecture -> Schema -> Authority
+          -> Persistence -> Failure/recovery -> ADR -> Milestone -> Test -> Evidence
+```
+
+Reverse direction:
+
+```text
+Evidence -> Test -> Milestone -> ADR -> ContractId -> Capability or declared class
+```
+
+A forward break is an unimplemented capability. A reverse break is architectural dead code at specification level: a contract with schemas, components, decisions, milestones, and tests that no product capability requires. Both are documentation defects and both fail certification.
+
+### 67.10 Orphan contract rule
+
+Every registered contract must be reachable from at least one capability in the §5.5 coverage matrix, or be explicitly classified as `FOUNDATIONAL`, `CROSS_CUTTING`, `INTERNAL`, or `DEPRECATED` in §67.8.
+
+A contract that is neither capability-reachable nor explicitly classified is an orphan contract and fails certification. Classification is a declaration that the contract serves the runtime rather than a user-facing capability; it is not a means of exempting an unused contract from scrutiny. A `DEPRECATED` contract must name its superseding contract and the ADR that recorded the transition.
+
+### 67.11 Contract graph verification
+
+M93 must verify the contract graph programmatically rather than by inspection. The verifier must load the §67.8 registry, resolve every declared `contractId` and `authoritySection`, and report each of the following as a distinct, individually addressable defect:
+
+| Check | Failure condition |
+|---|---|
+| Duplicate authority | Two sections claim authority over one `ContractId` |
+| Unregistered contract | A section declares a `ContractId` absent from §67.8 |
+| Undeclared extension | A section addresses a registered contract without an ExtensionDeclaration |
+| Authority cycle | The authority/extension graph contains a cycle |
+| Clause contradiction | An extension clause conflicts with its authority's clause |
+| Unversioned override | An extension redefines an authoritative clause with no superseding contract and ADR |
+| Dangling reference | A referenced section, schema, ADR, or milestone does not exist |
+| Forward break | A capability lacks any of the twelve chain edges |
+| Reverse break | Evidence, test, milestone, or ADR resolves to no capability or class |
+| Orphan contract | A contract is neither capability-reachable nor classified |
+
+The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all ten checks in both traversal directions.
+
+
+### 67.12 Clause Registry
+
+Contradiction cannot be detected by reading prose. Every authoritative clause that an extension may touch is registered here with a stable `ClauseId`, a normative value, and a seal state. This table is the comparison source for the contradiction and override checks of §67.11.
+
+| ClauseId | Contract | Authority | Normative value | Sealed |
+|---|---|---|---|---|
+| CLAUSE.MEMORY.SCOPES | CONTRACT.RUNTIME.MEMORY | §38 | session, project, runtime_improvement, credential | SEALED |
+| CLAUSE.MEMORY.RETENTION_AUTHORITY | CONTRACT.RUNTIME.MEMORY | §38 | retention and deletion are user-controlled per entry | SEALED |
+| CLAUSE.MEMORY.SECRET_EXCLUSION | CONTRACT.RUNTIME.MEMORY | §38 | credentials, signing keys, raw secrets never enter semantic memory | SEALED |
+| CLAUSE.CONTEXT.CONSTRAINT_PRIORITY | CONTRACT.RUNTIME.CONTEXT | §53 | active constraints and locked decisions are never evicted for budget | SEALED |
+| CLAUSE.CONTEXT.SOURCE_REQUIRED | CONTRACT.RUNTIME.CONTEXT | §53 | a memory record requires a non-empty source event set | SEALED |
+| CLAUSE.WORKSPACE.SINGLE_WRITER | CONTRACT.RUNTIME.WORKSPACE | §22 | one worker holds write ownership of a workspace path at a time | SEALED |
+| CLAUSE.RESERVATION.GRANT_AUTHORITY | CONTRACT.RUNTIME.RESERVATION | §54 | only the deterministic runtime grants, revokes, or invalidates a reservation | SEALED |
+| CLAUSE.RESERVATION.STALE_INVALIDATION | CONTRACT.RUNTIME.RESERVATION | §54 | a surface change invalidates every read_stable reservation on it | SEALED |
+| CLAUSE.RECONCILE.USER_PRECEDENCE | CONTRACT.RUNTIME.RECONCILIATION | §55 | runtime output never overwrites user-authored content | SEALED |
+| CLAUSE.RECONCILE.ORIGIN_SOURCE | CONTRACT.RUNTIME.RECONCILIATION | §55 | origin is determined by mutation fingerprint, not timestamp | SEALED |
+| CLAUSE.E2E.DETERMINISM | CONTRACT.RUNTIME.E2E | §56 | non-deterministic scenarios are excluded from completion evidence | SEALED |
+| CLAUSE.E2E.SEED_PROVENANCE | CONTRACT.RUNTIME.E2E | §56 | seeded state is labeled and never presented as application behavior | SEALED |
+| CLAUSE.VERIFY.IN_LOOP | CONTRACT.RUNTIME.VERIFICATION | §57 | a mutation with a new unresolved diagnostic does not advance | SEALED |
+| CLAUSE.VERIFY.ASSERTION_ORDER | CONTRACT.RUNTIME.VERIFICATION | §57 | behavioral assertions precede implementation or are marked post_hoc | SEALED |
+| CLAUSE.VERIFY.NON_VACUITY | CONTRACT.RUNTIME.VERIFICATION | §57 | critical-logic assertion sets must fail against an injected fault | SEALED |
+| CLAUSE.EVIDENCE.CLAIM_SEPARATION | CONTRACT.RUNTIME.EVIDENCE | §37 | a model claim is never completion evidence | SEALED |
+| CLAUSE.EVIDENCE.FRESHNESS | CONTRACT.RUNTIME.EVIDENCE | §37 | evidence predating the last change to its surface is invalid | SEALED |
+| CLAUSE.LOCALIZE.CAUSE_SCOPE | CONTRACT.RUNTIME.LOCALIZATION | §62 | repair is confined to the identified cause surface | SEALED |
+| CLAUSE.SUPPLY.BLOCK_ON_FINDING | CONTRACT.RUNTIME.SUPPLY_CHAIN | §58 | a finding is blocking or accepted with a recorded reason | SEALED |
+| CLAUSE.SUPPLY.SBOM_REQUIRED | CONTRACT.RUNTIME.SUPPLY_CHAIN | §58 | an artifact without a complete SBOM is not promotable | SEALED |
+| CLAUSE.DEVICE.PRIMARY_REQUIRED | CONTRACT.RUNTIME.DEVICE_MATRIX | §59 | unavailable secondary devices produce declared gaps, never implicit passes | SEALED |
+| CLAUSE.DIRECTIVE.BOUNDED_AUTHORITY | CONTRACT.RUNTIME.DIRECTIVE | §61 | a directive may not raise a permission ceiling or bypass an evidence requirement | SEALED |
+| CLAUSE.DIRECTIVE.BOUNDARY_APPLICATION | CONTRACT.RUNTIME.DIRECTIVE | §61 | a directive applies at a kernel decision point, never mid-mutation | SEALED |
+| CLAUSE.DEBUG.READ_ONLY | CONTRACT.RUNTIME.DEBUGGER | §63 | inspection performs no project mutation and no evidence change | SEALED |
+| CLAUSE.DEBUG.REASONING_BOUNDARY | CONTRACT.RUNTIME.DEBUGGER | §63 | private reasoning tokens are never exposed | SEALED |
+| CLAUSE.PROFILE.HONEST_ESTIMATE | CONTRACT.RUNTIME.PROFILING | §64 | an operation below minimum sample count reports unprofiled, not an estimate | SEALED |
+| CLAUSE.TRIGGER.DEFAULT_DISABLED | CONTRACT.RUNTIME.TRIGGER | §60 | external network triggers are disabled by default | SEALED |
+| CLAUSE.TRIGGER.CEILING_CAP | CONTRACT.RUNTIME.TRIGGER | §60 | effective ceiling is the minimum of trigger and policy ceilings | SEALED |
+| CLAUSE.SPECULATE.EVIDENCE_SELECTION | CONTRACT.RUNTIME.SPECULATION | §65 | candidate selection is decided by identical validation evidence | SEALED |
+| CLAUSE.SPECULATE.DISCARD_HYGIENE | CONTRACT.RUNTIME.SPECULATION | §65 | discarded candidate code never enters a promoted artifact | SEALED |
+| CLAUSE.SKILL.NO_PERMISSION_GRANT | CONTRACT.RUNTIME.SKILL | §23 | loading a skill never grants a permission | SEALED |
+| CLAUSE.SKILL.SESSION_PINNING | CONTRACT.RUNTIME.SKILL | §23 | a bound skill version is pinned for the session's duration | SEALED |
+| CLAUSE.AUTHORITY.MODEL_PROPOSES | CONTRACT.RUNTIME.AUTHORITY | §33 | the model proposes; deterministic authorities decide | SEALED |
+| CLAUSE.AUTHORITY.NO_SELF_ELEVATION | CONTRACT.RUNTIME.AUTHORITY | §33 | no component raises its own permission ceiling | SEALED |
+| CLAUSE.REASONING.ARTIFACT_ONLY | CONTRACT.RUNTIME.REASONING | §66 | verbatim private reasoning is never persisted; only structured artifacts are retained | SEALED |
+| CLAUSE.REASONING.NO_AUTHORITY | CONTRACT.RUNTIME.REASONING | §66 | reasoning proposes and never decides mutation, permission, evidence, or promotion | SEALED |
+| CLAUSE.REASONING.AGENT_INVOCATION | CONTRACT.RUNTIME.REASONING | §66 | every autonomous capability is agent-invocable and the interface owns none | SEALED |
+| CLAUSE.REASONING.CHILD_CAPABILITY_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child capability ceiling is a subset of its parent ceiling | SEALED |
+| CLAUSE.REASONING.CHILD_RESOURCE_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child resource budget never exceeds the parent remaining budget | SEALED |
+| CLAUSE.REASONING.HYPOTHESIS_EVIDENCE | CONTRACT.RUNTIME.REASONING | §66 | a rejected hypothesis is retained with its refuting evidence | SEALED |
+| CLAUSE.REASONING.MODE_WITHIN_POLICY | CONTRACT.RUNTIME.REASONING | §66 | execution mode is agent-selected and never raises a permission ceiling | SEALED |
+| CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET | CONTRACT.RUNTIME.DELIBERATION | §68 | the agent requests reasoning effort; only the runtime grants it | SEALED |
+| CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE | CONTRACT.RUNTIME.DELIBERATION | §68 | stated model confidence is never sufficient grounds to proceed | SEALED |
+| CLAUSE.DELIBERATE.EVIDENCE_PRODUCING | CONTRACT.RUNTIME.DELIBERATION | §68 | consecutive observation-free passes are bounded and force evidence acquisition | SEALED |
+| CLAUSE.DELIBERATE.CRITIC_NO_MUTATION | CONTRACT.RUNTIME.DELIBERATION | §68 | the adversarial critic produces findings and never mutates the project | SEALED |
+| CLAUSE.DELIBERATE.ESCALATION_NOT_AUTHORITY | CONTRACT.RUNTIME.DELIBERATION | §68 | model escalation never widens the permission ceiling | SEALED |
+| CLAUSE.DELIBERATE.CONTINUATION_DURABLE | CONTRACT.RUNTIME.DELIBERATION | §68 | compaction preserves active hypotheses and rejected strategies | SEALED |
+| CLAUSE.DELIBERATE.DIMINISHING_RETURN | CONTRACT.RUNTIME.DELIBERATION | §68 | no-progress deliberation changes approach rather than reasoning further | SEALED |
+| CLAUSE.DELIBERATE.CAUSAL_ESCALATION | CONTRACT.RUNTIME.DELIBERATION | §68 | an effort escalation must record the observed condition that triggered it | SEALED |
+| CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS | CONTRACT.RUNTIME.DELIBERATION | §68 | no project mutation occurs between deliberation entry and the AUTHORIZE grant | SEALED |
+| CLAUSE.INVARIANT.LEDGER_VERIFIABLE | CONTRACT.RUNTIME.INVARIANTS | §67 | invariants are verified from the event ledger, not asserted in prose | SEALED |
+
+A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
+
+Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
+
+### 67.13 ExtensionDeclaration format
+
+An extending section must carry a declaration block in this exact form so it can be parsed without interpretation:
+
+```text
+**ContractId:** `<contract being extended>`
+**ExtensionDeclaration:**
+- authorityContractId: <ContractId whose authority governs>
+- authoritySection: §<n>
+- extendingSection: §<n>
+- extensionType: adds_clauses | adds_schema | adds_component | adds_verification
+- extendedClauses: <new ClauseIds introduced by this extension, or none>
+- nonOverriddenClauses: <sealed ClauseIds adopted unchanged>
+```
+
+A section that declares a `ContractId` for a contract it does not author must carry this block. A `ContractId` with no declaration block, a declaration whose `authoritySection` disagrees with §67.8, or a declaration listing a sealed clause under `extendedClauses` is a certification failure.
+
+Sections that author their own contract declare `**Registry role:** authoritative definition of \u0060<ContractId>\u0060` instead and require no ExtensionDeclaration. The ContractId must be stated explicitly; the bare form is ambiguous in sections that both author one contract and extend another, and is a certification failure.
+
+### 67.14 Contract reachability
+
+A contract is capability-reachable when a registered capability in §5.6 lists it under required contracts, directly or transitively through the extension graph of §67.8.
+
+| Class | Reachability requirement |
+|---|---|
+| CROSS_CUTTING | Must be capability-reachable from at least one registered capability |
+| FOUNDATIONAL | Need not be capability-reachable; must be required by at least two other registered contracts |
+| INTERNAL | Need not be capability-reachable; must be referenced by at least one registered capability or one other contract's architecture section |
+| DEPRECATED | Must name a superseding ContractId and the ADR that recorded the transition |
+
+Classification is a declaration of the contract's role, not an exemption from reachability. A contract whose class requirement above is unmet is an orphan contract and fails certification regardless of how it is classified.
+
+
+### 67.15 Twelve-edge resolution table
+
+§67.3 defines the chain. This table makes every edge individually addressable so forward traversal is resolved by lookup rather than by reading. Each row is one registered contract; each column is one edge.
+
+| ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
+| CONTRACT.RUNTIME.CONTEXT | CAP.ANDROID.LONG_HORIZON | BS §53 | BS §53 | TA §59 | TA §59.3 | BS §53 | TA §59.5 | TA §59.6 | ADR-141 | M81 | TEST-MEM-001 | EV-MEM-001 |
+| CONTRACT.RUNTIME.WORKSPACE | CAP.ANDROID.PARALLEL | BS §22 | BS §22 | TA §8 | TA §8.1 | BS §22 | TA §8.2 | TA §8.3 | ADR-068 | M69 | TEST-RES-001 | EV-RES-001 |
+| CONTRACT.RUNTIME.RESERVATION | CAP.ANDROID.PARALLEL | BS §54 | BS §54 | TA §60 | TA §60.2 | BS §54 | TA §60.4 | TA §60.6 | ADR-143 | M82 | TEST-RES-001 | EV-RES-001 |
+| CONTRACT.RUNTIME.RECONCILIATION | CAP.ANDROID.USER_COEDIT | BS §55 | BS §55 | TA §61 | TA §61.2 | BS §55 | TA §61.5 | TA §61.6 | ADR-144 | M83 | TEST-RCN-001 | EV-RCN-001 |
+| CONTRACT.RUNTIME.E2E | CAP.ANDROID.E2E_VERIFY | BS §56 | BS §56 | TA §62 | TA §62.2 | BS §37 | TA §62.5 | TA §62.6 | ADR-146 | M84 | TEST-E2E-001 | EV-E2E-001 |
+| CONTRACT.RUNTIME.VERIFICATION | CAP.ANDROID.QUALITY_GATE | BS §57 | BS §57 | TA §64 | TA §64.5 | BS §37 | TA §64.5 | TA §64.6 | ADR-148 | M85 | TEST-VER-001 | EV-VER-001 |
+| CONTRACT.RUNTIME.LOCALIZATION | CAP.ANDROID.REGRESSION_REPAIR | BS §62 | BS §62 | TA §63 | TA §63.4 | BS §62 | TA §63.4 | TA §63.5 | ADR-147 | M86 | TEST-LOC-001 | EV-LOC-001 |
+| CONTRACT.RUNTIME.SUPPLY_CHAIN | CAP.ANDROID.SECURE_RELEASE | BS §58 | BS §58 | TA §70 | TA §70.4 | BS §58 | TA §70.4 | TA §70.6 | ADR-149 | M87 | TEST-SEC-001 | EV-SEC-001 |
+| CONTRACT.RUNTIME.DEVICE_MATRIX | CAP.ANDROID.DEVICE_COVERAGE | BS §59 | BS §59 | TA §65 | TA §65.4 | BS §59 | TA §65.4 | TA §65.6 | ADR-150 | M88 | TEST-DEV-001 | EV-DEV-001 |
+| CONTRACT.RUNTIME.DIRECTIVE | CAP.ANDROID.LIVE_STEER | BS §61 | BS §61 | TA §66 | TA §66.4 | BS §61 | TA §66.4 | TA §66.6 | ADR-145 | M89 | TEST-DIR-001 | EV-DIR-001 |
+| CONTRACT.RUNTIME.DEBUGGER | CAP.ANDROID.LIVE_STEER | BS §63 | BS §63 | TA §67 | TA §67.2 | BS §63 | TA §67.5 | TA §67.6 | ADR-152 | M89 | TEST-DIR-001 | EV-DIR-001 |
+| CONTRACT.RUNTIME.PROFILING | CAP.ANDROID.LIVE_STEER | BS §64 | BS §64 | TA §69 | TA §69.3 | BS §64 | TA §69.2 | TA §69.6 | ADR-153 | M90 | TEST-DIR-001 | EV-DIR-001 |
+| CONTRACT.RUNTIME.TRIGGER | CAP.ANDROID.AUTOMATED_START | BS §60 | BS §60 | TA §68 | TA §68.4 | BS §60 | TA §68.4 | TA §68.6 | ADR-151 | M91 | TEST-TRG-001 | EV-TRG-001 |
+| CONTRACT.RUNTIME.SPECULATION | CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §51 | TA §65.4 | BS §65 | TA §51.1 | TA §65.6 | ADR-156 | M92 | TEST-VER-001 | EV-VER-001 |
+| CONTRACT.RUNTIME.SKILL | CAP.ANDROID.SKILL_WORKFLOW | BS §23 | BS §23 | TA §19 | TA §19.1 | BS §23 | TA §19.1 | TA §19.1 | ADR-154 | M66 | TEST-SKL-001 | EV-SKL-001 |
+| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
+| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172 | M95 | TEST-DEL-001 | EV-DEL-001 |
+| CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+
+Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
+
+The authoritative target domain of each edge is fixed:
+
+| Edge | Target domain |
+|---|---|
+| Capability | `CAP.*` in §5.6 |
+| Requirement | BS |
+| Build spec | BS |
+| Architecture | TA |
+| Schema | TA |
+| Authority | BS |
+| Persistence | TA |
+| Failure/recovery | TA, or BS when the recovery contract is normative rather than implemented |
+| ADR | decision log |
+| Milestone | development plan |
+| Test | test id defined in §5.6 and the development plan |
+| Evidence | evidence id defined in §5.6 and the development plan |
+
+A reference resolving in a document other than its edge's target domain is a dangling reference even when the target exists in some other document. Existence is not identity.
+
+A row with an empty cell is a forward break. A referenced section, subsection, ADR, milestone, capability, test id, or evidence id that does not exist is a dangling reference. Both fail certification per §67.11.
+
+
+## 68. Deep Deliberation and Adaptive Reasoning Contract
+
+**ContractId:** `CONTRACT.RUNTIME.DELIBERATION`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.DELIBERATION` (see §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.REASONING`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.REASONING
+- authoritySection: §66
+- extendingSection: §68
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET, CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE, CLAUSE.DELIBERATE.EVIDENCE_PRODUCING, CLAUSE.DELIBERATE.CRITIC_NO_MUTATION, CLAUSE.DELIBERATE.ESCALATION_NOT_AUTHORITY, CLAUSE.DELIBERATE.CONTINUATION_DURABLE, CLAUSE.DELIBERATE.DIMINISHING_RETURN, CLAUSE.DELIBERATE.CAUSAL_ESCALATION, CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS
+- nonOverriddenClauses: CLAUSE.REASONING.ARTIFACT_ONLY, CLAUSE.REASONING.NO_AUTHORITY, CLAUSE.REASONING.AGENT_INVOCATION, CLAUSE.REASONING.MODE_WITHIN_POLICY, CLAUSE.REASONING.CHILD_CAPABILITY_CEILING, CLAUSE.REASONING.CHILD_RESOURCE_CEILING, CLAUSE.REASONING.HYPOTHESIS_EVIDENCE
+
+This section extends §66 (the reasoning cycle) and §52 (the kernel loop). §66 remains the authority on what the reasoning cycle is and on the private-reasoning boundary. §52 remains the authority on the loop and on progress evaluation. This section adds how much reasoning the runtime performs before selecting an action. It defines no third loop and no new authority.
+
+### 68.1 The gap addressed
+
+§66 establishes that the agent reasons, and §52.3 establishes that the kernel evaluates progress. Neither specifies the decision that separates a competent engineer from a fast one: recognising that current understanding is insufficient and spending more effort before acting.
+
+Without that contract, a single model response becomes the unit of intelligence. The agent produces a plausible strategy, executes it, and discovers the problem was misdiagnosed — repeatedly, because nothing required it to test a competing explanation first. Difficult Android defects are lost this way: a blank screen has four plausible causes, and guessing costs more than discriminating.
+
+This section makes deliberation effort an explicit, budgeted, evidence-producing runtime activity.
+
+### 68.2 Deliberation boundary
+
+Deliberation is bounded by the same boundary §66.2 establishes. Additional reasoning passes may be performed; verbatim private reasoning from those passes is never persisted, exposed, replayed, or cited. What the runtime retains per deliberation is a structured record:
+
+```text
+DeliberationRecord
+- deliberationId
+- cycleId
+- taskId
+- effortLevel: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
+- objective
+- question
+- passCount
+- hypothesesConsidered
+- hypothesesRejected
+- evidenceAcquired
+- alternativesConsidered
+- selectedStrategy
+- rejectedStrategies
+- uncertaintyBefore
+- uncertaintyAfter
+- confidenceBefore
+- confidenceAfter
+- reasonForContinuation
+- reasonForTermination
+- modelProfilesUsed
+- providerRequestRefs
+- resourceUsage
+- outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED
+```
+
+A record whose `passCount` exceeds one must state `reasonForContinuation` for each additional pass. Continuation without a stated reason is not admissible, which prevents unbounded thinking presented as diligence.
+
+### 68.3 The deliberation decision
+
+At the `HYPOTHESIZE` and `STRATEGIZE` states of the §66.3 cycle, the runtime must decide whether current understanding is sufficient to proceed. The decision produces exactly one of:
+
+| Decision | Meaning |
+|---|---|
+| PROCEED | Understanding is sufficient; continue to SELECT |
+| DELIBERATE_MORE | Another reasoning pass is warranted |
+| GATHER_EVIDENCE | A tool observation would resolve more than further reasoning |
+| DELEGATE | A specialist worker is better suited to this question |
+| BRANCH | Competing strategies are comparable and should be tried per §65 |
+| ESCALATE | The question requires a human decision |
+
+Inputs to the decision are goal and requirement uncertainty, hypothesis confidence spread, strategy disagreement, assessed risk, failure history for the surface, available validation evidence, architectural impact, change-surface size, remaining budget, model capability, and task criticality.
+
+### 68.4 Deliberation budget
+
+Deliberation cost is a distinct resource from host and provider resources. A task may have CPU, provider, and wall-clock capacity available and still be required to stop deliberating, and may have tight host capacity and still be required to deliberate further on a high-risk change.
+
+```text
+DeliberationBudget
+- maxReasoningTime
+- maxReasoningPasses
+- maxModelRequests
+- maxReasoningTokens
+- maxToollessPasses
+- maxEvidenceAcquisitionPasses
+- maxHypotheses
+- maxStrategyCandidates
+- maxSpecialistConsultations
+- maxCandidateBranches
+- escalationThreshold
+- diminishingReturnThreshold
+```
+
+`maxToollessPasses` is required: consecutive reasoning passes without new observation are the dominant failure mode of extended thinking, and the runtime must force evidence acquisition rather than permit indefinite unlit reasoning.
+
+### 68.5 The runtime grants the budget
+
+The agent may request an effort level. It may never grant its own. The deterministic runtime decides the granted level from the request, the remaining budget, policy, host resources, provider capability, and task risk, and records the decision.
+
+A request exceeding what policy or capacity permits is downgraded to the highest permitted level and recorded, never denied silently and never satisfied beyond the ceiling. This is the §33 authority principle applied to reasoning effort: the model proposes how hard to think; the runtime decides.
+
+Every grant above the task's baseline level must record the observed condition that triggered it. An escalation whose `grantDecisionReason` cites no observed condition is not an adaptive escalation and must be rejected: effort level differing before and after is not evidence that the runtime recognised anything. This makes escalation causally auditable rather than merely observable.
+
+### 68.6 Reasoning effort levels
+
+| Level | Applies when | Bound |
+|---|---|---|
+| NORMAL | Routine change on a familiar surface | Single pass, no escalation |
+| EXTENDED | Uncertainty remains after the first pass | Bounded additional passes with evidence acquisition |
+| DEEP | Competing hypotheses persist, or the change is high-risk | Hypothesis competition and adversarial critique required |
+| EXHAUSTIVE | High-risk architectural or destructive change unresolved at DEEP | Candidate branching or escalation required at termination |
+
+Escalation must be justified by a recorded condition, not by preference. De-escalation is permitted when uncertainty resolves. Effort level never alters permissions, evidence requirements, or authority.
+
+### 68.7 Sufficiency is not confidence
+
+A stated model confidence value is never sufficient grounds to proceed. Sufficiency is a conjunction:
+
+```text
+sufficient = required evidence present
+           AND uncertainty below threshold for the risk class
+           AND strategy stable across the last pass
+           AND validation plan defined
+           AND no untested discriminating test available
+```
+
+For a high-risk architectural change the required evidence set must include architectural impact, dependency impact, affected-symbol analysis, a regression plan, and a validation plan. Reporting high confidence while any required element is absent is a defect, not a judgement call.
+
+### 68.8 Deliberation passes produce evidence, not only prose
+
+Deliberation is interleaved with observation rather than separated from it. A pass may read code, search symbols, inspect the impact graph, run a diagnostic, query the environment, or execute a discriminating test, then reason over what it observed.
+
+Consecutive passes that acquire no new observation must be counted against `maxToollessPasses`, and reaching that bound forces `GATHER_EVIDENCE` or termination. Evidence acquisition during deliberation is read-only or explicitly non-mutating: deliberation must not mutate project source, and a diagnostic that would mutate requires the ordinary authorization path of §66.7.
+
+### 68.9 Hypothesis competition
+
+At DEEP and above, hypotheses are evaluated in competition rather than sequentially. For a defect with multiple plausible causes the runtime must enumerate candidates, define a discriminating test per candidate, rank candidates by the cost and decisiveness of their test, execute the most decisive affordable test, and reject candidates the evidence refutes.
+
+Untargeted repair while an untested discriminating test remains available is prohibited by §66.6. This section adds that at DEEP the runtime must attempt to *refute* rather than merely to confirm: a pass that only seeks support for the leading hypothesis has not competed it.
+
+### 68.10 Adversarial strategy critique
+
+At DEEP and above, a selected candidate strategy must pass an adversarial critique before authorization. The critique asks what would make the strategy wrong, searches for a counterexample, and produces either a rejection finding or a set of evidence requests.
+
+The critic produces findings and evidence requests only. It has no mutation capability, no authority to approve, and no capability to mark work complete. Critique is mandatory for architectural decisions, destructive migrations, security-relevant changes, concurrency changes, state-machine changes, authentication changes, data migrations, and release packaging.
+
+### 68.11 Model escalation without authority escalation
+
+Deliberation may escalate the model, not the permissions. Routing considers problem complexity, required reasoning effort, context capacity, tool-call capability, vision requirement, coding capability, historical failure rate for the surface, provider health, latency, cost, and privacy policy — extending the routing of §9 rather than replacing it.
+
+A stronger or specialist model receives exactly the same permission ceiling, the same evidence requirements, and the same authority path as the model it replaced. Escalation changes who is asked, never what is allowed.
+
+### 68.12 Deliberation continuation
+
+A provider request is not the unit of deliberation. A `DeliberationSession` spans multiple model requests, tool observations, and context reconstructions, and must survive context compaction, provider failover, and runtime restart.
+
+Continuation state comprises the deliberation revision, the reasoning objective, active hypotheses with their states, evidence acquired so far, strategies already rejected with reasons, the current effort level, and the remaining budget. Compaction must preserve this state, per the constraint-priority rule of §53.3: a compaction that discards active hypotheses or rejected-strategy records has reset the agent's thinking and is a defect.
+
+### 68.13 Diminishing-return detection
+
+Each pass must record measurable movement: uncertainty change, evidence added, hypotheses eliminated, and strategy stability. When movement falls below `diminishingReturnThreshold` across consecutive passes, the runtime must classify the deliberation `NO_PROGRESS` and stop reasoning in place.
+
+`diminishingReturnThreshold` is configuration. No component may hardcode a pass count for `NO_PROGRESS`; the classification is a function of the configured threshold, the measured movement, and consecutive-pass semantics. A runtime whose behavior does not change with the configured value has not implemented detection.
+
+On `NO_PROGRESS` the runtime must acquire evidence, escalate the model, branch candidates, delegate, or escalate to a human decision. Continuing to reason without one of those changes is prohibited. This connects to the stall detection of §29.4 and the progress evaluation of §52.3, which remain the authorities on task-level stall; this section governs stall within a single deliberation.
+
+### 68.14 Termination
+
+Every deliberation terminates in exactly one recorded outcome: `SUFFICIENT`, `BUDGET_EXHAUSTED`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`.
+
+`BUDGET_EXHAUSTED` and `NO_PROGRESS` must never be reported as sufficiency, and must never silently permit execution of the leading strategy as though it had been validated. Terminating without sufficiency yields a cycle termination state of `WAITING`, `SAFELY_FAILED`, or `ESCALATED` per §66.4.
+
+### 68.15 Skill reasoning requirements
+
+A skill declares the deliberation it requires, so effort is a property of the work rather than a guess:
+
+```text
+SkillDeliberationProfile
+- skillId
+- minimumEffortLevel
+- requiredEvidenceKinds
+- requiredCritique: true | false
+- preferredModelCapabilities
+- maxDeliberationCost
+- allowedDelegation
+- failureStrategies
+```
+
+A skill for a data-layer migration may require DEEP effort with schema analysis, migration compatibility, data-loss analysis, a rollback plan, and a test strategy as required evidence. The runtime must honour a declared minimum effort level, and must refuse to execute a skill whose required evidence kinds are unavailable in the current environment rather than proceeding with less.
+
+### 68.16 Acceptance criteria
+
+The deliberation contract is satisfied only when an agent request for a higher effort level is granted, downgraded, or denied by the runtime and never self-granted; when each additional pass records a reason for continuation; when consecutive observation-free passes are bounded and force evidence acquisition; when a high-risk change cannot proceed on stated confidence while a required evidence element is missing; when competing hypotheses are refuted by discriminating tests rather than confirmed by preference; when an adversarial critique produces findings without mutating the project; when no project mutation occurs anywhere between deliberation entry and the authorization grant; when every escalation records the observed condition that caused it; when a stronger model inherits the identical permission ceiling; when a deliberation session survives context compaction with its hypotheses and rejected strategies intact; when diminishing returns force a change of approach rather than further reasoning; and when a deliberation that ends without sufficiency never presents its leading strategy as validated.
+
+## References
+
+[1]: https://tauri.app/ "Tauri Documentation"
+
+[2]: https://react.dev/ "React Documentation"
+
+[3]: https://www.typescriptlang.org/docs/ "TypeScript Documentation"
+
+[4]: https://docs.expo.dev/ "Expo Documentation"
+
+[5]: https://reactnative.dev/docs/getting-started "React Native Documentation"
+
+[6]: https://git-scm.com/doc "Git Documentation"
+
+[7]: https://www.electronjs.org/docs/latest/ "Electron Documentation"
+
+---
+
+**Document owner:** Nirman product team  
+**Recommended application name:** Nirman  
+**Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK/AAB export
+
+

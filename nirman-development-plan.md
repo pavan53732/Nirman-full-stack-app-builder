@@ -1138,3 +1138,176 @@ A multi-hour Android task can compact active state, move old records to warm/col
 ### M80 certification fixture
 
 The certification fixture should include a user instruction and optional screenshots for an Android application with multiple screens, offline data, a device capability, branded assets, background work, and a release artifact. The fixture must inject a dependency failure, a provider interruption, a stale worker, an emulator interruption, a contradiction in requirements, and a validation failure. Nirman must recover, replan, validate, produce the APK/AAB, and retain an inspectable trajectory without routine human intervention.
+
+# M81–M93: Long-Horizon Intelligence, Verification, and Documentation Certification
+
+These milestones implement build spec §53–§67 and technical architecture §59–§71. They follow the AgentExecutionKernel milestones M65–M80 and must be tested against Android fixture projects with injected failures. No milestone here may begin before the single-worker and durable-supervisor gates of Stages 1–3 have passed.
+
+| Milestone | Focus | Required result |
+|---|---|---|
+| M81 | Memory and Context Runtime | Classified memory records with mandatory source events, ConstraintRegistry, ContextAssembler with constraint-priority budgeting, RegroundingService at all six trigger points, project-scoped isolation |
+| M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks |
+| M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
+| M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all eight required scenario classes, determinism quarantine |
+| M85 | Advanced Verification | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection |
+| M86 | Regression Localization | Impact-graph localization, signature matching, checkpoint bisection, cause-scoped repair enforcement, escalation on unlocalized regression |
+| M87 | Adversarial Security and Supply Chain | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline |
+| M88 | Multi-Device E2E | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping |
+| M89 | Runtime Directives and Agent Debugger | DirectiveIntake with validation and decision-boundary application, PlanReconciler effect accounting, read-only RuntimeSnapshot, SurfaceTracer, DecisionTracer |
+| M90 | Historical Resource Profiling | Supervisor-level measurement, project/host-keyed profiles, PlanCostEstimate with honest confidence, capacity gating, DegradationDetector |
+| M91 | External Event Gateway | TriggerRegistry, authentication, AdmissionController with ceiling capping, default-disabled webhook surface, complete firing audit |
+| M92 | Speculative Candidate Branching | Isolated candidate workspaces, admission conditions, evidence-only selection, escalation on tie, discard hygiene with retained signatures |
+| M93 | Documentation Coverage Certification | Ledger-based invariant verification for all ten invariants and a complete twelve-edge traceability chain for every capability |
+
+## M81–M93 acceptance gates
+
+### Memory and context gate
+
+A session is interrupted by a runtime restart and resumes without re-asking a settled question. A locked decision remains present in every subsequent context package until superseded. A memory write attempted without a source event is rejected. A project-scoped query cannot return another project's records. A historical context package is reproduced from the ledger.
+
+### Coordination gate
+
+Two workers requesting modification of the same symbol produce one grant and one typed denial. A symbol rename invalidates a dependent worker's read-stable work and marks it unvalidated. A proposal validated before a dependent surface change is rejected at the commit barrier rather than merged.
+
+### Reconciliation gate
+
+A user edit made during an active run survives into the final artifact, validation predating the edit is discarded, an edit contradicting a locked decision produces a decision node, and generated build output never triggers reconciliation.
+
+### Verification gate
+
+A mutation introducing a compile error cannot advance to dependent work. An assertion authored after a passing implementation is flagged post hoc. A vacuous assertion set for critical logic is rejected. A data-persistence scenario detects an app that loses data on process death. A flaky scenario is quarantined rather than reported as passing.
+
+### Localization gate
+
+An injected single-line regression is attributed to its causing mutation. A repair mutation outside the identified cause scope is rejected. Bisection reuses existing checkpoints without full rebuilds. An unlocalized regression escalates rather than triggering broad regeneration.
+
+### Security and supply-chain gate
+
+A fixture containing a hardcoded secret is blocked before packaging. An unpinned or hash-mismatched dependency blocks the build. A package name resembling a known package is flagged. An artifact with an incomplete SBOM is not promotable. A finding cannot be dispositioned without a recorded reason.
+
+### Multi-device gate
+
+A missing secondary device produces a declared coverage gap rather than an implicit pass. A scenario passing on one API level and failing on another is recorded as a divergence defect. Emulator boots serialize when host capacity cannot sustain parallel emulators.
+
+### Directive and debugger gate
+
+A directive issued mid-run changes subsequent behavior without a restart and appears as an active constraint in the next context package. A directive requesting a permission increase is rejected with a recorded reason. A live run pauses at a decision boundary rather than mid-mutation. A completed session is fully inspectable from the ledger, and no debugger operation mutates the project.
+
+### Resource profiling gate
+
+Repeated identical fixture runs converge to stable profiles. An over-capacity plan is reduced or surfaced before execution begins. An operation class below the minimum sample count is reported as unprofiled rather than estimated. Injected disk pressure raises a host-health signal rather than an application defect.
+
+### Trigger gate
+
+A disabled webhook trigger opens no listening network surface. An over-scoped trigger request is rejected with a typed reason and audited. An admitted task's permission ceiling equals the minimum of the trigger and policy ceilings.
+
+### Speculation gate
+
+Parallel candidates leave the primary workspace untouched. The winning candidate is selected by identical validation evidence. A tie or universal failure escalates instead of arbitrary selection. Discarded candidate code never appears in the promoted artifact while its failure signature is retained.
+
+## Foundational milestone contract mapping
+
+These earlier milestones are referenced by the twelve-edge table of build spec §67.15 and must carry the same identifiers.
+
+| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id |
+|---|---|---|---|---|
+| M65 | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071 | TEST-GEN-001 | EV-GEN-001 |
+| M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
+| M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
+
+## M81–M93 contract mapping
+
+Each milestone implements exactly one registered contract from build spec §67.8. This mapping is the addressing source for the reverse traversal required by §67.9.
+
+| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
+|---|---|---|---|---|---|
+| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
+| M82 | CONTRACT.RUNTIME.RESERVATION | ADR-142, ADR-143 | TEST-RES-001 | EV-RES-001 | Coordination gate |
+| M83 | CONTRACT.RUNTIME.RECONCILIATION | ADR-144 | TEST-RCN-001 | EV-RCN-001 | Reconciliation gate |
+| M84 | CONTRACT.RUNTIME.E2E | ADR-146 | TEST-E2E-001 | EV-E2E-001 | Verification gate |
+| M85 | CONTRACT.RUNTIME.VERIFICATION | ADR-148 | TEST-VER-001 | EV-VER-001 | Verification gate |
+| M86 | CONTRACT.RUNTIME.LOCALIZATION | ADR-147 | TEST-LOC-001 | EV-LOC-001 | Localization gate |
+| M87 | CONTRACT.RUNTIME.SUPPLY_CHAIN | ADR-149 | TEST-SEC-001 | EV-SEC-001 | Security and supply-chain gate |
+| M88 | CONTRACT.RUNTIME.DEVICE_MATRIX | ADR-150 | TEST-DEV-001 | EV-DEV-001 | Multi-device gate |
+| M89 | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER | ADR-145, ADR-152 | TEST-DIR-001 | EV-DIR-001 | Directive and debugger gate |
+| M90 | CONTRACT.RUNTIME.PROFILING | ADR-153 | TEST-DIR-001 | EV-DIR-001 | Resource profiling gate |
+| M91 | CONTRACT.RUNTIME.TRIGGER | ADR-151 | TEST-TRG-001 | EV-TRG-001 | Trigger gate |
+| M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-VER-001 | EV-VER-001 | Speculation gate |
+| M93 | CONTRACT.RUNTIME.INVARIANTS | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
+| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
+| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation gate |
+
+M93 must additionally run the contract-graph verifier of build spec §67.11 across all ten checks in both traversal directions, and must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, or orphan contract.
+
+### M93 documentation certification fixture
+
+Certification requires a long-running Android fixture whose completed event ledger is replayed to verify all ten runtime invariants of build spec §67.1, with each violation reported against its violating event. In addition, every capability in the §5.5 coverage matrix must resolve to a complete twelve-edge chain from capability through requirement, build-spec contract, architecture contract, schema or state machine, authority, persistence, failure and recovery, ADR, milestone, acceptance test, and evidence.
+
+Any missing edge is a documentation defect that must be recorded and resolved. No capability may be reported as SUPPORTED while an edge is missing, and no release may be promoted while any invariant violation remains.
+
+# M94: Agent Reasoning Runtime and Bounded Delegation
+
+Implements build spec §66 and technical architecture §71. This milestone follows M81–M93 and must not begin before the AgentExecutionKernel milestones M65–M80 and the certification milestone M93 have passed their gates. It adds the reasoning cycle that drives the existing kernel loop; it does not introduce a second execution loop.
+
+| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
+|---|---|---|---|---|---|
+| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
+
+**Required results:** AgentReasoningEngine driving the cycle state machine; ReasoningArtifact persistence with mandatory cited selectionBasis; HypothesisManager with the full CREATED/TESTED/SUPPORTED/REJECTED/SUPERSEDED lifecycle and evidence-bound rejection; ReflectionEngine producing expected-versus-observed records; CapabilityRegistry with runtime discovery; CapabilityBroker routing every invocation through the policy authorities; DelegationManager enforcing both ceiling invariants with cascading revocation; SwarmGraphManager applying agent-proposed graph revisions through the standard authority path; ExecutionModeSelector proposing modes within policy.
+
+### Reasoning and delegation gate
+
+A goal produces a recorded ReasoningArtifact with a cited selectionBasis before any mutation occurs. An artifact submitted with an empty selectionBasis is rejected at write and the cycle returns to strategy selection. No persisted record in any reasoning table contains verbatim model reasoning. Every executed action produces a ReflectionRecord classifying the outcome as SUCCESS, PARTIAL, FAILURE, or UNKNOWN with evidence references. A hypothesis rejected with refuting evidence is retained and is not retested against unchanged evidence. An untargeted repair is not attempted while an untested discriminating test remains available. A capability invocation denied by policy returns the cycle to strategy selection with the denial present as an active constraint in the next artifact. A delegation request whose child capability ceiling exceeds its parent's, or whose resource budget exceeds the parent's remaining budget after outstanding sibling grants, is denied with a typed reason. Revoking a parent grant terminates every descendant. A newly registered capability becomes discoverable without a code change to the reasoning engine. A mode request exceeding policy is downgraded to the highest permitted mode and recorded. Every cycle terminates in exactly one of COMPLETED, BLOCKED, WAITING, RECOVERED, SAFELY_FAILED, or ESCALATED, and SAFELY_FAILED is never reported as completion.
+
+# M95: Deep Deliberation Runtime
+
+Implements build spec §68 and technical architecture §72. Prerequisite: M94 must pass its reasoning and delegation gate. This milestone adds the deliberation runtime that decides how much reasoning to perform inside the existing cycle; it introduces no third execution loop.
+
+**Required results:** DeliberationController driving bounded passes; DeliberationBudgetManager enforcing every ceiling including maxToollessPasses; ReasoningEffortSelector granting the minimum of request, policy ceiling, fundable level, and provider capability with the binding constraint recorded; SufficiencyEvaluator implementing the §68.7 conjunction rather than reading stated confidence; HypothesisEvaluator competing candidates by decisiveness over cost and reporting refutation-versus-confirmation; CounterexampleEngine emitting findings and evidence requests with no mutation capability; EvidenceAcquisitionPlanner restricted to non-mutating observations and costed from the resource profiler; DeliberationModelRouter escalating under an unchanged permission ceiling; DeliberationContinuationManager checkpointing session state at every pass boundary; DeliberationProgressEvaluator and DiminishingReturnDetector forcing an approach change on NO_PROGRESS; DeliberationRecordStore rejecting inadmissible records.
+
+### Deep deliberation gate
+
+An agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the binding constraint recorded, and never self-granted. A deliberation exceeding its pass budget terminates BUDGET_EXHAUSTED and the cycle does not execute the leading strategy. Consecutive observation-free passes are refused at the maxToollessPasses bound until evidence is acquired. A change classified high-risk is refused sufficiency at a stated confidence of 0.95 while its regression plan is missing. A discriminating test refutes the leading hypothesis and the selected strategy changes as a result. A counterexample finding returns the cycle to strategy selection with no project mutation. An escalated model executes under the identical permission ceiling. A forced context compaction preserves active hypotheses and rejected strategies, and the session resumes without re-deriving them. Deliberation reaching the fixture's configured `diminishingReturnThreshold` across consecutive passes of flat uncertainty produces NO_PROGRESS and an approach change rather than a further plain pass. No deliberation record contains verbatim model reasoning.
+
+**Causal escalation.** An escalation event is not sufficient. The gate requires that the recorded condition is the causal trigger for the escalation, evidenced as an ordered chain in the event ledger:
+
+```text
+condition observed          (uncertainty above threshold | competing hypotheses
+                             unresolved | high-risk classification)
+      -> ReasoningEffortSelector decision citing that condition
+      -> requested level
+      -> granted level with binding constraint
+      -> additional deliberation performed at the granted level
+      -> outcome changed relative to the pre-escalation strategy
+```
+
+A run whose effort level differs before and after without that chain fails the gate. Specifically, an escalation whose `grantDecisionReason` cites no observed condition, or which is requested at fixture start rather than in response to a condition, does not satisfy causal escalation even though `levelBefore != levelAfter`.
+
+**Causal strategy revision.** A strategy revision must be justified by a change in evidence or constraints. A revision from strategy A to strategy B against an unchanged evidence set, unchanged uncertainty, and unchanged constraint set is manufactured activity and fails the gate. Each recorded `rejectedStrategies` entry must cite the refuting evidence reference or the constraint that invalidated it.
+
+**No mutation during deliberation.** Certification must inspect the event ledger and assert that no project mutation event occurs between deliberation entry and the kernel `AUTHORIZE` grant. The permitted ordering is:
+
+```text
+DELIBERATION_PASS*  (observations only, zero mutation events)
+      -> ReasoningArtifact emitted
+      -> AUTHORIZE granted
+      -> mutation events permitted
+```
+
+Any mutation event carrying a deliberation pass as its originating context is a shadow execution path and fails the gate regardless of the run's outcome. This assertion covers the whole deliberation phase, not only the adversarial critic.
+
+### M95 certification fixture
+
+Certification requires a deliberately difficult Android fixture exercising the full loop end to end: the initial strategy fails; the agent enumerates multiple competing hypotheses; it acquires discriminating evidence; at least one hypothesis is refuted and recorded with its refuting evidence; additional deliberation budget is consumed with a stated reason per pass; reasoning effort escalates on a recorded condition; an alternative strategy is selected on evidence rather than preference; implementation proceeds through the ordinary authority path; validation discovers a second issue; deliberation resumes with prior rejections intact; the cause is localized and repaired within its cause scope; stateful end-to-end scenarios pass on the primary device; and the final report proves completion with evidence of an applicable kind for every requirement.
+
+Passing this fixture requires the deliberation runtime to demonstrably change the outcome. Because the milestone exists to demonstrate the complete mechanism, all three of the following are mandatory and each must be causally connected to the subsequent outcome:
+
+| Required demonstration | Causal requirement |
+|---|---|
+| Evidence-backed hypothesis refutation | A discriminating test result refutes a named hypothesis, and the refutation changes which strategy is selected |
+| Causal effort escalation | An observed condition triggers the escalation per the causal-escalation chain, and the additional deliberation at the granted level changes the outcome |
+| Evidence-backed strategy revision | A change in evidence or constraints causes the revision, cited on the rejected strategy |
+
+A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
+
+This is the anti-vacuity rule of §57.5 applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.

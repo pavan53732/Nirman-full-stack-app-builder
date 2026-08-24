@@ -1,0 +1,9 @@
+# Scratch directories from structural repair passes. Each file is a point-in-time
+# copy of a canonical document taken before a renumbering or insertion step, kept
+# only so an in-progress operation is recoverable on the working machine.
+# Provenance lives in git history, so these must not enter it.
+.renumber-backup/
+
+# Python bytecode from running the verifier and its mutation battery.
+__pycache__/
+*.pyc
