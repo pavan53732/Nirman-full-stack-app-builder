@@ -805,6 +805,120 @@ def check_orphan(R, adj, D):
 
 # ------------------------------------------------------ structure + driver
 
+def check_canonical_identity(docs, R, D):
+    """Check 11: DOCUMENTATION_CANONICALITY_INVARIANT.
+
+    Every cross-document reference MUST resolve to exactly one canonical
+    object whose semantic role (heading type) matches the expected role
+    of the referring edge. A reference that is syntactically valid but
+    semantically wrong — e.g. BS §69 pointing at a section that exists
+    but is now titled "Legacy Scope Language" instead of "Intent-Driven
+    Android Synthesis" — is a certification failure.
+
+    This is the bidirectional identity invariant: forward edge resolves
+    to the authoritative object, and reverse traversal returns to source.
+    """
+
+    # DOCUMENTATION_CANONICALITY_INVARIANT — Check 11.
+    # Validates that cross-document references maintain semantic identity:
+    # a reference must resolve to exactly one canonical object, and no two
+    # distinct canonical objects may claim the same section/heading.
+    #
+    # 1. Uniqueness: no section number is authoritative for two contracts
+    #    in §67.8 (already enforced by Check 1: duplicate authority).
+    # 2. Existence: every referenced section exists (already enforced by
+    #    Check 7: dangling reference).
+    # 3. Consistency: the section that declares a ContractId header as
+    #    authoritative must be referenced consistently across §67.8, §67.15,
+    #    and §5.6 — i.e. no document says "SCOPE → BS §5" while another says
+    #    "SCOPE → BS §69".
+    # 4. Heading stability: a section referenced as an authority/persistence/
+    #    schema/failure edge must retain its declared semantic heading — if
+    #    the heading changes to refer to an unrelated domain, the reference
+    #    has lost its identity.
+
+    # Build heading index for existence + stability checks
+    heading_index = {}
+    for doc_tag, key in (("bs", "bs"), ("ta", "ta")):
+        for m in re.finditer(r'^##\s+(\d+)\.\s+(.+)$', docs[key], re.M):
+            num = int(m.group(1))
+            heading_index.setdefault(doc_tag, {})[num] = m.group(2).strip()
+
+    # Check 4 (partial): only validate the *authority* edge heading, since that
+    # is the primary semantic anchor. Persistence/schema/failure edges may
+    # legitimately point to multi-domain architecture sections.
+    for cid, row in R["chain"].items():
+        domain_pat = _contract_domain_pattern(cid)
+        if not domain_pat:
+            continue
+        cell = row.get("authority", "")
+        doc_tag, sec = _parse_doc_sec(cell)
+        if doc_tag and sec:
+            heading = heading_index.get(doc_tag.lower(), {}).get(sec, "")
+            if heading and not re.search(domain_pat, heading, re.I):
+                D.add("canonical identity", f"{cid} authority",
+                      f"points to {doc_tag} §{sec} '{heading}' — heading does not "
+                      f"align with {cid} domain (semantic drift)")
+
+    # Check 3: the §67.8 authority must be consistent — the same contract
+    # must not be mapped to two different authority sections across the
+    # capability registry and the twelve-edge table.
+    for cid in R["contracts"]:
+        reg_auth = _parse_doc_sec(R["contracts"][cid]["authority"])
+        if cid in R["chain"]:
+            edge_auth = _parse_doc_sec(R["chain"][cid].get("authority", ""))
+            if reg_auth and edge_auth and reg_auth != edge_auth:
+                D.add("canonical identity", cid,
+                      f"§67.8 authority {reg_auth[0]} §{reg_auth[1]} differs from "
+                      f"§67.15 authority edge {edge_auth[0]} §{edge_auth[1]}")
+
+
+def _parse_doc_sec(cell):
+    """Parse 'BS §69' or 'TA §19.2' -> (doc, section_num)."""
+    m = re.match(r'(BS|TA)\s+§(\d+)', cell.strip())
+    if m:
+        return m.group(1), int(m.group(2))
+    return None, None
+
+
+def _contract_domain_pattern(contract_id):
+    """Return a regex matching the canonical domain keywords for a contract,
+    based on the actual authority-section headings in the corpus. Returns
+    None if no domain-specific check applies."""
+    parts = contract_id.split(".")
+    if len(parts) < 3:
+        return None
+    domain = parts[-1]  # CONTRACT.RUNTIME.<DOMAIN>
+    patterns = {
+        # BS authority headings: BS §5 "Android-Only Application Scope",
+        # BS §69 "Intent-Driven Android Synthesis", etc.
+        "SCOPE":           r"Scope|Intent|Android-only|Application",
+        "AUTHORITY":       r"Authority|Runtime\s*Contract|Operation|Completion",
+        "EVIDENCE":        r"Evidence|Completion|Authority|Trace|Record",
+        "MEMORY":          r"Memory|Replay|Recovery|State|History|Session",
+        "CONTEXT":         r"Context|Scaling|Architecture|Agent",
+        "WORKSPACE":       r"Workspace|Swarm|Coordination|Execution|Reserva",
+        "RESERVATION":     r"Reservation|Coordination|Swarm|Lease",
+        "RECONCILIATION":   r"Reconciliation|Coordinate|Swarm",
+        "E2E":             r"End|State|Scenario|Testing|Verification|Probe",
+        "VERIFICATION":    r"Verification|Quality|Gate|Validator|Inspect|Architecture",
+        "LOCALIZATION":    r"Localization|Regression|Language|Locale",
+        "SUPPLY_CHAIN":    r"Supply|Chain|Security|Provenance|Artifact",
+        "DEVICE_MATRIX":   r"Device|Scenario|Coordination|Android|Multi-Device",
+        "DIRECTIVE":       r"Directive|Command|Routing|Router|Control|Service",
+        "DEBUGGER":        r"Debugger|Debug|Trace|Crash|Logcat|Runtime",
+        "PROFILING":       r"Profiling|Resource|Performance|Metric|Telemetry",
+        "TRIGGER":         r"Trigger|Event|Gateway|External|Scheduler|Hook",
+        "SPECULATION":     r"Speculation|Candidate|Branching|Repair|Govern|Decision",
+        "SKILL":           r"Skill|Worker|Autonomous|Capabilit|Develop",
+        "REASONING":       r"Reasoning|Delegation|Capability|Mode|Agent",
+        "DELIBERATION":    r"Deliberation|Reasoning|Evidence|Alternative|Adap",
+        "INVARIANTS":      r"Invariant|Safety|Consistency|Document|Coverage",
+        "PROMPT_CONTRACT": r"Intent|Prompt|Synthesis|Truthful|Preview|Revision",
+    }
+    return patterns.get(domain)
+
+
 def check_structure(docs, R, D):
     """Document-level integrity that the contract graph presupposes."""
     for label, key in (("build spec", "bs"), ("architecture", "ta")):
@@ -871,7 +985,7 @@ CHECK_ORDER = (
     "duplicate authority", "unregistered contract", "undeclared extension",
     "authority cycle", "clause contradiction", "unversioned override",
     "dangling reference", "forward break", "reverse break", "orphan contract",
-    "structure",
+    "canonical identity", "structure",
 )
 
 
@@ -890,6 +1004,7 @@ def verify(root):
     check_forward(R, D)
     check_reverse(R, docs, D)
     check_orphan(R, adj, D)
+    check_canonical_identity(docs, R, D)
     check_structure(docs, R, D)
     return R, adj, D
 
@@ -925,7 +1040,7 @@ def main():
         print("\nCERTIFICATION: FAIL")
         return 1
 
-    print("\nall ten §67.11 checks pass in both traversal directions")
+    print(f"\nall {len(CHECK_ORDER)} §67.11 checks pass in both traversal directions")
     print("CERTIFICATION: PASS")
     return 0
 

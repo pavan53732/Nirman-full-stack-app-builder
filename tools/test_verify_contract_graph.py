@@ -205,6 +205,13 @@ CASES = {
     "no-template clause loses its contract": (
         BS, "| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT |",
         "| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.NOWHERE |", "clause contradiction"),
+    # Step 5: canonical identity (Check 11) — semantic drift: §69's heading
+    # changes to something about an unrelated domain, so the PROMPT_CONTRACT
+    # authority reference points to the wrong semantic section.
+    "prompt contract authority heading drifts": (
+        BS, "## 69. Intent-Driven Android Synthesis and Truthful Live Preview Contract",
+        "## 69. Legacy Scope Language and Unrelated Maintenance",
+        "canonical identity"),
     # Renumbering a registry heading must NOT break the verifier: it locates
     # registries by heading text. Expect certification to still pass -> handled
     # as a POSITIVE case below, not a defect-expecting mutation.

@@ -608,7 +608,9 @@ A release cannot claim complete autonomous-runtime support until all seven crite
 
 Renumber the advanced product-specification sections, remove duplicate roadmap references, create one crosswalk between roadmap phases and milestones, and make the canonical worker registry the only role taxonomy used by the product, architecture, tests, and decision records. The registry must include the Performance Worker and define every worker’s scope, tools, workspace, and mutation authority.
 
-**Exit gate:** All cross-document references resolve to one section or milestone, all worker names match exactly, the Performance Worker has a contract, and a registry test rejects undefined or duplicate roles.
+M30 MUST establish the canonical semantic identity graph before any further specification extension is accepted. Section numbers are addresses, not identities. Every ContractId, CapabilityId, ADR, milestone, invariant, test, evidence ID, worker role, and schema must have one canonical identity. Cross-document references MUST resolve through canonical identity, not positional text substitution.
+
+**Exit gate:** All cross-document references resolve to one section or milestone, all worker names match exactly, the Performance Worker has a contract, a registry test rejects undefined or duplicate roles, and the canonical identity verifier (INVARIANT.DOCUMENTATION.CANONICAL_IDENTITY) passes with 0 defects. A release MUST fail if two objects claim one canonical identity, one reference resolves to the wrong semantic object, a reverse edge does not return to its source, or a reference resolves only because of a stale section number.
 
 ### M31: Unattended / Full Autonomy policy profile
 
