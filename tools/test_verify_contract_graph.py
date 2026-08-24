@@ -187,14 +187,24 @@ CASES = {
 
     # ---- Step 4: Android-only scope contract
     "scope contract loses its milestone": (
-        BS, "| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M11 |",
-        "| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M911 |", "dangling reference"),
+        BS, "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 |",
+        "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M911 |", "dangling reference"),
     "scope ADR loses its Locks": (
         DEC, "**Locks:** `CONTRACT.RUNTIME.SCOPE`\n\n**Status:** Accepted",
         "**Status:** Accepted", "reverse break"),
     "android-only clause loses its contract": (
         BS, "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE |",
         "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.NOWHERE |", "clause contradiction"),
+    # Step 5: intent-driven synthesis and no-template enforcement
+    "prompt contract row disappears": (
+        BS, "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 |",
+        "| CONTRACT.RUNTIME.NOPROMPT | BS §69 |", "unregistered contract"),
+    "intent contract loses its ADR": (
+        BS, "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 |",
+        "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-000 | M96 |", "dangling reference"),
+    "no-template clause loses its contract": (
+        BS, "| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT |",
+        "| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.NOWHERE |", "clause contradiction"),
     # Renumbering a registry heading must NOT break the verifier: it locates
     # registries by heading text. Expect certification to still pass -> handled
     # as a POSITIVE case below, not a defect-expecting mutation.

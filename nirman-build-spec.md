@@ -264,7 +264,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 
 | CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
 |---|---|---|---|---|---|
-| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -3696,7 +3696,7 @@ The following `ContractId` values are the registered normative contracts of this
 
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
-| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
@@ -3715,6 +3715,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.TRIGGER | BS §60 | — | TA §68 | ADR-151 | M91 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.SPECULATION | BS §65 | — | TA §51, TA §65 | ADR-156 | M92 | INTERNAL |
 | CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
@@ -3819,6 +3820,9 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.REASONING.CHILD_RESOURCE_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child resource budget never exceeds the parent remaining budget | SEALED |
 | CLAUSE.REASONING.HYPOTHESIS_EVIDENCE | CONTRACT.RUNTIME.REASONING | §66 | a rejected hypothesis is retained with its refuting evidence | SEALED |
 | CLAUSE.REASONING.MODE_WITHIN_POLICY | CONTRACT.RUNTIME.REASONING | §66 | execution mode is agent-selected and never raises a permission ceiling | SEALED |
+| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | no app archetype, framework, or template is presented as a required user-facing choice; the resolver infers the Android implementation from evidence | SEALED |
+| CLAUSE.PROMPT_CONTRACT.NO_FAKE_EXECUTION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | prompt and UI layers never label PREDICTED, SIMULATED, REQUESTED, STALE, or INVALIDATED states as VERIFIED, OBSERVED, running, passed, completed, or verified | SEALED |
+| CLAUSE.PROMPT_CONTRACT.VERIFIED_ONLY_COMPLETION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | only an independent validator or a supervised observation may produce completion evidence; model statements, predictions, and simulations are proposals | SEALED |
 | CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET | CONTRACT.RUNTIME.DELIBERATION | §68 | the agent requests reasoning effort; only the runtime grants it | SEALED |
 | CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE | CONTRACT.RUNTIME.DELIBERATION | §68 | stated model confidence is never sufficient grounds to proceed | SEALED |
 | CLAUSE.DELIBERATE.EVIDENCE_PRODUCING | CONTRACT.RUNTIME.DELIBERATION | §68 | consecutive observation-free passes are bounded and force evidence acquisition | SEALED |
@@ -3874,6 +3878,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE | BS §5 | BS §5 | TA §47 | TA §47.1 | BS §5 | TA §47.2 | TA §47.3 | ADR-180 | M11 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.PROMPT_CONTRACT | CAP.ANDROID.GENERATE | BS §27 | BS §69 | TA §73 | TA §73.1 | BS §69 | TA §73.4 | TA §73.7 | ADR-181 | M96 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
@@ -4139,6 +4144,18 @@ The deliberation contract is satisfied only when an agent request for a higher e
 
 
 ## 69. Intent-Driven Android Synthesis and Truthful Live Preview Contract
+
+**ContractId:** `CONTRACT.RUNTIME.PROMPT_CONTRACT`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.PROMPT_CONTRACT` (see BS §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.SCOPE`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.SCOPE
+- authoritySection: §5
+- extendingSection: §69
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG, CLAUSE.PROMPT_CONTRACT.NO_FAKE_EXECUTION, CLAUSE.PROMPT_CONTRACT.VERIFIED_ONLY_COMPLETION
+- nonOverriddenClauses: CLAUSE.SCOPE.ANDROID_ONLY_TARGET, CLAUSE.SCOPE.NO_NON_ANDROID_DELIVERABLE
 
 **Contract scope:** This section extends the existing Android scope, end-to-end verification, reasoning, and evidence contracts. It does not introduce another generated target or a user-facing template system.
 

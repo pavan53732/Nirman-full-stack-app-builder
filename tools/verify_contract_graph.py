@@ -19,9 +19,9 @@ import os
 import re
 import sys
 
-CIDRE = r"CONTRACT\.[A-Z0-9_.]+"
-CAPRE = r"CAP\.[A-Z0-9_.]+"
-CLRE = r"CLAUSE\.[A-Z0-9_.]+"
+CIDRE = r"\bCONTRACT\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
+CAPRE = r"\bCAP\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
+CLRE = r"\bCLAUSE\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
 CLASSES = ("FOUNDATIONAL", "CROSS_CUTTING", "INTERNAL", "DEPRECATED")
 EXT_TYPES = ("adds_clauses", "adds_schema", "adds_component", "adds_verification")
 
