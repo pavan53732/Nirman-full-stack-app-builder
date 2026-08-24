@@ -1211,6 +1211,7 @@ These earlier milestones are referenced by the twelve-edge table of build spec Â
 
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id |
 |---|---|---|---|---|
+| M11 | CONTRACT.RUNTIME.SCOPE | ADR-180 | TEST-GEN-001 | EV-GEN-001 |
 | M65 | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071 | TEST-GEN-001 | EV-GEN-001 |
 | M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
 | M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
@@ -1295,6 +1296,28 @@ DELIBERATION_PASS*  (observations only, zero mutation events)
 ```
 
 Any mutation event carrying a deliberation pass as its originating context is a shadow execution path and fails the gate regardless of the run's outcome. This assertion covers the whole deliberation phase, not only the adversarial critic.
+
+### M95 fault-injection fixtures
+
+The gate above states required behavior. These four fixtures inject the specific
+fault each rule exists to prevent, so the rule is proven rather than asserted.
+Each runs against a real Android fixture project with a configured
+`DeliberationBudget`, and each must produce the stated observable outcome.
+
+| Fixture | Injected condition | Required observable outcome |
+|---|---|---|
+| FIX-DEL-01 no-evidence loop | A question the model cannot resolve from the current observation set | Passes proceed until `maxToollessPasses`, then the runtime refuses a further plain pass and either acquires evidence or terminates; it never loops indefinitely |
+| FIX-DEL-02 budget exhaustion | A budget too small to reach sufficiency | Terminates `BUDGET_EXHAUSTED`; the leading strategy is not executed; the cycle yields `WAITING`, `SAFELY_FAILED`, or `ESCALATED` |
+| FIX-DEL-03 forced compaction | Context compaction triggered mid-deliberation with several hypotheses rejected | Session resumes with active hypotheses and rejected strategies intact; no rejected hypothesis is re-derived or retested against unchanged evidence |
+| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes on the replacement provider at the same effort level with the same remaining budget; continuation state is not reset |
+
+Each fixture must also assert the two invariants that hold across all of them:
+the ledger contains zero project mutation events before the `AUTHORIZE` grant,
+and no persisted deliberation record contains verbatim model reasoning.
+
+A fixture that passes because the runtime never entered deliberation does not
+count. Each must show a recorded `DeliberationRecord` with `passCount` greater
+than one before its outcome is evaluated.
 
 ### M95 certification fixture
 

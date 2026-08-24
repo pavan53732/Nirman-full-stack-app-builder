@@ -107,7 +107,7 @@ This document records significant product and engineering decisions for Nirman. 
 ## ADR-009: Use specialized workers with least privilege
 
 **Status:** Accepted  
-**Decision:** Nirman will define the canonical role-based workers recorded in ADR-049: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Backend Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker. Each worker receives only the tools, paths, model profile, workspace, and resource policy required for its role.
+**Decision:** Nirman will define the canonical role-based workers recorded in ADR-049: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker. Each worker receives only the tools, paths, model profile, workspace, and resource policy required for its role.
 
 **Reasoning:** Specialization reduces context pollution, improves task focus, allows cheaper models for narrow tasks, and reduces the blast radius of mistakes.
 
@@ -173,7 +173,7 @@ This document records significant product and engineering decisions for Nirman. 
 ## ADR-015: Use a dedicated browser profile for automated testing
 
 **Status:** Accepted  
-**Decision:** Browser testing will use a Nirman-managed disposable profile with no personal cookies, passwords, extensions, or downloads.
+**Decision:** Browser testing is an optional, external, auxiliary capability and never a validation path for the generated Android application. Android emulator and physical-device execution remain the only core validation surface. When enabled, browser testing will use a Nirman-managed disposable profile with no personal cookies, passwords, extensions, or downloads.
 
 **Reasoning:** Automated browser work must not accidentally access or modify the user’s personal browser session.
 
@@ -553,11 +553,11 @@ The following decisions remain intentionally open:
 ## ADR-049: Maintain one canonical worker registry
 
 **Status:** Accepted  
-**Decision:** All documents and runtime components use one worker taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Backend Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker.
+**Decision:** All documents and runtime components use one worker taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker.
 
-**Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests.
+**Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests. The data-layer role is named "Android Data and Integration Worker" rather than "Backend Worker" because the latter invites reading Nirman as a generator of separate web backends, which §5 excludes. The role builds the generated Android application's data layer, persistence, and outbound integrations; it never produces a server-side deployable.
 
-**Trade-off:** Existing role labels must be migrated to the canonical names, but the registry becomes implementable and auditable.
+**Trade-off:** Existing role labels must be migrated to the canonical names, but the registry becomes implementable and auditable. The former "Backend Worker" label is superseded by "Android Data and Integration Worker" and must not appear in any document or runtime component.
 
 ---
 
@@ -1886,6 +1886,18 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** The runtime knows better than a user toggle whether a goal needs many validated iterations or a single interactive change. But a mode that could widen authority would turn a convenience into a privilege-escalation path.
 
 **Consequences:** A mode request exceeding policy is downgraded to the highest permitted mode and recorded, so the user can see that the runtime wanted more latitude than policy allowed.
+
+## ADR-180: Enforce the Android-only generated target as a machine-checked invariant
+
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
+
+**Status:** Accepted
+
+**Decision:** `Project.targetPlatforms` must equal exactly `["android"]` at every revision, enforced at project construction rather than stated as intent. The runtime rejects a project whose target list is empty, contains any other value, or pairs `android` with a second platform. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the technology resolver, not additional targets. No resolver path, worker role, or capability may produce a non-Android deployable.
+
+**Rationale:** A generic platform field with a documented intention drifts. Nirman's scope boundary is its most load-bearing product decision, and a configuration value able to widen it silently would let a web or server target enter through the data model without any decision being recorded.
+
+**Consequences:** The data model keeps generic field shapes for stability while the invariant constrains their values. A future multi-target product would require a new versioned scope contract and a superseding ADR, not a configuration change.
 
 ## ADR-172: Treat deliberation computation as a first-class runtime resource
 

@@ -224,7 +224,7 @@ The worker registry must use one canonical role taxonomy across the product, arc
 | Requirements Planner | Requirements, assumptions, interfaces, acceptance criteria | Planning artifacts only |
 | Architecture Worker | Architecture and integration design | Design artifacts only |
 | UI Worker | Frontend screens, components, styling, interactions | Assigned workspace |
-| Backend Worker | APIs, schemas, integrations, business logic | Assigned workspace |
+| Android Data and Integration Worker | Android data layer, persistence schemas, service integrations, business logic | Assigned workspace |
 | Test and QA Worker | Tests, fixtures, regression checks | Test paths and approved commands |
 | Debugging Worker | Failure diagnosis and repairs | Assigned repair paths |
 | Security Worker | Security, permissions, secrets, dependencies | Read-only by default |
@@ -3261,7 +3261,7 @@ Default classification is `defect`. Classification as `environment_limitation` r
 
 ### 65.5 Capability status mapping
 
-CoverageReporter maps results to the build spec §5.5 vocabulary: all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED`.
+CoverageReporter maps results to the build spec §5.6 vocabulary: all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED`.
 
 ### 65.6 Architecture tests
 

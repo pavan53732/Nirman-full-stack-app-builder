@@ -192,6 +192,10 @@ Nirman must not trap users inside the chat. The application should include a ful
 
 ## 5. Android-Only Application Scope
 
+**ContractId:** `CONTRACT.RUNTIME.SCOPE`  
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.SCOPE` (see BS §67.8)
+
+
 ### 5.1 Android generation target
 
 Nirman should focus exclusively on Android applications, but it must not behave like a fixed template picker. It should build each application from the user’s natural-language requirements, reference screenshots, supplied assets, existing project files, device assumptions, and requested integrations.
@@ -222,7 +226,19 @@ When a requested capability requires a missing SDK, device, vendor tool, native 
 
 
 
-### 5.5 Android Capability Coverage Matrix
+### 5.5 Generated-target invariant
+
+The generated application target is Android and only Android. This is a machine-checked invariant, not a stated intention:
+
+```text
+Project.targetPlatforms == ["android"]        for every project, at every revision
+```
+
+The runtime must reject at construction any project whose `targetPlatforms` is empty, contains any value other than `android`, or contains `android` alongside another platform. Generic platform fields exist so the data model is stable, never so a second target can be introduced by configuration.
+
+A field, template, resolver path, worker role, or capability that would produce a non-Android deployable is out of scope regardless of how it is labelled. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the resolver, not additional targets. A JavaScript bundler or development server used by such a framework is an internal Android build dependency per §5.4 and never a web deliverable.
+
+### 5.6 Android Capability Coverage Matrix
 
 Every Android capability supported by product intent must belong to one of:
 
@@ -240,15 +256,15 @@ A model response, worker claim, template existence, or code generation attempt d
 The runtime must report the current status of each capability in the preflight report and must not claim SUPPORTED status for any capability whose fixture evidence is missing.
 
 
-### 5.6 Capability Registry
+### 5.7 Capability Registry
 
-The §5.5 matrix defines capability *status*. This section defines capability *identity* and is the addressing source for the traceability chain of §67.3 and the reachability rule of §67.10.
+The §5.6 matrix defines capability *status*. This section defines capability *identity* and is the addressing source for the traceability chain of §67.3 and the reachability rule of §67.10.
 
 Every user-facing product capability has a stable `CapabilityId`. A capability that is not registered here does not exist for certification purposes, and a contract that no registered capability requires is subject to the orphan rule of §67.10.
 
 | CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
 |---|---|---|---|---|---|
-| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -264,7 +280,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
 | CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold | CONTRACT.RUNTIME.INVARIANTS | TEST-INV-001 | EV-INV-001 | PLANNED |
 
-Capability status uses the §5.5 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
+Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
 ## 6. High-Level Architecture
 
@@ -495,7 +511,7 @@ Project
 - rootPath
 - projectType
 - framework
-- targetPlatforms
+- targetPlatforms          # invariant: must equal exactly ["android"]
 - createdAt
 - updatedAt
 - activeCheckpointId
@@ -576,7 +592,9 @@ Checkpoint
 
 ### 12.1 Project management
 
-The user must be able to create a project from a supported template, open an existing local project, rename a project, close a project, inspect project health, and select the active AI provider.
+The user must be able to create a new Android project by describing it, open an existing local project, rename a project, close a project, inspect project health, and select the active AI provider.
+
+Project creation is described, not selected from a catalogue. The user states product intent; the technology resolver of §5 chooses the Android implementation stack, and any internal scaffold it uses is an implementation detail of that resolution. Nirman must not present a template picker as the primary creation path, because doing so would move the resolver's decision into the interface.
 
 ### 12.2 Chat-driven generation
 
@@ -936,7 +954,7 @@ Recommended built-in workers are shown below.
 | Requirements Planner | Convert requests into specifications, assumptions, and acceptance criteria | Read-only |
 | Architecture Worker | Design structure, interfaces, data flow, and integration choices | Read-only; design artifacts |
 | UI Worker | Build screens, components, styling, interactions, and responsive behavior | Workspace edits; preview |
-| Backend Worker | Build APIs, data access, validation, and integrations | Workspace edits; approved commands |
+| Android Data and Integration Worker | Build the Android data layer, persistence, validation, and integrations with external services | Workspace edits; approved commands |
 | Test and QA Worker | Create and run unit, integration, regression, and edge-case checks | Test files; test commands |
 | Debugging Worker | Diagnose failures and apply minimal or alternative repairs | Approved file edits; diagnostics |
 | Security Worker | Inspect vulnerabilities, secret exposure, permissions, and unsafe dependencies | Read-only; security tools |
@@ -1180,7 +1198,8 @@ The capabilities above should be introduced in the following order.
 | P1 | Cost budgets, loop detection, provider routing, fallback, provenance | Controls operational risk and user trust |
 | P2 | Specialized workers, worker chains, isolated workspaces, reconciliation | Enables higher-quality parallel development |
 | P2 | Skills, project extensions, hooks, external tools | Adds domain-specific capability without hard-coding everything |
-| P2 | Browser automation, screenshots, visual QA, AST/LSP edits | Improves quality beyond text generation |
+| P2 | Screenshots, visual QA, AST/LSP edits | Improves quality beyond text generation |
+| P3 | Browser automation (optional, external) | Auxiliary only; never a substitute for emulator/device validation |
 | P3 | Headless automation, scheduled local tasks, remote worker connections | Expands automation after the local core is stable |
 | P3 | Advanced native project profiles and multi-device testing | Expands beyond the initial supported stacks |
 
@@ -1323,7 +1342,9 @@ Generated artifacts should be scanned for embedded secrets, unexpected executabl
 
 ### 26.8 Browser isolation and visual testing
 
-Browser automation should use a dedicated Nirman-managed browser profile, separate from the user’s personal browser profile, cookies, extensions, saved passwords, and downloads. Test sessions should use synthetic data and disposable storage by default.
+Browser automation is optional and external to the Android validation path. It may assist auxiliary work such as reading documentation or inspecting a web service the generated application consumes. It is never a validation surface for the generated Android application: emulator and physical-device execution per §59 is the only core validation path, and a browser observation must never be cited as evidence that Android behavior is correct.
+
+When enabled, browser automation should use a dedicated Nirman-managed browser profile, separate from the user’s personal browser profile, cookies, extensions, saved passwords, and downloads. Test sessions should use synthetic data and disposable storage by default.
 
 The browser worker should expose only approved routes and local development origins. External navigation should be controlled by the network policy. Screenshots, console logs, network failures, accessibility findings, and interaction traces should be attached to the task record.
 
@@ -3067,7 +3088,7 @@ When the same scenario passes on one device and fails on another, the runtime mu
 
 ### 59.5 Capability status integration
 
-Multi-device coverage must be reported through the capability status vocabulary of §5.5. A capability verified only on the primary device is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`.
+Multi-device coverage must be reported through the capability status vocabulary of §5.6. A capability verified only on the primary device is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`.
 
 ### 59.6 Acceptance criteria
 
@@ -3489,7 +3510,7 @@ CapabilityInvocation
 
 The set of capabilities is discoverable at runtime rather than hardcoded into the agent. The agent may query available capabilities for an objective and receive those the current environment and policy permit, so a newly installed skill or tool becomes usable without changing the agent.
 
-Discovery reports capability availability using the status vocabulary of §5.5. Discovery grants nothing: an invocation still passes through the policy engine, and a capability reported as available may still be denied.
+Discovery reports capability availability using the status vocabulary of §5.6. Discovery grants nothing: an invocation still passes through the policy engine, and a capability reported as available may still be denied.
 
 ### 66.8 Recursive delegation ceilings
 
@@ -3620,11 +3641,11 @@ Capability → Requirement → Build-spec contract → Architecture contract →
 
 ### 67.5 Defect rule
 
-Any missing edge in the chain is a documentation defect. A missing edge must be recorded and resolved; it must not be interpreted as out of scope, deferred by omission, or resolved by asserting that the capability is obvious. A capability with a missing edge may not be reported as `SUPPORTED` under §5.5.
+Any missing edge in the chain is a documentation defect. A missing edge must be recorded and resolved; it must not be interpreted as out of scope, deferred by omission, or resolved by asserting that the capability is obvious. A capability with a missing edge may not be reported as `SUPPORTED` under §5.6.
 
 ### 67.6 Documentation certification
 
-This document set is certified only when every capability in the §5.5 coverage matrix resolves to a complete twelve-edge chain, when no section defines a contract that contradicts another section, when every referenced schema exists in the technical architecture, when every ADR referenced by a section exists in the decision log, and when every milestone referenced by a section exists in the development plan.
+This document set is certified only when every capability in the §5.6 coverage matrix resolves to a complete twelve-edge chain, when no section defines a contract that contradicts another section, when every referenced schema exists in the technical architecture, when every ADR referenced by a section exists in the decision log, and when every milestone referenced by a section exists in the development plan.
 
 ### 67.7 Contract Authority Registry
 
@@ -3675,6 +3696,7 @@ The following `ContractId` values are the registered normative contracts of this
 
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
+| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
@@ -3724,7 +3746,7 @@ A forward break is an unimplemented capability. A reverse break is architectural
 
 ### 67.10 Orphan contract rule
 
-Every registered contract must be reachable from at least one capability in the §5.5 coverage matrix, or be explicitly classified as `FOUNDATIONAL`, `CROSS_CUTTING`, `INTERNAL`, or `DEPRECATED` in §67.8.
+Every registered contract must be reachable from at least one capability in the §5.6 coverage matrix, or be explicitly classified as `FOUNDATIONAL`, `CROSS_CUTTING`, `INTERNAL`, or `DEPRECATED` in §67.8.
 
 A contract that is neither capability-reachable nor explicitly classified is an orphan contract and fails certification. Classification is a declaration that the contract serves the runtime rather than a user-facing capability; it is not a means of exempting an unused contract from scrutiny. A `DEPRECATED` contract must name its superseding contract and the ADR that recorded the transition.
 
@@ -3786,6 +3808,8 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.SPECULATE.DISCARD_HYGIENE | CONTRACT.RUNTIME.SPECULATION | §65 | discarded candidate code never enters a promoted artifact | SEALED |
 | CLAUSE.SKILL.NO_PERMISSION_GRANT | CONTRACT.RUNTIME.SKILL | §23 | loading a skill never grants a permission | SEALED |
 | CLAUSE.SKILL.SESSION_PINNING | CONTRACT.RUNTIME.SKILL | §23 | a bound skill version is pinned for the session's duration | SEALED |
+| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE | §5 | Project.targetPlatforms must equal exactly ["android"] at every revision | SEALED |
+| CLAUSE.SCOPE.NO_NON_ANDROID_DELIVERABLE | CONTRACT.RUNTIME.SCOPE | §5 | no resolver path, worker, or capability may produce a non-Android deployable | SEALED |
 | CLAUSE.AUTHORITY.MODEL_PROPOSES | CONTRACT.RUNTIME.AUTHORITY | §33 | the model proposes; deterministic authorities decide | SEALED |
 | CLAUSE.AUTHORITY.NO_SELF_ELEVATION | CONTRACT.RUNTIME.AUTHORITY | §33 | no component raises its own permission ceiling | SEALED |
 | CLAUSE.REASONING.ARTIFACT_ONLY | CONTRACT.RUNTIME.REASONING | §66 | verbatim private reasoning is never persisted; only structured artifacts are retained | SEALED |
@@ -3831,7 +3855,7 @@ Sections that author their own contract declare `**Registry role:** authoritativ
 
 ### 67.14 Contract reachability
 
-A contract is capability-reachable when a registered capability in §5.6 lists it under required contracts, directly or transitively through the extension graph of §67.8.
+A contract is capability-reachable when a registered capability in §5.7 lists it under required contracts, directly or transitively through the extension graph of §67.8.
 
 | Class | Reachability requirement |
 |---|---|
@@ -3849,6 +3873,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 
 | ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE | BS §5 | BS §5 | TA §47 | TA §47.1 | BS §5 | TA §47.2 | TA §47.3 | ADR-180 | M11 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
@@ -3877,7 +3902,7 @@ The authoritative target domain of each edge is fixed:
 
 | Edge | Target domain |
 |---|---|
-| Capability | `CAP.*` in §5.6 |
+| Capability | `CAP.*` in §5.7 |
 | Requirement | BS |
 | Build spec | BS |
 | Architecture | TA |
@@ -3887,8 +3912,8 @@ The authoritative target domain of each edge is fixed:
 | Failure/recovery | TA, or BS when the recovery contract is normative rather than implemented |
 | ADR | decision log |
 | Milestone | development plan |
-| Test | test id defined in §5.6 and the development plan |
-| Evidence | evidence id defined in §5.6 and the development plan |
+| Test | test id defined in §5.7 and the development plan |
+| Evidence | evidence id defined in §5.7 and the development plan |
 
 A reference resolving in a document other than its edge's target domain is a dangling reference even when the target exists in some other document. Existence is not identity.
 

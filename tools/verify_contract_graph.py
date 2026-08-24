@@ -159,9 +159,12 @@ def parse_registries(docs, D):
     R = {}
 
     # §67.8 contract authority registry
-    rows = table_rows(bs, "### 67.8 Registered contract identifiers", "### 67.9", "CONTRACT.")
+    reg_heading = re.search(r"^### \d+\.\d+ Registered contract identifiers\s*$", bs, re.M)
+    if reg_heading is None:
+        sys.exit("FATAL: contract authority registry heading not found")
+    rows = table_rows(bs, reg_heading.group(0), "\n### ", "CONTRACT.")
     if rows is None:
-        sys.exit("FATAL: §67.8 registry not found")
+        sys.exit("FATAL: contract authority registry table not parseable")
     reg = {}
     for c in rows:
         if len(c) < 7:
@@ -171,10 +174,15 @@ def parse_registries(docs, D):
                          adr=c[4], mile=c[5], cls=c[6])
     R["contracts"] = reg
 
-    # §5.6 capability registry
-    rows = table_rows(bs, "### 5.6 Capability Registry", "\n## 6.", "CAP.")
+    # Capability registry — located by heading text, because its section number
+    # shifts whenever a subsection is inserted before it (P32: never hardcode a
+    # positional bound a document edit can invalidate).
+    cap_heading = re.search(r"^### \d+\.\d+ Capability Registry\s*$", bs, re.M)
+    if cap_heading is None:
+        sys.exit("FATAL: capability registry heading not found")
+    rows = table_rows(bs, cap_heading.group(0), "\n## ", "CAP.")
     if rows is None:
-        sys.exit("FATAL: §5.6 capability registry not found")
+        sys.exit("FATAL: capability registry table not parseable")
     caps = {}
     for c in rows:
         if len(c) < 6:
@@ -186,9 +194,12 @@ def parse_registries(docs, D):
     R["capabilities"] = caps
 
     # §67.12 clause registry
-    rows = table_rows(bs, "### 67.12 Clause Registry", "### 67.13", "CLAUSE.")
+    cl_heading = re.search(r"^### \d+\.\d+ Clause Registry\s*$", bs, re.M)
+    if cl_heading is None:
+        sys.exit("FATAL: clause registry heading not found")
+    rows = table_rows(bs, cl_heading.group(0), "\n### ", "CLAUSE.")
     if rows is None:
-        sys.exit("FATAL: §67.12 clause registry not found")
+        sys.exit("FATAL: clause registry table not parseable")
     clauses = {}
     for c in rows:
         if len(c) < 5:
@@ -198,10 +209,13 @@ def parse_registries(docs, D):
                              value=c[3], sealed=c[4].upper() == "SEALED")
     R["clauses"] = clauses
 
-    # §67.15 twelve-edge table
-    rows = table_rows(bs, "### 67.15 Twelve-edge resolution table", "\n## References", "CONTRACT.")
+    # Twelve-edge table — located by heading text, not a hardcoded number.
+    edge_heading = re.search(r"^### \d+\.\d+ Twelve-edge resolution table\s*$", bs, re.M)
+    if edge_heading is None:
+        sys.exit("FATAL: twelve-edge table heading not found")
+    rows = table_rows(bs, edge_heading.group(0), "\n## References", "CONTRACT.")
     if rows is None:
-        sys.exit("FATAL: §67.15 twelve-edge table not found")
+        sys.exit("FATAL: twelve-edge table not parseable")
     chain = {}
     for c in rows:
         if len(c) != 13:

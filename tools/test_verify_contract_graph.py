@@ -154,7 +154,7 @@ CASES = {
         "reverse break"),
     "migration regression: BS cert ref reverted to 66": (
         BS, "### 67.8 Registered contract identifiers", "### 66.8 Registered contract identifiers",
-        "FATAL"),
+        "structure"),
 
     # ---- Step 3: deliberation contract
     "deliberation drops an inherited sealed clause": (
@@ -184,6 +184,20 @@ CASES = {
         BS, "| CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS | CONTRACT.RUNTIME.DELIBERATION |",
         "| CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS | CONTRACT.RUNTIME.PHANTOM |",
         "clause contradiction"),
+
+    # ---- Step 4: Android-only scope contract
+    "scope contract loses its milestone": (
+        BS, "| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M11 |",
+        "| CONTRACT.RUNTIME.SCOPE | BS §5 | — | TA §47 | ADR-180 | M911 |", "dangling reference"),
+    "scope ADR loses its Locks": (
+        DEC, "**Locks:** `CONTRACT.RUNTIME.SCOPE`\n\n**Status:** Accepted",
+        "**Status:** Accepted", "reverse break"),
+    "android-only clause loses its contract": (
+        BS, "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE |",
+        "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.NOWHERE |", "clause contradiction"),
+    # Renumbering a registry heading must NOT break the verifier: it locates
+    # registries by heading text. Expect certification to still pass -> handled
+    # as a POSITIVE case below, not a defect-expecting mutation.
 
     # ---- structure
     "ADR numbering gap": (
@@ -246,6 +260,21 @@ def main():
             results.append((f"negative: {label}", rc == 1 and hit,
                             "" if (rc == 1 and hit) else
                             f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
+
+    # POSITIVE: renumbering a registry heading must not break registry location,
+    # because headings are matched by text rather than by section number.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-renum-") as tmp:
+        for d in DOCS:
+            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        path = os.path.join(tmp, BS)
+        text = open(path, encoding="utf-8").read()
+        open(path, "w", encoding="utf-8").write(
+            text.replace("### 67.8 Registered contract identifiers",
+                         "### 67.99 Registered contract identifiers", 1))
+        rc, out = run(tmp)
+        results.append(("positive: registry found after heading renumber",
+                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        f"exit={rc}"))
 
     with tempfile.TemporaryDirectory(prefix="hermes-cg-ctl-") as tmp:
         for d in DOCS:
