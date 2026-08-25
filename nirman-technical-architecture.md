@@ -4582,7 +4582,7 @@ When the active project revision changes, the coordinator calculates compatibili
 
 ### 73.8 UI projection and reconnect
 
-The preview panel is a read model of durable control-plane events. It never infers execution from model text, terminal color, file timestamps, or a heartbeat alone. It subscribes by project and task, records the last acknowledged event sequence, and reconstructs the same preview projection after reconnect, UI restart, sleep/resume, or supervisor restart.
+The preview panel is a read model of durable control-plane events. It never infers execution from model text, terminal color, file timestamps, or a heartbeat alone. It subscribes by project and task, records the last acknowledged event sequence, and reconstructs the same preview projection after reconnect, UI restart, sleep/resume, or supervisor restart. The implementation is governed by build spec §71 and technical architecture §75; `PreviewSyncEvent` is normalized before `PreviewProjectionReducer` applies it.
 
 If the event stream is unavailable, the panel shows the last durable state with a stale-stream indicator. It does not advance the preview, progress stage, or evidence status locally. A reconnect replays missing events and recomputes the projection through the same reducer.
 
@@ -4750,3 +4750,51 @@ DocumentationCertificationReport
 ```
 
 The report certifies documentation identity, registry resolution, graph structure, and declared semantic documentation rules only. It never certifies runtime source, Windows isolation, provider behavior, Android execution, preview truth, recovery, signing, or APK validity.
+
+## 75. Preview Synchronization Implementation Contract
+
+**Implements:** build spec §71 and `CONTRACT.RUNTIME.PREVIEW_SYNC`
+**Canonical schema owner:** `CanonicalSchemaRegistry` in §36.1
+**Implementation owner:** `WorkflowCoordinator`, `PreviewCoordinator`, the durable event store, and the UI projection runtime
+
+### 75.1 Event and reducer implementation
+
+The architecture implements the exact `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` schemas defined by build spec §71.1. The event store assigns the durable per-project/task sequence. `WorkflowCoordinator` normalizes intent, agent, worker, build, device, evidence, recovery, and promotion outcomes into events. Every non-root event carries causal parentage, runtime-session identity where applicable, and an authority class. `PreviewCoordinator` is the only service that can emit an accepted promotion event. The UI consumes snapshots and events but never writes projection state.
+
+`PreviewProjectionReducer` is a pure deterministic reducer over a snapshot and an ordered event range. It must be replayable without side effects, must record the reducer version and projection revision, and must produce the same state for the same snapshot and event range. The reducer delegates specialized decisions to the existing lifecycle, evidence, device, artifact, recovery, and promotion authorities; it does not grant permissions or approve evidence.
+
+### 75.2 Event ownership table
+
+| Event family | Canonical producer | Required prerequisite | Authority class | Reducer update |
+|---|---|---|---|---|
+| Intent and contract | intent/contract services | accepted user request and schema validation | DECLARATIVE / PLANNED | intent and contract stage |
+| Plan and checkpoint | planner and transaction authority | authorized plan and durable checkpoint | PLANNED | plan/checkpoint refs |
+| Source and build | commit barrier and process supervisor | source revision and operation capability | EXECUTION_OBSERVED | source/build/artifact fields |
+| Install and runtime | device manager and supervised process | device transaction and observed result | RUNTIME_OBSERVED | install/launch/runtime fields |
+| Observation and validation | observation services and independent validators | matching preview identity | EVIDENCE_BACKED / VALIDATED | evidence and validation refs |
+| Recovery and invalidation | RecoveryAuthority and evidence authority | typed failure or invalidation | EXECUTION_OBSERVED | recovery/stale/invalidated fields |
+| Promotion | `PreviewCoordinator` through `PreviewPromotionGate` | complete current evidence bundle | CERTIFIED | active preview reference |
+| Stream control | event store and authenticated supervisor connection | sequence/replay protocol | EXECUTION_OBSERVED | cursor and stream status |
+
+### 75.3 Reducer consistency and stream recovery
+
+The event store and reducer enforce these rules:
+
+1. Events are applied by durable sequence, not arrival time.
+2. A repeated event ID with the same payload hash is idempotent.
+3. A repeated event ID with a different payload is quarantined as a protocol violation.
+4. A sequence gap blocks advancement and requests replay.
+5. An older event can be retained as historical evidence only when its identity matches the candidate it describes; it cannot overwrite current projection fields.
+6. A revision, checkpoint, artifact, device, application, environment, branch, contract, or policy mismatch marks the event stale or invalidated.
+7. Stream loss freezes preview advancement and displays the last durable projection with a stale-stream indicator.
+8. Reconnect validates snapshot cursor and projection revision, replays the missing range, and returns to connected state only after continuity is proven.
+9. Reducer replay is side-effect free and deterministic.
+10. Promotion and completion consume the reducer’s current projection only after the canonical evidence and promotion authorities pass.
+11. For a compatible identity, current supervised runtime/device observation reconciles contradictory persisted runtime state; for an incompatible identity, the projection is marked stale or invalidated rather than merged.
+12. Events after cancellation, rollback, promotion, or worker fencing are historical or quarantined unless a new authorized lineage admits them.
+
+### 75.4 Runtime certification evidence and tests
+
+`PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, device identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → device runtime → observation → validation → promotion → event replay → panel projection path.
+
+The test family must inject duplicate and conflicting events, out-of-order events, sequence gaps, stale candidate results, late device observations, UI disconnect, supervisor restart, event replay, failed candidate recovery, and a successful last-known-good promotion. The expected panel state must be identical after live application and replay, and no predicted, requested, simulated, stale, invalidated, or model-authored record may appear as current verified preview evidence.

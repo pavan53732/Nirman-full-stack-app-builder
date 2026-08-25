@@ -2191,3 +2191,21 @@ The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE 
 **Rationale:** Existing Nirman contracts already cover transactions, capabilities, leases and fencing, preview, evidence, validation, providers, workers, runtime execution, signing, and artifact promotion. A single reference envelope closes their correlation gap without creating four divergent wiring architectures or a second authority system.
 
 **Consequences:** Boundary operations require explicit schema compatibility, lifecycle, timeout, cancellation, retry, reconciliation, observation, evidence, and invalidation references. Runtime implementation and fixture evidence are required before any capability or artifact claim is promoted. Android remains the only generated target; supporting services remain declared integrations rather than additional generated products.
+
+## ADR-195: Make preview synchronization event- and reducer-bound
+
+**Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** Nirman will synchronize chat instructions, autonomous agent activity, source revisions, Android builds, artifacts, emulator/device observations, evidence, validation, promotion, and the live preview panel through one durable `PreviewSyncEvent` sequence and one deterministic `PreviewProjectionReducer`. Agents, workers, models, build processes, device callbacks, evidence producers, and UI components may emit requests or normalized observations but cannot mutate preview projection state directly.
+
+Events are applied by durable sequence and compatible identity, not arrival time. Same-ID same-payload replay is idempotent; conflicting duplicate IDs are quarantined; sequence gaps block advancement and request replay; old, late, stale, or incompatible events cannot overwrite a newer projection; stream loss freezes the panel at the last durable state; reconnect replays and verifies continuity before resuming; and every displayed completed stage carries `PreviewSyncEvidenceRecord` linking event range, reducer version, projection revision, preview revision, branch/candidate identity, runtime session, device identity, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, recovery events, and promotion or completion decisions.
+
+The event authority class limits the projection dimensions that an event may advance: declarative or planned events cannot advance execution, runtime, evidence, validation, or certification state. Every non-root event must retain causal parentage and compatible project, revision, candidate, artifact, runtime-session, and device lineage. For a compatible identity, a current supervised runtime observation reconciles contradictory persisted runtime state; for an incompatible identity, the event becomes stale or invalidated rather than being merged. Events after cancellation, rollback, promotion, or worker fencing remain historical or quarantined unless a new authorized lineage admits them.
+
+`PreviewCoordinator` remains the sole preview mutation and promotion service, and `PreviewPromotionGate` remains the sole promotion predicate. This decision does not create a second preview state machine, evidence authority, completion authority, or artifact authority.
+
+**Rationale:** A panel that receives independent worker, build, device, and model updates can display a visually plausible but causally incorrect state unless one durable sequence and reducer determine what the user sees. Event-bound projection makes chat-to-preview synchronization replayable, stale-safe, reconnectable, and evidence-auditable.
+
+**Consequences:** M108 must prove the complete chat-to-device-to-panel vertical slice, M109 must prove resilience and runtime-certification evidence, and implementation status cannot be inferred from the presence of the schemas or documentation verifier alone.

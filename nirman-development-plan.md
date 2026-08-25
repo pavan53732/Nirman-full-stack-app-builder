@@ -1254,6 +1254,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
 | M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
 | M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
+| M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-GEN-001 | EV-GEN-001 | Preview synchronization protocol and first Android vertical slice |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1467,3 +1468,19 @@ Implement the versioned `IntegrationBoundaryContract` reference envelope and `Bo
 The fixture matrix must cover UI reconnect and stale-command rejection; provider and context correlation; skill-to-capability-to-tool mediation; worker lease-loss fencing; patch/revision freshness; Android service functional evidence and independent operationality dimensions; emulator/device installation and UI-hierarchy evidence; signing certificate inspection; source/destination export hash equality; unknown external-effect reconciliation; timeout and cancellation propagation; adapter/protocol incompatibility; invalidation of downstream evidence; and separation of documentation certification from runtime certification.
 
 **Exit gate:** every applicable boundary-crossing operation resolves one registered `IntegrationBoundaryContract`, all universal-chain references are resolvable, specialized authorities remain singular, unknown outcomes cannot be retried unsafely, stale identities cannot produce current effects, and all M107 fixtures produce durable evidence. A documentation verifier pass alone cannot promote runtime capability or artifact status.
+
+## M108 — Preview synchronization protocol and first Android vertical slice
+
+M108 implements build spec §71 and technical architecture §75. It must follow the chat, control-plane, worker, workspace, build, device, evidence, and preview authorities already defined by the earlier milestones. It does not permit an agent, worker, UI, or model to mutate preview state directly.
+
+Implement `PreviewSyncEvent`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` with canonical schema registry entries, version compatibility, durable event sequences, idempotent replay, projection revisions, preview identity checks, and evidence lineage. Connect the user chat request to intent acceptance, contract validation, agent authorization, source revision, checkpoint, Android build, APK artifact, emulator/device installation, launch, interaction, observation, validation, promotion, and panel projection.
+
+**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance.
+
+## M109 — Preview projection resilience and runtime-certification evidence
+
+M109 implements the resilience and certification portion of build spec §71.4–§71.5 and technical architecture §75.3–§75.4. Add UI and supervisor fixtures for duplicate events, conflicting duplicate payloads, out-of-order delivery, missing sequence ranges, stale revisions, late device observations, stream loss, UI reconnect, supervisor restart, failed candidates, last-known-good preservation, rollback, recovery, and deterministic replay.
+
+Persist `PreviewSyncEvidenceRecord` for each displayed completed stage and verify event range, reducer version, projection revision, preview revision, branch/candidate identity, device identity, runtime session, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, invalidated evidence, recovery events, and promotion or completion decisions. Documentation certification remains separate from runtime certification. Include fixtures for worker stalls, watchdog fencing, replacement-worker resume, emulator/device restart and reconnect, cancellation, rollback, late events, and wrong-revision or wrong-device evidence.
+
+**Exit gate:** live application and replay produce identical projections; disconnected UI cannot advance truth; stale or late events cannot overwrite current state; failed candidates cannot replace last-known-good; current runtime observations reconcile compatible persisted state; incompatible observations become stale or invalidated; and the complete fixture evidence proves chat-to-preview synchronization rather than only documentation presence.

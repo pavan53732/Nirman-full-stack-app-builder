@@ -268,7 +268,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 
 | CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
 |---|---|---|---|---|---|
-| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | PLANNED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -3963,6 +3963,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4083,6 +4084,11 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.INTEGRATION.NO_FABRICATED_EVIDENCE | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | a boundary cannot treat predicted, simulated, requested, stale, or invalidated output as verified evidence | SEALED |
 | CLAUSE.INTEGRATION.APPLICABILITY_EXPLICIT | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | an inapplicable chain stage requires an explicit applicability value and reason | SEALED |
 | CLAUSE.INTEGRATION.INVALIDATION_LINKED | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | downstream evidence and effects link to the identities that can invalidate them | SEALED |
+| CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | one canonical reducer applies preview synchronization events | SEALED |
+| CLAUSE.PREVIEW_SYNC.ORDERED_REPLAY | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | duplicate and out-of-order events cannot overwrite a newer projection | SEALED |
+| CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | displayed completed stages require current evidence bound to the projection | SEALED |
+| CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | a disconnected UI cannot advance preview truth or evidence locally | SEALED |
+| CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | an event may update only a compatible preview identity and revision | SEALED |
 
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
@@ -4151,6 +4157,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.GENERATE | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-GEN-001 | EV-GEN-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -4565,6 +4572,8 @@ The panel MUST distinguish the last-known-good preview from a broken or incomple
 
 ### 69.6 Evidence-based preview transitions
 
+Every preview update MUST be admitted through the canonical `PreviewSyncEvent` and applied by one `PreviewProjectionReducer`; agents, workers, build services, device services, evidence producers, and the UI may emit or consume events but cannot mutate the preview projection directly.
+
 A preview update follows this sequence:
 
 ```text
@@ -4699,3 +4708,222 @@ Every boundary operation MUST be idempotent or explicitly non-idempotent with a 
 ### 70.1 Acceptance criteria
 
 A boundary fixture must prove that source and destination identity, schema and protocol version, adapter or bridge, authority, operation, transaction domain, correlation and idempotency, lifecycle policy, observation, evidence, validation, downstream effect, failure/recovery, compatibility, and invalidation references are all resolvable. It must reject an envelope that redefines a specialized authority, fabricates verified evidence, retries an unknown external outcome without reconciliation, omits a required applicability reason, or allows a stale source or contract version to produce a current downstream effect.
+
+## 71. Preview Synchronization Protocol
+
+**ContractId:** `CONTRACT.RUNTIME.PREVIEW_SYNC`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.PREVIEW_SYNC` (see BS §67.8)
+
+This contract defines how the user’s chat instruction and autonomous agent activity become a truthful live Android preview projection. It extends the existing intent, execution, evidence, preview, and integration-boundary contracts. It creates no second preview authority: `PreviewCoordinator` remains the sole service that creates, reloads, installs, invalidates, rolls back, or promotes a preview, and the deterministic runtime remains the sole lifecycle and evidence authority.
+
+### 71.1 Canonical synchronization schemas
+
+```text
+PreviewSyncEvent
+- eventId
+- eventSchemaVersion
+- eventSequence
+- occurredAt
+- projectId
+- goalId
+- taskId
+- sessionId
+- workerRunId
+- correlationId
+- causationId
+- boundaryId
+- branchId
+- candidatePreviewRevisionId
+- eventType: INTENT_ACCEPTED | CONTRACT_VALIDATED | PLAN_RECORDED |
+             CHECKPOINT_CREATED | SOURCE_REVISION_COMMITTED |
+             BUILD_REQUESTED | BUILD_OBSERVED | ARTIFACT_OBSERVED |
+             INSTALL_REQUESTED | INSTALL_OBSERVED | LAUNCH_OBSERVED |
+             INTERACTION_OBSERVED | OBSERVATION_CAPTURED |
+             VALIDATION_OBSERVED | RECOVERY_STARTED | CANDIDATE_FAILED |
+             PREVIEW_INVALIDATED | PREVIEW_PROMOTED | STREAM_GAP |
+             STREAM_RECONNECTED
+- eventTruth: PREDICTED | SIMULATED | REQUESTED | OBSERVED | VERIFIED |
+               STALE | INVALIDATED
+- projectRevisionId
+- checkpointId
+- sourceFingerprint
+- assetManifestVersion
+- contractVersion
+- technologyPlanVersion
+- artifactId
+- artifactFingerprint
+- runtimeSessionId
+- deviceId
+- deviceStateFingerprint
+- applicationStateFingerprint
+- environmentStateFingerprint
+- operationRef
+- observationRefs
+- evidenceRefs
+- validationRef
+- failureRecoveryRef
+- emittedBy
+- authorityClass: DECLARATIVE | PLANNED | EXECUTION_OBSERVED |
+                  RUNTIME_OBSERVED | EVIDENCE_BACKED | VALIDATED | CERTIFIED
+- payload
+- emittedAt
+
+PreviewProjection
+- projectionRevision
+- goalState
+- executionState
+- sourceState
+- buildState
+- artifactState
+- installationState
+- runtimeState
+- deviceState
+- interactionState
+- validationState
+- evidenceState
+- recoveryState
+- promotionState
+- displayState
+
+PreviewProjectionReducer
+- reducerId
+- reducerVersion
+- projectId
+- taskId
+- lastAppliedEventSequence
+- projectionRevision
+- activePreviewRevisionId
+- lastKnownGoodPreviewRevisionId
+- candidatePreviewRevisionId
+- lifecycleStage
+- executionTruth
+- buildStatus
+- installStatus
+- launchStatus
+- runtimeStatus
+- validationStatus
+- streamStatus: CONNECTED | REPLAYING | STALE_STREAM | GAP_BLOCKED
+- pendingEventSequences
+- rejectedEventIds
+- projectionDimensions
+- quarantinedEventIds
+- evidenceIds
+- invalidationIds
+- updatedAt
+
+PreviewSyncEvidenceRecord
+- evidenceId
+- projectId
+- taskId
+- eventSequenceStart
+- eventSequenceEnd
+- projectionRevision
+- previewRevisionId
+- projectRevisionId
+- checkpointId
+- branchId
+- deviceId
+- runtimeSessionId
+- artifactFingerprint
+- stateFingerprints
+- eventIds
+- observationRefs
+- evidenceRefs
+- validationRefs
+- invalidatedEvidenceIds
+- recoveryEventIds
+- promotionRecordRef
+- certificationDecisionRef
+- completionDecisionRef
+- truth
+- capturedAt
+```
+
+`PreviewSyncEvent` is the only event shape that can update the preview projection. A worker result, model message, terminal output, raw device callback, or UI action must first be normalized into this schema or remain informational. `PreviewProjectionReducer` is the only component that derives the panel’s preview state from durable events. `PreviewSyncEvidenceRecord` proves which event range and identity produced a displayed stage; it is not a substitute for the underlying device, process, visual, test, artifact, or promotion evidence.
+
+`PreviewProjection` is evaluated as independent dimensions rather than a single success value: goal, execution, source, build, artifact, installation, runtime, device, interaction, validation, evidence, recovery, promotion, and display. For example, `buildState: SUCCEEDED`, `artifactState: APK_AVAILABLE`, `installationState: INSTALLED`, `runtimeState: RUNNING`, `validationState: IN_PROGRESS`, `evidenceState: PARTIAL`, and `promotionState: NOT_PROMOTED` may coexist. No dimension implies completion of another dimension.
+
+The projection MUST retain causal provenance for displayed claims. A panel field that says an application is running or validated must be traceable through its `PreviewSyncEvent`, runtime observation, evidence record, validation result, and applicable promotion or completion decision. A panel screenshot is a display artifact, not proof that this provenance exists.
+
+The `authorityClass` establishes the maximum truth level an event may advance. `DECLARATIVE` and `PLANNED` events can update intent, plan, or queued-operation fields only. `EXECUTION_OBSERVED` requires supervised process evidence. `RUNTIME_OBSERVED` requires matching emulator/device, package, process, and runtime-session observation. `EVIDENCE_BACKED` requires durable evidence references, `VALIDATED` requires an independent validator, and `CERTIFIED` requires the applicable certification authority. An event cannot advance a field beyond its authority class.
+
+Every non-root event MUST identify its `causationId` and compatible identity lineage. A build, install, launch, interaction, observation, validation, or promotion event without a matching project revision, candidate, artifact, runtime session, device, and predecessor lineage is rejected or retained as non-authoritative history; it cannot update the current projection.
+
+### 71.2 Event-to-preview field ownership
+
+| Event type | Fields it may update | Required authority or evidence | Panel effect |
+|---|---|---|---|
+| `INTENT_ACCEPTED` | intent reference, lifecycle stage | contract admission | Shows intent received; no running preview |
+| `CONTRACT_VALIDATED` | contract version, requirement references | schema/contract validator | Shows validated intent; no device state |
+| `PLAN_RECORDED` | plan reference, technology-plan version | planner record | Shows planned work only |
+| `CHECKPOINT_CREATED` | checkpoint and project revision | transaction authority | Establishes candidate baseline |
+| `SOURCE_REVISION_COMMITTED` | source fingerprint, revision, branch | commit barrier and workspace authority | Marks previous preview stale when incompatible |
+| `BUILD_REQUESTED` | operation reference, build status | operation capability | Shows queued/building state only |
+| `BUILD_OBSERVED` | build status, artifact reference, toolchain identity | supervised process evidence | Allows build-observed stage |
+| `ARTIFACT_OBSERVED` | artifact ID and fingerprint | artifact inspection evidence | Binds artifact to candidate |
+| `INSTALL_REQUESTED` | device operation reference | device operation authority | Shows install requested only |
+| `INSTALL_OBSERVED` | install status, device identity | device evidence | Allows installed stage |
+| `LAUNCH_OBSERVED` | launch/runtime status | supervised device/process evidence | Allows `RUNNING_OBSERVED` |
+| `INTERACTION_OBSERVED` | application state and interaction refs | device/test evidence | Allows interaction stage |
+| `OBSERVATION_CAPTURED` | screenshot, Logcat, UI-hierarchy evidence refs | observation service | Adds evidence, not promotion by itself |
+| `VALIDATION_OBSERVED` | validation status and result refs | independent validator | Allows validation stage |
+| `RECOVERY_STARTED` | recovery state and last-known-good ref | RecoveryAuthority | Shows recovery without replacing known-good |
+| `CANDIDATE_FAILED` | candidate failure and invalidation refs | failure/recovery authority | Keeps candidate failed; preserves known-good |
+| `PREVIEW_INVALIDATED` | invalidation state and reason | invalidation authority | Marks dependent projection/evidence stale |
+| `PREVIEW_PROMOTED` | active preview revision | `PreviewPromotionGate` | Replaces candidate only after all gates pass |
+| `STREAM_GAP` | stream status, pending sequence range | event-store/replay authority | Freezes panel advancement and shows stale stream |
+| `STREAM_RECONNECTED` | stream status and replay cursor | authenticated supervisor connection | Replays before resuming projection |
+
+No event may update a field outside its ownership row. A promotion event cannot be emitted by a model, worker, UI, build process, or device callback; it is emitted only after the canonical promotion gate commits the decision.
+
+### 71.3 Ordering, duplicate, stale, and reconnect rules
+
+The reducer applies events by the durable per-project/task `eventSequence`. Reapplying an event with the same `eventId` and payload hash is idempotent and produces no second state transition. An event with a duplicate ID and a different payload is a protocol violation and is quarantined. An event whose sequence is greater than the next expected sequence is held in `pendingEventSequences`; the panel enters `GAP_BLOCKED` or `STALE_STREAM` and requests replay rather than applying the event out of order.
+
+An event whose sequence is older than `lastAppliedEventSequence` is accepted only as a replay match. It cannot overwrite a newer projection. An event with a project revision, checkpoint, source fingerprint, artifact fingerprint, device state fingerprint, application state fingerprint, environment state fingerprint, contract version, or branch identity incompatible with the active candidate is marked `STALE` or `INVALIDATED` and cannot update current preview fields.
+
+When the UI or event stream disconnects, the panel keeps the last durable projection, sets `streamStatus: STALE_STREAM`, and cannot advance lifecycle, execution truth, evidence, or promotion locally. On reconnect, the authenticated supervisor sends a snapshot and replays the missing event range. The reducer verifies the snapshot cursor, event continuity, and projection revision before returning to `CONNECTED`.
+
+A late build, install, launch, screenshot, test, or worker event may contribute historical evidence to its matching candidate only. It cannot replace the active preview or last-known-good preview. Events received after cancellation, rollback, promotion, or worker fencing are historical or quarantined unless a new operation explicitly re-authorizes them under a new lineage.
+
+Preview truth reconciliation compares the durable projection with the current supervised runtime observation. For a compatible project revision, artifact fingerprint, device identity, and runtime session, a current process/device observation can move runtime state from a previously persisted `RUNNING` claim to `STOPPED`, `CRASHED`, `DISCONNECTED`, or `UNKNOWN`; a persisted projection cannot override a contradictory current observation. If the identities do not match, the projection becomes `STALE` or `INVALIDATED` rather than combining the records. Recovery, rollback, source edits, toolchain changes, device changes, application-state changes, environment changes, contract changes, and policy changes invalidate affected projection and evidence dependencies through the existing evidence graph.
+
+### 71.4 Runtime-certification evidence
+
+Runtime certification must retain a `PreviewSyncEvidenceRecord` for every displayed completed stage and must prove the event sequence, reducer version, projection revision, preview revision, source revision, checkpoint, artifact fingerprint, device identity, state fingerprints, evidence references, and validation result. A panel screenshot alone is not runtime evidence of synchronization.
+
+The runtime fixture must exercise a complete path:
+
+```text
+chat instruction
+  → intent and contract events
+  → authorized agent proposal
+  → source mutation and checkpoint
+  → build and artifact observations
+  → install and launch observations
+  → interaction and screenshot/Logcat/UI-hierarchy observations
+  → validation
+  → PreviewPromotionGate
+  → durable PreviewSyncEvent sequence
+  → PreviewProjectionReducer
+  → panel projection
+```
+
+The fixture must also inject duplicate events, out-of-order events, missing event ranges, stale revisions, a failed candidate, UI disconnect, supervisor restart, stream replay, and a late device observation. The expected result is deterministic projection reconstruction, no false current state, preserved last-known-good preview, and complete evidence lineage.
+
+### 71.5 Acceptance criteria
+
+1. A chat instruction creates a durable task and intent record before agent execution begins.
+2. Agent and worker events cannot update the preview panel except through `PreviewSyncEvent` and `PreviewProjectionReducer`.
+3. Every displayed completed stage has a `PreviewSyncEvidenceRecord` with event range, projection revision, preview revision, device identity, artifact fingerprint, and evidence references.
+4. A successful build without install and launch observation cannot display `RUNNING_OBSERVED`.
+5. Duplicate events are idempotent; conflicting duplicate payloads are quarantined.
+6. Out-of-order or missing events freeze advancement and initiate replay rather than being applied speculatively.
+7. Stale or incompatible source, artifact, device, application, environment, branch, or contract identities cannot update the current preview.
+8. UI disconnection, supervisor restart, and event-stream loss preserve durable truth and do not advance the panel locally.
+9. A failed candidate cannot replace last-known-good, and a late candidate event cannot overwrite a newer projection.
+10. Preview promotion remains exclusive to `PreviewCoordinator` through `PreviewPromotionGate`.
+11. The complete chat-to-APK-to-device-to-evidence-to-panel fixture passes before the preview synchronization capability is reported as runtime-certified.
+12. Event authority classes prevent declarative or planned messages from advancing execution, runtime, evidence, validation, or certification dimensions.
+13. A contradictory current runtime observation reconciles a compatible persisted projection, while an incompatible observation becomes stale or invalidated instead of being merged.
+14. The panel can answer why a displayed running or validated claim is current by exposing its event range, projection revision, preview revision, runtime session, device identity, artifact fingerprint, evidence references, validation references, and promotion or completion decision references.

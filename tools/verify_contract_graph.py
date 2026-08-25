@@ -995,6 +995,7 @@ def check_semantic_documentation(docs, R, D):
         "external-effect reconciliation": "### 5.7.6 External-effect reconciliation",
         "completion predicate": "### 5.7.7 Completion predicate and illegal-state rules",
         "integration boundary": "## 70. Integration Boundary Contract",
+        "preview synchronization": "## 71. Preview Synchronization Protocol",
     }
     for subject, anchor in required_build_anchors.items():
         if anchor not in bs:
@@ -1030,6 +1031,14 @@ def check_semantic_documentation(docs, R, D):
         "SigningOperation": ta,
         "CertificateInspection": ta,
         "ExportVerificationRecord": ta,
+        "PreviewSyncEvent": bs + ta,
+        "PreviewProjectionReducer": bs + ta,
+        "PreviewSyncEvidenceRecord": bs + ta,
+        "PreviewProjection": bs + ta,
+        "authorityClass": bs + ta,
+        "runtimeSessionId": bs + ta,
+        "certificationDecisionRef": bs + ta,
+        "causationId": bs + ta,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1039,6 +1048,45 @@ def check_semantic_documentation(docs, R, D):
     if "## 74. Integration Boundary Implementation Contract" not in ta:
         D.add("semantic documentation", "integration architecture boundary",
               "technical architecture lacks the canonical integration-boundary implementation section")
+    if "## 75. Preview Synchronization Implementation Contract" not in ta:
+        D.add("semantic documentation", "preview synchronization architecture",
+              "technical architecture lacks the canonical preview-synchronization implementation section")
+    if "## M108 — Preview synchronization protocol and first Android vertical slice" not in dev:
+        D.add("semantic documentation", "preview synchronization vertical slice",
+              "development plan lacks the first Android preview-synchronization vertical slice")
+    if "## M109 — Preview projection resilience and runtime-certification evidence" not in dev:
+        D.add("semantic documentation", "preview synchronization resilience",
+              "development plan lacks preview projection resilience and runtime-certification fixtures")
+    if "## ADR-195: Make preview synchronization event- and reducer-bound" not in dec:
+        D.add("semantic documentation", "preview synchronization decision",
+              "decision log lacks the event-and-reducer-bound preview synchronization decision")
+    if "### 71.2 Event-to-preview field ownership" not in bs:
+        D.add("semantic documentation", "preview event ownership",
+              "preview event-to-field ownership table is missing")
+    if "### 71.3 Ordering, duplicate, stale, and reconnect rules" not in bs:
+        D.add("semantic documentation", "preview replay rules",
+              "preview duplicate, ordering, stale, and reconnect rules are missing")
+    if "PreviewSyncEvent\n- eventId" not in bs:
+        D.add("semantic documentation", "preview event schema",
+              "canonical PreviewSyncEvent schema is missing")
+    if "PreviewProjectionReducer\n- reducerId" not in bs:
+        D.add("semantic documentation", "preview reducer schema",
+              "canonical PreviewProjectionReducer schema is missing")
+    if "PreviewSyncEvidenceRecord\n- evidenceId" not in bs:
+        D.add("semantic documentation", "preview synchronization evidence schema",
+              "canonical PreviewSyncEvidenceRecord schema is missing")
+    if "PreviewProjection\n- projectionRevision" not in bs:
+        D.add("semantic documentation", "preview projection schema",
+              "canonical PreviewProjection dimension model is missing")
+    if "authorityClass: DECLARATIVE" not in bs:
+        D.add("semantic documentation", "preview event authority levels",
+              "preview event authority classes are missing")
+    if "Preview truth reconciliation" not in bs:
+        D.add("semantic documentation", "preview runtime reconciliation",
+              "preview truth reconciliation rule is missing")
+    if "Every non-root event MUST identify its `causationId`" not in bs:
+        D.add("semantic documentation", "preview event causality",
+              "preview event causal-lineage rule is missing")
     if "## M107 — Integration boundary contract and wiring conformance" not in dev:
         D.add("semantic documentation", "integration boundary milestone",
               "development plan lacks the integration-boundary conformance milestone")

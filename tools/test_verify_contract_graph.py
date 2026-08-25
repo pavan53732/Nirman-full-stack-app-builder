@@ -243,8 +243,8 @@ CASES = {
         TA, "### 16.2.1 Execution profiles and approval precedence",
         "### 16.2.1 Execution policy details", "semantic documentation"),
     "semantic supported row without profile": (
-        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
-        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
+        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
+        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
         "semantic documentation"),
     "semantic supported environment row without profile": (
         BS, "| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |",
@@ -325,6 +325,66 @@ CASES = {
     "semantic export verification removed": (
         TA, "ExportVerificationRecord",
         "ArtifactExportRecord",
+        "semantic documentation"),
+    "semantic preview sync section removed": (
+        BS, "## 71. Preview Synchronization Protocol",
+        "## 71. Preview Notes",
+        "semantic documentation"),
+    "semantic preview event ownership removed": (
+        BS, "### 71.2 Event-to-preview field ownership",
+        "### 71.2 Preview field notes",
+        "semantic documentation"),
+    "semantic preview replay rules removed": (
+        BS, "### 71.3 Ordering, duplicate, stale, and reconnect rules",
+        "### 71.3 Preview ordering notes",
+        "semantic documentation"),
+    "semantic preview event schema removed": (
+        BS, "PreviewSyncEvent\n- eventId",
+        "PreviewEvent\n- eventId",
+        "semantic documentation"),
+    "semantic preview reducer schema removed": (
+        BS, "PreviewProjectionReducer\n- reducerId",
+        "PreviewReducer\n- reducerId",
+        "semantic documentation"),
+    "semantic preview evidence schema removed": (
+        BS, "PreviewSyncEvidenceRecord\n- evidenceId",
+        "PreviewEvidence\n- evidenceId",
+        "semantic documentation"),
+    "semantic preview architecture removed": (
+        TA, "## 75. Preview Synchronization Implementation Contract",
+        "## 75. Preview Implementation Notes",
+        "semantic documentation"),
+    "semantic preview vertical slice removed": (
+        DEV, "## M108 — Preview synchronization protocol and first Android vertical slice",
+        "## M108 — Android vertical slice",
+        "semantic documentation"),
+    "semantic preview resilience removed": (
+        DEV, "## M109 — Preview projection resilience and runtime-certification evidence",
+        "## M109 — Preview resilience",
+        "semantic documentation"),
+    "semantic preview decision removed": (
+        DEC, "## ADR-195: Make preview synchronization event- and reducer-bound",
+        "## ADR-195: Preview notes",
+        "semantic documentation"),
+    "semantic preview projection dimensions removed": (
+        BS, "PreviewProjection\n- projectionRevision",
+        "PreviewState\n- projectionRevision",
+        "semantic documentation"),
+    "semantic preview authority levels removed": (
+        BS, "authorityClass: DECLARATIVE",
+        "eventAuthority: DECLARATIVE",
+        "semantic documentation"),
+    "semantic preview causality removed": (
+        BS, "Every non-root event MUST identify its `causationId`",
+        "Every non-root event may identify its `causationId`",
+        "semantic documentation"),
+    "semantic preview runtime reconciliation removed": (
+        BS, "Preview truth reconciliation compares the durable projection with the current supervised runtime observation.",
+        "Preview reconciliation is implementation-defined.",
+        "semantic documentation"),
+    "semantic preview provenance decision removed": (
+        BS, "- certificationDecisionRef\n- completionDecisionRef",
+        "- certificationDecision\n- completionDecisionRef",
         "semantic documentation"),
 }
 
