@@ -388,9 +388,9 @@ The following decisions remain intentionally open:
 ## ADR-034: Use a standard autonomous validation pipeline
 
 **Status:** Accepted  
-**Decision:** Where applicable, Nirman will validate through preview or launch, focused checks, build or package, security/dependency/reliability checks, browser/device/accessibility/visual QA, repair or backtracking, regression checks, and final goal evaluation.
+**Decision:** For Android-target profiles, Nirman will validate through Android emulator or selected physical-device launch, focused Android checks, build or package validation, security/dependency/reliability checks, Android device/accessibility/visual QA, repair or backtracking, regression checks, and final goal evaluation. Browser validation is optional external auxiliary tooling for a declared non-Android surface and is never required or authoritative for generated Android application completion.
 
-**Reasoning:** Compilation alone does not prove that an application works or that existing behavior was preserved.
+**Reasoning:** Compilation alone does not prove that an application works or that existing behavior was preserved. Android runtime behavior requires supervised emulator/device evidence, while auxiliary browser evidence must not be mistaken for Android execution evidence.
 
 **Trade-off:** Validation increases runtime and resource consumption. Project profiles must distinguish required, optional, and unavailable checks.
 
@@ -722,7 +722,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-063: Full Android capability coverage is an internal acceptance contract
 
 **Status:** Accepted  
-**Decision:** The system must validate AI-selected generation across JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK/AAB delivery. These are internal fixture categories, not user-facing templates.
+**Decision:** The system must validate AI-selected generation across JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK or optional AAB delivery. These are internal fixture categories, not user-facing templates.
 
 **Reasoning:** The user should describe the application while the configured AI selects and composes the implementation technology.
 
@@ -730,7 +730,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 ---
 
-## ADR-064: APK/AAB evidence is a completion gate
+## ADR-064: APK or optional AAB evidence is a completion gate
 
 **Status:** Accepted  
 **Decision:** Where Android packaging is required, the task cannot be complete without build success, artifact existence, checksum, artifact scan, installation or launch evidence, main-flow results, visual validation, permission behavior, and no unresolved fatal runtime errors. The artifact must link to the source revision and evidence ledger.
@@ -854,7 +854,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK/AAB production.
+**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK or optional AAB production.
 
 **Rationale:** A single validated contract prevents workers from inventing inconsistent requirements, allows replay and migration, separates user facts from model inferences, and provides a stable target for evidence-backed completion.
 
@@ -1034,7 +1034,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Nirman is permanently an Android-only autonomous application builder. Windows is the desktop host, not a generated application target.
 
-**Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK/AAB artifacts.
+**Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK or optional AAB artifacts.
 ## ADR-082: Integrated Android workflow coordinator
 
 **Status:** Accepted
@@ -1109,7 +1109,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Every managed project receives a concise validated handbook, and every promoted APK/AAB receives a revision-bound release-intelligence report.
+**Decision:** Every managed project receives a concise validated handbook, and every promoted APK or optional AAB receives a revision-bound release-intelligence report.
 
 **Rationale:** Users need an understandable project record and trustworthy artifact metadata after autonomous construction.
 
@@ -1163,7 +1163,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** The README’s implementation stack is not compatible with Nirman’s product boundary.
 
-**Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK/AAB deliverables.
+**Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK or optional AAB deliverables.
 ## ADR-095: Private internal reasoning with visible structured summaries
 
 **Status:** Accepted
@@ -1257,7 +1257,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Asset completion requires validation in the Android project, current live preview, and built APK/AAB. Workspace presence alone is insufficient.
+**Decision:** Asset completion requires validation in the Android project, current live preview, and built APK or optional AAB. Workspace presence alone is insufficient.
 
 **Rationale:** An asset can exist on disk but be referenced incorrectly, omitted from packaging, stale in preview, or invalid at runtime.
 
@@ -1320,7 +1320,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Nirman needs transactional state, migrations, event sequences, crash recovery, and replay without a cloud database.
 
-**Consequences:** Large logs, screenshots, diffs, patches, crash dumps, build output, and APK/AAB files remain in the filesystem artifact store with content-hash references.
+**Consequences:** Large logs, screenshots, diffs, patches, crash dumps, build output, and APK or optional AAB files remain in the filesystem artifact store with content-hash references.
 
 ## ADR-111: Separate Nirman.exe from NirmanSupervisor.exe for durable autonomy
 
@@ -1605,7 +1605,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK/AAB packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
+**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK or optional AAB packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
 
 **Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
 
@@ -2014,7 +2014,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. Every `PreviewRevision` binds project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact identity, device identity, execution truth, runtime state, validation state, and evidence IDs.
+**Decision:** `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. Every `PreviewRevision` binds project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact identity, device identity, execution truth, runtime state, validation state, and evidence IDs. Every promotion decision must pass the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1; no worker, model, UI projection, successful build, or isolated evidence item may promote a candidate independently.
 
 **Rationale:** A preview is trustworthy only when the user can identify exactly which source and checkpoint produced it and which observations prove that it is running. A build result or model statement alone cannot prove device behavior.
 
@@ -2047,3 +2047,60 @@ No provider-native reasoning stream containing private model reasoning may be pe
 **Rationale:** A hard-problem-solving runtime needs to use models that support deeper inference when available, but provider-specific reasoning controls cannot become a second authority system. Separating native reasoning from runtime deliberation also prevents the system from treating one expensive model request as equivalent to evidence-producing iterative problem solving.
 
 **Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, deliberation budgets must reserve and settle reasoning expenditure transactionally, and provider failover must revalidate reasoning capability before continuation.
+
+
+---
+
+## ADR-185: Make APK mandatory and AAB explicitly optional
+
+**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** The minimum local Android deliverable is an installable APK. AAB generation is an optional separately declared packaging profile and is never implied by APK completion. Every packaging request records required artifacts, build variant, signing policy, reproducibility policy, installability checks, and evidence requirements before packaging begins.
+
+**Reasoning:** APK is the local install-and-preview artifact. AAB has different release, signing, and distribution semantics and must not remain an undefined alternative in completion language.
+
+**Trade-off:** Release workflows need an additional artifact profile, but completion and evidence semantics remain unambiguous.
+
+---
+
+## ADR-186: Separate lifecycle, assurance, capability, and delivery state
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+
+**Status:** Accepted
+
+**Decision:** Product lifecycle, assurance, capability maturity, integration operationality, signing, artifact, preview, and delivery state are independent fields. `RUNNING`, `OBSERVED`, `VERIFIED`, `CERTIFIED`, `COMPLETED`, and `DELIVERED` are never treated as synonyms. The reducer rejects illegal combinations and the UI renders each dimension separately.
+
+**Reasoning:** A task can be running without verified progress, an artifact can be exported while an integration remains user-required, and a preview can be observed without satisfying all verification gates.
+
+**Trade-off:** State models become more explicit and require more UI and migration work, but false completion becomes mechanically detectable.
+
+---
+
+## ADR-187: Make evidence dependencies and external operationality canonical
+
+**Locks:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.SUPPLY_CHAIN`
+
+**Status:** Accepted
+
+**Decision:** Evidence is represented as a dependency graph linking observations, evidence artifacts, validation results, certification decisions, and completion decisions. Source, asset, toolchain, device, artifact, policy, dependency, environment, and required-integration changes cascade invalidation to dependent evidence. Required external integrations use explicit operationality states and cannot be considered functional from local build or launch evidence alone.
+
+**Reasoning:** A flat evidence list cannot reliably reveal stale dependencies, and an installable APK does not prove that a required service or API behaves correctly.
+
+**Trade-off:** Evidence storage and invalidation become more complex, but preview and completion authorities consume one consistent proof model.
+
+---
+
+## ADR-188: Separate documentation certification from runtime certification
+
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** Contract-graph and Markdown checks certify documentation structure and addressing only. Separate runtime certification must prove schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, and self-development rollback.
+
+**Reasoning:** A clean documentation graph cannot prove that the runtime starts, builds an Android application, survives failure, or exports a valid artifact.
+
+**Trade-off:** Release certification requires more jobs and fixtures, but capability claims become evidence-backed rather than inferred from prose.

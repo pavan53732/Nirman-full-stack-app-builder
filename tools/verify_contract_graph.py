@@ -4,7 +4,8 @@ Nirman contract-graph verifier — implements build spec §67.11.
 
 Runs all eleven §67.11 contract-graph checks over the four canonical
 documents in both traversal directions (§67.9), plus the document-structure
-check required by the verifier harness. Exits 1 on any defect.
+check required by the verifier harness and a semantic-documentation lint layer.
+Exits 1 on any defect.
 
 Registries consumed:
   §5.6   Capability Registry           (CapabilityId -> required contracts, test, evidence)
@@ -229,7 +230,7 @@ def parse_registries(docs, D):
     # milestone mappings from the development plan
     miles = {}
     for marker, end in (("## Foundational milestone contract mapping", "## M81"),
-                        ("## M81\u2013M93 contract mapping", "### M93")):
+                        ("## M81\u2013M96 contract mapping", "### M93")):
         rows = table_rows(dev, marker, end, "M")
         for c in (rows or []):
             m = re.match(r"M(\d+)$", c[0])
@@ -920,6 +921,133 @@ def _contract_domain_pattern(contract_id):
     return patterns.get(domain)
 
 
+def check_semantic_documentation(docs, R, D):
+    """Detect high-risk semantic drift not covered by the contract graph."""
+    bs, ta, dec, dev = docs["bs"], docs["ta"], docs["dec"], docs["dev"]
+
+    if "goalTemplate" in ta:
+        D.add("semantic documentation", "goalTemplate",
+              "active schedule schema uses template terminology; use goalDefinition or goalSpecification")
+
+    browser_core = (
+        "Run browser, device, accessibility, and visual QA where applicable",
+        "browser/device/accessibility/visual QA",
+    )
+    for phrase in browser_core:
+        if phrase in bs or phrase in ta or phrase in dec:
+            D.add("semantic documentation", "browser validation",
+                  "browser wording may be interpreted as a required or authoritative Android validation stage")
+            break
+
+    if "§5.5 coverage matrix" in dev:
+        D.add("semantic documentation", "coverage-section reference",
+              "stale §5.5 coverage-matrix reference; current matrix is §5.6")
+
+    gate_heading = "### 73.5.1 Canonical `PreviewPromotionGate`"
+    if ta.count(gate_heading) != 1:
+        D.add("semantic documentation", "PreviewPromotionGate",
+              f"expected exactly one canonical definition, found {ta.count(gate_heading)}")
+    if ta.count("PreviewPromotionGate") + bs.count("PreviewPromotionGate") + dec.count("PreviewPromotionGate") < 3:
+        D.add("semantic documentation", "PreviewPromotionGate references",
+              "canonical preview gate is not referenced by all required normative surfaces")
+
+    profile_section = re.search(
+        r"### 5\.7\.1 Internal capability-profile identity(.*?)(?=\n### 5\.7\.2|\n## 6\.)",
+        bs, re.S)
+    if not profile_section or not re.search(r"(?m)^- profileId$", profile_section.group(1)):
+        D.add("semantic documentation", "ProfileId",
+              "internal capability-profile identity is missing a stable ProfileId")
+
+    registry = bs.split("### 5.7 Capability Registry", 1)[-1].split("## 6.", 1)[0]
+    for line in registry.splitlines():
+        if re.match(r"^\|[^|]+\|.*\| SUPPORTED(?:_WITH_ENVIRONMENT_REQUIREMENTS)?\s*\|$", line):
+            if "PROFILE.ANDROID." not in line or "FIXTURE-" not in line:
+                D.add("semantic documentation", "supported capability profile",
+                      "SUPPORTED capability row lacks a concrete ProfileId and fixture identity")
+                break
+
+    milestone_titles = {}
+    delivery_table = dev.split("## 3. M0:", 1)[0]
+    for line in delivery_table.splitlines():
+        m = re.match(r"^\|\s*M(\d+)\s*\|\s*([^|]+?)\s*\|", line)
+        if not m:
+            continue
+        title = re.sub(r"\s+", " ", m.group(2).strip()).casefold()
+        if title in milestone_titles:
+            D.add("semantic documentation", "milestone outcome",
+                  f"M{m.group(1)} duplicates the outcome title of M{milestone_titles[title]}")
+            break
+        milestone_titles[title] = m.group(1)
+
+    if "### 16.2.1 Execution profiles and approval precedence" not in ta:
+        D.add("semantic documentation", "approval precedence",
+              "execution-profile approval precedence is not canonically defined")
+
+    # Cross-entity contract lint. These predicates intentionally remain narrow:
+    # they confirm that the canonical owner and required vocabulary exist, while
+    # runtime certification must prove that the contracts actually execute.
+    required_build_anchors = {
+        "state separation": "### 5.7.2 Canonical maturity and operational state separation",
+        "artifact policy": "### 5.7.3 Canonical artifact and delivery policy",
+        "evidence dependencies": "### 5.7.4 Evidence dependencies and cascading invalidation",
+        "integration operationality": "### 5.7.5 Required integration operationality",
+        "external-effect reconciliation": "### 5.7.6 External-effect reconciliation",
+        "completion predicate": "### 5.7.7 Completion predicate and illegal-state rules",
+    }
+    for subject, anchor in required_build_anchors.items():
+        if anchor not in bs:
+            D.add("semantic documentation", subject,
+                  f"canonical build-spec anchor is missing: {anchor}")
+
+    state_tokens = ("ProductLifecycleState", "AssuranceState", "CapabilityMaturity",
+                    "IntegrationState", "SigningState", "DeliveryState")
+    missing_state_tokens = [token for token in state_tokens if token not in bs]
+    if missing_state_tokens:
+        D.add("semantic documentation", "state vocabulary",
+              f"canonical state separation is missing {missing_state_tokens}")
+
+    if "The minimum local Android deliverable is an installable APK." not in bs:
+        D.add("semantic documentation", "artifact minimum",
+              "the minimum local Android deliverable is not explicitly APK")
+    if "AAB generation is an optional separately declared release artifact" not in bs:
+        D.add("semantic documentation", "optional AAB policy",
+              "AAB is not explicitly optional and separately declared")
+    if re.search(r"APK/AAB", bs + ta + dev + dec):
+        D.add("semantic documentation", "ambiguous artifact wording",
+              "legacy APK/AAB wording remains; use APK or optional AAB")
+
+    required_cross_entity_tokens = {
+        "EvidenceDependency": bs + ta,
+        "IntegrationOperationality": bs + ta,
+        "ExternalEffectRecord": bs + ta,
+        "UsageRecord": ta,
+        "CompletionDecision": bs + ta,
+    }
+    for token, text in required_cross_entity_tokens.items():
+        if token not in text:
+            D.add("semantic documentation", token,
+                  f"required cross-entity contract token is missing: {token}")
+
+    if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
+        D.add("semantic documentation", "runtime certification boundary",
+              "documentation certification is not separated from runtime certification")
+    if "hidden-human dependency" not in bs or "M104 — Hidden-human-dependency" not in dev:
+        D.add("semantic documentation", "hidden human dependency",
+              "hidden-human-dependency behavior lacks a canonical contract and fixture milestone")
+    if "## M105 — Schema parity and cross-document conformance" not in dev:
+        D.add("semantic documentation", "schema parity",
+              "schema-parity and cross-document conformance milestone is missing")
+    if "documentation certification" not in dev.lower() or "runtime certification" not in dev.lower():
+        D.add("semantic documentation", "certification tier separation",
+              "development plan does not distinguish documentation and runtime certification")
+    if "reproducibilityLevel" not in bs or "repositoryTrustRequirement" not in bs:
+        D.add("semantic documentation", "profile maturity fields",
+              "capability profile is missing reproducibility or repository-trust identity")
+    if "attributionStatus" not in ta:
+        D.add("semantic documentation", "resource attribution",
+              "resource usage lacks explicit parent/child/shared attribution")
+
+
 def check_structure(docs, R, D):
     """Document-level integrity that the contract graph presupposes."""
     for label, key in (("build spec", "bs"), ("architecture", "ta")):
@@ -986,7 +1114,7 @@ CHECK_ORDER = (
     "duplicate authority", "unregistered contract", "undeclared extension",
     "authority cycle", "clause contradiction", "unversioned override",
     "dangling reference", "forward break", "reverse break", "orphan contract",
-    "canonical identity", "structure",
+    "canonical identity", "structure", "semantic documentation",
 )
 
 
@@ -1006,6 +1134,7 @@ def verify(root):
     check_reverse(R, docs, D)
     check_orphan(R, adj, D)
     check_canonical_identity(docs, R, D)
+    check_semantic_documentation(docs, R, D)
     check_structure(docs, R, D)
     return R, adj, D
 
@@ -1041,7 +1170,8 @@ def main():
         print("\nCERTIFICATION: FAIL")
         return 1
 
-    print(f"\nall {len(CHECK_ORDER)} §67.11 checks pass in both traversal directions")
+    print("\nall 12 §67.11 graph/structure checks pass in both traversal directions")
+    print("semantic documentation lint: PASS")
     print("CERTIFICATION: PASS")
     return 0
 

@@ -2,7 +2,7 @@
 
 ## Ordered Build Plan for the Desktop Application
 
-**Document status:** Initial implementation roadmap  
+**Document status:** Living implementation roadmap — contract-gated milestones
 **Application:** Nirman  
 **Primary engineering rule:** Build the local control plane and recovery model before attempting broad autonomous capabilities.
 
@@ -12,7 +12,7 @@
 
 Nirman should be built in vertical slices. Every milestone must produce a usable and testable part of the application instead of completing isolated infrastructure with no end-to-end workflow.
 
-The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, approve a file edit, run an emulator or device preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
+The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run an emulator or device preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
 
 The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in `nirman-decisions.md`.
 
@@ -32,8 +32,8 @@ The team should keep the master specification stable as the product contract, up
 | M7 | Background execution and recovery | Resume after UI close or restart, notifications, adaptive guardrails |
 | M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
 | M9 | Android device and visual testing | Emulator/device profiles, screenshots, Logcat, phone/tablet checks |
-| M10 | Android packaging | APK/AAB build, artifact validation, signing boundaries |
-| M11 | Complete Android technology coverage | AI-selected Java/Kotlin/Compose/Views/React Native/native modules and device capabilities |
+| M10 | Android packaging | APK or optional AAB build, artifact validation, signing boundaries |
+| M11 | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/device matrix, and representative fixture evidence |
 | M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
 | M13 | Goal Mode and non-blocking background work | Durable goals, resumable tasks, background control |
 | M14 | Lifecycle hooks | Deterministic pre/post action hooks and policy interception |
@@ -59,8 +59,8 @@ The team should keep the master specification stable as the product contract, up
 | M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
 | M35 | Long-horizon scale and unified execution surface | Map sharding, checkpoint retention, affected tests, side-by-side preview |
 | M36 | Runtime authority and autonomous recovery invariants | Deterministic authorities, model non-authority, safe recovery, evidence gates |
-| M37 | Android-only target contract | Android profiles, emulator/device validation, APK/AAB artifacts, and Android-only project resolution |
-| M38 | Complete Android technology coverage | AI-selected stacks, mixed architectures, all Android capability classes, end-to-end APK/AAB validation |
+| M37 | Android-only target contract | Android profiles, emulator/device validation, APK or optional AAB artifacts, and Android-only project resolution |
+| M38 | Certified Android profile coverage and production acceptance | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK or optional AAB validation, and evidence reports |
 
 ---
 
@@ -172,7 +172,7 @@ Create the dynamic Android project-synthesis engine and local runtime needed to 
 
 ### Exit gate
 
-A user can create an Android project, install dependencies, start an emulator or device preview, inspect it inside Nirman, run checks, create a checkpoint, and export the source code or APK/AAB artifact.
+A user can create an Android project, install dependencies, start an emulator or device preview, inspect it inside Nirman, run checks, create a checkpoint, and export the source code or APK or optional AAB artifact.
 
 ---
 
@@ -307,7 +307,7 @@ Package supported Android projects as APK or AAB artifacts and provide reliable 
 
 1. Add Android application metadata, icons, package identifiers, and build profiles.
 2. Add local debug and release build profiles and artifact directories.
-3. Add APK/AAB generation and installation workflows.
+3. Add APK or optional AAB generation and installation workflows.
 4. Add build logs, checksums, and artifact scanning.
 5. Add release review and explicit publish/signing approval.
 6. Add emulator and device installation validation.
@@ -318,11 +318,11 @@ A supported Android project can be built into an APK or AAB artifact, the artifa
 
 ---
 
-## 14. M11: Complete Android Technology Coverage
+## 14. M11: Android Capability Registry and Representative Profile Coverage
 
 ### Objectives
 
-Implement AI-driven selection and composition of Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, device APIs, background services, and mixed architectures, with end-to-end Android build and validation support.
+Implement the internal Android capability registry and profile identity used for AI-driven selection and composition. Record technology composition, toolchain locks, device matrices, fixtures, known exclusions, and evidence status for representative Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native-module, device-API, and mixed-architecture profiles. This milestone establishes profile-level support evidence; it does not claim universal production coverage.
 
 ### Work items
 
@@ -330,7 +330,7 @@ Implement AI-driven selection and composition of Java, Kotlin, Android Views, Je
 2. Add Java, Android SDK, emulator, device, and package-manager diagnostics.
 3. Add device-manager abstraction and connection state.
 4. Add Android logs, install, reload, and build status.
-5. Add APK/AAB build profiles where the local environment supports them.
+5. Add APK or optional AAB build profiles where the local environment supports them.
 6. Add signing configuration with secrets stored outside project source.
 
 ### Exit gate
@@ -676,7 +676,7 @@ Implement and test the rule that models propose work but deterministic lifecycle
 
 ### M37: Android-only target contract
 
-Make Android project profiles, emulator/device validation, Logcat, Gradle, APK/AAB artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
+Make Android project profiles, emulator/device validation, Logcat, Gradle, APK or optional AAB artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
 
 **Exit gate:** A scope test accepts supported Android project requests, resolves the correct Android profile, launches emulator/device validation, produces Android artifact evidence, and confirms that every project-generation path resolves only to an Android profile.
 
@@ -684,7 +684,7 @@ Make Android project profiles, emulator/device validation, Logcat, Gradle, APK/A
 
 Implement the capability registry, technology planner, framework resolver, mixed-architecture project synthesis, native-module integration, device-capability resolution, and end-to-end validation for the full Android technology surface. The user must describe the application rather than select a framework or template.
 
-**Exit gate:** A capability fixture suite covering JavaScript, Java, Kotlin, Views, Compose, native modules, background services, device APIs, offline behavior, notifications, media, location, sensors, and mixed projects can be generated from instructions and optional screenshots, built, installed or launched, tested, visually validated, repaired, and packaged as APK/AAB artifacts.
+**Exit gate:** A capability fixture suite covering JavaScript, Java, Kotlin, Views, Compose, native modules, background services, device APIs, offline behavior, notifications, media, location, sensors, and mixed projects can be generated from instructions and optional screenshots, built, installed or launched, tested, visually validated, repaired, and packaged as APK or optional AAB artifacts.
 
 ## 31. Definition of Done for Nirman v1
 
@@ -720,7 +720,7 @@ Implement a progress ledger and stall detector that measure changed files, new e
 4. Fault-injection tests prove that the runtime can recover from worker, process, provider, emulator, device, Gradle, and preview failures.
 5. The task either continues toward completion or reports a precise evidence-backed blocker.
 
-## 34. Live Preview and APK/AAB Completion Gate
+## 34. Live Preview and APK or optional AAB Completion Gate
 
 Make the Android emulator or connected device a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
 
@@ -728,12 +728,12 @@ Make the Android emulator or connected device a first-class validation surface a
 
 1. The preview displays the active device, project revision, checkpoint, installation state, reload state, Logcat, runtime errors, screenshots, and visual comparison results.
 2. A broken candidate never replaces the last valid preview revision.
-3. The final completion gate verifies build success, APK/AAB existence, checksum, artifact scan, installation or launch, main-flow execution, visual validation, permissions, and fatal runtime errors.
+3. The final completion gate verifies build success, APK or optional AAB existence, checksum, artifact scan, installation or launch, main-flow execution, visual validation, permissions, and fatal runtime errors.
 4. The final report links the artifact to the source revision and evidence ledger.
 
 ## 35. Full Android Capability Fixture Coverage
 
-Maintain generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK/AAB delivery.
+Maintain generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK or optional AAB delivery.
 
 These fixtures are internal acceptance categories, not user-facing templates. The user must be able to describe the application without selecting a framework.
 
@@ -815,11 +815,11 @@ Implement device-matrix testing across phone, tablet, Android API levels, densit
 
 ### Acceptance criteria
 
-The user can start one Android goal, observe the live preview beside the execution tree, inspect technology selection and recovery, compare device results, restore a checkpoint, and download a validated APK/AAB with evidence.
+The user can start one Android goal, observe the live preview beside the execution tree, inspect technology selection and recovery, compare device results, restore a checkpoint, and download a validated APK or optional AAB with evidence.
 
 ## 45. Integrated Production Readiness Gate
 
-Nirman is not production-ready until a complete Android fixture passes the following path without routine approval pauses: one instruction plus screenshots → contract extraction → technology selection → environment preparation → synthesis → worker/tool execution → emulator preview → failure injection and recovery → device validation → APK/AAB packaging → evidence report → task replay and checkpoint restore.
+Nirman is not production-ready until a complete Android fixture passes the following path without routine approval pauses: one instruction plus screenshots → contract extraction → technology selection → environment preparation → synthesis → worker/tool execution → emulator preview → failure injection and recovery → device validation → APK or optional AAB packaging → evidence report → task replay and checkpoint restore.
 
 
 ---
@@ -878,7 +878,7 @@ Implement parser-aware and schema-aware mutations, path and revision validation,
 
 ## M47 — AndroidRequirementManifest and repair registry
 
-Implement Android capability/requirement inference, missing and over-permission detection, manifest/resource validation, and deterministic repair patterns for toolchain, dependency, source/build, runtime, visual, accessibility, emulator, ADB, APK/AAB, and signing failures.
+Implement Android capability/requirement inference, missing and over-permission detection, manifest/resource validation, and deterministic repair patterns for toolchain, dependency, source/build, runtime, visual, accessibility, emulator, ADB, APK or optional AAB, and signing failures.
 
 **Exit gate:** representative failure fixtures classify correctly, select an allowed repair, respect retry budgets, restore checkpoints when required, and produce validation evidence.
 
@@ -896,9 +896,9 @@ Implement concise decision traces without hidden chain-of-thought, Calm/Inspect/
 
 ## M50 — End-to-end production acceptance
 
-Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, screenshots, API integrations, emulator/device validation, dependency repair, provider outage, bridge restart, worker crash, reboot, sleep, disk pressure, stale revision, conflict reconciliation, APK/AAB packaging, signing, and artifact export.
+Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, screenshots, API integrations, emulator/device validation, dependency repair, provider outage, bridge restart, worker crash, reboot, sleep, disk pressure, stale revision, conflict reconciliation, APK or optional AAB packaging, signing, and artifact export.
 
-**Exit gate:** a single instruction plus optional screenshots can produce a validated Android APK/AAB with source revision, checksum, environment snapshot, preview evidence, validation evidence, and replayable session history without routine human intervention.
+**Exit gate:** a single instruction plus optional screenshots can produce a validated Android APK or optional AAB with source revision, checksum, environment snapshot, preview evidence, validation evidence, and replayable session history without routine human intervention.
 
 ## Integrated acceptance matrix
 
@@ -916,7 +916,7 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 | Repair registry | Classified fixtures with evidence-backed fixes |
 | Preview | Revision-bound emulator/device evidence |
 | Resource governance | Pressure tests without gate weakening |
-| Artifact completion | APK/AAB checksum, signing, environment, and validation proof |
+| Artifact completion | APK or optional AAB checksum, signing, environment, and validation proof |
 # M51–M58: Integrated Workflow and Quality Intelligence Milestones
 
 These milestones add the accepted README-derived capabilities to the existing Nirman roadmap. They do not change the Android-only generated target.
@@ -1033,9 +1033,9 @@ Implement adaptive launcher icon, legacy icon, monochrome icon where applicable,
 
 ## M64 — ArtifactAssetInspector and final completion gate
 
-Implement built APK/AAB extraction, asset presence and reachability checks, content-hash comparison, placeholder detection, preview binding, fallback records, and branding-change invalidation.
+Implement built APK or optional AAB extraction, asset presence and reachability checks, content-hash comparison, placeholder detection, preview binding, fallback records, and branding-change invalidation.
 
-**Exit gate:** an APK/AAB cannot be promoted when requested branding assets are missing, stale, unintegrated, invalid, or placeholder-only. A complete artifact includes asset evidence, provenance, preview verification, and release-report references.
+**Exit gate:** an APK or optional AAB cannot be promoted when requested branding assets are missing, stale, unintegrated, invalid, or placeholder-only. A complete artifact includes asset evidence, provenance, preview verification, and release-report references.
 
 ## Integrated acceptance matrix
 
@@ -1046,7 +1046,7 @@ Implement built APK/AAB extraction, asset presence and reachability checks, cont
 | Generation | Provider or approved local/vector fallback with provenance |
 | Integration | Correct Android resources, references, and manifest entries |
 | Preview | Current AssetManifest displayed in PreviewRevision |
-| Artifact inspection | APK/AAB contains requested assets and matching hashes |
+| Artifact inspection | APK or optional AAB contains requested assets and matching hashes |
 | Accessibility | Contrast, transparency, silhouette, and theme checks |
 | Change handling | Affected assets regenerate and stale evidence is invalidated |
 | Completion gate | Missing or placeholder-only requested branding blocks promotion |
@@ -1096,7 +1096,7 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 
 ## 5C. Sequencing invariant
 
-Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK/AAB artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
+Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK or optional AAB artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
 # M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.
@@ -1118,7 +1118,7 @@ These milestones formalize the autonomous runtime without changing Nirman’s An
 | M77 | Cancellation and independent pause/resume | Propagate cancellation through every descendant and preserve exact pause/resume state for workers and skills |
 | M78 | Decision, uncertainty, contradiction, and replanning services | Add structured decision nodes, fact states, contradiction revisions, and evidence-triggered plan recompilation |
 | M79 | ExecutionHistoryManager | Implement hot, warm, cold, and archived history with safe compaction and evidence-preserving garbage collection |
-| M80 | End-to-end autonomous-runtime certification | Prove one long-running Android goal through dynamic allocation, failure recovery, replanning, device validation, APK/AAB packaging, replay, and history compaction |
+| M80 | End-to-end autonomous-runtime certification | Prove one long-running Android goal through dynamic allocation, failure recovery, replanning, device validation, APK or optional AAB packaging, replay, and history compaction |
 
 ## M65–M80 acceptance gates
 
@@ -1140,7 +1140,7 @@ Cancellation, pause, worker replacement, process failure, provider failure, emul
 
 ### Traceability gate
 
-An evaluator can select any mandatory requirement and follow it through acceptance criterion, task node, worker contract, skill, code change, validation run, evidence, and APK/AAB artifact.
+An evaluator can select any mandatory requirement and follow it through acceptance criterion, task node, worker contract, skill, code change, validation run, evidence, and APK or optional AAB artifact.
 
 ### Replay and simulation gate
 
@@ -1152,7 +1152,7 @@ A multi-hour Android task can compact active state, move old records to warm/col
 
 ### M80 certification fixture
 
-The certification fixture should include a user instruction and optional screenshots for an Android application with multiple screens, offline data, a device capability, branded assets, background work, and a release artifact. The fixture must inject a dependency failure, a provider interruption, a stale worker, an emulator interruption, a contradiction in requirements, and a validation failure. Nirman must recover, replan, validate, produce the APK/AAB, and retain an inspectable trajectory without routine human intervention.
+The certification fixture should include a user instruction and optional screenshots for an Android application with multiple screens, offline data, a device capability, branded assets, background work, and a release artifact. The fixture must inject a dependency failure, a provider interruption, a stale worker, an emulator interruption, a contradiction in requirements, and a validation failure. Nirman must recover, replan, validate, produce the APK or optional AAB, and retain an inspectable trajectory without routine human intervention.
 
 # M81–M93: Long-Horizon Intelligence, Verification, and Documentation Certification
 
@@ -1231,9 +1231,9 @@ These earlier milestones are referenced by the twelve-edge table of build spec �
 | M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
 | M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
 
-## M81–M93 contract mapping
+## M81–M96 contract mapping
 
-Each milestone implements exactly one registered contract from build spec §67.8. This mapping is the addressing source for the reverse traversal required by §67.9.
+Each milestone may implement one or more registered contracts, but each contract must have one canonical owning milestone. This mapping is the addressing source for the reverse traversal required by §67.9; shared implementation milestones must list every contract they own and its acceptance evidence.
 
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
 |---|---|---|---|---|---|
@@ -1258,7 +1258,7 @@ M93 must additionally run the contract-graph verifier of build spec §67.11 acro
 
 ### M93 documentation certification fixture
 
-Certification requires a long-running Android fixture whose completed event ledger is replayed to verify all ten runtime invariants of build spec §67.1, with each violation reported against its violating event. In addition, every capability in the §5.5 coverage matrix must resolve to a complete twelve-edge chain from capability through requirement, build-spec contract, architecture contract, schema or state machine, authority, persistence, failure and recovery, ADR, milestone, acceptance test, and evidence.
+Certification requires a long-running Android fixture whose completed event ledger is replayed to verify all ten runtime invariants of build spec §67.1, with each violation reported against its violating event. In addition, every capability in the §5.6 coverage matrix must resolve to a complete twelve-edge chain from capability through requirement, build-spec contract, architecture contract, schema or state machine, authority, persistence, failure and recovery, ADR, milestone, acceptance test, and evidence.
 
 Any missing edge is a documentation defect that must be recorded and resolved. No capability may be reported as SUPPORTED while an edge is missing, and no release may be promoted while any invariant violation remains.
 
@@ -1375,9 +1375,9 @@ Implement the side-by-side Android preview and execution/evidence surface with `
 
 ## M99 — End-to-end synthesis and preview certification
 
-Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the emulator/device preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK/AAB whose source, assets, preview, tests, and evidence identities match.
+Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the emulator/device preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK or optional AAB whose source, assets, preview, tests, and evidence identities match.
 
-**Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK/AAB.
+**Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK or optional AAB.
 
 ### M96–M99 acceptance matrix
 
@@ -1390,4 +1390,61 @@ Run a fixture that starts from one Android product concept and optional screensh
 | Truth labels | Predicted, simulated, requested, observed, verified, stale, and invalidated states remain distinct |
 | Last-known-good | Failed candidates preserve the previous valid preview and evidence |
 | Reconnect | UI restart, supervisor restart, and event replay reconstruct the same preview projection |
-| Final artifact | APK/AAB source, asset, preview, validation, checksum, and release evidence refer to the same revision |
+| Final artifact | APK or optional AAB source, asset, preview, validation, checksum, and release evidence refer to the same revision |
+
+
+## M100 — Canonical state, artifact, and completion semantics
+
+Implement separate fields and reducers for product lifecycle, assurance, capability maturity, integration operationality, signing, artifact, preview, and delivery state. Define the v1 artifact policy as an installable APK required for local completion, with AAB available only as an explicitly declared optional artifact profile. Add `PackagingProfile`, `ArtifactSet`, `SigningState`, `ReproducibilityLevel`, `DeliveryState`, and `CompletionDecision` schemas.
+
+**Exit gate:** illegal combinations such as completed-without-evidence, verified-from-simulation, current-preview-with-stale-identity, supported-without-profile evidence, delivered-without-checksum, functional-without-integration evidence, and inspected-with-unknown-signing state are rejected by deterministic tests.
+
+## M101 — Evidence dependencies and operational integrations
+
+Implement the `Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision` dependency chain with explicit freshness, supersession, and cascading invalidation. Add operationality states for required APIs and external services, including configured, reachable, functional, degraded, user-required, unavailable, blocked, and unknown. Build and launch evidence must not satisfy a required integration by themselves.
+
+**Exit gate:** changing a source revision, asset manifest, toolchain lock, device session, artifact, validation policy, dependency snapshot, or required integration invalidates all dependent completion claims unless the dependency graph proves independence. A required integration without functional evidence remains non-complete.
+
+## M102 — External-effect and resource-accounting reconciliation
+
+Implement idempotency keys, request fingerprints, target identity, unknown-outcome reconciliation, read-back, compensation state, and local transaction linkage for remote or externally visible effects. Add parent, child, shared, measured, estimated, and unavailable resource attribution to the execution ledger.
+
+**Exit gate:** a lost response after a possibly delivered side effect cannot cause an unsafe duplicate request; parent and child usage remains attributable; estimates are never presented as observed consumption or completion evidence.
+
+## M103 — Profile maturity, trust, signing, and reproducibility certification
+
+Extend each Android capability profile with stable profile identity, technology composition, toolchain lock, environment identity, repository-trust requirement, device matrix, fixture IDs, known exclusions, required evidence, signing policy, reproducibility level, last validated revision, and evidence report. Add repository trust classification and explicit signing lifecycle states.
+
+**Exit gate:** a capability status cannot become `SUPPORTED` or `CERTIFIED` without matching fixture and evidence records; release reports distinguish rebuildable, reproducible, bitwise reproducible, not reproducible, and unknown outcomes; debug signing cannot be represented as release signing.
+
+## M104 — Hidden-human-dependency and runtime-proof fixtures
+
+Add adversarial fixtures for interactive terminal prompts, provider login, expired credentials, device unlock, emulator dialogs, package-manager confirmation, signing selection, missing environment variables, GUI-only installers, external-service approval, and suppressed notifications. Add separate runtime-certification jobs for schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, and self-development rollback.
+
+**Exit gate:** an unattended task either completes through an explicitly authorized automatic path, creates a durable `USER_REQUIRED` decision, or reaches a truthful blocked state. It must never remain silently running. Documentation graph certification is reported separately from runtime and artifact certification.
+
+## M105 — Schema parity and cross-document conformance
+
+Choose one canonical owner for every machine-readable schema and make every implementation, architecture, roadmap, and decision reference explicit. Add parity checks for field identity, enum values, lifecycle semantics, migration version, authority owner, and evidence dependencies. Extend the acceptance matrix with independent mutations of source, assets, toolchain, artifact, device session, contract version, and evidence freshness.
+
+**Exit gate:** a schema mutation, state-enum mutation, artifact-policy mutation, or missing dependency relation fails certification rather than being hidden by duplicate explanatory prose.
+
+### M100–M105 acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| State separation | Lifecycle, assurance, capability, integration, signing, artifact, preview, and delivery fields are independent and reducer-tested |
+| Artifact policy | APK is the required local artifact; AAB is only produced when an explicit optional profile requests it |
+| Evidence dependency | Dependent evidence and completion claims invalidate after identity or policy changes |
+| Integration operationality | Required API/service behavior reaches its declared minimum operational state through supervised evidence |
+| External-effect safety | Unknown remote outcomes reconcile through idempotency or read-back before retry |
+| Resource attribution | Parent, child, shared, estimated, and unavailable usage are represented without double counting |
+| Capability maturity | `SUPPORTED` and `CERTIFIED` require profile, fixture, and current evidence identities |
+| Hidden-human dependency | Prompts and manual gates become explicit decisions or safe automatic actions, never silent waits |
+| Runtime certification | Runtime, Windows host, Android, recovery, security, preview, and artifact tests are separate from documentation certification |
+| Schema parity | Canonical schema fields, states, migrations, and authorities remain aligned across implementation documents |
+| Cross-entity preview | Source, assets, toolchain, artifact, device session, contract, and evidence identities all satisfy the current predicate |
+
+## Implementation-status boundary
+
+Milestones M100–M105 define implementation work, not completed capability. Until their exit gates pass on executable fixtures, the relevant status remains `PLANNED` or `SPECIFIED`. A documentation certification pass cannot promote a runtime capability, preview, or APK artifact to `VERIFIED` or `CERTIFIED`.

@@ -221,6 +221,79 @@ CASES = {
         DEC, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
+
+    # ---- semantic documentation lint
+    "semantic goal template identifier": (
+        TA, "- goalDefinition", "- goalTemplate", "semantic documentation"),
+    "semantic browser core wording": (
+        BS, "Use browser validation only for a declared optional external/auxiliary surface",
+        "Run browser, device, accessibility, and visual QA where applicable", "semantic documentation"),
+    "semantic stale coverage reference": (
+        DEV, "§5.6 coverage matrix", "§5.5 coverage matrix", "semantic documentation"),
+    "semantic missing preview gate": (
+        TA, "### 73.5.1 Canonical `PreviewPromotionGate`",
+        "### 73.5.1 Canonical preview promotion predicate", "semantic documentation"),
+    "semantic missing profile identity": (
+        BS, "- profileId", "- profileIdentifier", "semantic documentation"),
+    "semantic duplicate milestone outcome": (
+        DEV, "| M38 | Certified Android profile coverage and production acceptance |",
+        "| M38 | Android capability registry and representative profile coverage |",
+        "semantic documentation"),
+    "semantic missing approval precedence": (
+        TA, "### 16.2.1 Execution profiles and approval precedence",
+        "### 16.2.1 Execution policy details", "semantic documentation"),
+    "semantic supported row without profile": (
+        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
+        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
+        "semantic documentation"),
+    "semantic supported environment row without profile": (
+        BS, "| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |",
+        "| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS |",
+        "semantic documentation"),
+    "semantic artifact policy removed": (
+        BS, "AAB generation is an optional separately declared release artifact",
+        "AAB generation is not declared",
+        "semantic documentation"),
+    "semantic state vocabulary weakened": (
+        BS, "AssuranceState        = UNKNOWN",
+        "AssuranceStatus       = UNKNOWN",
+        "semantic documentation"),
+    "semantic evidence dependency removed": (
+        BS, "### 5.7.4 Evidence dependencies and cascading invalidation",
+        "### 5.7.4 Evidence records",
+        "semantic documentation"),
+    "semantic integration operationality removed": (
+        BS, "### 5.7.5 Required integration operationality",
+        "### 5.7.5 Integration notes",
+        "semantic documentation"),
+    "semantic external effect removed": (
+        BS, "### 5.7.6 External-effect reconciliation",
+        "### 5.7.6 External operations",
+        "semantic documentation"),
+    "semantic runtime boundary removed": (
+        BS, "### 69.10 Runtime-certification and hidden-human-dependency boundary",
+        "### 69.10 Certification notes",
+        "semantic documentation"),
+    "semantic hidden dependency milestone removed": (
+        DEV, "## M104 — Hidden-human-dependency and runtime-proof fixtures",
+        "## M104 — Runtime-proof fixtures",
+        "semantic documentation"),
+    "semantic schema parity milestone removed": (
+        DEV, "## M105 — Schema parity and cross-document conformance",
+        "## M105 — Cross-document conformance",
+        "semantic documentation"),
+    "semantic profile maturity field removed": (
+        BS, "- reproducibilityLevel",
+        "- reproducibilityMode",
+        "semantic documentation"),
+    "semantic resource attribution removed": (
+        TA, "- attributionStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE",
+        "- usageStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE",
+        "semantic documentation"),
+    "semantic legacy artifact wording introduced": (
+        TA, "APK packaging and optional AAB packaging",
+        "APK/AAB packaging",
+        "semantic documentation"),
 }
 
 
