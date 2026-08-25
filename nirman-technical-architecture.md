@@ -1750,6 +1750,10 @@ ExternalEffectRecord
 IntegrationBoundaryContract
 UsageRecord
 ProviderProfile
+CostGovernanceRecord
+AgentTrustAssessment
+ContextCachePolicy
+AndroidRuntimeIntegrityObservation
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
@@ -4852,3 +4856,59 @@ The orchestrator reconciles specialist handoffs against one shared contract and 
 The implementation must prove that file-save continuation, build-completion continuation, failure-to-diagnostics feedback, dependency scanning, local promotion/export health checks, rollback, specialist handoffs, and sanitized memory updates are durable and replayable. It must also prove that a disconnected UI does not stop authorized background work, a failed health check preserves last-known-good state, a stale worker cannot apply a patch, a security or dependency gate can block a commit, and a model statement cannot substitute for evidence.
 
 Nirman remains a Windows-first local host for Android generation. The isolation boundary is the approved Windows workspace and supervised process environment; no container, virtual machine, WSL, or generic web/cloud deployment runtime is implied by this contract.
+
+## 77. Cost Governance Implementation Contract
+
+### 77.1 Canonical schema
+
+`CostGovernanceRecord` is persisted with the task and operation ledger. `CostAuthority` evaluates reservations before admission and settlements after completion. It receives provider usage, token estimates, process telemetry, emulator cost estimates, and configured caps through typed records.
+
+### 77.2 Lifecycle and authority
+
+The lifecycle is `UNSET → DECLARED → RESERVED → RUNNING → SETTLED`, with `RECONCILIATION_REQUIRED`, `DEGRADED`, `PAUSED_FOR_APPROVAL`, and `SAFE_FAILED` side states. Cost authority may deny, downgrade, pause, or request approval, but cannot grant an operation capability or promote evidence.
+
+### 77.3 Failure and recovery
+
+Unknown provider usage, missing settlement, telemetry loss, cap exhaustion, and disagreement between estimated and reported usage produce durable diagnostics. Recovery may reduce context, concurrency, or model profile, or pause for policy; it must never retry an unknown external charge blindly.
+
+## 78. Agent Trust Boundary Implementation Contract
+
+### 78.1 Canonical schema
+
+`AgentTrustAssessment` is produced before a skill, MCP-compatible tool, plugin, or instruction-bearing package is admitted. Scanners run in a restricted local process and record content hashes, provenance, requested capabilities, static findings, behavioral findings, destinations, and the policy decision.
+
+### 78.2 Lifecycle and authority
+
+The lifecycle is `DISCOVERED → HASHED → SCANNED → POLICY_REVIEW → ADMITTED | QUARANTINED | REVOKED | EXPIRED`. Trust assessment is necessary but not sufficient for execution; capability, permission, credential, workspace, and external-effect authorities remain in force.
+
+### 78.3 Failure and recovery
+
+Hash drift, revoked content, scanner failure, malformed manifests, hidden instructions, or undeclared access requests cause quarantine or re-assessment. A quarantined package cannot execute through a cached admission record.
+
+## 79. Context and Cache Governance Implementation Contract
+
+### 79.1 Canonical schema
+
+`ContextCachePolicy` is resolved for each provider request and context package. `ContextGovernance` records selected content, protected content, compaction trigger, cache key inputs, invalidation causes, redactions, telemetry disclosures, and resulting context lineage.
+
+### 79.2 Lifecycle and authority
+
+The lifecycle is `DECLARED → SELECTED → COMPACTED_OR_FULL → CACHED_OR_UNCACHED → TRANSMITTED → INVALIDATED`. Context governance cannot delete mandatory constraints, change user intent, or convert summarized content into a fresh observation.
+
+### 79.3 Failure and recovery
+
+Context overflow, failed compaction, cache mismatch, cache corruption, privacy-policy change, or provider continuation loss causes context rebuild or safe reduction. The runtime must preserve required constraints and evidence references while recording what was excluded or summarized.
+
+## 80. Android Runtime Integrity Implementation Contract
+
+### 80.1 Canonical schema
+
+`AndroidRuntimeIntegrityObservation` is emitted by supervised device and runtime collectors. It binds each signal to project revision, artifact, package, device, runtime session, source, applicability, timestamp, and evidence.
+
+### 80.2 Lifecycle and authority
+
+The lifecycle is `REQUESTED → COLLECTING → OBSERVED → VALIDATED | NOT_APPLICABLE | UNAVAILABLE | USER_REQUIRED | INVALIDATED`. Runtime collectors observe; `ValidationAuthority` interprets the signal against the declared acceptance policy. No single signal can replace required build, install, UI, behavior, or evidence checks.
+
+### 80.3 Failure and recovery
+
+ANR, device loss, unavailable Play Integrity, battery or Doze uncertainty, permission denial, stale runtime sessions, and collector errors produce typed evidence gaps. Recovery may restart collection, reconnect the device, change the declared profile, or report an honest coverage limitation; it cannot convert absence into a pass.

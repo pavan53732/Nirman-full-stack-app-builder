@@ -402,6 +402,50 @@ CASES = {
         BS, "TEST-PSYNC-001 | EV-PSYNC-001",
         "TEST-GEN-001 | EV-GEN-001",
         "reverse break"),
+    "semantic cost authority removed": (
+        BS, "## 72. Cost Governance Authority",
+        "## 72. Resource Notes",
+        "semantic documentation"),
+    "semantic trust authority removed": (
+        BS, "## 73. Agent Trust Boundary Authority",
+        "## 73. Extension Notes",
+        "semantic documentation"),
+    "semantic context governance removed": (
+        BS, "## 74. Context and Cache Governance",
+        "## 74. Context Notes",
+        "semantic documentation"),
+    "semantic Android integrity removed": (
+        BS, "## 75. Android Runtime Integrity Contract",
+        "## 75. Android Notes",
+        "semantic documentation"),
+    "semantic cost schema removed": (
+        TA, "`CostAuthority` evaluates reservations before admission",
+        "`ResourceAuthority` evaluates reservations before admission",
+        "semantic documentation"),
+    "semantic trust schema removed": (
+        TA, "Scanners run in a restricted local process",
+        "Scanners run in a remote process",
+        "semantic documentation"),
+    "semantic context cache schema removed": (
+        TA, "`ContextGovernance` records selected content",
+        "`ContextPolicy` records selected content",
+        "semantic documentation"),
+    "semantic Android integrity schema removed": (
+        TA, "Runtime collectors observe; `ValidationAuthority` interprets",
+        "Runtime collectors report; `ValidationAuthority` interprets",
+        "semantic documentation"),
+    "semantic autonomy ladder removed": (
+        BS, "### 28.5 Autonomy-level capability ladder",
+        "### 28.5 Autonomy levels",
+        "semantic documentation"),
+    "semantic cost milestone removed": (
+        DEV, "## M111 — Cost governance and adaptive resource control",
+        "## M111 — Resource notes",
+        "semantic documentation"),
+    "semantic trust decision removed": (
+        DEC, "## ADR-198: Scan and revoke agent-layer extension content",
+        "## ADR-198: Extension notes",
+        "semantic documentation"),
 }
 
 

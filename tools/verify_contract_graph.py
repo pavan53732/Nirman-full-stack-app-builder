@@ -1052,6 +1052,30 @@ def check_semantic_documentation(docs, R, D):
         "promotion_or_export_requested": bs + ta + dev,
         "M110": dev,
         "ADR-196": dec,
+        "CostGovernanceRecord": bs + ta,
+        "AgentTrustAssessment": bs + ta,
+        "ContextCachePolicy": bs + ta,
+        "AndroidRuntimeIntegrityObservation": bs + ta,
+        "CAP.ANDROID.BUDGETED_AUTONOMY": bs,
+        "CAP.ANDROID.TRUSTED_EXTENSIONS": bs,
+        "CAP.ANDROID.CONTEXT_GOVERNANCE": bs,
+        "CAP.ANDROID.RUNTIME_INTEGRITY": bs,
+        "TEST-COST-001": bs + dev,
+        "EV-COST-001": bs + dev,
+        "TEST-TRUST-001": bs + dev,
+        "EV-TRUST-001": bs + dev,
+        "TEST-CONTEXT-001": bs + dev,
+        "EV-CONTEXT-001": bs + dev,
+        "TEST-INTEGRITY-001": bs + dev,
+        "EV-INTEGRITY-001": bs + dev,
+        "M111": dev,
+        "M112": dev,
+        "M113": dev,
+        "M114": dev,
+        "ADR-197": dec,
+        "ADR-198": dec,
+        "ADR-199": dec,
+        "ADR-200": dec,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1130,6 +1154,47 @@ def check_semantic_documentation(docs, R, D):
     if not re.search(r"failed health, validation, signing, or export gates preserve last-known-good state", dec, re.I):
         D.add("semantic documentation", "autonomous rollback preservation",
               "decision log lacks last-known-good preservation for failed gates")
+    governance_sections = (
+        ("## 72. Cost Governance Authority", bs, "cost governance authority"),
+        ("## 73. Agent Trust Boundary Authority", bs, "agent trust authority"),
+        ("## 74. Context and Cache Governance", bs, "context and cache authority"),
+        ("## 75. Android Runtime Integrity Contract", bs, "Android runtime integrity authority"),
+        ("## 77. Cost Governance Implementation Contract", ta, "cost governance architecture"),
+        ("## 78. Agent Trust Boundary Implementation Contract", ta, "agent trust architecture"),
+        ("## 79. Context and Cache Governance Implementation Contract", ta, "context and cache architecture"),
+        ("## 80. Android Runtime Integrity Implementation Contract", ta, "Android runtime integrity architecture"),
+        ("## M111 — Cost governance and adaptive resource control", dev, "cost governance milestone"),
+        ("## M112 — Agent-layer trust boundary and extension security", dev, "agent trust milestone"),
+        ("## M113 — Context compaction and cache governance", dev, "context governance milestone"),
+        ("## M114 — Android runtime integrity and honest coverage", dev, "Android integrity milestone"),
+        ("## ADR-197: Make cost governance a deterministic resource authority", dec, "cost governance decision"),
+        ("## ADR-198: Scan and revoke agent-layer extension content", dec, "agent trust decision"),
+        ("## ADR-199: Govern context compaction and provider cache reuse", dec, "context governance decision"),
+        ("## ADR-200: Report Android runtime integrity as independent applicable signals", dec, "Android integrity decision"),
+    )
+    for anchor, text, subject in governance_sections:
+        if anchor not in text:
+            D.add("semantic documentation", subject, f"canonical governance anchor is missing: {anchor}")
+    governance_tokens = (
+        ("costCap", bs + ta, "cost cap schema"),
+        ("exhaustionOutcome", bs + ta, "cost exhaustion outcome"),
+        ("staticFindings", bs + ta, "agent trust scan findings"),
+        ("revocationState", bs + ta, "agent trust revocation"),
+        ("cacheBreakpointPolicy", bs + ta, "cache breakpoint policy"),
+        ("cacheInvalidationEvents", bs + ta, "cache invalidation events"),
+        ("playIntegrityApplicability", bs + ta, "Play Integrity applicability"),
+        ("anrEvidenceIds", bs + ta, "ANR evidence"),
+        ("batteryObservationIds", bs + ta, "battery observation"),
+        ("dozeObservationIds", bs + ta, "Doze observation"),
+        ("CostAuthority", ta, "cost authority implementation"),
+        ("Scanners run in a restricted local process", ta, "trust scanner implementation"),
+        ("ContextGovernance", ta, "context governance implementation"),
+        ("Runtime collectors observe;", ta, "runtime integrity authority implementation"),
+        ("Autonomy-level capability ladder", bs, "autonomy ladder"),
+    )
+    for token, text, subject in governance_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"governance requirement is missing: {token}")
     if "## M107 — Integration boundary contract and wiring conformance" not in dev:
         D.add("semantic documentation", "integration boundary milestone",
               "development plan lacks the integration-boundary conformance milestone")

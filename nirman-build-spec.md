@@ -270,6 +270,10 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 |---|---|---|---|---|---|
 | CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
 | CAP.ANDROID.LIVE_PREVIEW | Show a revision-bound, evidence-backed Android runtime preview and reconstruct it after interruption | CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-PSYNC-001 | EV-PSYNC-001 | PLANNED |
+| CAP.ANDROID.BUDGETED_AUTONOMY | Continue autonomous Android work under explicit token, duration, cost, and resource governance | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
+| CAP.ANDROID.TRUSTED_EXTENSIONS | Use skills, MCP-compatible tools, and plugins only after trust, provenance, permission, and revocation checks | CONTRACT.RUNTIME.AGENT_TRUST | TEST-TRUST-001 | EV-TRUST-001 | PLANNED |
+| CAP.ANDROID.CONTEXT_GOVERNANCE | Compact and cache context without evicting constraints, corrupting lineage, or hiding provider telemetry | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | TEST-CONTEXT-001 | EV-CONTEXT-001 | PLANNED |
+| CAP.ANDROID.RUNTIME_INTEGRITY | Report applicable Android runtime integrity, ANR, battery, Doze, and device signals with honest coverage | CONTRACT.RUNTIME.ANDROID_INTEGRITY | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | PLANNED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -1910,9 +1914,23 @@ The runtime should measure goal completion, evidence completeness, regression ra
 
 Nirman should identify recurring failure patterns, provider incompatibilities, repeated user corrections, regression clusters, tool failures, and evaluation degradation. It should convert sufficiently repeated patterns into scoped improvement proposals containing evidence, hypothesis, affected components, expected benefit, risks, test plan, and rollback plan.
 
+### 28.5 Autonomy-level capability ladder
+
+Autonomy is a capability ladder, not a model personality claim. Each level is achieved only when the listed capability rows and evidence gates pass:
+
+| Level | Runtime meaning | Required capability evidence |
+|---|---|---|
+| `ASSISTED` | The system proposes plans and changes while the user initiates each meaningful action | Intent, authority, workspace, and validation records |
+| `SUPERVISED` | The system executes approved local work continuously while policy boundaries remain visible | Background execution, worker, trigger, and evidence records |
+| `UNATTENDED_LOCAL` | The system continues routine Android work without per-step clicks under an explicit policy profile | Budgeted autonomy, trusted extensions, context governance, and recovery evidence |
+| `ADAPTIVE_RECOVERY` | The system diagnoses failures, changes strategy, repairs, and revalidates without blind retries | Failure fingerprints, specialist gates, reconciliation, and runtime evidence |
+| `CERTIFIED_AUTONOMY` | The system satisfies the declared Android goal and delivery conditions with complete provenance | Runtime integrity, preview, validation, signing, artifact, and completion decisions |
+
+A higher level cannot be claimed merely because a model is capable of longer responses. The capability registry, policy authority, evidence authority, and completion predicate determine the achieved level. A missing environment, credential, device, provider, or required decision lowers the observed level or produces a truthful blocker.
+
 A self-improvement proposal may modify prompts, task decomposition, model routing, context retrieval, tool schemas, failure classifiers, worker roles, skills, provider adapters, validation rules, or runtime code. Changes to the supervisor, policy engine, sandbox, credentials, updater, database migrations, or evidence engine require the highest validation level and must not be promoted solely from a model-generated proposal.
 
-### 28.5 Candidate evaluation and promotion
+### 28.6 Candidate evaluation and promotion
 
 Self-improvement must happen in an isolated worktree and candidate runtime. A candidate must pass targeted tests, broad regression fixtures, provider compatibility tests, sandbox and permission tests, migration tests, recovery tests, candidate health checks, smoke tasks, and representative end-to-end task replay.
 
@@ -1920,17 +1938,17 @@ Promotion should support observe-only, candidate-only, canary, trusted auto-prom
 
 After promotion, Nirman must monitor candidate outcomes against the previous baseline and automatically roll back or disable the candidate scope when quality, stability, security, or recovery metrics degrade.
 
-### 28.6 Runtime memory boundaries
+### 28.7 Runtime memory boundaries
 
 Nirman should maintain separate task memory, project memory, and runtime-improvement memory. Memory must be generated from validated events and user-confirmed decisions rather than every model statement. The user must be able to inspect, correct, export, and delete memory. Credentials, protected files, and unclassified private content must never enter long-term improvement memory.
 
-### 28.7 End-to-end runtime acceptance criteria
+### 28.8 End-to-end runtime acceptance criteria
 
 The complete runtime is not considered implemented until it can accept one broad goal, extract requirements, create a durable task graph, run multiple workers, persist events, execute the validation loop, recover from worker/provider/environment failure, survive application restart, produce evidence-backed completion, and continue until the goal is complete or a genuine hard stop condition exists.
 
 The self-improvement loop is not considered implemented until Nirman can observe episodes, detect recurring failures, produce a scoped improvement proposal, build and evaluate a candidate, run a canary, promote it through the stable controller, monitor post-promotion behavior, and automatically roll back without corrupting the active application or user projects.
 
-### 28.8 Core Autonomous Runtime Capabilities
+### 28.9 Core Autonomous Runtime Capabilities
 
 Nirman’s first-class autonomous behavior is defined by the following seven capabilities. These are product-level requirements and must remain visible in the master specification even though their detailed implementation is defined in the technical architecture.
 
@@ -3984,6 +4002,10 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.COST_GOVERNANCE | BS §72 | — | TA §77 | ADR-197 | M111 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.ANDROID_INTEGRITY | BS §75 | — | TA §80 | ADR-200 | M114 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4109,7 +4131,14 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | displayed completed stages require current evidence bound to the projection | SEALED |
 | CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | a disconnected UI cannot advance preview truth or evidence locally | SEALED |
 | CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | an event may update only a compatible preview identity and revision | SEALED |
-
+| CLAUSE.COST.NO_UNTRACKED_USAGE | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | every billable or budget-relevant operation records reserved, settled, or rejected usage | SEALED |
+| CLAUSE.COST.EXHAUSTION_EXPLICIT | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | budget exhaustion causes a recorded downgrade, pause, approval request, or safe failure and never silent continuation | SEALED |
+| CLAUSE.TRUST.SCAN_BEFORE_EXECUTION | CONTRACT.RUNTIME.AGENT_TRUST | §73 | untrusted skill, MCP, plugin, or instruction content cannot execute before trust assessment and policy admission | SEALED |
+| CLAUSE.TRUST.REVOCATION_WINS | CONTRACT.RUNTIME.AGENT_TRUST | §73 | revocation or policy denial invalidates future invocation even when a prior scan passed | SEALED |
+| CLAUSE.CONTEXT.POLICY_VISIBLE | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | compaction, cache use, exclusion, redaction, and telemetry policy are recorded and visible to runtime governance | SEALED |
+| CLAUSE.CONTEXT.CONSTRAINT_PRESERVED | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | active constraints, locked decisions, evidence lineage, and required source context are never evicted for budget | SEALED |
+| CLAUSE.INTEGRITY.APPLICABILITY_EXPLICIT | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | unsupported or unconfigured integrity signals are recorded as not applicable or unavailable, never as passes | SEALED |
+| CLAUSE.INTEGRITY.RUNTIME_SIGNALS_SEPARATE | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | ANR, battery, Doze, Play Integrity, and device signals remain separate observations with independent evidence | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -4178,6 +4207,10 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
+| CONTRACT.RUNTIME.COST_GOVERNANCE | CAP.ANDROID.BUDGETED_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-197 | M111 | TEST-COST-001 | EV-COST-001 |
+| CONTRACT.RUNTIME.AGENT_TRUST | CAP.ANDROID.TRUSTED_EXTENSIONS | BS §73 | BS §73 | TA §78 | TA §78.1 | BS §73 | TA §78.2 | TA §78.3 | ADR-198 | M112 | TEST-TRUST-001 | EV-TRUST-001 |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
+| CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -4947,3 +4980,63 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 12. Event authority classes prevent declarative or planned messages from advancing execution, runtime, evidence, validation, or certification dimensions.
 13. A contradictory current runtime observation reconciles a compatible persisted projection, while an incompatible observation becomes stale or invalidated instead of being merged.
 14. The panel can answer why a displayed running or validated claim is current by exposing its event range, projection revision, preview revision, runtime session, device identity, artifact fingerprint, evidence references, validation references, and promotion or completion decision references.
+
+## 72. Cost Governance Authority
+
+**ContractId:** `CONTRACT.RUNTIME.COST_GOVERNANCE`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.COST_GOVERNANCE`
+
+Cost governance is a deterministic policy authority placed beside permission and resource policy. It governs token budgets, provider request budgets, duration, CPU, memory, disk, emulator, and estimated monetary cost without turning ordinary budget thresholds into false completion.
+
+The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
+
+Budget exhaustion must produce one explicit outcome: reduce context, reduce concurrency, change an approved model or provider, pause for approval, continue under a renewed policy, safely fail, or degrade the task classification. Exhaustion cannot silently authorize a broader permission, discard required evidence, or mark a goal complete. The authority hierarchy is policy authority, then cost governance for resource admission, then operation capability and lifecycle authority; cost governance cannot override safety, privacy, signing, evidence, or completion authority.
+
+### 72.1 Acceptance criteria
+
+A fixture must prove reservation, settlement, provider-reported or estimated usage, cap exhaustion, adaptive degradation, renewal approval, cancellation, unknown-outcome reconciliation, and truthful completion classification.
+
+## 73. Agent Trust Boundary Authority
+
+**ContractId:** `CONTRACT.RUNTIME.AGENT_TRUST`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.AGENT_TRUST`
+
+Agent-layer supply-chain content includes skills, MCP-compatible tools, plugins, provider-returned tool descriptions, workflow packages, and instruction files encountered inside an extension boundary. These inputs are data, not authority. The runtime must scan and assess them before loading, invocation, or instruction interpretation.
+
+The canonical `AgentTrustAssessment` contains `assessmentId`, `subjectType`, `subjectId`, `sourceIdentity`, `contentHash`, `declaredVersion`, `provenance`, `scanProfile`, `staticFindings`, `behavioralFindings`, `requestedCapabilities`, `networkDestinations`, `secretAccessClaims`, `permissionDecisionId`, `trustState`, `revocationState`, `expiry`, `evidenceIds`, and `invalidatedBy`. Scanning must detect prompt-injection instructions, hidden tool escalation, secret exfiltration patterns, unsafe path access, undeclared network destinations, dependency or binary payload risk, and authority-impersonation claims.
+
+A passing scan does not grant permission. The capability registry, policy authority, operation capability, credential policy, and external-effect authority still decide what may run. Revocation, hash drift, version drift, policy change, or a new requested capability invalidates prior admission and requires reassessment. Untrusted instructions must never rewrite the goal, policy, authority, or completion state.
+
+### 73.1 Acceptance criteria
+
+Fixtures must cover clean and malicious skill packages, MCP tool declarations, plugin instruction files, hash or version drift, revocation, secret-access attempts, undeclared network access, authority impersonation, and safe rejection with durable evidence.
+
+## 74. Context and Cache Governance
+
+**ContractId:** `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+
+Context compaction and provider caching are governed independently from memory, retrieval, and provider selection. The canonical `ContextCachePolicy` contains `policyId`, `providerProfileId`, `taskId`, `contextMode`, `compactionTriggers`, `reservedTokenFloor`, `protectedContextClasses`, `cacheBreakpointPolicy`, `cacheKeyInputs`, `cacheInvalidationEvents`, `redactionPolicy`, `excludedContentClasses`, `telemetryDisclosure`, `retention`, and `evidenceIds`.
+
+Compaction may summarize logs and ordinary context, but it must preserve active constraints, locked decisions, source and revision identity, acceptance criteria, evidence lineage, unresolved failures, required tool results, and signing or privacy restrictions. Cache reuse is valid only when provider, model, policy, context selection, project revision, relevant files, tool results, and privacy classification are compatible. A cache hit must be visible in telemetry and must not be represented as a fresh observation.
+
+Compaction triggers include context utilization thresholds, phase boundaries, provider continuation limits, failure boundaries, and explicit policy requests. Cache invalidation occurs after source changes, policy changes, credential changes, provider or model changes, tool-result changes, evidence invalidation, or privacy classification changes. Context governance may reduce or defer work but cannot evict mandatory constraints or weaken evidence requirements.
+
+### 74.1 Acceptance criteria
+
+Fixtures must prove protected-constraint retention, compaction at a threshold, cache reuse and invalidation, provider/model mismatch, privacy exclusion, cache telemetry, failed compaction recovery, and preservation of causal and evidence lineage.
+
+## 75. Android Runtime Integrity Contract
+
+**ContractId:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
+
+Android runtime integrity is a set of independent observations, not a single boolean. The canonical `AndroidRuntimeIntegrityObservation` contains `observationId`, `projectRevisionId`, `artifactId`, `packageName`, `deviceId`, `runtimeSessionId`, `appIntegritySignal`, `playIntegrityApplicability`, `playIntegrityEvidenceId`, `anrEvidenceIds`, `batteryObservationIds`, `dozeObservationIds`, `permissionObservationIds`, `coverageClass`, `state`, `observedAt`, `source`, and `invalidatedBy`.
+
+Play Integrity is conditional: it is recorded only when the application, device, credentials, network, and configured service support it. An emulator without a valid applicable signal is not treated as a Play Integrity pass. ANR, startup/crash, battery-sensitive behavior, background restrictions, Doze, permission, and device-availability observations remain separate. Missing or unsupported signals produce `NOT_APPLICABLE`, `UNAVAILABLE`, or `USER_REQUIRED` records and cannot silently satisfy a required acceptance criterion.
+
+The integrity contract does not expand Nirman into a cloud deployment system or require production-only services for every local preview. It makes declared runtime-integrity requirements explicit and links each applicable signal to the Android artifact, device, runtime session, evidence, validation, and invalidation graph.
+
+### 75.1 Acceptance criteria
+
+Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, startup and crash evidence, battery-sensitive checks, Doze or background restriction behavior, permission behavior, device loss, stale observations, and honest coverage reporting.

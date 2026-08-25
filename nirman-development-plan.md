@@ -1255,6 +1255,10 @@ Each milestone may implement one or more registered contracts, but each contract
 | M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
 | M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
 | M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-PSYNC-001 | EV-PSYNC-001 | Preview synchronization protocol and first Android vertical slice |
+| M111 | CONTRACT.RUNTIME.COST_GOVERNANCE | ADR-197 | TEST-COST-001 | EV-COST-001 | Cost reservation, settlement, exhaustion, and degradation gate |
+| M112 | CONTRACT.RUNTIME.AGENT_TRUST | ADR-198 | TEST-TRUST-001 | EV-TRUST-001 | Agent-layer trust scanning and revocation gate |
+| M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
+| M114 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | ADR-200 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1494,3 +1498,27 @@ Implement durable continuation triggers for saved workspace revisions, completed
 Add specialist-worker fixtures for security scanning, schema/type consistency, diff-aware patching, diagnostics, validation, memory/index updates, orchestration, and release preparation. Security or dependency findings must block the affected commit or promotion until the applicable authority resolves them. A failed health or promotion check must preserve last-known-good state. A repeated identical retry must not count as a new strategy.
 
 **Exit gate:** file-save, build-completion, failure, dependency, promotion/export, and reconnect events continue the task without another chat click; every continuation is durable and replayable; specialist handoffs reconcile against one shared contract; real failure context reaches repair; failed gates preserve last-known-good; and no model, worker, or UI message can substitute for security, validation, runtime, signing, or export evidence.
+
+## M111 — Cost governance and adaptive resource control
+
+Implement reservation, settlement, reconciliation, cost caps, token and request budgets, provider-reported or estimated usage, resource telemetry, explicit exhaustion outcomes, and cost-based degradation.
+
+**Exit gate:** an executable fixture proves that usage is recorded, caps are enforced, unknown usage is reconciled, context or concurrency can be reduced safely, and budget exhaustion never becomes false completion or silent permission expansion.
+
+## M112 — Agent-layer trust boundary and extension security
+
+Implement pre-admission scanning for skills, MCP-compatible tools, plugins, workflow packages, and instruction-bearing content. Cover provenance, hashes, version drift, prompt injection, hidden capability escalation, secret access, undeclared destinations, revocation, quarantine, and policy admission.
+
+**Exit gate:** clean, malicious, malformed, drifted, revoked, and undeclared-access fixtures produce the correct admission or quarantine decision with durable evidence, and no untrusted instruction can alter authority, policy, completion, or target scope.
+
+## M113 — Context compaction and cache governance
+
+Implement `ContextCachePolicy`, protected-context classes, compaction triggers, cache key compatibility, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
+
+**Exit gate:** fixtures prove that compaction preserves constraints, cache reuse requires compatible identity, invalidation follows source or policy changes, cache hits are visible, and context overflow does not cause secret leakage or evidence loss.
+
+## M114 — Android runtime integrity and honest coverage
+
+Implement independent collection and validation for applicable Play Integrity, ANRs, startup/crash behavior, battery-sensitive behavior, Doze/background restrictions, permissions, device availability, and runtime-session identity.
+
+**Exit gate:** applicable, unavailable, unsupported, stale, and failed signal fixtures are distinguished; no missing signal becomes a pass; and the Android completion report shows the exact coverage and evidence for each declared integrity requirement.

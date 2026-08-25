@@ -2225,3 +2225,51 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** Event-driven continuation and focused specialists are necessary for long-horizon autonomous work, but independent agents must not become independent sources of truth. Durable triggers, evidence-carrying failure context, bounded strategy changes, and singular deterministic authorities prevent blind retries, silent drift, secret leakage, and false completion.
 
 **Consequences:** M110 must prove the continuation triggers, failure-feedback loop, specialist gates, dependency/security blocking, last-known-good preservation, and replayable autonomous progress. Windows process/workspace isolation remains the local boundary, and Android remains the only generated target.
+
+## ADR-197: Make cost governance a deterministic resource authority
+
+**Locks:** `CONTRACT.RUNTIME.COST_GOVERNANCE`
+
+**Status:** Accepted
+
+**Decision:** Token, request, duration, process, emulator, disk, and estimated monetary budgets are governed by durable reservations and settlements. Cost exhaustion may cause adaptive degradation, an approved policy change, pause, or safe failure, but never false completion, silent permission expansion, or evidence weakening. Cost governance sits beside policy and resource authority and cannot override safety, privacy, signing, validation, or completion authority.
+
+**Rationale:** Without a deterministic budget record, long-running autonomy can exhaust provider, process, or device resources without a truthful outcome or safe recovery path.
+
+**Consequences:** M111 must prove usage accounting, unknown-outcome reconciliation, cap enforcement, and truthful exhaustion behavior.
+
+## ADR-198: Scan and revoke agent-layer extension content
+
+**Locks:** `CONTRACT.RUNTIME.AGENT_TRUST`
+
+**Status:** Accepted
+
+**Decision:** Skills, MCP-compatible tools, plugins, workflow packages, provider-returned tool descriptions, and instruction-bearing extension content are untrusted data until provenance, content hash, version, requested capabilities, destinations, secret access, static findings, behavioral findings, policy admission, and revocation state are recorded. A passing scan grants no permission, and revocation or drift invalidates prior admission.
+
+**Rationale:** Extension content can contain instructions or payloads that impersonate authority, request undeclared access, or exfiltrate secrets; scanning and revocation must therefore precede admission and remain enforceable.
+
+**Consequences:** M112 must prove quarantine and revocation fixtures. Untrusted instructions cannot alter target scope, authority, policy, or completion state.
+
+## ADR-199: Govern context compaction and provider cache reuse
+
+**Locks:** `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+
+**Status:** Accepted
+
+**Decision:** Context compaction and provider cache reuse require explicit policy, protected-context classes, compatibility keys, invalidation events, privacy controls, and telemetry disclosure. Active constraints, locked decisions, evidence lineage, and required source context cannot be evicted for budget. A cache hit is not a fresh observation.
+
+**Rationale:** Compaction and cache reuse can silently remove constraints or reuse stale private context unless their identity, invalidation, and telemetry rules are explicit.
+
+**Consequences:** M113 must prove compaction, cache compatibility, invalidation, privacy, and lineage fixtures.
+
+## ADR-200: Report Android runtime integrity as independent applicable signals
+
+**Locks:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
+
+**Status:** Accepted
+
+**Decision:** Play Integrity, ANR, battery, Doze/background restriction, permission, device, and runtime-session signals are collected and validated independently. Play Integrity is conditional on declared support and configuration; unavailable or inapplicable signals are not passes. Local Android completion remains evidence-bound without requiring a production-only service for every preview.
+
+**Rationale:** Android runtime integrity signals have different availability and evidentiary meaning; treating unavailable Play Integrity, ANR, battery, or Doze data as a single pass would create false assurance.
+
+**Consequences:** M114 must prove honest coverage, stale-signal invalidation, and typed unavailable or not-applicable outcomes.
