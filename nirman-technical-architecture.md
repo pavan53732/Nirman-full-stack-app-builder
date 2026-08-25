@@ -4443,10 +4443,11 @@ The machine-checked project invariant remains:
 
 ```text
 Project.targetPlatforms == ["android"]
-Project.generatedDeliverables ⊆ {APK, AAB, Android source project}
+Project.generatedOutputs ⊆ {APK, AAB, Android source project}
+Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly requires AAB}
 ```
 
-The resolver may select Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence.
+`generatedOutputs` includes source representation and internal build artifacts; it is not synonymous with deployment delivery. A ZIP, Git bundle, or Android source project remains user-owned source/workspace access and cannot satisfy an APK delivery requirement. The resolver may select Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence.
 
 ### 73.3 PreviewCoordinator and revision identity
 
@@ -4798,3 +4799,56 @@ The event store and reducer enforce these rules:
 `PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, device identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → device runtime → observation → validation → promotion → event replay → panel projection path.
 
 The test family must inject duplicate and conflicting events, out-of-order events, sequence gaps, stale candidate results, late device observations, UI disconnect, supervisor restart, event replay, failed candidate recovery, and a successful last-known-good promotion. The expected panel state must be identical after live application and replay, and no predicted, requested, simulated, stale, invalidated, or model-authored record may appear as current verified preview evidence.
+
+## 76. Autonomous Continuation and Specialist Gate Contract
+
+This section implements the event-driven continuation requirements in build spec §27.11. It does not create a second scheduler, worker authority, validation authority, or recovery state machine. The existing runtime tick, lifecycle-hook, trigger, task-graph, `RecoveryAuthority`, `DependencyHealthService`, `ConstructionTransaction`, `PreviewPromotionGate`, and evidence authorities remain canonical.
+
+### 76.1 Trigger-to-action continuation
+
+The runtime tick consumes durable events and schedules the next authorized action without requiring another chat message. A saved workspace revision schedules affected formatting, lint, typecheck, and focused tests when the project policy enables them. A completed build schedules artifact inspection, affected tests, regression checks, and runtime prerequisites. A captured failure schedules diagnostic classification and repair context creation. A dependency change schedules compatibility, vulnerability, license, provenance, size, and duplicate-class checks before commit or build continuation. A local preview promotion or artifact export request schedules health checks, artifact inspection, required validation, signing/certificate checks, and post-copy verification.
+
+Each continuation carries the current task, goal, project revision, checkpoint, branch or candidate, worker run, operation capability, correlation and causation identifiers, policy decision, attempt history, and evidence references. The scheduler must not issue a blind retry: the next action must identify new evidence, a materially different strategy, a changed worker/model profile, a restored checkpoint, or a changed environment condition.
+
+### 76.2 Diagnostic feedback loop
+
+`RuntimeTraceAnalyzer` captures structured process output, stack-trace references, Logcat, ANRs, native crash reports, install failures, permission denials, activity/service lifecycle events, and test-runner diagnostics. It produces a stable failure fingerprint and a bounded `FailureContextPackage` containing the relevant error evidence, changed-file scope, environment identity, prior strategies, checkpoint, validation results, privacy classification, and next-action constraints. The package is sent to the next authorized diagnostic or coding worker; raw private reasoning is never required or persisted.
+
+The loop is:
+
+```text
+source or runtime event
+  → automatic affected checks
+  → failure observation
+  → trace capture and failure fingerprint
+  → FailureContextPackage
+  → authorized diagnosis or repair
+  → checkpointed patch
+  → build and runtime validation
+  → evidence update or materially different recovery strategy
+```
+
+A retry budget is policy-configurable and bounded. Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When safe strategies are exhausted, the runtime backtracks, degrades, pauses for a required decision, or reports a truthful blocker.
+
+### 76.3 Specialist worker responsibilities
+
+Specialist workers are independent roles selected by the orchestrator; they do not become additional authorities.
+
+| Specialist role | Required responsibility | Blocking evidence or gate |
+|---|---|---|
+| Orchestrator | Maintain one shared goal, acceptance contract, task graph, dependency order, and handoff record | Authorized plan and task-graph transition |
+| Security worker | Detect secrets, unsafe configuration, dependency vulnerabilities, license violations, provenance gaps, and client-bundle exposure | Security and dependency evidence before commit or artifact promotion |
+| Consistency worker | Compare schemas, types, UI/control-plane messages, Android service contracts, and persisted records for drift | Schema compatibility and contract-parity result |
+| Diff-aware patch worker | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
+| Diagnostics worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
+| Validation worker | Run focused and regression checks, Android build/device validation, and visual/accessibility checks | Independent validation and current evidence |
+| Memory/index worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
+| Release worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
+
+The orchestrator reconciles specialist handoffs against one shared contract and the current project revision. A worker report cannot mark a task complete, promote a preview, approve a dependency, or authorize an external effect. A specialist may recommend a result only through its typed operation and evidence contract.
+
+### 76.4 Acceptance requirements
+
+The implementation must prove that file-save continuation, build-completion continuation, failure-to-diagnostics feedback, dependency scanning, local promotion/export health checks, rollback, specialist handoffs, and sanitized memory updates are durable and replayable. It must also prove that a disconnected UI does not stop authorized background work, a failed health check preserves last-known-good state, a stale worker cannot apply a patch, a security or dependency gate can block a commit, and a model statement cannot substitute for evidence.
+
+Nirman remains a Windows-first local host for Android generation. The isolation boundary is the approved Windows workspace and supervised process environment; no container, virtual machine, WSL, or generic web/cloud deployment runtime is implied by this contract.

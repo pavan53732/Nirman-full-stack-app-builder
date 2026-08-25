@@ -2209,3 +2209,19 @@ The event authority class limits the projection dimensions that an event may adv
 **Rationale:** A panel that receives independent worker, build, device, and model updates can display a visually plausible but causally incorrect state unless one durable sequence and reducer determine what the user sees. Event-bound projection makes chat-to-preview synchronization replayable, stale-safe, reconnectable, and evidence-auditable.
 
 **Consequences:** M108 must prove the complete chat-to-device-to-panel vertical slice, M109 must prove resilience and runtime-certification evidence, and implementation status cannot be inferred from the presence of the schemas or documentation verifier alone.
+
+## ADR-196: Continue autonomous work from durable events with specialist gates
+
+**Locks:** `CONTRACT.RUNTIME.TRIGGER`
+
+**Status:** Accepted
+
+**Decision:** Nirman will continue an approved Android task from durable lifecycle events rather than requiring a new chat action after every step. Saved revisions, completed builds, observed failures, dependency changes, local preview promotion or declared artifact export requests, and stream reconnection may schedule the next authorized operation under the current goal, policy, revision, checkpoint, worker, capability, and evidence context.
+
+The continuation path must capture real diagnostics and stack-trace references, create a stable failure fingerprint and privacy-filtered failure context package, and provide that context to the next authorized diagnostic or coding worker. Dependency and security checks must run before an affected commit or promotion is accepted. Failed health, validation, signing, or export gates preserve last-known-good state and cannot be replaced by model or worker claims.
+
+Specialist workers may handle orchestration, security, consistency, diff-aware patching, diagnostics, validation, memory/index updates, or release preparation, but they remain subordinate to the existing task, policy, workspace, evidence, signing, promotion, and completion authorities. No specialist report creates permission, completion, certification, or deployment authority.
+
+**Rationale:** Event-driven continuation and focused specialists are necessary for long-horizon autonomous work, but independent agents must not become independent sources of truth. Durable triggers, evidence-carrying failure context, bounded strategy changes, and singular deterministic authorities prevent blind retries, silent drift, secret leakage, and false completion.
+
+**Consequences:** M110 must prove the continuation triggers, failure-feedback loop, specialist gates, dependency/security blocking, last-known-good preservation, and replayable autonomous progress. Windows process/workspace isolation remains the local boundary, and Android remains the only generated target.

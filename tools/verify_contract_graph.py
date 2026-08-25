@@ -1039,6 +1039,19 @@ def check_semantic_documentation(docs, R, D):
         "runtimeSessionId": bs + ta,
         "certificationDecisionRef": bs + ta,
         "causationId": bs + ta,
+        "CAP.ANDROID.LIVE_PREVIEW": bs,
+        "TEST-PSYNC-001": bs + dev,
+        "EV-PSYNC-001": bs + dev,
+        "generatedOutputs": ta,
+        "deploymentArtifacts": ta,
+        "FailureContextPackage": ta + dev + dec,
+        "workspace_file_saved": bs + ta + dev,
+        "build_completed": bs + ta + dev,
+        "failure_observed": bs + ta + dev,
+        "dependency_changed": bs + ta + dev,
+        "promotion_or_export_requested": bs + ta + dev,
+        "M110": dev,
+        "ADR-196": dec,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1087,6 +1100,36 @@ def check_semantic_documentation(docs, R, D):
     if "Every non-root event MUST identify its `causationId`" not in bs:
         D.add("semantic documentation", "preview event causality",
               "preview event causal-lineage rule is missing")
+    if "`export_project` does not make a ZIP or Git bundle a deployment artifact" not in bs:
+        D.add("semantic documentation", "source versus deployment export",
+              "source/workspace export is not explicitly separated from deployment artifact delivery")
+    if "Project.generatedOutputs ⊆ {APK, AAB, Android source project}" not in ta:
+        D.add("semantic documentation", "generated output terminology",
+              "architecture lacks the generatedOutputs distinction")
+    if "Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly requires AAB}" not in ta:
+        D.add("semantic documentation", "deployment artifact policy",
+              "architecture lacks the conditional deployment-artifact policy")
+    if "TEST-PSYNC-001" not in bs or "EV-PSYNC-001" not in bs:
+        D.add("semantic documentation", "preview synchronization identifiers",
+              "PreviewSync lacks dedicated test and evidence identifiers")
+    if "#### Event-driven continuation and evidence feedback" not in bs:
+        D.add("semantic documentation", "event-driven continuation requirements",
+              "build specification lacks the event-driven continuation trigger matrix")
+    if "## 76. Autonomous Continuation and Specialist Gate Contract" not in ta:
+        D.add("semantic documentation", "autonomous continuation architecture",
+              "technical architecture lacks the specialist-gate continuation section")
+    if "## M110 — Event-driven autonomous continuation and specialist gates" not in dev:
+        D.add("semantic documentation", "autonomous continuation milestone",
+              "development plan lacks the event-driven continuation milestone")
+    if "## ADR-196: Continue autonomous work from durable events with specialist gates" not in dec:
+        D.add("semantic documentation", "autonomous continuation decision",
+              "decision log lacks the durable-event continuation decision")
+    if "FailureContextPackage" not in dev or "failure fingerprint" not in dev:
+        D.add("semantic documentation", "failure context package requirement",
+              "roadmap lacks the failure-context feedback requirement")
+    if not re.search(r"failed health, validation, signing, or export gates preserve last-known-good state", dec, re.I):
+        D.add("semantic documentation", "autonomous rollback preservation",
+              "decision log lacks last-known-good preservation for failed gates")
     if "## M107 — Integration boundary contract and wiring conformance" not in dev:
         D.add("semantic documentation", "integration boundary milestone",
               "development plan lacks the integration-boundary conformance milestone")

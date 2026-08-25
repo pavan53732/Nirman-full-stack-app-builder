@@ -243,8 +243,8 @@ CASES = {
         TA, "### 16.2.1 Execution profiles and approval precedence",
         "### 16.2.1 Execution policy details", "semantic documentation"),
     "semantic supported row without profile": (
-        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
-        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
+        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
+        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
         "semantic documentation"),
     "semantic supported environment row without profile": (
         BS, "| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |",
@@ -386,6 +386,22 @@ CASES = {
         BS, "- certificationDecisionRef\n- completionDecisionRef",
         "- certificationDecision\n- completionDecisionRef",
         "semantic documentation"),
+    "semantic source deployment export separation removed": (
+        BS, "`export_project` does not make a ZIP or Git bundle a deployment artifact",
+        "`export_project` creates a deployment artifact",
+        "semantic documentation"),
+    "semantic generated output terminology removed": (
+        TA, "Project.generatedOutputs ⊆ {APK, AAB, Android source project}",
+        "Project.generatedDeliverables ⊆ {APK, AAB, Android source project}",
+        "semantic documentation"),
+    "semantic deployment artifact policy removed": (
+        TA, "Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly requires AAB}",
+        "Project.deploymentArtifacts ⊆ {APK, AAB}",
+        "semantic documentation"),
+    "semantic preview identifiers removed": (
+        BS, "TEST-PSYNC-001 | EV-PSYNC-001",
+        "TEST-GEN-001 | EV-GEN-001",
+        "reverse break"),
 }
 
 

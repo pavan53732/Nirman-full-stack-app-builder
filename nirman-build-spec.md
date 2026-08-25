@@ -268,7 +268,8 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 
 | CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
 |---|---|---|---|---|---|
-| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-GEN-001 | EV-GEN-001 | PLANNED |
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
+| CAP.ANDROID.LIVE_PREVIEW | Show a revision-bound, evidence-backed Android runtime preview and reconstruct it after interruption | CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-PSYNC-001 | EV-PSYNC-001 | PLANNED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -583,7 +584,9 @@ The AI model should interact with Nirman through structured tools. The model sho
 | `capture_screenshot` | Capture the current preview for visual inspection |
 | `run_checks` | Run linting, type checks, tests, and build validation |
 | `show_diff` | Return changed files and a human-readable summary |
-| `export_project` | Create a ZIP, Git bundle, or build artifact |
+| `export_project` | Create a source/workspace export or a declared build artifact |
+
+`export_project` does not make a ZIP or Git bundle a deployment artifact. Source and project access remain user-owned workspace operations. Deployment delivery is governed separately by `PackagingProfile`: an installable APK is required for local completion, and AAB is produced only when an explicitly declared packaging profile requires it.
 
 ### 7.2 Agent task lifecycle
 
@@ -1856,11 +1859,28 @@ Revalidate the affected and regression checks
 Evaluate completion conditions through PreviewPromotionGate and evidence rules
 ```
 
+#### Event-driven continuation and evidence feedback
+
+The runtime must continue from durable events rather than waiting for another chat click. The following triggers are continuations of the existing lifecycle-hook, trigger, validation, and recovery contracts; they do not create a second scheduler or authority:
+
+| Trigger | Automatic continuation | Required gate |
+|---|---|---|
+| `workspace_file_saved` | Run the affected formatter, lint, typecheck, and focused tests when enabled by the project policy | Changed-file scope and current revision |
+| `build_completed` | Inspect the artifact, run the affected and regression checks, then collect runtime prerequisites | Build observation and artifact identity |
+| `failure_observed` | Capture diagnostic output and stack-trace references, create a stable failure fingerprint, package the failure context, and schedule diagnosis or repair | RecoveryAuthority and checkpoint lineage |
+| `dependency_changed` | Run compatibility, vulnerability, license, provenance, size, and duplicate-class checks before commit or build continuation | DependencyHealthService and policy decision |
+| `promotion_or_export_requested` | Run health checks, artifact inspection, required validation, signing/certificate checks, and post-copy verification; retain last-known-good on failure | PreviewPromotionGate, artifact authority, signing authority, and export verification |
+| `stream_reconnected` | Replay missing durable events and rebuild projections before resuming display or execution decisions | Event continuity and projection cursor |
+
+A failure continuation must pass the real diagnostic context—failure fingerprint, relevant stack trace or process output, changed files, environment identity, prior attempts, checkpoint, and validation results—to the next authorized diagnostic or coding worker. A retry without new evidence, a changed strategy, or a changed authority context is not a new attempt. Retry budgets are bounded and policy-configurable; reaching a budget triggers strategy change, backtracking, degradation, or a truthful blocker rather than a blind loop.
+
+Nirman uses Windows process and workspace isolation for local execution. The runtime must not imply that a Docker container, virtual machine, WSL environment, or other prohibited external sandbox was used. Nirman also has no generic web or cloud deployment target; `promotion_or_export_requested` refers to local Android preview promotion or declared APK or optional AAB artifact export.
+
 Browser automation is never a required or authoritative completion stage for an Android-target profile. Emulator or physical-device evidence is authoritative for Android runtime behavior. The exact preview-promotion predicate is the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1.
 
 Nirman should not ask for approval for every small, reversible operation inside an approved workspace. It should request a decision only at defined policy boundaries, including protected-file access, risky dependency installation, external-service access, credential use, destructive operations, publishing, release signing, or any action outside the current workspace and policy scope. The approval request must identify the exact action, reason, worker, workspace, policy, risk, and available choices.
 
-A task must terminate only when one of the following conditions is true: all required completion conditions pass; a required user decision is reached; an explicit hard safety or policy limit is reached; the environment or provider is unavailable; the user cancels the task; an unresponsive or dangerous process must be stopped to protect the computer; or an unrecoverable failure occurs. Ordinary time, token, cost, process, disk, and retry thresholds should cause adaptation, throttling, warning, or optional approval—not a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
+A task must terminate only when one of the following conditions is true: all required completion conditions pass; a required user decision is reached; an explicit hard safety or policy limit is reached; the environment or provider is unavailable; the user cancels the task; an unresponsive or dangerous process must be stopped to protect the computer; or an unrecoverable failure occurs. A routine event such as a saved file, completed build, captured error, dependency change, or successful worker response must not end the task; it must advance the applicable continuation trigger and validation path. Ordinary time, token, cost, process, disk, and retry thresholds should cause adaptation, throttling, warning, or optional approval—not a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
 
 The final task result must expose the requested goal, changed files, checkpoints, worker activity, commands, validation evidence, tests, builds, screenshots or device results where relevant, warnings, blockers, unresolved conditions, resource usage, and the final completion classification. The user should be able to reopen each evidence item from the result.
 
@@ -4157,7 +4177,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
-| CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.GENERATE | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
