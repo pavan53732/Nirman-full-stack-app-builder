@@ -14,7 +14,7 @@ Nirman should be built in vertical slices. Every milestone must produce a usable
 
 The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run an emulator or device preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
 
-The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in `nirman-decisions.md`.
+The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in the decision log.
 
 ---
 
@@ -1253,6 +1253,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
 | M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
 | M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
+| M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1395,6 +1396,8 @@ Run a fixture that starts from one Android product concept and optional screensh
 
 ## M100 — Canonical state, artifact, and completion semantics
 
+M100–M105 are contract-hardening prerequisites for any milestone that claims runtime verification, preview promotion, integration completion, packaging, or certified capability coverage. They may be implemented as a preparatory track before the corresponding vertical-slice milestone, even though their acceptance summary is listed after M99. No later milestone may promote a capability using an invariant that has not passed its applicable M100–M105 gate.
+
 Implement separate fields and reducers for product lifecycle, assurance, capability maturity, integration operationality, signing, artifact, preview, and delivery state. Define the v1 artifact policy as an installable APK required for local completion, with AAB available only as an explicitly declared optional artifact profile. Add `PackagingProfile`, `ArtifactSet`, `SigningState`, `ReproducibilityLevel`, `DeliveryState`, and `CompletionDecision` schemas.
 
 **Exit gate:** illegal combinations such as completed-without-evidence, verified-from-simulation, current-preview-with-stale-identity, supported-without-profile evidence, delivered-without-checksum, functional-without-integration evidence, and inspected-with-unknown-signing state are rejected by deterministic tests.
@@ -1448,3 +1451,19 @@ Choose one canonical owner for every machine-readable schema and make every impl
 ## Implementation-status boundary
 
 Milestones M100–M105 define implementation work, not completed capability. Until their exit gates pass on executable fixtures, the relevant status remains `PLANNED` or `SPECIFIED`. A documentation certification pass cannot promote a runtime capability, preview, or APK artifact to `VERIFIED` or `CERTIFIED`.
+
+## M106 — Documentation-verifier conformance
+
+Extend the documentation verifier’s test suite beyond mutation detection. Add positive and negative fixtures for false positives, valid optional extensions, duplicate references, malformed tables, Unicode and Markdown formatting variation, registry ordering changes, contract identifiers in prose and comments, fenced code blocks, duplicate rows, ambiguous headings, and repeated explanatory text. Keep the existing mutation battery non-vacuous and preserve the boundary that this verifier certifies documentation structure only, never runtime behavior.
+
+**Exit gate:** the conformance suite passes on valid documents, detects each declared malformed or ambiguous fixture, reports the expected defect class, and remains deterministic across repeated runs. Runtime certification remains a separate implementation test family.
+
+## M107 — Integration boundary contract and wiring conformance
+
+M107 implements build spec §70 and technical architecture §74. It follows the contract-hardening prerequisites M100–M106. It must not introduce a second lifecycle, transaction, evidence, preview, provider, skill, artifact, signing, or completion authority.
+
+Implement the versioned `IntegrationBoundaryContract` reference envelope and `BoundaryOperationProjection`. Add schema parity and compatibility records for payloads, responses, protocols, adapters/bridges, authorities, specialized state references, transaction domains, permissions, credentials, timeouts, cancellation, retries, observations, evidence, validation, downstream effects, and invalidation. Complete UI command/projection correlation, Android service-integration records, provider/context binding, UI-hierarchy observations, skill/external-tool lifecycle vocabulary, signing and certificate inspection, post-copy artifact export verification, and documentation certification reporting.
+
+The fixture matrix must cover UI reconnect and stale-command rejection; provider and context correlation; skill-to-capability-to-tool mediation; worker lease-loss fencing; patch/revision freshness; Android service functional evidence and independent operationality dimensions; emulator/device installation and UI-hierarchy evidence; signing certificate inspection; source/destination export hash equality; unknown external-effect reconciliation; timeout and cancellation propagation; adapter/protocol incompatibility; invalidation of downstream evidence; and separation of documentation certification from runtime certification.
+
+**Exit gate:** every applicable boundary-crossing operation resolves one registered `IntegrationBoundaryContract`, all universal-chain references are resolvable, specialized authorities remain singular, unknown outcomes cannot be retried unsafely, stale identities cannot produce current effects, and all M107 fixtures produce durable evidence. A documentation verifier pass alone cannot promote runtime capability or artifact status.

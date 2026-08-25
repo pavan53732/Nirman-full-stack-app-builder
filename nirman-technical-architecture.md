@@ -5,7 +5,7 @@
 **Document status:** Living implementation specification — accepted architecture
 **Application:** Nirman  
 **Scope:** Local-first autonomous application development with configurable cloud or local AI providers  
-**Relationship to master specification:** This document explains how to implement the behavior defined in `nirman-build-spec.md`. It contains architecture and interfaces, not production source code.
+**Relationship to master specification:** This architecture document explains how to implement the behavior defined by the master product specification. It contains architecture and interfaces, not production source code.
 
 ---
 
@@ -1667,7 +1667,36 @@ The input manager combines the user instruction, screenshots, supplied assets, e
 
 ### 34.2 Preview revision bridge
 
-The preview manager and execution manager share a `projectRevisionId` and `checkpointId`. Every emulator or device state records the revision, device identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. If a candidate revision fails, the preview manager retains the last valid revision and marks the candidate as failed instead of presenting it as current.
+The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator or device state records the revision, device identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
+
+```text
+DeviceStateFingerprint
+- deviceIdentity
+- apiLevel
+- locale
+- orientation
+- permissionsSnapshot
+- systemSettingsSnapshot
+- networkMode
+- installedPackageState
+
+ApplicationStateFingerprint
+- packageName
+- processState
+- databaseSnapshot
+- preferencesSnapshot
+- appPermissions
+- accountSessionState
+
+EnvironmentStateFingerprint
+- toolchainLock
+- environmentIdentity
+- dependencySnapshot
+- providerProfile
+- validationPolicyVersion
+```
+
+If a candidate revision fails, the preview manager retains the last valid revision and marks the candidate as failed instead of presenting it as current. An identical emulator identity is not sufficient when any required device, application, or environment fingerprint differs.
 
 ### 34.3 Progress ledger and stall detector
 
@@ -1698,21 +1727,50 @@ The production runtime is divided into deterministic authorities and model-drive
 The following contracts are versioned and validated at the control-plane boundary:
 
 ```text
+CanonicalSchemaRegistry
 AutonomousAndroidSession
 AndroidApplicationContract
 VisualSpecification
 AndroidTechnologyPlan
+CapabilityProfile
 TaskGraph
 WorkerContract
 TerminalSession
 PreviewRevision
 EvidenceRecord
+EvidenceDependency
+ValidationResult
+CertificationDecision
+CompletionDecision
 RecoveryRecord
 ArtifactRecord
+ArtifactSet
+IntegrationOperationality
+ExternalEffectRecord
+IntegrationBoundaryContract
+UsageRecord
 ProviderProfile
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
+
+`CanonicalSchemaRegistry` is the sole machine-readable ownership index for these contracts. Each entry records `schemaId`, `canonicalOwner`, `version`, fields, enum values, invariants, migration policy, authority, persistence location, and acceptance-fixture IDs. Repeated schema descriptions in other documents are explanatory or implementation views and must identify the registry entry they implement; they cannot silently redefine fields or enum semantics.
+
+Schema compatibility is explicit:
+
+```text
+ContractCompatibility
+- fromVersion
+- toVersion
+- compatibleRead
+- compatibleWrite
+- migrationRequired
+- evidenceInvalidationPolicy
+- runtimeRestartRequired
+- acceptanceFixtureIds
+```
+
+A self-development candidate or contract migration cannot be promoted until its read/write compatibility, migration, restart, replay, and rollback behavior pass the declared fixtures. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion.
 
 ### 36.2 Lifecycle authority
 
@@ -1833,6 +1891,95 @@ Only the preview coordinator may promote a candidate through this predicate. UI,
 
 Completion requires current mandatory evidence, selected profile maturity, required integration operationality, preview and artifact gates when declared, signing policy, reproducibility policy, and no unresolved blocking condition. `COMPLETED`, `VERIFIED`, `CURRENT`, `SUPPORTED`, `DELIVERED`, `FUNCTIONAL`, and `CERTIFIED` states are rejected when their required dependencies are missing, stale, invalidated, or model-authored.
 
+### 36.5 Transaction domains and capability promotion
+
+The runtime separates transaction domains because they have different rollback semantics:
+
+```text
+LocalTransaction
+- stagedSourceRevision
+- changedPaths
+- checkpointId
+- commitState: STAGED | VALIDATED | COMMITTED | ROLLED_BACK
+
+DeviceTransaction
+- deviceSessionId
+- installedArtifactFingerprint
+- appStateFingerprint
+- observationState: REQUESTED | INSTALLED | LAUNCHED | OBSERVED | UNKNOWN
+- cleanupPolicy
+
+ExternalEffectTransaction
+- externalEffectId
+- idempotencyKey
+- requestState
+- reconciliationState
+- compensationState
+```
+
+`ConstructionTransaction` governs local source and artifact preparation. Device operations produce observations and cleanup records; they are not assumed to be atomically rolled back with source changes. External effects require `ExternalEffectRecord` reconciliation and compensation semantics. A local commit never implies that a remote or device operation succeeded.
+
+Capability promotion follows a deterministic chain:
+
+```text
+CapabilityEvidence
+  → CapabilityValidation
+  → CapabilityCertification
+  → CapabilityPromotionAuthority
+  → immutable promotion record
+```
+
+Workers and models may propose capability status changes but cannot write `SUPPORTED`, `VERIFIED`, or `CERTIFIED` directly. The promotion authority requires the matching profile, fixture, current evidence, environment identity, and policy version.
+
+Release signing uses an immutable binding:
+
+```text
+SigningIdentityBinding
+- artifactHash
+- applicationId
+- versionCode
+- certificateFingerprint
+- signingScheme
+- keystoreIdentity
+- buildVariant
+- signingPolicyVersion
+- inspectionEvidenceId
+```
+
+A release-signed claim is invalid without this binding and an observed signing-inspection result.
+
+```text
+SigningOperation
+- operationId
+- artifactId
+- artifactHashBeforeSigning
+- keystoreIdentityReference
+- requestedCertificateFingerprint
+- buildVariant
+- signingScheme
+- policyDecisionId
+- operationState: REQUESTED | AUTHORIZED | IN_PROGRESS | OBSERVED |
+                 FAILED | BLOCKED
+- startedAt
+- completedAt
+- evidenceId
+
+CertificateInspection
+- inspectionId
+- artifactId
+- artifactHash
+- applicationId
+- versionCode
+- observedCertificateFingerprint
+- signingSchemesObserved
+- expectedBindingRef
+- result: PASSED | FAILED | UNKNOWN
+- inspectedAt
+- evidenceId
+```
+
+A signing request or keystore reference is not proof of signing. `CertificateInspection` must observe the packaged artifact and compare it with `SigningIdentityBinding` before a release-signed state is accepted.
+
 ## 37. Android Project Ingestion and Integrity Architecture
 
 The ingestion service uses an Android-aware discovery pipeline:
@@ -1863,6 +2010,8 @@ The provider gateway has five layers:
 
 The gateway never gives a provider direct filesystem, process, emulator, or credential access. Tool calls are proposals passed back to the deterministic tool broker. The broker checks session, worker, workspace, policy, sandbox, scope, and operation capability before starting a tool.
 
+Before any project context leaves the host, the provider gateway constructs a `ProviderContextEnvelope` containing `dataClassification`, `providerPolicyId`, `selectedContextIds`, `redactionPolicyId`, `userApprovalPolicyId`, `allowedPurpose`, `retentionPolicy`, `transmissionDecision`, and `providerRequestId`. Only the minimum context required for the declared purpose may be transmitted. Secrets, private reasoning, unrelated personal data, protected credentials, and excluded paths are withheld. Provider responses cannot broaden the envelope or authorize tools, permissions, mutations, or completion.
+
 Provider-specific failures are classified into authentication, rate limiting, context overflow, unsupported capability, transport, timeout, cancellation, and provider-unavailable categories. Recovery policy chooses retry, fallback, context reduction, model change, or safe waiting according to the configured provider policy.
 
 ## 39. Sandbox and Process Separation
@@ -1882,6 +2031,8 @@ The host is divided into explicit process domains:
 
 Generated code and project processes cannot read personal browser data, SSH keys, unrelated directories, signing keys, or arbitrary credentials. Sandbox profiles are selected by the policy authority and cannot be relaxed by model output.
 
+Browser validation, when enabled, is an external auxiliary surface only. The capability registry MUST mark it as non-authoritative for Android-core validation. Browser observations cannot satisfy Android build, install, launch, device, accessibility, visual, or completion requirements unless a separate non-Android surface was explicitly declared. The Android emulator or physical device remains the authoritative generated-app validation surface.
+
 ## 40. Event, Evidence, Memory, and Replay Stores
 
 The event store records typed runtime events. The evidence store records validation proof. The memory store records only privacy-filtered, validated knowledge. The replay store records enough metadata to reproduce a task without indiscriminately retaining private source content.
@@ -1899,6 +2050,10 @@ The replay service supports reopen, rerun validation, fork strategy, restore che
 The Windows host must initialize without a provider, enter Offline Mode when network access is unavailable, preserve history and checkpoints, and resume eligible active sessions after restart or reboot. State writes use temp-file-plus-rename, file locks, versioned migrations, backups, and rollback. The installer and updater preserve user state and keep the previous version runnable if candidate startup, IPC, migration, or health checks fail.
 
 Large projects use virtualized trees, repository-map shards, dependency fingerprints, affected-test computation, cached validation, rotating logs, content-addressed checkpoint storage, and retention policies. Resource pressure adapts concurrency and storage retention; only hard protection limits stop execution.
+
+### 41.1 Documentation and runtime certification boundary
+
+The contract-graph verifier certifies document structure, contract addressing, authority references, and selected semantic rules only. It is not the runtime certification authority. Runtime certification requires separate executable jobs for schema compilation, reducer transitions, transaction and lease behavior, Windows process and IPC isolation, provider fixtures, Android build and emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, and self-development rollback.
 
 ## 42. Runtime Architecture Acceptance Tests
 
@@ -2635,6 +2790,68 @@ SupervisorConnection
 
 The connection performs a protocol/version handshake, authenticates the UI instance, validates project scope, subscribes to durable events after a supplied sequence, reports supervisor health, and handles reconnect after UI crash, UI restart, supervisor restart, Windows reboot, and sleep/resume. A UI connection cannot impersonate another project, publish forged events, or invoke a command outside its capability scope.
 
+```text
+UICommandEnvelope
+- commandId
+- connectionId
+- uiInstanceId
+- projectId
+- taskId
+- expectedProjectionRevision
+- commandKind
+- payloadSchemaRef
+- correlationId
+- causationId
+- idempotencyKey
+- authenticatedUserScope
+- createdAt
+
+ProjectionSnapshot
+- snapshotId
+- projectId
+- taskId
+- projectionRevision
+- lastEventSequence
+- stateRefs
+- previewRevisionRef
+- evidenceLedgerRef
+- supervisorHealthRef
+- generatedAt
+```
+
+`UICommandEnvelope` is a request, not an authority decision. The control plane rejects an envelope with invalid scope, a stale expected projection revision, an expired connection, a duplicate idempotency key, or an unsupported command schema. `ProjectionSnapshot` is a read model; it cannot be used by the UI to commit state, authorize operations, promote artifacts, or advance evidence.
+
+```text
+UICommandEnvelope
+- commandId
+- connectionId
+- uiInstanceId
+- projectId
+- taskId
+- expectedProjectionRevision
+- commandKind
+- payloadSchemaRef
+- correlationId
+- causationId
+- idempotencyKey
+- authenticatedUserScope
+- createdAt
+
+ProjectionSnapshot
+- snapshotId
+- projectId
+- taskId
+- projectionRevision
+- lastEventSequence
+- stateRefs
+- previewRevisionRef
+- evidenceLedgerRef
+- supervisorHealthRef
+- generatedAt
+```
+
+`UICommandEnvelope` is a request, not an authority decision. The control plane rejects an envelope with invalid scope, a stale expected projection revision, an expired connection, a duplicate idempotency key, or an unsupported command schema. `ProjectionSnapshot` is a read model; it cannot be used by the UI to commit state, authorize operations, promote artifacts, or advance evidence.
+
 ### 57.4 SupervisorLifecycle and recovery scan
 
 `NirmanSupervisor.exe` starts at Windows user login when an eligible session or scheduled task exists, owns all long-running process trees, and records graceful or abnormal shutdown. On startup it validates SQLite integrity, migrations, leases, checkpoints, project fingerprints, process records, terminal sessions, preview revisions, and pending provider requests.
@@ -2918,7 +3135,22 @@ Every operation carries parent task, cancellation lineage, input references, exp
 
 ### 58.6 KnowledgeLedger and TaskBlackboard
 
-`KnowledgeLedger` stores typed, scoped `KnowledgeArtifact` records. `TaskBlackboard` is a task-scoped projection containing the goal, requirements, architecture, decisions, constraints, assumptions, active workers, completed/blocked work, findings, conflicts, evidence, known failures, and next actions.
+`KnowledgeLedger` stores typed, scoped `KnowledgeArtifact` records. `TaskBlackboard` is a task-scoped projection containing the goal, requirements, architecture, decisions, constraints, assumptions, active workers, completed/blocked work, findings, conflicts, evidence, known failures, and next actions. A separate graph database is not implied. When typed relationships are required, the ledger may store:
+
+```text
+KnowledgeRelation
+- relationId
+- fromArtifactId
+- toArtifactId
+- relationType: derived_from | supports | contradicts | invalidates |
+                supersedes | depends_on
+- sourceEventId
+- projectScope
+- createdAt
+- invalidatedAt
+```
+
+`KnowledgeRelation` is a scoped projection edge and never grants authority. It must not allow identifiable project content to cross the memory boundary.
 
 Workers may read, propose, attach evidence, request changes, and retrieve relevant entries. Only authoritative services may commit a decision, change the task graph, mark a requirement complete, change policy, or promote an artifact.
 
@@ -4368,3 +4600,153 @@ The preview architecture must pass tests proving that:
 8. A template-selection proposal and a non-Android target proposal are rejected before mutation.
 9. The final APK or optional AAB evidence refers to the same source, asset, and preview revisions.
 10. The panel never labels a model statement as process, device, test, or artifact evidence.
+
+## 74. Integration Boundary Implementation Contract
+
+**Implements:** build spec §70 and `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
+**Canonical schema owner:** `CanonicalSchemaRegistry` in §36.1
+**Implementation owner:** the Rust control plane and supervised boundary services
+
+The runtime implements the common boundary envelope as a correlation projection. It does not replace the authoritative specialized contracts. `WorkflowCoordinator` creates or updates the boundary reference, the relevant deterministic authority admits the operation, and the specialized service owns its state transition.
+
+```text
+IntegrationBoundaryRuntime
+- boundaryId
+- integrationBoundaryVersion
+- sourceEntityRef
+- destinationEntityRef
+- payloadSchemaRef
+- responseSchemaRef
+- protocolVersion
+- adapterOrBridgeRef
+- authorityRefs
+- operationRef
+- specializedStateRef
+- transactionRef
+- correlationId
+- causationId
+- idempotencyKey
+- compatibilityRef
+- timeoutPolicyRef
+- cancellationPolicyRef
+- retryPolicyRef
+- observationRefs
+- evidenceRefs
+- validationRef
+- downstreamEffectRefs
+- invalidationRefs
+- failureRecoveryRef
+- applicability
+```
+
+`BoundaryOperationProjection` is not a second lifecycle authority:
+
+```text
+BoundaryOperationProjection
+- operationRef
+- boundaryId
+- state: PLANNED | AUTHORIZED | DISPATCHED | RUNNING | WAITING |
+          OBSERVED | VALIDATED | APPLIED | RETRYABLE_FAILURE |
+          CANCEL_REQUESTED | CANCELLED | BLOCKED | SAFELY_FAILED
+- specializedStateRef
+- timeoutPolicyRef
+- cancellationPolicyRef
+- retryAttempt
+- idempotencyKey
+- transactionRef
+- observationRefs
+- evidenceRefs
+- validationRef
+- downstreamEffectRefs
+- invalidationRefs
+```
+
+The projection is valid only when `specializedStateRef` resolves to the state machine owned by the applicable service. Lease loss fences the operation by revoking capabilities and rejecting new writes. A timeout or cancellation produces a durable lifecycle event. A retry after an unknown device or external outcome requires the relevant transaction reconciliation, idempotency read-back, or compensation evidence before a new effect is authorized. A stale source revision, contract version, adapter version, toolchain, device state, application state, environment state, artifact, credential, or policy invalidates dependent observations and downstream effects.
+
+### 74.1 Android service integration
+
+```text
+AndroidServiceIntegration
+- integrationId
+- appBoundaryRef
+- endpointIdentity
+- requestSchemaRef
+- responseSchemaRef
+- protocolVersion
+- adapterRef
+- authenticationProfileRef
+- credentialReference
+- datastoreOwner: local_android | external_service |
+                  user_managed_supporting_service
+- persistenceSchemaRef
+- offlineAndCachePolicy
+- idempotencyPolicy
+- requiredOperationality
+- functionalScenarioRefs
+- acceptanceEvidenceRefs
+- privacyAndNetworkPolicy
+```
+
+An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone.
+
+### 74.2 UI hierarchy observation
+
+```text
+UiHierarchyObservation
+- observationId
+- taskId
+- previewRevisionId
+- deviceSessionId
+- projectRevisionId
+- applicationStateFingerprint
+- hierarchyFormat
+- hierarchyReference
+- redactionPolicyId
+- capturedAt
+- truth: REQUESTED | OBSERVED | VERIFIED | STALE | INVALIDATED
+- evidenceId
+```
+
+UI-hierarchy evidence may support accessibility, navigation, state, and visual checks. It cannot replace supervised emulator/device execution and cannot satisfy validation while requested, predicted, simulated, stale, or invalidated.
+
+### 74.3 Signing and export verification
+
+```text
+ExportVerificationRecord
+- exportId
+- artifactId
+- sourcePathReference
+- destinationPathReference
+- sourceArtifactHash
+- destinationHash
+- byteCount
+- destinationFileIdentity
+- exportOperationState: REQUESTED | COPYING | COPIED | VERIFIED |
+                        FAILED | BLOCKED
+- postCopyCheck
+- policyDecisionId
+- evidenceId
+- verifiedAt
+```
+
+Local export is complete only when the authorized destination exists, its byte count and content hash match the source artifact, the path is within approved export scope, and post-copy verification evidence is durable. Export does not by itself prove signing, preview currency, integration functionality, documentation certification, or user-goal completion.
+
+### 74.4 Documentation certification report
+
+```text
+DocumentationCertificationReport
+- reportId
+- documentSnapshotHash
+- verifierVersion
+- registryVersion
+- checksExecuted
+- graphClassesChecked
+- semanticRulesChecked
+- defectCount
+- defects
+- result: PASSED | FAILED
+- evidenceId
+- generatedAt
+```
+
+The report certifies documentation identity, registry resolution, graph structure, and declared semantic documentation rules only. It never certifies runtime source, Windows isolation, provider behavior, Android execution, preview truth, recovery, signing, or APK validity.

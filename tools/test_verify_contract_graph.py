@@ -243,8 +243,8 @@ CASES = {
         TA, "### 16.2.1 Execution profiles and approval precedence",
         "### 16.2.1 Execution policy details", "semantic documentation"),
     "semantic supported row without profile": (
-        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
-        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
+        BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |",
+        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
         "semantic documentation"),
     "semantic supported environment row without profile": (
         BS, "| CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |",
@@ -293,6 +293,38 @@ CASES = {
     "semantic legacy artifact wording introduced": (
         TA, "APK packaging and optional AAB packaging",
         "APK/AAB packaging",
+        "semantic documentation"),
+    "semantic integration boundary section removed": (
+        BS, "## 70. Integration Boundary Contract",
+        "## 70. Integration Boundary Notes",
+        "semantic documentation"),
+    "semantic integration architecture section removed": (
+        TA, "## 74. Integration Boundary Implementation Contract",
+        "## 74. Integration Notes",
+        "semantic documentation"),
+    "semantic integration milestone removed": (
+        DEV, "## M107 — Integration boundary contract and wiring conformance",
+        "## M107 — Integration conformance",
+        "semantic documentation"),
+    "semantic integration decision removed": (
+        DEC, "## ADR-194: Establish one canonical integration-boundary contract",
+        "## ADR-194: Integration notes",
+        "semantic documentation"),
+    "semantic universal integration chain removed": (
+        BS, "SOURCE\n  → CONTRACT\n  → ADAPTER / BRIDGE\n  → AUTHORITY\n  → STATE\n  → OPERATION\n  → OBSERVATION\n  → EVIDENCE\n  → VALIDATION\n  → DOWNSTREAM EFFECT",
+        "SOURCE\n  → DESTINATION",
+        "semantic documentation"),
+    "semantic UI hierarchy observation removed": (
+        TA, "UiHierarchyObservation",
+        "UIHierarchyRecord",
+        "semantic documentation"),
+    "semantic certificate inspection removed": (
+        TA, "CertificateInspection",
+        "CertificateRecord",
+        "semantic documentation"),
+    "semantic export verification removed": (
+        TA, "ExportVerificationRecord",
+        "ArtifactExportRecord",
         "semantic documentation"),
 }
 
@@ -363,6 +395,34 @@ def main():
                          "### 67.99 Registered contract identifiers", 1))
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",
+                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE: identifiers in ordinary prose, comments, and fenced
+    # examples must not become graph records or authorities.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-prose-") as tmp:
+        for d in DOCS:
+            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        path = os.path.join(tmp, BS)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("\nThis explanatory note mentions CONTRACT.RUNTIME.SCOPE, ADR-180, and M95 only as prose.\n")
+            fh.write("<!-- CONTRACT.RUNTIME.PHANTOM and | fake | table | row | -->\n")
+            fh.write("```text\nCONTRACT.RUNTIME.EXAMPLE is illustrative, not registered.\n```\n")
+        rc, out = run(tmp)
+        results.append(("positive: prose/comment/fence identifiers are inert",
+                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE: harmless Unicode explanatory text must not affect
+    # registry addressing or semantic checks.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-unicode-") as tmp:
+        for d in DOCS:
+            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        path = os.path.join(tmp, TA)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("\nImplementation note — résumé, café, and हिन्दी text are non-normative.\n")
+        rc, out = run(tmp)
+        results.append(("positive: Unicode explanatory text is inert",
                         rc == 0 and "CERTIFICATION: PASS" in out,
                         f"exit={rc}"))
 

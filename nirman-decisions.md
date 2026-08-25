@@ -41,7 +41,7 @@ This document records significant product and engineering decisions for Nirman. 
 ## ADR-003: Use a local transactional database for task state
 
 **Status:** Accepted  
-**Decision:** Nirman will use SQLite or an equivalent local transactional store for tasks, workers, events, approvals, checkpoints, policies, and recovery records. Large logs and artifacts will remain in files referenced from the database.
+**Decision:** Nirman will use SQLite as the authoritative local transactional store for tasks, workers, events, approvals, checkpoints, policies, and recovery records. Large logs and artifacts will remain in files referenced from the database. A storage substitution requires a new accepted decision, schema-parity evidence, migration evidence, and replay/recovery certification; it is not an implicit equivalent.
 
 **Reasoning:** The application needs durable state, migrations, atomic claims, event sequence numbers, and restart recovery without requiring a cloud database.
 
@@ -2104,3 +2104,90 @@ No provider-native reasoning stream containing private model reasoning may be pe
 **Reasoning:** A clean documentation graph cannot prove that the runtime starts, builds an Android application, survives failure, or exports a valid artifact.
 
 **Trade-off:** Release certification requires more jobs and fixtures, but capability claims become evidence-backed rather than inferred from prose.
+
+
+---
+
+## ADR-189: Establish one canonical machine-readable schema registry
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+
+**Status:** Accepted
+
+**Decision:** `CanonicalSchemaRegistry` is the sole machine-readable ownership index for runtime entities, fields, enum values, invariants, migrations, persistence locations, authorities, and acceptance fixtures. Architecture prose, roadmap entries, and decision records may explain a schema but cannot silently redefine it. Every controller or contract version change requires an explicit `ContractCompatibility` record.
+
+**Rationale:** Repeated prose can remain internally consistent while implementations diverge in field identity or migration behavior. Mechanical ownership and parity are required for durable replay and self-development.
+
+**Consequences:** Schema compilation, parity checks, migration fixtures, and compatibility evidence become prerequisites for runtime promotion.
+
+---
+
+## ADR-190: Model integration operationality as independent dimensions
+
+**Locks:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** Required integrations record connectivity, authentication, availability, functionality, and acceptance state independently, with an aggregate operational state derived from those observations. `CONFIGURED`, `REACHABLE`, `AUTHENTICATED`, `FUNCTIONAL`, and `ACCEPTED` are not interchangeable.
+
+**Rationale:** An endpoint may be reachable while returning `401 Unauthorized`, or functional for a health check while failing the user’s acceptance scenario.
+
+**Consequences:** Integration health fixtures must include authentication failure, partial availability, functional failure, and acceptance failure. Build or launch evidence alone cannot promote an integration.
+
+---
+
+## ADR-191: Bind preview currency to branch and runtime-state fingerprints
+
+**Locks:** `CONTRACT.RUNTIME.EVIDENCE`
+
+**Status:** Accepted
+
+**Decision:** A current preview is bound to active branch, project revision, promotion lineage, source, asset, toolchain, device, application, and environment-state fingerprints. The newest revision is never authoritative by number alone.
+
+**Rationale:** Identical device identity and APK identity can still produce different behavior when permissions, databases, locale, network state, account state, or system settings differ.
+
+**Consequences:** Preview promotion and stale invalidation require state-fingerprint capture and comparison, and the last-known-good preview remains available when any required identity is uncertain.
+
+---
+
+## ADR-192: Separate local, device, and external-effect transactions
+
+**Locks:** `CONTRACT.RUNTIME.RECONCILIATION`
+
+**Status:** Accepted
+
+**Decision:** Local source/artifact mutations, device operations, and external side effects use separate transaction records and rollback semantics. A consumed mutation capability cannot be reused for a new side effect after an unknown response. Reconciliation uses an explicitly scoped reconciliation authority, idempotency key, read-back, or compensation evidence.
+
+**Rationale:** Filesystem rollback can restore local state, but it cannot automatically undo a device installation or a remote request.
+
+**Consequences:** Unknown outcomes are durable states, duplicate external effects are rejected, and local commit never implies remote or device success.
+
+---
+
+## ADR-193: Require deterministic capability promotion and signing identity binding
+
+**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** Capability statuses are promoted only by a deterministic authority after current profile, fixture, environment, and evidence checks. Release signing is valid only when an immutable `SigningIdentityBinding` connects artifact hash, application identity, version code, certificate fingerprint, signing scheme, keystore identity, build variant, policy version, and inspection evidence.
+
+**Rationale:** A worker or model must not be able to promote support or assert release signing through text or an unverified field.
+
+**Consequences:** Capability-promotion and signing-inspection records become part of the release evidence graph and are invalidated by relevant artifact, policy, or environment changes.
+
+## ADR-194: Establish one canonical integration-boundary contract
+
+**Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.RECONCILIATION`
+
+**Status:** Accepted
+
+**Decision:** Nirman will use one versioned `IntegrationBoundaryContract` as a cross-cutting reference envelope for operations that cross IPC, process, worker, workspace, persistence, provider, device, artifact, credential, signing, external-service, or documentation-verification boundaries. The envelope identifies source and destination, schema and protocol versions, adapter or bridge, deterministic authority, specialized state, operation and transaction references, permissions, credentials, correlation and idempotency, lifecycle policies, observations, evidence, validation, downstream effects, failure/recovery, compatibility, and invalidation dependencies.
+
+The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE → OPERATION → OBSERVATION → EVIDENCE → VALIDATION → DOWNSTREAM EFFECT` chain is mandatory only where a declared boundary exists. An inapplicable stage requires an explicit reason. The boundary envelope references specialized contracts and never redefines their schemas, state machines, authorities, transaction semantics, preview gate, provider context, skill lifecycle, artifact policy, signing identity, completion predicate, or documentation/runtime certification boundary.
+
+**Canonical ownership:** the build specification owns the product invariant and registered contract; the technical architecture owns the implementation schema and protocol; the development plan owns sequencing, fixtures, and exit gates; the decision log owns precedence and rationale; and the verifier owns only documentation graph and semantic checks. No UI, model, worker, adapter, bridge, provider response, preview projection, export operation, or documentation verifier may promote a downstream effect without the applicable deterministic authority.
+
+**Rationale:** Existing Nirman contracts already cover transactions, capabilities, leases and fencing, preview, evidence, validation, providers, workers, runtime execution, signing, and artifact promotion. A single reference envelope closes their correlation gap without creating four divergent wiring architectures or a second authority system.
+
+**Consequences:** Boundary operations require explicit schema compatibility, lifecycle, timeout, cancellation, retry, reconciliation, observation, evidence, and invalidation references. Runtime implementation and fixture evidence are required before any capability or artifact claim is promoted. Android remains the only generated target; supporting services remain declared integrations rather than additional generated products.

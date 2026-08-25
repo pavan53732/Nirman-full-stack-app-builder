@@ -268,7 +268,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 
 | CapabilityId | Requirement | Required contracts | Test id | Evidence id | Status |
 |---|---|---|---|---|---|
-| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE | TEST-GEN-001 | EV-GEN-001 | PLANNED |
+| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
 | CAP.ANDROID.LONG_HORIZON | Continue a multi-session project without losing settled decisions | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | TEST-MEM-001 | EV-MEM-001 | PLANNED |
 | CAP.ANDROID.PARALLEL | Run multiple workers on interdependent code without incoherent merges | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.RESERVATION | TEST-RES-001 | EV-RES-001 | PLANNED |
 | CAP.ANDROID.USER_COEDIT | Let the user edit project files during an active autonomous run | CONTRACT.RUNTIME.RECONCILIATION | TEST-RCN-001 | EV-RCN-001 | PLANNED |
@@ -282,7 +282,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
 | CAP.ANDROID.AUTONOMOUS_REASONING | Decide what to do next from evidence, and delegate within bounded authority | CONTRACT.RUNTIME.REASONING | TEST-RSN-001 | EV-RSN-001 | PLANNED |
 | CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
-| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold | CONTRACT.RUNTIME.INVARIANTS | TEST-INV-001 | EV-INV-001 | PLANNED |
+| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-INV-001 | EV-INV-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
@@ -371,7 +371,9 @@ Each evidence node MUST record source event, operation, session, project revisio
 
 ### 5.7.5 Required integration operationality
 
-A required outbound API, authentication service, database service, or other external integration MUST declare its minimum acceptable `IntegrationState`. Client code existing in the project, a successful build, or a successful app launch does not prove that the integration is functional.
+A required outbound API, authentication service, database service, or other external integration MUST declare its minimum acceptable operational state. Every required integration and every operation that crosses a process, IPC, device, provider, credential, workspace, artifact, or external-service boundary MUST also declare an `IntegrationBoundaryContract`. Client code existing in the project, a successful build, or a successful app launch does not prove that the integration is functional.
+
+Operationality is multidimensional. `CONFIGURED` does not imply valid credentials, `REACHABLE` does not imply authentication, `AUTHENTICATED` does not imply functional behavior, and `FUNCTIONAL` does not imply that the user’s acceptance criteria have passed.
 
 ```text
 IntegrationOperationality
@@ -381,20 +383,31 @@ IntegrationOperationality
 - credentialReference
 - schemaVersion
 - policyProfile
-- state
+- connectivityState: UNKNOWN | UNREACHABLE | REACHABLE
+- authenticationState: NOT_REQUIRED | UNKNOWN | INVALID | AUTHENTICATED
+- availabilityState: UNKNOWN | UNAVAILABLE | AVAILABLE | DEGRADED
+- functionalState: UNKNOWN | NON_FUNCTIONAL | FUNCTIONAL
+- acceptanceState: NOT_REQUIRED | UNKNOWN | NOT_ACCEPTED | ACCEPTED
+- aggregateState: NOT_REQUIRED | SPECIFIED | CONFIGURED | REACHABLE |
+                  FUNCTIONAL | DEGRADED | USER_REQUIRED | UNAVAILABLE |
+                  BLOCKED | UNKNOWN
 - healthEvidenceId
+- authenticationEvidenceId
 - functionalEvidenceId
+- acceptanceEvidenceId
 - lastObservedAt
 - invalidatedBy
 ```
 
-When safe test access is unavailable, the runtime MUST report `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, or `UNKNOWN`; it MUST NOT report complete merely because local code compiled.
+For example, an endpoint returning `401 Unauthorized` may be `CONFIGURED` and `REACHABLE` while remaining unauthenticated and non-functional. When safe test access is unavailable, the runtime MUST report `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, or `UNKNOWN`; it MUST NOT report complete merely because local code compiled.
 
 ### 5.7.6 External-effect reconciliation
 
-Every remote or externally visible side effect MUST be represented by an `ExternalEffectRecord` with an idempotency key, target identity, authority grant, request fingerprint, request state, response reference, compensation plan, and local transaction. If the response is lost after transmission may have occurred, the runtime MUST reconcile by idempotency key or read-back before retrying or declaring failure. Local rollback MUST NOT be described as undoing a remote effect unless compensation evidence proves it.
+Every remote or externally visible side effect MUST be represented by an `ExternalEffectRecord` with an idempotency key, target identity, authority grant, request fingerprint, request state, response reference, compensation plan, and local transaction. The record MUST reference the applicable `IntegrationBoundaryContract`. If the response is lost after transmission may have occurred, the runtime MUST reconcile by idempotency key or read-back before retrying or declaring failure. Local rollback MUST NOT be described as undoing a remote effect unless compensation evidence proves it.
 
 ### 5.7.7 Completion predicate and illegal-state rules
+
+Certification and completion are different decisions and MUST never be treated as synonyms. `CertificationDecision` answers whether an artifact or revision satisfies the declared technical certification policy. `CompletionDecision` answers whether the user’s goal contract is satisfied, including mandatory integrations and product requirements. Therefore, `CERTIFICATION ≠ COMPLETION`: an APK may be technically certified while goal completion remains `NOT_COMPLETE` because a required backend is unavailable.
 
 The sole completion evaluator MUST require the declared goal conditions, current mandatory evidence, valid dependencies, appropriate capability maturity, required integration operationality, preview gate when required, artifact and signing policy, reproducibility policy, and absence of blocking contradictions. At minimum, the following combinations are illegal and MUST be rejected:
 
@@ -408,6 +421,80 @@ The sole completion evaluator MUST require the declared goal conditions, current
 - `CERTIFIED` profile with an expired or invalidated evidence report.
 
 These predicates are normative. Explanatory UI text and reasoning summaries may describe them but cannot replace them.
+
+### 5.7.8 Android target and provider-context boundaries
+
+The generated target predicate is machine-checkable:
+
+```text
+TargetPlatformSet == {ANDROID}
+project.targetPlatforms == ["android"]
+```
+
+Supporting backend services, build tools, native modules, provider adapters, and development utilities MAY exist when required by an Android application, but no resolver path may produce a second generated deployable target. Android-only describes the generated product target, not a prohibition on supporting components. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target.
+
+Cloud-provider context transmission is governed by a typed envelope:
+
+```text
+ProviderContextEnvelope
+- dataClassification
+- providerPolicyId
+- selectedContextIds
+- redactionPolicyId
+- userApprovalPolicyId
+- allowedPurpose
+- retentionPolicy
+- transmissionDecision: ALLOWED | REDACTED | USER_REQUIRED |
+                         BLOCKED | NOT_TRANSMITTED
+- providerRequestId
+```
+
+Only the minimum context required for the declared purpose may be transmitted. Secrets, private reasoning, unrelated personal data, protected credentials, and excluded project content MUST be withheld. A provider response cannot broaden the envelope, permissions, target set, or completion authority.
+
+### 5.7.9 Capability promotion, signing identity, and compatibility
+
+Capability maturity follows a deterministic promotion chain:
+
+```text
+CapabilityEvidence
+  → CapabilityValidation
+  → CapabilityCertification
+  → CapabilityPromotionAuthority
+  → immutable promotion record
+```
+
+Workers and models may propose status changes but cannot write `SUPPORTED`, `VERIFIED`, or `CERTIFIED` directly. Promotion requires the matching profile, fixture IDs, current evidence, environment identity, and policy version.
+
+Release signing requires an immutable binding:
+
+```text
+SigningIdentityBinding
+- artifactHash
+- applicationId
+- versionCode
+- certificateFingerprint
+- signingScheme
+- keystoreIdentity
+- buildVariant
+- signingPolicyVersion
+- inspectionEvidenceId
+```
+
+Contract and controller changes require an explicit compatibility record:
+
+```text
+ContractCompatibility
+- fromVersion
+- toVersion
+- compatibleRead
+- compatibleWrite
+- migrationRequired
+- evidenceInvalidationPolicy
+- runtimeRestartRequired
+- acceptanceFixtureIds
+```
+
+A candidate controller or contract migration cannot be promoted until compatibility, migration, replay, restart, rollback, and evidence-invalidation fixtures pass.
 
 ## 6. High-Level Architecture
 
@@ -1028,7 +1115,7 @@ A major failure mode of autonomous agents is getting trapped in endless "doom lo
 
 ### 22.4 Shared Task Ledger and Cross-Agent Coordination
 
-For multi-worker tasks and parallel swarms, Nirman maintains a centralized, machine-readable **Task Ledger** (stored locally as `TODO.md` or a structured state file within the workspace). 
+For multi-worker tasks and parallel swarms, Nirman maintains a centralized, machine-readable **Task Ledger** stored locally as a structured state file within the workspace.
 
 - **Atomic Task Units**: Tasks are broken down into discrete, atomic items with defined dependencies (e.g., Task 3 cannot start until Task 1 and Task 2 pass their tests).
 - **Claim-and-Update Protocol**: Background workers claim unassigned tasks, mark their progress in real time, and record completion evidence (test logs, file paths).
@@ -1266,7 +1353,7 @@ SkillPackage
 
 A skill is invoked only when the orchestrator selects it from a task requirement, explicit user request, or matching trigger condition. Loading a skill adds instructions and schemas; it never grants permissions automatically. Every skill tool call still passes through the normal policy engine. User or shared skills must be scanned for prompt injection, unsafe commands, secret access, and dependency behavior before activation, and updates must be versioned with rollback. Built-in runtime capabilities take precedence over skills when both provide the same function, while a skill may add workflow instructions around the built-in capability.
 
-The application should also support external tools through an MCP-compatible adapter or equivalent extension interface. External tools may provide design files, issue trackers, documentation search, browser automation, observability data, or test environments. Each external tool must have its own permission scope, provider status, network policy, and audit trail.
+The application should also support external tools through an MCP-compatible adapter or equivalent extension interface. External tools may provide design files, issue trackers, documentation search, browser automation, observability data, or test environments. Each external tool must have its own permission scope, provider status, network policy, compatibility record, lifecycle state, and audit trail. Nirman distinguishes a `SkillPackage` (a scanned, versioned, permission-neutral instruction and workflow package) from an `ExternalToolConnection` (a mediated connection to an external service or protocol server). A code-bearing runtime extension is a separate future capability and is not created by the word “plugin”. Discovery, schema compatibility, trust/scan, enablement, session pinning, permission evaluation, invocation, health, disablement, revocation, update, and rollback are explicit lifecycle concerns; loading or connecting never grants permissions automatically.
 
 ### 23.12 Hooks and policy interception
 
@@ -1356,7 +1443,7 @@ Nirman should not begin with unrestricted multi-agent parallelism. It should fir
 
 A high-quality Nirman task is not merely a code-generation response. It is a reproducible development record containing the original request, project context, plan, selected worker roles, permissions, model routing, files changed, commands run, tests and screenshots, checkpoints, warnings, resource usage, and unresolved issues.
 
-The task should be considered complete only when the requested acceptance criteria are satisfied or the application has clearly explained why they could not be satisfied. The final result must not hide uncertainty behind confident wording.
+The task should be considered complete only when the requested acceptance criteria are satisfied or the application has clearly explained why they could not be satisfied. Every declared boundary operation must resolve its applicable integration contract and evidence dependencies before it can contribute to completion. The final result must not hide uncertainty behind confident wording.
 
 > Nirman should optimize for **verified progress**, not maximum autonomous activity.
 
@@ -1370,7 +1457,7 @@ Nirman should separate the desktop user interface from a local control plane. Th
 
 The control plane should start when Nirman launches and should be able to continue as a user-scoped background process when the window is minimized or closed. It should not run as a system service by default. The user must be able to stop it from the application and from a visible operating-system process control action.
 
-The daemon should persist task state in a local SQLite database or an equivalent transactional store. Large logs and binary artifacts should be stored in task-specific directories, while the database stores metadata and references.
+The daemon should persist task state in the authoritative local SQLite execution ledger or an explicitly accepted equivalent transactional store. Large logs and binary artifacts should be stored in task-specific directories, while the database stores metadata and references. In this specification, “project repository” means the user-owned Git/workspace and source revision, while “execution ledger” means Nirman’s authoritative SQLite store; these are separate persistence domains and MUST NOT be represented by one generic repository abstraction.
 
 | Persistent object | Required information |
 |---|---|
@@ -3875,6 +3962,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -3990,6 +4078,11 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.DELIBERATE.CAUSAL_ESCALATION | CONTRACT.RUNTIME.DELIBERATION | §68 | an effort escalation must record the observed condition that triggered it | SEALED |
 | CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS | CONTRACT.RUNTIME.DELIBERATION | §68 | no project mutation occurs between deliberation entry and the AUTHORIZE grant | SEALED |
 | CLAUSE.INVARIANT.LEDGER_VERIFIABLE | CONTRACT.RUNTIME.INVARIANTS | §67 | invariants are verified from the event ledger, not asserted in prose | SEALED |
+| CLAUSE.INTEGRATION.REFERENCE_NOT_REDEFINITION | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | the boundary envelope references specialized contracts and does not redefine them | SEALED |
+| CLAUSE.INTEGRATION.AUTHORITY_EXPLICIT | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | every applicable boundary names its deterministic authority references | SEALED |
+| CLAUSE.INTEGRATION.NO_FABRICATED_EVIDENCE | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | a boundary cannot treat predicted, simulated, requested, stale, or invalidated output as verified evidence | SEALED |
+| CLAUSE.INTEGRATION.APPLICABILITY_EXPLICIT | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | an inapplicable chain stage requires an explicit applicability value and reason | SEALED |
+| CLAUSE.INTEGRATION.INVALIDATION_LINKED | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | §70 | downstream evidence and effects link to the identities that can invalidate them | SEALED |
 
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
@@ -4057,6 +4150,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
 | CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -4423,6 +4517,8 @@ Every preview panel state MUST be represented by a revision-bound `PreviewRevisi
 previewRevisionId
 projectId
 projectRevisionId
+activeBranchId
+promotionLineage
 checkpointId
 sourceFingerprint
 contractVersion
@@ -4433,6 +4529,9 @@ artifactId
 artifactFingerprint
 deviceId
 androidApiLevel
+deviceStateFingerprint
+applicationStateFingerprint
+environmentStateFingerprint
 previewMode
 executionTruth
 buildStatus
@@ -4446,7 +4545,7 @@ invalidatedReason
 evidenceIds
 ```
 
-A preview is current only when its project revision, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, and device state are compatible with the active session. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
+A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, device state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. “Newest revision” is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
 
 ### 69.5 Live preview panel layout
 
@@ -4458,7 +4557,7 @@ The default preview surface MUST show the Android application beside its executi
 | Revision header | Project revision, checkpoint, PreviewRevision, source fingerprint, artifact ID, and truth label |
 | Execution timeline | Contract stage, task, worker, skill, command, observation, and next action |
 | Build/install strip | Build variant, build status, install status, package ID, launch status, and timestamps |
-| Evidence drawer | Tests, screenshots, Logcat, accessibility, performance, security, and artifact evidence linked to the revision |
+| Evidence drawer | Tests, screenshots, Logcat, UI-hierarchy, accessibility, performance, security, and artifact evidence linked to the revision |
 | Recovery banner | Candidate failure, last-known-good revision, recovery strategy, and current recovery state |
 | Preview controls | Start, stop, reload, reinstall, capture, device selection, compare revision, and open evidence |
 
@@ -4495,7 +4594,7 @@ Nirman SHOULD expose meaningful validated stages rather than streaming every tok
 | Branding | AssetManifest integrated; asset preview observed; asset checks passed |
 | Navigation | Declared routes or destinations exercised on the device/emulator |
 | Core behavior | Acceptance scenarios observed and required assertions pass |
-| Data/integrations | Local or authorized integration tests and error states observed |
+| Data/integrations | Declared request/response schemas, local or authorized integration tests, operationality dimensions, and error states observed |
 | Android capabilities | Relevant permission, device API, background, or service behavior observed |
 | Quality revision | Independent visual, accessibility, security, performance, and regression results |
 | Release candidate | APK exists, checksum and artifact inspection pass, launch evidence is linked; optional AAB is included only when the declared packaging profile requires it |
@@ -4528,3 +4627,75 @@ The documentation contract and its verifier certify documentation identity, auth
 Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and emulator/device fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
 
 A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, emulator dialog, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
+
+## 70. Integration Boundary Contract
+
+**ContractId:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY` (see §67.8)
+
+This cross-cutting contract applies to operations that cross an IPC, process, worker, workspace, persistence, provider, device, artifact, credential, signing, external-service, or documentation-verification boundary. It is a reference envelope, not a replacement for any specialized contract. It MUST reference the authoritative payload schema, lifecycle state, authority, transaction, evidence, validation, and downstream-effect contracts rather than redefining them.
+
+```text
+IntegrationBoundaryContract
+- boundaryId
+- integrationBoundaryVersion
+- capabilityId
+- sourceEntityRef
+- destinationEntityRef
+- boundaryKind: ipc | process | worker | workspace | persistence |
+                 provider | device | artifact | external_service |
+                 credential | signing | documentation
+- sourceContractRef
+- payloadSchemaRef
+- responseSchemaRef
+- protocolVersion
+- adapterOrBridgeRef
+- adapterOrBridgeVersion
+- authorityRefs
+- stateProjectionRefs
+- operationRef
+- transactionDomain: local | device | external_effect | none
+- correlationId
+- causationId
+- idempotencyKey
+- permissionProfileRef
+- credentialReference
+- lifecyclePolicyRef
+- timeoutPolicy
+- cancellationPolicy
+- retryPolicy
+- compatibilityRef
+- observationRefs
+- evidenceRequirements
+- validationPolicyVersion
+- downstreamEffectRefs
+- invalidationDependencyRefs
+- failureRecoveryRef
+- applicability: required | optional | not_applicable
+- notApplicableReason
+```
+
+For an applicable boundary operation, the contract resolves this chain:
+
+```text
+SOURCE
+  → CONTRACT
+  → ADAPTER / BRIDGE
+  → AUTHORITY
+  → STATE
+  → OPERATION
+  → OBSERVATION
+  → EVIDENCE
+  → VALIDATION
+  → DOWNSTREAM EFFECT
+```
+
+`SOURCE`, `CONTRACT`, `ADAPTER / BRIDGE`, `AUTHORITY`, `STATE`, and `OPERATION` are references to the participating entities and their authoritative contracts. `OBSERVATION` and `EVIDENCE` MUST preserve the execution-truth distinction between `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, and `INVALIDATED`. `VALIDATION` resolves to the applicable independent validator and policy. `DOWNSTREAM EFFECT` records the resulting local commit, device state, external effect, projection update, artifact transition, or documentation-certification result.
+
+An inapplicable stage MUST be represented by `applicability: not_applicable` and a reason. A read-only in-process helper need not manufacture an external-effect record, but no boundary may use inapplicability to avoid a required permission, authority, evidence, compatibility, or invalidation link. A boundary envelope references `IntegrationOperationality`, `ExternalEffectRecord`, `PreviewRevision`, `OperationCapability`, `ProviderContextEnvelope`, `ArtifactSet`, `SigningIdentityBinding`, and `DocumentationCertificationReport` when those specialized contracts apply. It does not create a second lifecycle, transaction, evidence, preview, provider, skill, artifact, signing, or completion authority.
+
+Every boundary operation MUST be idempotent or explicitly non-idempotent with a declared compensation/reconciliation rule. Unknown outcomes MUST remain durable and MUST be reconciled before retrying an external or device effect. Cancellation propagates through the operation’s descendants. Timeout, retry, failure, recovery, validation, and invalidation references are required for every applicable boundary. The UI, model, worker, adapter, bridge, and verifier may propose or report outcomes but cannot approve a boundary effect or promote its downstream state.
+
+### 70.1 Acceptance criteria
+
+A boundary fixture must prove that source and destination identity, schema and protocol version, adapter or bridge, authority, operation, transaction domain, correlation and idempotency, lifecycle policy, observation, evidence, validation, downstream effect, failure/recovery, compatibility, and invalidation references are all resolvable. It must reject an envelope that redefines a specialized authority, fabricates verified evidence, retries an unknown external outcome without reconciliation, omits a required applicability reason, or allows a stale source or contract version to produce a current downstream effect.

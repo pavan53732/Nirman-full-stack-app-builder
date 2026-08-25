@@ -59,8 +59,9 @@ class Defects:
 
 
 def strip_fences(text):
-    """Remove fenced code blocks so format templates are not read as data."""
-    return re.sub(r"```.*?```", "", text, flags=re.S)
+    """Remove fenced examples and HTML comments from semantic parsing."""
+    text = re.sub(r"```.*?```", "", text, flags=re.S)
+    return re.sub(r"<!--.*?-->", "", text, flags=re.S)
 
 
 def load(root):
@@ -993,6 +994,7 @@ def check_semantic_documentation(docs, R, D):
         "integration operationality": "### 5.7.5 Required integration operationality",
         "external-effect reconciliation": "### 5.7.6 External-effect reconciliation",
         "completion predicate": "### 5.7.7 Completion predicate and illegal-state rules",
+        "integration boundary": "## 70. Integration Boundary Contract",
     }
     for subject, anchor in required_build_anchors.items():
         if anchor not in bs:
@@ -1022,11 +1024,33 @@ def check_semantic_documentation(docs, R, D):
         "ExternalEffectRecord": bs + ta,
         "UsageRecord": ta,
         "CompletionDecision": bs + ta,
+        "IntegrationBoundaryContract": bs + ta,
+        "BoundaryOperationProjection": bs + ta,
+        "UiHierarchyObservation": ta,
+        "SigningOperation": ta,
+        "CertificateInspection": ta,
+        "ExportVerificationRecord": ta,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
             D.add("semantic documentation", token,
                   f"required cross-entity contract token is missing: {token}")
+
+    if "## 74. Integration Boundary Implementation Contract" not in ta:
+        D.add("semantic documentation", "integration architecture boundary",
+              "technical architecture lacks the canonical integration-boundary implementation section")
+    if "## M107 — Integration boundary contract and wiring conformance" not in dev:
+        D.add("semantic documentation", "integration boundary milestone",
+              "development plan lacks the integration-boundary conformance milestone")
+    if "## ADR-194: Establish one canonical integration-boundary contract" not in dec:
+        D.add("semantic documentation", "integration boundary decision",
+              "decision log lacks the precedence decision for the canonical integration-boundary contract")
+    if "SOURCE\n  → CONTRACT\n  → ADAPTER / BRIDGE\n  → AUTHORITY\n  → STATE\n  → OPERATION\n  → OBSERVATION\n  → EVIDENCE\n  → VALIDATION\n  → DOWNSTREAM EFFECT" not in bs:
+        D.add("semantic documentation", "universal integration chain",
+              "canonical source-to-downstream-effect chain is missing")
+    if "CertificateInspection\n- inspectionId" not in ta:
+        D.add("semantic documentation", "certificate inspection schema",
+              "canonical CertificateInspection schema is missing")
 
     if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
         D.add("semantic documentation", "runtime certification boundary",
