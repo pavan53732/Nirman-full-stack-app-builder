@@ -1,0 +1,20 @@
+{
+  "fixtureId": "M2-VERTICAL-TRACE-001",
+  "taskIdentity": "m2-task-0001",
+  "projectIdentity": "m2-project-0001",
+  "eventSequences": [1, 2, 3, 4],
+  "replayedEventCount": 4,
+  "pausePersisted": true,
+  "resumePersisted": true,
+  "cancellationReachedControlPlane": true,
+  "workerCancellationRequested": true,
+  "checkpointReloaded": "checkpoint-paused",
+  "staleLeaseFenced": true,
+  "restartRecoveryState": "RECONCILING",
+  "recoveredFinalState": "CANCELLED",
+  "duplicateAndOutOfOrderEventsRejected": true,
+  "typedProjectionBoundaryObserved": true,
+  "productionReactUiRuntime": false,
+  "androidRuntime": false,
+  "evidenceStatus": "M2_FOUNDATION_TRACE_ONLY"
+}

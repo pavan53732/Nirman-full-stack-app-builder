@@ -17,7 +17,7 @@ The repository is now transitioning from the **specification and documentation-c
 | Windows Nirman desktop implementation | Initial presentation shell prototype; Tauri packaging and production host remain outstanding |
 | Rust/Tokio local control plane | Initial typed control-plane core implemented; authenticated supervisor integration remains outstanding |
 | React/TypeScript desktop UI | Initial Vite/React presentation shell implemented; control-plane IPC wiring remains outstanding |
-| Durable SQLite ledger and supervisor | Initial SQLite ledger and supervisor lifecycle prototypes implemented; production recovery remains outstanding |
+| Durable SQLite ledger and supervisor | Initial SQLite ledger and supervisor lifecycle prototypes implemented; M2 restart/reconciliation trace validated; production recovery remains outstanding |
 | Android synthesis and technology resolution | Fixture manifests and domain boundary only; runtime synthesis remains planned |
 | Android build, emulator/device preview, and testing | Specified; executable runtime integration not yet implemented |
 | APK delivery and optional declared AAB | Specified; runtime export implementation not yet implemented |
@@ -25,7 +25,7 @@ The repository is now transitioning from the **specification and documentation-c
 | Conformance mutation harness | Passing: 131/131 checks |
 | Windows `.exe` release | Not yet available; cross-compilation and Windows validation remain environment-dependent |
 
-Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage. It does not prove that Nirman can yet synthesize an Android app, launch an emulator, produce an APK, recover after a reboot, or install a Windows executable. The current Rust and frontend checks validate only the implementation foundation and do not substitute for runtime certification.
+Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage. It does not prove that Nirman can yet synthesize an Android app, launch an emulator, produce an APK, recover after a reboot, or install a Windows executable. The current Rust and frontend checks validate only the implementation foundation and do not substitute for runtime certification. The M2 foundation trace now proves file-backed ledger persistence, event replay, pause/resume/cancellation transitions, checkpoint reload, supervisor reconciliation, lease-fence replacement, and stale/out-of-order projection rejection. It does not prove production React/Tauri UI transport, Windows runtime behavior, Android runtime behavior, or full autonomous worker execution.
 
 ## Product boundary
 
@@ -212,6 +212,8 @@ The following distinctions are mandatory:
 | [`tools/verify_contract_graph.py`](tools/verify_contract_graph.py) | Documentation graph and semantic verifier |
 | [`tools/test_verify_contract_graph.py`](tools/test_verify_contract_graph.py) | Mutation/conformance harness for the verifier |
 | [`tools/check_m0.py`](tools/check_m0.py) | M0 repository/runtime foundation validator |
+| [`tools/check_m2_evidence.py`](tools/check_m2_evidence.py) | M2 foundation-trace evidence validator |
+| [`tests/evidence/m2_vertical_trace.json`](tests/evidence/m2_vertical_trace.json) | Machine-readable M2 foundation trace; not production UI or Android runtime proof |
 | [`tools/verify.sh`](tools/verify.sh) | Local Unix-like certification entry point |
 | [`tools/verify.ps1`](tools/verify.ps1) | Local Windows PowerShell certification entry point |
 
@@ -228,7 +230,7 @@ Before committing, run the local certification entry point:
 .\\tools\\verify.ps1             # Windows PowerShell
 ```
 
-The local command runs the documentation verifier, mutation/conformance suite, M0 foundation checks, Rust formatting/tests, frontend installation/build, and fixture validation. GitHub, GitHub Actions, hosted CI, and repository-host availability are not required for local development, runtime execution, certification, recovery, or local Android artifact production. Git remains optional source control; remote synchronization is performed only when explicitly requested.
+The local command runs the documentation verifier, mutation/conformance suite, M0 foundation checks, Rust formatting/tests, frontend installation/build, and fixture validation. GitHub, GitHub Actions, hosted CI, and repository-host availability are not required for local development, runtime execution, certification, recovery, or local Android artifact production. GitHub independence does not imply offline certification: dependency installation may use a configured package registry or cached dependencies. Git remains optional source control; remote synchronization is performed only when explicitly requested.
 
 Commit only the intended coherent change. Never commit secrets, raw credentials, keystore material, temporary migration scripts, unrelated files, or unreviewed generated artifacts. Push only when explicitly requested, then fetch the remote and verify that local `HEAD` and `origin/main` match.
 

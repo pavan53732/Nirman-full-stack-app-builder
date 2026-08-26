@@ -7,3 +7,9 @@ edition = "2021"
 
 [dependencies]
 nirman-domain = { path = "../nirman-domain" }
+nirman-storage = { path = "../nirman-storage" }
+rusqlite = { version = "0.29", features = ["bundled"] }
+
+[dev-dependencies]
+nirman-ipc = { path = "../nirman-ipc" }
+nirman-supervisor = { path = "../nirman-supervisor" }

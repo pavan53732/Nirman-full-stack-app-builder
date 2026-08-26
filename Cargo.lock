@@ -107,6 +107,10 @@ name = "nirman-control-plane"
 version = "0.1.0"
 dependencies = [
  "nirman-domain",
+ "nirman-ipc",
+ "nirman-storage",
+ "nirman-supervisor",
+ "rusqlite",
 ]
 
 [[package]]

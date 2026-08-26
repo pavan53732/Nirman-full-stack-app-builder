@@ -12,6 +12,8 @@ python3 tools/verify_contract_graph.py
 python3 tools/test_verify_contract_graph.py
 cargo fmt --all -- --check
 cargo test --workspace
+cargo test -p nirman-control-plane --test m2_vertical_trace
+python3 tools/check_m2_evidence.py
 (
   cd apps/desktop
   pnpm install --frozen-lockfile

@@ -18,6 +18,7 @@ pub enum ProductLifecycleState {
     Created,
     Planning,
     Implementing,
+    Paused,
     Previewing,
     Validating,
     Recovering,
@@ -57,6 +58,8 @@ pub enum PreviewTruth {
 pub enum CommandKind {
     SubmitInstruction,
     Reconnect,
+    PauseTask,
+    ResumeTask,
     CancelTask,
 }
 

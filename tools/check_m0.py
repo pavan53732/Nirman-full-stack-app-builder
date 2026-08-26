@@ -46,8 +46,15 @@ def main() -> int:
 
     workspace_text = workspace.read_text(encoding="utf-8")
     for crate in REQUIRED_CRATES:
+        crate_dir = ROOT / "crates" / crate
+        manifest = crate_dir / "Cargo.toml"
+        source = crate_dir / "src" / "lib.rs"
         if f'"crates/{crate}"' not in workspace_text:
-            raise SystemExit(f"M0 workspace is missing crate: {crate}")
+            raise SystemExit(f"M0 workspace is missing crate declaration: {crate}")
+        if not crate_dir.is_dir() or not manifest.is_file() or not source.is_file():
+            raise SystemExit(f"M0 declared crate is missing its directory, manifest, or source: {crate}")
+        if f'name = "{crate}"' not in manifest.read_text(encoding="utf-8"):
+            raise SystemExit(f"M0 crate manifest name does not match workspace identity: {crate}")
 
     fixture_ids: set[str] = set()
     for fixture_path in FIXTURES:
@@ -55,8 +62,10 @@ def main() -> int:
         fixture_ids.add(fixture["fixtureId"])
         if fixture["targetPlatforms"] != ["android"]:
             raise SystemExit(f"M0 fixture is not Android-only: {fixture_path}")
+        if not fixture.get("technology") or not fixture.get("purpose") or not fixture.get("requiredChecks"):
+            raise SystemExit(f"M0 fixture profile is incomplete: {fixture_path}")
         if fixture.get("synthetic") is True:
-            raise SystemExit(f"M0 Android fixture must describe a real project profile: {fixture_path}")
+            raise SystemExit(f"M0 Android fixture profile must not be marked synthetic: {fixture_path}")
 
     if len(fixture_ids) != len(FIXTURES):
         raise SystemExit("M0 fixture IDs must be unique")
@@ -72,7 +81,7 @@ def main() -> int:
     if package.get("private") is not True or package.get("scripts", {}).get("build") is None:
         raise SystemExit("M0 desktop package is missing private/build safeguards")
 
-    print(f"M0 foundation: PASS ({len(REQUIRED_CRATES)} Rust crates, {len(FIXTURES)} Android fixtures)")
+    print(f"M0 foundation: PASS ({len(REQUIRED_CRATES)} Rust crates, {len(FIXTURES)} Android fixture profiles and manifests)")
     return 0
 
 

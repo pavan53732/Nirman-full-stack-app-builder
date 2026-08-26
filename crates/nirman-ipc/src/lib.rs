@@ -60,10 +60,78 @@ pub struct EventBatch {
     pub has_gap: bool,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct ProjectionReceiver {
+    snapshot: Option<ProjectionSnapshot>,
+    last_event_sequence: u64,
+    rejected_events: u64,
+}
+
+impl ProjectionReceiver {
+    pub fn observe_snapshot(&mut self, snapshot: ProjectionSnapshot) -> bool {
+        if self
+            .snapshot
+            .as_ref()
+            .is_some_and(|current| current.projection_revision >= snapshot.projection_revision)
+        {
+            return false;
+        }
+        self.last_event_sequence = snapshot.last_event_sequence;
+        self.snapshot = Some(snapshot);
+        true
+    }
+
+    pub fn observe_event(&mut self, event: &ControlEvent) -> bool {
+        if event.sequence != self.last_event_sequence.saturating_add(1) {
+            self.rejected_events = self.rejected_events.saturating_add(1);
+            return false;
+        }
+        self.last_event_sequence = event.sequence;
+        true
+    }
+
+    pub fn snapshot(&self) -> Option<&ProjectionSnapshot> {
+        self.snapshot.as_ref()
+    }
+
+    pub fn rejected_events(&self) -> u64 {
+        self.rejected_events
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use nirman_domain::{CommandKind, ProjectId, Revision};
+
+    #[test]
+    fn projection_receiver_rejects_duplicate_and_out_of_order_events() {
+        let project = ProjectId("project-1".into());
+        let snapshot = ProjectionSnapshot {
+            project_id: project.clone(),
+            projection_revision: Revision(1),
+            task_state: nirman_domain::ProductLifecycleState::Planning,
+            continuity_state: nirman_domain::BackgroundContinuityState::ActiveBackground,
+            preview_truth: nirman_domain::PreviewTruth::Requested,
+            current_source_revision: Revision(1),
+            last_event_sequence: 1,
+            last_known_good_ref: None,
+        };
+        let mut receiver = ProjectionReceiver::default();
+        assert!(receiver.observe_snapshot(snapshot));
+        let event = ControlEvent {
+            event_id: "event-2".into(),
+            sequence: 2,
+            project_id: project.clone(),
+            task_id: None,
+            kind: "PauseTask".into(),
+            payload: String::new(),
+            source_revision: Revision(1),
+        };
+        assert!(receiver.observe_event(&event));
+        assert!(!receiver.observe_event(&event));
+        assert_eq!(receiver.rejected_events(), 1);
+    }
 
     #[test]
     fn request_and_subscription_share_project_scoped_auth_context() {

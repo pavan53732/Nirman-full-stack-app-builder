@@ -4,12 +4,17 @@ $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
 Write-Host "== Nirman local certification =="
+$Python = Get-Command python3 -ErrorAction SilentlyContinue
+if (-not $Python) { $Python = Get-Command python -ErrorAction SilentlyContinue }
+if (-not $Python) { throw "Python 3 is required for local certification" }
 git diff --check
-python3 tools/check_m0.py
-python3 tools/verify_contract_graph.py
-python3 tools/test_verify_contract_graph.py
+& $Python.Source tools/check_m0.py
+& $Python.Source tools/verify_contract_graph.py
+& $Python.Source tools/test_verify_contract_graph.py
 cargo fmt --all -- --check
 cargo test --workspace
+cargo test -p nirman-control-plane --test m2_vertical_trace
+& $Python.Source tools/check_m2_evidence.py
 Push-Location apps/desktop
 pnpm install --frozen-lockfile
 pnpm build
