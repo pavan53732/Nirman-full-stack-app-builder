@@ -1,0 +1,9 @@
+{
+  "workspaceRoot": "%LOCALAPPDATA%\\Nirman\\workspaces",
+  "ledgerPath": "%LOCALAPPDATA%\\Nirman\\nirman.sqlite3",
+  "artifactRoot": "%LOCALAPPDATA%\\Nirman\\artifacts",
+  "logRoot": "%LOCALAPPDATA%\\Nirman\\logs",
+  "executionMode": "LOCAL_WINDOWS",
+  "allowRemoteExecution": false,
+  "allowExternalDeployment": false
+}

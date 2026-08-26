@@ -22,7 +22,7 @@ The team should keep the master specification stable as the product contract, up
 
 | Milestone | Focus | Main output |
 |---|---|---|
-| M0 | Repository and engineering foundation | Source repository, conventions, CI, fixture projects |
+| M0 | Repository and engineering foundation | Source repository, conventions, local certification, fixture projects |
 | M1 | Desktop shell and local workspace | Windows application shell and project manager |
 | M2 | Control plane and persistent state | Background task daemon, SQLite state, event stream |
 | M3 | Provider and model runtime | Provider profiles, keychain, streaming, usage telemetry |
@@ -75,16 +75,16 @@ Create the source repository and define the code-quality baseline before impleme
 | Work item | Acceptance condition |
 |---|---|
 | Repository layout | Modules follow the architecture boundaries |
-| TypeScript and Rust conventions | Formatting, linting, and type checks run locally and in CI |
+| TypeScript and Rust conventions | Formatting, linting, and type checks run through the local certification command |
 | Configuration model | Development, test, and production settings are separate |
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |
 | Test fixtures | At least three representative Android projects exist |
 | Security baseline | Secret files are excluded from logs and test fixtures |
-| CI pipeline | Unit tests and static checks run on every change |
+| Local certification pipeline | Documentation, foundation, Rust, frontend, fixture, and static checks run through the local certification command |
 
 ### Exit gate
 
-A clean checkout can install dependencies, run static checks, execute unit tests, and start the development shell without manually editing configuration files.
+A clean checkout can install dependencies, run local static checks, execute unit tests, validate Android fixtures, and start the development shell without manually editing configuration files. GitHub, GitHub Actions, or any hosted CI service is not required for this gate.
 
 ---
 

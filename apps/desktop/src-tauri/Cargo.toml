@@ -1,0 +1,10 @@
+[package]
+name = "nirman-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nirman-control-plane = { path = "../../../crates/nirman-control-plane" }
+nirman-domain = { path = "../../../crates/nirman-domain" }

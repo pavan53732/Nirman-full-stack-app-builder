@@ -70,7 +70,7 @@ Nirman is a **Windows-first desktop application** for building Android applicati
 | AI providers | Cloud or local, user configured | Planning, coding, reasoning, vision, embeddings, or other model services |
 | Code execution | Local Windows machine | Workspace mutation, tools, builds, emulators, devices, tests, and artifact creation |
 
-No implementation may add web, server, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, or remote build execution as a generated target or execution environment. Supporting services and JavaScript tooling may exist only as dependencies of an Android project or Nirman’s local implementation.
+No implementation may add a hosted web/server product, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, remote build execution, or any non-Android generated target. Local Nirman control-plane and supervisor processes, Android-internal development servers, JavaScript bundlers, and supporting services are permitted implementation components when they remain local and do not become independent generated product targets.
 
 Nirman must remain instruction-driven. The user describes the Android application and may provide screenshots or assets. The resolver selects and composes the required Android technologies. Do not expose a fixed template catalog as the primary creation path or narrow the product to one framework. Internal bootstraps are implementation details and cannot become user-facing product limits.
 
@@ -95,7 +95,7 @@ The authoritative local control plane owns task state, workers, leases, events, 
 | Completion evaluator | Sole authority for user-goal completion |
 | Model and agent layer | Planning, reasoning, delegation, interpretation, and proposals only |
 
-If an implementation needs a new authority name, first determine whether it is an alias for an existing authority. New authorities require a canonical contract, scope, precedence, persistence, lifecycle, decision rights, forbidden powers, ADR, milestone, test, and evidence identity.
+If an implementation needs a new authority name, first determine whether it is an alias for an existing authority. The continuity aliases are fixed: `SupervisorAuthority` means the existing supervisor/process-supervision authority; `LeaseAuthority` means `WorkspaceLeaseManager` and lease/fencing control; `RecoveryAuthority` remains the canonical recovery/reconciliation owner; `DeviceAuthority` means the existing device-session/device-operation authority; and `ProviderOperationalityAuthority` means the existing integration/provider operationality authority. Export labels `SigningAuthority`, `ValidationAuthority`, `PromotionAuthority`, and `ExternalEffectCoordinator` are aliases for the existing signing-policy, evidence/validation, `PreviewPromotionGate`, and external-effect transaction/reconciliation owners. These aliases cannot create second authorities or override lifecycle, policy, evidence, artifact, preview, or completion decisions. Any genuinely new authority requires a canonical contract, scope, precedence, persistence, lifecycle, decision rights, forbidden powers, ADR, milestone, test, and evidence identity.
 
 ## 4. No private chain-of-thought persistence
 
@@ -195,7 +195,7 @@ React presentation/ViewModel
 
 Responses and errors must be typed, correlation-safe, retry-aware, and free of secrets. A duplicate idempotency key returns the prior result only when the request fingerprint matches. A conflicting duplicate is rejected. Stale commands, schema mismatches, authentication failures, permission denials, cancellations, timeouts, replay gaps, supervisor restarts, and unavailable dependencies must have distinct error and recovery behavior.
 
-The authoritative `ProjectionSnapshot` must carry typed task, worker, preview, artifact, evidence, delivery, and background-continuity projections. Optimistic input and pending-command state may display intent, but cannot modify task, worker, preview, artifact, evidence, policy, signing, delivery, or completion truth.
+The authoritative `ProjectionSnapshot` must carry typed task, worker, preview, artifact, evidence, delivery, and background-continuity projections. `backgroundContinuityProjection` carries `BackgroundContinuityRecord`, `ContinuityDimensions`, state version, aggregate state, authority decision, and last-known-good reference. `deliveryProjection` carries `ExportVerificationRecord`, export state, delivery kind, destination kind, artifact fingerprint, and post-copy verification reference. `UI_DISCONNECTED` may update only UI connection state; host events update host state; device events update device availability and invalidate device-bound preview/evidence; provider events update provider availability; and checkpoint/reconciliation events update recovery dimensions. No continuity event may directly write completion, promotion, or verification truth. Optimistic input and pending-command state may display intent, but cannot modify task, worker, preview, artifact, evidence, policy, signing, delivery, or completion truth.
 
 ## 9. Preview and evidence truth
 
@@ -229,9 +229,9 @@ Every evidence item must identify its source event, operation, session, project 
 
 ## 10. Background continuity and recovery
 
-`BackgroundContinuityState` is an orthogonal interruption and availability substate. It is not a replacement for product lifecycle, recovery authority, or completion authority. Product lifecycle remains authoritative for planning, implementation, validating, recovering, packaging, completion, cancellation, and terminal failure.
+`BackgroundContinuityState` is an orthogonal interruption and availability substate. It is not a replacement for the canonical `ProductLifecycleState`, recovery authority, or completion authority. `ProductLifecycleState` remains authoritative for planning, implementation, validating, recovering, packaging, completion, cancellation, and terminal failure.
 
-Continuity dimensions include UI connection, host state, device availability, provider availability, lease state, and reconciliation state. They change independently. The aggregate state must be derived by deterministic precedence and must not hide concurrent conditions. At minimum, preserve the distinction between:
+`ContinuityDimensions` include UI connection, host state, device availability, provider availability, lease state, and reconciliation state. They change independently. The aggregate state must be derived by the exact deterministic precedence defined in the master continuity contract and must not hide concurrent conditions. At minimum, preserve the distinction between:
 
 ```text
 ACTIVE_BACKGROUND
@@ -279,7 +279,7 @@ Deployment delivery and source access are separate branches:
 | Declared AAB delivery | `DECLARED_AAB_OPTIONAL` | Optional profile-specific artifact with independent evidence |
 | Workspace/ZIP/Git access | `SOURCE_ACCESS_ONLY` | User-owned source access; never deployment completion |
 
-A deployment export requires a verified declared artifact, matching packaging profile, build and artifact evidence, signing identity binding, validation decision, promotion decision, approved destination, source/destination identity, source/destination hashes, byte count, and durable post-copy verification. The only deployment destination in the current scope is the approved local Windows filesystem; external deployment destinations are rejected.
+A deployment export requires a verified declared artifact, matching packaging profile, artifact kind, source revision, checkpoint, source and destination file identities, request fingerprint, idempotency key, build and artifact evidence, signing identity binding, validation decision, promotion decision, approved destination, source/destination hashes, byte count, `reconciliationReference`, `failureEvidenceId`, and durable post-copy verification. The only deployment destination in the current scope is the approved local Windows filesystem; external deployment destinations are rejected.
 
 The canonical export record must distinguish:
 
@@ -307,6 +307,8 @@ Adaptive resource management may compact context, reduce concurrency, switch amo
 ## 15. Documentation and implementation-status rules
 
 Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working Tauri UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, emulator/device execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
+
+Local certification is authoritative for repository engineering validation. Run `tools/verify.sh` on Unix-like development environments or `tools/verify.ps1` on Windows; both must execute the same local checks for documentation, M0 foundation, Rust formatting/tests, frontend installation/build, and fixture validation. Git hosting and hosted CI providers—including GitHub Actions—are optional source-control or convenience services. They are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact.
 
 Never change a capability from `PLANNED` or an environment-qualified status to `SUPPORTED` based on prose, a model response, a worker claim, a successful documentation verifier, or an unexecuted test identity. Runtime support requires real source, executable fixtures, and evidence.
 
@@ -347,9 +349,11 @@ Before committing:
 ```text
 git status --short
 git diff --check
-python3 tools/verify_contract_graph.py
-python3 tools/test_verify_contract_graph.py
+./tools/verify.sh                 # Unix-like environments
+.\\tools\\verify.ps1             # Windows PowerShell
 ```
+
+The local certification entry point is the preferred gate because it orchestrates the complete available validation sequence. Direct verifier, conformance, Rust, frontend, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
 
 A commit must contain only the intended coherent change, use a descriptive message, and never include secrets, generated credentials, temporary migration scripts, unrelated files, or unreviewed artifacts. Push only when explicitly requested. After pushing, fetch the remote and confirm that local `HEAD` and `origin/main` match.
 

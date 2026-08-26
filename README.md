@@ -8,24 +8,24 @@ Nirman is a **Windows-first desktop application** that lets a user describe an A
 
 ## Current status
 
-The repository is currently at the **specification and documentation-certification stage**. It contains the accepted product specification, technical architecture, development plan, decision log, documentation verifier, mutation/conformance harness, agent rules, and this project guide. It does not yet contain the production Tauri UI, Rust control plane, Android project generator, emulator integration, or Windows installer source.
+The repository is now transitioning from the **specification and documentation-certification stage** into the M0–M2 implementation foundation. M0 is now scaffolded and validated, while M1/M2 contain initial desktop-shell, typed-domain, SQLite-ledger, IPC, and supervisor prototypes. It contains the accepted product specification, technical architecture, development plan, decision log, documentation verifier, mutation/conformance harness, agent rules, a Vite/React desktop shell prototype, a Rust workspace, typed domain values, a SQLite ledger prototype, a supervisor lifecycle prototype, Android fixture manifests, and this project guide. The implementation is not yet production-complete: authenticated Tauri IPC, full worker orchestration, Android project synthesis, emulator/device integration, runtime certification, signing, and the Windows installer remain outstanding.
 
 | Area | Current state |
 |---|---|
 | Product and architecture specification | Defined and cross-linked |
 | Android-only generated-target invariant | Defined and machine-checked in the documentation graph |
-| Windows Nirman desktop implementation | Not yet implemented |
-| Rust/Tokio local control plane | Specified; runtime source not yet implemented |
-| React/TypeScript desktop UI | Specified; runtime source not yet implemented |
-| Durable SQLite ledger and supervisor | Specified; runtime source not yet implemented |
-| Android synthesis and technology resolution | Specified; runtime source not yet implemented |
+| Windows Nirman desktop implementation | Initial presentation shell prototype; Tauri packaging and production host remain outstanding |
+| Rust/Tokio local control plane | Initial typed control-plane core implemented; authenticated supervisor integration remains outstanding |
+| React/TypeScript desktop UI | Initial Vite/React presentation shell implemented; control-plane IPC wiring remains outstanding |
+| Durable SQLite ledger and supervisor | Initial SQLite ledger and supervisor lifecycle prototypes implemented; production recovery remains outstanding |
+| Android synthesis and technology resolution | Fixture manifests and domain boundary only; runtime synthesis remains planned |
 | Android build, emulator/device preview, and testing | Specified; executable runtime integration not yet implemented |
 | APK delivery and optional declared AAB | Specified; runtime export implementation not yet implemented |
 | Documentation certification | Passing |
 | Conformance mutation harness | Passing: 131/131 checks |
-| Windows `.exe` release | Not yet available |
+| Windows `.exe` release | Not yet available; cross-compilation and Windows validation remain environment-dependent |
 
-Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage. It does not prove that Nirman can yet build an Android app, launch an emulator, produce an APK, recover after a reboot, or install a Windows executable.
+Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage. It does not prove that Nirman can yet synthesize an Android app, launch an emulator, produce an APK, recover after a reboot, or install a Windows executable. The current Rust and frontend checks validate only the implementation foundation and do not substitute for runtime certification.
 
 ## Product boundary
 
@@ -200,12 +200,20 @@ The following distinctions are mandatory:
 | Path | Purpose |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Binding rules for all agents and implementation work |
+| [`Cargo.toml`](Cargo.toml) | Rust workspace definition for the control-plane and runtime crates |
+| [`apps/desktop/`](apps/desktop/) | Vite/React presentation shell and Tauri desktop-host metadata |
+| [`crates/`](crates/) | Rust domain, control-plane, storage, IPC, supervisor, and runtime crate boundaries |
+| [`config/runtime.example.json`](config/runtime.example.json) | Non-secret local execution configuration example |
+| [`fixtures/`](fixtures/) | Android, runtime, recovery, and preview fixture manifests |
 | [`nirman-build-spec.md`](nirman-build-spec.md) | Product requirements, scope, contracts, evidence, delivery policy, and invariants |
 | [`nirman-technical-architecture.md`](nirman-technical-architecture.md) | Implementation architecture, schemas, protocols, authorities, adapters, and runtime boundaries |
 | [`nirman-development-plan.md`](nirman-development-plan.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
 | [`nirman-decisions.md`](nirman-decisions.md) | Accepted ADRs, precedence, rationale, consequences, and supersession history |
 | [`tools/verify_contract_graph.py`](tools/verify_contract_graph.py) | Documentation graph and semantic verifier |
 | [`tools/test_verify_contract_graph.py`](tools/test_verify_contract_graph.py) | Mutation/conformance harness for the verifier |
+| [`tools/check_m0.py`](tools/check_m0.py) | M0 repository/runtime foundation validator |
+| [`tools/verify.sh`](tools/verify.sh) | Local Unix-like certification entry point |
+| [`tools/verify.ps1`](tools/verify.ps1) | Local Windows PowerShell certification entry point |
 
 ## Development workflow
 
@@ -213,14 +221,14 @@ Before implementation, inspect the current branch and working tree, read the rel
 
 During implementation, use durable checkpoints, authorized transactions, minimal diff-aware patches, typed worker handoffs, real diagnostics, and affected validation. Reconcile user edits, stale events, partial outcomes, leases, process descendants, device sessions, provider operations, and filesystem copies before resuming or retrying.
 
-Before committing, run:
+Before committing, run the local certification entry point:
 
 ```bash
-git status --short
-git diff --check
-python3 tools/verify_contract_graph.py
-python3 tools/test_verify_contract_graph.py
+./tools/verify.sh                 # Unix-like environments
+.\\tools\\verify.ps1             # Windows PowerShell
 ```
+
+The local command runs the documentation verifier, mutation/conformance suite, M0 foundation checks, Rust formatting/tests, frontend installation/build, and fixture validation. GitHub, GitHub Actions, hosted CI, and repository-host availability are not required for local development, runtime execution, certification, recovery, or local Android artifact production. Git remains optional source control; remote synchronization is performed only when explicitly requested.
 
 Commit only the intended coherent change. Never commit secrets, raw credentials, keystore material, temporary migration scripts, unrelated files, or unreviewed generated artifacts. Push only when explicitly requested, then fetch the remote and verify that local `HEAD` and `origin/main` match.
 
@@ -236,7 +244,7 @@ The recommended build sequence is deliberately vertical and evidence-driven:
 6. Add repair, reconciliation, background continuity, multi-worker coordination, Android technology profiles, and broader fixture coverage.
 7. Package and validate Nirman itself as a Windows `.exe`.
 
-This order prevents the project from becoming a superficial chat interface that claims to build apps without durable execution, real runtime observation, or evidence-backed completion.
+This order prevents the project from becoming a superficial chat interface that claims to build apps without durable execution, real runtime observation, or evidence-backed completion. The implementation and certification workflow is local-first and does not depend on GitHub Actions.
 
 ## License and project status
 

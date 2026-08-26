@@ -1,0 +1,7 @@
+{
+  "fixtureId": "ANDROID-REACT-NATIVE-001",
+  "targetPlatforms": ["android"],
+  "technology": "react-native",
+  "purpose": "Resolve and validate an Android JavaScript/native project profile",
+  "requiredChecks": ["technology_plan", "native_bridge_boundary", "build", "preview_truth"]
+}

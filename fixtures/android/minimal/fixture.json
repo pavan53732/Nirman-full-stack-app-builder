@@ -1,0 +1,7 @@
+{
+  "fixtureId": "ANDROID-MINIMAL-001",
+  "targetPlatforms": ["android"],
+  "technology": "native",
+  "purpose": "Build and install a minimal Android project shell",
+  "requiredChecks": ["source_revision", "build", "install", "launch"]
+}

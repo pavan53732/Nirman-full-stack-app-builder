@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/nirman-control-plane",
+  "crates/nirman-domain",
+  "crates/nirman-storage",
+  "crates/nirman-ipc",
+  "crates/nirman-supervisor",
+  "crates/nirman-agents",
+  "crates/nirman-workers",
+  "crates/nirman-policy",
+  "crates/nirman-tools",
+  "crates/nirman-providers",
+  "crates/nirman-project",
+  "crates/nirman-android",
+  "crates/nirman-preview",
+  "crates/nirman-evidence",
+  "crates/nirman-recovery",
+  "crates/nirman-artifacts",
+  "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+authors = ["Nirman contributors"]
+license = "UNLICENSED"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"

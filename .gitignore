@@ -7,3 +7,16 @@
 # Python bytecode from running the verifier and its mutation battery.
 __pycache__/
 *.pyc
+
+# Rust and desktop build outputs.
+/target/
+**/target/
+
+# Frontend dependencies and build outputs.
+node_modules/
+dist/
+.vite/
+
+# Local runtime state and generated task artifacts.
+.runtime/
+.task-data/
