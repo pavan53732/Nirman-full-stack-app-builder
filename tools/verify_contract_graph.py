@@ -1245,6 +1245,37 @@ def check_semantic_documentation(docs, R, D):
     for token, text, subject in protocol_tokens:
         if token not in text:
             D.add("semantic documentation", subject, f"frontend-control-plane requirement is missing: {token}")
+    continuity_tokens = (
+        ("## 77. Background Continuity Contract", bs, "background continuity authority"),
+        ("## 82. Background Continuity Implementation Contract", ta, "background continuity architecture"),
+        ("## M116 — Background continuity and interruption recovery", dev, "background continuity milestone"),
+        ("## ADR-202: Canonical background continuity state machine", dec, "background continuity decision"),
+        ("BackgroundContinuityRecord", bs + ta, "background continuity schema"),
+        ("ContinuityDimensions", bs + ta, "continuity dimensions schema"),
+        ("ACTIVE_BACKGROUND | UI_DISCONNECTED | HOST_SUSPENDED", bs + ta, "background continuity state vocabulary"),
+        ("unknown outcome", bs + ta, "background continuity reconciliation"),
+        ("backgroundContinuityProjection", bs + ta, "background continuity projection wiring"),
+    )
+    for token, text, subject in continuity_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"background-continuity requirement is missing: {token}")
+    export_tokens = (
+        ("## 78. APK Export Provenance Contract", bs, "APK export authority"),
+        ("## 83. APK Export Provenance Implementation Contract", ta, "APK export architecture"),
+        ("## M117 — Local APK export provenance and delivery admission", dev, "APK export milestone"),
+        ("## ADR-203: Make local deployment export profile-bound and provenance-complete", dec, "APK export decision"),
+        ("CAP.ANDROID.APK_DELIVERY", bs, "APK delivery capability"),
+        ("deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY", bs + ta, "deployment delivery distinction"),
+        ("destinationKind: LOCAL_WINDOWS_FILESYSTEM | USER_APPROVED_SOURCE_LOCATION", bs + ta, "deployment destination policy"),
+        ("signingIdentityBindingId", bs + ta, "export signing lineage"),
+        ("ExportVerificationRecord\n- exportId", ta, "export verification schema"),
+        ("APKExportRecord", ta, "APK export implementation view"),
+        ("deliveryProjection", ta, "export delivery projection wiring"),
+        ("UNKNOWN → RECONCILING", ta, "export reconciliation lifecycle"),
+    )
+    for token, text, subject in export_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"APK-export requirement is missing: {token}")
 
     if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
         D.add("semantic documentation", "runtime certification boundary",

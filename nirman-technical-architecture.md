@@ -1761,6 +1761,9 @@ CostGovernanceRecord
 AgentTrustAssessment
 ContextCachePolicy
 AndroidRuntimeIntegrityObservation
+ContinuityDimensions
+BackgroundContinuityRecord
+APKExportRecord
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
@@ -4673,17 +4676,36 @@ ExportVerificationRecord
 - destinationHash
 - byteCount
 - destinationFileIdentity
-- exportOperationState: REQUESTED | COPYING | COPIED | VERIFIED |
-                        FAILED | BLOCKED
+- exportOperationState: REQUESTED | COPYING | COPIED | UNKNOWN |
+                        RECONCILING | VERIFIED | FAILED | BLOCKED
 - postCopyCheck
 - policyDecisionId
+- packagingProfileId
+- artifactKind: APK | AAB | SOURCE
+- sourceRevision
+- checkpointId
+- sourceFileIdentity
+- requestFingerprint
+- idempotencyKey
+- signingIdentityBindingId
+- validationDecisionId
+- promotionDecisionId
+- reconciliationReference
+- failureEvidenceId
+- deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY
+- destinationKind: LOCAL_WINDOWS_FILESYSTEM | USER_APPROVED_SOURCE_LOCATION
 - evidenceId
 - verifiedAt
 ```
 
+`ExportVerificationRecord` is the canonical implementation record for both source access and deployment delivery. For local deployment it is materialized as an `APKExportRecord` view with `artifactKind: APK`, `deploymentDelivery: REQUIRED_APK`, `destinationKind: LOCAL_WINDOWS_FILESYSTEM`, the verified signing identity, validation decision, promotion decision, source and destination identities, source and destination hashes, byte count, and post-copy evidence. A declared AAB uses the same record only when the immutable `PackagingProfile` is `APK_AND_AAB`; it never makes AAB mandatory. Source, ZIP, and Git exports use `SOURCE_ACCESS_ONLY` and cannot satisfy artifact delivery or completion.
+
 Local export is complete only when the authorized destination exists, its byte count and content hash match the source artifact, the path is within approved export scope, and post-copy verification evidence is durable. Export does not by itself prove signing, preview currency, integration functionality, documentation certification, or user-goal completion.
 
-### 74.4 Documentation certification report
+### 74.4 Deployment export admission and reconciliation
+The artifact export handler accepts a deployment request only after resolving the declared `PackagingProfile`, artifact kind, signing identity binding, validation decision, promotion decision, and destination policy. The only deployment destination is the approved local Windows filesystem. It creates one durable `ExportVerificationRecord` before copying, transitions through copy and post-copy verification states, and records source/destination identity and hash equality. A failed, interrupted, or unknown copy remains durable and is reconciled before retry. The handler may separately serve source/workspace, ZIP, or Git access, but that branch is marked `SOURCE_ACCESS_ONLY` and cannot emit deployment evidence or advance completion.
+
+### 74.5 Documentation certification report
 
 ```text
 DocumentationCertificationReport
@@ -4866,6 +4888,8 @@ ANR, device loss, unavailable Play Integrity, battery or Doze uncertainty, permi
 
 The implementation owns the `UICommandRegistry`, `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `UIErrorEnvelope`, and `EventSubscription` schemas defined by build specification §76. Rust validates schema version, authenticated installation identity, user scope, project scope, command capability, expected projection revision, idempotency key, causation, and sensitive-field policy before invoking a use case.
 
+The authoritative `ProjectionSnapshot` includes typed references for `taskProjection`, `workerProjection`, `previewProjection`, `artifactProjection`, `evidenceProjection`, `deliveryProjection`, and `backgroundContinuityProjection`. The continuity projection carries `BackgroundContinuityRecord`, its `stateVersion`, aggregate state, all continuity dimensions, authority decision reference, and last-known-good reference. The delivery projection carries `ExportVerificationRecord`, its export state, delivery kind, destination kind, artifact fingerprint, and post-copy verification reference. These are read-only projection fields; the frontend cannot synthesize or mutate them.
+
 ### 81.2 Command-to-domain wiring
 
 ```text
@@ -4901,3 +4925,31 @@ The generated Android project uses its own typed API client and `AndroidServiceI
 ### 81.6 Technical acceptance tests
 
 The implementation is accepted only when an executable fixture covers each initial command kind, authorization and scope denial, schema mismatch, duplicate and conflicting idempotency, stale projection, typed error mapping, cancellation, timeout, replay after reconnect, snapshot cutover, slow-client backpressure, supervisor restart, SQLite transaction rollback, and generated Android service error handling.
+
+## 82. Background Continuity Implementation Contract
+**Implements:** build spec §77 and `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
+**Canonical schema owner:** `CanonicalSchemaRegistry` in §36.1
+**Implementation owner:** the existing supervisor/process-supervision authority, `WorkspaceLeaseManager`, the existing checkpoint store, `RecoveryAuthority`, the existing device-session/device-operation manager, the existing integration/provider operationality manager, and the durable event store
+
+### 82.1 Canonical state and transition implementation
+The implementation persists `BackgroundContinuityRecord` with a monotonic `stateVersion` and independently persists `ContinuityDimensions`. A transition is admitted only from the current version, under the current supervisor instance, lease, fencing token, project branch, and applicable host, device, and provider session identities. Each accepted transition emits a durable event containing causation, authority decision, checkpoint or reconciliation reference, recovery action, and evidence status. The aggregate state is recomputed from all dimensions by the precedence rule in build spec §77; it is not assigned by whichever event arrived last. The frontend receives this record only through the typed authoritative projection.
+
+### 82.2 Recovery and reconciliation behavior
+UI disconnect is presentation-only. Supervisor restart and host restart reload the last checkpoint, fence abandoned leases, reconcile descendants and unknown outcomes, and resume only eligible operations. Sleep, hibernation, and shutdown use the same recovery path after host and toolchain revalidation. Device loss invalidates device-bound evidence and preview state while retaining the project checkpoint. Provider or network outage records provider operationality and applies declared retry/backoff/degradation rules. No recovery path may fabricate an observation, validation pass, artifact, or completion result.
+
+### 82.3 Projection, crosswalk, and runtime acceptance
+The projection maps continuity dimensions and the derived aggregate to truthful UI labels and preserves last-known-good preview and evidence references. `IntegrationOperationality.UNAVAILABLE` or `DEGRADED` maps to `providerAvailabilityState=UNAVAILABLE` or `DEGRADED`; an unavailable or reattaching device session maps to `deviceAvailabilityState=UNAVAILABLE` or `REATTACHING`; and device-bound preview/evidence is invalidated through the existing evidence dependency graph. These mappings do not rewrite the source operationality or runtime-integrity records. Stale events are rejected by state version, session identity, branch identity, and fencing token. Acceptance fixtures must cover UI closure/reconnect, supervisor restart, reboot, sleep/hibernate, shutdown, device reattachment, provider/network outage, unknown-outcome reconciliation, stale-event rejection, and safe failure. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
+
+## 83. APK Export Provenance Implementation Contract
+**Implements:** build spec §78 and `CONTRACT.RUNTIME.APK_EXPORT`
+**Canonical schema owner:** `ExportVerificationRecord` in §74.3
+**Implementation owner:** `ArtifactAuthority`, the existing signing-identity policy authority, `EvidenceAuthority`/`ValidationAuthority`, `PreviewPromotionGate` for preview promotion, the existing external-effect transaction/reconciliation authority, and the local Windows filesystem adapter. The labels `SigningAuthority`, `PromotionAuthority`, and `ExternalEffectCoordinator` are implementation aliases only and are not additional authorities.
+
+### 83.1 Deployment admission and profile binding
+The export handler resolves `packagingProfileId`, artifact kind, source revision, checkpoint, signing identity binding, validation decision, promotion decision, and destination policy before copying. It accepts only a verified declared APK for required local delivery or a declared AAB when the profile explicitly requests `APK_AND_AAB`. The deployment destination is `LOCAL_WINDOWS_FILESYSTEM`; any external deployment destination is rejected. Source, ZIP, and Git export is handled as `SOURCE_ACCESS_ONLY` and is never a deployment artifact.
+
+### 83.2 Durable copy operation
+The handler creates one `ExportVerificationRecord` before copying and records source identity, destination identity, source hash, destination hash, byte count, copy lifecycle, request fingerprint, idempotency key, and post-copy check. A copy that may have partially completed follows `UNKNOWN → RECONCILING`; destination inspection and source/destination identity and hash comparison must resolve it to `VERIFIED`, `FAILED`, or `BLOCKED` before retry. A hash or identity mismatch blocks completion and preserves the last-known-good artifact evidence. `reconciliationReference`, `failureEvidenceId`, and the corresponding external-effect or filesystem-inspection evidence are mandatory for the `UNKNOWN` and `RECONCILING` path.
+
+### 83.3 Runtime acceptance
+Acceptance fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds and external deployment destinations, source/destination hash equality, destination identity, interrupted-copy reconciliation, signing/validation/promotion linkage, and refusal to treat source access as deployment completion. Documentation certification proves contract presence only; runtime certification must execute the fixtures.

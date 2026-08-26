@@ -271,6 +271,9 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
 | CAP.ANDROID.LIVE_PREVIEW | Show a revision-bound, evidence-backed Android runtime preview and reconstruct it after interruption | CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-PSYNC-001 | EV-PSYNC-001 | PLANNED |
 | CAP.ANDROID.FRONTEND_CONTROL_PLANE | Operate the desktop UI through authenticated commands, durable projections, replay, and typed errors | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 | EV-FCP-001 | PLANNED |
+| CAP.ANDROID.APK_DELIVERY | Deliver a locally verified Android artifact with complete signing, validation, promotion, copy, and post-copy provenance | CONTRACT.RUNTIME.APK_EXPORT | TEST-APK-001 | EV-APK-001 | PLANNED |
+| CAP.ANDROID.BACKGROUND_CONTINUITY | Continue, recover, reconcile, or safely stop autonomous work across UI, host, device, and provider interruptions | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 | EV-BG-001 | PLANNED |
+| CAP.ANDROID.BACKGROUND_CONTINUITY | Continue, recover, reconcile, or safely stop autonomous work across UI, host, device, and provider interruptions | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 | EV-BG-001 | PLANNED |
 | CAP.ANDROID.BUDGETED_AUTONOMY | Continue autonomous Android work under explicit token, duration, cost, and resource governance | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
 | CAP.ANDROID.TRUSTED_EXTENSIONS | Use skills, MCP-compatible tools, and plugins only after trust, provenance, permission, and revocation checks | CONTRACT.RUNTIME.AGENT_TRUST | TEST-TRUST-001 | EV-TRUST-001 | PLANNED |
 | CAP.ANDROID.CONTEXT_GOVERNANCE | Compact and cache context without evicting constraints, corrupting lineage, or hiding provider telemetry | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | TEST-CONTEXT-001 | EV-CONTEXT-001 | PLANNED |
@@ -4006,6 +4009,8 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | BS §75 | — | TA §80 | ADR-200 | M114 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76 | — | TA §81 | ADR-201 | M115 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | BS §77 | — | TA §82 | ADR-202 | M116 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.APK_EXPORT | BS §78 | — | TA §83 | ADR-203 | M117 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4143,6 +4148,12 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.FCP.TYPED_FAILURES | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | a failed UI command returns a typed error with correlation, retryability, diagnostic reference, and authority decision without exposing secrets | SEALED |
 | CLAUSE.FCP.REPLAY_CONTINUITY | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | subscription replay uses a durable sequence and snapshot cutover; gaps freeze advancement until continuity is restored | SEALED |
 | CLAUSE.FCP.PROJECTION_SEPARATION | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | UI optimistic input and pending-command state cannot mutate authoritative domain, evidence, preview, or policy projection | SEALED |
+| CLAUSE.CONTINUITY.NO_UI_DEPENDENCY | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | §77 | eligible autonomous work does not require an open or connected UI and may continue from durable state | SEALED |
+| CLAUSE.CONTINUITY.RECOVER_OR_STOP | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | §77 | interruption recovery either resumes from a durable checkpoint, reconciles an unknown outcome, requests an explicitly required user decision, or stops safely | SEALED |
+| CLAUSE.CONTINUITY.TRUTHFUL_STATE | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | §77 | a suspended, offline, lost, or unreconciled condition cannot be projected as active progress, verified evidence, or completion | SEALED |
+| CLAUSE.EXPORT.PROFILE_BOUND | CONTRACT.RUNTIME.APK_EXPORT | §78 | deployment delivery exports only a verified artifact allowed by the declared PackagingProfile and destination policy; source access remains a separate operation | SEALED |
+| CLAUSE.EXPORT.HASH_AND_IDENTITY | CONTRACT.RUNTIME.APK_EXPORT | §78 | local APK delivery records source and destination identity, byte count, hashes, signing binding, validation and promotion decisions, and post-copy verification | SEALED |
+| CLAUSE.EXPORT.SOURCE_NOT_DELIVERY | CONTRACT.RUNTIME.APK_EXPORT | §78 | workspace, ZIP, and Git access never satisfies deployment-artifact delivery or Android completion by itself | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -4216,6 +4227,8 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | CAP.ANDROID.FRONTEND_CONTROL_PLANE | BS §76 | BS §76 | TA §81 | TA §81.1 | BS §76 | TA §81.2 | TA §81.3 | ADR-201 | M115 | TEST-FCP-001 | EV-FCP-001 |
+| CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
+| CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -5083,11 +5096,11 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `preview.promote` | Request candidate promotion | Preview promotion and evidence authority | Device | Promotion decision projection |
 | `validation.run` | Run declared checks | Verification and policy authority | Local or device | Validation and evidence projection |
 | `artifact.build` | Build a declared Android artifact | Toolchain and artifact authority | Local | Build and artifact projection |
-| `artifact.export` | Export a verified source or declared artifact | Artifact and external-effect authority | Local or external | Delivery and export projection |
+| `artifact.export` | Export a verified source or declared artifact; deployment delivery is profile-bound | Artifact and external-effect authority | Local | Delivery and export projection |
 | `provider.test` | Test a configured provider profile | Provider and credential policy authority | External | Provider operationality projection |
 | `settings.update_provider` | Update a provider profile | Credential and policy authority | Local | Settings and provider projection |
 
-Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins.
+For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins.
 
 ### 76.2 Response and error envelopes
 
@@ -5165,3 +5178,126 @@ A generated Android application that uses a supporting API, authentication servi
 ### 76.6 Acceptance criteria
 
 The protocol is accepted only when fixtures prove authenticated command admission, project-scope rejection, idempotent duplicate handling, stale projection rejection, typed error rendering, cancellation, timeout, reconnect, snapshot cutover, event-gap recovery, backpressure, SQLite transaction ownership, projection reconstruction, and generated Android service error normalization.
+
+## 77. Background Continuity Contract
+**ContractId:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` (see §67.8)
+
+This contract makes background autonomy explicit across user-interface closure, UI restart, supervisor restart, host reboot, sleep or hibernation, shutdown, Android device loss, and provider or network outage. It centralizes continuity truth that is otherwise distributed across the supervisor, event ledger, lease, checkpoint, recovery, and reconnect contracts. `BackgroundContinuityState` is an orthogonal interruption and availability substate; it does not replace `ProductLifecycleState`, does not own `CompletionDecision`, and does not create a second recovery or completion authority. It does not make the model an authority and it does not permit progress to be inferred from elapsed time.
+
+The existing product lifecycle remains authoritative for `Created`, `Planning`, `Recovering`, `Packaging`, `Completed`, cancellation, and terminal failure. Continuity records whether that lifecycle can currently advance and how it must recover. `BackgroundContinuityState.COMPLETED` is permitted only as a derived mirror after the existing completion authority commits `CompletionDecision=COMPLETED`; continuity alone can never complete a task.
+
+### 77.1.1 Orthogonal continuity dimensions and aggregate precedence
+```text
+ContinuityDimensions
+- uiConnectionState: CONNECTED | DISCONNECTED
+- hostState: ONLINE | SUSPENDED | OFFLINE | RECOVERING
+- deviceAvailabilityState: AVAILABLE | UNAVAILABLE | REATTACHING
+- providerAvailabilityState: AVAILABLE | DEGRADED | UNAVAILABLE | USER_REQUIRED
+- leaseState: HELD | EXPIRED | FENCED | REACQUIRING
+- reconciliationState: NOT_REQUIRED | REQUIRED | IN_PROGRESS | RESOLVED | BLOCKED
+```
+
+The dimensions change independently. The displayed aggregate is deterministic and cannot hide a stronger condition. Aggregate precedence is:
+
+```text
+SAFELY_FAILED
+> USER_REQUIRED
+> RECONCILING
+> RECOVERING
+> HOST_OFFLINE
+> HOST_SUSPENDED
+> DEVICE_UNAVAILABLE
+> PROVIDER_UNAVAILABLE
+> UI_DISCONNECTED
+> ACTIVE_BACKGROUND
+> COMPLETED (only when ProductLifecycleState and CompletionDecision agree)
+```
+
+A lower-precedence condition may remain recorded while a higher-precedence condition is active. Clearing one condition recomputes the aggregate from all current dimensions; it never blindly returns to `ACTIVE_BACKGROUND`.
+
+### 77.1 Canonical continuity record and state machine
+```text
+BackgroundContinuityRecord
+- continuityId
+- projectId
+- taskId
+- branchId
+- lastDurableEventId
+- lastCheckpointId
+- supervisorInstanceId
+- hostSessionId
+- deviceSessionId
+- providerSessionId
+- productLifecycleStateRef
+- continuityDimensions
+- aggregateState: ACTIVE_BACKGROUND | UI_DISCONNECTED | HOST_SUSPENDED |
+                  HOST_OFFLINE | DEVICE_UNAVAILABLE | PROVIDER_UNAVAILABLE |
+                  RECOVERING | RECONCILING | USER_REQUIRED | SAFELY_FAILED |
+                  COMPLETED
+- interruptionCause
+- resumeEligibility: ELIGIBLE | WAIT_FOR_HOST | WAIT_FOR_DEVICE |
+                     WAIT_FOR_PROVIDER | RECONCILE_REQUIRED | USER_REQUIRED |
+                     NOT_ELIGIBLE
+- requiredRecoveryActions
+- leaseReference
+- fencingToken
+- transitionEventId
+- authorityDecisionId
+- checkpointReference
+- reconciliationReference
+- lastKnownGoodReference
+- evidenceStatus
+- evidenceReferences
+- stateVersion
+- updatedAt
+```
+
+The continuity transition rules are:
+
+```text
+Any aggregate state
+  → dimension update
+  → recompute aggregate by precedence
+  → RECOVERING when resumeEligibility permits recovery
+  → RECONCILING when an effect, lease, device session, or provider response is unknown
+  → ACTIVE_BACKGROUND only after all required dimensions are healthy and reconciliation is resolved
+  → USER_REQUIRED or SAFELY_FAILED when deterministic authorities cannot safely continue
+
+ProductLifecycleState=Packaging
+  + CompletionDecision=COMPLETED
+  → aggregateState=COMPLETED
+```
+
+A continuity transition cannot directly change product lifecycle, completion, artifact, evidence, or promotion truth. It emits a transition event and a typed request to the existing lifecycle or recovery authority.
+
+`COMPLETED` is reachable only through the existing evidence, validation, artifact, signing, preview, and completion authorities. `USER_REQUIRED` is reserved for an actual policy, credential, permission, or product decision that cannot be resolved from declared authority; it is not a timer-based escalation. `SAFELY_FAILED` preserves the last checkpoint, diagnostics, leases, fencing state, and evidence gap.
+
+### 77.2 Interruption and recovery rules
+UI closure or UI crash disconnects presentation only; it MUST NOT cancel eligible autonomous work. Reconnect reconstructs the UI from a cursor-atomic snapshot and durable event replay. Supervisor restart, host reboot, or process replacement requires lease fencing, checkpoint reload, descendant reconciliation, and duplicate-effect prevention before resuming. Sleep, hibernation, or shutdown records the last durable state and resumes only after host identity and required tools are revalidated. Device loss invalidates device-bound observations and waits for a new device session or records an honest unavailable result. Provider or network outage uses bounded retry and provider operationality rules; it never converts an unobserved model response into a successful action.
+
+An unknown outcome remains `RECONCILING` until the authoritative ledger, process supervisor, device session, provider operation, or external-effect record resolves it. A retry is permitted only after idempotency and fencing checks. Late events from an old supervisor, device, branch, provider session, or lease cannot advance the current continuity state.
+
+### 77.3 Authority, projection, evidence, and acceptance
+The canonical authority mapping is: the existing supervisor/process-supervision authority owns `hostState`; `WorkspaceLeaseManager` and its lease/fencing authority own `leaseState`; the existing `RecoveryAuthority` owns recovery and reconciliation transitions; the existing device-session/device-operation authority owns `deviceAvailabilityState`; and the existing integration/provider operationality authority owns `providerAvailabilityState`. `SupervisorAuthority`, `LeaseAuthority`, `DeviceAuthority`, and `ProviderOperationalityAuthority` are aliases only and are not new authorities. The frontend renders `BackgroundContinuityRecord` as a projection and cannot resume, mark complete, clear an outage, or suppress a user-required state.
+
+Every continuity transition must reference the owning canonical authority, its decision ID, the prior and next dimension values, and the resulting aggregate state. No continuity authority can override `LifecycleAuthority`, `PolicyAuthority`, `EvidenceAuthority`, `ArtifactAuthority`, `PreviewPromotionGate`, or `CompletionDecision`.
+
+Every state transition records the causation event, prior and next state, authority decision, checkpoint or reconciliation reference, recovery action, and evidence status. The preview panel may show a truthful continuity label such as disconnected, recovering, stale, unavailable, or safely failed, but it cannot show active verified progress while the underlying state is suspended, offline, unreconciled, or invalidated. `BackgroundContinuityRecord` is an explicit field of the authoritative `ProjectionSnapshot`; its transition events are replayed through the same cursor, state-version, branch, session, and fencing checks as other control-plane events. The event crosswalk is: `UI_DISCONNECTED` updates only UI connection state; host suspend/offline/restart events update host state; device loss/reattachment updates device availability and invalidates device-bound preview/evidence; provider operationality events update provider availability; checkpoint/reconciliation events update recovery and reconciliation state; and no continuity event directly writes completion, promotion, or verification truth. `task.resume` and recovery results return the resulting continuity transition reference, while `task.cancel` records the product-lifecycle decision separately.
+
+Acceptance requires executable fixtures for UI closure and reconnect, supervisor restart, host reboot, sleep or hibernation, shutdown recovery, device loss and reattachment, provider/network outage, stale-event rejection, unknown-outcome reconciliation, lease fencing, checkpoint resume, safe failure, and preservation of last-known-good evidence.
+
+## 78. APK Export Provenance Contract
+**ContractId:** `CONTRACT.RUNTIME.APK_EXPORT`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.APK_EXPORT` (see §67.8)
+
+This contract governs local deployment delivery of a verified Android artifact. It specializes the integration-boundary and artifact contracts without creating a second signing, validation, promotion, or completion authority. Source/workspace, ZIP, and Git access remain available, but they are explicitly classified as `SOURCE_ACCESS_ONLY` and cannot satisfy deployment delivery.
+
+### 78.1 Deployment admission
+A deployment export is admitted only when an immutable `PackagingProfile` is identified by `packagingProfileId`, declares the artifact kind, the artifact has passed the required build, signing, validation, and promotion authorities, and the destination is `LOCAL_WINDOWS_FILESYSTEM`. The required local deliverable is an installable APK. AAB is optional only when the profile is `APK_AND_AAB`; it is never implied by source export or by a generic artifact request. External deployment destinations are rejected in the current product scope.
+
+### 78.2 Canonical provenance and lifecycle
+`ExportVerificationRecord` in TA §74.3 is the canonical durable record. For an APK deployment it is exposed as an `APKExportRecord` view containing `artifactKind`, `packagingProfileId`, source revision, checkpoint, source and destination file identities, request fingerprint, idempotency key, signing identity binding, validation decision, promotion decision, reconciliation reference, source and destination hashes, byte count, copy state, `deploymentDelivery: REQUIRED_APK`, `destinationKind: LOCAL_WINDOWS_FILESYSTEM`, post-copy verification, failure evidence, evidence references, and timestamp. The lifecycle is `REQUESTED → COPYING → COPIED → UNKNOWN → RECONCILING → VERIFIED` or `FAILED | BLOCKED`; interrupted or unknown copies remain durable and must be reconciled before retry.
+
+### 78.3 Source-access separation and completion
+`SOURCE_ACCESS_ONLY` may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence, satisfy the required APK gate, or advance Android completion. Deployment completion requires source/destination identity and hash equality, approved destination scope, durable post-copy verification, matching packaging-profile, artifact, signing, validation, promotion, and evidence references, and a resolved `reconciliationReference` whenever the copy entered `UNKNOWN` or `RECONCILING`. Export success does not independently prove preview currency, integration functionality, runtime integrity, or user-goal completion.

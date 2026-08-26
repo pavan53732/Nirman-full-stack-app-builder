@@ -2285,3 +2285,17 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** A frontend that directly manipulates state, assumes successful requests, or reconstructs missing events from local memory becomes a second authority and can display progress that the backend never accepted. Typed envelopes and cursor-atomic replay make the UI reconnectable, diagnosable, and safe without coupling domain persistence to React components.
 
 **Consequences:** M115 must prove the command registry, typed failures, projection reconstruction, replay and backpressure behavior, SQLite transaction ownership, and generated Android service boundary.
+
+## ADR-202: Canonical background continuity state machine
+**Locks:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
+**Status:** Accepted
+**Decision:** Background autonomy is represented by one durable, versioned continuity record with independently persisted UI, host, device, provider, lease, and reconciliation dimensions. Its aggregate state is derived by deterministic precedence and is an orthogonal substate of the existing product lifecycle; it cannot replace `ProductLifecycleState`, own `CompletionDecision`, or create a second recovery authority. UI closure never cancels eligible work. Recovery must reload durable checkpoints, fence stale leases, reconcile unknown outcomes, and preserve truthful evidence and last-known-good state. The frontend receives continuity only through the typed projection and cannot resume, complete, or clear continuity states.
+**Rationale:** Continuity behavior already spans several authorities; orthogonal dimensions and an aggregate precedence rule prevent concurrent host, device, provider, lease, and UI conditions from overwriting one another without transferring authority to the model. Existing lifecycle, recovery, lease, device-session, and provider-operationality authorities remain canonical; continuity names are aliases only.
+**Consequences:** M116 must execute interruption and recovery fixtures. Suspended, offline, unreconciled, or invalidated work cannot be presented as verified progress or completion.
+
+## ADR-203: Make local deployment export profile-bound and provenance-complete
+**Locks:** `CONTRACT.RUNTIME.APK_EXPORT`
+**Status:** Accepted
+**Decision:** `ExportVerificationRecord` is strengthened with packaging-profile, artifact-kind, source-revision, checkpoint, source/destination identity, request-fingerprint, idempotency, signing, validation, promotion, reconciliation, failure-evidence, delivery-kind, and destination-kind references. Its copy lifecycle includes `UNKNOWN` and `RECONCILING`, and uncertain copies cannot be retried until destination inspection and identity/hash reconciliation resolve them. Local deployment is restricted to verified declared artifacts on the approved Windows filesystem. The required local deliverable remains APK; AAB remains optional only under an explicitly declared `PackagingProfile`. Workspace, ZIP, and Git access remains available as `SOURCE_ACCESS_ONLY` and never satisfies deployment completion.
+**Rationale:** A durable post-copy record must prove not just byte copying but the identity and policy lineage of the delivered artifact, while source access and deployment delivery are distinct user needs.
+**Consequences:** M117 must prove hash equality, destination identity, interrupted-copy reconciliation, profile admission, optional declared-AAB behavior, and rejection of external deployment destinations.

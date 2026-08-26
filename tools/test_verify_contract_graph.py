@@ -323,8 +323,16 @@ CASES = {
         "CertificateRecord",
         "semantic documentation"),
     "semantic export verification removed": (
-        TA, "ExportVerificationRecord",
-        "ArtifactExportRecord",
+        TA, "ExportVerificationRecord\n- exportId",
+        "ArtifactExportRecord\n- exportId",
+        "semantic documentation"),
+    "semantic continuity projection wiring removed": (
+        TA, "backgroundContinuityProjection",
+        "missingContinuityProjection",
+        "semantic documentation"),
+    "semantic export reconciliation lifecycle removed": (
+        TA, "UNKNOWN → RECONCILING",
+        "UNKNOWN_ONLY",
         "semantic documentation"),
     "semantic preview sync section removed": (
         BS, "## 71. Preview Synchronization Protocol",
@@ -596,6 +604,30 @@ def main():
         rc, out = run(tmp)
         results.append(("control: clean copy certifies", rc == 0, f"exit={rc}"))
 
+    # POSITIVE CONFORMANCE: the validated continuity and export contracts are
+    # present in the clean synchronized document set and survive certification.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-continuity-export-") as tmp:
+        for d in DOCS:
+            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        required = (
+            (BS, "## 77. Background Continuity Contract"),
+            (TA, "## 82. Background Continuity Implementation Contract"),
+            (DEV, "## M116 — Background continuity and interruption recovery"),
+            (DEC, "## ADR-202: Canonical background continuity state machine"),
+            (TA, "deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY"),
+            (TA, "APKExportRecord"),
+            (BS, "## 78. APK Export Provenance Contract"),
+            (TA, "## 83. APK Export Provenance Implementation Contract"),
+            (BS, "CAP.ANDROID.APK_DELIVERY"),
+            (DEV, "## M117 — Local APK export provenance and delivery admission"),
+            (DEC, "## ADR-203: Make local deployment export profile-bound and provenance-complete"),
+        )
+        present = all(token in open(os.path.join(tmp, doc), encoding="utf-8").read()
+                      for doc, token in required)
+        rc, out = run(tmp)
+        results.append(("positive: continuity and APK export anchors certify",
+                        present and rc == 0 and "CERTIFICATION: PASS" in out,
+                        f"exit={rc}"))
     expected_checks = {
         "duplicate authority", "unregistered contract", "undeclared extension",
         "authority cycle", "clause contradiction", "unversioned override",
