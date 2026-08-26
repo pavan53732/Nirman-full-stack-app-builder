@@ -67,6 +67,13 @@ impl Supervisor {
         });
     }
 
+    pub fn restart_from_checkpoint(&mut self, checkpoint_id: impl Into<String>) {
+        self.snapshot.state = SupervisorState::Reconnecting;
+        self.snapshot.continuity = BackgroundContinuityState::UiDisconnected;
+        self.snapshot.active_fence = None;
+        self.reconcile_after_restart(checkpoint_id);
+    }
+
     pub fn reconcile_after_restart(&mut self, checkpoint_id: impl Into<String>) {
         self.snapshot.state = SupervisorState::Reconciling;
         self.snapshot.continuity = BackgroundContinuityState::Reconciling;

@@ -1,0 +1,18 @@
+{
+  "authenticatedHttpRequestObserved": true,
+  "authenticatedRequestConstructed": true,
+  "cancellationObserved": true,
+  "credentialReferenceOnly": true,
+  "durableUsageRecorded": true,
+  "httpTimeoutObserved": true,
+  "normalizedFailureObserved": true,
+  "normalizedResponseObserved": true,
+  "profileValidated": true,
+  "providerTransport": "fixture_transport",
+  "requestCorrelationIdentity": true,
+  "runtimeStatus": "M3_FOUNDATION_FIXTURE_ONLY",
+  "schema": "nirman.m3.provider_runtime.v1",
+  "secretRedactionObserved": true,
+  "timeoutObserved": true,
+  "usageRestoredAfterRestart": true
+}

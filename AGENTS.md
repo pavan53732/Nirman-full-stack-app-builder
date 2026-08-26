@@ -15,7 +15,7 @@ The canonical document set is:
 | `tools/verify_contract_graph.py` | Documentation contract-graph and semantic certification |
 | `tools/test_verify_contract_graph.py` | Mutation and conformance coverage for the documentation verifier |
 
-When a rule appears to conflict with another rule, do not resolve the conflict by interpretation. Stop, identify the conflicting canonical sections, and propose a versioned contract or decision update. An agent must never silently weaken a sealed clause, reinterpret a product boundary, or introduce a second authority.
+Document precedence is explicit: (1) accepted ADRs define locked architectural and product decisions; (2) `nirman-build-spec.md` defines normative product contracts and invariants; (3) `nirman-technical-architecture.md` defines implementation schemas and protocols; (4) `nirman-development-plan.md` defines sequencing, fixtures, and exit gates; (5) `README.md` is explanatory only and cannot create or weaken a contract; and (6) `AGENTS.md` defines agent operating rules and cannot override accepted product contracts or ADRs. When a rule appears to conflict with another rule, do not resolve the conflict by interpretation. Stop, identify the conflicting canonical sections, and propose a versioned contract or decision update. An agent must never silently weaken a sealed clause, reinterpret a product boundary, or introduce a second authority.
 
 ## 1.1 Mandatory canonical-document compliance
 
@@ -61,7 +61,7 @@ Before reporting completion, the agent must verify the actual diff and filesyste
 
 ## 2. Product identity and target boundary
 
-Nirman is a **Windows-first desktop application** for building Android applications. Nirman itself is not an Android application and is not a web application. The final product target for Nirman is a Windows desktop executable and installer. The Android APK or optional AAB is an output produced by Nirman for a user-owned Android project.
+Nirman is a **Windows-first desktop application** for building Android applications. Nirman itself is not an Android application and is not a web application. The final product target for Nirman is a Windows desktop executable and installer. An installable APK is the minimum output produced by Nirman for a user-owned Android project; an AAB is produced only when the active PackagingProfile requires `APK_AND_AAB`.
 
 | Layer | Target | Responsibility |
 |---|---|---|

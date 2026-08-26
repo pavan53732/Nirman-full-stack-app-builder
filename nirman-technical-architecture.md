@@ -7,6 +7,8 @@
 **Scope:** Local-first autonomous application development with configurable cloud or local AI providers  
 **Relationship to master specification:** This architecture document explains how to implement the behavior defined by the master product specification. It contains architecture and interfaces, not production source code.
 
+**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries. The Development Plan owns sequencing, milestones, fixtures, and exit gates. The Decision Log owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
+
 ---
 
 ## 1. Architecture Goals
@@ -501,7 +503,7 @@ Diagnostics should distinguish missing, incompatible, inaccessible, unverified, 
 
 ### 11.3 Android runtime abstraction
 
-The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, emulator/device management, Logcat, quotas, screenshots, signing-boundary checks, and APK or optional AAB artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
+The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, emulator/device management, Logcat, quotas, screenshots, signing-boundary checks, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
 
 ---
 
@@ -770,7 +772,7 @@ TaskCheckpoint
 
 Checkpoint storage must use a retention policy for long-running sessions. Every task retains the initial source checkpoint, the last known-good checkpoint, all checkpoints referenced by an active recovery strategy, and a configurable number of recent task checkpoints. Older intermediate checkpoints should be compacted into content-addressed snapshots or pruned only when no active branch, preview, recovery attempt, or evidence record references them. Before deletion, the system must verify that a full restore path remains available.
 
-Android tasks should use profile-based quotas for JavaScript, native, emulator, physical-device, and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK or optional AAB artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
+Android tasks should use profile-based quotas for JavaScript, native, emulator, physical-device, and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
 
 Backtracking should restore a known-good checkpoint before trying a materially different strategy. The recovery manager should keep a strategy history:
 
@@ -1638,7 +1640,7 @@ The self-improvement loop is ready when Nirman can observe task episodes, identi
 
 ## 34. End-to-End Autonomous Android Session
 
-The runtime must model the user’s one-shot Android request as an `AutonomousAndroidSession`. The session owns the complete lifecycle from chat and screenshots to project synthesis, live preview, recovery, validation, and APK or optional AAB delivery. The session continues independently of the chat renderer and is resumable after UI closure, process restart, or host suspend/resume where the operating system permits it.
+The runtime must model the user’s one-shot Android request as an `AutonomousAndroidSession`. The session owns the complete lifecycle from chat and screenshots to project synthesis, live preview, recovery, validation, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` delivery. The session continues independently of the chat renderer and is resumable after UI closure, process restart, or host suspend/resume where the operating system permits it.
 
 ```text
 AutonomousAndroidSession
@@ -1710,13 +1712,13 @@ Parallel workers receive explicit contracts, isolated workspaces, allowed tools,
 
 ### 34.5 Autonomous validation and artifact gate
 
-For applicable Android delivery, the validation coordinator must prove build success, APK or optional AAB existence, checksum, artifact scan, installation or launch, main-flow execution, visual comparison, permission behavior, and absence of unresolved fatal runtime errors. The artifact is complete only when it is linked to the project revision and evidence ledger.
+For applicable Android delivery, the validation coordinator must prove build success, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` existence, checksum, artifact scan, installation or launch, main-flow execution, visual comparison, permission behavior, and absence of unresolved fatal runtime errors. The artifact is complete only when it is linked to the project revision and evidence ledger.
 
 Routine project-local actions are allowed under the project’s Unattended / Full Autonomy policy. The runtime may edit, install dependencies, run terminals, launch devices, build, test, capture screenshots, repair, checkpoint, delegate, reconcile, and create local artifacts without repeated approval. Protected credentials, destructive actions, publishing, signing policy, protected paths, hard safety violations, and unrecoverable blockers remain deterministic authority boundaries.
 
 ## 35. Complete Android Capability Fixture Contract
 
-The test harness must include generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK or optional AAB delivery. These fixtures validate AI technology selection and composition; they are not user-facing templates.
+The test harness must include generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` delivery. These fixtures validate AI technology selection and composition; they are not user-facing templates.
 
 ## 36. Production Runtime Contract Architecture
 
@@ -2337,7 +2339,7 @@ A `PreviewRevision` includes source revision, artifact hash, device serial/profi
 
 `AndroidRepairRegistry` maps structured failure fingerprints to repair strategies. Each pattern contains classifier, severity, likely cause, allowed scope, preconditions, operation type, retry budget, checkpoint rule, validation command, and evidence requirements.
 
-Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle/dependency conflicts, resource and manifest errors, DEX/R8 failures, NDK/native-module failures, Metro/Expo failures, emulator/ADB/install failures, runtime crashes, permission errors, visual/accessibility issues, and APK or optional AAB/signing failures.
+Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle/dependency conflicts, resource and manifest errors, DEX/R8 failures, NDK/native-module failures, Metro/Expo failures, emulator/ADB/install failures, runtime crashes, permission errors, visual/accessibility issues, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB`/signing failures.
 
 A learned repair can be promoted into the trusted registry only after repeated successful validation across independent fixtures. Model suggestions remain untrusted until promoted by deterministic evidence.
 
@@ -2353,7 +2355,7 @@ The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradl
 
 ## 52. Technical Acceptance Tests
 
-The architecture is accepted only when killing the supervisor during a transaction leaves a recoverable event log and checkpoint; replaying events reconstructs the same authoritative session state; stale worker proposals are rejected without changing the project; changed files or toolchain locks invalidate pending transactions through TOCTOU checks; parallel workers can analyze and propose while conflicting writes are serialized; provider bridge restart and protocol mismatch do not corrupt the session; builds use the locked Android toolchain; preview promotion rejects stale source or artifact revisions; resource pressure changes scheduling without bypassing completion gates; and an APK or optional AAB is not promoted without revision, checksum, environment, validation, and signing evidence.
+The architecture is accepted only when killing the supervisor during a transaction leaves a recoverable event log and checkpoint; replaying events reconstructs the same authoritative session state; stale worker proposals are rejected without changing the project; changed files or toolchain locks invalidate pending transactions through TOCTOU checks; parallel workers can analyze and propose while conflicting writes are serialized; provider bridge restart and protocol mismatch do not corrupt the session; builds use the locked Android toolchain; preview promotion rejects stale source or artifact revisions; resource pressure changes scheduling without bypassing completion gates; and an APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` is not promoted without revision, checksum, environment, validation, and signing evidence.
 ## 53. Integrated Workflow and Quality Services
 
 ### 53.1 WorkflowCoordinator
@@ -2635,7 +2637,7 @@ If summarization fails, Nirman emits a safe generic progress event and continues
 
 Responsibilities include brand-intent extraction, BrandManifest creation, asset planning, provider/image-generation requests, vector or deterministic local fallback, adaptive-icon preparation, splash integration, notification-icon preparation, density/format conversion, resource integration, content hashing, visual inspection, accessibility checks, and regeneration after a branding change.
 
-The worker is scoped to the asset transaction and cannot modify unrelated source, change the technology plan, grant permissions, or mark the APK or optional AAB complete.
+The worker is scoped to the asset transaction and cannot modify unrelated source, change the technology plan, grant permissions, or mark the APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` complete.
 
 ### 56.2 BrandManifest and AssetManifest schemas
 
@@ -2708,7 +2710,7 @@ Failure states are `ASSET_PROVIDER_WAITING`, `ASSET_RETRYABLE_FAILURE`, `ASSET_F
 | Visual quality | Transparency, contrast, color-space, clipping, illegible details, visual consistency |
 | Accessibility | Notification-icon silhouette, contrast, legibility, theme compatibility |
 | Integration | Resource references resolve, manifest points to valid assets, unused requested assets are reported |
-| Build packaging | Asset is present in the built APK or optional AAB and reachable at runtime |
+| Build packaging | Asset is present in the built APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` and reachable at runtime |
 | Revision | Workspace, preview, and artifact all reference the same AssetManifest version |
 
 Validation results are evidence records and are linked to the source revision, PreviewRevision, and artifact hash.
@@ -2719,7 +2721,7 @@ Brand changes use the normal ConstructionTransactionManager. The transaction cap
 
 ### 56.6 ArtifactAssetInspector
 
-`ArtifactAssetInspector` runs after APK or optional AAB creation and before artifact promotion. It extracts and verifies launcher resources, adaptive and monochrome icon layers where required, splash resources, notification assets, in-app assets, theme resources, and font/illustration references. It compares extracted content hashes with AssetManifest entries and rejects an artifact with missing, stale, wrong-path, or placeholder-only requested assets.
+`ArtifactAssetInspector` runs after APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` creation and before artifact promotion. It extracts and verifies launcher resources, adaptive and monochrome icon layers where required, splash resources, notification assets, in-app assets, theme resources, and font/illustration references. It compares extracted content hashes with AssetManifest entries and rejects an artifact with missing, stale, wrong-path, or placeholder-only requested assets.
 
 ### 56.7 Preview integration
 
@@ -2739,7 +2741,7 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 2. BrandAssetWorker cannot modify unrelated source or bypass transaction scope.
 3. Adaptive, legacy, monochrome, splash, notification, in-app, and theme assets are validated according to the target Android configuration.
 4. Resource references and manifest entries resolve before build.
-5. APK or optional AAB extraction confirms requested assets are actually packaged.
+5. APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` extraction confirms requested assets are actually packaged.
 6. Stale AssetManifest versions cannot satisfy PreviewRevision or artifact gates.
 7. Branding changes invalidate affected evidence and regenerate only impacted assets.
 8. Provider failure and fallback behavior are explicit and replayable.
@@ -2845,7 +2847,7 @@ evidence_records, artifacts, toolchain_manifests,
 project_locks, decision_records, reasoning_stream_events
 ```
 
-Large logs, screenshots, diffs, patches, crash dumps, build output, and APK or optional AAB files remain in the filesystem artifact store with content hashes, revision references, and retention metadata. All durable records use migrations, atomic writes, schema versions, and integrity checks.
+Large logs, screenshots, diffs, patches, crash dumps, build output, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` files remain in the filesystem artifact store with content hashes, revision references, and retention metadata. All durable records use migrations, atomic writes, schema versions, and integrity checks.
 
 ### 57.6 UIProjectionState
 
@@ -2895,7 +2897,7 @@ Git is a first-class subsystem for checkpoints, rollback, worker isolation, reco
 
 ### 57.10 Technical acceptance tests
 
-The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; CodeMirror and xterm.js remain presentation components; Android toolchains are supervised locally; and the final APK or optional AAB remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
+The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; CodeMirror and xterm.js remain presentation components; Android toolchains are supervised locally; and the final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
 
 
 ---
@@ -3221,7 +3223,7 @@ Compaction must preserve semantic summaries, evidence links, revision identity, 
 3. Only PolicyAuthority grants capabilities.
 4. Only ConstructionTransactionManager mutates the project.
 5. Only EvidenceAuthority confirms completion.
-6. Only ArtifactAuthority promotes APK or optional AAB output.
+6. Only ArtifactAuthority promotes APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` output.
 7. Replay and simulation are side-effect free.
 8. Dynamic workers and skills cannot expand permissions.
 9. A stale lease cannot write to a workspace.
@@ -4496,7 +4498,7 @@ Evidence is classified separately:
 | `DEVICE_EVIDENCE` | Emulator/device manager | Proves install, launch, interaction, or device state |
 | `VISUAL_EVIDENCE` | Screenshot and comparison service | Proves a declared visual check |
 | `TEST_EVIDENCE` | Test runner and oracle | Proves declared assertions |
-| `ARTIFACT_EVIDENCE` | APK or optional AAB inspector | Proves artifact presence, hash, and contents |
+| `ARTIFACT_EVIDENCE` | APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` inspector | Proves artifact presence, hash, and contents |
 | `PROMOTION_EVIDENCE` | EvidenceAuthority | Proves all required gates passed |
 
 ### 73.5.1 Canonical `PreviewPromotionGate`
@@ -4553,7 +4555,7 @@ The preview architecture must pass tests proving that:
 6. Duplicate and out-of-order events reconstruct one deterministic projection.
 7. Rollback invalidates affected evidence and restores the correct preview identity.
 8. A template-selection proposal and a non-Android target proposal are rejected before mutation.
-9. The final APK or optional AAB evidence refers to the same source, asset, and preview revisions.
+9. The final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` evidence refers to the same source, asset, and preview revisions.
 10. The panel never labels a model statement as process, device, test, or artifact evidence.
 
 ## 74. Integration Boundary Implementation Contract

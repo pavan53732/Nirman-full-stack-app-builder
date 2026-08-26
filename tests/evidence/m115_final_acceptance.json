@@ -1,0 +1,16 @@
+{
+  "acceptedProjectionRevision": 1,
+  "androidRuntime": false,
+  "apkExport": false,
+  "checkpointReloaded": true,
+  "durableTimeoutAfterRestart": true,
+  "evidenceStatus": "M115_HEADLESS_DURABLE_BOUNDARY_TRACE_ONLY",
+  "newLeaseHeartbeatRecovered": true,
+  "oldLeaseFenced": true,
+  "reactDomRuntime": false,
+  "reconciliationObserved": true,
+  "retentionGapObserved": true,
+  "schema": "nirman.m115.final_acceptance.v1",
+  "snapshotCursorRecoveryObserved": true,
+  "tauriCommandRuntime": false
+}

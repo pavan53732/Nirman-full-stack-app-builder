@@ -5,7 +5,7 @@
   "identifier": "im.nirman.desktop",
   "build": {
     "beforeDevCommand": "pnpm --dir .. dev",
-    "beforeBuildCommand": "pnpm --dir .. build",
+    "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },

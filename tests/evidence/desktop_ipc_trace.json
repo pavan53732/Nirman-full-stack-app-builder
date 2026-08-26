@@ -1,0 +1,23 @@
+{
+  "androidRuntime": false,
+  "androidServiceErrorNormalized": true,
+  "apkExport": false,
+  "authenticatedProjectScope": true,
+  "commandRegistryComplete": true,
+  "duplicateRejected": true,
+  "durableCommandCommit": true,
+  "errorEnvelopeRoundTrip": true,
+  "fileBackedSqlite": true,
+  "gapAndOutOfOrderRejected": true,
+  "orderedEventDelivery": true,
+  "persistedIdempotencyAfterRestart": true,
+  "reactDomRuntime": false,
+  "schema": "nirman.desktop_ipc_trace.v2",
+  "snapshotBootstrap": true,
+  "staleProjectionRejected": true,
+  "status": "M115_HEADLESS_DURABLE_BOUNDARY_TRACE_ONLY",
+  "subscriptionEnvelopeRoundTrip": true,
+  "tauriCommandRuntime": false,
+  "typedEnvelopeRoundTrip": true,
+  "wrongProjectEventRejected": true
+}

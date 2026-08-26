@@ -4,6 +4,8 @@
 
 This document records significant product and engineering decisions for Nirman. It prevents important choices from disappearing into chat history and makes future changes deliberate. A decision may be revised when new evidence appears, but the reason for revision must be recorded.
 
+**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries. The Development Plan owns sequencing, milestones, fixtures, and exit gates. The Decision Log owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
+
 ## Decision Status Values
 
 | Status | Meaning |
@@ -559,6 +561,8 @@ The following decisions remain intentionally open:
 
 **Trade-off:** Existing role labels must be migrated to the canonical names, but the registry becomes implementable and auditable. Any legacy data-layer label is superseded by "Android Data and Integration Worker" and must not appear in any document or runtime component.
 
+This decision supersedes every earlier worker-role taxonomy. Legacy role names are historical only and MUST NOT appear in active product specifications, architecture, milestones, tests, runtime registries, or agent instructions.
+
 ---
 
 ## ADR-050: Use bounded worker nesting and interface agreements
@@ -656,7 +660,7 @@ The following decisions remain intentionally open:
 ## ADR-058: Make Android the sole generated application target
 
 **Status:** Accepted  
-**Decision:** The product core generates every supported category of Android application end to end. The user supplies the goal, behavior, visual references, assets, and device requirements; the configured AI selects or composes the required Android technologies, creates the project, runs it, validates it, repairs it, and packages it as an APK or AAB. No framework or template choice is required from the user. The Windows desktop application is the development host and is not a generated target.
+**Decision:** The product core generates every supported category of Android application end to end. The user supplies the goal, behavior, visual references, assets, and device requirements; the configured AI selects or composes the required Android technologies, creates the project, runs it, validates it, repairs it, and packages it as an installable APK, or an AAB only when the active PackagingProfile requires `APK_AND_AAB`. No framework or template choice is required from the user. The Windows desktop application is the development host and is not a generated target.
 
 **Scope boundary:** Every project-generation request, visual input, preview, validation flow, toolchain, artifact, and autonomous workflow resolves to a dynamically synthesized Android project. Internal bootstraps are allowed as implementation details, but they are not user-facing product limitations.
 
@@ -722,7 +726,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-063: Full Android capability coverage is an internal acceptance contract
 
 **Status:** Accepted  
-**Decision:** The system must validate AI-selected generation across JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK or optional AAB delivery. These are internal fixture categories, not user-facing templates.
+**Decision:** The system must validate AI-selected generation across JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` delivery. These are internal fixture categories, not user-facing templates.
 
 **Reasoning:** The user should describe the application while the configured AI selects and composes the implementation technology.
 
@@ -730,7 +734,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 ---
 
-## ADR-064: APK or optional AAB evidence is a completion gate
+## ADR-064: APK delivery is a completion gate; AAB is profile-declared
 
 **Status:** Accepted  
 **Decision:** Where Android packaging is required, the task cannot be complete without build success, artifact existence, checksum, artifact scan, installation or launch evidence, main-flow results, visual validation, permission behavior, and no unresolved fatal runtime errors. The artifact must link to the source revision and evidence ledger.
@@ -854,7 +858,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK or optional AAB production.
+**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` production.
 
 **Rationale:** A single validated contract prevents workers from inventing inconsistent requirements, allows replay and migration, separates user facts from model inferences, and provides a stable target for evidence-backed completion.
 
@@ -1034,7 +1038,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Nirman is permanently an Android-only autonomous application builder. Windows is the desktop host, not a generated application target.
 
-**Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK or optional AAB artifacts.
+**Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts.
 ## ADR-082: Integrated Android workflow coordinator
 
 **Status:** Accepted
@@ -1109,7 +1113,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Every managed project receives a concise validated handbook, and every promoted APK or optional AAB receives a revision-bound release-intelligence report.
+**Decision:** Every managed project receives a concise validated handbook, and every promoted APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` receives a revision-bound release-intelligence report.
 
 **Rationale:** Users need an understandable project record and trustworthy artifact metadata after autonomous construction.
 
@@ -1163,7 +1167,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** The README’s implementation stack is not compatible with Nirman’s product boundary.
 
-**Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK or optional AAB deliverables.
+**Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` deliverables.
 ## ADR-095: Private internal reasoning with visible structured summaries
 
 **Status:** Accepted
@@ -1257,7 +1261,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Asset completion requires validation in the Android project, current live preview, and built APK or optional AAB. Workspace presence alone is insufficient.
+**Decision:** Asset completion requires validation in the Android project, current live preview, and built APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB`. Workspace presence alone is insufficient.
 
 **Rationale:** An asset can exist on disk but be referenced incorrectly, omitted from packaging, stale in preview, or invalid at runtime.
 
@@ -1320,7 +1324,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Nirman needs transactional state, migrations, event sequences, crash recovery, and replay without a cloud database.
 
-**Consequences:** Large logs, screenshots, diffs, patches, crash dumps, build output, and APK or optional AAB files remain in the filesystem artifact store with content-hash references.
+**Consequences:** Large logs, screenshots, diffs, patches, crash dumps, build output, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` files remain in the filesystem artifact store with content-hash references.
 
 ## ADR-111: Separate Nirman.exe from NirmanSupervisor.exe for durable autonomy
 
@@ -1605,7 +1609,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK or optional AAB packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
+**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
 
 **Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
 

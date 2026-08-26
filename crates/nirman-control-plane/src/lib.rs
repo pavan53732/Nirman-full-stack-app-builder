@@ -14,7 +14,11 @@ use nirman_domain::{
 use nirman_storage::Ledger;
 use std::path::Path;
 
-#[derive(Debug)]
+pub fn deadline_elapsed(deadline_epoch_seconds: Option<u64>, now_epoch_seconds: u64) -> bool {
+    deadline_epoch_seconds.is_some_and(|deadline| deadline <= now_epoch_seconds)
+}
+
+#[derive(Clone, Debug)]
 pub struct ControlPlane {
     project_id: ProjectId,
     projection: ProjectionSnapshot,
@@ -91,18 +95,59 @@ impl ControlPlane {
                 return Err(DomainError::DuplicateCommand);
             }
         }
-        if matches!(command.kind, CommandKind::SubmitInstruction)
-            && command.payload.trim().is_empty()
+        if matches!(
+            command.kind,
+            CommandKind::SubmitInstruction | CommandKind::TaskStart
+        ) && command.payload.trim().is_empty()
         {
             return Err(DomainError::EmptyInstruction);
         }
 
         match command.kind {
-            CommandKind::SubmitInstruction => {
+            CommandKind::ProjectOpen => {}
+            CommandKind::TaskStart | CommandKind::SubmitInstruction => {
                 self.projection.task_state = ProductLifecycleState::Planning;
                 self.projection.preview_truth = PreviewTruth::Requested;
                 self.projection.current_source_revision =
                     next_revision(self.projection.current_source_revision);
+            }
+            CommandKind::TaskCancel | CommandKind::CancelTask => {
+                if self.projection.task_state == ProductLifecycleState::Completed {
+                    return Err(DomainError::InvalidTransition);
+                }
+                self.projection.task_state = ProductLifecycleState::Cancelled;
+            }
+            CommandKind::TaskResume | CommandKind::ResumeTask => {
+                if !matches!(
+                    self.projection.task_state,
+                    ProductLifecycleState::Paused | ProductLifecycleState::SafelyFailed
+                ) {
+                    return Err(DomainError::InvalidTransition);
+                }
+                self.projection.task_state = ProductLifecycleState::Planning;
+            }
+            CommandKind::WorkspaceApplyPatch => {
+                self.projection.task_state = ProductLifecycleState::Implementing;
+                self.projection.current_source_revision =
+                    next_revision(self.projection.current_source_revision);
+            }
+            CommandKind::PreviewStart => {
+                self.projection.task_state = ProductLifecycleState::Previewing;
+                self.projection.preview_truth = PreviewTruth::Requested;
+            }
+            CommandKind::PreviewStop => {
+                self.projection.preview_truth = PreviewTruth::Stale;
+            }
+            CommandKind::PreviewPromote
+            | CommandKind::ArtifactExport
+            | CommandKind::ProviderTest
+            | CommandKind::SettingsUpdateProvider
+            | CommandKind::AndroidConstructionCreate => {}
+            CommandKind::ValidationRun => {
+                self.projection.task_state = ProductLifecycleState::Validating;
+            }
+            CommandKind::ArtifactBuild => {
+                self.projection.task_state = ProductLifecycleState::Packaging;
             }
             CommandKind::Reconnect => {
                 self.projection.continuity_state = BackgroundContinuityState::ActiveBackground;
@@ -118,18 +163,6 @@ impl ControlPlane {
                     return Err(DomainError::InvalidTransition);
                 }
                 self.projection.task_state = ProductLifecycleState::Paused;
-            }
-            CommandKind::ResumeTask => {
-                if self.projection.task_state != ProductLifecycleState::Paused {
-                    return Err(DomainError::InvalidTransition);
-                }
-                self.projection.task_state = ProductLifecycleState::Planning;
-            }
-            CommandKind::CancelTask => {
-                if self.projection.task_state == ProductLifecycleState::Completed {
-                    return Err(DomainError::InvalidTransition);
-                }
-                self.projection.task_state = ProductLifecycleState::Cancelled;
             }
         }
 
@@ -155,12 +188,64 @@ impl ControlPlane {
     fn latest_event(&self) -> Option<ControlEvent> {
         self.events.last().cloned()
     }
+
+    fn record_timeout(
+        &mut self,
+        command_id: &str,
+        reason: &str,
+    ) -> Result<ProjectionSnapshot, DomainError> {
+        if matches!(
+            self.projection.task_state,
+            ProductLifecycleState::Completed | ProductLifecycleState::Cancelled
+        ) {
+            return Err(DomainError::InvalidTransition);
+        }
+        self.projection.task_state = ProductLifecycleState::SafelyFailed;
+        self.projection.projection_revision = next_revision(self.projection.projection_revision);
+        let event = ControlEvent {
+            event_id: format!("timeout:{command_id}"),
+            sequence: self.next_sequence,
+            project_id: self.project_id.clone(),
+            task_id: Some(TaskId("task-0001".into())),
+            kind: "CommandTimedOut".into(),
+            payload: serde_json::json!({"commandId": command_id, "reason": reason}).to_string(),
+            source_revision: self.projection.current_source_revision,
+        };
+        self.next_sequence = self.next_sequence.saturating_add(1);
+        self.projection.last_event_sequence = event.sequence;
+        self.events.push(event);
+        Ok(self.snapshot())
+    }
 }
 
 #[derive(Debug)]
 pub enum DurableControlPlaneError {
     Domain(DomainError),
     Storage(rusqlite::Error),
+    IdempotencyConflict,
+    CorruptCommandResult(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DurableDispatchOutcome {
+    Accepted {
+        snapshot: ProjectionSnapshot,
+        event: ControlEvent,
+    },
+    Duplicate {
+        snapshot: ProjectionSnapshot,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DurableTimeoutOutcome {
+    Recorded {
+        snapshot: ProjectionSnapshot,
+        event: ControlEvent,
+    },
+    Duplicate {
+        snapshot: ProjectionSnapshot,
+    },
 }
 
 impl From<DomainError> for DurableControlPlaneError {
@@ -217,17 +302,201 @@ impl DurableControlPlane {
             .events_after(&self.snapshot().project_id, sequence)
     }
 
+    pub fn load_provider_profile(
+        &self,
+        provider_id: &str,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger
+            .load_provider_profile(&self.snapshot().project_id, provider_id)
+    }
+
+    pub fn load_android_construction_contract(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger
+            .load_android_construction_contract(&self.snapshot().project_id, task_id)
+    }
+
+    pub fn retention_floor(&self) -> Result<Option<u64>, rusqlite::Error> {
+        self.ledger.retention_floor(&self.snapshot().project_id)
+    }
+
+    pub fn replay_after_with_gap(
+        &self,
+        sequence: u64,
+    ) -> Result<(Vec<ControlEvent>, bool), rusqlite::Error> {
+        let floor = self.retention_floor()?;
+        let events = self.replay_after(sequence)?;
+        let retention_gap =
+            floor.is_some_and(|first_available| sequence.saturating_add(1) < first_available);
+        let sequence_gap = events
+            .first()
+            .is_some_and(|event| event.sequence > sequence.saturating_add(1));
+        Ok((events, retention_gap || sequence_gap))
+    }
+
+    pub fn set_retention_floor(
+        &self,
+        first_available_sequence: u64,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .set_retention_floor(&self.snapshot().project_id, first_available_sequence)
+    }
+
     pub fn dispatch(
         &mut self,
         command: CommandEnvelope,
     ) -> Result<ProjectionSnapshot, DurableControlPlaneError> {
-        let snapshot = self.plane.accept(command)?;
-        let event = self
-            .plane
+        match self.dispatch_with_result(command, "internal")? {
+            DurableDispatchOutcome::Accepted { snapshot, .. }
+            | DurableDispatchOutcome::Duplicate { snapshot } => Ok(snapshot),
+        }
+    }
+
+    pub fn dispatch_with_result(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        self.dispatch_with_result_and_provider_profile(command, correlation_id, None)
+    }
+
+    pub fn dispatch_with_result_and_android_contract(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        contract: Option<(&str, &str, &str, u16)>,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
             .latest_event()
             .expect("accepted command always emits one event");
-        self.ledger.commit_event_and_projection(&event, &snapshot)?;
-        Ok(snapshot)
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger
+            .commit_event_projection_and_command_and_android_contract(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+                contract,
+            )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
+    pub fn dispatch_with_result_and_provider_profile(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        provider_profile: Option<(&str, &str)>,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger
+            .commit_event_projection_and_command_and_provider_profile(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+                provider_profile,
+            )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
+    pub fn record_timeout(
+        &mut self,
+        timeout_id: &str,
+        command_id: &str,
+        correlation_id: &str,
+        reason: &str,
+    ) -> Result<DurableTimeoutOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::json!({
+            "timeoutId": timeout_id,
+            "commandId": command_id,
+            "reason": reason,
+        })
+        .to_string();
+        if let Some(previous) = self
+            .ledger
+            .load_command_result(&project_id, timeout_id, None)?
+        {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableTimeoutOutcome::Duplicate { snapshot });
+        }
+
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.record_timeout(command_id, reason)?;
+        let event = candidate
+            .latest_event()
+            .expect("recorded timeout always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger.commit_event_projection_and_command(
+            &event,
+            &snapshot,
+            timeout_id,
+            None,
+            &request_fingerprint,
+            correlation_id,
+            &snapshot_json,
+        )?;
+        self.plane = candidate;
+        Ok(DurableTimeoutOutcome::Recorded { snapshot, event })
     }
 
     pub fn checkpoint(&mut self, checkpoint_id: impl Into<String>) -> Result<(), rusqlite::Error> {
@@ -329,5 +598,294 @@ mod tests {
             plane.accept(instruction(0, "cmd-2")),
             Err(DomainError::StaleProjection { .. })
         ));
+    }
+}
+
+#[cfg(test)]
+mod durable_m115_tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn database_path(name: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-{name}-{nonce}.sqlite3"))
+    }
+
+    fn instruction(revision: u64, id: &str, payload: &str) -> CommandEnvelope {
+        CommandEnvelope {
+            command_id: id.into(),
+            project_id: ProjectId("project-0001".into()),
+            task_id: None,
+            kind: CommandKind::SubmitInstruction,
+            payload: payload.into(),
+            expected_projection_revision: Revision(revision),
+            idempotency_key: Some(format!("idem-{id}")),
+        }
+    }
+
+    #[test]
+    fn durable_idempotency_returns_previous_result_after_restart() {
+        let database = database_path("idempotency");
+        let command = instruction(0, "cmd-1", "Build an Android notes app");
+        {
+            let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+                .expect("open ledger");
+            let accepted = plane
+                .dispatch_with_result(command.clone(), "corr-1")
+                .expect("accepted");
+            assert!(matches!(accepted, DurableDispatchOutcome::Accepted { .. }));
+            let duplicate = plane
+                .dispatch_with_result(command.clone(), "corr-2")
+                .expect("duplicate result");
+            assert!(matches!(
+                duplicate,
+                DurableDispatchOutcome::Duplicate { .. }
+            ));
+            assert_eq!(plane.replay_after(0).expect("replay").len(), 1);
+        }
+        {
+            let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+                .expect("reload ledger");
+            let duplicate = plane
+                .dispatch_with_result(command, "corr-3")
+                .expect("duplicate after restart");
+            assert!(matches!(
+                duplicate,
+                DurableDispatchOutcome::Duplicate { .. }
+            ));
+            assert_eq!(plane.snapshot().projection_revision, Revision(1));
+        }
+        let conflicting = instruction(0, "cmd-1", "Different instruction");
+        let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("reload for conflict");
+        assert!(matches!(
+            plane.dispatch_with_result(conflicting, "corr-4"),
+            Err(DurableControlPlaneError::IdempotencyConflict)
+        ));
+        let _ = fs::remove_file(database);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn failed_sqlite_commit_does_not_advance_live_or_reloaded_projection() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = database_path("rollback-dir");
+        fs::create_dir(&directory).expect("create private temp directory");
+        let database = directory.join("ledger.sqlite3");
+        let parent = directory.as_path();
+        let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("open ledger");
+        let before = plane.snapshot();
+        let original_permissions = fs::metadata(parent).expect("metadata").permissions();
+        let mut read_only = original_permissions.clone();
+        read_only.set_mode(0o500);
+        fs::set_permissions(parent, read_only).expect("make directory read-only");
+        let result = plane.dispatch_with_result(
+            instruction(0, "cmd-rollback", "Build an Android notes app"),
+            "corr-rollback",
+        );
+        fs::set_permissions(parent, original_permissions).expect("restore directory permissions");
+        assert!(matches!(result, Err(DurableControlPlaneError::Storage(_))));
+        assert_eq!(plane.snapshot(), before);
+        let reloaded = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("reload ledger");
+        assert_eq!(reloaded.snapshot(), before);
+        let _ = fs::remove_file(&database);
+        let _ = fs::remove_dir(&directory);
+    }
+}
+
+#[cfg(test)]
+mod m115_command_surface_tests {
+    use super::*;
+
+    fn command(revision: u64, id: &str, kind: CommandKind, payload: &str) -> CommandEnvelope {
+        CommandEnvelope {
+            command_id: id.into(),
+            project_id: ProjectId("project-0001".into()),
+            task_id: None,
+            kind,
+            payload: payload.into(),
+            expected_projection_revision: Revision(revision),
+            idempotency_key: Some(format!("idem-{id}")),
+        }
+    }
+
+    #[test]
+    fn every_m115_command_kind_has_an_executable_control_plane_path() {
+        let mut plane = ControlPlane::new(ProjectId("project-0001".into()));
+        let commands = [
+            CommandKind::ProjectOpen,
+            CommandKind::TaskStart,
+            CommandKind::WorkspaceApplyPatch,
+            CommandKind::PreviewStart,
+            CommandKind::PreviewStop,
+            CommandKind::ValidationRun,
+            CommandKind::ArtifactBuild,
+            CommandKind::ArtifactExport,
+            CommandKind::ProviderTest,
+            CommandKind::SettingsUpdateProvider,
+            CommandKind::PauseTask,
+            CommandKind::TaskResume,
+            CommandKind::TaskCancel,
+            CommandKind::Reconnect,
+            CommandKind::SubmitInstruction,
+            CommandKind::ResumeTask,
+            CommandKind::CancelTask,
+        ];
+        let command_count = commands.len();
+        for (revision, kind) in commands.into_iter().enumerate() {
+            if matches!(
+                kind,
+                CommandKind::TaskStart | CommandKind::SubmitInstruction
+            ) {
+                plane.projection.task_state = ProductLifecycleState::Planning;
+            }
+            if matches!(kind, CommandKind::TaskResume | CommandKind::ResumeTask) {
+                plane.projection.task_state = ProductLifecycleState::Paused;
+            }
+            let accepted = plane.accept(command(
+                revision as u64,
+                &format!("m115-{revision}"),
+                kind,
+                if matches!(
+                    kind,
+                    CommandKind::TaskStart | CommandKind::SubmitInstruction
+                ) {
+                    "Build an Android app"
+                } else {
+                    "m115"
+                },
+            ));
+            assert!(
+                accepted.is_ok(),
+                "M115 command {kind:?} was not executable: {accepted:?}"
+            );
+        }
+        assert_eq!(
+            plane.snapshot().projection_revision,
+            Revision(command_count as u64)
+        );
+    }
+}
+
+#[cfg(test)]
+mod m115_timeout_tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-timeout-{nonce}.sqlite3"))
+    }
+
+    #[test]
+    fn timeout_before_admission_has_no_durable_mutation() {
+        let database = database_path();
+        let plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("open ledger");
+        let before = plane.snapshot();
+        assert!(deadline_elapsed(Some(100), 100));
+        assert!(!deadline_elapsed(Some(101), 100));
+        assert_eq!(plane.snapshot(), before);
+        assert!(plane.replay_after(0).expect("replay").is_empty());
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn timeout_after_acceptance_cannot_overwrite_the_accepted_result() {
+        let database = database_path();
+        let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("open ledger");
+        let command = CommandEnvelope {
+            command_id: "command-after-acceptance".into(),
+            project_id: ProjectId("project-0001".into()),
+            task_id: None,
+            kind: CommandKind::SubmitInstruction,
+            payload: "Build an Android app".into(),
+            expected_projection_revision: Revision(0),
+            idempotency_key: Some("idem-after-acceptance".into()),
+        };
+        let accepted = plane
+            .dispatch_with_result(command.clone(), "corr")
+            .expect("accepted");
+        let accepted_snapshot = match accepted {
+            DurableDispatchOutcome::Accepted { snapshot, .. } => snapshot,
+            DurableDispatchOutcome::Duplicate { .. } => panic!("first dispatch cannot duplicate"),
+        };
+        let timed_out = plane
+            .record_timeout(
+                "timeout-command-after-acceptance",
+                &command.command_id,
+                "corr",
+                "late watchdog",
+            )
+            .expect("timeout record");
+        assert!(matches!(timed_out, DurableTimeoutOutcome::Recorded { .. }));
+        let reloaded = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("reload ledger");
+        assert_eq!(reloaded.replay_after(0).expect("replay").len(), 2);
+        assert_eq!(accepted_snapshot.projection_revision, Revision(1));
+        assert_eq!(reloaded.snapshot().projection_revision, Revision(2));
+        assert!(matches!(
+            reloaded.snapshot().task_state,
+            ProductLifecycleState::SafelyFailed
+        ));
+        let mut recovered = reloaded;
+        let recovery = recovered
+            .dispatch(CommandEnvelope {
+                command_id: "command-recover".into(),
+                project_id: ProjectId("project-0001".into()),
+                task_id: None,
+                kind: CommandKind::TaskResume,
+                payload: "recover after timeout".into(),
+                expected_projection_revision: Revision(2),
+                idempotency_key: Some("idem-recover".into()),
+            })
+            .expect("timeout recovery");
+        assert_eq!(recovery.task_state, ProductLifecycleState::Planning);
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn timeout_record_is_idempotent_after_restart() {
+        let database = database_path();
+        let first = {
+            let mut plane = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+                .expect("open ledger");
+            plane
+                .record_timeout(
+                    "timeout-replay",
+                    "command-replay",
+                    "corr",
+                    "deadline elapsed",
+                )
+                .expect("record timeout")
+        };
+        assert!(matches!(first, DurableTimeoutOutcome::Recorded { .. }));
+        let mut reopened = DurableControlPlane::open(&database, ProjectId("project-0001".into()))
+            .expect("reopen ledger");
+        let duplicate = reopened
+            .record_timeout(
+                "timeout-replay",
+                "command-replay",
+                "corr",
+                "deadline elapsed",
+            )
+            .expect("idempotent timeout");
+        assert!(matches!(duplicate, DurableTimeoutOutcome::Duplicate { .. }));
+        assert_eq!(reopened.replay_after(0).expect("replay").len(), 1);
+        let _ = fs::remove_file(database);
     }
 }

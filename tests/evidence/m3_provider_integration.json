@@ -1,0 +1,14 @@
+{
+  "authenticatedCommandEnvelopeObserved": true,
+  "durableProfileTransactionObserved": true,
+  "durableProviderEventEmissionObserved": true,
+  "evidenceStatus": "M3_M115_HEADLESS_INTEGRATION_TRACE_ONLY",
+  "providerRuntimeExecutedAfterDurableAdmission": true,
+  "providerTestBoundaryObserved": true,
+  "providerUsageDurabilityObserved": true,
+  "schema": "nirman.m3.provider_integration.v1",
+  "secretRedactionObserved": true,
+  "settingsUpdateProviderBoundaryObserved": true,
+  "typedProviderResultObserved": true,
+  "windowsCredentialManagerRuntimeObserved": false
+}

@@ -63,7 +63,8 @@ fn m2_vertical_trace_persists_replays_recovers_and_rejects_stale_updates(
     assert_eq!(after_restart.snapshot().project_id, project);
     assert_eq!(after_restart.checkpoint_id(), Some("checkpoint-paused"));
 
-    supervisor.reconcile_after_restart("checkpoint-paused");
+    supervisor.restart_from_checkpoint("checkpoint-paused");
+    assert!(supervisor.snapshot().active_fence.is_none());
     assert_eq!(supervisor.snapshot().state, SupervisorState::Reconciling);
     supervisor.register_lease("lease-new", "worker-new", 2);
     supervisor.heartbeat();
