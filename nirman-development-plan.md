@@ -1259,6 +1259,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M112 | CONTRACT.RUNTIME.AGENT_TRUST | ADR-198 | TEST-TRUST-001 | EV-TRUST-001 | Agent-layer trust scanning and revocation gate |
 | M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
 | M114 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | ADR-200 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate |
+| M115 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | ADR-201 | TEST-FCP-001 | EV-FCP-001 | Frontend–control-plane protocol and generated service adapter gate |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1522,3 +1523,9 @@ Implement `ContextCachePolicy`, protected-context classes, compaction triggers, 
 Implement independent collection and validation for applicable Play Integrity, ANRs, startup/crash behavior, battery-sensitive behavior, Doze/background restrictions, permissions, device availability, and runtime-session identity.
 
 **Exit gate:** applicable, unavailable, unsupported, stale, and failed signal fixtures are distinguished; no missing signal becomes a pass; and the Android completion report shows the exact coverage and evidence for each declared integrity requirement.
+
+## M115 — Frontend–control-plane protocol and generated service adapter
+
+Implement the authenticated command registry, typed response and error envelopes, command-to-use-case-to-authority-to-transaction mappings, projection snapshots, subscription replay, snapshot cutover, backpressure, stale-command handling, and generated Android service adapter.
+
+**Exit gate:** executable fixtures prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization.

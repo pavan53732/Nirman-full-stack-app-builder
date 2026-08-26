@@ -1750,6 +1750,13 @@ ExternalEffectRecord
 IntegrationBoundaryContract
 UsageRecord
 ProviderProfile
+FrontendControlPlaneContract
+UICommandRegistry
+UICommandEnvelope
+ProjectionSnapshot
+UIResponseEnvelope
+UIErrorEnvelope
+EventSubscription
 CostGovernanceRecord
 AgentTrustAssessment
 ContextCachePolicy
@@ -2794,67 +2801,7 @@ SupervisorConnection
 
 The connection performs a protocol/version handshake, authenticates the UI instance, validates project scope, subscribes to durable events after a supplied sequence, reports supervisor health, and handles reconnect after UI crash, UI restart, supervisor restart, Windows reboot, and sleep/resume. A UI connection cannot impersonate another project, publish forged events, or invoke a command outside its capability scope.
 
-```text
-UICommandEnvelope
-- commandId
-- connectionId
-- uiInstanceId
-- projectId
-- taskId
-- expectedProjectionRevision
-- commandKind
-- payloadSchemaRef
-- correlationId
-- causationId
-- idempotencyKey
-- authenticatedUserScope
-- createdAt
-
-ProjectionSnapshot
-- snapshotId
-- projectId
-- taskId
-- projectionRevision
-- lastEventSequence
-- stateRefs
-- previewRevisionRef
-- evidenceLedgerRef
-- supervisorHealthRef
-- generatedAt
-```
-
-`UICommandEnvelope` is a request, not an authority decision. The control plane rejects an envelope with invalid scope, a stale expected projection revision, an expired connection, a duplicate idempotency key, or an unsupported command schema. `ProjectionSnapshot` is a read model; it cannot be used by the UI to commit state, authorize operations, promote artifacts, or advance evidence.
-
-```text
-UICommandEnvelope
-- commandId
-- connectionId
-- uiInstanceId
-- projectId
-- taskId
-- expectedProjectionRevision
-- commandKind
-- payloadSchemaRef
-- correlationId
-- causationId
-- idempotencyKey
-- authenticatedUserScope
-- createdAt
-
-ProjectionSnapshot
-- snapshotId
-- projectId
-- taskId
-- projectionRevision
-- lastEventSequence
-- stateRefs
-- previewRevisionRef
-- evidenceLedgerRef
-- supervisorHealthRef
-- generatedAt
-```
-
-`UICommandEnvelope` is a request, not an authority decision. The control plane rejects an envelope with invalid scope, a stale expected projection revision, an expired connection, a duplicate idempotency key, or an unsupported command schema. `ProjectionSnapshot` is a read model; it cannot be used by the UI to commit state, authorize operations, promote artifacts, or advance evidence.
+The canonical `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `UIErrorEnvelope`, and `EventSubscription` schemas, command registry, transaction ownership, and replay rules are defined by technical architecture §81. `SupervisorConnection` carries the authenticated transport and cursor required by that contract.
 
 ### 57.4 SupervisorLifecycle and recovery scan
 
@@ -4912,3 +4859,45 @@ The lifecycle is `REQUESTED → COLLECTING → OBSERVED → VALIDATED | NOT_APPL
 ### 80.3 Failure and recovery
 
 ANR, device loss, unavailable Play Integrity, battery or Doze uncertainty, permission denial, stale runtime sessions, and collector errors produce typed evidence gaps. Recovery may restart collection, reconnect the device, change the declared profile, or report an honest coverage limitation; it cannot convert absence into a pass.
+
+## 81. Frontend–Control-Plane Protocol Implementation Contract
+
+### 81.1 Canonical protocol schemas
+
+The implementation owns the `UICommandRegistry`, `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `UIErrorEnvelope`, and `EventSubscription` schemas defined by build specification §76. Rust validates schema version, authenticated installation identity, user scope, project scope, command capability, expected projection revision, idempotency key, causation, and sensitive-field policy before invoking a use case.
+
+### 81.2 Command-to-domain wiring
+
+```text
+React ViewModel / presentation controller
+  → typed IPC client
+  → UICommandEnvelope
+  → SupervisorConnection
+  → command registry and schema validator
+  → application use case
+  → deterministic authority checks
+  → repository and owned SQLite transaction
+  → event store
+  → projection projector
+  → UIResponseEnvelope + ProjectionSnapshot + durable event stream
+```
+
+The command handler owns the transaction and maps persistence results to domain results. It does not return raw database rows. The projection projector maps durable domain state to a stable read model. A rejected command creates no domain mutation; an accepted command returns a durable command result or a typed failure. A duplicate idempotency key returns the stored prior result when the request fingerprint matches and returns `CONFLICT` when it does not.
+
+### 81.3 Transport, replay, and failure behavior
+
+The local IPC transport uses the `SupervisorConnection` handshake and the `EventSubscription` lifecycle. Snapshot-plus-event replay is cursor-atomic. The server applies per-connection backpressure, bounds batches, and records acknowledgements. A slow or disconnected UI does not stop eligible autonomous work; it only stops presentation updates until replay succeeds. A stale command is rejected with the current projection reference. A timeout or cancellation is durable and cannot be converted into success by a late response.
+
+`UIErrorEnvelope` is safe for presentation and references protected diagnostics. Error categories map to recovery actions without giving the frontend recovery authority. Transport failures, schema incompatibility, supervisor restart, event retention gaps, and authentication expiry each have distinct recovery behavior and evidence.
+
+### 81.4 Frontend state layers
+
+React state is divided into `AuthoritativeProjectionState`, `OptimisticInputState`, `PendingCommandState`, `RejectedCommandState`, and `ConnectionState`. Only the first is derived from supervisor snapshots and durable events; optimistic input cannot update task, worker, preview, artifact, evidence, policy, signing, or completion truth. Reconnect discards stale derived state and rebuilds from the accepted snapshot cursor.
+
+### 81.5 Generated Android service adapter
+
+The generated Android project uses its own typed API client and `AndroidServiceIntegration` adapter. The adapter normalizes authentication, token refresh, timeout, retry, offline, idempotency, response, and application-error behavior for the generated app. It does not call Nirman IPC or write the Nirman ledger. Functional Android-service validation produces application evidence linked to the generated project revision and integration identity.
+
+### 81.6 Technical acceptance tests
+
+The implementation is accepted only when an executable fixture covers each initial command kind, authorization and scope denial, schema mismatch, duplicate and conflicting idempotency, stale projection, typed error mapping, cancellation, timeout, replay after reconnect, snapshot cutover, slow-client backpressure, supervisor restart, SQLite transaction rollback, and generated Android service error handling.

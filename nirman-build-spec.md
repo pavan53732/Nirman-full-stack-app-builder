@@ -270,6 +270,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 |---|---|---|---|---|---|
 | CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |
 | CAP.ANDROID.LIVE_PREVIEW | Show a revision-bound, evidence-backed Android runtime preview and reconstruct it after interruption | CONTRACT.RUNTIME.PREVIEW_SYNC | TEST-PSYNC-001 | EV-PSYNC-001 | PLANNED |
+| CAP.ANDROID.FRONTEND_CONTROL_PLANE | Operate the desktop UI through authenticated commands, durable projections, replay, and typed errors | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 | EV-FCP-001 | PLANNED |
 | CAP.ANDROID.BUDGETED_AUTONOMY | Continue autonomous Android work under explicit token, duration, cost, and resource governance | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
 | CAP.ANDROID.TRUSTED_EXTENSIONS | Use skills, MCP-compatible tools, and plugins only after trust, provenance, permission, and revocation checks | CONTRACT.RUNTIME.AGENT_TRUST | TEST-TRUST-001 | EV-TRUST-001 | PLANNED |
 | CAP.ANDROID.CONTEXT_GOVERNANCE | Compact and cache context without evicting constraints, corrupting lineage, or hiding provider telemetry | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | TEST-CONTEXT-001 | EV-CONTEXT-001 | PLANNED |
@@ -436,9 +437,7 @@ TargetPlatformSet == {ANDROID}
 project.targetPlatforms == ["android"]
 ```
 
-Supporting backend services, build tools, native modules, provider adapters, and development utilities MAY exist when required by an Android application, but no resolver path may produce a second generated deployable target. Android-only describes the generated product target, not a prohibition on supporting components. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target.
-
-Cloud-provider context transmission is governed by a typed envelope:
+Supporting backend services, build tools, native modules, provider adapters, and development utilities MAY exist when required by an Android application, but no resolver path may produce a second generated deployable target. Android-only describes the generated product target, not a prohibition on supporting components. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. Cloud-provider context transmission is governed by a typed envelope:
 
 ```text
 ProviderContextEnvelope
@@ -874,7 +873,7 @@ The user must be able to inspect installed tool versions, missing dependencies, 
 | Extensibility | New Android technology adapters and AI providers should be addable independently |
 | Recoverability | Users must be able to undo autonomous tasks |
 | Accessibility | Keyboard navigation, readable contrast, and visible status states are required |
-| Maintainability | Agent tools, provider adapters, templates, and UI should have separate boundaries |
+| Maintainability | Agent tools, provider adapters, internal Android bootstraps, and UI should have separate boundaries |
 
 ---
 
@@ -4006,6 +4005,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | BS §75 | — | TA §80 | ADR-200 | M114 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76 | — | TA §81 | ADR-201 | M115 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4139,6 +4139,10 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.CONTEXT.CONSTRAINT_PRESERVED | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | active constraints, locked decisions, evidence lineage, and required source context are never evicted for budget | SEALED |
 | CLAUSE.INTEGRITY.APPLICABILITY_EXPLICIT | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | unsupported or unconfigured integrity signals are recorded as not applicable or unavailable, never as passes | SEALED |
 | CLAUSE.INTEGRITY.RUNTIME_SIGNALS_SEPARATE | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | ANR, battery, Doze, Play Integrity, and device signals remain separate observations with independent evidence | SEALED |
+| CLAUSE.FCP.AUTHORIZED_COMMANDS | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | every UI command is authenticated, project-scoped, capability-checked, and admitted by the control plane before execution | SEALED |
+| CLAUSE.FCP.TYPED_FAILURES | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | a failed UI command returns a typed error with correlation, retryability, diagnostic reference, and authority decision without exposing secrets | SEALED |
+| CLAUSE.FCP.REPLAY_CONTINUITY | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | subscription replay uses a durable sequence and snapshot cutover; gaps freeze advancement until continuity is restored | SEALED |
+| CLAUSE.FCP.PROJECTION_SEPARATION | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | UI optimistic input and pending-command state cannot mutate authoritative domain, evidence, preview, or policy projection | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -4211,6 +4215,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.AGENT_TRUST | CAP.ANDROID.TRUSTED_EXTENSIONS | BS §73 | BS §73 | TA §78 | TA §78.1 | BS §73 | TA §78.2 | TA §78.3 | ADR-198 | M112 | TEST-TRUST-001 | EV-TRUST-001 |
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
+| CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | CAP.ANDROID.FRONTEND_CONTROL_PLANE | BS §76 | BS §76 | TA §81 | TA §81.1 | BS §76 | TA §81.2 | TA §81.3 | ADR-201 | M115 | TEST-FCP-001 | EV-FCP-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -5040,3 +5045,123 @@ The integrity contract does not expand Nirman into a cloud deployment system or 
 ### 75.1 Acceptance criteria
 
 Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, startup and crash evidence, battery-sensitive checks, Doze or background restriction behavior, permission behavior, device loss, stale observations, and honest coverage reporting.
+
+## 76. Frontend–Control-Plane Protocol Contract
+
+**ContractId:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
+
+The desktop frontend is a presentation client of the authoritative local control plane. The canonical path is:
+
+```text
+UI input or user command
+  → UICommandEnvelope
+  → authenticated connection and project-scope check
+  → UICommandRegistry entry
+  → use-case handler and deterministic authorities
+  → owned SQLite transaction
+  → durable domain events
+  → ProjectionSnapshot and UIResponseEnvelope
+  → frontend projection reducer
+```
+
+The frontend may own view preferences, form input, selection, filters, scroll position, and pending-command display. It cannot own task, worker, process, build, preview, artifact, evidence, policy, signing, or completion truth. The control plane is the only component that authorizes operations, persists domain state, emits authoritative events, and derives projections.
+
+### 76.1 UICommandRegistry
+
+Every command must be registered with `commandKind`, `requestSchemaRef`, `responseSchemaRef`, `requiredAuthority`, `requiredCapability`, `projectScope`, `transactionDomain`, `idempotencyPolicy`, `timeoutPolicy`, `cancellationPolicy`, `emittedEventTypes`, `projectionEffects`, `errorCodes`, and `sensitiveFields`. The initial registry is:
+
+| Command kind | Domain use case | Required authority | Transaction domain | Projection effect |
+|---|---|---|---|---|
+| `project.open` | Open and inspect a project | Workspace and policy authority | Local | Project and health projection |
+| `task.start` | Start an approved Android goal | Lifecycle, policy, and capability authority | Local | Task and worker projection |
+| `task.cancel` | Request cancellation | Lifecycle authority | Local | Cancellation and recovery projection |
+| `task.resume` | Resume an eligible task | Lifecycle and recovery authority | Local | Task and continuation projection |
+| `workspace.apply_patch` | Admit a worker or user patch | Workspace, reconciliation, and policy authority | Local | Revision and diff projection |
+| `preview.start` | Start a revision-bound preview | Preview and lifecycle authority | Device | Preview candidate projection |
+| `preview.stop` | Stop a managed preview session | Lifecycle authority | Device | Preview lifecycle projection |
+| `preview.promote` | Request candidate promotion | Preview promotion and evidence authority | Device | Promotion decision projection |
+| `validation.run` | Run declared checks | Verification and policy authority | Local or device | Validation and evidence projection |
+| `artifact.build` | Build a declared Android artifact | Toolchain and artifact authority | Local | Build and artifact projection |
+| `artifact.export` | Export a verified source or declared artifact | Artifact and external-effect authority | Local or external | Delivery and export projection |
+| `provider.test` | Test a configured provider profile | Provider and credential policy authority | External | Provider operationality projection |
+| `settings.update_provider` | Update a provider profile | Credential and policy authority | Local | Settings and provider projection |
+
+Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins.
+
+### 76.2 Response and error envelopes
+
+```text
+UIResponseEnvelope
+- responseId
+- commandId
+- correlationId
+- causationId
+- projectId
+- taskIdOptional
+- status: ACCEPTED | COMPLETED | REJECTED | DUPLICATE | STALE | CANCELLED | FAILED
+- resultSchemaRefOptional
+- resultRefOptional
+- projectionSnapshotRefOptional
+- eventRangeOptional
+- authorityDecisionRef
+- diagnosticRefOptional
+- createdAt
+```
+
+```text
+UIErrorEnvelope
+- errorId
+- commandId
+- correlationId
+- causationId
+- code
+- category: AUTHENTICATION | AUTHORIZATION | SCOPE | VALIDATION |
+            STALE_PROJECTION | IDEMPOTENCY | NOT_FOUND | CONFLICT |
+            ENVIRONMENT | PROVIDER | DEVICE | TIMEOUT | CANCELLATION |
+            UNAVAILABLE | INTERNAL
+- safeMessage
+- retryable
+- retryAfterOptional
+- recoveryActionOptional
+- diagnosticRef
+- authorityDecisionRef
+- sensitiveDataOmitted: boolean
+- createdAt
+```
+
+Raw stack traces, API keys, credentials, private reasoning, and unrestricted command output remain in protected diagnostic artifacts referenced by `diagnosticRef`; they are never copied into the UI error message.
+
+### 76.3 Subscription, replay, and snapshot cutover
+
+```text
+EventSubscription
+- subscriptionId
+- connectionId
+- projectId
+- taskIdOptional
+- fromEventSequence
+- snapshotRevisionOptional
+- requestedProjectionKinds
+- acknowledgedEventSequence
+- heartbeatInterval
+- maxBatchSize
+- backpressurePolicy
+- status: REQUESTED | ACTIVE | PAUSED | GAP | CLOSED
+```
+
+The backend authenticates the subscription, returns a `ProjectionSnapshot`, then replays events strictly after the snapshot cursor. The UI acknowledges the highest contiguous sequence. Duplicate acknowledgements are harmless. A sequence gap, incompatible schema, slow consumer, supervisor restart, or retention boundary pauses projection advancement and returns a typed recovery response; the UI cannot fill the gap from local state. Snapshot cutover is atomic from the reducer’s perspective: either the snapshot and its cursor are accepted together or neither advances the projection.
+
+### 76.4 Frontend/backend ownership and optimistic state
+
+The frontend application contains a ViewModel or presentation controller, an API/IPC client, and a projection reducer. The control plane contains command handlers, domain use cases, deterministic authorities, repositories, transaction managers, event persistence, and read-model projectors. A repository maps domain records to SQLite and never returns raw database rows as UI state.
+
+The transaction owner is the backend use-case handler. Local task, checkpoint, provider, and project changes use the local transaction domain; device installation, launch, and observation use the device transaction domain; provider or other externally visible calls use the external-effect domain with idempotency and reconciliation. The UI may show a pending command, but authoritative state advances only after a durable response or replayed event.
+
+### 76.5 Android service-integration adapter
+
+A generated Android application that uses a supporting API, authentication service, or datastore must declare `AndroidServiceIntegration` with `requestSchemaRef`, `responseSchemaRef`, `errorSchemaRef`, `authState`, `credentialReference`, `baseEndpointIdentity`, `datastoreOwner`, `offlinePolicy`, `retryPolicy`, `timeoutPolicy`, `idempotencyPolicy`, `tokenRefreshPolicy`, `privacyPolicy`, `networkPolicy`, and functional scenario IDs. Its generated API client and adapter are separate from Nirman’s desktop IPC client. Android integration failures become application evidence or declared blockers; they cannot mutate Nirman’s control-plane authority.
+
+### 76.6 Acceptance criteria
+
+The protocol is accepted only when fixtures prove authenticated command admission, project-scope rejection, idempotent duplicate handling, stale projection rejection, typed error rendering, cancellation, timeout, reconnect, snapshot cutover, event-gap recovery, backpressure, SQLite transaction ownership, projection reconstruction, and generated Android service error normalization.

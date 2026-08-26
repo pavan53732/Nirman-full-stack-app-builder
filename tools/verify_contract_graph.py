@@ -1076,6 +1076,18 @@ def check_semantic_documentation(docs, R, D):
         "ADR-198": dec,
         "ADR-199": dec,
         "ADR-200": dec,
+        "FrontendControlPlaneContract": bs + ta,
+        "UICommandRegistry": bs + ta,
+        "UICommandEnvelope": bs + ta,
+        "ProjectionSnapshot": bs + ta,
+        "UIResponseEnvelope": bs + ta,
+        "UIErrorEnvelope": bs + ta,
+        "EventSubscription": bs + ta,
+        "CAP.ANDROID.FRONTEND_CONTROL_PLANE": bs,
+        "TEST-FCP-001": bs + dev,
+        "EV-FCP-001": bs + dev,
+        "M115": dev,
+        "ADR-201": dec,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1207,6 +1219,32 @@ def check_semantic_documentation(docs, R, D):
     if "CertificateInspection\n- inspectionId" not in ta:
         D.add("semantic documentation", "certificate inspection schema",
               "canonical CertificateInspection schema is missing")
+    protocol_sections = (
+        ("## 76. Frontend–Control-Plane Protocol Contract", bs, "frontend-control-plane authority"),
+        ("## 81. Frontend–Control-Plane Protocol Implementation Contract", ta, "frontend-control-plane architecture"),
+        ("## M115 — Frontend–control-plane protocol and generated service adapter", dev, "frontend-control-plane milestone"),
+        ("## ADR-201: Make the frontend a typed projection client of the control plane", dec, "frontend-control-plane decision"),
+    )
+    for anchor, text, subject in protocol_sections:
+        if anchor not in text:
+            D.add("semantic documentation", subject, f"canonical protocol anchor is missing: {anchor}")
+    protocol_tokens = (
+        ("### 76.1 UICommandRegistry", bs, "command registry"),
+        ("### 76.2 Response and error envelopes", bs, "response and error envelopes"),
+        ("UIErrorEnvelope\n- errorId", bs, "error envelope schema"),
+        ("### 76.3 Subscription, replay, and snapshot cutover", bs, "event subscription"),
+        ("snapshot cutover", bs, "snapshot cutover"),
+        ("backpressure", bs, "event backpressure"),
+        ("Snapshot-plus-event replay is cursor-atomic", ta, "architecture snapshot cutover"),
+        ("AuthoritativeProjectionState", bs + ta, "frontend authoritative projection state"),
+        ("OptimisticInputState", bs + ta, "frontend optimistic input state"),
+        ("AndroidServiceIntegration", bs + ta, "generated Android service adapter"),
+        ("TEST-FCP-001", bs + dev, "frontend-control-plane test identity"),
+        ("EV-FCP-001", bs + dev, "frontend-control-plane evidence identity"),
+    )
+    for token, text, subject in protocol_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"frontend-control-plane requirement is missing: {token}")
 
     if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
         D.add("semantic documentation", "runtime certification boundary",

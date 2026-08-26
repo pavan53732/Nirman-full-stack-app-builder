@@ -446,6 +446,50 @@ CASES = {
         DEC, "## ADR-198: Scan and revoke agent-layer extension content",
         "## ADR-198: Extension notes",
         "semantic documentation"),
+    "semantic frontend-control-plane authority removed": (
+        BS, "## 76. Frontend–Control-Plane Protocol Contract",
+        "## 76. Frontend Protocol Notes",
+        "semantic documentation"),
+    "semantic frontend-control-plane architecture removed": (
+        TA, "## 81. Frontend–Control-Plane Protocol Implementation Contract",
+        "## 81. Frontend Protocol Notes",
+        "semantic documentation"),
+    "semantic frontend-control-plane milestone removed": (
+        DEV, "## M115 — Frontend–control-plane protocol and generated service adapter",
+        "## M115 — Frontend Protocol Notes",
+        "semantic documentation"),
+    "semantic frontend-control-plane decision removed": (
+        DEC, "## ADR-201: Make the frontend a typed projection client of the control plane",
+        "## ADR-201: Frontend Protocol Notes",
+        "semantic documentation"),
+    "semantic command registry removed": (
+        BS, "### 76.1 UICommandRegistry",
+        "### 76.1 Command Notes",
+        "semantic documentation"),
+    "semantic response envelope removed": (
+        BS, "### 76.2 Response and error envelopes",
+        "### 76.2 Response envelopes",
+        "semantic documentation"),
+    "semantic error envelope removed": (
+        BS, "UIErrorEnvelope\n- errorId",
+        "ErrorEnvelope\n- errorId",
+        "semantic documentation"),
+    "semantic event subscription removed": (
+        BS, "### 76.3 Subscription, replay, and snapshot cutover",
+        "### 76.3 Subscription and replay",
+        "semantic documentation"),
+    "semantic projection state separation removed": (
+        TA, "AuthoritativeProjectionState",
+        "ProjectionState",
+        "semantic documentation"),
+    "semantic snapshot cutover removed": (
+        TA, "Snapshot-plus-event replay is cursor-atomic",
+        "Snapshot-plus-event replay is best-effort",
+        "semantic documentation"),
+    "semantic frontend-control-plane identifiers removed": (
+        BS, "TEST-FCP-001 | EV-FCP-001",
+        "TEST-GEN-001 | EV-GEN-001",
+        "reverse break"),
 }
 
 
