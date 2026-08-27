@@ -2106,6 +2106,7 @@ dependencies = [
  "nirman-project",
  "nirman-providers",
  "nirman-supervisor",
+ "nirman-workers",
  "serde",
  "serde_json",
  "tauri",
@@ -2139,6 +2140,7 @@ dependencies = [
  "nirman-evidence",
  "nirman-preview",
  "nirman-project",
+ "nirman-workers",
  "serde",
  "serde_json",
 ]

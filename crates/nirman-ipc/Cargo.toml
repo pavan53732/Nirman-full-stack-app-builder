@@ -12,6 +12,7 @@ nirman-preview = { path = "../nirman-preview" }
 nirman-domain = { path = "../nirman-domain" }
 nirman-evidence = { path = "../nirman-evidence" }
 nirman-project = { path = "../nirman-project" }
+nirman-workers = { path = "../nirman-workers" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

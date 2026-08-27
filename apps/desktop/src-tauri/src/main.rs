@@ -10,6 +10,7 @@ use nirman_android::{
 use nirman_artifacts::{deliver_apk_local, inspect_apk, scan_apk_for_secrets, ApkArtifact};
 use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
+    M8DispatchRecord,
 };
 use nirman_domain::{
     AndroidConstructionCommandPayload, AndroidConstructionContract, CommandKind,
@@ -28,7 +29,10 @@ use nirman_ipc::{
     ProviderExecuteResultPayload, ProviderTestCommandPayload, ProviderTestResultPayload,
     ResponseStatus, SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement,
     SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
-    WorkspaceApplyPatchCommandPayload, WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
+    WorkerHandoffAcknowledgeCommandPayload, WorkerHandoffAcknowledgeResultPayload,
+    WorkerHandoffSubmitCommandPayload, WorkerHandoffSubmitResultPayload,
+    WorkerTaskClaimCommandPayload, WorkerTaskClaimResultPayload, WorkspaceApplyPatchCommandPayload,
+    WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_preview::{
     bind_preview_revision, select_fallback, M108ProjectionState, PreviewEventTruth, PreviewMode,
@@ -46,6 +50,10 @@ use nirman_providers::{
 use nirman_supervisor::{
     BackgroundRunRecord, BackgroundRunState, RecoveryAction, Supervisor, SupervisorState,
     M7_SCHEMA_VERSION,
+};
+use nirman_workers::{
+    CoordinationError, CoordinationTask, MultiWorkerCoordinator, WorkerContract,
+    WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim, M5_SCHEMA_VERSION,
 };
 use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
@@ -2535,6 +2543,240 @@ fn persist_m7_lifecycle(
     })
 }
 
+fn parse_m8_claim(
+    request: &CommandRequest,
+) -> Result<WorkerTaskClaimCommandPayload, ErrorEnvelope> {
+    let payload: WorkerTaskClaimCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "worker task claim payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    validate_m8_parent_and_task(request, &payload.parent_contract, &payload.task)?;
+    if request
+        .command
+        .task_id
+        .as_ref()
+        .map(|task_id| task_id.0.as_str())
+        != Some(payload.task.task_id.as_str())
+        || payload.lease_duration_seconds == 0
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker task claim requires matching task identity and a positive lease duration",
+        ));
+    }
+    Ok(payload)
+}
+
+fn parse_m8_handoff(
+    request: &CommandRequest,
+) -> Result<WorkerHandoffSubmitCommandPayload, ErrorEnvelope> {
+    let payload: WorkerHandoffSubmitCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "worker handoff payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    if request
+        .command
+        .task_id
+        .as_ref()
+        .map(|task_id| task_id.0.as_str())
+        != Some(payload.handoff.task_id.as_str())
+        || payload.handoff.worker_id.trim().is_empty()
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker handoff requires matching task identity and worker identity",
+        ));
+    }
+    validate_m8_parent_contract(request, &payload.parent_contract)?;
+    Ok(payload)
+}
+
+fn parse_m8_acknowledgement(
+    request: &CommandRequest,
+) -> Result<WorkerHandoffAcknowledgeCommandPayload, ErrorEnvelope> {
+    let payload: WorkerHandoffAcknowledgeCommandPayload =
+        serde_json::from_str(&request.command.payload).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "worker handoff acknowledgement payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    validate_m8_parent_contract(request, &payload.parent_contract)?;
+    if request.command.task_id.is_none()
+        || payload.acknowledgement_id.trim().is_empty()
+        || payload.message_id.trim().is_empty()
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker handoff acknowledgement requires task, acknowledgement, and message identity",
+        ));
+    }
+    Ok(payload)
+}
+
+fn validate_m8_parent_and_task(
+    request: &CommandRequest,
+    parent: &WorkerContract,
+    task: &CoordinationTask,
+) -> Result<(), ErrorEnvelope> {
+    validate_m8_parent_contract(request, parent)?;
+    if task.parent_task_id != parent.task_id.0
+        || task.parent_workspace_root != parent.workspace_root
+        || task.worker_id.trim().is_empty()
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker task is outside the parent contract scope",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_m8_parent_contract(
+    request: &CommandRequest,
+    parent: &WorkerContract,
+) -> Result<(), ErrorEnvelope> {
+    if parent.project_id.0 != request.command.project_id.0
+        || parent.schema_version != M5_SCHEMA_VERSION
+        || parent.worker_id.trim().is_empty()
+        || parent.task_id.0.trim().is_empty()
+        || parent.workspace_root.trim().is_empty()
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker parent contract is invalid or outside the authenticated project",
+        ));
+    }
+    parent.validate().map_err(|_| {
+        m8_validation_error(
+            request,
+            "worker parent contract failed deterministic validation",
+        )
+    })
+}
+
+fn m8_validation_error(request: &CommandRequest, message: &str) -> ErrorEnvelope {
+    error(
+        &request.correlation_id,
+        Some(request.command.command_id.clone()),
+        request.causation_id.clone(),
+        ControlPlaneErrorCode::InvalidCommand,
+        ErrorCategory::Validation,
+        message,
+        false,
+        None,
+    )
+}
+
+fn restore_m8_coordinator(
+    state: &RuntimeState,
+    parent_contract: &WorkerContract,
+    request: &CommandRequest,
+) -> Result<MultiWorkerCoordinator, ErrorEnvelope> {
+    let tasks = state.plane.load_m8_tasks().map_err(|_| {
+        m8_dependency_error(
+            request,
+            "durable M8 coordination tasks could not be restored",
+        )
+    })?;
+    let claims = state.plane.load_m8_claims().map_err(|_| {
+        m8_dependency_error(request, "durable M8 worker claims could not be restored")
+    })?;
+    let handoffs = state.plane.load_m8_handoffs().map_err(|_| {
+        m8_dependency_error(request, "durable M8 worker handoffs could not be restored")
+    })?;
+    let acknowledgements = state.plane.load_m8_acknowledgements().map_err(|_| {
+        m8_dependency_error(request, "durable M8 acknowledgements could not be restored")
+    })?;
+    MultiWorkerCoordinator::restore(
+        parent_contract.clone(),
+        tasks,
+        claims,
+        handoffs,
+        acknowledgements,
+    )
+    .map_err(|coordination_error| map_m8_coordination_error(request, coordination_error))
+}
+
+fn m8_dependency_error(request: &CommandRequest, message: &str) -> ErrorEnvelope {
+    error(
+        &request.correlation_id,
+        Some(request.command.command_id.clone()),
+        request.causation_id.clone(),
+        ControlPlaneErrorCode::DependencyUnavailable,
+        ErrorCategory::Unavailable,
+        message,
+        true,
+        Some("reconcile the local M8 ledger before retrying".into()),
+    )
+}
+
+fn map_m8_coordination_error(
+    request: &CommandRequest,
+    coordination_error: CoordinationError,
+) -> ErrorEnvelope {
+    let (category, recovery) = match coordination_error {
+        CoordinationError::Conflict(_) => (
+            ErrorCategory::Conflict,
+            Some("repair the conflicting isolated worker outputs before reconciliation".into()),
+        ),
+        CoordinationError::LeaseFenced | CoordinationError::LeaseRequired => (
+            ErrorCategory::Conflict,
+            Some("recover the worker from its durable checkpoint and claim a fresh lease".into()),
+        ),
+        CoordinationError::DependencyIncomplete => (
+            ErrorCategory::Unavailable,
+            Some("complete the dependency handoffs before claiming this worker task".into()),
+        ),
+        CoordinationError::EvidenceRequired => (
+            ErrorCategory::Validation,
+            Some("attach executable evidence to the worker handoff".into()),
+        ),
+        CoordinationError::MissingHandoff => (
+            ErrorCategory::NotFound,
+            Some("restore the referenced durable worker handoff".into()),
+        ),
+        _ => (
+            ErrorCategory::Validation,
+            Some("repair the M8 worker command payload and retry".into()),
+        ),
+    };
+    error(
+        &request.correlation_id,
+        Some(request.command.command_id.clone()),
+        request.causation_id.clone(),
+        ControlPlaneErrorCode::InvalidCommand,
+        category,
+        coordination_error.to_string(),
+        false,
+        recovery,
+    )
+}
+
 fn dispatch_request<S: EventSink>(
     sink: &S,
     state: &mut RuntimeState,
@@ -2648,6 +2890,21 @@ fn dispatch_request<S: EventSink>(
     };
     let workspace_apply_patch = if request.command.kind == CommandKind::WorkspaceApplyPatch {
         Some(parse_workspace_apply_patch(&request)?)
+    } else {
+        None
+    };
+    let m8_claim = if request.command.kind == CommandKind::WorkerTaskClaim {
+        Some(parse_m8_claim(&request)?)
+    } else {
+        None
+    };
+    let m8_handoff = if request.command.kind == CommandKind::WorkerHandoffSubmit {
+        Some(parse_m8_handoff(&request)?)
+    } else {
+        None
+    };
+    let m8_acknowledgement = if request.command.kind == CommandKind::WorkerHandoffAcknowledge {
+        Some(parse_m8_acknowledgement(&request)?)
     } else {
         None
     };
@@ -2767,6 +3024,123 @@ fn dispatch_request<S: EventSink>(
             ));
         }
     }
+    let m8_is_command = m8_claim.is_some() || m8_handoff.is_some() || m8_acknowledgement.is_some();
+    let m8_duplicate = if m8_is_command {
+        state
+            .plane
+            .command_is_duplicate(&request.command)
+            .map_err(|runtime_error| {
+                map_runtime_error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    runtime_error,
+                )
+            })?
+    } else {
+        false
+    };
+    let mut m8_task_record: Option<(String, String)> = None;
+    let mut m8_claim_record: Option<WorkerTaskClaim> = None;
+    let mut m8_handoff_record: Option<WorkerHandoffRecord> = None;
+    let mut m8_acknowledgement_record: Option<WorkerHandoffAcknowledgement> = None;
+    let mut m8_result_payload: Option<serde_json::Value> = None;
+    if m8_is_command && !m8_duplicate {
+        if let Some(payload) = m8_claim.as_ref() {
+            let mut coordinator =
+                restore_m8_coordinator(state, &payload.parent_contract, &request)?;
+            coordinator
+                .register_task(payload.task.clone())
+                .map_err(|coordination_error| {
+                    map_m8_coordination_error(&request, coordination_error)
+                })?;
+            let lease = coordinator
+                .claim(
+                    &payload.task.task_id,
+                    payload.now_epoch_seconds,
+                    payload.lease_duration_seconds,
+                )
+                .map_err(|coordination_error| {
+                    map_m8_coordination_error(&request, coordination_error)
+                })?;
+            let claim = WorkerTaskClaim {
+                task_id: payload.task.task_id.clone(),
+                lease,
+            };
+            m8_task_record = Some((
+                payload.task.task_id.clone(),
+                serde_json::to_string(&payload.task).map_err(|_| {
+                    m8_validation_error(&request, "worker task could not be serialized safely")
+                })?,
+            ));
+            m8_result_payload = Some(
+                serde_json::to_value(WorkerTaskClaimResultPayload {
+                    task_id: claim.task_id.clone(),
+                    worker_id: claim.lease.worker_id.clone(),
+                    lease_id: claim.lease.lease_id.clone(),
+                    fence_token: claim.lease.fence_token,
+                    expires_at_epoch_seconds: claim.lease.expires_at_epoch_seconds,
+                })
+                .expect("M8 claim result serialization must remain infallible"),
+            );
+            m8_claim_record = Some(claim);
+        } else if let Some(payload) = m8_handoff.as_ref() {
+            let mut coordinator =
+                restore_m8_coordinator(state, &payload.parent_contract, &request)?;
+            coordinator
+                .record_handoff(payload.handoff.clone())
+                .map_err(|coordination_error| {
+                    map_m8_coordination_error(&request, coordination_error)
+                })?;
+            let handoff = payload.handoff.clone();
+            m8_result_payload = Some(
+                serde_json::to_value(WorkerHandoffSubmitResultPayload {
+                    message_id: handoff.message_id.clone(),
+                    task_id: handoff.task_id.clone(),
+                    worker_id: handoff.worker_id.clone(),
+                    source_revision: handoff.source_revision.0,
+                    evidence_refs: handoff.evidence_refs.clone(),
+                })
+                .expect("M8 handoff result serialization must remain infallible"),
+            );
+            m8_handoff_record = Some(handoff);
+        } else if let Some(payload) = m8_acknowledgement.as_ref() {
+            let requested_task_id = request
+                .command
+                .task_id
+                .as_ref()
+                .expect("M8 acknowledgement parser requires task identity");
+            let durable_handoff = state
+                .plane
+                .load_worker_handoff(&payload.message_id)
+                .map_err(|_| {
+                    m8_dependency_error(&request, "referenced M8 handoff could not be loaded")
+                })?
+                .ok_or_else(|| {
+                    m8_validation_error(&request, "referenced M8 handoff does not exist")
+                })?;
+            if durable_handoff.task_id != requested_task_id.0 {
+                return Err(m8_validation_error(
+                    &request,
+                    "acknowledgement task scope does not match the durable handoff",
+                ));
+            }
+            let mut coordinator =
+                restore_m8_coordinator(state, &payload.parent_contract, &request)?;
+            let acknowledgement = coordinator
+                .acknowledge_handoff(&payload.acknowledgement_id, &payload.message_id)
+                .map_err(|coordination_error| {
+                    map_m8_coordination_error(&request, coordination_error)
+                })?;
+            m8_result_payload = Some(
+                serde_json::to_value(WorkerHandoffAcknowledgeResultPayload {
+                    acknowledgement: acknowledgement.clone(),
+                })
+                .expect("M8 acknowledgement result serialization must remain infallible"),
+            );
+            m8_acknowledgement_record = Some(acknowledgement);
+        }
+    }
     let after_sequence = state.plane.snapshot().last_event_sequence;
     let outcome = if let Some(prepared) = m4_synthesis_build.as_ref() {
         state.plane.dispatch_with_result_and_m4(
@@ -2831,6 +3205,41 @@ fn dispatch_request<S: EventSink>(
                     preflight_json.as_str(),
                 )),
             )
+    } else if m8_is_command {
+        state.plane.dispatch_with_result_and_m8(
+            request.command.clone(),
+            &correlation_id,
+            M8DispatchRecord {
+                task: m8_task_record,
+                claim: m8_claim_record.as_ref().map(|claim| {
+                    (
+                        claim.task_id.clone(),
+                        claim.lease.worker_id.clone(),
+                        serde_json::to_string(claim)
+                            .expect("M8 claim serialization must remain infallible"),
+                    )
+                }),
+                handoff: m8_handoff_record.as_ref().map(|handoff| {
+                    (
+                        handoff.message_id.clone(),
+                        handoff.task_id.clone(),
+                        handoff.worker_id.clone(),
+                        serde_json::to_string(handoff)
+                            .expect("M8 handoff serialization must remain infallible"),
+                    )
+                }),
+                acknowledgement: m8_acknowledgement_record.as_ref().map(|acknowledgement| {
+                    (
+                        acknowledgement.acknowledgement_id.clone(),
+                        acknowledgement.message_id.clone(),
+                        acknowledgement.task_id.clone(),
+                        acknowledgement.worker_id.clone(),
+                        serde_json::to_string(acknowledgement)
+                            .expect("M8 acknowledgement serialization must remain infallible"),
+                    )
+                }),
+            },
+        )
     } else if let Some(prepared) = prepared_mutation.as_ref() {
         state.plane.dispatch_with_result_and_mutation_transaction(
             request.command.clone(),
@@ -2914,6 +3323,85 @@ fn dispatch_request<S: EventSink>(
         &command_response.snapshot,
         status == ResponseStatus::Accepted,
     )?;
+    if m8_is_command {
+        let result_payload = if let Some(payload) = m8_result_payload {
+            Some(payload)
+        } else if m8_duplicate {
+            if let Some(payload) = m8_claim.as_ref() {
+                state
+                    .plane
+                    .load_worker_task_claim(&payload.task.task_id)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            &request,
+                            "durable M8 claim result could not be reloaded",
+                        )
+                    })?
+                    .map(|claim| {
+                        serde_json::to_value(WorkerTaskClaimResultPayload {
+                            task_id: claim.task_id,
+                            worker_id: claim.lease.worker_id,
+                            lease_id: claim.lease.lease_id,
+                            fence_token: claim.lease.fence_token,
+                            expires_at_epoch_seconds: claim.lease.expires_at_epoch_seconds,
+                        })
+                        .expect("M8 claim result serialization must remain infallible")
+                    })
+            } else if let Some(payload) = m8_handoff.as_ref() {
+                state
+                    .plane
+                    .load_worker_handoff(&payload.handoff.message_id)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            &request,
+                            "durable M8 handoff result could not be reloaded",
+                        )
+                    })?
+                    .map(|handoff| {
+                        serde_json::to_value(WorkerHandoffSubmitResultPayload {
+                            message_id: handoff.message_id,
+                            task_id: handoff.task_id,
+                            worker_id: handoff.worker_id,
+                            source_revision: handoff.source_revision.0,
+                            evidence_refs: handoff.evidence_refs,
+                        })
+                        .expect("M8 handoff result serialization must remain infallible")
+                    })
+            } else if let Some(payload) = m8_acknowledgement.as_ref() {
+                state
+                    .plane
+                    .load_worker_handoff_acknowledgement(&payload.acknowledgement_id)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            &request,
+                            "durable M8 acknowledgement result could not be reloaded",
+                        )
+                    })?
+                    .map(|acknowledgement| {
+                        serde_json::to_value(WorkerHandoffAcknowledgeResultPayload {
+                            acknowledgement,
+                        })
+                        .expect("M8 acknowledgement result serialization must remain infallible")
+                    })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        command_response.result_schema_ref = Some(
+            match request.command.kind {
+                CommandKind::WorkerTaskClaim => "nirman.worker_task_claim_result.v1",
+                CommandKind::WorkerHandoffSubmit => "nirman.worker_handoff_submit_result.v1",
+                CommandKind::WorkerHandoffAcknowledge => {
+                    "nirman.worker_handoff_acknowledge_result.v1"
+                }
+                _ => unreachable!("M8 result payload requires an M8 command"),
+            }
+            .into(),
+        );
+        command_response.result_payload = result_payload;
+    }
     if let Some(payload) = workspace_apply_patch {
         if command_response.status == ResponseStatus::Duplicate {
             let transaction_id = format!("mutation-transaction-{}", payload.operation_id);
@@ -5169,7 +5657,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Default)]
-    struct RecordingSink {
+    pub(super) struct RecordingSink {
         batches: StdMutex<Vec<EventBatch>>,
     }
 
@@ -5313,7 +5801,7 @@ mod tests {
             )
     }
 
-    fn test_state_at(path: &Path) -> RuntimeState {
+    pub(super) fn test_state_at(path: &Path) -> RuntimeState {
         let auth = AuthContext {
             installation_id: "installation-test".into(),
             user_scope: "local-user".into(),
@@ -6810,5 +7298,368 @@ mod tests {
         let _ = fs::remove_dir_all(workspace);
         let _ = fs::remove_dir_all(outside_workspace);
         let _ = fs::remove_file(ledger_path);
+    }
+}
+
+#[cfg(test)]
+mod m8_host_tests {
+    use super::*;
+    use crate::tests::RecordingSink;
+    use nirman_domain::{CommandEnvelope, ProjectId, Revision, TaskId};
+    use nirman_workers::{
+        CoordinationTask, HandoffStatus, WorkerContract, WorkerHandoffRecord, WorkerOutcome,
+        WorkerRole, WorkspaceIsolation, M8_SCHEMA_VERSION,
+    };
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-m8-host-{nonce}.sqlite3"))
+    }
+
+    fn parent_contract() -> WorkerContract {
+        WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-parent".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: TaskId("task-root".into()),
+            capability_ceiling: vec!["android.build".into()],
+            workspace_root: "/workspace/root".into(),
+            allowed_paths: vec!["/workspace/root".into()],
+            denied_paths: vec!["/home/ubuntu/.ssh".into()],
+            max_attempts: 3,
+            evidence_requirements: vec!["worker-evidence".into()],
+        }
+    }
+
+    fn child_task(index: usize) -> CoordinationTask {
+        CoordinationTask {
+            schema_version: M8_SCHEMA_VERSION,
+            task_id: format!("task-child-{index}"),
+            parent_task_id: "task-root".into(),
+            worker_id: format!("worker-child-{index}"),
+            role: match index {
+                0 => WorkerRole::Architecture,
+                1 => WorkerRole::Implementation,
+                _ => WorkerRole::Testing,
+            },
+            capability_ceiling: vec!["android.build".into()],
+            workspace_root: format!("/workspace/child-{index}"),
+            parent_workspace_root: "/workspace/root".into(),
+            isolation: WorkspaceIsolation::GitWorktree,
+            dependencies: vec![],
+            expected_source_revision: Revision(0),
+            required_evidence: vec!["worker-evidence".into()],
+        }
+    }
+
+    fn request(
+        auth: &AuthContext,
+        correlation_id: &str,
+        command_id: &str,
+        kind: CommandKind,
+        task_id: &str,
+        payload: String,
+        revision: u64,
+    ) -> CommandRequest {
+        CommandRequest {
+            protocol_schema_version: PROTOCOL_SCHEMA_VERSION,
+            auth: auth.clone(),
+            command: CommandEnvelope {
+                command_id: command_id.into(),
+                project_id: ProjectId(PROJECT_ID.into()),
+                task_id: Some(TaskId(task_id.into())),
+                kind,
+                payload,
+                expected_projection_revision: Revision(revision),
+                idempotency_key: Some(format!("m8-idempotency-{command_id}")),
+            },
+            correlation_id: correlation_id.into(),
+            causation_id: None,
+            deadline_epoch_seconds: None,
+        }
+    }
+
+    fn run(
+        sink: &RecordingSink,
+        state: &mut RuntimeState,
+        command_id: &str,
+        kind: CommandKind,
+        task_id: &str,
+        payload: String,
+        revision: u64,
+    ) -> Result<CommandResponse, ErrorEnvelope> {
+        let auth = state.auth.clone();
+        let correlation_id = state.correlation_id.clone();
+        let request = request(
+            &auth,
+            &correlation_id,
+            command_id,
+            kind,
+            task_id,
+            payload,
+            revision,
+        );
+        dispatch_request(sink, state, request)
+    }
+
+    fn claim_from_response(response: &CommandResponse) -> nirman_workers::WorkerTaskClaim {
+        serde_json::from_value(response.result_payload.clone().expect("claim result"))
+            .map(
+                |payload: WorkerTaskClaimResultPayload| nirman_workers::WorkerTaskClaim {
+                    task_id: payload.task_id,
+                    lease: nirman_workers::WorkerLease {
+                        lease_id: payload.lease_id,
+                        worker_id: payload.worker_id,
+                        fence_token: payload.fence_token,
+                        expires_at_epoch_seconds: payload.expires_at_epoch_seconds,
+                    },
+                },
+            )
+            .expect("typed claim result")
+    }
+
+    #[test]
+    fn authenticated_m8_engine_claims_three_workers_reloads_and_replays_durably() {
+        let path = database_path();
+        let mut state = super::tests::test_state_at(&path);
+        let sink = super::tests::RecordingSink::default();
+        let parent = parent_contract();
+        let tasks: Vec<CoordinationTask> = (0..3).map(child_task).collect();
+        let mut claims = Vec::new();
+        for (index, task) in tasks.iter().enumerate() {
+            let payload = WorkerTaskClaimCommandPayload {
+                parent_contract: parent.clone(),
+                task: task.clone(),
+                now_epoch_seconds: 100,
+                lease_duration_seconds: 60,
+            };
+            let response = run(
+                &sink,
+                &mut state,
+                &format!("m8-claim-{index}"),
+                CommandKind::WorkerTaskClaim,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("claim payload"),
+                index as u64,
+            )
+            .expect("authenticated claim");
+            assert_eq!(response.status, ResponseStatus::Accepted);
+            assert_eq!(
+                response.result_schema_ref.as_deref(),
+                Some("nirman.worker_task_claim_result.v1")
+            );
+            claims.push(claim_from_response(&response));
+        }
+        let second_claim_payload = WorkerTaskClaimCommandPayload {
+            parent_contract: parent.clone(),
+            task: tasks[0].clone(),
+            now_epoch_seconds: 100,
+            lease_duration_seconds: 60,
+        };
+        let second_claim = run(
+            &sink,
+            &mut state,
+            "m8-claim-conflict",
+            CommandKind::WorkerTaskClaim,
+            &tasks[0].task_id,
+            serde_json::to_string(&second_claim_payload).expect("second claim payload"),
+            3,
+        )
+        .expect_err("a claimed task cannot be claimed by a second command");
+        assert_eq!(second_claim.code, ControlPlaneErrorCode::InvalidCommand);
+        for (index, (task, claim)) in tasks.iter().zip(claims.iter()).enumerate() {
+            let handoff = WorkerHandoffRecord {
+                message_id: format!("m8-message-{index}"),
+                task_id: task.task_id.clone(),
+                worker_id: task.worker_id.clone(),
+                lease_id: claim.lease.lease_id.clone(),
+                fence_token: claim.lease.fence_token,
+                source_revision: Revision(1),
+                outcome: WorkerOutcome::Success,
+                changed_paths: vec![format!("app/Worker{index}.kt")],
+                changed_symbols: vec![format!("Worker{index}")],
+                evidence_refs: vec![format!("evidence-worker-{index}")],
+            };
+            let payload = WorkerHandoffSubmitCommandPayload {
+                parent_contract: parent.clone(),
+                handoff,
+            };
+            let response = run(
+                &sink,
+                &mut state,
+                &format!("m8-handoff-{index}"),
+                CommandKind::WorkerHandoffSubmit,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("handoff payload"),
+                (3 + index) as u64,
+            )
+            .expect("authenticated handoff");
+            assert_eq!(response.status, ResponseStatus::Accepted);
+            assert_eq!(
+                response.result_schema_ref.as_deref(),
+                Some("nirman.worker_handoff_submit_result.v1")
+            );
+        }
+        for (index, task) in tasks.iter().enumerate() {
+            let payload = WorkerHandoffAcknowledgeCommandPayload {
+                parent_contract: parent.clone(),
+                acknowledgement_id: format!("m8-ack-{index}"),
+                message_id: format!("m8-message-{index}"),
+            };
+            let response = run(
+                &sink,
+                &mut state,
+                &format!("m8-ack-command-{index}"),
+                CommandKind::WorkerHandoffAcknowledge,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("ack payload"),
+                (6 + index) as u64,
+            )
+            .expect("authenticated acknowledgement");
+            let result: WorkerHandoffAcknowledgeResultPayload =
+                serde_json::from_value(response.result_payload.expect("ack result"))
+                    .expect("typed acknowledgement result");
+            assert_eq!(result.acknowledgement.status, HandoffStatus::Accepted);
+            assert!(result.acknowledgement.reconciliation_checkpoint.is_some());
+        }
+        drop(state);
+
+        let mut reopened = super::tests::test_state_at(&path);
+        let duplicate_payload = WorkerTaskClaimCommandPayload {
+            parent_contract: parent.clone(),
+            task: tasks[0].clone(),
+            now_epoch_seconds: 100,
+            lease_duration_seconds: 60,
+        };
+        let duplicate = run(
+            &sink,
+            &mut reopened,
+            "m8-claim-0",
+            CommandKind::WorkerTaskClaim,
+            &tasks[0].task_id,
+            serde_json::to_string(&duplicate_payload).expect("duplicate claim payload"),
+            0,
+        )
+        .expect("durable duplicate claim");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            duplicate.result_schema_ref.as_deref(),
+            Some("nirman.worker_task_claim_result.v1")
+        );
+        assert_eq!(
+            duplicate.result_payload.expect("duplicate claim result")["task_id"],
+            tasks[0].task_id
+        );
+        let duplicate_ack_payload = WorkerHandoffAcknowledgeCommandPayload {
+            parent_contract: parent,
+            acknowledgement_id: "m8-ack-0".into(),
+            message_id: "m8-message-0".into(),
+        };
+        let duplicate_ack = run(
+            &sink,
+            &mut reopened,
+            "m8-ack-command-0",
+            CommandKind::WorkerHandoffAcknowledge,
+            &tasks[0].task_id,
+            serde_json::to_string(&duplicate_ack_payload).expect("duplicate ack payload"),
+            6,
+        )
+        .expect("durable duplicate acknowledgement");
+        assert_eq!(duplicate_ack.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            duplicate_ack.result_schema_ref.as_deref(),
+            Some("nirman.worker_handoff_acknowledge_result.v1")
+        );
+        drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn authenticated_m8_engine_presents_conflict_without_overwriting_worker_output() {
+        let path = database_path();
+        let mut state = super::tests::test_state_at(&path);
+        let sink = super::tests::RecordingSink::default();
+        let parent = parent_contract();
+        let tasks: Vec<CoordinationTask> = (0..3).map(child_task).collect();
+        let mut claims = Vec::new();
+        for (index, task) in tasks.iter().enumerate() {
+            let payload = WorkerTaskClaimCommandPayload {
+                parent_contract: parent.clone(),
+                task: task.clone(),
+                now_epoch_seconds: 100,
+                lease_duration_seconds: 60,
+            };
+            let response = run(
+                &sink,
+                &mut state,
+                &format!("m8-conflict-claim-{index}"),
+                CommandKind::WorkerTaskClaim,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("claim payload"),
+                index as u64,
+            )
+            .expect("claim");
+            claims.push(claim_from_response(&response));
+        }
+        for (index, (task, claim)) in tasks.iter().zip(claims.iter()).enumerate() {
+            let handoff = WorkerHandoffRecord {
+                message_id: format!("m8-conflict-message-{index}"),
+                task_id: task.task_id.clone(),
+                worker_id: task.worker_id.clone(),
+                lease_id: claim.lease.lease_id.clone(),
+                fence_token: claim.lease.fence_token,
+                source_revision: Revision(1),
+                outcome: WorkerOutcome::Success,
+                changed_paths: vec!["app/Shared.kt".into()],
+                changed_symbols: vec!["Shared".into()],
+                evidence_refs: vec![format!("evidence-conflict-{index}")],
+            };
+            let payload = WorkerHandoffSubmitCommandPayload {
+                parent_contract: parent.clone(),
+                handoff,
+            };
+            run(
+                &sink,
+                &mut state,
+                &format!("m8-conflict-handoff-{index}"),
+                CommandKind::WorkerHandoffSubmit,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("handoff payload"),
+                (3 + index) as u64,
+            )
+            .expect("handoff");
+        }
+        let payload = WorkerHandoffAcknowledgeCommandPayload {
+            parent_contract: parent,
+            acknowledgement_id: "m8-conflict-ack".into(),
+            message_id: "m8-conflict-message-0".into(),
+        };
+        let response = run(
+            &sink,
+            &mut state,
+            "m8-conflict-ack-command",
+            CommandKind::WorkerHandoffAcknowledge,
+            &tasks[0].task_id,
+            serde_json::to_string(&payload).expect("ack payload"),
+            6,
+        )
+        .expect("conflict acknowledgement");
+        let result: WorkerHandoffAcknowledgeResultPayload =
+            serde_json::from_value(response.result_payload.expect("ack result"))
+                .expect("typed conflict acknowledgement");
+        assert_eq!(result.acknowledgement.status, HandoffStatus::Conflict);
+        assert!(result.acknowledgement.reconciliation_checkpoint.is_none());
+        assert!(state
+            .plane
+            .load_worker_handoff("m8-conflict-message-1")
+            .expect("handoff remains durable")
+            .is_some());
+        drop(state);
+        let _ = fs::remove_file(path);
     }
 }

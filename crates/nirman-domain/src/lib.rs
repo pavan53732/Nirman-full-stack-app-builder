@@ -458,6 +458,9 @@ pub enum CommandKind {
     PauseTask,
     ResumeTask,
     CancelTask,
+    WorkerTaskClaim,
+    WorkerHandoffSubmit,
+    WorkerHandoffAcknowledge,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

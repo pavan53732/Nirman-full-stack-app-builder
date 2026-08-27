@@ -8,7 +8,9 @@ use nirman_domain::{
     TaskId,
 };
 use nirman_supervisor::BackgroundRunRecord;
-use nirman_workers::{CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord};
+use nirman_workers::{
+    CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
+};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
@@ -215,6 +217,13 @@ impl Ledger {
                  worker_id TEXT NOT NULL,
                  state TEXT NOT NULL,
                  record_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS m8_worker_task_claims (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
              );
              CREATE TABLE IF NOT EXISTS m8_coordination_tasks (
                  project_id TEXT NOT NULL,
@@ -1622,6 +1631,201 @@ impl Ledger {
             "INSERT INTO m108_preview_sync_records (project_id,task_id,projection_json,evidence_json,last_event_sequence) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(project_id,task_id) DO UPDATE SET projection_json=excluded.projection_json,evidence_json=excluded.evidence_json,last_event_sequence=excluded.last_event_sequence",
             params![project_id.0, task_id, projection_json, evidence_json, last_event_sequence],
         )?;
+        transaction.commit()
+    }
+
+    pub fn save_worker_task_claim(
+        &self,
+        project_id: &str,
+        claim: &WorkerTaskClaim,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(claim).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m8_worker_task_claims (project_id, task_id, worker_id, record_json)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(project_id, task_id) DO UPDATE SET worker_id = excluded.worker_id, record_json = excluded.record_json",
+            params![project_id, claim.task_id, claim.lease.worker_id, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_worker_task_claim(
+        &self,
+        project_id: &str,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<WorkerTaskClaim>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m8_worker_task_claims WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id, task_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
+    pub fn load_worker_task_claims(
+        &self,
+        project_id: &str,
+    ) -> rusqlite::Result<Vec<WorkerTaskClaim>> {
+        let mut statement = self.connection.prepare(
+            "SELECT record_json FROM m8_worker_task_claims WHERE project_id = ?1 ORDER BY task_id",
+        )?;
+        let rows = statement.query_map(params![project_id], |row| {
+            let record_json: String = row.get(0)?;
+            serde_json::from_str(&record_json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn load_coordination_tasks(
+        &self,
+        project_id: &str,
+    ) -> rusqlite::Result<Vec<CoordinationTask>> {
+        let mut statement = self.connection.prepare(
+            "SELECT record_json FROM m8_coordination_tasks WHERE project_id = ?1 ORDER BY task_id",
+        )?;
+        let rows = statement.query_map(params![project_id], |row| {
+            let record_json: String = row.get(0)?;
+            serde_json::from_str(&record_json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn load_worker_handoffs(
+        &self,
+        project_id: &str,
+    ) -> rusqlite::Result<Vec<WorkerHandoffRecord>> {
+        let mut statement = self.connection.prepare(
+            "SELECT record_json FROM m8_worker_handoffs WHERE project_id = ?1 ORDER BY message_id",
+        )?;
+        let rows = statement.query_map(params![project_id], |row| {
+            let record_json: String = row.get(0)?;
+            serde_json::from_str(&record_json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn load_worker_handoff_acknowledgements(
+        &self,
+        project_id: &str,
+    ) -> rusqlite::Result<Vec<WorkerHandoffAcknowledgement>> {
+        let mut statement = self.connection.prepare(
+            "SELECT record_json FROM m8_worker_handoff_acknowledgements WHERE project_id = ?1 ORDER BY acknowledgement_id",
+        )?;
+        let rows = statement.query_map(params![project_id], |row| {
+            let record_json: String = row.get(0)?;
+            serde_json::from_str(&record_json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn commit_event_projection_and_command_and_m8(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        task: Option<(&str, &str)>,
+        claim: Option<(&str, &str, &str)>,
+        handoff: Option<(&str, &str, &str, &str)>,
+        acknowledgement: Option<(&str, &str, &str, &str, &str)>,
+    ) -> rusqlite::Result<()> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) ON CONFLICT(project_id) DO UPDATE SET projection_revision = excluded.projection_revision, task_state = excluded.task_state, continuity_state = excluded.continuity_state, preview_truth = excluded.preview_truth, source_revision = excluded.source_revision, last_event_sequence = excluded.last_event_sequence, last_known_good_ref = excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![command_id, snapshot.project_id.0, idempotency_key, request_fingerprint, correlation_id, snapshot_json],
+        )?;
+        if let Some((task_id, record_json)) = task {
+            transaction.execute(
+                "INSERT INTO m8_coordination_tasks (project_id, task_id, record_json) VALUES (?1, ?2, ?3) ON CONFLICT(project_id, task_id) DO UPDATE SET record_json = excluded.record_json",
+                params![snapshot.project_id.0, task_id, record_json],
+            )?;
+        }
+        if let Some((task_id, worker_id, record_json)) = claim {
+            transaction.execute(
+                "INSERT INTO m8_worker_task_claims (project_id, task_id, worker_id, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, task_id) DO UPDATE SET worker_id = excluded.worker_id, record_json = excluded.record_json",
+                params![snapshot.project_id.0, task_id, worker_id, record_json],
+            )?;
+        }
+        if let Some((message_id, task_id, worker_id, record_json)) = handoff {
+            transaction.execute(
+                "INSERT INTO m8_worker_handoffs (project_id, message_id, task_id, worker_id, record_json) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(project_id, message_id) DO UPDATE SET task_id = excluded.task_id, worker_id = excluded.worker_id, record_json = excluded.record_json",
+                params![snapshot.project_id.0, message_id, task_id, worker_id, record_json],
+            )?;
+        }
+        if let Some((acknowledgement_id, message_id, task_id, worker_id, record_json)) =
+            acknowledgement
+        {
+            transaction.execute(
+                "INSERT INTO m8_worker_handoff_acknowledgements (project_id, acknowledgement_id, message_id, task_id, worker_id, record_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![snapshot.project_id.0, acknowledgement_id, message_id, task_id, worker_id, record_json],
+            )?;
+        }
         transaction.commit()
     }
 

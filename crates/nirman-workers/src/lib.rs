@@ -317,6 +317,12 @@ pub struct WorkerLease {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerTaskClaim {
+    pub task_id: String,
+    pub lease: WorkerLease,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CoordinationTask {
     pub schema_version: u16,
     pub task_id: String,
@@ -477,6 +483,56 @@ impl MultiWorkerCoordinator {
         Ok(())
     }
 
+    pub fn restore(
+        parent: WorkerContract,
+        tasks: Vec<CoordinationTask>,
+        claims: Vec<WorkerTaskClaim>,
+        handoffs: Vec<WorkerHandoffRecord>,
+        acknowledgements: Vec<WorkerHandoffAcknowledgement>,
+    ) -> Result<Self, CoordinationError> {
+        let mut coordinator = Self::new(parent)?;
+        for task in tasks {
+            coordinator.register_task(task)?;
+        }
+        for claim in claims {
+            if !coordinator.tasks.contains_key(&claim.task_id)
+                || coordinator.leases.contains_key(&claim.task_id)
+                || coordinator
+                    .tasks
+                    .get(&claim.task_id)
+                    .is_some_and(|task| task.worker_id != claim.lease.worker_id)
+            {
+                return Err(CoordinationError::InvalidTask("durableClaim"));
+            }
+            coordinator.next_fence_token = coordinator
+                .next_fence_token
+                .max(claim.lease.fence_token.saturating_add(1));
+            coordinator.leases.insert(claim.task_id, claim.lease);
+        }
+        for handoff in handoffs {
+            coordinator.record_handoff(handoff)?;
+        }
+        for acknowledgement in acknowledgements {
+            if coordinator
+                .acknowledgements
+                .contains_key(&acknowledgement.acknowledgement_id)
+            {
+                return Err(CoordinationError::DuplicateAcknowledgement);
+            }
+            if !coordinator
+                .handoffs
+                .values()
+                .any(|handoff| handoff.message_id == acknowledgement.message_id)
+            {
+                return Err(CoordinationError::MissingHandoff);
+            }
+            coordinator
+                .acknowledgements
+                .insert(acknowledgement.acknowledgement_id.clone(), acknowledgement);
+        }
+        Ok(coordinator)
+    }
+
     pub fn claim(
         &mut self,
         task_id: &str,
@@ -557,6 +613,11 @@ impl MultiWorkerCoordinator {
         let own_conflict = conflicts.iter().any(|conflict| {
             conflict.left_task_id == handoff.task_id || conflict.right_task_id == handoff.task_id
         });
+        let reconciliation_checkpoint = if own_conflict {
+            None
+        } else {
+            self.reconcile().ok()
+        };
         let acknowledgement = WorkerHandoffAcknowledgement {
             acknowledgement_id: acknowledgement_id.into(),
             message_id: message_id.into(),
@@ -567,7 +628,7 @@ impl MultiWorkerCoordinator {
             } else {
                 HandoffStatus::Accepted
             },
-            reconciliation_checkpoint: None,
+            reconciliation_checkpoint,
             reason: if own_conflict {
                 "handoff retained but blocked by changed-path or changed-symbol conflict".into()
             } else {
@@ -581,6 +642,14 @@ impl MultiWorkerCoordinator {
 
     pub fn acknowledgements(&self) -> &BTreeMap<String, WorkerHandoffAcknowledgement> {
         &self.acknowledgements
+    }
+
+    pub fn tasks(&self) -> &BTreeMap<String, CoordinationTask> {
+        &self.tasks
+    }
+
+    pub fn handoffs(&self) -> &BTreeMap<String, WorkerHandoffRecord> {
+        &self.handoffs
     }
 
     pub fn detect_conflicts(&self) -> Vec<WorkerConflict> {

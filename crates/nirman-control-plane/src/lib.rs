@@ -13,7 +13,9 @@ use nirman_domain::{
 };
 use nirman_storage::Ledger;
 use nirman_supervisor::BackgroundRunRecord;
-use nirman_workers::{CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord};
+use nirman_workers::{
+    CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
+};
 use std::path::Path;
 
 pub fn deadline_elapsed(deadline_epoch_seconds: Option<u64>, now_epoch_seconds: u64) -> bool {
@@ -148,7 +150,10 @@ impl ControlPlane {
             | CommandKind::AndroidToolchainPreflight
             | CommandKind::AndroidRequirementEvaluate
             | CommandKind::AndroidSynthesisBuild
-            | CommandKind::ProviderExecute => {}
+            | CommandKind::ProviderExecute
+            | CommandKind::WorkerTaskClaim
+            | CommandKind::WorkerHandoffSubmit
+            | CommandKind::WorkerHandoffAcknowledge => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
             }
@@ -232,6 +237,13 @@ pub enum DurableControlPlaneError {
     CorruptCommandResult(String),
 }
 
+pub struct M8DispatchRecord {
+    pub task: Option<(String, String)>,
+    pub claim: Option<(String, String, String)>,
+    pub handoff: Option<(String, String, String, String)>,
+    pub acknowledgement: Option<(String, String, String, String, String)>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DurableDispatchOutcome {
     Accepted {
@@ -303,9 +315,132 @@ impl DurableControlPlane {
         self.plane.snapshot()
     }
 
+    pub fn command_is_duplicate(
+        &self,
+        command: &CommandEnvelope,
+    ) -> Result<bool, DurableControlPlaneError> {
+        let fingerprint = serde_json::to_string(command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &self.snapshot().project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
     pub fn replay_after(&self, sequence: u64) -> Result<Vec<ControlEvent>, rusqlite::Error> {
         self.ledger
             .events_after(&self.snapshot().project_id, sequence)
+    }
+
+    pub fn save_worker_task_claim(&self, claim: &WorkerTaskClaim) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_worker_task_claim(&self.snapshot().project_id.0, claim)
+    }
+
+    pub fn load_worker_task_claim(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<WorkerTaskClaim>, rusqlite::Error> {
+        self.ledger
+            .load_worker_task_claim(&self.snapshot().project_id.0, task_id)
+    }
+
+    pub fn load_m8_tasks(&self) -> Result<Vec<CoordinationTask>, rusqlite::Error> {
+        self.ledger
+            .load_coordination_tasks(&self.snapshot().project_id.0)
+    }
+
+    pub fn load_m8_claims(&self) -> Result<Vec<WorkerTaskClaim>, rusqlite::Error> {
+        self.ledger
+            .load_worker_task_claims(&self.snapshot().project_id.0)
+    }
+
+    pub fn load_m8_handoffs(&self) -> Result<Vec<WorkerHandoffRecord>, rusqlite::Error> {
+        self.ledger
+            .load_worker_handoffs(&self.snapshot().project_id.0)
+    }
+
+    pub fn load_m8_acknowledgements(
+        &self,
+    ) -> Result<Vec<WorkerHandoffAcknowledgement>, rusqlite::Error> {
+        self.ledger
+            .load_worker_handoff_acknowledgements(&self.snapshot().project_id.0)
+    }
+
+    pub fn dispatch_with_result_and_m8(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        m8: M8DispatchRecord,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger.commit_event_projection_and_command_and_m8(
+            &event,
+            &snapshot,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+            &request_fingerprint,
+            correlation_id,
+            &snapshot_json,
+            m8.task
+                .as_ref()
+                .map(|(task_id, record_json)| (task_id.as_str(), record_json.as_str())),
+            m8.claim.as_ref().map(|(task_id, worker_id, record_json)| {
+                (task_id.as_str(), worker_id.as_str(), record_json.as_str())
+            }),
+            m8.handoff
+                .as_ref()
+                .map(|(message_id, task_id, worker_id, record_json)| {
+                    (
+                        message_id.as_str(),
+                        task_id.as_str(),
+                        worker_id.as_str(),
+                        record_json.as_str(),
+                    )
+                }),
+            m8.acknowledgement.as_ref().map(
+                |(acknowledgement_id, message_id, task_id, worker_id, record_json)| {
+                    (
+                        acknowledgement_id.as_str(),
+                        message_id.as_str(),
+                        task_id.as_str(),
+                        worker_id.as_str(),
+                        record_json.as_str(),
+                    )
+                },
+            ),
+        )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
     }
 
     pub fn save_coordination_task(&self, task: &CoordinationTask) -> Result<(), rusqlite::Error> {
@@ -1242,6 +1377,9 @@ mod m115_command_surface_tests {
             CommandKind::SubmitInstruction,
             CommandKind::ResumeTask,
             CommandKind::CancelTask,
+            CommandKind::WorkerTaskClaim,
+            CommandKind::WorkerHandoffSubmit,
+            CommandKind::WorkerHandoffAcknowledge,
         ];
         let command_count = commands.len();
         for (revision, kind) in commands.into_iter().enumerate() {

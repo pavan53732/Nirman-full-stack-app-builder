@@ -11,6 +11,7 @@ use nirman_domain::{
 use nirman_evidence::AndroidDeviceObservation;
 use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
 use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
+use nirman_workers::{CoordinationTask, WorkerContract, WorkerHandoffAcknowledgement};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -270,6 +271,50 @@ pub struct WorkspaceApplyPatchResultPayload {
     pub project_fingerprint: String,
     pub changed_files: Vec<MutationFileResult>,
     pub evidence: MutationEvidence,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerTaskClaimCommandPayload {
+    pub parent_contract: WorkerContract,
+    pub task: CoordinationTask,
+    pub now_epoch_seconds: u64,
+    pub lease_duration_seconds: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerTaskClaimResultPayload {
+    pub task_id: String,
+    pub worker_id: String,
+    pub lease_id: String,
+    pub fence_token: u64,
+    pub expires_at_epoch_seconds: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerHandoffSubmitCommandPayload {
+    pub parent_contract: WorkerContract,
+    pub handoff: nirman_workers::WorkerHandoffRecord,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerHandoffSubmitResultPayload {
+    pub message_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub source_revision: u64,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerHandoffAcknowledgeCommandPayload {
+    pub parent_contract: WorkerContract,
+    pub acknowledgement_id: String,
+    pub message_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerHandoffAcknowledgeResultPayload {
+    pub acknowledgement: WorkerHandoffAcknowledgement,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProviderTestCommandPayload {
@@ -616,6 +661,30 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "AndroidSynthesisAuthority",
             "android.synthesis.build",
             "Android synthesis and build provenance projection",
+            "local",
+        ),
+        (
+            CommandKind::WorkerTaskClaim,
+            "worker.task.claim",
+            "WorkerCoordinationAuthority",
+            "worker.task.claim",
+            "Worker lease and coordination projection",
+            "local",
+        ),
+        (
+            CommandKind::WorkerHandoffSubmit,
+            "worker.handoff.submit",
+            "WorkerCoordinationAuthority",
+            "worker.handoff.submit",
+            "Worker handoff projection",
+            "local",
+        ),
+        (
+            CommandKind::WorkerHandoffAcknowledge,
+            "worker.handoff.acknowledge",
+            "WorkerCoordinationAuthority",
+            "worker.handoff.acknowledge",
+            "Worker handoff acknowledgement projection",
             "local",
         ),
     ]
@@ -990,7 +1059,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 20);
+        assert_eq!(command_registry().len(), 23);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()
