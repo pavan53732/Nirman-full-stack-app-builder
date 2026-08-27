@@ -27,8 +27,8 @@ use nirman_ipc::{
     WorkspaceApplyPatchCommandPayload, WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_preview::{
-    bind_preview_revision, select_fallback, PreviewMode, PreviewProjection, PreviewRequest,
-    PreviewRevision,
+    bind_preview_revision, select_fallback, M108ProjectionState, PreviewEventTruth, PreviewMode,
+    PreviewProjection, PreviewRequest, PreviewRevision, PreviewSyncEvent, PreviewSyncEventType,
 };
 use nirman_project::{
     IndexRequest, MutationBroker, MutationError, MutationRequest, ProjectIndexer,
@@ -170,6 +170,115 @@ fn now_epoch_seconds() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
         .unwrap_or(0)
+}
+
+fn persist_m108_stage(
+    state: &mut RuntimeState,
+    task_id: &str,
+    preview_revision_id: &str,
+    event_type: PreviewSyncEventType,
+    event_truth: PreviewEventTruth,
+    project_revision_id: &str,
+    checkpoint_id: &str,
+    source_fingerprint: &str,
+    command_id: &str,
+    evidence_refs: Vec<String>,
+) -> Result<(), ErrorEnvelope> {
+    let (mut projection, _) = if let Some((projection_json, evidence_json, _)) =
+        state.plane.load_m108_sync_record(task_id).map_err(|_| {
+            error(
+                "m108",
+                None,
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M108 synchronization record could not be loaded",
+                true,
+                None,
+            )
+        })? {
+        (
+            serde_json::from_str::<M108ProjectionState>(&projection_json).map_err(|_| {
+                error(
+                    "m108",
+                    None,
+                    None,
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "M108 projection is corrupt",
+                    false,
+                    None,
+                )
+            })?,
+            evidence_json,
+        )
+    } else {
+        (
+            M108ProjectionState::new(
+                state.auth.project_scope.clone(),
+                task_id,
+                preview_revision_id,
+            ),
+            "[]".into(),
+        )
+    };
+    let sequence = projection.last_event_sequence + 1;
+    let event = PreviewSyncEvent {
+        event_id: format!("m108:{command_id}:{sequence}"),
+        event_sequence: sequence,
+        project_id: state.auth.project_scope.clone(),
+        task_id: task_id.into(),
+        correlation_id: state.correlation_id.clone(),
+        causation_id: Some(command_id.into()),
+        candidate_preview_revision_id: preview_revision_id.into(),
+        event_type,
+        event_truth,
+        project_revision_id: project_revision_id.into(),
+        checkpoint_id: checkpoint_id.into(),
+        source_fingerprint: source_fingerprint.into(),
+        artifact_id: None,
+        artifact_fingerprint: None,
+        runtime_session_id: None,
+        device_id: None,
+        operation_ref: command_id.into(),
+        observation_refs: vec![],
+        evidence_refs: evidence_refs.clone(),
+        validation_ref: None,
+        payload: "authoritative host boundary event".into(),
+    };
+    projection.apply(&event).map_err(|e| {
+        error(
+            "m108",
+            Some(command_id.into()),
+            Some(command_id.into()),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            e.to_string(),
+            false,
+            None,
+        )
+    })?;
+    let evidence = serde_json::json!({"eventId": event.event_id, "eventSequence": sequence, "projectionRevision": projection.projection_revision, "previewRevisionId": preview_revision_id, "evidenceRefs": evidence_refs, "truth": format!("{:?}", event.event_truth), "nativeWindowsTauriRuntimeObserved": false, "androidRuntimeObserved": false});
+    state
+        .plane
+        .save_m108_sync_record(
+            task_id,
+            &serde_json::to_string(&projection).expect("M108 projection serialization"),
+            &serde_json::to_string(&vec![evidence]).expect("M108 evidence serialization"),
+            sequence,
+        )
+        .map_err(|_| {
+            error(
+                "m108",
+                Some(command_id.into()),
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M108 synchronization record could not be persisted",
+                true,
+                None,
+            )
+        })
 }
 
 fn error(
@@ -2619,6 +2728,7 @@ fn dispatch_request<S: EventSink>(
             &event,
         );
     }
+    let was_duplicate = status == ResponseStatus::Duplicate;
     let mut command_response = response(
         command_id.clone(),
         correlation_id.clone(),
@@ -3395,6 +3505,30 @@ fn dispatch_request<S: EventSink>(
             }
         }
     }
+    if let Some(prepared) = m4_synthesis_build.as_ref() {
+        if !was_duplicate {
+            let m108_checkpoint = state
+                .plane
+                .checkpoint_id()
+                .map(str::to_owned)
+                .unwrap_or_else(|| "checkpoint-pending".to_owned());
+            persist_m108_stage(
+                state,
+                &prepared.task_id,
+                &format!("m108-preview-{}", prepared.plan.contract_id),
+                PreviewSyncEventType::BuildRequested,
+                PreviewEventTruth::Requested,
+                &format!("source-{}", prepared.build_request.source_revision),
+                &m108_checkpoint,
+                &prepared.build_request.project_fingerprint,
+                &command_id,
+                vec![format!(
+                    "m4-build-request:{}",
+                    prepared.build_request.gradle_task
+                )],
+            )?;
+        }
+    }
     Ok(command_response)
 }
 
@@ -4040,6 +4174,16 @@ mod tests {
         );
         let m4_duplicate = dispatch_request(&sink, &mut state, m4_request).expect("M4 duplicate");
         assert_eq!(m4_duplicate.result_payload, m4_response.result_payload);
+        let m108_record = state
+            .plane
+            .load_m108_sync_record(&contract.task_id.0)
+            .expect("M108 record load")
+            .expect("M108 record persisted");
+        let m108_projection: M108ProjectionState =
+            serde_json::from_str(&m108_record.0).expect("M108 projection parse");
+        assert_eq!(m108_projection.last_event_sequence, 1);
+        assert_eq!(m108_projection.build_status, "REQUESTED");
+        assert!(m108_record.1.contains("m4-build-request"));
         let m4_stored = state
             .plane
             .load_android_synthesis_build(&contract.task_id.0, 1)

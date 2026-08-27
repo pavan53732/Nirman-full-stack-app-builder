@@ -2150,6 +2150,8 @@ dependencies = [
 name = "nirman-preview"
 version = "0.1.0"
 dependencies = [
+ "nirman-artifacts",
+ "nirman-evidence",
  "serde",
  "serde_json",
 ]
