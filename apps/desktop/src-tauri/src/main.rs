@@ -868,6 +868,23 @@ fn parse_m4_synthesis_build(
             None,
         ));
     }
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "android-synthesis-worker",
+        &payload.workspace_root,
+        vec![payload.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "android.synthesis_build".into(),
+            path: Some(payload.workspace_root.clone()),
+            command: Some(format!("gradlew {}", payload.gradle_task)),
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
     let index = ProjectIndexer::default()
         .index_workspace(&requested_root, &IndexRequest::default())
         .map_err(|_| {
@@ -1094,6 +1111,23 @@ fn parse_android_requirement_evaluation(
             None,
         ));
     }
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "android-requirement-worker",
+        &payload.workspace_root,
+        vec![payload.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "android.requirement_evaluate".into(),
+            path: Some(payload.workspace_root.clone()),
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
     if payload.source_revision != state.plane.snapshot().current_source_revision.0 {
         return Err(error(
             &request.correlation_id,
@@ -6140,6 +6174,23 @@ fn parse_artifact_build(
             None,
         ));
     }
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "android-artifact-worker",
+        &payload.workspace_root,
+        vec![payload.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "android.artifact_build".into(),
+            path: Some(payload.workspace_root.clone()),
+            command: Some(format!("gradlew {}", payload.gradle_task)),
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
     let index = ProjectIndexer::default()
         .index_workspace(&requested_root, &IndexRequest::default())
         .map_err(|_| {
