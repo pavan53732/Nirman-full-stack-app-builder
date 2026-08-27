@@ -13,6 +13,7 @@ use nirman_domain::{
 };
 use nirman_storage::Ledger;
 use nirman_supervisor::BackgroundRunRecord;
+use nirman_workers::{CoordinationTask, WorkerHandoffRecord};
 use std::path::Path;
 
 pub fn deadline_elapsed(deadline_epoch_seconds: Option<u64>, now_epoch_seconds: u64) -> bool {
@@ -305,6 +306,35 @@ impl DurableControlPlane {
     pub fn replay_after(&self, sequence: u64) -> Result<Vec<ControlEvent>, rusqlite::Error> {
         self.ledger
             .events_after(&self.snapshot().project_id, sequence)
+    }
+
+    pub fn save_coordination_task(&self, task: &CoordinationTask) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_coordination_task(&self.snapshot().project_id.0, task)
+    }
+
+    pub fn load_coordination_task(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<CoordinationTask>, rusqlite::Error> {
+        self.ledger
+            .load_coordination_task(&self.snapshot().project_id.0, task_id)
+    }
+
+    pub fn save_worker_handoff(
+        &self,
+        handoff: &WorkerHandoffRecord,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_worker_handoff(&self.snapshot().project_id.0, handoff)
+    }
+
+    pub fn load_worker_handoff(
+        &self,
+        message_id: &str,
+    ) -> Result<Option<WorkerHandoffRecord>, rusqlite::Error> {
+        self.ledger
+            .load_worker_handoff(&self.snapshot().project_id.0, message_id)
     }
 
     pub fn save_background_run(&self, record: &BackgroundRunRecord) -> Result<(), rusqlite::Error> {

@@ -8,6 +8,7 @@ use nirman_domain::{
     TaskId,
 };
 use nirman_supervisor::BackgroundRunRecord;
+use nirman_workers::{CoordinationTask, WorkerHandoffRecord};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
@@ -214,6 +215,20 @@ impl Ledger {
                  worker_id TEXT NOT NULL,
                  state TEXT NOT NULL,
                  record_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS m8_coordination_tasks (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
+             );
+             CREATE TABLE IF NOT EXISTS m8_worker_handoffs (
+                 project_id TEXT NOT NULL,
+                 message_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, message_id)
              );
              CREATE TABLE IF NOT EXISTS preview_projections (
                  project_id TEXT NOT NULL,
@@ -1598,6 +1613,90 @@ impl Ledger {
             params![project_id.0, task_id, projection_json, evidence_json, last_event_sequence],
         )?;
         transaction.commit()
+    }
+
+    pub fn save_coordination_task(
+        &self,
+        project_id: &str,
+        task: &CoordinationTask,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(task).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m8_coordination_tasks (project_id, task_id, record_json)
+             VALUES (?1, ?2, ?3)
+             ON CONFLICT(project_id, task_id) DO UPDATE SET record_json = excluded.record_json",
+            params![project_id, task.task_id, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_coordination_task(
+        &self,
+        project_id: &str,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<CoordinationTask>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m8_coordination_tasks WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id, task_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
+    pub fn save_worker_handoff(
+        &self,
+        project_id: &str,
+        handoff: &WorkerHandoffRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(handoff).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m8_worker_handoffs (project_id, message_id, task_id, worker_id, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(project_id, message_id) DO UPDATE SET record_json = excluded.record_json",
+            params![project_id, handoff.message_id, handoff.task_id, handoff.worker_id, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_worker_handoff(
+        &self,
+        project_id: &str,
+        message_id: &str,
+    ) -> rusqlite::Result<Option<WorkerHandoffRecord>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m8_worker_handoffs WHERE project_id = ?1 AND message_id = ?2",
+                params![project_id, message_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
     }
 
     pub fn save_background_run(&self, record: &BackgroundRunRecord) -> rusqlite::Result<()> {

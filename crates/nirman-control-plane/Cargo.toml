@@ -9,6 +9,7 @@ edition = "2021"
 nirman-domain = { path = "../nirman-domain" }
 nirman-storage = { path = "../nirman-storage" }
 nirman-supervisor = { path = "../nirman-supervisor" }
+nirman-workers = { path = "../nirman-workers" }
 rusqlite = { version = "0.29", features = ["bundled"] }
 serde_json = "1"
 

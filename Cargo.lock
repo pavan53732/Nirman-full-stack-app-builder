@@ -2087,6 +2087,7 @@ dependencies = [
  "nirman-ipc",
  "nirman-storage",
  "nirman-supervisor",
+ "nirman-workers",
  "rusqlite",
  "serde_json",
 ]
@@ -2192,6 +2193,7 @@ version = "0.1.0"
 dependencies = [
  "nirman-domain",
  "nirman-supervisor",
+ "nirman-workers",
  "rusqlite",
  "serde_json",
 ]
