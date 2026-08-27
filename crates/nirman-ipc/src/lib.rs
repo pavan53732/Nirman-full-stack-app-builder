@@ -3,6 +3,7 @@
 use nirman_android::{
     AndroidBuildObservation, AndroidRequirementManifest, AndroidSynthesisPlan, RepairSelection,
 };
+use nirman_artifacts::ApkArtifact;
 use nirman_domain::{
     AndroidConstructionContract, CommandEnvelope, CommandKind, ControlEvent, ProjectId,
     ProjectionSnapshot, Revision, TaskId,
@@ -374,6 +375,17 @@ pub struct ArtifactBuildCommandPayload {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactBuildResultPayload {
     pub observation: AndroidBuildObservation,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactExportCommandPayload {
+    pub source_revision: u64,
+    pub destination_path: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactExportResultPayload {
+    pub artifact: ApkArtifact,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

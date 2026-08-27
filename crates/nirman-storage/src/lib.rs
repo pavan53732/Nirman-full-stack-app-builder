@@ -109,6 +109,15 @@ impl Ledger {
                  record_json TEXT NOT NULL,
                  UNIQUE(project_id, task_id, source_revision)
              );
+             CREATE TABLE IF NOT EXISTS android_artifact_exports (
+                 export_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 destination_path TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 UNIQUE(project_id, task_id, source_revision)
+             );
              CREATE TABLE IF NOT EXISTS android_requirement_manifests (
                  project_id TEXT NOT NULL,
                  task_id TEXT NOT NULL,
@@ -681,6 +690,39 @@ impl Ledger {
         self.connection
             .query_row(
                 "SELECT record_json FROM android_build_observations WHERE project_id=?1 AND task_id=?2 AND source_revision=?3",
+                params![project_id.0, task_id, source_revision],
+                |row| row.get(0),
+            )
+            .optional()
+    }
+
+    pub fn save_android_artifact_export(
+        &self,
+        export_id: &str,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        destination_path: &str,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_artifact_exports (export_id, project_id, task_id, source_revision, destination_path, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET export_id=excluded.export_id, destination_path=excluded.destination_path, record_json=excluded.record_json",
+            params![export_id, project_id.0, task_id, source_revision, destination_path, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_android_artifact_export(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM android_artifact_exports WHERE project_id=?1 AND task_id=?2 AND source_revision=?3",
                 params![project_id.0, task_id, source_revision],
                 |row| row.get(0),
             )

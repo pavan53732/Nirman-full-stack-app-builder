@@ -7,6 +7,7 @@ use nirman_android::{
     AndroidRequirementManifest, AndroidSynthesisRequest, BuildCancellation, CapabilityProbe,
     HostCapabilityProbe, PreflightStatus, RepairFailureFingerprint, RepairSelection,
 };
+use nirman_artifacts::{deliver_apk_local, inspect_apk, scan_apk_for_secrets, ApkArtifact};
 use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
 };
@@ -20,12 +21,13 @@ use nirman_ipc::{
     AndroidRequirementEvaluateResultPayload, AndroidSynthesisBuildCommandPayload,
     AndroidSynthesisBuildResultPayload, AndroidToolchainPreflightCommandPayload,
     AndroidToolchainPreflightResultPayload, ArtifactBuildCommandPayload,
-    ArtifactBuildResultPayload, AuthContext, AuthenticatedSession, CommandRequest, CommandResponse,
-    ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange, EventSink,
-    EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
-    ProviderExecuteCommandPayload, ProviderExecuteResultPayload, ProviderTestCommandPayload,
-    ProviderTestResultPayload, ResponseStatus, SettingsUpdateProviderCommandPayload,
-    SubscriptionAcknowledgement, SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
+    ArtifactBuildResultPayload, ArtifactExportCommandPayload, ArtifactExportResultPayload,
+    AuthContext, AuthenticatedSession, CommandRequest, CommandResponse, ControlPlaneErrorCode,
+    ErrorCategory, ErrorEnvelope, EventBatch, EventRange, EventSink, EventSubscription,
+    PreviewStartCommandPayload, PreviewStartResultPayload, ProviderExecuteCommandPayload,
+    ProviderExecuteResultPayload, ProviderTestCommandPayload, ProviderTestResultPayload,
+    ResponseStatus, SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement,
+    SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
     WorkspaceApplyPatchCommandPayload, WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_preview::{
@@ -2469,6 +2471,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let artifact_export = if request.command.kind == CommandKind::ArtifactExport {
+        Some(parse_artifact_export(state, &request)?)
+    } else {
+        None
+    };
     let preview_start = if request.command.kind == CommandKind::PreviewStart {
         Some(parse_preview_start(state, &request)?)
     } else {
@@ -2680,7 +2687,7 @@ fn dispatch_request<S: EventSink>(
             &correlation_id,
             &prepared.transaction,
         )
-    } else if artifact_build.is_some() {
+    } else if artifact_build.is_some() || artifact_export.is_some() {
         state.plane.dispatch_with_result_and_provider_profile(
             request.command.clone(),
             &correlation_id,
@@ -2944,6 +2951,179 @@ fn dispatch_request<S: EventSink>(
             })
             .expect("M46 mutation result serialization must remain infallible"),
         );
+    }
+    if let Some(prepared) = artifact_export.as_ref() {
+        let artifact = if was_duplicate {
+            let record_json = state
+                .plane
+                .load_android_artifact_export(
+                    &prepared.observation.task_id,
+                    prepared.source_revision,
+                )
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate artifact export has no durable delivery record",
+                        true,
+                        Some("reconcile the prior APK export before retrying".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate artifact export has no durable delivery record",
+                        true,
+                        Some("reconcile the prior APK export before retrying".into()),
+                    )
+                })?;
+            serde_json::from_str::<ApkArtifact>(&record_json).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "durable APK export record is corrupt",
+                    false,
+                    None,
+                )
+            })?
+        } else {
+            let source_path = prepared.observation.artifact_path.as_ref().ok_or_else(|| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "successful build has no APK path",
+                    false,
+                    None,
+                )
+            })?;
+            let source_hash = prepared
+                .observation
+                .artifact_sha256
+                .as_ref()
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::InvalidCommand,
+                        ErrorCategory::Validation,
+                        "successful build has no APK fingerprint",
+                        false,
+                        None,
+                    )
+                })?;
+            let aapt = aapt_path_for_lock(&prepared.lock).ok_or_else(|| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Environment,
+                    "locked Android build tools do not expose aapt",
+                    true,
+                    Some("repair M43 build-tools resolution before exporting".into()),
+                )
+            })?;
+            scan_apk_for_secrets(source_path).map_err(|artifact_error| {
+                map_artifact_error(
+                    &correlation_id,
+                    &command_id,
+                    causation_id.clone(),
+                    artifact_error,
+                )
+            })?;
+            let inspection = inspect_apk(&aapt, source_path).map_err(|artifact_error| {
+                map_artifact_error(
+                    &correlation_id,
+                    &command_id,
+                    causation_id.clone(),
+                    artifact_error,
+                )
+            })?;
+            let artifact = ApkArtifact {
+                schema_version: nirman_artifacts::M10_SCHEMA_VERSION,
+                artifact_id: format!("artifact-{command_id}"),
+                project_id: prepared.observation.project_id.clone(),
+                task_id: prepared.observation.task_id.clone(),
+                project_revision_id: format!("source-{}", prepared.source_revision),
+                source_fingerprint: prepared.observation.project_fingerprint.clone(),
+                path: source_path.clone(),
+                sha256: format!("sha256:{source_hash}"),
+                package_name: inspection.package_name,
+                build_variant: prepared.observation.build_variant.clone(),
+                secret_scan_status: "PASS".into(),
+                signing_status: "INSPECTED_BY_BUILD_TOOL".into(),
+                delivery_status: "PENDING_LOCAL".into(),
+            };
+            let delivered = deliver_apk_local(&artifact, &prepared.destination_path).map_err(
+                |artifact_error| {
+                    map_artifact_error(
+                        &correlation_id,
+                        &command_id,
+                        causation_id.clone(),
+                        artifact_error,
+                    )
+                },
+            )?;
+            let record_json = serde_json::to_string(&delivered).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "APK export record could not be serialized safely",
+                    false,
+                    None,
+                )
+            })?;
+            state
+                .plane
+                .save_android_artifact_export(
+                    &format!("export-{command_id}"),
+                    &delivered.task_id,
+                    prepared.source_revision,
+                    &prepared.destination_path,
+                    &record_json,
+                )
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "APK export record could not be persisted",
+                        true,
+                        Some("reconcile local export storage before retrying".into()),
+                    )
+                })?;
+            delivered
+        };
+        command_response.status = if was_duplicate {
+            ResponseStatus::Duplicate
+        } else {
+            ResponseStatus::Completed
+        };
+        command_response.result_schema_ref = Some("nirman.artifact_export_result.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(ArtifactExportResultPayload { artifact })
+                .expect("APK export result serialization"),
+        );
+        return Ok(command_response);
     }
     if let Some(prepared) = artifact_build.as_ref() {
         let observation = if was_duplicate {
@@ -3727,6 +3907,14 @@ fn main() {
 }
 
 #[derive(Debug)]
+struct PreparedArtifactExport {
+    source_revision: u64,
+    destination_path: String,
+    observation: nirman_android::AndroidBuildObservation,
+    lock: nirman_android::AndroidToolchainLock,
+}
+
+#[derive(Debug)]
 struct PreparedArtifactBuild {
     request: AndroidBuildRequest,
     lock: nirman_android::AndroidToolchainLock,
@@ -3774,6 +3962,225 @@ fn map_android_build_error(
         retryable,
         recovery,
     )
+}
+
+fn map_artifact_error(
+    correlation_id: &str,
+    command_id: &str,
+    causation_id: Option<String>,
+    artifact_error: nirman_artifacts::M10Error,
+) -> ErrorEnvelope {
+    let (code, category, retryable, recovery) = match artifact_error {
+        nirman_artifacts::M10Error::MissingFile => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            true,
+            Some("reconcile the APK artifact and locked Android tooling before retrying".into()),
+        ),
+        nirman_artifacts::M10Error::HashMismatch
+        | nirman_artifacts::M10Error::SecretScanFailed
+        | nirman_artifacts::M10Error::NotApk
+        | nirman_artifacts::M10Error::InvalidArtifact
+        | nirman_artifacts::M10Error::EmptyField(_) => (
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            false,
+            Some("rebuild and revalidate the current APK artifact".into()),
+        ),
+    };
+    error(
+        correlation_id,
+        Some(command_id.into()),
+        causation_id,
+        code,
+        category,
+        artifact_error.to_string(),
+        retryable,
+        recovery,
+    )
+}
+
+fn aapt_path_for_lock(lock: &nirman_android::AndroidToolchainLock) -> Option<String> {
+    let path = lock
+        .entries
+        .iter()
+        .find(|entry| entry.component == nirman_android::ToolchainComponentKind::BuildTools)
+        .map(|entry| std::path::PathBuf::from(&entry.path))?;
+    if path.is_file() {
+        return Some(path.to_string_lossy().into_owned());
+    }
+    if path.is_dir() {
+        let executable = if cfg!(windows) {
+            path.join("aapt.exe")
+        } else {
+            path.join("aapt")
+        };
+        if executable.is_file() {
+            return Some(executable.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+fn parse_artifact_export(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedArtifactExport, ErrorEnvelope> {
+    let payload: ArtifactExportCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "artifact export payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "artifact export requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    let record_json = state
+        .plane
+        .load_android_build_observation(task_id.0.as_str(), payload.source_revision)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "Android build observation is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "artifact export requires a durable Android build observation",
+                false,
+                Some("run a successful ArtifactBuild operation first".into()),
+            )
+        })?;
+    let observation: nirman_android::AndroidBuildObservation = serde_json::from_str(&record_json)
+        .map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Internal,
+            "Android build observation is corrupt",
+            false,
+            None,
+        )
+    })?;
+    if !observation.success
+        || observation.project_id != request.command.project_id.0
+        || observation.task_id != task_id.0
+        || observation.source_revision != payload.source_revision
+        || observation.artifact_path.is_none()
+        || observation.artifact_sha256.is_none()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "artifact export requires a successful build with a discovered APK",
+            false,
+            Some("rebuild the current Android source revision before exporting".into()),
+        ));
+    }
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(task_id.0.as_str())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M43 toolchain preflight is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "artifact export requires persisted M43 preflight",
+                false,
+                None,
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "M43 preflight could not be restored",
+                false,
+                None,
+            )
+        })?;
+    let lock = preflight.lock.ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "artifact export requires an available M43 toolchain lock",
+            false,
+            None,
+        )
+    })?;
+    if payload.destination_path.trim().is_empty()
+        || !std::path::Path::new(&payload.destination_path).is_absolute()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "artifact export destination must be an absolute local path",
+            false,
+            None,
+        ));
+    }
+    Ok(PreparedArtifactExport {
+        source_revision: payload.source_revision,
+        destination_path: payload.destination_path,
+        observation,
+        lock,
+    })
 }
 
 fn parse_artifact_build(

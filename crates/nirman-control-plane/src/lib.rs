@@ -396,6 +396,36 @@ impl DurableControlPlane {
         )
     }
 
+    pub fn save_android_artifact_export(
+        &self,
+        export_id: &str,
+        task_id: &str,
+        source_revision: u64,
+        destination_path: &str,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_android_artifact_export(
+            export_id,
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            destination_path,
+            record_json,
+        )
+    }
+
+    pub fn load_android_artifact_export(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_android_artifact_export(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+        )
+    }
+
     pub fn dispatch_with_result_and_m4(
         &mut self,
         command: CommandEnvelope,
