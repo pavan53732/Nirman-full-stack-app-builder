@@ -136,6 +136,111 @@ pub struct PreviewProjection {
     pub stale_reasons: Vec<String>,
 }
 
+pub const M108_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PreviewSyncEventType {
+    IntentAccepted,
+    ContractValidated,
+    PlanRecorded,
+    CheckpointCreated,
+    SourceRevisionCommitted,
+    BuildRequested,
+    BuildObserved,
+    ArtifactObserved,
+    InstallRequested,
+    InstallObserved,
+    LaunchObserved,
+    InteractionObserved,
+    ObservationCaptured,
+    ValidationObserved,
+    CandidateFailed,
+    PreviewInvalidated,
+    PreviewPromoted,
+    StreamGap,
+    StreamReconnected,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PreviewEventTruth {
+    Predicted,
+    Simulated,
+    Requested,
+    Observed,
+    Verified,
+    Stale,
+    Invalidated,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewSyncEvent {
+    pub event_id: String,
+    pub event_sequence: u64,
+    pub project_id: String,
+    pub task_id: String,
+    pub correlation_id: String,
+    pub causation_id: Option<String>,
+    pub candidate_preview_revision_id: String,
+    pub event_type: PreviewSyncEventType,
+    pub event_truth: PreviewEventTruth,
+    pub project_revision_id: String,
+    pub checkpoint_id: String,
+    pub source_fingerprint: String,
+    pub artifact_id: Option<String>,
+    pub artifact_fingerprint: Option<String>,
+    pub runtime_session_id: Option<String>,
+    pub device_id: Option<String>,
+    pub operation_ref: String,
+    pub observation_refs: Vec<String>,
+    pub evidence_refs: Vec<String>,
+    pub validation_ref: Option<String>,
+    pub payload: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewSyncEvidenceRecord {
+    pub evidence_id: String,
+    pub event_sequence_start: u64,
+    pub event_sequence_end: u64,
+    pub projection_revision: u64,
+    pub preview_revision_id: String,
+    pub artifact_fingerprint: Option<String>,
+    pub device_id: Option<String>,
+    pub observation_refs: Vec<String>,
+    pub evidence_refs: Vec<String>,
+    pub validation_refs: Vec<String>,
+    pub truth: PreviewEventTruth,
+}
+
+impl PreviewSyncEvent {
+    pub fn validate(&self) -> Result<(), PreviewError> {
+        for (field, value) in [
+            ("eventId", &self.event_id),
+            ("projectId", &self.project_id),
+            ("taskId", &self.task_id),
+            ("correlationId", &self.correlation_id),
+            (
+                "candidatePreviewRevisionId",
+                &self.candidate_preview_revision_id,
+            ),
+            ("projectRevisionId", &self.project_revision_id),
+            ("checkpointId", &self.checkpoint_id),
+            ("sourceFingerprint", &self.source_fingerprint),
+            ("operationRef", &self.operation_ref),
+        ] {
+            if value.trim().is_empty() {
+                return Err(PreviewError::EmptyField(field));
+            }
+        }
+        if self.event_sequence == 0 {
+            return Err(PreviewError::IdentityMismatch("eventSequence"));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreviewPromotionEligibility {
     pub eligible: bool,
