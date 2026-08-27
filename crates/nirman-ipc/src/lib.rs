@@ -3,9 +3,10 @@
 use nirman_domain::{
     CommandEnvelope, CommandKind, ControlEvent, ProjectId, ProjectionSnapshot, Revision, TaskId,
 };
+use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const PROTOCOL_SCHEMA_VERSION: u16 = 1;
@@ -236,6 +237,33 @@ pub fn publish_control_event<S: EventSink>(
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkspaceApplyPatchCommandPayload {
+    pub worker_id: String,
+    pub operation_id: String,
+    pub base_revision: u64,
+    pub base_project_fingerprint: String,
+    pub workspace_root: String,
+    pub allowed_paths: BTreeSet<String>,
+    pub owned_paths: BTreeSet<String>,
+    pub touched_paths: Vec<String>,
+    pub base_file_hashes: BTreeMap<String, String>,
+    pub mutation_budget: u32,
+    pub dependency_policy: String,
+    pub capability_digest: String,
+    pub fence_token: u64,
+    pub evidence_required: bool,
+    pub isolated_transaction: bool,
+    pub whole_file_fallback: bool,
+    pub operation: MutationOperation,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkspaceApplyPatchResultPayload {
+    pub operation_id: String,
+    pub project_fingerprint: String,
+    pub changed_files: Vec<MutationFileResult>,
+    pub evidence: MutationEvidence,
+}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProviderTestCommandPayload {
     pub provider_id: String,

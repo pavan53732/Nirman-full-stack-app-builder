@@ -2088,6 +2088,7 @@ dependencies = [
  "nirman-control-plane",
  "nirman-domain",
  "nirman-ipc",
+ "nirman-project",
  "nirman-providers",
  "nirman-supervisor",
  "serde",
@@ -2114,6 +2115,7 @@ version = "0.1.0"
 dependencies = [
  "nirman-control-plane",
  "nirman-domain",
+ "nirman-project",
  "serde",
  "serde_json",
 ]

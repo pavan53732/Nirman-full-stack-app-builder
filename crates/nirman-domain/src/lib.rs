@@ -31,6 +31,30 @@ pub struct ProviderUsageRecord {
     pub outcome: String,
 }
 
+/// Secret-free durable record for one M46 structured mutation transaction.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MutationTransactionRecord {
+    pub transaction_id: String,
+    pub command_id: String,
+    pub operation_id: String,
+    pub project_id: ProjectId,
+    pub task_id: TaskId,
+    pub worker_id: String,
+    pub workspace_root: String,
+    pub checkpoint_id: String,
+    pub base_revision: Revision,
+    pub resulting_revision: Revision,
+    pub base_project_fingerprint: String,
+    pub resulting_project_fingerprint: Option<String>,
+    pub capability_digest: String,
+    pub fence_token: u64,
+    pub state: String,
+    pub changed_paths_json: Option<String>,
+    pub evidence_json: Option<String>,
+    pub started_at_epoch_seconds: u64,
+    pub completed_at_epoch_seconds: Option<u64>,
+}
+
 /// Secret-free durable record for one authorized M44 provider-bridge execution.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProviderExecutionRecord {

@@ -3,8 +3,9 @@
 #![forbid(unsafe_code)]
 
 use nirman_domain::{
-    BackgroundContinuityState, ControlEvent, PreviewTruth, ProductLifecycleState, ProjectId,
-    ProjectionSnapshot, ProviderExecutionRecord, Revision, TaskId,
+    BackgroundContinuityState, ControlEvent, MutationTransactionRecord, PreviewTruth,
+    ProductLifecycleState, ProjectId, ProjectionSnapshot, ProviderExecutionRecord, Revision,
+    TaskId,
 };
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
@@ -108,6 +109,15 @@ impl Ledger {
                  correlation_id TEXT NOT NULL,
                  record_json TEXT NOT NULL,
                  UNIQUE(project_id, request_id)
+             );
+             CREATE TABLE IF NOT EXISTS mutation_transactions (
+                 transaction_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 command_id TEXT NOT NULL UNIQUE,
+                 operation_id TEXT NOT NULL UNIQUE,
+                 task_id TEXT NOT NULL,
+                 state TEXT NOT NULL,
+                 record_json TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS projections (
                  project_id TEXT PRIMARY KEY,
@@ -441,6 +451,99 @@ impl Ledger {
                 request_fingerprint,
                 correlation_id,
                 snapshot_json,
+            ],
+        )?;
+        transaction.commit()
+    }
+
+    pub fn commit_event_projection_command_and_mutation_transaction(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        record: &MutationTransactionRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|_| {
+            rusqlite::Error::InvalidParameterName(
+                "mutation transaction serialization failed".into(),
+            )
+        })?;
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id) DO UPDATE SET
+               projection_revision = excluded.projection_revision,
+               task_state = excluded.task_state,
+               continuity_state = excluded.continuity_state,
+               preview_truth = excluded.preview_truth,
+               source_revision = excluded.source_revision,
+               last_event_sequence = excluded.last_event_sequence,
+               last_known_good_ref = excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                command_id,
+                snapshot.project_id.0,
+                idempotency_key,
+                request_fingerprint,
+                correlation_id,
+                snapshot_json,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO mutation_transactions (
+                transaction_id, project_id, command_id, operation_id, task_id, state, record_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                record.transaction_id,
+                record.project_id.0,
+                record.command_id,
+                record.operation_id,
+                record.task_id.0,
+                record.state,
+                record_json,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO checkpoints (checkpoint_id, project_id, projection_revision, source_revision, event_sequence)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(checkpoint_id) DO NOTHING",
+            params![
+                record.checkpoint_id,
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
             ],
         )?;
         transaction.commit()
@@ -819,6 +922,56 @@ impl Ledger {
             ],
         )?;
         Ok(())
+    }
+
+    pub fn record_mutation_transaction(
+        &self,
+        record: &MutationTransactionRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|_| {
+            rusqlite::Error::InvalidParameterName(
+                "mutation transaction serialization failed".into(),
+            )
+        })?;
+        self.connection.execute(
+            "INSERT INTO mutation_transactions (
+                transaction_id, project_id, command_id, operation_id, task_id, state, record_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(transaction_id) DO UPDATE SET state = excluded.state, record_json = excluded.record_json",
+            params![
+                record.transaction_id,
+                record.project_id.0,
+                record.command_id,
+                record.operation_id,
+                record.task_id.0,
+                record.state,
+                record_json,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn mutation_transaction(
+        &self,
+        transaction_id: &str,
+    ) -> rusqlite::Result<Option<MutationTransactionRecord>> {
+        let record_json = self
+            .connection
+            .query_row(
+                "SELECT record_json FROM mutation_transactions WHERE transaction_id = ?1",
+                params![transaction_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        record_json
+            .map(|json| {
+                serde_json::from_str(&json).map_err(|_| {
+                    rusqlite::Error::InvalidParameterName(
+                        "mutation transaction record is corrupt".into(),
+                    )
+                })
+            })
+            .transpose()
     }
 
     pub fn record_provider_execution(

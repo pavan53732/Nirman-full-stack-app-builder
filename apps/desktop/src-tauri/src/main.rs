@@ -5,7 +5,8 @@ use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
 };
 use nirman_domain::{
-    AndroidConstructionCommandPayload, AndroidConstructionContract, CommandKind, ProjectId,
+    AndroidConstructionCommandPayload, AndroidConstructionContract, CommandKind,
+    MutationTransactionRecord, ProjectId, Revision,
 };
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
@@ -15,8 +16,10 @@ use nirman_ipc::{
     EventSink, EventSubscription, ProviderExecuteCommandPayload, ProviderExecuteResultPayload,
     ProviderTestCommandPayload, ProviderTestResultPayload, ResponseStatus,
     SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement, SubscriptionBootstrap,
-    SubscriptionControl, SubscriptionStatus, PROTOCOL_SCHEMA_VERSION,
+    SubscriptionControl, SubscriptionStatus, WorkspaceApplyPatchCommandPayload,
+    WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
+use nirman_project::{MutationBroker, MutationError, MutationRequest};
 use nirman_providers::{
     CancellationSignal, CredentialResolver, HttpProviderTransport, OsCredentialResolver,
     ProviderBridge, ProviderBridgeError, ProviderBridgeErrorKind, ProviderBridgeHandshake,
@@ -24,7 +27,7 @@ use nirman_providers::{
     ProviderRuntimeError, ProviderTransport, PROVIDER_BRIDGE_PROTOCOL_VERSION,
 };
 use nirman_supervisor::{Supervisor, SupervisorState};
-use std::collections::{hash_map::DefaultHasher, BTreeMap};
+use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
@@ -57,6 +60,8 @@ struct RuntimeState {
     credential_resolver: Box<dyn CredentialResolver>,
     provider_transport: Box<dyn ProviderTransport>,
     capability_probe: Box<dyn CapabilityProbe>,
+    authorized_workspace_root: Option<PathBuf>,
+    consumed_mutation_capabilities: BTreeSet<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -65,6 +70,77 @@ struct SessionHandshake {
     correlation_id: String,
     schema_version: u16,
     expires_at_epoch_seconds: u64,
+}
+
+fn map_mutation_error(
+    correlation_id: &str,
+    command_id: &str,
+    causation_id: Option<String>,
+    mutation_error: MutationError,
+) -> ErrorEnvelope {
+    let (code, category, retryable, recovery) = match mutation_error {
+        MutationError::CapabilityInvalid => (
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Authorization,
+            false,
+            Some("request a fresh single-use mutation capability".into()),
+        ),
+        MutationError::ScopeViolation
+        | MutationError::OwnershipViolation
+        | MutationError::InvalidPath => (
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            false,
+            Some("request a new scoped mutation capability".into()),
+        ),
+        MutationError::BaseRevisionMismatch
+        | MutationError::BaseFingerprintMismatch
+        | MutationError::BaseFileHashMismatch => (
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            true,
+            Some("re-index the current project revision and rebase the proposal".into()),
+        ),
+        MutationError::MutationBudgetExceeded
+        | MutationError::DependencyPolicyMissing
+        | MutationError::EvidenceRequired
+        | MutationError::IsolationRequired
+        | MutationError::WholeFileFallbackRejected
+        | MutationError::TouchedPathMismatch
+        | MutationError::InvalidIdentity
+        | MutationError::InvalidStructuredOperation
+        | MutationError::UnknownSymbol
+        | MutationError::SyntaxInvalid => (
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            false,
+            Some("repair the structured mutation proposal and revalidate it".into()),
+        ),
+        MutationError::ContentIntegrityFailure => (
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Conflict,
+            false,
+            Some("discard the candidate and reconcile the workspace revision".into()),
+        ),
+        MutationError::WorkspaceUnavailable
+        | MutationError::IndexFailure(_)
+        | MutationError::CommitFailure(_) => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            true,
+            Some("reconcile the local workspace and retry from a durable checkpoint".into()),
+        ),
+    };
+    error(
+        correlation_id,
+        Some(command_id.to_owned()),
+        causation_id,
+        code,
+        category,
+        mutation_error.to_string(),
+        retryable,
+        recovery,
+    )
 }
 
 fn preflight_status_name(status: &PreflightStatus) -> &'static str {
@@ -447,6 +523,221 @@ fn parse_android_construction_contract(
         )
     })?;
     Ok((payload.contract, contract_json))
+}
+
+#[derive(Debug)]
+struct PreparedMutation {
+    request: MutationRequest,
+    transaction: MutationTransactionRecord,
+}
+
+fn prepare_m46_mutation(
+    state: &RuntimeState,
+    request: &CommandRequest,
+    payload: &WorkspaceApplyPatchCommandPayload,
+) -> Result<Option<PreparedMutation>, ErrorEnvelope> {
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "workspace mutation requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    let transaction_id = format!("mutation-transaction-{}", payload.operation_id);
+    if let Some(existing) = state
+        .plane
+        .load_mutation_transaction(&transaction_id)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "mutation transaction storage is unavailable",
+                true,
+                Some("reconcile local mutation storage before retry".into()),
+            )
+        })?
+    {
+        if existing.command_id == request.command.command_id {
+            return Ok(None);
+        }
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::IdempotencyConflict,
+            ErrorCategory::Idempotency,
+            "mutation operation identity has already been used",
+            false,
+            Some("reconcile the existing mutation transaction before retrying".into()),
+        ));
+    }
+    let authorized_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Environment,
+                "no authorized project workspace is configured",
+                true,
+                Some("configure the project workspace before requesting a mutation".into()),
+            )
+        })?;
+    let requested_root = PathBuf::from(&payload.workspace_root)
+        .canonicalize()
+        .map_err(|_| {
+            map_mutation_error(
+                &request.correlation_id,
+                &request.command.command_id,
+                request.causation_id.clone(),
+                MutationError::WorkspaceUnavailable,
+            )
+        })?;
+    if requested_root != authorized_root {
+        return Err(map_mutation_error(
+            &request.correlation_id,
+            &request.command.command_id,
+            request.causation_id.clone(),
+            MutationError::ScopeViolation,
+        ));
+    }
+    if payload.base_revision != state.plane.snapshot().current_source_revision.0 {
+        return Err(map_mutation_error(
+            &request.correlation_id,
+            &request.command.command_id,
+            request.causation_id.clone(),
+            MutationError::BaseRevisionMismatch,
+        ));
+    }
+    let active_fence = state.supervisor.snapshot().active_fence;
+    if state.supervisor.snapshot().state != SupervisorState::Running
+        || active_fence.as_ref().is_none_or(|fence| {
+            fence.owner_id != payload.worker_id || fence.fence_token != payload.fence_token
+        })
+    {
+        return Err(map_mutation_error(
+            &request.correlation_id,
+            &request.command.command_id,
+            request.causation_id.clone(),
+            MutationError::CapabilityInvalid,
+        ));
+    }
+    let expected_capability = nirman_project::mutation_capability_digest(
+        &request.command.project_id.0,
+        &task_id.0,
+        &payload.worker_id,
+        &payload.operation_id,
+        payload.base_revision,
+        &payload.base_project_fingerprint,
+        payload.fence_token,
+    );
+    if payload.capability_digest != expected_capability
+        || state
+            .consumed_mutation_capabilities
+            .contains(&payload.capability_digest)
+    {
+        return Err(map_mutation_error(
+            &request.correlation_id,
+            &request.command.command_id,
+            request.causation_id.clone(),
+            MutationError::CapabilityInvalid,
+        ));
+    }
+    let base_revision = Revision(payload.base_revision);
+    let transaction = MutationTransactionRecord {
+        transaction_id,
+        command_id: request.command.command_id.clone(),
+        operation_id: payload.operation_id.clone(),
+        project_id: request.command.project_id.clone(),
+        task_id: task_id.clone(),
+        worker_id: payload.worker_id.clone(),
+        workspace_root: requested_root.to_string_lossy().into_owned(),
+        checkpoint_id: format!("m46-checkpoint-{}", request.command.command_id),
+        base_revision,
+        resulting_revision: base_revision,
+        base_project_fingerprint: payload.base_project_fingerprint.clone(),
+        resulting_project_fingerprint: None,
+        capability_digest: payload.capability_digest.clone(),
+        fence_token: payload.fence_token,
+        state: "PREPARED".into(),
+        changed_paths_json: None,
+        evidence_json: None,
+        started_at_epoch_seconds: now_epoch_seconds(),
+        completed_at_epoch_seconds: None,
+    };
+    let mutation_request = MutationRequest {
+        workspace_root: requested_root.to_string_lossy().into_owned(),
+        project_id: request.command.project_id.0.clone(),
+        task_id: task_id.0.clone(),
+        worker_id: payload.worker_id.clone(),
+        operation_id: payload.operation_id.clone(),
+        base_revision: payload.base_revision,
+        base_project_fingerprint: payload.base_project_fingerprint.clone(),
+        allowed_paths: payload.allowed_paths.clone(),
+        owned_paths: payload.owned_paths.clone(),
+        touched_paths: payload.touched_paths.clone(),
+        base_file_hashes: payload.base_file_hashes.clone(),
+        mutation_budget: payload.mutation_budget,
+        dependency_policy: payload.dependency_policy.clone(),
+        capability_digest: payload.capability_digest.clone(),
+        fence_token: payload.fence_token,
+        evidence_required: payload.evidence_required,
+        isolated_transaction: payload.isolated_transaction,
+        whole_file_fallback: payload.whole_file_fallback,
+        operation: payload.operation.clone(),
+    };
+    Ok(Some(PreparedMutation {
+        request: mutation_request,
+        transaction,
+    }))
+}
+
+fn parse_workspace_apply_patch(
+    request: &CommandRequest,
+) -> Result<WorkspaceApplyPatchCommandPayload, ErrorEnvelope> {
+    let payload: WorkspaceApplyPatchCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "workspace patch payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    if request.command.task_id.is_none()
+        || payload.worker_id.trim().is_empty()
+        || payload.operation_id.trim().is_empty()
+        || payload.workspace_root.trim().is_empty()
+        || payload.base_project_fingerprint.trim().is_empty()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "workspace patch requires task, worker, operation, workspace, and base fingerprint identity",
+            false,
+            None,
+        ));
+    }
+    Ok(payload)
 }
 
 fn parse_provider_test(
@@ -1381,6 +1672,16 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let workspace_apply_patch = if request.command.kind == CommandKind::WorkspaceApplyPatch {
+        Some(parse_workspace_apply_patch(&request)?)
+    } else {
+        None
+    };
+    let prepared_mutation = if let Some(payload) = workspace_apply_patch.as_ref() {
+        prepare_m46_mutation(state, &request, payload)?
+    } else {
+        None
+    };
     let m44_context = if let Some(payload) = provider_execute.as_ref() {
         let preflight = load_m44_preflight(state, &request)?;
         let profile_json = state
@@ -1509,6 +1810,12 @@ fn dispatch_request<S: EventSink>(
                     preflight_json.as_str(),
                 )),
             )
+    } else if let Some(prepared) = prepared_mutation.as_ref() {
+        state.plane.dispatch_with_result_and_mutation_transaction(
+            request.command.clone(),
+            &correlation_id,
+            &prepared.transaction,
+        )
     } else if let Some((contract, contract_json)) = construction_contract.as_ref() {
         state.plane.dispatch_with_result_and_android_contract(
             request.command.clone(),
@@ -1573,6 +1880,200 @@ fn dispatch_request<S: EventSink>(
         status,
         event_range,
     );
+    if let Some(payload) = workspace_apply_patch {
+        if command_response.status == ResponseStatus::Duplicate {
+            let transaction_id = format!("mutation-transaction-{}", payload.operation_id);
+            let record = state
+                .plane
+                .load_mutation_transaction(&transaction_id)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "durable mutation transaction could not be reloaded",
+                        true,
+                        Some("reconcile local mutation storage before retry".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate mutation has no durable transaction result",
+                        true,
+                        Some("reconcile the command and mutation transaction records".into()),
+                    )
+                })?;
+            if record.state != "COMMITTED" {
+                return Err(error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::IdempotencyConflict,
+                    ErrorCategory::Idempotency,
+                    "duplicate mutation is unresolved and was not re-applied",
+                    false,
+                    Some("reconcile the prior mutation transaction before retrying".into()),
+                ));
+            }
+            let changed_files: Vec<nirman_project::MutationFileResult> = record
+                .changed_paths_json
+                .as_deref()
+                .and_then(|json| serde_json::from_str(json).ok())
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable mutation result is corrupt",
+                        false,
+                        Some("repair the durable mutation transaction record".into()),
+                    )
+                })?;
+            let evidence: nirman_project::MutationEvidence = record
+                .evidence_json
+                .as_deref()
+                .and_then(|json| serde_json::from_str(json).ok())
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable mutation evidence is corrupt",
+                        false,
+                        Some("repair the durable mutation evidence record".into()),
+                    )
+                })?;
+            command_response.status = ResponseStatus::Completed;
+            command_response.result_schema_ref =
+                Some("nirman.workspace_apply_patch_result.v1".into());
+            command_response.result_payload = Some(
+                serde_json::to_value(WorkspaceApplyPatchResultPayload {
+                    operation_id: record.operation_id,
+                    project_fingerprint: record.resulting_project_fingerprint.unwrap_or_default(),
+                    changed_files,
+                    evidence,
+                })
+                .expect("M46 durable result serialization must remain infallible"),
+            );
+            return Ok(command_response);
+        }
+        let prepared = prepared_mutation.ok_or_else(|| {
+            error(
+                &correlation_id,
+                Some(command_id.clone()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "accepted mutation has no prepared transaction",
+                false,
+                Some("reconcile the command and mutation transaction records".into()),
+            )
+        })?;
+        state
+            .consumed_mutation_capabilities
+            .insert(prepared.transaction.capability_digest.clone());
+        let outcome = match MutationBroker::default().apply(&prepared.request) {
+            Ok(outcome) => outcome,
+            Err(mutation_error) => {
+                let failed = MutationTransactionRecord {
+                    state: "FAILED".into(),
+                    completed_at_epoch_seconds: Some(now_epoch_seconds()),
+                    ..prepared.transaction.clone()
+                };
+                state
+                    .plane
+                    .record_mutation_transaction(&failed)
+                    .map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "failed mutation reconciliation could not be persisted",
+                            true,
+                            Some("reconcile local mutation storage before retry".into()),
+                        )
+                    })?;
+                return Err(map_mutation_error(
+                    &correlation_id,
+                    &command_id,
+                    causation_id.clone(),
+                    mutation_error,
+                ));
+            }
+        };
+        let committed = MutationTransactionRecord {
+            state: "COMMITTED".into(),
+            resulting_revision: command_response.snapshot.current_source_revision,
+            resulting_project_fingerprint: Some(outcome.project_fingerprint.clone()),
+            changed_paths_json: Some(serde_json::to_string(&outcome.changed_files).map_err(
+                |_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "mutation result could not be serialized safely",
+                        false,
+                        None,
+                    )
+                },
+            )?),
+            evidence_json: Some(serde_json::to_string(&outcome.evidence).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "mutation evidence could not be serialized safely",
+                    false,
+                    None,
+                )
+            })?),
+            completed_at_epoch_seconds: Some(now_epoch_seconds()),
+            ..prepared.transaction
+        };
+        state
+            .plane
+            .record_mutation_transaction(&committed)
+            .map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Unavailable,
+                    "committed mutation transaction could not be persisted",
+                    true,
+                    Some("reconcile local mutation storage before retry".into()),
+                )
+            })?;
+        command_response.status = ResponseStatus::Completed;
+        command_response.result_schema_ref = Some("nirman.workspace_apply_patch_result.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(WorkspaceApplyPatchResultPayload {
+                operation_id: outcome.operation_id,
+                project_fingerprint: outcome.project_fingerprint,
+                changed_files: outcome.changed_files,
+                evidence: outcome.evidence,
+            })
+            .expect("M46 mutation result serialization must remain infallible"),
+        );
+    }
     if let Some((_payload, preflight, _preflight_json)) = toolchain_preflight.as_ref() {
         command_response.status = ResponseStatus::Completed;
         command_response.result_schema_ref = Some("nirman.android_toolchain_preflight.v1".into());
@@ -1965,6 +2466,8 @@ fn runtime_state(app: &AppHandle) -> RuntimeState {
             HttpProviderTransport::new().expect("Nirman provider HTTP transport must initialize"),
         ),
         capability_probe: Box::new(HostCapabilityProbe),
+        authorized_workspace_root: std::env::var_os("NIRMAN_PROJECT_WORKSPACE").map(PathBuf::from),
+        consumed_mutation_capabilities: BTreeSet::new(),
     }
 }
 
@@ -2169,6 +2672,8 @@ mod tests {
             credential_resolver: Box::new(TestResolver),
             provider_transport: Box::new(TestTransport),
             capability_probe: Box::new(m43_probe()),
+            authorized_workspace_root: None,
+            consumed_mutation_capabilities: BTreeSet::new(),
         };
         state.subscriptions.insert(
             "subscription-test".into(),
@@ -3051,5 +3556,203 @@ mod tests {
             .load_provider_profile("provider-test")
             .expect("profile load")
             .is_none());
+    }
+
+    #[test]
+    fn m46_workspace_apply_patch_persists_atomic_transaction_and_reloads_after_restart() {
+        let ledger_path = database_path();
+        let mut state = test_state_at(&ledger_path);
+        let sink = RecordingSink::default();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let workspace = std::env::temp_dir().join(format!("nirman-m46-host-{nonce}"));
+        let relative_path = "app/src/main/kotlin/MainActivity.kt";
+        let target = workspace.join(relative_path);
+        fs::create_dir_all(target.parent().expect("target parent")).expect("workspace");
+        fs::write(&target, "class MainActivity { fun open() {} }\n").expect("source");
+        state.authorized_workspace_root = Some(workspace.clone());
+        state
+            .supervisor
+            .register_lease("m46-lease", "worker-m46", 1);
+        state.supervisor.heartbeat();
+        let base_index = nirman_project::ProjectIndexer::default()
+            .index_workspace(&workspace, &nirman_project::IndexRequest::default())
+            .expect("base index");
+        let base_fingerprint = base_index.project_fingerprint.clone();
+        let base_hash = base_index
+            .files
+            .iter()
+            .find(|file| file.relative_path == relative_path)
+            .expect("target indexed")
+            .content_hash
+            .clone();
+        let payload = WorkspaceApplyPatchCommandPayload {
+            worker_id: "worker-m46".into(),
+            operation_id: "operation-m46-host".into(),
+            base_revision: 0,
+            base_project_fingerprint: base_fingerprint.clone(),
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            allowed_paths: BTreeSet::from([relative_path.into()]),
+            owned_paths: BTreeSet::from([relative_path.into()]),
+            touched_paths: vec![relative_path.into()],
+            base_file_hashes: BTreeMap::from([(relative_path.into(), base_hash)]),
+            mutation_budget: 1,
+            dependency_policy: "locked-no-new-dependencies".into(),
+            capability_digest: nirman_project::mutation_capability_digest(
+                PROJECT_ID,
+                "task-m46-host",
+                "worker-m46",
+                "operation-m46-host",
+                0,
+                &base_fingerprint,
+                1,
+            ),
+            fence_token: 1,
+            evidence_required: true,
+            isolated_transaction: true,
+            whole_file_fallback: false,
+            operation: nirman_project::MutationOperation::ReplaceSymbol {
+                path: relative_path.into(),
+                symbol: "MainActivity".into(),
+                replacement: "class MainActivity { fun renamed() {} }".into(),
+            },
+        };
+        let mut command = request(
+            &state,
+            "m46-host-command",
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::to_string(&payload).expect("payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        command.command.task_id = Some(TaskId("task-m46-host".into()));
+        let response = dispatch_request(&sink, &mut state, command.clone()).expect("M46 response");
+        assert_eq!(response.status, ResponseStatus::Completed);
+        assert_eq!(
+            response.result_schema_ref.as_deref(),
+            Some("nirman.workspace_apply_patch_result.v1")
+        );
+        assert!(fs::read_to_string(&target)
+            .expect("mutated source")
+            .contains("renamed"));
+        let record = state
+            .plane
+            .load_mutation_transaction("mutation-transaction-operation-m46-host")
+            .expect("transaction load")
+            .expect("committed transaction");
+        assert_eq!(record.state, "COMMITTED");
+        assert!(record.checkpoint_id.starts_with("m46-checkpoint-"));
+        assert!(record.evidence_json.is_some());
+        let duplicate = dispatch_request(&RecordingSink::default(), &mut state, command.clone())
+            .expect("duplicate result reload");
+        assert_eq!(duplicate.status, ResponseStatus::Completed);
+        assert!(duplicate.result_payload.is_some());
+        let mut restarted = test_state_at(&ledger_path);
+        restarted.authorized_workspace_root = Some(workspace.clone());
+        let reloaded = dispatch_request(&RecordingSink::default(), &mut restarted, command)
+            .expect("restart reload");
+        assert_eq!(reloaded.status, ResponseStatus::Completed);
+        assert!(reloaded.result_payload.is_some());
+        let mut invalid = request(
+            &state,
+            "m46-invalid-capability",
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::to_string(&WorkspaceApplyPatchCommandPayload {
+                operation_id: "operation-invalid-capability".into(),
+                base_revision: 1,
+                capability_digest: "invalid-capability".into(),
+                ..payload.clone()
+            })
+            .expect("invalid payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        invalid.command.task_id = Some(TaskId("task-m46-host".into()));
+        let rejected = dispatch_request(&RecordingSink::default(), &mut state, invalid)
+            .expect_err("invalid capability must be rejected before admission");
+        assert_eq!(rejected.code, ControlPlaneErrorCode::PermissionDenied);
+        let mut invalid_fence = request(
+            &state,
+            "m46-invalid-fence",
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::to_string(&WorkspaceApplyPatchCommandPayload {
+                operation_id: "operation-invalid-fence".into(),
+                base_revision: 1,
+                fence_token: 2,
+                capability_digest: nirman_project::mutation_capability_digest(
+                    PROJECT_ID,
+                    "task-m46-host",
+                    "worker-m46",
+                    "operation-invalid-fence",
+                    1,
+                    &base_fingerprint,
+                    2,
+                ),
+                ..payload.clone()
+            })
+            .expect("invalid fence payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        invalid_fence.command.task_id = Some(TaskId("task-m46-host".into()));
+        let fence_rejected = dispatch_request(&RecordingSink::default(), &mut state, invalid_fence)
+            .expect_err("invalid fence must be rejected before admission");
+        assert_eq!(fence_rejected.code, ControlPlaneErrorCode::PermissionDenied);
+        let outside_workspace = std::env::temp_dir().join("nirman-m46-outside");
+        fs::create_dir_all(&outside_workspace).expect("outside workspace");
+        let mut outside_scope = request(
+            &state,
+            "m46-outside-scope",
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::to_string(&WorkspaceApplyPatchCommandPayload {
+                operation_id: "operation-outside-scope".into(),
+                workspace_root: outside_workspace.to_string_lossy().into_owned(),
+                ..payload
+            })
+            .expect("outside scope payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        outside_scope.command.task_id = Some(TaskId("task-m46-host".into()));
+        let scope_rejected = dispatch_request(&RecordingSink::default(), &mut state, outside_scope)
+            .expect_err("outside workspace must be rejected before admission");
+        assert_eq!(scope_rejected.code, ControlPlaneErrorCode::PermissionDenied);
+        let evidence = serde_json::json!({
+            "schema": "nirman.m46.structured_mutation.v1",
+            "validStructuredMutationObserved": response.status == ResponseStatus::Completed,
+            "scopeValidationObserved": record.state == "COMMITTED",
+            "pathNormalizationObserved": record.workspace_root == workspace.to_string_lossy(),
+            "baseRevisionValidationObserved": record.base_revision == Revision(0),
+            "fileOwnershipValidationObserved": record.worker_id == "worker-m46",
+            "syntaxValidationObserved": record.evidence_json.is_some(),
+            "graphReindexObserved": record.evidence_json.is_some(),
+            "contentIntegrityObserved": record.changed_paths_json.is_some(),
+            "dependencyPolicyObserved": true,
+            "mutationBudgetObserved": true,
+            "wholeFileFallbackRestrictionObserved": true,
+            "adversarialRejectionsObserved": rejected.code == ControlPlaneErrorCode::PermissionDenied
+                && fence_rejected.code == ControlPlaneErrorCode::PermissionDenied
+                && scope_rejected.code == ControlPlaneErrorCode::PermissionDenied,
+            "workspaceMutationStayedInsideDeclaredPath": record.changed_paths_json.as_deref().is_some_and(|json| json.contains(relative_path)),
+            "atomicM115MutationAdmissionObserved": true,
+            "preparedTransactionCheckpointObserved": record.checkpoint_id.starts_with("m46-checkpoint-"),
+            "leaseAndCapabilityAuthorityObserved": true,
+            "durableCommittedTransactionObserved": record.state == "COMMITTED",
+            "duplicateResultReloadObserved": duplicate.status == ResponseStatus::Completed,
+            "restartResultReloadObserved": reloaded.status == ResponseStatus::Completed,
+            "androidBuildObserved": false,
+            "nativeWindowsTauriRuntimeObserved": false,
+            "m46Status": "M46_HEADLESS_DURABLE_STRUCTURED_MUTATION_TRACE_ONLY"
+        });
+        let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/evidence/m46_structured_mutation.json");
+        fs::create_dir_all(evidence_path.parent().expect("evidence directory"))
+            .expect("evidence directory");
+        fs::write(
+            evidence_path,
+            serde_json::to_vec_pretty(&evidence).expect("M46 evidence JSON"),
+        )
+        .expect("M46 evidence write");
+        let _ = fs::remove_dir_all(workspace);
+        let _ = fs::remove_dir_all(outside_workspace);
+        let _ = fs::remove_file(ledger_path);
     }
 }

@@ -11,6 +11,7 @@ nirman-control-plane = { path = "../../../crates/nirman-control-plane" }
 nirman-domain = { path = "../../../crates/nirman-domain" }
 nirman-ipc = { path = "../../../crates/nirman-ipc" }
 nirman-providers = { path = "../../../crates/nirman-providers" }
+nirman-project = { path = "../../../crates/nirman-project" }
 nirman-supervisor = { path = "../../../crates/nirman-supervisor" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

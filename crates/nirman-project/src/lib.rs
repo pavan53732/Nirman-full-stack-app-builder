@@ -8,6 +8,24 @@ use std::path::{Path, PathBuf};
 
 pub const CODE_INTELLIGENCE_SCHEMA_VERSION: u16 = 1;
 
+pub fn stable_identity_digest(input: &str) -> String {
+    sha256_hex(input.as_bytes())
+}
+
+pub fn mutation_capability_digest(
+    project_id: &str,
+    task_id: &str,
+    worker_id: &str,
+    operation_id: &str,
+    base_revision: u64,
+    base_project_fingerprint: &str,
+    fence_token: u64,
+) -> String {
+    stable_identity_digest(&format!(
+        "m46-capability:{project_id}:{task_id}:{worker_id}:{operation_id}:{base_revision}:{base_project_fingerprint}:{fence_token}"
+    ))
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum IndexMode {
@@ -1031,6 +1049,543 @@ fn quoted_value(line: &str) -> Option<String> {
 }
 fn quoted_attribute(line: &str) -> Option<String> {
     line.split('=').nth(1).and_then(quoted_value)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum MutationOperation {
+    ReplaceSymbol {
+        path: String,
+        symbol: String,
+        replacement: String,
+    },
+    InsertAfterSymbol {
+        path: String,
+        symbol: String,
+        content: String,
+    },
+    SetXmlAttribute {
+        path: String,
+        attribute: String,
+        value: String,
+    },
+    SetJsonField {
+        path: String,
+        field: String,
+        value: serde_json::Value,
+    },
+    WholeFileReplacement {
+        path: String,
+        content: String,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MutationRequest {
+    pub project_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub operation_id: String,
+    pub base_revision: u64,
+    pub base_project_fingerprint: String,
+    pub workspace_root: String,
+    pub allowed_paths: BTreeSet<String>,
+    pub owned_paths: BTreeSet<String>,
+    pub touched_paths: Vec<String>,
+    pub base_file_hashes: BTreeMap<String, String>,
+    pub mutation_budget: u32,
+    pub dependency_policy: String,
+    pub capability_digest: String,
+    pub fence_token: u64,
+    pub evidence_required: bool,
+    pub isolated_transaction: bool,
+    pub whole_file_fallback: bool,
+    pub operation: MutationOperation,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MutationFileResult {
+    pub relative_path: String,
+    pub old_hash: String,
+    pub new_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MutationEvidence {
+    pub operation_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub base_revision: u64,
+    pub base_project_fingerprint: String,
+    pub resulting_project_fingerprint: String,
+    pub changed_files: Vec<String>,
+    pub scope_validated: bool,
+    pub ownership_validated: bool,
+    pub revision_validated: bool,
+    pub syntax_validated: bool,
+    pub graph_reindexed: bool,
+    pub content_integrity_validated: bool,
+    pub dependency_policy_validated: bool,
+    pub mutation_budget_validated: bool,
+    pub whole_file_fallback_used: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MutationOutcome {
+    pub operation_id: String,
+    pub project_fingerprint: String,
+    pub changed_files: Vec<MutationFileResult>,
+    pub index: ProjectIndex,
+    pub evidence: MutationEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MutationError {
+    InvalidIdentity,
+    CapabilityInvalid,
+    InvalidPath,
+    ScopeViolation,
+    OwnershipViolation,
+    TouchedPathMismatch,
+    BaseRevisionMismatch,
+    BaseFingerprintMismatch,
+    BaseFileHashMismatch,
+    MutationBudgetExceeded,
+    DependencyPolicyMissing,
+    EvidenceRequired,
+    IsolationRequired,
+    WholeFileFallbackRejected,
+    UnknownSymbol,
+    InvalidStructuredOperation,
+    SyntaxInvalid,
+    ContentIntegrityFailure,
+    WorkspaceUnavailable,
+    IndexFailure(String),
+    CommitFailure(String),
+}
+
+impl std::fmt::Display for MutationError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = match self {
+            Self::InvalidIdentity => "mutation identity is invalid",
+            Self::CapabilityInvalid => "mutation capability is invalid",
+            Self::InvalidPath => "mutation path is invalid",
+            Self::ScopeViolation => "mutation path is outside project scope",
+            Self::OwnershipViolation => "mutation path is not owned by the worker",
+            Self::TouchedPathMismatch => "operation path does not match declared touched paths",
+            Self::BaseRevisionMismatch => "mutation base revision is invalid",
+            Self::BaseFingerprintMismatch => "project fingerprint changed before mutation",
+            Self::BaseFileHashMismatch => "target file changed before mutation",
+            Self::MutationBudgetExceeded => "mutation budget exceeded",
+            Self::DependencyPolicyMissing => "dependency policy is required",
+            Self::EvidenceRequired => "mutation evidence is required",
+            Self::IsolationRequired => "isolated transaction is required",
+            Self::WholeFileFallbackRejected => "whole-file fallback is rejected for this mutation",
+            Self::UnknownSymbol => "target symbol was not found",
+            Self::InvalidStructuredOperation => "structured mutation operation is invalid",
+            Self::SyntaxInvalid => "candidate syntax validation failed",
+            Self::ContentIntegrityFailure => "candidate content integrity validation failed",
+            Self::WorkspaceUnavailable => "mutation workspace is unavailable",
+            Self::IndexFailure(_) => "candidate semantic index failed",
+            Self::CommitFailure(_) => "mutation transaction could not commit",
+        };
+        formatter.write_str(message)
+    }
+}
+impl std::error::Error for MutationError {}
+
+pub struct MutationBroker {
+    indexer: ProjectIndexer,
+}
+impl Default for MutationBroker {
+    fn default() -> Self {
+        Self {
+            indexer: ProjectIndexer::default(),
+        }
+    }
+}
+impl MutationBroker {
+    pub fn new(indexer: ProjectIndexer) -> Self {
+        Self { indexer }
+    }
+
+    pub fn apply(&self, request: &MutationRequest) -> Result<MutationOutcome, MutationError> {
+        validate_mutation_request(request)?;
+        let root = Path::new(&request.workspace_root)
+            .canonicalize()
+            .map_err(|_| MutationError::WorkspaceUnavailable)?;
+        let base_index = self
+            .indexer
+            .index_workspace(&root, &IndexRequest::default())
+            .map_err(|error| MutationError::IndexFailure(error.to_string()))?;
+        if base_index.project_fingerprint != request.base_project_fingerprint {
+            return Err(MutationError::BaseFingerprintMismatch);
+        }
+        let path = operation_path(&request.operation);
+        let current_path = safe_join(&root, path)?;
+        let current_content =
+            fs::read_to_string(&current_path).map_err(|_| MutationError::WorkspaceUnavailable)?;
+        let old_hash = sha256_hex(current_content.as_bytes());
+        if request.base_file_hashes.get(path).map(String::as_str) != Some(old_hash.as_str()) {
+            return Err(MutationError::BaseFileHashMismatch);
+        }
+        let candidate_content = apply_operation(&request.operation, &current_content)?;
+        validate_candidate(path, &candidate_content)?;
+        let staging_root = make_staging_root(&request.operation_id);
+        copy_workspace(&root, &staging_root)
+            .map_err(|error| MutationError::CommitFailure(error.to_string()))?;
+        let staged_path = safe_join(&staging_root, path)?;
+        fs::write(&staged_path, &candidate_content)
+            .map_err(|error| MutationError::CommitFailure(error.to_string()))?;
+        let candidate_index = self
+            .indexer
+            .index_workspace(&staging_root, &IndexRequest::default())
+            .map_err(|error| MutationError::IndexFailure(error.to_string()))?;
+        let candidate_file = candidate_index
+            .files
+            .iter()
+            .find(|file| file.relative_path == path)
+            .ok_or(MutationError::ContentIntegrityFailure)?;
+        let new_hash = candidate_file.content_hash.clone();
+        if new_hash != sha256_hex(candidate_content.as_bytes()) {
+            return Err(clean_staging(
+                staging_root,
+                MutationError::ContentIntegrityFailure,
+            ));
+        }
+        commit_single_file(&root, path, &candidate_content).map_err(|error| {
+            clean_staging(
+                staging_root.clone(),
+                MutationError::CommitFailure(error.to_string()),
+            )
+        })?;
+        let resulting_index = match self
+            .indexer
+            .index_workspace(&root, &IndexRequest::default())
+        {
+            Ok(index) => index,
+            Err(error) => {
+                let _ = restore_single_file(&root, path, &current_content);
+                return Err(MutationError::IndexFailure(error.to_string()));
+            }
+        };
+        let resulting_file = match resulting_index
+            .files
+            .iter()
+            .find(|file| file.relative_path == path)
+        {
+            Some(file) => file,
+            None => {
+                let _ = restore_single_file(&root, path, &current_content);
+                return Err(MutationError::ContentIntegrityFailure);
+            }
+        };
+        if resulting_file.content_hash != new_hash {
+            let _ = restore_single_file(&root, path, &current_content);
+            return Err(MutationError::ContentIntegrityFailure);
+        }
+        let _ = fs::remove_dir_all(staging_root);
+        let changed_files = vec![MutationFileResult {
+            relative_path: path.to_owned(),
+            old_hash,
+            new_hash,
+        }];
+        let evidence = MutationEvidence {
+            operation_id: request.operation_id.clone(),
+            project_id: request.project_id.clone(),
+            task_id: request.task_id.clone(),
+            worker_id: request.worker_id.clone(),
+            base_revision: request.base_revision,
+            base_project_fingerprint: request.base_project_fingerprint.clone(),
+            resulting_project_fingerprint: resulting_index.project_fingerprint.clone(),
+            changed_files: vec![path.to_owned()],
+            scope_validated: true,
+            ownership_validated: true,
+            revision_validated: true,
+            syntax_validated: true,
+            graph_reindexed: true,
+            content_integrity_validated: true,
+            dependency_policy_validated: true,
+            mutation_budget_validated: true,
+            whole_file_fallback_used: false,
+        };
+        Ok(MutationOutcome {
+            operation_id: request.operation_id.clone(),
+            project_fingerprint: resulting_index.project_fingerprint.clone(),
+            changed_files,
+            index: resulting_index,
+            evidence,
+        })
+    }
+}
+
+fn validate_mutation_request(request: &MutationRequest) -> Result<(), MutationError> {
+    if request.project_id.trim().is_empty()
+        || request.task_id.trim().is_empty()
+        || request.worker_id.trim().is_empty()
+        || request.operation_id.trim().is_empty()
+        || request.workspace_root.trim().is_empty()
+    {
+        return Err(MutationError::InvalidIdentity);
+    }
+    if request.base_project_fingerprint.trim().is_empty() || request.base_revision == u64::MAX {
+        return Err(MutationError::BaseRevisionMismatch);
+    }
+    if request.touched_paths.len() != 1 || request.mutation_budget == 0 {
+        return Err(MutationError::MutationBudgetExceeded);
+    }
+    if request.dependency_policy.trim().is_empty() {
+        return Err(MutationError::DependencyPolicyMissing);
+    }
+    if request.capability_digest.trim().is_empty() || request.fence_token == 0 {
+        return Err(MutationError::InvalidIdentity);
+    }
+    if request.capability_digest
+        != mutation_capability_digest(
+            &request.project_id,
+            &request.task_id,
+            &request.worker_id,
+            &request.operation_id,
+            request.base_revision,
+            &request.base_project_fingerprint,
+            request.fence_token,
+        )
+    {
+        return Err(MutationError::CapabilityInvalid);
+    }
+    if !request.evidence_required {
+        return Err(MutationError::EvidenceRequired);
+    }
+    if !request.isolated_transaction {
+        return Err(MutationError::IsolationRequired);
+    }
+    if request.whole_file_fallback {
+        return Err(MutationError::WholeFileFallbackRejected);
+    }
+    let path = operation_path(&request.operation);
+    if !request.allowed_paths.contains(path) {
+        return Err(MutationError::ScopeViolation);
+    }
+    if !request.owned_paths.contains(path) {
+        return Err(MutationError::OwnershipViolation);
+    }
+    if request
+        .touched_paths
+        .iter()
+        .map(|value| normalize_relative_path(value))
+        .collect::<BTreeSet<_>>()
+        != BTreeSet::from([path.to_owned()])
+    {
+        return Err(MutationError::TouchedPathMismatch);
+    }
+    if !request.base_file_hashes.contains_key(path) {
+        return Err(MutationError::BaseFileHashMismatch);
+    }
+    Ok(())
+}
+fn operation_path(operation: &MutationOperation) -> &str {
+    match operation {
+        MutationOperation::ReplaceSymbol { path, .. }
+        | MutationOperation::InsertAfterSymbol { path, .. }
+        | MutationOperation::SetXmlAttribute { path, .. }
+        | MutationOperation::SetJsonField { path, .. }
+        | MutationOperation::WholeFileReplacement { path, .. } => path,
+    }
+}
+fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, MutationError> {
+    let normalized = normalize_relative_path(relative);
+    if normalized.is_empty()
+        || Path::new(&normalized).is_absolute()
+        || normalized
+            .split('/')
+            .any(|part| part == ".." || part.is_empty())
+        || is_excluded_path(&normalized)
+    {
+        return Err(MutationError::InvalidPath);
+    }
+    let path = root.join(&normalized);
+    if path.exists()
+        && path
+            .symlink_metadata()
+            .map_err(|_| MutationError::InvalidPath)?
+            .file_type()
+            .is_symlink()
+    {
+        return Err(MutationError::InvalidPath);
+    }
+    Ok(path)
+}
+fn apply_operation(operation: &MutationOperation, current: &str) -> Result<String, MutationError> {
+    match operation {
+        MutationOperation::ReplaceSymbol {
+            symbol,
+            replacement,
+            ..
+        } => {
+            if replacement.trim().is_empty() || !declaration_contains(replacement, symbol) {
+                return Err(MutationError::InvalidStructuredOperation);
+            }
+            let mut lines: Vec<String> = current.lines().map(str::to_owned).collect();
+            let index = lines
+                .iter()
+                .position(|line| declaration_contains(line, symbol))
+                .ok_or(MutationError::UnknownSymbol)?;
+            lines[index] = replacement.clone();
+            Ok(lines.join("\n") + if current.ends_with('\n') { "\n" } else { "" })
+        }
+        MutationOperation::InsertAfterSymbol {
+            symbol, content, ..
+        } => {
+            if content.trim().is_empty() {
+                return Err(MutationError::InvalidStructuredOperation);
+            }
+            let mut lines: Vec<String> = current.lines().map(str::to_owned).collect();
+            let index = lines
+                .iter()
+                .position(|line| declaration_contains(line, symbol))
+                .ok_or(MutationError::UnknownSymbol)?;
+            lines.insert(index + 1, content.clone());
+            Ok(lines.join("\n") + if current.ends_with('\n') { "\n" } else { "" })
+        }
+        MutationOperation::SetXmlAttribute {
+            attribute, value, ..
+        } => {
+            if attribute.trim().is_empty() || value.contains('"') || value.contains('<') {
+                return Err(MutationError::InvalidStructuredOperation);
+            }
+            let needle = format!("{attribute}=\"");
+            let start = current
+                .find(&needle)
+                .ok_or(MutationError::InvalidStructuredOperation)?
+                + needle.len();
+            let end = current[start..]
+                .find('"')
+                .ok_or(MutationError::InvalidStructuredOperation)?
+                + start;
+            let mut output = current.to_owned();
+            output.replace_range(start..end, value);
+            Ok(output)
+        }
+        MutationOperation::SetJsonField { field, value, .. } => {
+            if field.trim().is_empty() {
+                return Err(MutationError::InvalidStructuredOperation);
+            }
+            let mut document: serde_json::Value =
+                serde_json::from_str(current).map_err(|_| MutationError::SyntaxInvalid)?;
+            let object = document
+                .as_object_mut()
+                .ok_or(MutationError::InvalidStructuredOperation)?;
+            object.insert(field.clone(), value.clone());
+            serde_json::to_string_pretty(&document)
+                .map(|json| json + "\n")
+                .map_err(|_| MutationError::ContentIntegrityFailure)
+        }
+        MutationOperation::WholeFileReplacement { .. } => {
+            Err(MutationError::WholeFileFallbackRejected)
+        }
+    }
+}
+fn declaration_contains(line: &str, symbol: &str) -> bool {
+    [
+        "class ",
+        "interface ",
+        "object ",
+        "enum ",
+        "fun ",
+        "function ",
+        "void ",
+        "public class ",
+    ]
+    .iter()
+    .any(|prefix| line.contains(&format!("{prefix}{symbol}")))
+}
+fn validate_candidate(path: &str, content: &str) -> Result<(), MutationError> {
+    if content.contains('\0') || content.trim().is_empty() {
+        return Err(MutationError::SyntaxInvalid);
+    }
+    let extension = path.rsplit('.').next().unwrap_or_default();
+    if matches!(
+        extension,
+        "kt" | "java"
+            | "kts"
+            | "gradle"
+            | "ts"
+            | "tsx"
+            | "js"
+            | "jsx"
+            | "c"
+            | "cc"
+            | "cpp"
+            | "h"
+            | "hpp"
+    ) {
+        for (open, close) in [('(', ')'), ('{', '}'), ('[', ']')] {
+            if content
+                .chars()
+                .filter(|character| *character == open)
+                .count()
+                != content
+                    .chars()
+                    .filter(|character| *character == close)
+                    .count()
+            {
+                return Err(MutationError::SyntaxInvalid);
+            }
+        }
+    }
+    if extension == "xml"
+        && (!content.trim_start().starts_with('<') || !content.trim_end().ends_with('>'))
+    {
+        return Err(MutationError::SyntaxInvalid);
+    }
+    if extension == "json" {
+        serde_json::from_str::<serde_json::Value>(content)
+            .map_err(|_| MutationError::SyntaxInvalid)?;
+    }
+    Ok(())
+}
+fn make_staging_root(operation_id: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "nirman-m46-stage-{}-{}",
+        std::process::id(),
+        sha256_hex(operation_id.as_bytes())
+    ))
+}
+fn copy_workspace(source: &Path, destination: &Path) -> std::io::Result<()> {
+    if destination.exists() {
+        fs::remove_dir_all(destination)?;
+    }
+    fs::create_dir_all(destination)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let file_type = entry.file_type()?;
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            copy_workspace(&source_path, &destination_path)?;
+        } else if file_type.is_file() {
+            fs::copy(source_path, destination_path)?;
+        }
+    }
+    Ok(())
+}
+fn restore_single_file(root: &Path, relative: &str, content: &str) -> std::io::Result<()> {
+    fs::write(root.join(relative), content)
+}
+fn commit_single_file(root: &Path, relative: &str, content: &str) -> std::io::Result<()> {
+    let target = root.join(relative);
+    let temporary = target.with_extension(format!("nirman-m46-{}", std::process::id()));
+    fs::write(&temporary, content)?;
+    fs::rename(temporary, target)?;
+    Ok(())
+}
+fn clean_staging<T>(staging_root: PathBuf, error: T) -> T {
+    let _ = fs::remove_dir_all(staging_root);
+    error
 }
 
 #[cfg(test)]
