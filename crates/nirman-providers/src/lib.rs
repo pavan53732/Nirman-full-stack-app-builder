@@ -783,6 +783,417 @@ impl ProviderRuntime {
     }
 }
 
+pub const PROVIDER_BRIDGE_PROTOCOL_VERSION: u16 = 1;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProviderBridgeHealth {
+    Starting,
+    Handshaking,
+    Healthy,
+    Degraded,
+    Restarting,
+    Offline,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProviderBridgeErrorKind {
+    ProtocolMismatch,
+    Authentication,
+    ProfileMismatch,
+    ModelCapability,
+    InvalidRequest,
+    Unavailable,
+    Timeout,
+    Cancellation,
+    RateLimited,
+    MalformedResponse,
+    ProviderRejected,
+    Configuration,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProviderBridgeHandshake {
+    pub protocol_version: u16,
+    pub session_id: String,
+    pub provider_profile_id: String,
+    pub model_id: String,
+    pub protocol: ProviderProtocol,
+    pub context_limit: u64,
+    pub supports_text: bool,
+    pub supports_streaming: bool,
+    pub supports_cancellation: bool,
+}
+
+#[derive(Clone)]
+pub struct ProviderBridgeRequest {
+    pub session_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub trace_id: String,
+    pub correlation_id: String,
+    pub causation_id: Option<String>,
+    pub provider_profile_id: String,
+    pub model_id: String,
+    pub protocol: ProviderProtocol,
+    pub prompt: String,
+    pub max_output_tokens: Option<u64>,
+    pub max_context_tokens: u64,
+    pub environment_lock_hash: String,
+    pub environment_snapshot_id: String,
+    pub privacy_classification: String,
+    pub tool_policy: String,
+    pub stream: bool,
+    pub cancellation: CancellationSignal,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum ProviderBridgeEventKind {
+    Started,
+    TextDelta,
+    Usage,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProviderBridgeEvent {
+    pub request_id: String,
+    pub sequence: u64,
+    pub kind: ProviderBridgeEventKind,
+    pub content: Option<String>,
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub total_tokens: Option<u64>,
+    pub error_kind: Option<ProviderBridgeErrorKind>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProviderBridgeError {
+    kind: ProviderBridgeErrorKind,
+    safe_message: &'static str,
+    retryable: bool,
+}
+
+impl ProviderBridgeError {
+    fn new(kind: ProviderBridgeErrorKind) -> Self {
+        let (safe_message, retryable) = match kind {
+            ProviderBridgeErrorKind::ProtocolMismatch => {
+                ("provider bridge protocol mismatch", false)
+            }
+            ProviderBridgeErrorKind::Authentication => {
+                ("provider bridge authentication failed", false)
+            }
+            ProviderBridgeErrorKind::ProfileMismatch => {
+                ("provider bridge profile scope mismatch", false)
+            }
+            ProviderBridgeErrorKind::ModelCapability => {
+                ("provider model capability is unavailable", false)
+            }
+            ProviderBridgeErrorKind::InvalidRequest => {
+                ("provider bridge request is invalid", false)
+            }
+            ProviderBridgeErrorKind::Unavailable => ("provider bridge is unavailable", true),
+            ProviderBridgeErrorKind::Timeout => ("provider bridge request timed out", true),
+            ProviderBridgeErrorKind::Cancellation => {
+                ("provider bridge request was cancelled", false)
+            }
+            ProviderBridgeErrorKind::RateLimited => {
+                ("provider bridge rate limit was reached", true)
+            }
+            ProviderBridgeErrorKind::MalformedResponse => {
+                ("provider bridge received malformed output", false)
+            }
+            ProviderBridgeErrorKind::ProviderRejected => {
+                ("provider bridge provider rejected the request", false)
+            }
+            ProviderBridgeErrorKind::Configuration => {
+                ("provider bridge configuration is invalid", false)
+            }
+        };
+        Self {
+            kind,
+            safe_message,
+            retryable,
+        }
+    }
+
+    pub fn kind(&self) -> ProviderBridgeErrorKind {
+        self.kind
+    }
+    pub fn safe_message(&self) -> &'static str {
+        self.safe_message
+    }
+    pub fn retryable(&self) -> bool {
+        self.retryable
+    }
+}
+
+impl fmt::Display for ProviderBridgeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.safe_message)
+    }
+}
+
+impl std::error::Error for ProviderBridgeError {}
+
+pub struct ProviderBridgeExecution {
+    pub execution: Result<ProviderExecution, ProviderBridgeError>,
+    pub events: Vec<ProviderBridgeEvent>,
+}
+
+/// M44 supervised bridge facade. It owns protocol/health admission and delegates provider work to M3.
+pub struct ProviderBridge {
+    session_id: String,
+    provider_profile_id: String,
+    model_id: String,
+    protocol: ProviderProtocol,
+    context_limit: u64,
+    supports_streaming: bool,
+    supports_cancellation: bool,
+    health: ProviderBridgeHealth,
+}
+
+impl ProviderBridge {
+    pub fn new(
+        session_id: impl Into<String>,
+        provider_profile_id: impl Into<String>,
+        model_id: impl Into<String>,
+        protocol: ProviderProtocol,
+    ) -> Self {
+        Self {
+            session_id: session_id.into(),
+            provider_profile_id: provider_profile_id.into(),
+            model_id: model_id.into(),
+            protocol,
+            context_limit: 0,
+            supports_streaming: false,
+            supports_cancellation: false,
+            health: ProviderBridgeHealth::Starting,
+        }
+    }
+
+    pub fn health(&self) -> ProviderBridgeHealth {
+        self.health
+    }
+
+    pub fn handshake(
+        &mut self,
+        handshake: ProviderBridgeHandshake,
+    ) -> Result<(), ProviderBridgeError> {
+        self.health = ProviderBridgeHealth::Handshaking;
+        if handshake.protocol_version != PROVIDER_BRIDGE_PROTOCOL_VERSION {
+            self.health = ProviderBridgeHealth::Degraded;
+            return Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::ProtocolMismatch,
+            ));
+        }
+        if handshake.session_id != self.session_id {
+            self.health = ProviderBridgeHealth::Degraded;
+            return Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::Authentication,
+            ));
+        }
+        if handshake.provider_profile_id != self.provider_profile_id
+            || handshake.model_id != self.model_id
+            || handshake.protocol != self.protocol
+        {
+            self.health = ProviderBridgeHealth::Degraded;
+            return Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::ProfileMismatch,
+            ));
+        }
+        if handshake.context_limit == 0 || !handshake.supports_text {
+            self.health = ProviderBridgeHealth::Degraded;
+            return Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::ModelCapability,
+            ));
+        }
+        self.context_limit = handshake.context_limit;
+        self.supports_streaming = handshake.supports_streaming;
+        self.supports_cancellation = handshake.supports_cancellation;
+        self.health = ProviderBridgeHealth::Healthy;
+        Ok(())
+    }
+
+    pub fn restart(&mut self) {
+        self.health = ProviderBridgeHealth::Restarting;
+        self.context_limit = 0;
+        self.supports_streaming = false;
+        self.supports_cancellation = false;
+        self.health = ProviderBridgeHealth::Starting;
+    }
+
+    pub fn set_offline(&mut self) {
+        self.health = ProviderBridgeHealth::Offline;
+    }
+
+    pub fn execute<R: CredentialResolver + ?Sized, T: ProviderTransport + ?Sized>(
+        &self,
+        runtime: &ProviderRuntime,
+        profile: &ProviderProfile,
+        request: ProviderBridgeRequest,
+        resolver: &R,
+        transport: &T,
+    ) -> ProviderBridgeExecution {
+        let request_id = request.trace_id.clone();
+        let mut events = vec![ProviderBridgeEvent {
+            request_id: request_id.clone(),
+            sequence: 1,
+            kind: ProviderBridgeEventKind::Started,
+            content: None,
+            input_tokens: None,
+            output_tokens: None,
+            total_tokens: None,
+            error_kind: None,
+        }];
+        let admission = if self.health != ProviderBridgeHealth::Healthy {
+            Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::Unavailable,
+            ))
+        } else if request.session_id != self.session_id
+            || request.provider_profile_id != self.provider_profile_id
+            || request.model_id != self.model_id
+            || request.protocol != self.protocol
+        {
+            Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::ProfileMismatch,
+            ))
+        } else if request.project_id.trim().is_empty()
+            || request.task_id.trim().is_empty()
+            || request.worker_id.trim().is_empty()
+            || request.trace_id.trim().is_empty()
+            || request.correlation_id.trim().is_empty()
+            || request.environment_lock_hash.trim().is_empty()
+            || request.environment_snapshot_id.trim().is_empty()
+            || request.privacy_classification.trim().is_empty()
+            || request.tool_policy.trim().is_empty()
+            || request.prompt.trim().is_empty()
+            || request.max_context_tokens == 0
+            || request.max_context_tokens > self.context_limit
+        {
+            Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::InvalidRequest,
+            ))
+        } else if request.stream && !self.supports_streaming {
+            Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::ModelCapability,
+            ))
+        } else if request.cancellation.is_cancelled() && !self.supports_cancellation {
+            Err(ProviderBridgeError::new(
+                ProviderBridgeErrorKind::Cancellation,
+            ))
+        } else {
+            let mut input = ProviderRequestInput::new(request.prompt);
+            input.max_output_tokens = request.max_output_tokens;
+            runtime
+                .execute(
+                    profile,
+                    input,
+                    request.trace_id.clone(),
+                    request.correlation_id.clone(),
+                    ProjectId(request.project_id.clone()),
+                    request.cancellation,
+                    resolver,
+                    transport,
+                )
+                .map_err(|error| match error {
+                    ProviderRuntimeError::Configuration(_) => {
+                        ProviderBridgeError::new(ProviderBridgeErrorKind::Configuration)
+                    }
+                    ProviderRuntimeError::UsagePersistence => {
+                        ProviderBridgeError::new(ProviderBridgeErrorKind::Unavailable)
+                    }
+                    ProviderRuntimeError::Provider(error) => match error.kind() {
+                        ProviderErrorKind::Timeout => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::Timeout)
+                        }
+                        ProviderErrorKind::Cancellation => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::Cancellation)
+                        }
+                        ProviderErrorKind::Authentication => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::Authentication)
+                        }
+                        ProviderErrorKind::RateLimited => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::RateLimited)
+                        }
+                        ProviderErrorKind::InvalidResponse => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::MalformedResponse)
+                        }
+                        ProviderErrorKind::Remote => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::ProviderRejected)
+                        }
+                        ProviderErrorKind::Transport => {
+                            ProviderBridgeError::new(ProviderBridgeErrorKind::Unavailable)
+                        }
+                    },
+                })
+        };
+        match admission {
+            Ok(execution) => {
+                if request.stream {
+                    events.push(ProviderBridgeEvent {
+                        request_id: request_id.clone(),
+                        sequence: 2,
+                        kind: ProviderBridgeEventKind::TextDelta,
+                        content: Some(execution.response.text.clone()),
+                        input_tokens: None,
+                        output_tokens: None,
+                        total_tokens: None,
+                        error_kind: None,
+                    });
+                }
+                events.push(ProviderBridgeEvent {
+                    request_id: request_id.clone(),
+                    sequence: events.len() as u64 + 1,
+                    kind: ProviderBridgeEventKind::Usage,
+                    content: None,
+                    input_tokens: execution.response.usage.input_tokens,
+                    output_tokens: execution.response.usage.output_tokens,
+                    total_tokens: execution.response.usage.total_tokens,
+                    error_kind: None,
+                });
+                events.push(ProviderBridgeEvent {
+                    request_id,
+                    sequence: events.len() as u64 + 1,
+                    kind: ProviderBridgeEventKind::Completed,
+                    content: None,
+                    input_tokens: None,
+                    output_tokens: None,
+                    total_tokens: None,
+                    error_kind: None,
+                });
+                ProviderBridgeExecution {
+                    execution: Ok(execution),
+                    events,
+                }
+            }
+            Err(error) => {
+                let kind = if error.kind() == ProviderBridgeErrorKind::Cancellation {
+                    ProviderBridgeEventKind::Cancelled
+                } else {
+                    ProviderBridgeEventKind::Failed
+                };
+                events.push(ProviderBridgeEvent {
+                    request_id,
+                    sequence: 2,
+                    kind,
+                    content: None,
+                    input_tokens: None,
+                    output_tokens: None,
+                    total_tokens: None,
+                    error_kind: Some(error.kind()),
+                });
+                ProviderBridgeExecution {
+                    execution: Err(error),
+                    events,
+                }
+            }
+        }
+    }
+}
+
 fn now_epoch_seconds() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1133,5 +1544,204 @@ mod tests {
                 .outcome,
             "cancelled"
         );
+    }
+
+    fn bridge_request(
+        profile: &ProviderProfile,
+        cancellation: CancellationSignal,
+    ) -> ProviderBridgeRequest {
+        ProviderBridgeRequest {
+            session_id: "session-1".into(),
+            project_id: "project-1".into(),
+            task_id: "task-1".into(),
+            worker_id: "worker-1".into(),
+            trace_id: "request-bridge-1".into(),
+            correlation_id: "correlation-bridge-1".into(),
+            causation_id: Some("cause-1".into()),
+            provider_profile_id: profile.provider_id.clone(),
+            model_id: profile.model_id.clone(),
+            protocol: profile.protocol,
+            prompt: "Build an Android app".into(),
+            max_output_tokens: Some(64),
+            max_context_tokens: 4096,
+            environment_lock_hash: "lock-hash-1".into(),
+            environment_snapshot_id: "snapshot-1".into(),
+            privacy_classification: "project-content".into(),
+            tool_policy: "no-tool-calls".into(),
+            stream: true,
+            cancellation,
+        }
+    }
+
+    fn healthy_bridge(profile: &ProviderProfile) -> ProviderBridge {
+        let mut bridge = ProviderBridge::new(
+            "session-1",
+            profile.provider_id.clone(),
+            profile.model_id.clone(),
+            profile.protocol,
+        );
+        bridge
+            .handshake(ProviderBridgeHandshake {
+                protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION,
+                session_id: "session-1".into(),
+                provider_profile_id: profile.provider_id.clone(),
+                model_id: profile.model_id.clone(),
+                protocol: profile.protocol,
+                context_limit: 4096,
+                supports_text: true,
+                supports_streaming: true,
+                supports_cancellation: true,
+            })
+            .expect("healthy handshake");
+        bridge
+    }
+
+    #[test]
+    fn m44_bridge_handshake_streams_normalizes_and_records_locked_execution() {
+        let profile = test_profile();
+        let runtime = ProviderRuntime::in_memory().expect("runtime");
+        let bridge = healthy_bridge(&profile);
+        assert_eq!(bridge.health(), ProviderBridgeHealth::Healthy);
+        let result = bridge.execute(
+            &runtime,
+            &profile,
+            bridge_request(&profile, CancellationSignal::default()),
+            &FixtureResolver,
+            &success_transport(),
+        );
+        let execution = result.execution.expect("bridge execution");
+        assert_eq!(execution.response.text, "ok");
+        assert_eq!(execution.response.request_id, "request-bridge-1");
+        assert_eq!(execution.response.correlation_id, "correlation-bridge-1");
+        assert_eq!(result.events.len(), 4);
+        assert_eq!(result.events[0].kind, ProviderBridgeEventKind::Started);
+        assert_eq!(result.events[1].kind, ProviderBridgeEventKind::TextDelta);
+        assert_eq!(result.events[2].kind, ProviderBridgeEventKind::Usage);
+        assert_eq!(result.events[3].kind, ProviderBridgeEventKind::Completed);
+        let usage = runtime
+            .usage_record("request-bridge-1")
+            .expect("usage")
+            .expect("durable usage");
+        assert_eq!(usage.project_id.0, "project-1");
+        let serialized = serde_json::to_string(&result.events).expect("event JSON");
+        assert!(!serialized.contains("raw-secret"));
+    }
+
+    #[test]
+    fn m44_bridge_rejects_protocol_scope_capability_offline_and_cancelled_requests() {
+        let profile = test_profile();
+        let runtime = ProviderRuntime::in_memory().expect("runtime");
+        let mut bridge = ProviderBridge::new(
+            "session-1",
+            profile.provider_id.clone(),
+            profile.model_id.clone(),
+            profile.protocol,
+        );
+        let mismatch = bridge.handshake(ProviderBridgeHandshake {
+            protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION + 1,
+            session_id: "session-1".into(),
+            provider_profile_id: profile.provider_id.clone(),
+            model_id: profile.model_id.clone(),
+            protocol: profile.protocol,
+            context_limit: 4096,
+            supports_text: true,
+            supports_streaming: true,
+            supports_cancellation: true,
+        });
+        assert!(matches!(
+            mismatch,
+            Err(error) if error.kind() == ProviderBridgeErrorKind::ProtocolMismatch
+        ));
+        bridge = healthy_bridge(&profile);
+        let mut wrong_scope = bridge_request(&profile, CancellationSignal::default());
+        wrong_scope.session_id = "other-session".into();
+        let scope_result = bridge.execute(
+            &runtime,
+            &profile,
+            wrong_scope,
+            &FixtureResolver,
+            &success_transport(),
+        );
+        assert!(matches!(
+            scope_result.execution,
+            Err(error) if error.kind() == ProviderBridgeErrorKind::ProfileMismatch
+        ));
+        bridge.set_offline();
+        let offline = bridge.execute(
+            &runtime,
+            &profile,
+            bridge_request(&profile, CancellationSignal::default()),
+            &FixtureResolver,
+            &success_transport(),
+        );
+        assert!(matches!(
+            offline.execution,
+            Err(error) if error.kind() == ProviderBridgeErrorKind::Unavailable
+        ));
+        bridge.restart();
+        assert_eq!(bridge.health(), ProviderBridgeHealth::Starting);
+        bridge = healthy_bridge(&profile);
+        let cancellation = CancellationSignal::default();
+        cancellation.cancel();
+        let cancelled = bridge.execute(
+            &runtime,
+            &profile,
+            bridge_request(&profile, cancellation),
+            &FixtureResolver,
+            &success_transport(),
+        );
+        assert!(matches!(
+            cancelled.execution,
+            Err(error) if error.kind() == ProviderBridgeErrorKind::Cancellation
+        ));
+        assert_eq!(cancelled.events[1].kind, ProviderBridgeEventKind::Cancelled);
+    }
+
+    #[test]
+    fn m44_bridge_classifies_provider_outage_timeout_rate_limit_and_malformed_output() {
+        let profile = test_profile();
+        let runtime = ProviderRuntime::in_memory().expect("runtime");
+        for (provider_kind, bridge_kind) in [
+            (
+                ProviderErrorKind::Transport,
+                ProviderBridgeErrorKind::Unavailable,
+            ),
+            (ProviderErrorKind::Timeout, ProviderBridgeErrorKind::Timeout),
+            (
+                ProviderErrorKind::RateLimited,
+                ProviderBridgeErrorKind::RateLimited,
+            ),
+            (
+                ProviderErrorKind::InvalidResponse,
+                ProviderBridgeErrorKind::MalformedResponse,
+            ),
+        ] {
+            let transport = FixtureTransport {
+                response: Err(ProviderError::new(
+                    provider_kind,
+                    "provider body contains raw-secret and must not cross the bridge",
+                    provider_kind == ProviderErrorKind::Transport
+                        || provider_kind == ProviderErrorKind::Timeout
+                        || provider_kind == ProviderErrorKind::RateLimited,
+                    None,
+                )),
+            };
+            let bridge = healthy_bridge(&profile);
+            let result = bridge.execute(
+                &runtime,
+                &profile,
+                bridge_request(&profile, CancellationSignal::default()),
+                &FixtureResolver,
+                &transport,
+            );
+            assert!(matches!(
+                result.execution,
+                Err(error) if error.kind() == bridge_kind
+            ));
+            assert_eq!(result.events[0].kind, ProviderBridgeEventKind::Started);
+            assert_eq!(result.events[1].kind, ProviderBridgeEventKind::Failed);
+            let serialized = serde_json::to_string(&result.events).expect("event JSON");
+            assert!(!serialized.contains("raw-secret"));
+        }
     }
 }

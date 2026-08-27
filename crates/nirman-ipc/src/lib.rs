@@ -244,6 +244,34 @@ pub struct ProviderTestCommandPayload {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProviderExecuteCommandPayload {
+    pub provider_id: String,
+    pub worker_id: String,
+    pub prompt: String,
+    pub max_output_tokens: Option<u64>,
+    pub max_context_tokens: u64,
+    pub privacy_classification: String,
+    pub tool_policy: String,
+    pub stream: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProviderExecuteResultPayload {
+    pub execution_id: String,
+    pub request_id: String,
+    pub correlation_id: String,
+    pub provider_id: String,
+    pub model_id: String,
+    pub environment_lock_hash: String,
+    pub environment_snapshot_id: String,
+    pub state: String,
+    pub outcome: String,
+    pub text: Option<String>,
+    pub error_kind: Option<String>,
+    pub events: Vec<Value>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SettingsUpdateProviderCommandPayload {
     pub profile: Value,
 }
@@ -431,6 +459,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "settings.update_provider",
             "Settings projection",
             "local",
+        ),
+        (
+            CommandKind::ProviderExecute,
+            "provider.execute",
+            "ProviderBridgeAuthority",
+            "provider.execute",
+            "Provider execution projection",
+            "external",
         ),
         (
             CommandKind::AndroidConstructionCreate,
@@ -820,7 +856,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 17);
+        assert_eq!(command_registry().len(), 18);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()

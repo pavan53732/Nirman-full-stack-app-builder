@@ -31,6 +31,29 @@ pub struct ProviderUsageRecord {
     pub outcome: String,
 }
 
+/// Secret-free durable record for one authorized M44 provider-bridge execution.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProviderExecutionRecord {
+    pub execution_id: String,
+    pub request_id: String,
+    pub correlation_id: String,
+    pub causation_id: Option<String>,
+    pub project_id: ProjectId,
+    pub task_id: TaskId,
+    pub worker_id: String,
+    pub provider_id: String,
+    pub model_id: String,
+    pub protocol: String,
+    pub environment_lock_hash: String,
+    pub environment_snapshot_id: String,
+    pub state: String,
+    pub outcome: String,
+    pub response_json: Option<String>,
+    pub error_kind: Option<String>,
+    pub started_at_epoch_seconds: u64,
+    pub duration_ms: u64,
+}
+
 pub const ANDROID_CONSTRUCTION_CONTRACT_SCHEMA: &str = "nirman.android_construction_contract.v1";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -403,6 +426,7 @@ pub enum CommandKind {
     SettingsUpdateProvider,
     AndroidConstructionCreate,
     AndroidToolchainPreflight,
+    ProviderExecute,
     SubmitInstruction,
     Reconnect,
     PauseTask,

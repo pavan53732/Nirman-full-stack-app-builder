@@ -143,7 +143,8 @@ impl ControlPlane {
             | CommandKind::ProviderTest
             | CommandKind::SettingsUpdateProvider
             | CommandKind::AndroidConstructionCreate
-            | CommandKind::AndroidToolchainPreflight => {}
+            | CommandKind::AndroidToolchainPreflight
+            | CommandKind::ProviderExecute => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
             }
@@ -325,6 +326,20 @@ impl DurableControlPlane {
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
             .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
+    }
+
+    pub fn record_provider_execution(
+        &self,
+        record: &nirman_domain::ProviderExecutionRecord,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.record_provider_execution(record)
+    }
+
+    pub fn load_provider_execution(
+        &self,
+        execution_id: &str,
+    ) -> Result<Option<nirman_domain::ProviderExecutionRecord>, rusqlite::Error> {
+        self.ledger.provider_execution(execution_id)
     }
 
     pub fn retention_floor(&self) -> Result<Option<u64>, rusqlite::Error> {

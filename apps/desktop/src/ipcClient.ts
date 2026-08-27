@@ -6,7 +6,7 @@ export const PROTOCOL_SCHEMA_VERSION = 1;
 export type PreviewTruth = "Predicted" | "Requested" | "Observed" | "Verified" | "Stale" | "Invalidated";
 export type ProductLifecycleState = "Created" | "Planning" | "Implementing" | "Paused" | "Previewing" | "Validating" | "Recovering" | "Packaging" | "Completed" | "UserRequired" | "SafelyFailed" | "Cancelled";
 export type BackgroundContinuityState = "ActiveBackground" | "UiDisconnected" | "HostSuspended" | "HostOffline" | "DeviceUnavailable" | "ProviderUnavailable" | "Recovering" | "Reconciling" | "UserRequired" | "SafelyFailed" | "Completed";
-export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask";
+export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "ProviderExecute" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask";
 export type ResponseStatus = "Accepted" | "Completed" | "Rejected" | "Duplicate" | "Stale" | "Cancelled" | "Failed";
 export type SubscriptionStatus = "Requested" | "Active" | "Paused" | "Gap" | "Closed";
 
@@ -62,6 +62,8 @@ export interface ProviderProfile {
   enabled: boolean;
 }
 export interface ProviderTestCommandPayload { provider_id: string; prompt: string; max_output_tokens: number | null }
+export interface ProviderExecuteCommandPayload { provider_id: string; worker_id: string; prompt: string; max_output_tokens: number | null; max_context_tokens: number; privacy_classification: string; tool_policy: string; stream: boolean }
+export interface ProviderExecuteResultPayload { execution_id: string; request_id: string; correlation_id: string; provider_id: string; model_id: string; environment_lock_hash: string; environment_snapshot_id: string; state: string; outcome: string; text: string | null; error_kind: string | null; events: unknown[] }
 export interface SettingsUpdateProviderCommandPayload { profile: ProviderProfile }
 export interface ProviderTestResultPayload { provider_id: string; model_id: string; request_id: string; correlation_id: string; provider_request_id: string | null; text: string; input_tokens: number | null; output_tokens: number | null; total_tokens: number | null }
 export type RequirementOrigin = "user_fact" | "model_proposal";
@@ -345,6 +347,31 @@ export async function testProvider(
   payload: ProviderTestCommandPayload,
 ): Promise<CommandResponse> {
   return dispatchCommand(providerCommandRequest(handshake, snapshot, "ProviderTest", payload));
+}
+
+export async function executeProvider(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  payload: ProviderExecuteCommandPayload,
+): Promise<CommandResponse> {
+  const request: CommandRequest = {
+    protocol_schema_version: PROTOCOL_SCHEMA_VERSION,
+    auth: handshake.auth,
+    correlation_id: handshake.correlation_id,
+    causation_id: null,
+    deadline_epoch_seconds: null,
+    command: {
+      command_id: makeClientId("provider-execute"),
+      project_id: snapshot.project_id,
+      task_id: taskId,
+      kind: "ProviderExecute",
+      payload: JSON.stringify(payload),
+      expected_projection_revision: snapshot.projection_revision,
+      idempotency_key: makeClientId("provider-execute-idempotency"),
+    },
+  };
+  return dispatchCommand(request);
 }
 
 export async function createAndroidConstructionContract(

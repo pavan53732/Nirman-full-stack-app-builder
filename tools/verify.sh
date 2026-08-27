@@ -27,6 +27,7 @@ cargo test -p nirman-domain --test m39_contract
 cargo test -p nirman-android
 cargo test -p nirman-control-plane --test m115_final_acceptance
 cargo test -p nirman-providers --test m3_acceptance
+cargo test -p nirman-providers m44_bridge -- --nocapture
 cargo test -p nirman-desktop --bin nirman-desktop -- --nocapture
 cargo test -p nirman-ipc --test desktop_ipc_trace
 cargo test -p nirman-ipc --test m115_acceptance
@@ -35,6 +36,7 @@ python3 tools/check_desktop_ipc_evidence.py
 python3 tools/check_m3_provider_evidence.py
 python3 tools/check_m39_evidence.py
 python3 tools/check_m43_evidence.py
+python3 tools/check_m44_evidence.py
 (
   cd apps/desktop
   pnpm install --frozen-lockfile

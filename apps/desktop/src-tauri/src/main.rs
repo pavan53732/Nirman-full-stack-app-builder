@@ -12,14 +12,16 @@ use nirman_ipc::{
     publish_control_event, AndroidToolchainPreflightCommandPayload,
     AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
     CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
-    EventSink, EventSubscription, ProviderTestCommandPayload, ProviderTestResultPayload,
-    ResponseStatus, SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement,
-    SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus, PROTOCOL_SCHEMA_VERSION,
+    EventSink, EventSubscription, ProviderExecuteCommandPayload, ProviderExecuteResultPayload,
+    ProviderTestCommandPayload, ProviderTestResultPayload, ResponseStatus,
+    SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement, SubscriptionBootstrap,
+    SubscriptionControl, SubscriptionStatus, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_providers::{
     CancellationSignal, CredentialResolver, HttpProviderTransport, OsCredentialResolver,
+    ProviderBridge, ProviderBridgeError, ProviderBridgeErrorKind, ProviderBridgeHandshake,
     ProviderErrorKind, ProviderProfile, ProviderRequestInput, ProviderRuntime,
-    ProviderRuntimeError, ProviderTransport,
+    ProviderRuntimeError, ProviderTransport, PROVIDER_BRIDGE_PROTOCOL_VERSION,
 };
 use nirman_supervisor::{Supervisor, SupervisorState};
 use std::collections::{hash_map::DefaultHasher, BTreeMap};
@@ -462,6 +464,229 @@ fn parse_provider_test(
             None,
         )
     })
+}
+
+fn parse_provider_execute(
+    request: &CommandRequest,
+) -> Result<ProviderExecuteCommandPayload, ErrorEnvelope> {
+    let payload: ProviderExecuteCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "provider execute payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    if payload.provider_id.trim().is_empty()
+        || payload.worker_id.trim().is_empty()
+        || payload.prompt.trim().is_empty()
+        || payload.max_context_tokens == 0
+        || payload.privacy_classification.trim().is_empty()
+        || payload.tool_policy.trim().is_empty()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "provider execute requires bounded identity, prompt, context, privacy, and tool policy fields",
+            false,
+            None,
+        ));
+    }
+    if request.command.task_id.is_none() {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "provider execute requires a task scope",
+            false,
+            None,
+        ));
+    }
+    Ok(payload)
+}
+
+fn load_m44_preflight(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<nirman_android::AndroidToolchainPreflight, ErrorEnvelope> {
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "provider execute requires a task-scoped toolchain preflight",
+            false,
+            None,
+        )
+    })?;
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(&task_id.0)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "android toolchain preflight storage is unavailable",
+                true,
+                Some("reconcile local preflight storage before retry".into()),
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "provider execute requires a persisted android toolchain preflight",
+                false,
+                Some("run android toolchain preflight for this task first".into()),
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "persisted android toolchain preflight could not be restored safely",
+                false,
+                Some("repair the local preflight record".into()),
+            )
+        })?;
+    let lock = preflight.lock.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Environment,
+            "provider execute requires a non-empty persisted android toolchain lock",
+            false,
+            Some("complete an available toolchain preflight before provider execution".into()),
+        )
+    })?;
+    let lock_hash = lock.lock_hash.trim();
+    if preflight.status != PreflightStatus::Available
+        || lock_hash.is_empty()
+        || preflight.manifest.project_id != request.command.project_id.0
+        || preflight.manifest.task_id != task_id.0
+        || preflight.environment_snapshot.project_id != request.command.project_id.0
+        || preflight.environment_snapshot.task_id != task_id.0
+        || preflight
+            .environment_snapshot
+            .toolchain_lock_hash
+            .as_deref()
+            != Some(lock_hash)
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Environment,
+            "persisted android toolchain preflight is not an available lock for this task scope",
+            false,
+            Some("re-run preflight and persist an available environment lock".into()),
+        ));
+    }
+    Ok(preflight)
+}
+
+fn provider_execute_result_from_record(
+    record: &nirman_domain::ProviderExecutionRecord,
+) -> ProviderExecuteResultPayload {
+    let text = record
+        .response_json
+        .as_deref()
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok())
+        .and_then(|value| {
+            value
+                .get("text")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned)
+        });
+    ProviderExecuteResultPayload {
+        execution_id: record.execution_id.clone(),
+        request_id: record.request_id.clone(),
+        correlation_id: record.correlation_id.clone(),
+        provider_id: record.provider_id.clone(),
+        model_id: record.model_id.clone(),
+        environment_lock_hash: record.environment_lock_hash.clone(),
+        environment_snapshot_id: record.environment_snapshot_id.clone(),
+        state: record.state.clone(),
+        outcome: record.outcome.clone(),
+        text,
+        error_kind: record.error_kind.clone(),
+        events: Vec::new(),
+    }
+}
+
+fn map_bridge_error(
+    correlation_id: &str,
+    command_id: &str,
+    causation_id: Option<String>,
+    bridge_error: ProviderBridgeError,
+) -> ErrorEnvelope {
+    let (code, category) = match bridge_error.kind() {
+        ProviderBridgeErrorKind::Authentication => (
+            ControlPlaneErrorCode::AuthenticationFailed,
+            ErrorCategory::Authentication,
+        ),
+        ProviderBridgeErrorKind::ProfileMismatch
+        | ProviderBridgeErrorKind::ModelCapability
+        | ProviderBridgeErrorKind::InvalidRequest
+        | ProviderBridgeErrorKind::Configuration => (
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+        ),
+        ProviderBridgeErrorKind::Timeout => {
+            (ControlPlaneErrorCode::Timeout, ErrorCategory::Timeout)
+        }
+        ProviderBridgeErrorKind::Cancellation => (
+            ControlPlaneErrorCode::CancellationRejected,
+            ErrorCategory::Cancellation,
+        ),
+        ProviderBridgeErrorKind::RateLimited => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Provider,
+        ),
+        ProviderBridgeErrorKind::ProtocolMismatch | ProviderBridgeErrorKind::MalformedResponse => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Provider,
+        ),
+        ProviderBridgeErrorKind::Unavailable | ProviderBridgeErrorKind::ProviderRejected => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+        ),
+    };
+    error(
+        correlation_id,
+        Some(command_id.to_owned()),
+        causation_id,
+        code,
+        category,
+        bridge_error.safe_message(),
+        bridge_error.retryable(),
+        Some("inspect the durable execution record before retrying".into()),
+    )
 }
 
 fn map_runtime_error(
@@ -1151,6 +1376,80 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let provider_execute = if request.command.kind == nirman_domain::CommandKind::ProviderExecute {
+        Some(parse_provider_execute(&request)?)
+    } else {
+        None
+    };
+    let m44_context = if let Some(payload) = provider_execute.as_ref() {
+        let preflight = load_m44_preflight(state, &request)?;
+        let profile_json = state
+            .plane
+            .load_provider_profile(&payload.provider_id)
+            .map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Unavailable,
+                    "provider profile storage is unavailable",
+                    true,
+                    Some("reconcile local provider storage before retry".into()),
+                )
+            })?
+            .ok_or_else(|| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Provider,
+                    "provider profile is not configured",
+                    false,
+                    Some("save the provider profile before provider execution".into()),
+                )
+            })?;
+        let profile: ProviderProfile = serde_json::from_str(&profile_json).map_err(|_| {
+            error(
+                &correlation_id,
+                Some(command_id.clone()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "durable provider profile could not be restored safely",
+                false,
+                Some("repair the local provider profile record".into()),
+            )
+        })?;
+        profile.validate().map_err(|_| {
+            error(
+                &correlation_id,
+                Some(command_id.clone()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Provider,
+                "durable provider profile is invalid",
+                false,
+                Some("repair the local provider profile record".into()),
+            )
+        })?;
+        if profile.provider_id != payload.provider_id {
+            return Err(error(
+                &correlation_id,
+                Some(command_id.clone()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Scope,
+                "provider profile does not match the requested provider scope",
+                false,
+                None,
+            ));
+        }
+        Some((preflight, profile))
+    } else {
+        None
+    };
     if let Some(payload) = &provider_test {
         if payload.provider_id.trim().is_empty() || payload.prompt.trim().is_empty() {
             return Err(error(
@@ -1367,6 +1666,257 @@ fn dispatch_request<S: EventSink>(
             );
         }
     }
+    if let Some(payload) = provider_execute {
+        let (preflight, profile) = m44_context.expect("M44 context validated before admission");
+        let lock = preflight
+            .lock
+            .as_ref()
+            .expect("M44 preflight lock validated before admission");
+        let task_id = request
+            .command
+            .task_id
+            .as_ref()
+            .expect("M44 task scope validated before admission");
+        let execution_id = format!("provider-execution-{command_id}");
+        if command_response.status == ResponseStatus::Duplicate {
+            let record = state
+                .plane
+                .load_provider_execution(&execution_id)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "provider execution record storage is unavailable",
+                        true,
+                        Some("reconcile the durable execution record before retrying".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate provider command has no durable execution record",
+                        true,
+                        Some("reconcile the command and provider execution records".into()),
+                    )
+                })?;
+            command_response.result_schema_ref = Some("nirman.provider_execute_result.v1".into());
+            command_response.result_payload = Some(
+                serde_json::to_value(provider_execute_result_from_record(&record))
+                    .expect("M44 duplicate result serialization must remain infallible"),
+            );
+        } else {
+            let mut bridge = ProviderBridge::new(
+                &correlation_id,
+                profile.provider_id.clone(),
+                profile.model_id.clone(),
+                profile.protocol,
+            );
+            let handshake = bridge.handshake(ProviderBridgeHandshake {
+                protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION,
+                session_id: correlation_id.clone(),
+                provider_profile_id: profile.provider_id.clone(),
+                model_id: profile.model_id.clone(),
+                protocol: profile.protocol,
+                context_limit: payload.max_context_tokens,
+                supports_text: true,
+                supports_streaming: payload.stream,
+                supports_cancellation: true,
+            });
+            if let Err(bridge_error) = handshake {
+                let record = nirman_domain::ProviderExecutionRecord {
+                    execution_id: execution_id.clone(),
+                    request_id: format!("provider-request-{command_id}"),
+                    correlation_id: correlation_id.clone(),
+                    causation_id: causation_id.clone(),
+                    project_id: request.command.project_id.clone(),
+                    task_id: task_id.clone(),
+                    worker_id: payload.worker_id.clone(),
+                    provider_id: profile.provider_id.clone(),
+                    model_id: profile.model_id.clone(),
+                    protocol: profile.protocol.as_str().into(),
+                    environment_lock_hash: lock.lock_hash.clone(),
+                    environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+                    state: "FAILED".into(),
+                    outcome: "bridge_handshake_failed".into(),
+                    response_json: None,
+                    error_kind: Some(format!("{:?}", bridge_error.kind())),
+                    started_at_epoch_seconds: now_epoch_seconds(),
+                    duration_ms: 0,
+                };
+                state
+                    .plane
+                    .record_provider_execution(&record)
+                    .map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "provider execution failure could not be recorded durably",
+                            true,
+                            Some("reconcile local provider execution storage".into()),
+                        )
+                    })?;
+                return Err(map_bridge_error(
+                    &correlation_id,
+                    &command_id,
+                    causation_id,
+                    bridge_error,
+                ));
+            }
+            let bridge_request = nirman_providers::ProviderBridgeRequest {
+                session_id: correlation_id.clone(),
+                project_id: request.command.project_id.0.clone(),
+                task_id: task_id.0.clone(),
+                worker_id: payload.worker_id.clone(),
+                trace_id: format!("provider-request-{command_id}"),
+                correlation_id: correlation_id.clone(),
+                causation_id: causation_id.clone(),
+                provider_profile_id: profile.provider_id.clone(),
+                model_id: profile.model_id.clone(),
+                protocol: profile.protocol,
+                prompt: payload.prompt.clone(),
+                max_output_tokens: payload.max_output_tokens,
+                max_context_tokens: payload.max_context_tokens,
+                environment_lock_hash: lock.lock_hash.clone(),
+                environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+                privacy_classification: payload.privacy_classification.clone(),
+                tool_policy: payload.tool_policy.clone(),
+                stream: payload.stream,
+                cancellation: CancellationSignal::default(),
+            };
+            let bridge_result = bridge.execute(
+                &state.provider_runtime,
+                &profile,
+                bridge_request,
+                state.credential_resolver.as_ref(),
+                state.provider_transport.as_ref(),
+            );
+            match bridge_result.execution {
+                Ok(execution) => {
+                    let record = nirman_domain::ProviderExecutionRecord {
+                        execution_id: execution_id.clone(),
+                        request_id: execution.response.request_id.clone(),
+                        correlation_id: execution.response.correlation_id.clone(),
+                        causation_id: causation_id.clone(),
+                        project_id: request.command.project_id.clone(),
+                        task_id: task_id.clone(),
+                        worker_id: payload.worker_id.clone(),
+                        provider_id: profile.provider_id.clone(),
+                        model_id: profile.model_id.clone(),
+                        protocol: profile.protocol.as_str().into(),
+                        environment_lock_hash: lock.lock_hash.clone(),
+                        environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+                        state: "COMPLETED".into(),
+                        outcome: execution.usage.outcome.clone(),
+                        response_json: Some(serde_json::to_string(&execution.response).expect(
+                            "M44 normalized response serialization must remain infallible",
+                        )),
+                        error_kind: None,
+                        started_at_epoch_seconds: execution.usage.started_at_epoch_seconds,
+                        duration_ms: execution.usage.duration_ms,
+                    };
+                    state
+                        .plane
+                        .record_provider_execution(&record)
+                        .map_err(|_| {
+                            error(
+                                &correlation_id,
+                                Some(command_id.clone()),
+                                causation_id.clone(),
+                                ControlPlaneErrorCode::DependencyUnavailable,
+                                ErrorCategory::Unavailable,
+                                "provider execution result could not be recorded durably",
+                                true,
+                                Some("reconcile local provider execution storage".into()),
+                            )
+                        })?;
+                    command_response.status = ResponseStatus::Completed;
+                    command_response.result_schema_ref =
+                        Some("nirman.provider_execute_result.v1".into());
+                    command_response.result_payload = Some(
+                        serde_json::to_value(ProviderExecuteResultPayload {
+                            execution_id,
+                            request_id: execution.response.request_id,
+                            correlation_id: execution.response.correlation_id,
+                            provider_id: profile.provider_id,
+                            model_id: execution.response.model_id,
+                            environment_lock_hash: lock.lock_hash.clone(),
+                            environment_snapshot_id: preflight
+                                .environment_snapshot
+                                .snapshot_id
+                                .clone(),
+                            state: "COMPLETED".into(),
+                            outcome: execution.usage.outcome,
+                            text: Some(execution.response.text),
+                            error_kind: None,
+                            events: bridge_result
+                                .events
+                                .into_iter()
+                                .map(|event| {
+                                    serde_json::to_value(event)
+                                        .expect("M44 event serialization must remain infallible")
+                                })
+                                .collect(),
+                        })
+                        .expect("M44 result serialization must remain infallible"),
+                    );
+                }
+                Err(bridge_error) => {
+                    let request_id = format!("provider-request-{command_id}");
+                    let record = nirman_domain::ProviderExecutionRecord {
+                        execution_id,
+                        request_id,
+                        correlation_id: correlation_id.clone(),
+                        causation_id: causation_id.clone(),
+                        project_id: request.command.project_id.clone(),
+                        task_id: task_id.clone(),
+                        worker_id: payload.worker_id,
+                        provider_id: profile.provider_id,
+                        model_id: profile.model_id,
+                        protocol: profile.protocol.as_str().into(),
+                        environment_lock_hash: lock.lock_hash.clone(),
+                        environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+                        state: "FAILED".into(),
+                        outcome: "failed".into(),
+                        response_json: None,
+                        error_kind: Some(format!("{:?}", bridge_error.kind())),
+                        started_at_epoch_seconds: now_epoch_seconds(),
+                        duration_ms: 0,
+                    };
+                    state
+                        .plane
+                        .record_provider_execution(&record)
+                        .map_err(|_| {
+                            error(
+                                &correlation_id,
+                                Some(command_id.clone()),
+                                causation_id.clone(),
+                                ControlPlaneErrorCode::DependencyUnavailable,
+                                ErrorCategory::Unavailable,
+                                "provider execution failure could not be recorded durably",
+                                true,
+                                Some("reconcile local provider execution storage".into()),
+                            )
+                        })?;
+                    return Err(map_bridge_error(
+                        &correlation_id,
+                        &command_id,
+                        causation_id,
+                        bridge_error,
+                    ));
+                }
+            }
+        }
+    }
     Ok(command_response)
 }
 
@@ -1447,7 +1997,10 @@ mod tests {
         ArtifactModel, AssetReferenceInput, CommandEnvelope, ConstructionRequirement,
         RequirementOrigin, Revision, TaskId, ValidationModel, VisualReferenceInput,
     };
-    use nirman_providers::{CredentialReference, ProviderTransport, RawProviderResponse};
+    use nirman_providers::{
+        CredentialReference, ProviderError, ProviderErrorKind, ProviderTransport,
+        RawProviderResponse,
+    };
     use std::path::{Path, PathBuf};
     use std::sync::Mutex as StdMutex;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1476,6 +2029,35 @@ mod tests {
     }
 
     struct TestTransport;
+
+    struct FailureTransport {
+        kind: ProviderErrorKind,
+    }
+
+    impl ProviderTransport for FailureTransport {
+        fn send(
+            &self,
+            _request: &nirman_providers::AuthenticatedProviderRequest,
+        ) -> Result<RawProviderResponse, ProviderError> {
+            let status_code = match self.kind {
+                ProviderErrorKind::Transport => 503,
+                ProviderErrorKind::Timeout => 408,
+                ProviderErrorKind::RateLimited => 429,
+                ProviderErrorKind::InvalidResponse => 200,
+                _ => 500,
+            };
+            let body = if self.kind == ProviderErrorKind::InvalidResponse {
+                "{\"malformed\":true,\"secret\":\"must-not-forward\"}".into()
+            } else {
+                "{\"error\":\"provider failure\",\"secret\":\"must-not-forward\"}".into()
+            };
+            Ok(RawProviderResponse {
+                status_code,
+                body,
+                provider_request_id: None,
+            })
+        }
+    }
 
     impl ProviderTransport for TestTransport {
         fn send(
@@ -1734,6 +2316,35 @@ mod tests {
             model_id: "host-model".into(),
             timeout_ms: 1000,
             enabled: true,
+        }
+    }
+
+    fn bridge_request_for(
+        profile: &ProviderProfile,
+        preflight: &nirman_android::AndroidToolchainPreflight,
+        request_id: &str,
+        stream: bool,
+    ) -> nirman_providers::ProviderBridgeRequest {
+        nirman_providers::ProviderBridgeRequest {
+            session_id: "session-test".into(),
+            project_id: PROJECT_ID.into(),
+            task_id: "task-m39".into(),
+            worker_id: "worker-m44".into(),
+            trace_id: request_id.into(),
+            correlation_id: "session-test".into(),
+            causation_id: Some("cause-m44".into()),
+            provider_profile_id: profile.provider_id.clone(),
+            model_id: profile.model_id.clone(),
+            protocol: profile.protocol,
+            prompt: "bridge failure classification probe".into(),
+            max_output_tokens: Some(16),
+            max_context_tokens: 4096,
+            environment_lock_hash: preflight.lock.as_ref().expect("lock").lock_hash.clone(),
+            environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+            privacy_classification: "project-content".into(),
+            tool_policy: "no-tool-calls".into(),
+            stream,
+            cancellation: CancellationSignal::default(),
         }
     }
 
@@ -2099,6 +2710,318 @@ mod tests {
             serde_json::to_vec_pretty(&evidence).expect("evidence json"),
         )
         .expect("evidence write");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn m44_provider_execute_reuses_m39_m43_m3_and_reloads_idempotently() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let settings_request = request(
+            &state,
+            "m44-settings-command",
+            CommandKind::SettingsUpdateProvider,
+            serde_json::to_string(&SettingsUpdateProviderCommandPayload {
+                profile: serde_json::to_value(profile()).expect("profile value"),
+            })
+            .expect("settings payload"),
+            0,
+        );
+        let settings_response =
+            dispatch_request(&sink, &mut state, settings_request).expect("settings response");
+        let contract = construction_contract(PROJECT_ID);
+        let mut construction_request = request(
+            &state,
+            "m44-contract-command",
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            settings_response.projection_revision.0,
+        );
+        construction_request.command.task_id = Some(contract.task_id.clone());
+        let contract_response =
+            dispatch_request(&sink, &mut state, construction_request).expect("contract response");
+        let mut preflight_request = request(
+            &state,
+            "m44-preflight-command",
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            contract_response.projection_revision.0,
+        );
+        preflight_request.command.task_id = Some(contract.task_id.clone());
+        let preflight_response =
+            dispatch_request(&sink, &mut state, preflight_request).expect("preflight response");
+        let mut execute_request = request(
+            &state,
+            "m44-execute-command",
+            CommandKind::ProviderExecute,
+            serde_json::to_string(&ProviderExecuteCommandPayload {
+                provider_id: "provider-test".into(),
+                worker_id: "worker-m44".into(),
+                prompt: "build the requested Android application".into(),
+                max_output_tokens: Some(64),
+                max_context_tokens: 4096,
+                privacy_classification: "project-content".into(),
+                tool_policy: "no-tool-calls".into(),
+                stream: true,
+            })
+            .expect("execute payload"),
+            preflight_response.projection_revision.0,
+        );
+        execute_request.command.task_id = Some(contract.task_id.clone());
+        let execute_response = dispatch_request(&sink, &mut state, execute_request.clone())
+            .expect("M44 execute response");
+        assert_eq!(execute_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            execute_response.result_schema_ref.as_deref(),
+            Some("nirman.provider_execute_result.v1")
+        );
+        assert_eq!(
+            execute_response.result_payload.as_ref().unwrap()["text"],
+            "host provider ok"
+        );
+        assert_eq!(
+            execute_response.result_payload.as_ref().unwrap()["environment_snapshot_id"],
+            serde_json::from_str::<nirman_android::AndroidToolchainPreflight>(
+                &state
+                    .plane
+                    .load_android_toolchain_preflight(&contract.task_id.0)
+                    .expect("preflight lookup")
+                    .expect("preflight")
+            )
+            .expect("preflight parse")
+            .environment_snapshot
+            .snapshot_id
+        );
+        let record = state
+            .plane
+            .load_provider_execution("provider-execution-m44-execute-command")
+            .expect("execution lookup")
+            .expect("execution record");
+        assert_eq!(record.state, "COMPLETED");
+        assert_eq!(record.environment_lock_hash.len() > 0, true);
+        assert!(record
+            .response_json
+            .as_deref()
+            .unwrap()
+            .contains("host provider ok"));
+        assert_eq!(
+            state
+                .provider_runtime
+                .usage_record("provider-request-m44-execute-command")
+                .expect("usage lookup")
+                .expect("usage")
+                .outcome,
+            "completed"
+        );
+        assert_eq!(sink.batches.lock().expect("sink lock").len(), 4);
+        drop(state);
+
+        let mut reopened = reopened_state_for_test(&path);
+        let duplicate = dispatch_request(&RecordingSink::default(), &mut reopened, execute_request)
+            .expect("duplicate M44 response");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            duplicate.result_payload.as_ref().unwrap()["text"],
+            "host provider ok"
+        );
+        assert_eq!(
+            reopened
+                .plane
+                .load_provider_execution("provider-execution-m44-execute-command")
+                .expect("reloaded execution lookup")
+                .expect("reloaded execution")
+                .state,
+            "COMPLETED"
+        );
+
+        let mut missing_lock_request = request(
+            &reopened,
+            "m44-missing-preflight-command",
+            CommandKind::ProviderExecute,
+            serde_json::to_string(&ProviderExecuteCommandPayload {
+                provider_id: "provider-test".into(),
+                worker_id: "worker-m44".into(),
+                prompt: "should reject without task preflight".into(),
+                max_output_tokens: Some(16),
+                max_context_tokens: 4096,
+                privacy_classification: "project-content".into(),
+                tool_policy: "no-tool-calls".into(),
+                stream: false,
+            })
+            .expect("missing preflight payload"),
+            duplicate.projection_revision.0,
+        );
+        missing_lock_request.command.task_id = Some(TaskId("missing-task".into()));
+        let missing = dispatch_request(
+            &RecordingSink::default(),
+            &mut reopened,
+            missing_lock_request,
+        )
+        .expect_err("provider execution without persisted preflight must reject");
+        assert_eq!(missing.category, ErrorCategory::Environment);
+        assert_eq!(missing.code, ControlPlaneErrorCode::InvalidCommand);
+
+        let persisted_preflight: nirman_android::AndroidToolchainPreflight = serde_json::from_str(
+            &reopened
+                .plane
+                .load_android_toolchain_preflight(&contract.task_id.0)
+                .expect("preflight lookup")
+                .expect("preflight"),
+        )
+        .expect("preflight parse");
+        let probe_profile = profile();
+        let mut protocol_bridge = ProviderBridge::new(
+            "session-test",
+            probe_profile.provider_id.clone(),
+            probe_profile.model_id.clone(),
+            probe_profile.protocol,
+        );
+        let protocol_failure = protocol_bridge.handshake(ProviderBridgeHandshake {
+            protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION + 1,
+            session_id: "session-test".into(),
+            provider_profile_id: probe_profile.provider_id.clone(),
+            model_id: probe_profile.model_id.clone(),
+            protocol: probe_profile.protocol,
+            context_limit: 4096,
+            supports_text: true,
+            supports_streaming: true,
+            supports_cancellation: true,
+        });
+        let mut auth_bridge = ProviderBridge::new(
+            "session-test",
+            probe_profile.provider_id.clone(),
+            probe_profile.model_id.clone(),
+            probe_profile.protocol,
+        );
+        let auth_failure = auth_bridge.handshake(ProviderBridgeHandshake {
+            protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION,
+            session_id: "wrong-session".into(),
+            provider_profile_id: probe_profile.provider_id.clone(),
+            model_id: probe_profile.model_id.clone(),
+            protocol: probe_profile.protocol,
+            context_limit: 4096,
+            supports_text: true,
+            supports_streaming: true,
+            supports_cancellation: true,
+        });
+        let mut capability_bridge = ProviderBridge::new(
+            "session-test",
+            probe_profile.provider_id.clone(),
+            probe_profile.model_id.clone(),
+            probe_profile.protocol,
+        );
+        let capability_failure = capability_bridge.handshake(ProviderBridgeHandshake {
+            protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION,
+            session_id: "session-test".into(),
+            provider_profile_id: probe_profile.provider_id.clone(),
+            model_id: probe_profile.model_id.clone(),
+            protocol: probe_profile.protocol,
+            context_limit: 4096,
+            supports_text: false,
+            supports_streaming: true,
+            supports_cancellation: true,
+        });
+        let protocol_auth_capability_failures_observed = matches!(
+            protocol_failure,
+            Err(ref error) if error.kind() == nirman_providers::ProviderBridgeErrorKind::ProtocolMismatch
+        ) && matches!(auth_failure, Err(ref error) if error.kind() == nirman_providers::ProviderBridgeErrorKind::Authentication)
+            && matches!(capability_failure, Err(ref error) if error.kind() == nirman_providers::ProviderBridgeErrorKind::ModelCapability);
+        let failure_matrix = [
+            (
+                ProviderErrorKind::Transport,
+                nirman_providers::ProviderBridgeErrorKind::Unavailable,
+            ),
+            (
+                ProviderErrorKind::Timeout,
+                nirman_providers::ProviderBridgeErrorKind::Timeout,
+            ),
+            (
+                ProviderErrorKind::RateLimited,
+                nirman_providers::ProviderBridgeErrorKind::RateLimited,
+            ),
+            (
+                ProviderErrorKind::InvalidResponse,
+                nirman_providers::ProviderBridgeErrorKind::MalformedResponse,
+            ),
+        ]
+        .into_iter()
+        .enumerate()
+        .all(|(index, (provider_kind, bridge_kind))| {
+            let mut bridge = ProviderBridge::new(
+                "session-test",
+                probe_profile.provider_id.clone(),
+                probe_profile.model_id.clone(),
+                probe_profile.protocol,
+            );
+            bridge
+                .handshake(ProviderBridgeHandshake {
+                    protocol_version: PROVIDER_BRIDGE_PROTOCOL_VERSION,
+                    session_id: "session-test".into(),
+                    provider_profile_id: probe_profile.provider_id.clone(),
+                    model_id: probe_profile.model_id.clone(),
+                    protocol: probe_profile.protocol,
+                    context_limit: 4096,
+                    supports_text: true,
+                    supports_streaming: false,
+                    supports_cancellation: true,
+                })
+                .is_ok()
+                && matches!(
+                    bridge
+                        .execute(
+                            &reopened.provider_runtime,
+                            &probe_profile,
+                            bridge_request_for(
+                                &probe_profile,
+                                &persisted_preflight,
+                                &format!("m44-failure-{index}"),
+                                false,
+                            ),
+                            reopened.credential_resolver.as_ref(),
+                            &FailureTransport { kind: provider_kind },
+                        )
+                        .execution,
+                    Err(ref error) if error.kind() == bridge_kind
+                )
+        });
+        let evidence = serde_json::json!({
+            "schema": "nirman.m44.provider_bridge.v1",
+            "authenticatedM115AdmissionObserved": true,
+            "providerBridgeAuthorityObserved": true,
+            "m39ContractPrerequisiteObserved": true,
+            "m43AvailableLockPrerequisiteObserved": true,
+            "lockHashAndSnapshotIdentityBoundObserved": true,
+            "m3RuntimeDelegationObserved": true,
+            "normalizedResponseObserved": true,
+            "normalizedStreamingEventsObserved": true,
+            "durableUsageRecordObserved": true,
+            "durableExecutionRecordObserved": true,
+            "executionRecordReloadObserved": true,
+            "duplicateIdempotencyReloadObserved": true,
+            "scopeAndMissingLockRejected": true,
+            "protocolAuthenticationCapabilityFailuresObserved": protocol_auth_capability_failures_observed,
+            "outageMalformedRateLimitTimeoutCancellationFailuresObserved": failure_matrix,
+            "secretRedactionObserved": !serde_json::to_string(&execute_response).expect("response json").contains("host-path-secret"),
+            "androidWorkspaceMutation": false,
+            "nativeWindowsTauriAndroidRuntimeObserved": false,
+            "evidenceStatus": "M44_HEADLESS_DURABLE_BRIDGE_TRACE_ONLY"
+        });
+        let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/evidence/m44_provider_bridge.json");
+        fs::create_dir_all(evidence_path.parent().expect("evidence directory"))
+            .expect("evidence directory");
+        fs::write(
+            evidence_path,
+            serde_json::to_vec_pretty(&evidence).expect("M44 evidence JSON"),
+        )
+        .expect("M44 evidence write");
         let _ = fs::remove_file(path);
     }
 

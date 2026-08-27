@@ -4,7 +4,7 @@
 
 use nirman_domain::{
     BackgroundContinuityState, ControlEvent, PreviewTruth, ProductLifecycleState, ProjectId,
-    ProjectionSnapshot, Revision, TaskId,
+    ProjectionSnapshot, ProviderExecutionRecord, Revision, TaskId,
 };
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
@@ -99,6 +99,15 @@ impl Ledger {
                  output_tokens INTEGER,
                  total_tokens INTEGER,
                  outcome TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS provider_executions (
+                 execution_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 request_id TEXT NOT NULL,
+                 correlation_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 UNIQUE(project_id, request_id)
              );
              CREATE TABLE IF NOT EXISTS projections (
                  project_id TEXT PRIMARY KEY,
@@ -810,6 +819,46 @@ impl Ledger {
             ],
         )?;
         Ok(())
+    }
+
+    pub fn record_provider_execution(
+        &self,
+        record: &ProviderExecutionRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|_| {
+            rusqlite::Error::InvalidParameterName("provider execution serialization failed".into())
+        })?;
+        self.connection.execute(
+            "INSERT INTO provider_executions (
+                execution_id, project_id, task_id, request_id, correlation_id, record_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(execution_id) DO UPDATE SET record_json = excluded.record_json",
+            params![
+                record.execution_id,
+                record.project_id.0,
+                record.task_id.0,
+                record.request_id,
+                record.correlation_id,
+                record_json,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn provider_execution(
+        &self,
+        execution_id: &str,
+    ) -> rusqlite::Result<Option<ProviderExecutionRecord>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM provider_executions WHERE execution_id = ?1",
+                params![execution_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|_| rusqlite::Error::InvalidQuery)
+                },
+            )
+            .optional()
     }
 
     pub fn provider_usage(
