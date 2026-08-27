@@ -287,19 +287,73 @@ fn persist_m108_stage(
             None,
         )
     })?;
+    let mut state_fingerprints = BTreeMap::new();
+    state_fingerprints.insert(
+        "projectRevisionId".into(),
+        event.project_revision_id.clone(),
+    );
+    state_fingerprints.insert("checkpointId".into(), event.checkpoint_id.clone());
+    state_fingerprints.insert("sourceFingerprint".into(), event.source_fingerprint.clone());
+    if let Some(artifact_fingerprint) = event.artifact_fingerprint.as_ref() {
+        state_fingerprints.insert("artifactFingerprint".into(), artifact_fingerprint.clone());
+    }
+    if let Some(device_id) = event.device_id.as_ref() {
+        state_fingerprints.insert("deviceId".into(), device_id.clone());
+    }
+    if let Some(runtime_session_id) = event.runtime_session_id.as_ref() {
+        state_fingerprints.insert("runtimeSessionId".into(), runtime_session_id.clone());
+    }
     let evidence = nirman_preview::PreviewSyncEvidenceRecord {
         evidence_id: format!("m108-evidence:{command_id}:{sequence}"),
+        project_id: event.project_id.clone(),
+        task_id: event.task_id.clone(),
         event_sequence_start: sequence,
         event_sequence_end: sequence,
         projection_revision: projection.projection_revision,
         preview_revision_id: preview_revision_id.into(),
+        project_revision_id: event.project_revision_id.clone(),
+        checkpoint_id: event.checkpoint_id.clone(),
+        branch_id: None,
         artifact_fingerprint: event.artifact_fingerprint.clone(),
         device_id: event.device_id.clone(),
+        runtime_session_id: event.runtime_session_id.clone(),
+        state_fingerprints,
+        event_ids: vec![event.event_id.clone()],
         observation_refs: event.observation_refs.clone(),
         evidence_refs,
         validation_refs: event.validation_ref.clone().into_iter().collect(),
+        invalidated_evidence_ids: vec![],
+        recovery_event_ids: matches!(
+            event.event_type,
+            PreviewSyncEventType::CandidateFailed
+                | PreviewSyncEventType::PreviewInvalidated
+                | PreviewSyncEventType::StreamGap
+                | PreviewSyncEventType::StreamReconnected
+        )
+        .then(|| event.event_id.clone())
+        .into_iter()
+        .collect(),
+        promotion_record_ref: (event.event_type == PreviewSyncEventType::PreviewPromoted)
+            .then(|| event.operation_ref.clone()),
+        certification_decision_ref: (event.event_type == PreviewSyncEventType::PreviewPromoted)
+            .then(|| event.validation_ref.clone())
+            .flatten(),
+        completion_decision_ref: None,
         truth: event.event_truth.clone(),
+        captured_at_epoch_seconds: now_epoch_seconds(),
     };
+    evidence.validate().map_err(|e| {
+        error(
+            "m109",
+            Some(command_id.into()),
+            Some(command_id.into()),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            e.to_string(),
+            false,
+            None,
+        )
+    })?;
     let event_json = serde_json::to_string(&event).expect("M108 event serialization");
     let evidence_json = serde_json::to_string(&evidence).expect("M108 evidence serialization");
     let projection_json =
@@ -2431,125 +2485,220 @@ fn dispatch(
     dispatch_request(&TauriEventSink { app: &app }, &mut state, request)
 }
 
-fn persist_m7_lifecycle(
+fn m7_task_id(request: &CommandRequest) -> nirman_domain::TaskId {
+    request
+        .command
+        .task_id
+        .clone()
+        .expect("M7 lifecycle requests are normalized before preparation")
+}
+
+fn m7_run_id(project_id: &str, task_id: &nirman_domain::TaskId) -> String {
+    format!("run-{project_id}-{}", task_id.0)
+}
+
+fn m7_lifecycle_candidate(
     state: &mut RuntimeState,
     request: &CommandRequest,
-    snapshot: &nirman_domain::ProjectionSnapshot,
-    accepted: bool,
-) -> Result<(), ErrorEnvelope> {
+) -> Result<Option<BackgroundRunRecord>, ErrorEnvelope> {
     let kind = request.command.kind;
     if !matches!(
         kind,
         CommandKind::TaskStart
             | CommandKind::SubmitInstruction
             | CommandKind::PauseTask
+            | CommandKind::TaskResume
             | CommandKind::ResumeTask
             | CommandKind::CancelTask
             | CommandKind::TaskCancel
     ) {
-        return Ok(());
+        return Ok(None);
     }
-    let run_id = format!("run-{}", request.command.command_id);
-    let mut record = if accepted {
-        let task_id = request
-            .command
-            .task_id
-            .clone()
-            .unwrap_or_else(|| nirman_domain::TaskId("task-0001".into()));
-        BackgroundRunRecord {
-            schema_version: M7_SCHEMA_VERSION,
-            run_id,
-            project_id: snapshot.project_id.0.clone(),
-            task_id: task_id.0,
-            worker_id: "worker-single".into(),
-            checkpoint_id: state.plane.checkpoint_id().map(str::to_owned),
-            state: match kind {
-                CommandKind::PauseTask => BackgroundRunState::Paused,
-                CommandKind::CancelTask | CommandKind::TaskCancel => BackgroundRunState::Cancelled,
-                _ => BackgroundRunState::Running,
-            },
-            last_heartbeat_epoch_seconds: now_epoch_seconds(),
-            attempt: 1,
-            recovery_action: None,
-            failure_fingerprint: None,
-            notification_kind: None,
-        }
-    } else {
-        state
-            .plane
-            .load_background_run(&run_id)
-            .map_err(|_| {
-                error(
-                    &request.correlation_id,
-                    Some(request.command.command_id.clone()),
-                    request.causation_id.clone(),
-                    ControlPlaneErrorCode::DependencyUnavailable,
-                    ErrorCategory::Unavailable,
-                    "duplicate background run could not be reloaded",
-                    true,
-                    Some("reconcile the local background-run ledger before retry".into()),
-                )
-            })?
-            .ok_or_else(|| {
-                error(
-                    &request.correlation_id,
-                    Some(request.command.command_id.clone()),
-                    request.causation_id.clone(),
-                    ControlPlaneErrorCode::DependencyUnavailable,
-                    ErrorCategory::Internal,
-                    "duplicate lifecycle command has no durable background-run record",
-                    false,
-                    Some("reconcile the task and background-run records".into()),
-                )
-            })?
-    };
-    if accepted {
-        match kind {
-            CommandKind::PauseTask => record.pause().map_err(|_| {
-                error(
-                    &request.correlation_id,
-                    Some(request.command.command_id.clone()),
-                    request.causation_id.clone(),
-                    ControlPlaneErrorCode::InvalidCommand,
-                    ErrorCategory::Validation,
-                    "background run cannot be paused from its current state",
-                    false,
-                    None,
-                )
-            })?,
-            CommandKind::ResumeTask => {
-                if record.checkpoint_id.is_some() {
-                    record.state = BackgroundRunState::Running;
-                    record.recovery_action = Some(RecoveryAction::ResumeFromCheckpoint);
-                }
-            }
-            CommandKind::CancelTask | CommandKind::TaskCancel => record.cancel().map_err(|_| {
-                error(
-                    &request.correlation_id,
-                    Some(request.command.command_id.clone()),
-                    request.causation_id.clone(),
-                    ControlPlaneErrorCode::InvalidCommand,
-                    ErrorCategory::Validation,
-                    "background run cannot be cancelled from its current state",
-                    false,
-                    None,
-                )
-            })?,
-            _ => {}
-        }
+
+    if state
+        .plane
+        .command_result_exists(
+            &request.command.command_id,
+            request.command.idempotency_key.as_deref(),
+        )
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "command-result lookup is unavailable",
+                true,
+                Some("retry after local command storage is available".into()),
+            )
+        })?
+    {
+        return Ok(None);
     }
-    state.plane.save_background_run(&record).map_err(|_| {
+    let task_id = m7_task_id(request);
+    let run_id = m7_run_id(&request.command.project_id.0, &task_id);
+    let existing = state.plane.load_background_run(&run_id).map_err(|_| {
         error(
             &request.correlation_id,
             Some(request.command.command_id.clone()),
             request.causation_id.clone(),
             ControlPlaneErrorCode::DependencyUnavailable,
             ErrorCategory::Unavailable,
-            "background-run state could not be persisted",
+            "background-run state could not be loaded",
             true,
-            Some("reconcile local background-run storage before retry".into()),
+            Some("retry after local background-run storage is available".into()),
         )
-    })
+    })?;
+
+    let mut record = match (kind, existing) {
+        (CommandKind::TaskStart, Some(_)) => {
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "task already has a durable background run",
+                false,
+                Some("use the existing task lifecycle commands".into()),
+            ));
+        }
+        (CommandKind::TaskStart | CommandKind::SubmitInstruction, None) => BackgroundRunRecord {
+            schema_version: M7_SCHEMA_VERSION,
+            run_id,
+            project_id: request.command.project_id.0.clone(),
+            task_id: task_id.0,
+            worker_id: "worker-single".into(),
+            checkpoint_id: state.plane.checkpoint_id().map(str::to_owned),
+            state: BackgroundRunState::Running,
+            last_heartbeat_epoch_seconds: now_epoch_seconds(),
+            attempt: 1,
+            recovery_action: None,
+            failure_fingerprint: None,
+            notification_kind: None,
+        },
+        (_, Some(record)) => record,
+        (_, None) => {
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "lifecycle command has no durable task background run",
+                true,
+                Some("reconcile the task run before retrying the lifecycle command".into()),
+            ));
+        }
+    };
+
+    match kind {
+        CommandKind::SubmitInstruction => record.heartbeat(now_epoch_seconds()).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "task background run cannot accept an instruction from its current state",
+                false,
+                None,
+            )
+        })?,
+        CommandKind::PauseTask => record.pause().map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "background run cannot be paused from its current state",
+                false,
+                None,
+            )
+        })?,
+        CommandKind::TaskResume | CommandKind::ResumeTask => {
+            if record.checkpoint_id.is_none() {
+                record.checkpoint_id = state.plane.checkpoint_id().map(str::to_owned);
+            }
+            let checkpoint_id = record.checkpoint_id.as_deref().ok_or_else(|| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "resume requires a verified checkpoint",
+                    false,
+                    Some("create and persist a checkpoint before resuming".into()),
+                )
+            })?;
+            let verified = state.plane.checkpoint_exists(checkpoint_id).map_err(|_| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Unavailable,
+                    "checkpoint verification is unavailable",
+                    true,
+                    Some("retry after checkpoint storage is available".into()),
+                )
+            })?;
+            if !verified {
+                return Err(error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "resume requires a verified checkpoint",
+                    false,
+                    Some("create and persist the referenced checkpoint before resuming".into()),
+                ));
+            }
+            record.resume_from_checkpoint().map_err(|_| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "background run cannot resume from its current state",
+                    false,
+                    None,
+                )
+            })?;
+        }
+        CommandKind::CancelTask | CommandKind::TaskCancel => record.cancel().map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "background run cannot be cancelled from its current state",
+                false,
+                None,
+            )
+        })?,
+        CommandKind::TaskStart => {}
+        _ => unreachable!("M7 lifecycle candidate was filtered above"),
+    }
+    record.validate().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "background-run candidate failed deterministic validation",
+            false,
+            None,
+        )
+    })?;
+    Ok(Some(record))
 }
 
 fn parse_m8_claim(
@@ -2828,11 +2977,27 @@ fn map_m8_coordination_error(
 pub(crate) fn dispatch_request<S: EventSink>(
     sink: &S,
     state: &mut RuntimeState,
-    request: CommandRequest,
+    mut request: CommandRequest,
 ) -> Result<CommandResponse, ErrorEnvelope> {
     let correlation_id = request.correlation_id.clone();
     let causation_id = request.causation_id.clone();
     let command_id = request.command.command_id.clone();
+    if matches!(
+        request.command.kind,
+        CommandKind::TaskStart
+            | CommandKind::SubmitInstruction
+            | CommandKind::PauseTask
+            | CommandKind::TaskResume
+            | CommandKind::ResumeTask
+            | CommandKind::CancelTask
+            | CommandKind::TaskCancel
+    ) && request.command.task_id.is_none()
+    {
+        request.command.task_id = Some(nirman_domain::TaskId(format!(
+            "task-{}",
+            request.command.project_id.0
+        )));
+    }
     authorize(&state, &request)?;
     authorize_registry_capability(&request).map_err(|code| {
         error(
@@ -3207,6 +3372,7 @@ pub(crate) fn dispatch_request<S: EventSink>(
             m8_checkpoint_record = Some(checkpoint);
         }
     }
+    let m7_run = m7_lifecycle_candidate(state, &request)?;
     let after_sequence = state.plane.snapshot().last_event_sequence;
     let outcome = if let Some(prepared) = m4_synthesis_build.as_ref() {
         state.plane.dispatch_with_result_and_m4(
@@ -3320,6 +3486,12 @@ pub(crate) fn dispatch_request<S: EventSink>(
             &correlation_id,
             &prepared.transaction,
         )
+    } else if let Some(run) = m7_run.as_ref() {
+        state.plane.dispatch_with_result_and_background_run(
+            request.command.clone(),
+            &correlation_id,
+            Some(run),
+        )
     } else if artifact_build.is_some() || artifact_export.is_some() {
         state.plane.dispatch_with_result_and_provider_profile(
             request.command.clone(),
@@ -3391,12 +3563,6 @@ pub(crate) fn dispatch_request<S: EventSink>(
         status.clone(),
         event_range,
     );
-    persist_m7_lifecycle(
-        state,
-        &request,
-        &command_response.snapshot,
-        status == ResponseStatus::Accepted,
-    )?;
     if m8_is_command {
         let result_payload = if let Some(payload) = m8_result_payload {
             Some(payload)
@@ -6171,6 +6337,193 @@ mod tests {
             stream,
             cancellation: CancellationSignal::default(),
         }
+    }
+
+    #[test]
+    fn m7_authenticated_host_lifecycle_uses_one_durable_task_run() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+
+        let start_request = request(
+            &state,
+            "m7-start",
+            CommandKind::TaskStart,
+            "Start an Android task".into(),
+            0,
+        );
+        let started = dispatch_request(&sink, &mut state, start_request)
+            .expect("task start should be accepted");
+        let run_id = "run-project-0001-task-project-0001";
+        assert_eq!(
+            state
+                .plane
+                .load_background_run(run_id)
+                .expect("run lookup")
+                .expect("start creates run")
+                .state,
+            BackgroundRunState::Running
+        );
+
+        let pause_request = request(
+            &state,
+            "m7-pause",
+            CommandKind::PauseTask,
+            String::new(),
+            started.snapshot.projection_revision.0,
+        );
+        let paused =
+            dispatch_request(&sink, &mut state, pause_request).expect("pause should be accepted");
+        assert_eq!(
+            state
+                .plane
+                .load_background_run(run_id)
+                .expect("run lookup")
+                .expect("paused run")
+                .state,
+            BackgroundRunState::Paused
+        );
+
+        state
+            .plane
+            .checkpoint("m7-host-verified-checkpoint")
+            .expect("checkpoint should persist");
+        let resume_request = request(
+            &state,
+            "m7-resume",
+            CommandKind::TaskResume,
+            String::new(),
+            paused.snapshot.projection_revision.0,
+        );
+        let resumed = dispatch_request(&sink, &mut state, resume_request)
+            .expect("resume should be accepted from a verified checkpoint");
+        let resumed_run = state
+            .plane
+            .load_background_run(run_id)
+            .expect("run lookup")
+            .expect("resumed run");
+        assert_eq!(resumed_run.state, BackgroundRunState::Running);
+        assert_eq!(
+            resumed_run.recovery_action,
+            Some(RecoveryAction::ResumeFromCheckpoint)
+        );
+
+        let cancel_request = request(
+            &state,
+            "m7-cancel",
+            CommandKind::TaskCancel,
+            String::new(),
+            resumed.snapshot.projection_revision.0,
+        );
+        let cancelled =
+            dispatch_request(&sink, &mut state, cancel_request).expect("cancel should be accepted");
+        assert_eq!(
+            state
+                .plane
+                .load_background_run(run_id)
+                .expect("run lookup")
+                .expect("cancelled run")
+                .state,
+            BackgroundRunState::Cancelled
+        );
+        assert_eq!(cancelled.snapshot.last_event_sequence, 4);
+        assert_eq!(state.plane.snapshot().last_event_sequence, 4);
+
+        drop(state);
+        let reopened = test_state_at(&path);
+        let reloaded_run = reopened
+            .plane
+            .load_background_run(run_id)
+            .expect("reloaded run lookup")
+            .expect("run survives restart");
+        assert_eq!(reloaded_run.state, BackgroundRunState::Cancelled);
+        assert_eq!(reloaded_run.task_id, "task-project-0001");
+        assert_eq!(reopened.plane.snapshot().last_event_sequence, 4);
+        drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn m7_resume_without_verified_checkpoint_is_rejected_before_admission() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let start_request = request(
+            &state,
+            "m7-start-no-checkpoint",
+            CommandKind::TaskStart,
+            "Start an Android task".into(),
+            0,
+        );
+        let started = dispatch_request(&sink, &mut state, start_request)
+            .expect("task start should be accepted");
+        let pause_request = request(
+            &state,
+            "m7-pause-no-checkpoint",
+            CommandKind::PauseTask,
+            String::new(),
+            started.snapshot.projection_revision.0,
+        );
+        let paused =
+            dispatch_request(&sink, &mut state, pause_request).expect("pause should be accepted");
+        let before_snapshot = state.plane.snapshot();
+        let before_events = state.plane.snapshot().last_event_sequence;
+        let resume_request = request(
+            &state,
+            "m7-resume-without-checkpoint",
+            CommandKind::TaskResume,
+            String::new(),
+            paused.snapshot.projection_revision.0,
+        );
+        let error = dispatch_request(&sink, &mut state, resume_request)
+            .expect_err("resume without checkpoint must be rejected");
+        assert_eq!(error.code, ControlPlaneErrorCode::InvalidCommand);
+        assert_eq!(state.plane.snapshot(), before_snapshot);
+        assert_eq!(state.plane.snapshot().last_event_sequence, before_events);
+        assert_eq!(
+            state
+                .plane
+                .load_background_run("run-project-0001-task-project-0001")
+                .expect("run lookup")
+                .expect("paused run")
+                .state,
+            BackgroundRunState::Paused
+        );
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn m7_duplicate_lifecycle_command_replays_without_second_transition() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let start_request = request(
+            &state,
+            "m7-duplicate-start",
+            CommandKind::TaskStart,
+            "Start an Android task".into(),
+            0,
+        );
+        let first =
+            dispatch_request(&sink, &mut state, start_request.clone()).expect("first start");
+        let first_run = state
+            .plane
+            .load_background_run("run-project-0001-task-project-0001")
+            .expect("run lookup")
+            .expect("run");
+        let duplicate =
+            dispatch_request(&sink, &mut state, start_request).expect("duplicate start");
+        let second_run = state
+            .plane
+            .load_background_run("run-project-0001-task-project-0001")
+            .expect("run lookup")
+            .expect("run");
+        assert_eq!(first.snapshot, duplicate.snapshot);
+        assert_eq!(first_run, second_run);
+        assert_eq!(state.plane.snapshot().last_event_sequence, 1);
+        drop(state);
+        let _ = fs::remove_file(path);
     }
 
     #[test]
@@ -9051,6 +9404,16 @@ mod m108_export_preview_tests {
                 PreviewSyncEventType::InteractionObserved,
             ]
         );
+        let evidence_records = state
+            .plane
+            .load_m108_evidence_jsons(&contract.task_id.0)
+            .expect("M109 evidence reload");
+        assert_eq!(evidence_records.len(), event_types.len());
+        for evidence_json in evidence_records {
+            let evidence: nirman_preview::PreviewSyncEvidenceRecord =
+                serde_json::from_str(&evidence_json).expect("evidence json");
+            evidence.validate().expect("complete durable evidence");
+        }
         let stored_projection = state
             .plane
             .load_m108_sync_record(&contract.task_id.0)
@@ -9107,7 +9470,8 @@ mod m108_export_preview_tests {
         };
         assert!(matches!(
             reconstructed.apply(&premature_promotion),
-            Err(nirman_preview::M108ReducerError::EvidenceRequired)
+            Err(nirman_preview::M108ReducerError::EvidenceRequired
+                | nirman_preview::M108ReducerError::StaleEvent)
         ));
         premature_promotion.event_sequence += 1;
         let _ = fs::remove_file(database);

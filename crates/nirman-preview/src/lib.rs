@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 pub const M48_SCHEMA_VERSION: u16 = 1;
@@ -155,6 +155,7 @@ pub enum PreviewSyncEventType {
     InteractionObserved,
     ObservationCaptured,
     ValidationObserved,
+    RecoveryStarted,
     CandidateFailed,
     PreviewInvalidated,
     PreviewPromoted,
@@ -202,19 +203,34 @@ pub struct PreviewSyncEvent {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreviewSyncEvidenceRecord {
     pub evidence_id: String,
+    pub project_id: String,
+    pub task_id: String,
     pub event_sequence_start: u64,
     pub event_sequence_end: u64,
     pub projection_revision: u64,
     pub preview_revision_id: String,
+    pub project_revision_id: String,
+    pub checkpoint_id: String,
+    pub branch_id: Option<String>,
     pub artifact_fingerprint: Option<String>,
     pub device_id: Option<String>,
+    pub runtime_session_id: Option<String>,
+    pub state_fingerprints: BTreeMap<String, String>,
+    pub event_ids: Vec<String>,
     pub observation_refs: Vec<String>,
     pub evidence_refs: Vec<String>,
     pub validation_refs: Vec<String>,
+    pub invalidated_evidence_ids: Vec<String>,
+    pub recovery_event_ids: Vec<String>,
+    pub promotion_record_ref: Option<String>,
+    pub certification_decision_ref: Option<String>,
+    pub completion_decision_ref: Option<String>,
     pub truth: PreviewEventTruth,
+    pub captured_at_epoch_seconds: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct M108ProjectionState {
     pub project_id: String,
     pub task_id: String,
@@ -231,6 +247,17 @@ pub struct M108ProjectionState {
     pub active_preview_revision_id: String,
     pub evidence_ids: Vec<String>,
     pub rejected_event_ids: Vec<String>,
+    pub reducer_id: String,
+    pub reducer_version: u16,
+    pub pending_event_sequences: Vec<u64>,
+    pub quarantined_event_ids: Vec<String>,
+    pub event_fingerprints: BTreeMap<String, String>,
+    pub project_revision_id: Option<String>,
+    pub checkpoint_id: Option<String>,
+    pub source_fingerprint: Option<String>,
+    pub artifact_fingerprint: Option<String>,
+    pub runtime_session_id: Option<String>,
+    pub device_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -243,6 +270,8 @@ pub enum M108ReducerError {
     ConflictingDuplicate,
     EvidenceRequired,
     StaleEvent,
+    ContradictorySnapshot,
+    ReplayNotComplete,
 }
 impl fmt::Display for M108ReducerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -258,10 +287,84 @@ impl fmt::Display for M108ReducerError {
             Self::ConflictingDuplicate => f.write_str("M108 conflicting duplicate event"),
             Self::EvidenceRequired => f.write_str("M108 event lacks required observed evidence"),
             Self::StaleEvent => f.write_str("M108 stale event"),
+            Self::ContradictorySnapshot => f.write_str("M109 contradictory equal-cursor snapshot"),
+            Self::ReplayNotComplete => f.write_str("M109 replay is not complete"),
         }
     }
 }
 impl std::error::Error for M108ReducerError {}
+
+impl Default for M108ProjectionState {
+    fn default() -> Self {
+        Self {
+            project_id: String::new(),
+            task_id: String::new(),
+            last_event_sequence: 0,
+            projection_revision: 0,
+            lifecycle_stage: "NOT_REQUESTED".into(),
+            execution_truth: PreviewEventTruth::Predicted,
+            build_status: "NOT_STARTED".into(),
+            install_status: "NOT_STARTED".into(),
+            launch_status: "NOT_STARTED".into(),
+            runtime_status: "NOT_STARTED".into(),
+            validation_status: "NOT_STARTED".into(),
+            stream_status: "CONNECTED".into(),
+            active_preview_revision_id: String::new(),
+            evidence_ids: vec![],
+            rejected_event_ids: vec![],
+            reducer_id: "nirman.preview.m109".into(),
+            reducer_version: M108_SCHEMA_VERSION,
+            pending_event_sequences: vec![],
+            quarantined_event_ids: vec![],
+            event_fingerprints: BTreeMap::new(),
+            project_revision_id: None,
+            checkpoint_id: None,
+            source_fingerprint: None,
+            artifact_fingerprint: None,
+            runtime_session_id: None,
+            device_id: None,
+        }
+    }
+}
+
+impl PreviewSyncEvidenceRecord {
+    pub fn validate(&self) -> Result<(), PreviewError> {
+        for (field, value) in [
+            ("evidenceId", self.evidence_id.as_str()),
+            ("projectId", self.project_id.as_str()),
+            ("taskId", self.task_id.as_str()),
+            ("previewRevisionId", self.preview_revision_id.as_str()),
+            ("projectRevisionId", self.project_revision_id.as_str()),
+            ("checkpointId", self.checkpoint_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(PreviewError::EmptyField(field));
+            }
+        }
+        let declared_event_count = self
+            .event_sequence_end
+            .saturating_sub(self.event_sequence_start)
+            .saturating_add(1);
+        if self.event_sequence_start == 0
+            || self.event_sequence_end < self.event_sequence_start
+            || self.projection_revision == 0
+            || self.event_ids.is_empty()
+            || declared_event_count != self.event_ids.len() as u64
+        {
+            return Err(PreviewError::IdentityMismatch("evidence-range-or-lineage"));
+        }
+        if self.event_ids.len() != self.event_ids.iter().collect::<BTreeSet<_>>().len() {
+            return Err(PreviewError::IdentityMismatch("eventIds"));
+        }
+        if self.truth == PreviewEventTruth::Observed
+            && self.evidence_refs.is_empty()
+            && self.observation_refs.is_empty()
+        {
+            return Err(PreviewError::RuntimeObservationRequired);
+        }
+        Ok(())
+    }
+}
 
 impl M108ProjectionState {
     pub fn new(
@@ -285,10 +388,96 @@ impl M108ProjectionState {
             active_preview_revision_id: preview_revision_id.into(),
             evidence_ids: vec![],
             rejected_event_ids: vec![],
+            reducer_id: "nirman.preview.m109".into(),
+            reducer_version: M108_SCHEMA_VERSION,
+            pending_event_sequences: vec![],
+            quarantined_event_ids: vec![],
+            event_fingerprints: BTreeMap::new(),
+            project_revision_id: None,
+            checkpoint_id: None,
+            source_fingerprint: None,
+            artifact_fingerprint: None,
+            runtime_session_id: None,
+            device_id: None,
         }
     }
+
+    pub fn accept_equal_cursor_snapshot(
+        &mut self,
+        incoming: &M108ProjectionState,
+    ) -> Result<(), M108ReducerError> {
+        if self.project_id != incoming.project_id
+            || self.task_id != incoming.task_id
+            || self.last_event_sequence != incoming.last_event_sequence
+            || self.projection_revision != incoming.projection_revision
+            || self.active_preview_revision_id != incoming.active_preview_revision_id
+            || self.identity_dimensions() != incoming.identity_dimensions()
+            || self.lifecycle_stage != incoming.lifecycle_stage
+            || self.execution_truth != incoming.execution_truth
+            || self.build_status != incoming.build_status
+            || self.install_status != incoming.install_status
+            || self.launch_status != incoming.launch_status
+            || self.runtime_status != incoming.runtime_status
+            || self.validation_status != incoming.validation_status
+        {
+            return Err(M108ReducerError::ContradictorySnapshot);
+        }
+        self.stream_status = incoming.stream_status.clone();
+        for evidence_id in &incoming.evidence_ids {
+            if !self.evidence_ids.contains(evidence_id) {
+                self.evidence_ids.push(evidence_id.clone());
+            }
+        }
+        Ok(())
+    }
+
+    pub fn mark_stream_lost(&mut self) {
+        self.stream_status = "STALE_STREAM".into();
+    }
+
+    pub fn complete_replay(&mut self) -> Result<(), M108ReducerError> {
+        if !self.pending_event_sequences.is_empty() {
+            return Err(M108ReducerError::ReplayNotComplete);
+        }
+        self.stream_status = "CONNECTED".into();
+        Ok(())
+    }
+
+    fn identity_dimensions(
+        &self,
+    ) -> (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) {
+        (
+            self.project_revision_id.clone(),
+            self.checkpoint_id.clone(),
+            self.source_fingerprint.clone(),
+            self.artifact_fingerprint.clone(),
+            self.device_id.clone(),
+            self.runtime_session_id.clone(),
+        )
+    }
+
+    fn event_fingerprint(event: &PreviewSyncEvent) -> String {
+        serde_json::to_string(event).expect("PreviewSyncEvent serialization must remain infallible")
+    }
+
     pub fn apply(&mut self, event: &PreviewSyncEvent) -> Result<(), M108ReducerError> {
         event.validate().map_err(M108ReducerError::InvalidEvent)?;
+        let fingerprint = Self::event_fingerprint(event);
+        if let Some(previous) = self.event_fingerprints.get(&event.event_id) {
+            if previous == &fingerprint {
+                return Ok(());
+            }
+            self.quarantined_event_ids.push(event.event_id.clone());
+            self.rejected_event_ids.push(event.event_id.clone());
+            return Err(M108ReducerError::ConflictingDuplicate);
+        }
         if event.project_id != self.project_id {
             return Err(M108ReducerError::ProjectMismatch);
         }
@@ -298,14 +487,50 @@ impl M108ProjectionState {
         if event.candidate_preview_revision_id != self.active_preview_revision_id {
             return Err(M108ReducerError::StaleEvent);
         }
+        if self.stream_status == "STALE_STREAM"
+            && event.event_type != PreviewSyncEventType::StreamReconnected
+        {
+            return Err(M108ReducerError::StaleEvent);
+        }
         if event.event_sequence <= self.last_event_sequence {
             return Err(M108ReducerError::StaleEvent);
         }
         if event.event_sequence != self.last_event_sequence + 1 {
+            self.pending_event_sequences.push(event.event_sequence);
+            self.pending_event_sequences.sort_unstable();
+            self.pending_event_sequences.dedup();
+            self.stream_status = "GAP_BLOCKED".into();
             return Err(M108ReducerError::SequenceGap {
                 expected: self.last_event_sequence + 1,
                 received: event.event_sequence,
             });
+        }
+        if self.project_revision_id.as_deref() != Some(event.project_revision_id.as_str())
+            && self.project_revision_id.is_some()
+        {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if self.checkpoint_id.as_deref() != Some(event.checkpoint_id.as_str())
+            && self.checkpoint_id.is_some()
+        {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if self.source_fingerprint.as_deref() != Some(event.source_fingerprint.as_str())
+            && self.source_fingerprint.is_some()
+        {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if event.artifact_fingerprint.is_some()
+            && self.artifact_fingerprint.is_some()
+            && self.artifact_fingerprint != event.artifact_fingerprint
+        {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if event.device_id.is_some()
+            && self.device_id.is_some()
+            && self.device_id != event.device_id
+        {
+            return Err(M108ReducerError::StaleEvent);
         }
         if matches!(
             event.event_type,
@@ -336,6 +561,22 @@ impl M108ProjectionState {
         }
         self.last_event_sequence = event.event_sequence;
         self.projection_revision += 1;
+        self.event_fingerprints
+            .insert(event.event_id.clone(), fingerprint);
+        self.project_revision_id = Some(event.project_revision_id.clone());
+        self.checkpoint_id = Some(event.checkpoint_id.clone());
+        self.source_fingerprint = Some(event.source_fingerprint.clone());
+        if event.artifact_fingerprint.is_some() {
+            self.artifact_fingerprint = event.artifact_fingerprint.clone();
+        }
+        if event.runtime_session_id.is_some() {
+            self.runtime_session_id = event.runtime_session_id.clone();
+        }
+        if event.device_id.is_some() {
+            self.device_id = event.device_id.clone();
+        }
+        self.pending_event_sequences
+            .retain(|sequence| *sequence != event.event_sequence);
         self.execution_truth = event.event_truth.clone();
         self.lifecycle_stage = format!("{:?}", event.event_type).to_ascii_uppercase();
         match event.event_type {
@@ -349,6 +590,15 @@ impl M108ProjectionState {
             PreviewSyncEventType::ValidationObserved => self.validation_status = "OBSERVED".into(),
             PreviewSyncEventType::StreamGap => self.stream_status = "GAP_BLOCKED".into(),
             PreviewSyncEventType::StreamReconnected => self.stream_status = "REPLAYING".into(),
+            PreviewSyncEventType::CandidateFailed => {
+                self.lifecycle_stage = "CANDIDATE_FAILED".into()
+            }
+            PreviewSyncEventType::PreviewInvalidated => {
+                self.lifecycle_stage = "PREVIEW_INVALIDATED".into()
+            }
+            PreviewSyncEventType::PreviewPromoted => {
+                self.lifecycle_stage = "PREVIEW_PROMOTED".into()
+            }
             _ => {}
         }
         self.evidence_ids

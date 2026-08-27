@@ -520,6 +520,17 @@ impl DurableControlPlane {
         self.ledger.save_background_run(record)
     }
 
+    pub fn command_result_exists(
+        &self,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<bool, rusqlite::Error> {
+        Ok(self
+            .ledger
+            .load_command_result(&self.snapshot().project_id, command_id, idempotency_key)?
+            .is_some())
+    }
+
     pub fn load_background_run(
         &self,
         run_id: &str,
@@ -572,6 +583,11 @@ impl DurableControlPlane {
             projection_json,
             event_sequence,
         )
+    }
+
+    pub fn load_m108_evidence_jsons(&self, task_id: &str) -> Result<Vec<String>, rusqlite::Error> {
+        self.ledger
+            .load_m108_evidence_jsons(&self.snapshot().project_id, task_id)
     }
 
     pub fn save_m108_sync_record(
@@ -1079,6 +1095,62 @@ impl DurableControlPlane {
         Ok(DurableDispatchOutcome::Accepted { snapshot, event })
     }
 
+    pub fn dispatch_with_result_and_background_run(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        run: Option<&BackgroundRunRecord>,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        if let Some(run) = run {
+            self.ledger
+                .commit_event_projection_and_command_and_background_run(
+                    &event,
+                    &snapshot,
+                    &command.command_id,
+                    command.idempotency_key.as_deref(),
+                    &request_fingerprint,
+                    correlation_id,
+                    &snapshot_json,
+                    run,
+                )?;
+        } else {
+            self.ledger.commit_event_projection_and_command(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+            )?;
+        }
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
     pub fn dispatch_with_result_and_provider_profile(
         &mut self,
         command: CommandEnvelope,
@@ -1188,6 +1260,11 @@ impl DurableControlPlane {
 
     pub fn worker_cancel_requested(&self) -> bool {
         self.worker_cancel_requested
+    }
+
+    pub fn checkpoint_exists(&self, checkpoint_id: &str) -> Result<bool, rusqlite::Error> {
+        self.ledger
+            .checkpoint_exists(&self.snapshot().project_id, checkpoint_id)
     }
 
     pub fn checkpoint_id(&self) -> Option<&str> {

@@ -1056,6 +1056,47 @@ impl Ledger {
         transaction.commit()
     }
 
+    pub fn commit_event_projection_and_command_and_background_run(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        run: &BackgroundRunRecord,
+    ) -> rusqlite::Result<()> {
+        let run_json = serde_json::to_string(run).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        run.validate().map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![event.sequence, event.event_id, event.project_id.0, event.task_id.as_ref().map(|id| id.0.as_str()), event.kind, event.payload, event.source_revision.0],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) ON CONFLICT(project_id) DO UPDATE SET projection_revision=excluded.projection_revision, task_state=excluded.task_state, continuity_state=excluded.continuity_state, preview_truth=excluded.preview_truth, source_revision=excluded.source_revision, last_event_sequence=excluded.last_event_sequence, last_known_good_ref=excluded.last_known_good_ref",
+            params![snapshot.project_id.0, snapshot.projection_revision.0, format!("{:?}", snapshot.task_state), format!("{:?}", snapshot.continuity_state), format!("{:?}", snapshot.preview_truth), snapshot.current_source_revision.0, snapshot.last_event_sequence, snapshot.last_known_good_ref],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![command_id, snapshot.project_id.0, idempotency_key, request_fingerprint, correlation_id, snapshot_json],
+        )?;
+        transaction.execute(
+            "INSERT INTO m7_background_runs (run_id, project_id, task_id, worker_id, state, record_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(run_id) DO UPDATE SET project_id=excluded.project_id, task_id=excluded.task_id, worker_id=excluded.worker_id, state=excluded.state, record_json=excluded.record_json",
+            params![run.run_id, run.project_id, run.task_id, run.worker_id, serde_json::to_string(&run.state).unwrap_or_else(|_| "null".into()), run_json],
+        )?;
+        transaction.commit()
+    }
+
     pub fn commit_event_projection_command_and_mutation_transaction(
         &self,
         event: &ControlEvent,
@@ -1279,6 +1320,18 @@ impl Ledger {
             ],
         )?;
         Ok(())
+    }
+
+    pub fn checkpoint_exists(
+        &self,
+        project_id: &ProjectId,
+        checkpoint_id: &str,
+    ) -> rusqlite::Result<bool> {
+        self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM checkpoints WHERE project_id = ?1 AND checkpoint_id = ?2)",
+            params![project_id.0, checkpoint_id],
+            |row| row.get(0),
+        )
     }
 
     pub fn latest_checkpoint_id(&self, project_id: &ProjectId) -> rusqlite::Result<Option<String>> {
@@ -2110,6 +2163,18 @@ impl Ledger {
         rows.collect()
     }
 
+    pub fn load_m108_evidence_jsons(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Vec<String>> {
+        let mut statement = self.connection.prepare(
+            "SELECT evidence_json FROM m108_preview_sync_evidence WHERE project_id = ?1 AND task_id = ?2 ORDER BY event_sequence ASC",
+        )?;
+        let rows = statement.query_map(params![project_id.0, task_id], |row| row.get(0))?;
+        rows.collect()
+    }
+
     pub fn provider_usage(
         &self,
         request_id: &str,
@@ -2246,6 +2311,90 @@ mod tests {
 mod m7_tests {
     use super::*;
     use nirman_supervisor::{BackgroundRunRecord, BackgroundRunState, M7_SCHEMA_VERSION};
+
+    #[test]
+    fn m7_atomic_lifecycle_transaction_rolls_back_on_event_conflict() {
+        let ledger = Ledger::open_in_memory().expect("ledger");
+        let project_id = ProjectId("project-m7-atomic".into());
+        let snapshot = ProjectionSnapshot {
+            project_id: project_id.clone(),
+            projection_revision: Revision(1),
+            task_state: ProductLifecycleState::Planning,
+            continuity_state: BackgroundContinuityState::ActiveBackground,
+            preview_truth: PreviewTruth::Predicted,
+            current_source_revision: Revision(0),
+            last_event_sequence: 1,
+            last_known_good_ref: None,
+        };
+        let event = ControlEvent {
+            event_id: "event-m7-atomic".into(),
+            sequence: 1,
+            project_id: project_id.clone(),
+            task_id: Some(TaskId("task-m7-atomic".into())),
+            kind: "TaskStarted".into(),
+            payload: "start".into(),
+            source_revision: Revision(0),
+        };
+        let record = BackgroundRunRecord {
+            schema_version: M7_SCHEMA_VERSION,
+            run_id: "run-project-m7-atomic-task-m7-atomic".into(),
+            project_id: project_id.0.clone(),
+            task_id: "task-m7-atomic".into(),
+            worker_id: "worker-single".into(),
+            checkpoint_id: None,
+            state: BackgroundRunState::Running,
+            last_heartbeat_epoch_seconds: 10,
+            attempt: 1,
+            recovery_action: None,
+            failure_fingerprint: None,
+            notification_kind: None,
+        };
+        ledger
+            .commit_event_projection_and_command_and_background_run(
+                &event,
+                &snapshot,
+                "command-m7-atomic",
+                Some("idempotency-m7-atomic"),
+                "fingerprint-m7-atomic",
+                "correlation-m7-atomic",
+                &serde_json::to_string(&snapshot).expect("snapshot json"),
+                &record,
+            )
+            .expect("first atomic commit");
+        let error = ledger
+            .commit_event_projection_and_command_and_background_run(
+                &event,
+                &snapshot,
+                "command-m7-atomic-2",
+                Some("idempotency-m7-atomic-2"),
+                "fingerprint-m7-atomic-2",
+                "correlation-m7-atomic-2",
+                &serde_json::to_string(&snapshot).expect("snapshot json"),
+                &record,
+            )
+            .expect_err("duplicate event sequence must fail");
+        assert!(matches!(error, rusqlite::Error::SqliteFailure(_, _)));
+        assert_eq!(ledger.event_count().expect("event count"), 1);
+        assert_eq!(ledger.latest_sequence().expect("latest sequence"), 1);
+        assert_eq!(
+            ledger.projection_revision(&project_id).expect("revision"),
+            Some(Revision(1))
+        );
+        assert_eq!(
+            ledger
+                .load_background_run(&record.run_id)
+                .expect("run lookup"),
+            Some(record)
+        );
+        assert!(ledger
+            .load_command_result(
+                &project_id,
+                "command-m7-atomic-2",
+                Some("idempotency-m7-atomic-2")
+            )
+            .expect("command lookup")
+            .is_none());
+    }
 
     #[test]
     fn background_run_record_round_trips_through_sqlite() {

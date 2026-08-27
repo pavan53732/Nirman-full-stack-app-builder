@@ -350,3 +350,184 @@ fn m108_rejects_simulated_runtime_and_premature_promotion() {
         Err(nirman_preview::M108ReducerError::EvidenceRequired)
     );
 }
+
+fn m109_event(sequence: u64, event_id: &str, event_type: PreviewSyncEventType) -> PreviewSyncEvent {
+    PreviewSyncEvent {
+        event_id: event_id.into(),
+        event_sequence: sequence,
+        project_id: "p".into(),
+        task_id: "t".into(),
+        correlation_id: "corr".into(),
+        causation_id: Some(format!("cause-{sequence}")),
+        candidate_preview_revision_id: "preview-1".into(),
+        event_type,
+        event_truth: PreviewEventTruth::Requested,
+        project_revision_id: "source-1".into(),
+        checkpoint_id: "checkpoint-1".into(),
+        source_fingerprint: "sha256:source".into(),
+        artifact_id: None,
+        artifact_fingerprint: None,
+        runtime_session_id: None,
+        device_id: None,
+        operation_ref: format!("operation-{sequence}"),
+        observation_refs: vec![],
+        evidence_refs: vec![],
+        validation_ref: None,
+        payload: format!("payload-{sequence}"),
+    }
+}
+
+#[test]
+fn m109_duplicate_replay_is_idempotent_and_conflicting_stale_delivery_is_quarantined() {
+    let mut state = M108ProjectionState::new("p", "t", "preview-1");
+    let event = m109_event(1, "event-1", PreviewSyncEventType::IntentAccepted);
+    state.apply(&event).expect("initial event");
+    let before = state.clone();
+    state.apply(&event).expect("same duplicate replay");
+    assert_eq!(state, before);
+
+    let mut conflicting = event.clone();
+    conflicting.payload = "conflicting-old-payload".into();
+    assert_eq!(
+        state.apply(&conflicting),
+        Err(nirman_preview::M108ReducerError::ConflictingDuplicate)
+    );
+    assert_eq!(state.quarantined_event_ids, vec!["event-1"]);
+    assert_eq!(state.last_event_sequence, 1);
+}
+
+#[test]
+fn m109_gap_is_held_and_replay_then_reconnect_restores_continuity() {
+    let mut state = M108ProjectionState::new("p", "t", "preview-1");
+    state
+        .apply(&m109_event(
+            1,
+            "event-1",
+            PreviewSyncEventType::IntentAccepted,
+        ))
+        .expect("first event");
+    let gap = m109_event(3, "event-3", PreviewSyncEventType::PlanRecorded);
+    assert!(matches!(
+        state.apply(&gap),
+        Err(nirman_preview::M108ReducerError::SequenceGap {
+            expected: 2,
+            received: 3
+        })
+    ));
+    assert_eq!(state.pending_event_sequences, vec![3]);
+    assert_eq!(state.stream_status, "GAP_BLOCKED");
+    state
+        .apply(&m109_event(
+            2,
+            "event-2",
+            PreviewSyncEventType::StreamReconnected,
+        ))
+        .expect("reconnect event during replay");
+    state
+        .apply(&m109_event(
+            3,
+            "event-3",
+            PreviewSyncEventType::PlanRecorded,
+        ))
+        .expect("pending event after replay");
+    state.complete_replay().expect("replay complete");
+    assert_eq!(state.stream_status, "CONNECTED");
+    assert_eq!(state.last_event_sequence, 3);
+}
+
+#[test]
+fn m109_stream_loss_freezes_projection_and_late_wrong_device_event_is_stale() {
+    let mut state = M108ProjectionState::new("p", "t", "preview-1");
+    state
+        .apply(&m109_event(
+            1,
+            "event-1",
+            PreviewSyncEventType::IntentAccepted,
+        ))
+        .expect("initial event");
+    state.mark_stream_lost();
+    assert_eq!(state.stream_status, "STALE_STREAM");
+    assert_eq!(
+        state.apply(&m109_event(
+            2,
+            "event-2",
+            PreviewSyncEventType::PlanRecorded
+        )),
+        Err(nirman_preview::M108ReducerError::StaleEvent)
+    );
+
+    let mut reconnect = m109_event(
+        2,
+        "event-reconnect",
+        PreviewSyncEventType::StreamReconnected,
+    );
+    reconnect.device_id = Some("device-a".into());
+    state.apply(&reconnect).expect("reconnect");
+    state.complete_replay().expect("complete reconnect replay");
+    let mut late = m109_event(3, "event-late", PreviewSyncEventType::LaunchObserved);
+    late.event_truth = PreviewEventTruth::Observed;
+    late.device_id = Some("device-b".into());
+    late.evidence_refs = vec!["evidence-late".into()];
+    assert_eq!(
+        state.apply(&late),
+        Err(nirman_preview::M108ReducerError::StaleEvent)
+    );
+}
+
+#[test]
+fn m109_equal_cursor_snapshot_requires_consistent_projection_dimensions() {
+    let mut state = M108ProjectionState::new("p", "t", "preview-1");
+    state
+        .apply(&m109_event(
+            1,
+            "event-1",
+            PreviewSyncEventType::IntentAccepted,
+        ))
+        .expect("initial event");
+    let mut consistent = state.clone();
+    consistent.stream_status = "REPLAYING".into();
+    state
+        .accept_equal_cursor_snapshot(&consistent)
+        .expect("consistent equal cursor enrichment");
+    let mut contradictory = consistent;
+    contradictory.build_status = "OBSERVED".into();
+    assert_eq!(
+        state.accept_equal_cursor_snapshot(&contradictory),
+        Err(nirman_preview::M108ReducerError::ContradictorySnapshot)
+    );
+}
+
+#[test]
+fn m109_evidence_record_requires_complete_durable_lineage() {
+    let valid = nirman_preview::PreviewSyncEvidenceRecord {
+        evidence_id: "evidence-1".into(),
+        project_id: "p".into(),
+        task_id: "t".into(),
+        event_sequence_start: 1,
+        event_sequence_end: 2,
+        projection_revision: 2,
+        preview_revision_id: "preview-1".into(),
+        project_revision_id: "source-1".into(),
+        checkpoint_id: "checkpoint-1".into(),
+        branch_id: Some("main".into()),
+        artifact_fingerprint: Some("sha256:apk".into()),
+        device_id: Some("device-1".into()),
+        runtime_session_id: Some("runtime-1".into()),
+        state_fingerprints: [("runtime".into(), "running".into())].into_iter().collect(),
+        event_ids: vec!["event-1".into(), "event-2".into()],
+        observation_refs: vec!["observation-1".into()],
+        evidence_refs: vec!["evidence-source-1".into()],
+        validation_refs: vec!["validation-1".into()],
+        invalidated_evidence_ids: vec![],
+        recovery_event_ids: vec![],
+        promotion_record_ref: Some("promotion-1".into()),
+        certification_decision_ref: Some("certification-1".into()),
+        completion_decision_ref: None,
+        truth: PreviewEventTruth::Verified,
+        captured_at_epoch_seconds: 10,
+    };
+    valid.validate().expect("complete evidence record");
+    let mut invalid = valid;
+    invalid.event_ids.clear();
+    assert!(invalid.validate().is_err());
+}
