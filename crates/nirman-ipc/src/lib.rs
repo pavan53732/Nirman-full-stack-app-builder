@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use nirman_android::{AndroidRequirementManifest, RepairSelection};
 use nirman_domain::{
     CommandEnvelope, CommandKind, ControlEvent, ProjectId, ProjectionSnapshot, Revision, TaskId,
 };
@@ -332,6 +333,26 @@ pub struct AndroidToolchainPreflightResultPayload {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidRequirementEvaluateCommandPayload {
+    pub workspace_root: String,
+    pub project_fingerprint: String,
+    pub source_revision: u64,
+    pub failure: Option<RepairFailurePayload>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RepairFailurePayload {
+    pub classifier: String,
+    pub detail: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidRequirementEvaluateResultPayload {
+    pub manifest: AndroidRequirementManifest,
+    pub repair_selection: Option<RepairSelection>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SubscriptionBootstrap {
     pub subscription: EventSubscription,
     pub snapshot: ProjectionSnapshot,
@@ -510,6 +531,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "ToolchainAuthority",
             "android.toolchain.preflight",
             "Android toolchain and environment projection",
+            "local",
+        ),
+        (
+            CommandKind::AndroidRequirementEvaluate,
+            "android.requirements.evaluate",
+            "AndroidRequirementAuthority",
+            "android.requirements.evaluate",
+            "Android requirement manifest and repair-selection projection",
             "local",
         ),
     ]
@@ -884,11 +913,17 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 18);
+        assert_eq!(command_registry().len(), 19);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()
             .any(|entry| entry.canonical_kind == "artifact.export"));
+        let m47 = command_registry()
+            .into_iter()
+            .find(|entry| entry.command_kind == CommandKind::AndroidRequirementEvaluate)
+            .expect("M47 command registry entry");
+        assert_eq!(m47.required_authority, "AndroidRequirementAuthority");
+        assert_eq!(m47.required_capability, "android.requirements.evaluate");
         let integration = AndroidServiceIntegration {
             request_schema_ref: "android.request.v1".into(),
             response_schema_ref: "android.response.v1".into(),

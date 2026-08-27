@@ -1,6 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nirman_android::{plan_preflight, CapabilityProbe, HostCapabilityProbe, PreflightStatus};
+use nirman_android::{
+    infer_android_requirement_manifest, plan_preflight, validate_android_workspace,
+    AndroidRepairRegistry, AndroidRequirementManifest, CapabilityProbe, HostCapabilityProbe,
+    PreflightStatus, RepairFailureFingerprint, RepairSelection,
+};
 use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
 };
@@ -10,7 +14,8 @@ use nirman_domain::{
 };
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
-    publish_control_event, AndroidToolchainPreflightCommandPayload,
+    publish_control_event, AndroidRequirementEvaluateCommandPayload,
+    AndroidRequirementEvaluateResultPayload, AndroidToolchainPreflightCommandPayload,
     AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
     CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
     EventSink, EventSubscription, ProviderExecuteCommandPayload, ProviderExecuteResultPayload,
@@ -19,7 +24,9 @@ use nirman_ipc::{
     SubscriptionControl, SubscriptionStatus, WorkspaceApplyPatchCommandPayload,
     WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
-use nirman_project::{MutationBroker, MutationError, MutationRequest};
+use nirman_project::{
+    IndexRequest, MutationBroker, MutationError, MutationRequest, ProjectIndexer,
+};
 use nirman_providers::{
     CancellationSignal, CredentialResolver, HttpProviderTransport, OsCredentialResolver,
     ProviderBridge, ProviderBridgeError, ProviderBridgeErrorKind, ProviderBridgeHandshake,
@@ -523,6 +530,288 @@ fn parse_android_construction_contract(
         )
     })?;
     Ok((payload.contract, contract_json))
+}
+
+#[derive(Debug)]
+struct PreparedM47 {
+    task_id: String,
+    source_revision: u64,
+    project_fingerprint: String,
+    manifest: AndroidRequirementManifest,
+    manifest_json: String,
+    repair_selection: Option<RepairSelection>,
+    repair_selection_json: Option<String>,
+}
+
+fn parse_android_requirement_evaluation(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedM47, ErrorEnvelope> {
+    let payload: AndroidRequirementEvaluateCommandPayload =
+        serde_json::from_str(&request.command.payload).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "android requirement evaluation payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "android requirement evaluation requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    if payload.workspace_root.trim().is_empty() || payload.project_fingerprint.trim().is_empty() {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "android requirement evaluation requires workspace and fingerprint identity",
+            false,
+            None,
+        ));
+    }
+    let authorized_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Environment,
+                "no authorized project workspace is configured",
+                true,
+                Some(
+                    "configure the project workspace before evaluating Android requirements".into(),
+                ),
+            )
+        })?;
+    let requested_root = PathBuf::from(&payload.workspace_root)
+        .canonicalize()
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::PermissionDenied,
+                ErrorCategory::Scope,
+                "requested workspace is unavailable",
+                false,
+                None,
+            )
+        })?;
+    if requested_root != authorized_root {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "requested workspace is outside the authorized project root",
+            false,
+            None,
+        ));
+    }
+    if payload.source_revision != state.plane.snapshot().current_source_revision.0 {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "Android requirement evaluation source revision is stale",
+            true,
+            Some("re-index the current authorized project revision".into()),
+        ));
+    }
+    let contract_json = state
+        .plane
+        .load_android_construction_contract(task_id.0.as_str())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "durable Android construction contract is unavailable",
+                true,
+                Some(
+                    "reconcile the durable construction contract before evaluating requirements"
+                        .into(),
+                ),
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "Android requirement evaluation requires a durable construction contract",
+                false,
+                Some(
+                    "create the Android construction contract before evaluating requirements"
+                        .into(),
+                ),
+            )
+        })?;
+    let contract: AndroidConstructionContract =
+        serde_json::from_str(&contract_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "durable Android construction contract could not be restored safely",
+                false,
+                None,
+            )
+        })?;
+    if contract.project_id != request.command.project_id || contract.task_id != *task_id {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "durable Android construction contract does not match the command scope",
+            false,
+            None,
+        ));
+    }
+    contract.validate().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "durable Android construction contract is invalid",
+            false,
+            None,
+        )
+    })?;
+    let index = ProjectIndexer::default()
+        .index_workspace(&requested_root, &IndexRequest::default())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "authorized Android workspace could not be indexed",
+                true,
+                Some("repair the local project workspace and retry indexing".into()),
+            )
+        })?;
+    if index.project_fingerprint != payload.project_fingerprint {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "Android requirement evaluation fingerprint is stale",
+            true,
+            Some("re-index the current authorized project workspace".into()),
+        ));
+    }
+    let workspace_validation =
+        validate_android_workspace(&requested_root, &index).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "Android manifest and resources could not be validated",
+                true,
+                Some("repair the local Android workspace and retry validation".into()),
+            )
+        })?;
+    if !workspace_validation.invalid_resource_files.is_empty()
+        || (workspace_validation.manifest_present && !workspace_validation.manifest_well_formed)
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "Android manifest or resource validation failed",
+            false,
+            Some(
+                "repair the manifest/resource files through the authorized mutation broker".into(),
+            ),
+        ));
+    }
+    let manifest = infer_android_requirement_manifest(&contract, &index, payload.source_revision)
+        .map_err(|error_value| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            error_value.to_string(),
+            false,
+            None,
+        )
+    })?;
+    let repair_selection = payload
+        .failure
+        .map(|failure| {
+            AndroidRepairRegistry::default().select(&RepairFailureFingerprint {
+                classifier: failure.classifier,
+                detail: failure.detail,
+            })
+        })
+        .transpose()
+        .map_err(|error_value| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                error_value.to_string(),
+                false,
+                Some("classify the failure with a registered Android repair pattern".into()),
+            )
+        })?;
+    let manifest_json = serde_json::to_string(&manifest).expect("M47 manifest serialization");
+    let repair_selection_json = repair_selection
+        .as_ref()
+        .map(|selection| serde_json::to_string(selection).expect("M47 selection serialization"));
+    Ok(PreparedM47 {
+        task_id: task_id.0.clone(),
+        source_revision: payload.source_revision,
+        project_fingerprint: payload.project_fingerprint,
+        manifest,
+        manifest_json,
+        repair_selection,
+        repair_selection_json,
+    })
 }
 
 #[derive(Debug)]
@@ -1657,6 +1946,12 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let requirement_evaluation = if request.command.kind == CommandKind::AndroidRequirementEvaluate
+    {
+        Some(parse_android_requirement_evaluation(state, &request)?)
+    } else {
+        None
+    };
     let settings_profile = if request.command.kind == CommandKind::SettingsUpdateProvider {
         Some(parse_provider_profile(&request)?)
     } else {
@@ -1794,8 +2089,22 @@ fn dispatch_request<S: EventSink>(
         }
     }
     let after_sequence = state.plane.snapshot().last_event_sequence;
-    let outcome = if let Some((_payload, preflight, preflight_json)) = toolchain_preflight.as_ref()
-    {
+    let outcome = if let Some(prepared) = requirement_evaluation.as_ref() {
+        state
+            .plane
+            .dispatch_with_result_and_android_requirement_manifest(
+                request.command.clone(),
+                &correlation_id,
+                Some((
+                    prepared.task_id.as_str(),
+                    prepared.manifest.manifest_id.as_str(),
+                    prepared.source_revision,
+                    prepared.project_fingerprint.as_str(),
+                    prepared.manifest_json.as_str(),
+                    prepared.repair_selection_json.as_deref(),
+                )),
+            )
+    } else if let Some((_payload, preflight, preflight_json)) = toolchain_preflight.as_ref() {
         state
             .plane
             .dispatch_with_result_and_android_toolchain_preflight(
@@ -2072,6 +2381,83 @@ fn dispatch_request<S: EventSink>(
                 evidence: outcome.evidence,
             })
             .expect("M46 mutation result serialization must remain infallible"),
+        );
+    }
+    if let Some(prepared) = requirement_evaluation.as_ref() {
+        let (manifest, repair_selection) = if command_response.status == ResponseStatus::Duplicate {
+            let task_id = request
+                .command
+                .task_id
+                .as_ref()
+                .expect("M47 task scope validated");
+            let stored = state
+                .plane
+                .load_android_requirement_manifest(task_id.0.as_str(), prepared.source_revision)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate Android requirement command has no durable manifest",
+                        true,
+                        Some("reconcile the command and requirement manifest records".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate Android requirement command has no durable manifest",
+                        true,
+                        Some("reconcile the command and requirement manifest records".into()),
+                    )
+                })?;
+            let manifest: AndroidRequirementManifest =
+                serde_json::from_str(&stored.0).map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable Android requirement manifest is corrupt",
+                        false,
+                        None,
+                    )
+                })?;
+            let repair_selection = if stored.2.is_empty() {
+                None
+            } else {
+                Some(serde_json::from_str(&stored.2).map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable Android repair selection is corrupt",
+                        false,
+                        None,
+                    )
+                })?)
+            };
+            (manifest, repair_selection)
+        } else {
+            (prepared.manifest.clone(), prepared.repair_selection.clone())
+        };
+        command_response.status = ResponseStatus::Completed;
+        command_response.result_schema_ref = Some("nirman.android_requirement_evaluate.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(AndroidRequirementEvaluateResultPayload {
+                manifest,
+                repair_selection,
+            })
+            .expect("M47 requirement result serialization must remain infallible"),
         );
     }
     if let Some((_payload, preflight, _preflight_json)) = toolchain_preflight.as_ref() {
@@ -3215,6 +3601,145 @@ mod tests {
             serde_json::to_vec_pretty(&evidence).expect("evidence json"),
         )
         .expect("evidence write");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn m47_authenticated_host_wires_m39_contract_to_m45_index_and_durable_manifest() {
+        let path = database_path();
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-m47-host-{}", now_epoch_seconds()));
+        fs::create_dir_all(workspace.join("app/src/main")).expect("workspace");
+        fs::write(
+            workspace.join("app/src/main/AndroidManifest.xml"),
+            r#"<manifest package="com.example.notes" xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Notes" /></manifest>"#,
+        )
+        .expect("manifest");
+        fs::write(
+            workspace.join("app/build.gradle.kts"),
+            "plugins { id(\"com.android.application\") }\n",
+        )
+        .expect("build file");
+        let mut state = test_state_at(&path);
+        state.authorized_workspace_root = Some(workspace.clone());
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+        let mut construction_request = request(
+            &state,
+            "m47-contract-command",
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            0,
+        );
+        construction_request.command.task_id = Some(contract.task_id.clone());
+        let contract_response = dispatch_request(&sink, &mut state, construction_request)
+            .expect("M39 contract response");
+        let index = ProjectIndexer::default()
+            .index_workspace(&workspace, &IndexRequest::default())
+            .expect("M45 index");
+        let mut requirement_request = request(
+            &state,
+            "m47-requirements-command",
+            CommandKind::AndroidRequirementEvaluate,
+            serde_json::to_string(&AndroidRequirementEvaluateCommandPayload {
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                project_fingerprint: index.project_fingerprint.clone(),
+                source_revision: state.plane.snapshot().current_source_revision.0,
+                failure: Some(nirman_ipc::RepairFailurePayload {
+                    classifier: "dependency.conflict".into(),
+                    detail: "fixture dependency conflict".into(),
+                }),
+            })
+            .expect("M47 payload"),
+            contract_response.projection_revision.0,
+        );
+        requirement_request.command.task_id = Some(contract.task_id.clone());
+        let requirement_response = dispatch_request(&sink, &mut state, requirement_request.clone())
+            .expect("M47 requirement response");
+        assert_eq!(requirement_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            requirement_response.result_schema_ref.as_deref(),
+            Some("nirman.android_requirement_evaluate.v1")
+        );
+        assert_eq!(
+            requirement_response.result_payload.as_ref().unwrap()["manifest"]
+                ["project_fingerprint"],
+            index.project_fingerprint
+        );
+        assert_eq!(
+            requirement_response.result_payload.as_ref().unwrap()["repair_selection"]["pattern_id"],
+            "repair.dependency.conflict"
+        );
+        let stored = state
+            .plane
+            .load_android_requirement_manifest(
+                &contract.task_id.0,
+                state.plane.snapshot().current_source_revision.0,
+            )
+            .expect("M47 durable lookup")
+            .expect("M47 durable manifest");
+        assert!(stored.0.contains("android.manifest.present"));
+        assert_eq!(stored.1, index.project_fingerprint);
+        assert!(stored.2.contains("repair.dependency.conflict"));
+        let duplicate = dispatch_request(&sink, &mut state, requirement_request)
+            .expect("M47 duplicate response");
+        assert_eq!(duplicate.status, ResponseStatus::Completed);
+        assert_eq!(
+            duplicate.result_payload, requirement_response.result_payload,
+            "duplicate reload must return the durable typed result"
+        );
+
+        let unauthorized =
+            std::env::temp_dir().join(format!("nirman-m47-unauthorized-{}", now_epoch_seconds()));
+        fs::create_dir_all(&unauthorized).expect("unauthorized workspace");
+        let mut bad_request = request(
+            &state,
+            "m47-unauthorized-command",
+            CommandKind::AndroidRequirementEvaluate,
+            serde_json::to_string(&AndroidRequirementEvaluateCommandPayload {
+                workspace_root: unauthorized.to_string_lossy().into_owned(),
+                project_fingerprint: index.project_fingerprint.clone(),
+                source_revision: state.plane.snapshot().current_source_revision.0,
+                failure: None,
+            })
+            .expect("bad M47 payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        bad_request.command.task_id = Some(contract.task_id.clone());
+        let bad_result = dispatch_request(&sink, &mut state, bad_request);
+        assert!(
+            bad_result.is_err(),
+            "M47 must reject an unauthorized workspace"
+        );
+        let evidence = serde_json::json!({
+            "schema": "nirman.m47.host_integration.v1",
+            "m39ContractAcceptedObserved": true,
+            "m45FingerprintObserved": !index.project_fingerprint.is_empty(),
+            "m47ManifestResponseObserved": requirement_response.result_schema_ref.as_deref() == Some("nirman.android_requirement_evaluate.v1"),
+            "durableManifestObserved": stored.0.contains("android.manifest.present"),
+            "durableRepairSelectionObserved": stored.2.contains("repair.dependency.conflict"),
+            "duplicateDurableReloadObserved": duplicate.result_payload == requirement_response.result_payload,
+            "unauthorizedWorkspaceRejectedObserved": bad_result.is_err(),
+            "m46MutationBrokerInvoked": false,
+            "androidBuildObserved": false,
+            "androidDeviceObserved": false,
+            "nativeWindowsTauriRuntimeObserved": false,
+            "evidenceStatus": "M47_HEADLESS_AUTHENTICATED_HOST_TRACE_ONLY"
+        });
+        let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/evidence/m47_host_integration.json");
+        fs::create_dir_all(evidence_path.parent().expect("evidence directory"))
+            .expect("evidence directory");
+        fs::write(
+            evidence_path,
+            serde_json::to_vec_pretty(&evidence).expect("evidence json"),
+        )
+        .expect("evidence write");
+        let _ = fs::remove_dir_all(workspace);
+        let _ = fs::remove_dir_all(unauthorized);
         let _ = fs::remove_file(path);
     }
 

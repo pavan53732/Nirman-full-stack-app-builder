@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nirman-android = { path = "../nirman-android" }
 nirman-domain = { path = "../nirman-domain" }
 nirman-project = { path = "../nirman-project" }
 serde = { version = "1", features = ["derive"] }

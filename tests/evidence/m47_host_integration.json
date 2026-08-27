@@ -1,0 +1,15 @@
+{
+  "androidBuildObserved": false,
+  "androidDeviceObserved": false,
+  "duplicateDurableReloadObserved": true,
+  "durableManifestObserved": true,
+  "durableRepairSelectionObserved": true,
+  "evidenceStatus": "M47_HEADLESS_AUTHENTICATED_HOST_TRACE_ONLY",
+  "m39ContractAcceptedObserved": true,
+  "m45FingerprintObserved": true,
+  "m46MutationBrokerInvoked": false,
+  "m47ManifestResponseObserved": true,
+  "nativeWindowsTauriRuntimeObserved": false,
+  "schema": "nirman.m47.host_integration.v1",
+  "unauthorizedWorkspaceRejectedObserved": true
+}

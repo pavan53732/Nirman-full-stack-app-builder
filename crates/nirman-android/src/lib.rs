@@ -1,10 +1,12 @@
 #![forbid(unsafe_code)]
 
 use nirman_domain::AndroidConstructionContract;
+use nirman_project::GraphNodeKind;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fmt;
+use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -751,6 +753,580 @@ fn hash_text(value: &str) -> String {
     use sha2::{Digest, Sha256};
     let digest = Sha256::digest(value.as_bytes());
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+pub const M47_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum AndroidRequirementKind {
+    Sdk,
+    Abi,
+    Manifest,
+    Permission,
+    Service,
+    Resource,
+    Accessibility,
+    Localization,
+    BackgroundBehavior,
+    Release,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum AndroidRequirementStatus {
+    Satisfied,
+    Missing,
+    Excessive,
+    Incompatible,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AndroidRequirement {
+    pub requirement_id: String,
+    pub kind: AndroidRequirementKind,
+    pub subject: String,
+    pub desired_value: String,
+    pub observed_value: Option<String>,
+    pub source: String,
+    pub confidence_percent: u8,
+    pub affected_files: Vec<String>,
+    pub validation_rule: String,
+    pub status: AndroidRequirementStatus,
+    pub evidence_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AndroidRequirementManifest {
+    pub schema_version: u16,
+    pub manifest_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub project_revision: u64,
+    pub project_fingerprint: String,
+    pub requirements: Vec<AndroidRequirement>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AndroidWorkspaceValidation {
+    pub manifest_path: String,
+    pub manifest_present: bool,
+    pub manifest_well_formed: bool,
+    pub resource_files: Vec<String>,
+    pub invalid_resource_files: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RepairPattern {
+    pub pattern_id: String,
+    pub classifier: String,
+    pub severity: String,
+    pub likely_cause: String,
+    pub allowed_scope: Vec<String>,
+    pub preconditions: Vec<String>,
+    pub operation_type: String,
+    pub retry_budget: u8,
+    pub checkpoint_rule: String,
+    pub validation_command: String,
+    pub evidence_requirements: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RepairFailureFingerprint {
+    pub classifier: String,
+    pub detail: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RepairSelection {
+    pub pattern_id: String,
+    pub classifier: String,
+    pub allowed_scope: Vec<String>,
+    pub preconditions: Vec<String>,
+    pub retry_budget: u8,
+    pub checkpoint_rule: String,
+    pub validation_command: String,
+    pub evidence_requirements: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AndroidRepairRegistry {
+    pub schema_version: u16,
+    pub registry_id: String,
+    pub patterns: Vec<RepairPattern>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum M47Error {
+    EmptyField(&'static str),
+    UnsupportedSchemaVersion,
+    InvalidConfidence,
+    InvalidRequirement(String),
+    DuplicateRequirement(String),
+    InvalidPattern(String),
+    UnknownFailureClassifier(String),
+}
+
+impl fmt::Display for M47Error {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyField(field) => write!(formatter, "M47 field is empty: {field}"),
+            Self::UnsupportedSchemaVersion => {
+                formatter.write_str("M47 schema version is unsupported")
+            }
+            Self::InvalidConfidence => formatter.write_str("M47 confidence is outside 0..=100"),
+            Self::InvalidRequirement(id) => write!(formatter, "M47 requirement is invalid: {id}"),
+            Self::DuplicateRequirement(id) => {
+                write!(formatter, "M47 requirement is duplicated: {id}")
+            }
+            Self::InvalidPattern(id) => write!(formatter, "M47 repair pattern is invalid: {id}"),
+            Self::UnknownFailureClassifier(classifier) => {
+                write!(
+                    formatter,
+                    "M47 failure classifier is not registered: {classifier}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for M47Error {}
+
+impl AndroidRequirementManifest {
+    pub fn validate(&self) -> Result<(), M47Error> {
+        if self.schema_version != M47_SCHEMA_VERSION {
+            return Err(M47Error::UnsupportedSchemaVersion);
+        }
+        for (field, value) in [
+            ("manifestId", self.manifest_id.as_str()),
+            ("projectId", self.project_id.as_str()),
+            ("taskId", self.task_id.as_str()),
+            ("projectFingerprint", self.project_fingerprint.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(M47Error::EmptyField(field));
+            }
+        }
+        let mut ids = BTreeSet::new();
+        for requirement in &self.requirements {
+            if requirement.requirement_id.trim().is_empty()
+                || requirement.subject.trim().is_empty()
+                || requirement.desired_value.trim().is_empty()
+                || requirement.source.trim().is_empty()
+                || requirement.validation_rule.trim().is_empty()
+            {
+                return Err(M47Error::InvalidRequirement(
+                    requirement.requirement_id.clone(),
+                ));
+            }
+            if requirement.confidence_percent > 100 {
+                return Err(M47Error::InvalidConfidence);
+            }
+            if !ids.insert(requirement.requirement_id.clone()) {
+                return Err(M47Error::DuplicateRequirement(
+                    requirement.requirement_id.clone(),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl AndroidRepairRegistry {
+    pub fn validate(&self) -> Result<(), M47Error> {
+        if self.schema_version != M47_SCHEMA_VERSION {
+            return Err(M47Error::UnsupportedSchemaVersion);
+        }
+        if self.registry_id.trim().is_empty() {
+            return Err(M47Error::EmptyField("registryId"));
+        }
+        let mut ids = BTreeSet::new();
+        for pattern in &self.patterns {
+            if pattern.pattern_id.trim().is_empty()
+                || pattern.classifier.trim().is_empty()
+                || pattern.likely_cause.trim().is_empty()
+                || pattern.operation_type.trim().is_empty()
+                || pattern.checkpoint_rule.trim().is_empty()
+                || pattern.validation_command.trim().is_empty()
+                || pattern.retry_budget == 0
+            {
+                return Err(M47Error::InvalidPattern(pattern.pattern_id.clone()));
+            }
+            if !ids.insert(pattern.pattern_id.clone()) {
+                return Err(M47Error::InvalidPattern(pattern.pattern_id.clone()));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn select(&self, failure: &RepairFailureFingerprint) -> Result<RepairSelection, M47Error> {
+        self.validate()?;
+        let pattern = self
+            .patterns
+            .iter()
+            .find(|pattern| pattern.classifier == failure.classifier)
+            .ok_or_else(|| M47Error::UnknownFailureClassifier(failure.classifier.clone()))?;
+        Ok(RepairSelection {
+            pattern_id: pattern.pattern_id.clone(),
+            classifier: pattern.classifier.clone(),
+            allowed_scope: pattern.allowed_scope.clone(),
+            preconditions: pattern.preconditions.clone(),
+            retry_budget: pattern.retry_budget,
+            checkpoint_rule: pattern.checkpoint_rule.clone(),
+            validation_command: pattern.validation_command.clone(),
+            evidence_requirements: pattern.evidence_requirements.clone(),
+        })
+    }
+}
+
+impl Default for AndroidRepairRegistry {
+    fn default() -> Self {
+        let families = [
+            (
+                "toolchain.missing",
+                "repair locked toolchain component",
+                "toolchain",
+            ),
+            (
+                "dependency.conflict",
+                "resolve dependency graph conflict",
+                "dependencies",
+            ),
+            (
+                "source.build.failure",
+                "repair source or build configuration",
+                "source",
+            ),
+            (
+                "runtime.crash",
+                "repair startup or runtime failure",
+                "runtime",
+            ),
+            ("visual.failure", "repair visual regression", "preview"),
+            (
+                "accessibility.failure",
+                "repair accessibility finding",
+                "accessibility",
+            ),
+            ("emulator.failure", "repair emulator availability", "device"),
+            ("adb.failure", "repair ADB connectivity", "device"),
+            ("packaging.failure", "repair APK packaging", "packaging"),
+            ("signing.failure", "repair signing configuration", "signing"),
+        ];
+        let patterns = families
+            .into_iter()
+            .map(|(classifier, cause, scope)| RepairPattern {
+                pattern_id: format!("repair.{classifier}"),
+                classifier: classifier.into(),
+                severity: "blocking".into(),
+                likely_cause: cause.into(),
+                allowed_scope: vec![scope.into()],
+                preconditions: vec![
+                    "matching-failure-fingerprint".into(),
+                    "active-checkpoint".into(),
+                ],
+                operation_type: "structured-authorized-repair".into(),
+                retry_budget: 3,
+                checkpoint_rule: "restore-before-repair-and-revalidate".into(),
+                validation_command: "run-independent-validation".into(),
+                evidence_requirements: vec![
+                    "failure-fingerprint".into(),
+                    "validation-result".into(),
+                ],
+            })
+            .collect();
+        Self {
+            schema_version: M47_SCHEMA_VERSION,
+            registry_id: "android-repair-registry-v1".into(),
+            patterns,
+        }
+    }
+}
+
+pub fn infer_android_requirement_manifest(
+    contract: &AndroidConstructionContract,
+    index: &nirman_project::ProjectIndex,
+    project_revision: u64,
+) -> Result<AndroidRequirementManifest, M47Error> {
+    contract
+        .validate()
+        .map_err(|_| M47Error::InvalidRequirement("contract".into()))?;
+    if contract.target_platforms != vec!["android"] {
+        return Err(M47Error::InvalidRequirement("targetPlatforms".into()));
+    }
+    let mut requirements = Vec::new();
+    let has_manifest = index
+        .files
+        .iter()
+        .any(|file| file.relative_path.ends_with("AndroidManifest.xml"));
+    requirements.push(AndroidRequirement {
+        requirement_id: "android.manifest.present".into(),
+        kind: AndroidRequirementKind::Manifest,
+        subject: "AndroidManifest.xml".into(),
+        desired_value: "present".into(),
+        observed_value: Some(if has_manifest { "present" } else { "missing" }.into()),
+        source: "M39 AndroidConstructionContract and M45 ProjectIndex".into(),
+        confidence_percent: 100,
+        affected_files: vec!["app/src/main/AndroidManifest.xml".into()],
+        validation_rule: "manifest file must exist in the Android source set".into(),
+        status: if has_manifest {
+            AndroidRequirementStatus::Satisfied
+        } else {
+            AndroidRequirementStatus::Missing
+        },
+        evidence_ids: vec!["m47.requirement.manifest".into()],
+    });
+    let manifest_permissions = index
+        .graph
+        .nodes
+        .iter()
+        .filter(|node| matches!(node.kind, GraphNodeKind::Permission))
+        .map(|node| node.label.clone())
+        .collect::<BTreeSet<_>>();
+    let requested_permissions = contract
+        .device_matrix
+        .iter()
+        .flat_map(|device| device.permissions.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    for permission in requested_permissions.union(&manifest_permissions) {
+        let requested = requested_permissions.contains(permission);
+        let observed = manifest_permissions.contains(permission);
+        requirements.push(AndroidRequirement {
+            requirement_id: format!("android.permission.{permission}"),
+            kind: AndroidRequirementKind::Permission,
+            subject: permission.clone(),
+            desired_value: if requested {
+                "declared"
+            } else {
+                "not-declared"
+            }
+            .into(),
+            observed_value: Some(if observed { "declared" } else { "absent" }.into()),
+            source: "M39 device matrix and M45 permission graph".into(),
+            confidence_percent: 100,
+            affected_files: vec!["app/src/main/AndroidManifest.xml".into()],
+            validation_rule: "declared permissions must match the requested permission profile"
+                .into(),
+            status: if requested == observed {
+                AndroidRequirementStatus::Satisfied
+            } else if observed {
+                AndroidRequirementStatus::Excessive
+            } else {
+                AndroidRequirementStatus::Missing
+            },
+            evidence_ids: vec![format!("m47.requirement.permission.{permission}")],
+        });
+    }
+    let mut requirements = requirements;
+    let generic_requirements = [
+        (
+            "android.sdk",
+            AndroidRequirementKind::Sdk,
+            "compileSdk",
+            "declared by technology plan and device API level",
+            vec!["build.gradle.kts"],
+        ),
+        (
+            "android.abi",
+            AndroidRequirementKind::Abi,
+            "selected ABI",
+            "declared by device matrix",
+            vec!["device-profile"],
+        ),
+        (
+            "android.service",
+            AndroidRequirementKind::Service,
+            "Android services",
+            "declared by construction requirements when applicable",
+            vec!["AndroidManifest.xml"],
+        ),
+        (
+            "android.resource",
+            AndroidRequirementKind::Resource,
+            "Android resources",
+            "declared by UI/assets requirements and indexed resource files",
+            vec!["res/"],
+        ),
+        (
+            "android.accessibility",
+            AndroidRequirementKind::Accessibility,
+            "accessibility behavior",
+            "declared by construction requirements when applicable",
+            vec!["res/", "app/src/"],
+        ),
+        (
+            "android.localization",
+            AndroidRequirementKind::Localization,
+            "localization behavior",
+            "declared by device locale and construction requirements",
+            vec!["res/"],
+        ),
+        (
+            "android.background-behavior",
+            AndroidRequirementKind::BackgroundBehavior,
+            "background behavior",
+            "declared by construction requirements when applicable",
+            vec!["app/src/"],
+        ),
+        (
+            "android.release",
+            AndroidRequirementKind::Release,
+            "APK delivery",
+            "required by artifact model",
+            vec!["artifact-model"],
+        ),
+    ];
+    let contract_text = format!(
+        "{} {} {} {}",
+        contract.user_intent,
+        contract
+            .features
+            .iter()
+            .map(|item| item.statement.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+        contract
+            .ui
+            .iter()
+            .map(|item| item.statement.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+        contract
+            .android_requirements
+            .iter()
+            .map(|item| item.statement.as_str())
+            .collect::<Vec<_>>()
+            .join(" ")
+    )
+    .to_ascii_lowercase();
+    for (requirement_id, kind, subject, desired, paths) in generic_requirements {
+        let explicitly_requested = match kind {
+            AndroidRequirementKind::Service => contract_text.contains("service"),
+            AndroidRequirementKind::Resource => {
+                !contract.assets.is_empty() || contract_text.contains("resource")
+            }
+            AndroidRequirementKind::Accessibility => contract_text.contains("accessib"),
+            AndroidRequirementKind::Localization => {
+                contract
+                    .device_matrix
+                    .iter()
+                    .any(|device| !device.locale.is_empty())
+                    || contract_text.contains("localiz")
+                    || contract_text.contains("locale")
+            }
+            AndroidRequirementKind::BackgroundBehavior => {
+                contract_text.contains("background") || contract_text.contains("doze")
+            }
+            _ => true,
+        };
+        let resource_nodes = index
+            .graph
+            .nodes
+            .iter()
+            .filter(|node| node.kind == GraphNodeKind::Resource)
+            .count();
+        let observed = match kind {
+            AndroidRequirementKind::Resource if resource_nodes > 0 => {
+                Some(format!("{resource_nodes} indexed resource node(s)"))
+            }
+            AndroidRequirementKind::Localization => Some(
+                contract
+                    .device_matrix
+                    .iter()
+                    .map(|device| device.locale.as_str())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ),
+            _ => None,
+        };
+        let status = if matches!(kind, AndroidRequirementKind::Resource) && explicitly_requested {
+            if resource_nodes > 0 {
+                AndroidRequirementStatus::Satisfied
+            } else {
+                AndroidRequirementStatus::Missing
+            }
+        } else {
+            AndroidRequirementStatus::Unknown
+        };
+        requirements.push(AndroidRequirement {
+            requirement_id: requirement_id.into(),
+            kind,
+            subject: subject.into(),
+            desired_value: desired.into(),
+            observed_value: observed,
+            source: "M39 AndroidConstructionContract and M45 ProjectIndex".into(),
+            confidence_percent: if explicitly_requested { 100 } else { 60 },
+            affected_files: paths.into_iter().map(String::from).collect(),
+            validation_rule: "requirement must be independently validated before promotion".into(),
+            status,
+            evidence_ids: vec![format!("m47.requirement.{requirement_id}")],
+        });
+    }
+    requirements.sort_by(|left, right| left.requirement_id.cmp(&right.requirement_id));
+    let manifest = AndroidRequirementManifest {
+        schema_version: M47_SCHEMA_VERSION,
+        manifest_id: format!(
+            "requirements-{}-{}",
+            contract.project_id.0, contract.task_id.0
+        ),
+        project_id: contract.project_id.0.clone(),
+        task_id: contract.task_id.0.clone(),
+        project_revision,
+        project_fingerprint: index.project_fingerprint.clone(),
+        requirements,
+    };
+    manifest.validate()?;
+    Ok(manifest)
+}
+
+pub fn validate_android_workspace(
+    root: impl AsRef<Path>,
+    index: &nirman_project::ProjectIndex,
+) -> std::io::Result<AndroidWorkspaceValidation> {
+    let root = root.as_ref().canonicalize()?;
+    let manifest_relative = index
+        .files
+        .iter()
+        .find(|file| file.relative_path.ends_with("AndroidManifest.xml"))
+        .map(|file| file.relative_path.clone())
+        .unwrap_or_else(|| "app/src/main/AndroidManifest.xml".into());
+    let manifest_path = root.join(&manifest_relative);
+    let manifest_present = manifest_path.is_file();
+    let manifest_well_formed = if manifest_present {
+        let text = fs::read_to_string(&manifest_path)?;
+        let trimmed = text.trim();
+        trimmed.starts_with("<manifest")
+            && trimmed.contains("</manifest>")
+            && trimmed.contains("<application")
+    } else {
+        false
+    };
+    let mut resource_files = Vec::new();
+    let mut invalid_resource_files = Vec::new();
+    for file in &index.files {
+        if file.kind != nirman_project::FileKind::Resource {
+            continue;
+        }
+        let path = file.relative_path.clone();
+        let unsafe_path = path.starts_with('/')
+            || path.split('/').any(|component| component == "..")
+            || path.contains('\\');
+        if unsafe_path {
+            invalid_resource_files.push(path);
+        } else {
+            resource_files.push(path);
+        }
+    }
+    resource_files.sort();
+    invalid_resource_files.sort();
+    Ok(AndroidWorkspaceValidation {
+        manifest_path: manifest_relative,
+        manifest_present,
+        manifest_well_formed,
+        resource_files,
+        invalid_resource_files,
+    })
 }
 
 #[cfg(test)]

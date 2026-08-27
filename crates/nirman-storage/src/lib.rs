@@ -88,6 +88,17 @@ impl Ledger {
                  PRIMARY KEY (project_id, task_id),
                  UNIQUE (project_id, preflight_id)
              );
+             CREATE TABLE IF NOT EXISTS android_requirement_manifests (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 manifest_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 project_fingerprint TEXT NOT NULL,
+                 manifest_json TEXT NOT NULL,
+                 repair_selection_json TEXT,
+                 PRIMARY KEY (project_id, task_id, source_revision),
+                 UNIQUE (project_id, manifest_id)
+             );
              CREATE TABLE IF NOT EXISTS provider_usage (
                  request_id TEXT PRIMARY KEY,
                  correlation_id TEXT NOT NULL,
@@ -393,6 +404,136 @@ impl Ledger {
             )?;
         }
         transaction.commit()
+    }
+
+    pub fn commit_event_projection_and_command_and_android_requirement_manifest(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        manifest: Option<(&str, &str, u64, &str, &str, Option<&str>)>,
+    ) -> rusqlite::Result<()> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id) DO UPDATE SET
+               projection_revision = excluded.projection_revision,
+               task_state = excluded.task_state,
+               continuity_state = excluded.continuity_state,
+               preview_truth = excluded.preview_truth,
+               source_revision = excluded.source_revision,
+               last_event_sequence = excluded.last_event_sequence,
+               last_known_good_ref = excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                command_id,
+                snapshot.project_id.0,
+                idempotency_key,
+                request_fingerprint,
+                correlation_id,
+                snapshot_json,
+            ],
+        )?;
+        if let Some((
+            task_id,
+            manifest_id,
+            source_revision,
+            project_fingerprint,
+            manifest_json,
+            repair_selection_json,
+        )) = manifest
+        {
+            transaction.execute(
+                "INSERT INTO android_requirement_manifests (project_id, task_id, manifest_id, source_revision, project_fingerprint, manifest_json, repair_selection_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                 ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET
+                   manifest_id = excluded.manifest_id,
+                   project_fingerprint = excluded.project_fingerprint,
+                   manifest_json = excluded.manifest_json,
+                   repair_selection_json = excluded.repair_selection_json",
+                params![
+                    snapshot.project_id.0,
+                    task_id,
+                    manifest_id,
+                    source_revision,
+                    project_fingerprint,
+                    manifest_json,
+                    repair_selection_json,
+                ],
+            )?;
+        }
+        transaction.commit()
+    }
+
+    pub fn save_android_requirement_manifest(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        manifest_id: &str,
+        source_revision: u64,
+        project_fingerprint: &str,
+        manifest_json: &str,
+        repair_selection_json: Option<&str>,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_requirement_manifests (project_id, task_id, manifest_id, source_revision, project_fingerprint, manifest_json, repair_selection_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET
+               manifest_id = excluded.manifest_id,
+               project_fingerprint = excluded.project_fingerprint,
+               manifest_json = excluded.manifest_json,
+               repair_selection_json = excluded.repair_selection_json",
+            params![project_id.0, task_id, manifest_id, source_revision, project_fingerprint, manifest_json, repair_selection_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_android_requirement_manifest(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+    ) -> rusqlite::Result<Option<(String, String, String)>> {
+        self.connection
+            .query_row(
+                "SELECT manifest_json, project_fingerprint, COALESCE(repair_selection_json, '')
+                 FROM android_requirement_manifests
+                 WHERE project_id = ?1 AND task_id = ?2 AND source_revision = ?3",
+                params![project_id.0, task_id, source_revision],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()
     }
 
     pub fn commit_event_projection_and_command(

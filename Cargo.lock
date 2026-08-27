@@ -2059,6 +2059,7 @@ name = "nirman-android"
 version = "0.1.0"
 dependencies = [
  "nirman-domain",
+ "nirman-project",
  "serde",
  "serde_json",
  "sha2",
@@ -2113,6 +2114,7 @@ version = "0.1.0"
 name = "nirman-ipc"
 version = "0.1.0"
 dependencies = [
+ "nirman-android",
  "nirman-control-plane",
  "nirman-domain",
  "nirman-project",

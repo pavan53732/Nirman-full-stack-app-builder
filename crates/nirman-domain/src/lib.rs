@@ -450,6 +450,7 @@ pub enum CommandKind {
     SettingsUpdateProvider,
     AndroidConstructionCreate,
     AndroidToolchainPreflight,
+    AndroidRequirementEvaluate,
     ProviderExecute,
     SubmitInstruction,
     Reconnect,
