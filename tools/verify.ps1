@@ -16,6 +16,7 @@ cargo test --workspace --exclude nirman-desktop
 cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 cargo test -p nirman-control-plane --test m2_vertical_trace
 cargo test -p nirman-domain --test m39_contract
+cargo test -p nirman-android
 cargo test -p nirman-control-plane --test m115_final_acceptance
 cargo test -p nirman-providers --test m3_acceptance
 cargo test -p nirman-desktop --bin nirman-desktop -- --nocapture
@@ -25,6 +26,7 @@ cargo test -p nirman-ipc --test m115_acceptance
 & $Python.Source tools/check_desktop_ipc_evidence.py
 & $Python.Source tools/check_m3_provider_evidence.py
 & $Python.Source tools/check_m39_evidence.py
+& $Python.Source tools/check_m43_evidence.py
 Push-Location apps/desktop
 pnpm install --frozen-lockfile
 Pop-Location

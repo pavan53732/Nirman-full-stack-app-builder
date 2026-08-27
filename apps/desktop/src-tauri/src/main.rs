@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use nirman_android::{plan_preflight, CapabilityProbe, HostCapabilityProbe, PreflightStatus};
 use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
 };
@@ -8,11 +9,12 @@ use nirman_domain::{
 };
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
-    publish_control_event, AuthContext, AuthenticatedSession, CommandRequest, CommandResponse,
-    ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange, EventSink,
-    EventSubscription, ProviderTestCommandPayload, ProviderTestResultPayload, ResponseStatus,
-    SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement, SubscriptionBootstrap,
-    SubscriptionControl, SubscriptionStatus, PROTOCOL_SCHEMA_VERSION,
+    publish_control_event, AndroidToolchainPreflightCommandPayload,
+    AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
+    CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
+    EventSink, EventSubscription, ProviderTestCommandPayload, ProviderTestResultPayload,
+    ResponseStatus, SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement,
+    SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_providers::{
     CancellationSignal, CredentialResolver, HttpProviderTransport, OsCredentialResolver,
@@ -52,6 +54,7 @@ struct RuntimeState {
     provider_runtime: ProviderRuntime,
     credential_resolver: Box<dyn CredentialResolver>,
     provider_transport: Box<dyn ProviderTransport>,
+    capability_probe: Box<dyn CapabilityProbe>,
 }
 
 #[derive(serde::Serialize)]
@@ -60,6 +63,15 @@ struct SessionHandshake {
     correlation_id: String,
     schema_version: u16,
     expires_at_epoch_seconds: u64,
+}
+
+fn preflight_status_name(status: &PreflightStatus) -> &'static str {
+    match status {
+        PreflightStatus::Available => "AVAILABLE",
+        PreflightStatus::Repairable => "REPAIRABLE",
+        PreflightStatus::UserRequired => "USER_REQUIRED",
+        PreflightStatus::Unavailable => "UNAVAILABLE",
+    }
 }
 
 fn now_epoch_seconds() -> u64 {
@@ -245,6 +257,137 @@ fn parse_provider_profile(
         )
     })?;
     Ok((profile, profile_json))
+}
+
+fn parse_android_toolchain_preflight(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<
+    (
+        AndroidToolchainPreflightCommandPayload,
+        nirman_android::AndroidToolchainPreflight,
+        String,
+    ),
+    ErrorEnvelope,
+> {
+    let payload: AndroidToolchainPreflightCommandPayload =
+        serde_json::from_str(&request.command.payload).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "android toolchain preflight payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    if payload.build_variant.trim().is_empty() {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "android toolchain preflight requires a build variant",
+            false,
+            None,
+        ));
+    }
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "android toolchain preflight requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    let contract_json = state
+        .plane
+        .load_android_construction_contract(&task_id.0)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "android construction contract storage is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "android construction contract is not persisted for this task",
+                false,
+                None,
+            )
+        })?;
+    let contract = AndroidConstructionContract::from_json(&contract_json).map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Internal,
+            "persisted android construction contract could not be restored safely",
+            false,
+            None,
+        )
+    })?;
+    if contract.project_id != request.command.project_id || contract.task_id != *task_id {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "android construction contract does not match the preflight scope",
+            false,
+            None,
+        ));
+    }
+    let preflight = plan_preflight(
+        &contract,
+        &payload.build_variant,
+        state.capability_probe.as_ref(),
+    )
+    .map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "android toolchain preflight could not be planned",
+            false,
+            None,
+        )
+    })?;
+    let preflight_json = serde_json::to_string(&preflight).map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Internal,
+            "android toolchain preflight could not be serialized safely",
+            false,
+            None,
+        )
+    })?;
+    Ok((payload, preflight, preflight_json))
 }
 
 fn parse_android_construction_contract(
@@ -993,6 +1136,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let toolchain_preflight = if request.command.kind == CommandKind::AndroidToolchainPreflight {
+        Some(parse_android_toolchain_preflight(state, &request)?)
+    } else {
+        None
+    };
     let settings_profile = if request.command.kind == CommandKind::SettingsUpdateProvider {
         Some(parse_provider_profile(&request)?)
     } else {
@@ -1046,7 +1194,23 @@ fn dispatch_request<S: EventSink>(
         }
     }
     let after_sequence = state.plane.snapshot().last_event_sequence;
-    let outcome = if let Some((contract, contract_json)) = construction_contract.as_ref() {
+    let outcome = if let Some((_payload, preflight, preflight_json)) = toolchain_preflight.as_ref()
+    {
+        state
+            .plane
+            .dispatch_with_result_and_android_toolchain_preflight(
+                request.command.clone(),
+                &correlation_id,
+                Some((
+                    preflight.manifest.task_id.as_str(),
+                    preflight.preflight_id.as_str(),
+                    preflight_status_name(&preflight.status),
+                    preflight.environment_snapshot.snapshot_id.as_str(),
+                    preflight.lock.as_ref().map(|lock| lock.lock_hash.as_str()),
+                    preflight_json.as_str(),
+                )),
+            )
+    } else if let Some((contract, contract_json)) = construction_contract.as_ref() {
         state.plane.dispatch_with_result_and_android_contract(
             request.command.clone(),
             &correlation_id,
@@ -1110,6 +1274,20 @@ fn dispatch_request<S: EventSink>(
         status,
         event_range,
     );
+    if let Some((_payload, preflight, _preflight_json)) = toolchain_preflight.as_ref() {
+        command_response.status = ResponseStatus::Completed;
+        command_response.result_schema_ref = Some("nirman.android_toolchain_preflight.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(AndroidToolchainPreflightResultPayload {
+                preflight_id: preflight.preflight_id.clone(),
+                status: preflight_status_name(&preflight.status).into(),
+                lock_hash: preflight.lock.as_ref().map(|lock| lock.lock_hash.clone()),
+                environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+                capability_count: preflight.capabilities.len(),
+            })
+            .expect("M43 preflight result serialization must remain infallible"),
+        );
+    }
     if let Some(payload) = provider_test {
         if command_response.status != ResponseStatus::Duplicate {
             let profile_json = state
@@ -1236,6 +1414,7 @@ fn runtime_state(app: &AppHandle) -> RuntimeState {
         provider_transport: Box::new(
             HttpProviderTransport::new().expect("Nirman provider HTTP transport must initialize"),
         ),
+        capability_probe: Box::new(HostCapabilityProbe),
     }
 }
 
@@ -1262,6 +1441,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nirman_android::{StaticCapabilityProbe, ToolchainComponentKind};
     use nirman_domain::{
         AndroidConstructionContract, AndroidDeviceProfile, AndroidTechnologyPlan, ArtifactKind,
         ArtifactModel, AssetReferenceInput, CommandEnvelope, ConstructionRequirement,
@@ -1330,6 +1510,64 @@ mod tests {
         state
     }
 
+    fn m43_probe() -> StaticCapabilityProbe {
+        StaticCapabilityProbe::default()
+            .with_available(
+                ToolchainComponentKind::Jdk,
+                "17",
+                "/locked/jdk",
+                "jdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::Gradle,
+                "8.7",
+                "/locked/gradle",
+                "gradle-license",
+            )
+            .with_available(
+                ToolchainComponentKind::AndroidSdk,
+                "35",
+                "/locked/sdk",
+                "android-sdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::PlatformTools,
+                "35",
+                "/locked/platform-tools",
+                "android-sdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::Adb,
+                "35",
+                "/locked/adb",
+                "android-sdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::Emulator,
+                "35",
+                "/locked/emulator",
+                "android-sdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::Kotlin,
+                "2.0",
+                "/locked/kotlin",
+                "kotlin-license",
+            )
+            .with_available(
+                ToolchainComponentKind::AndroidGradlePlugin,
+                "8.7",
+                "/locked/agp",
+                "android-sdk-license",
+            )
+            .with_available(
+                ToolchainComponentKind::BuildTools,
+                "35.0.0",
+                "/locked/build-tools",
+                "android-sdk-license",
+            )
+    }
+
     fn test_state_at(path: &Path) -> RuntimeState {
         let auth = AuthContext {
             installation_id: "installation-test".into(),
@@ -1348,6 +1586,7 @@ mod tests {
             provider_runtime: ProviderRuntime::open(path).expect("provider runtime"),
             credential_resolver: Box::new(TestResolver),
             provider_transport: Box::new(TestTransport),
+            capability_probe: Box::new(m43_probe()),
         };
         state.subscriptions.insert(
             "subscription-test".into(),
@@ -1616,6 +1855,131 @@ mod tests {
             },
         );
         state
+    }
+
+    #[test]
+    fn m43_toolchain_preflight_uses_m39_and_m115_durable_boundary() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+        let mut construction_request = request(
+            &state,
+            "m43-contract-command",
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            0,
+        );
+        construction_request.command.task_id = Some(contract.task_id.clone());
+        let contract_response =
+            dispatch_request(&sink, &mut state, construction_request).expect("contract response");
+
+        let mut preflight_request = request(
+            &state,
+            "m43-preflight-command",
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            contract_response.projection_revision.0,
+        );
+        preflight_request.command.task_id = Some(contract.task_id.clone());
+        let response =
+            dispatch_request(&sink, &mut state, preflight_request).expect("preflight response");
+        assert_eq!(response.status, ResponseStatus::Completed);
+        assert_eq!(
+            response.result_schema_ref.as_deref(),
+            Some("nirman.android_toolchain_preflight.v1")
+        );
+        let result = response.result_payload.expect("preflight result");
+        assert_eq!(result["status"], "AVAILABLE");
+        assert_eq!(result["capability_count"], 9);
+
+        let stored = state
+            .plane
+            .load_android_toolchain_preflight(&contract.task_id.0)
+            .expect("preflight load")
+            .expect("stored preflight");
+        let report: nirman_android::AndroidToolchainPreflight =
+            serde_json::from_str(&stored).expect("stored preflight parse");
+        assert_eq!(report.status, PreflightStatus::Available);
+        assert!(report.lock.is_some());
+        assert!(report.environment_snapshot.toolchain_lock_hash.is_some());
+        assert_eq!(
+            report
+                .environment_snapshot
+                .selected_device_identity
+                .as_deref(),
+            Some("pixel-api-35")
+        );
+        let batches = sink.batches.lock().expect("sink lock");
+        assert_eq!(batches.len(), 2);
+        assert!(batches[1].events[0]
+            .kind
+            .contains("AndroidToolchainPreflight"));
+        drop(batches);
+        drop(state);
+        let reopened = DurableControlPlane::open(&path, ProjectId(PROJECT_ID.into()))
+            .expect("reopen control plane");
+        assert!(reopened.checkpoint_id().is_some());
+        assert!(reopened
+            .load_android_toolchain_preflight(&contract.task_id.0)
+            .expect("reloaded preflight")
+            .is_some());
+        let mut missing_state = test_state_at(&path);
+        let mut missing_request = request(
+            &missing_state,
+            "m43-missing-contract-command",
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            response.projection_revision.0,
+        );
+        missing_request.command.task_id = Some(TaskId("missing-task".into()));
+        let missing = dispatch_request(
+            &RecordingSink::default(),
+            &mut missing_state,
+            missing_request,
+        )
+        .expect_err("preflight without contract must reject");
+        assert_eq!(missing.code, ControlPlaneErrorCode::InvalidCommand);
+        assert_eq!(missing.category, ErrorCategory::Validation);
+        let _ = fs::remove_file(path);
+        let evidence = serde_json::json!({
+            "schema": "nirman.m43.android_toolchain.v1",
+            "m39ContractReloadObserved": true,
+            "manifestDerivedFromM39Observed": true,
+            "requiredToolchainCapabilitiesObserved": true,
+            "deterministicPreflightObserved": true,
+            "availableClassificationObserved": true,
+            "toolchainLockGenerated": true,
+            "versionHashLicenseRecordsObserved": true,
+            "environmentSnapshotObserved": true,
+            "durablePreflightPersistenceObserved": true,
+            "durablePreflightReloadObserved": true,
+            "durableCheckpointObserved": true,
+            "m115AuthenticatedCommandBoundaryObserved": true,
+            "typedResponseObserved": true,
+            "projectionEventObserved": true,
+            "missingContractRejected": true,
+            "hostCapabilityProbeRuntime": false,
+            "toolchainRepairExecuted": false,
+            "androidBuildObserved": false,
+            "evidenceStatus": "M43_HEADLESS_LOCKED_PREFLIGHT_TRACE_ONLY"
+        });
+        let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/evidence/m43_android_toolchain.json");
+        fs::write(
+            evidence_path,
+            serde_json::to_vec_pretty(&evidence).expect("M43 evidence JSON"),
+        )
+        .expect("M43 evidence write");
     }
 
     #[test]

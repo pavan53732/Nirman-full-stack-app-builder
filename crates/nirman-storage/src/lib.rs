@@ -76,6 +76,17 @@ impl Ledger {
                  PRIMARY KEY (project_id, task_id),
                  UNIQUE (project_id, contract_id)
              );
+             CREATE TABLE IF NOT EXISTS android_toolchain_preflights (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 preflight_id TEXT NOT NULL,
+                 status TEXT NOT NULL,
+                 lock_hash TEXT,
+                 environment_snapshot_id TEXT NOT NULL,
+                 preflight_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id),
+                 UNIQUE (project_id, preflight_id)
+             );
              CREATE TABLE IF NOT EXISTS provider_usage (
                  request_id TEXT PRIMARY KEY,
                  correlation_id TEXT NOT NULL,
@@ -257,6 +268,109 @@ impl Ledger {
                    schema_version = excluded.schema_version,
                    contract_json = excluded.contract_json",
                 params![snapshot.project_id.0, task_id, contract_id, schema_version, contract_json],
+            )?;
+        }
+        transaction.commit()
+    }
+
+    pub fn commit_event_projection_and_command_and_android_toolchain_preflight(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        preflight: Option<(&str, &str, &str, &str, Option<&str>, &str)>,
+    ) -> rusqlite::Result<()> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id) DO UPDATE SET
+               projection_revision = excluded.projection_revision,
+               task_state = excluded.task_state,
+               continuity_state = excluded.continuity_state,
+               preview_truth = excluded.preview_truth,
+               source_revision = excluded.source_revision,
+               last_event_sequence = excluded.last_event_sequence,
+               last_known_good_ref = excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                command_id,
+                snapshot.project_id.0,
+                idempotency_key,
+                request_fingerprint,
+                correlation_id,
+                snapshot_json,
+            ],
+        )?;
+        if let Some((
+            task_id,
+            preflight_id,
+            status,
+            environment_snapshot_id,
+            lock_hash,
+            preflight_json,
+        )) = preflight
+        {
+            transaction.execute(
+                "INSERT INTO android_toolchain_preflights (project_id, task_id, preflight_id, status, lock_hash, environment_snapshot_id, preflight_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                 ON CONFLICT(project_id, task_id) DO UPDATE SET
+                   preflight_id = excluded.preflight_id,
+                   status = excluded.status,
+                   lock_hash = excluded.lock_hash,
+                   environment_snapshot_id = excluded.environment_snapshot_id,
+                   preflight_json = excluded.preflight_json",
+                params![
+                    snapshot.project_id.0,
+                    task_id,
+                    preflight_id,
+                    status,
+                    lock_hash,
+                    environment_snapshot_id,
+                    preflight_json,
+                ],
+            )?;
+            transaction.execute(
+                "INSERT INTO checkpoints (checkpoint_id, project_id, projection_revision, source_revision, event_sequence)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(checkpoint_id) DO NOTHING",
+                params![
+                    preflight_id,
+                    snapshot.project_id.0,
+                    snapshot.projection_revision.0,
+                    snapshot.current_source_revision.0,
+                    snapshot.last_event_sequence,
+                ],
             )?;
         }
         transaction.commit()
@@ -602,6 +716,20 @@ impl Ledger {
         self.connection
             .query_row(
                 "SELECT contract_json FROM android_construction_contracts WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id.0, task_id],
+                |row| row.get(0),
+            )
+            .optional()
+    }
+
+    pub fn load_android_toolchain_preflight(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT preflight_json FROM android_toolchain_preflights WHERE project_id = ?1 AND task_id = ?2",
                 params![project_id.0, task_id],
                 |row| row.get(0),
             )

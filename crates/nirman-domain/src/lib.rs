@@ -402,6 +402,7 @@ pub enum CommandKind {
     ProviderTest,
     SettingsUpdateProvider,
     AndroidConstructionCreate,
+    AndroidToolchainPreflight,
     SubmitInstruction,
     Reconnect,
     PauseTask,

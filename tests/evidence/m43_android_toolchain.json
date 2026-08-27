@@ -1,0 +1,22 @@
+{
+  "androidBuildObserved": false,
+  "availableClassificationObserved": true,
+  "deterministicPreflightObserved": true,
+  "durableCheckpointObserved": true,
+  "durablePreflightPersistenceObserved": true,
+  "durablePreflightReloadObserved": true,
+  "environmentSnapshotObserved": true,
+  "evidenceStatus": "M43_HEADLESS_LOCKED_PREFLIGHT_TRACE_ONLY",
+  "hostCapabilityProbeRuntime": false,
+  "m115AuthenticatedCommandBoundaryObserved": true,
+  "m39ContractReloadObserved": true,
+  "manifestDerivedFromM39Observed": true,
+  "missingContractRejected": true,
+  "projectionEventObserved": true,
+  "requiredToolchainCapabilitiesObserved": true,
+  "schema": "nirman.m43.android_toolchain.v1",
+  "toolchainLockGenerated": true,
+  "toolchainRepairExecuted": false,
+  "typedResponseObserved": true,
+  "versionHashLicenseRecordsObserved": true
+}

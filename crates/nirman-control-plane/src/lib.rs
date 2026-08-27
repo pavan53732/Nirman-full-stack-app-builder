@@ -142,7 +142,8 @@ impl ControlPlane {
             | CommandKind::ArtifactExport
             | CommandKind::ProviderTest
             | CommandKind::SettingsUpdateProvider
-            | CommandKind::AndroidConstructionCreate => {}
+            | CommandKind::AndroidConstructionCreate
+            | CommandKind::AndroidToolchainPreflight => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
             }
@@ -318,6 +319,14 @@ impl DurableControlPlane {
             .load_android_construction_contract(&self.snapshot().project_id, task_id)
     }
 
+    pub fn load_android_toolchain_preflight(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger
+            .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
+    }
+
     pub fn retention_floor(&self) -> Result<Option<u64>, rusqlite::Error> {
         self.ledger.retention_floor(&self.snapshot().project_id)
     }
@@ -402,6 +411,51 @@ impl DurableControlPlane {
                 correlation_id,
                 &snapshot_json,
                 contract,
+            )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
+    pub fn dispatch_with_result_and_android_toolchain_preflight(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        preflight: Option<(&str, &str, &str, &str, Option<&str>, &str)>,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger
+            .commit_event_projection_and_command_and_android_toolchain_preflight(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+                preflight,
             )?;
         self.plane = candidate;
         Ok(DurableDispatchOutcome::Accepted { snapshot, event })

@@ -6,7 +6,7 @@ export const PROTOCOL_SCHEMA_VERSION = 1;
 export type PreviewTruth = "Predicted" | "Requested" | "Observed" | "Verified" | "Stale" | "Invalidated";
 export type ProductLifecycleState = "Created" | "Planning" | "Implementing" | "Paused" | "Previewing" | "Validating" | "Recovering" | "Packaging" | "Completed" | "UserRequired" | "SafelyFailed" | "Cancelled";
 export type BackgroundContinuityState = "ActiveBackground" | "UiDisconnected" | "HostSuspended" | "HostOffline" | "DeviceUnavailable" | "ProviderUnavailable" | "Recovering" | "Reconciling" | "UserRequired" | "SafelyFailed" | "Completed";
-export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask";
+export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask";
 export type ResponseStatus = "Accepted" | "Completed" | "Rejected" | "Duplicate" | "Stale" | "Cancelled" | "Failed";
 export type SubscriptionStatus = "Requested" | "Active" | "Paused" | "Gap" | "Closed";
 
@@ -74,6 +74,8 @@ export interface ValidationModel { requiredChecks: string[]; acceptanceCriteria:
 export interface ArtifactModel { requiredArtifact: "apk" | "aab"; aabDeclared: boolean }
 export interface AndroidConstructionContract { schemaVersion: number; contractId: string; projectId: ProjectId; targetPlatforms: ["android"]; taskId: ProjectId; userIntent: string; screenshots: VisualReferenceInput[]; assets: AssetReferenceInput[]; features: ConstructionRequirement[]; ui: ConstructionRequirement[]; data: ConstructionRequirement[]; integrations: ConstructionRequirement[]; technologyPlan: AndroidTechnologyPlan; androidRequirements: ConstructionRequirement[]; deviceMatrix: AndroidDeviceProfile[]; validationModel: ValidationModel; artifactModel: ArtifactModel }
 export interface AndroidConstructionCommandPayload { contract: AndroidConstructionContract }
+export interface AndroidToolchainPreflightCommandPayload { buildVariant: string }
+export interface AndroidToolchainPreflightResultPayload { preflightId: string; status: "AVAILABLE" | "REPAIRABLE" | "USER_REQUIRED" | "UNAVAILABLE"; lockHash: string | null; environmentSnapshotId: string; capabilityCount: number }
 
 export interface CommandResponse {
   response_id: string;
@@ -363,6 +365,31 @@ export async function createAndroidConstructionContract(
       task_id: taskId,
       kind: "AndroidConstructionCreate",
       payload: JSON.stringify({ contract } satisfies AndroidConstructionCommandPayload),
+      expected_projection_revision: snapshot.projection_revision,
+      idempotency_key: makeClientId("ui"),
+    },
+  };
+  return dispatchCommand(request);
+}
+
+export async function preflightAndroidToolchain(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  buildVariant: string,
+): Promise<CommandResponse> {
+  const request: CommandRequest = {
+    protocol_schema_version: PROTOCOL_SCHEMA_VERSION,
+    auth: handshake.auth,
+    correlation_id: handshake.correlation_id,
+    causation_id: null,
+    deadline_epoch_seconds: null,
+    command: {
+      command_id: makeClientId("android-toolchain-preflight"),
+      project_id: snapshot.project_id,
+      task_id: taskId,
+      kind: "AndroidToolchainPreflight",
+      payload: JSON.stringify({ buildVariant } satisfies AndroidToolchainPreflightCommandPayload),
       expected_projection_revision: snapshot.projection_revision,
       idempotency_key: makeClientId("ui"),
     },

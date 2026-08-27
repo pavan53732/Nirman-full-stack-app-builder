@@ -2057,6 +2057,12 @@ version = "0.1.0"
 [[package]]
 name = "nirman-android"
 version = "0.1.0"
+dependencies = [
+ "nirman-domain",
+ "serde",
+ "serde_json",
+ "sha2",
+]
 
 [[package]]
 name = "nirman-artifacts"
@@ -2078,6 +2084,7 @@ dependencies = [
 name = "nirman-desktop"
 version = "0.1.0"
 dependencies = [
+ "nirman-android",
  "nirman-control-plane",
  "nirman-domain",
  "nirman-ipc",

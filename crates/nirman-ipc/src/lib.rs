@@ -262,6 +262,20 @@ pub struct ProviderTestResultPayload {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidToolchainPreflightCommandPayload {
+    pub build_variant: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidToolchainPreflightResultPayload {
+    pub preflight_id: String,
+    pub status: String,
+    pub lock_hash: Option<String>,
+    pub environment_snapshot_id: String,
+    pub capability_count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SubscriptionBootstrap {
     pub subscription: EventSubscription,
     pub snapshot: ProjectionSnapshot,
@@ -424,6 +438,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "ConstructionContractAuthority",
             "android.construction.create",
             "Android construction contract projection",
+            "local",
+        ),
+        (
+            CommandKind::AndroidToolchainPreflight,
+            "android.toolchain.preflight",
+            "ToolchainAuthority",
+            "android.toolchain.preflight",
+            "Android toolchain and environment projection",
             "local",
         ),
     ]
@@ -798,7 +820,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 16);
+        assert_eq!(command_registry().len(), 17);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()

@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+nirman-android = { path = "../../../crates/nirman-android" }
 nirman-control-plane = { path = "../../../crates/nirman-control-plane" }
 nirman-domain = { path = "../../../crates/nirman-domain" }
 nirman-ipc = { path = "../../../crates/nirman-ipc" }
