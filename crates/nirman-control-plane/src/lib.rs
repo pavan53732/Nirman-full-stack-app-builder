@@ -341,6 +341,22 @@ impl DurableControlPlane {
         )
     }
 
+    pub fn load_preview_revision(
+        &self,
+        preview_revision_id: &str,
+    ) -> Result<Option<(String, String)>, rusqlite::Error> {
+        self.ledger
+            .load_preview_revision(&self.snapshot().project_id, preview_revision_id)
+    }
+
+    pub fn load_preview_projection(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger
+            .load_preview_projection(&self.snapshot().project_id, task_id)
+    }
+
     pub fn record_mutation_transaction(
         &self,
         record: &MutationTransactionRecord,
@@ -496,6 +512,52 @@ impl DurableControlPlane {
                 correlation_id,
                 &snapshot_json,
                 preflight,
+            )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
+    pub fn dispatch_with_result_and_preview_revision(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        preview: Option<(&str, &str, &str, &str, &str, &str)>,
+        projection: Option<(&str, &str, &str)>,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger
+            .commit_event_projection_and_command_and_preview_revision(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+                preview,
+                projection,
             )?;
         self.plane = candidate;
         Ok(DurableDispatchOutcome::Accepted { snapshot, event })

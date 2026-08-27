@@ -2089,6 +2089,7 @@ dependencies = [
  "nirman-control-plane",
  "nirman-domain",
  "nirman-ipc",
+ "nirman-preview",
  "nirman-project",
  "nirman-providers",
  "nirman-supervisor",
@@ -2117,6 +2118,7 @@ dependencies = [
  "nirman-android",
  "nirman-control-plane",
  "nirman-domain",
+ "nirman-preview",
  "nirman-project",
  "serde",
  "serde_json",
@@ -2129,6 +2131,10 @@ version = "0.1.0"
 [[package]]
 name = "nirman-preview"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "nirman-project"

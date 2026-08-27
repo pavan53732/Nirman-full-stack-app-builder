@@ -4,6 +4,7 @@ use nirman_android::{AndroidRequirementManifest, RepairSelection};
 use nirman_domain::{
     CommandEnvelope, CommandKind, ControlEvent, ProjectId, ProjectionSnapshot, Revision, TaskId,
 };
+use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
 use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -350,6 +351,17 @@ pub struct RepairFailurePayload {
 pub struct AndroidRequirementEvaluateResultPayload {
     pub manifest: AndroidRequirementManifest,
     pub repair_selection: Option<RepairSelection>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PreviewStartCommandPayload {
+    pub request: PreviewRequest,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PreviewStartResultPayload {
+    pub selection: PreviewFallbackSelection,
+    pub revision: PreviewRevision,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

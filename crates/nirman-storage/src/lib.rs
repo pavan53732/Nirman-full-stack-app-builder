@@ -130,6 +130,23 @@ impl Ledger {
                  state TEXT NOT NULL,
                  record_json TEXT NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS preview_revisions (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 preview_revision_id TEXT NOT NULL,
+                 project_revision_id TEXT NOT NULL,
+                 source_fingerprint TEXT NOT NULL,
+                 lifecycle_state TEXT NOT NULL,
+                 revision_json TEXT NOT NULL,
+                 selection_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, preview_revision_id)
+             );
+             CREATE TABLE IF NOT EXISTS preview_projections (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 projection_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
+             );
              CREATE TABLE IF NOT EXISTS projections (
                  project_id TEXT PRIMARY KEY,
                  projection_revision INTEGER NOT NULL,
@@ -404,6 +421,178 @@ impl Ledger {
             )?;
         }
         transaction.commit()
+    }
+
+    pub fn commit_event_projection_and_command_and_preview_revision(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        preview: Option<(&str, &str, &str, &str, &str, &str)>,
+        projection: Option<(&str, &str, &str)>,
+    ) -> rusqlite::Result<()> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id) DO UPDATE SET
+               projection_revision = excluded.projection_revision,
+               task_state = excluded.task_state,
+               continuity_state = excluded.continuity_state,
+               preview_truth = excluded.preview_truth,
+               source_revision = excluded.source_revision,
+               last_event_sequence = excluded.last_event_sequence,
+               last_known_good_ref = excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                command_id,
+                snapshot.project_id.0,
+                idempotency_key,
+                request_fingerprint,
+                correlation_id,
+                snapshot_json,
+            ],
+        )?;
+        if let Some((
+            task_id,
+            preview_revision_id,
+            project_revision_id,
+            source_fingerprint,
+            revision_json,
+            selection_json,
+        )) = preview
+        {
+            transaction.execute(
+                "INSERT INTO preview_revisions (project_id, task_id, preview_revision_id, project_revision_id, source_fingerprint, lifecycle_state, revision_json, selection_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'REQUEST_AUTHORIZED', ?6, ?7)
+                 ON CONFLICT(project_id, preview_revision_id) DO UPDATE SET
+                   task_id = excluded.task_id,
+                   project_revision_id = excluded.project_revision_id,
+                   source_fingerprint = excluded.source_fingerprint,
+                   lifecycle_state = excluded.lifecycle_state,
+                   revision_json = excluded.revision_json,
+                   selection_json = excluded.selection_json",
+                params![
+                    snapshot.project_id.0,
+                    task_id,
+                    preview_revision_id,
+                    project_revision_id,
+                    source_fingerprint,
+                    revision_json,
+                    selection_json,
+                ],
+            )?;
+        }
+        if let Some((task_id, projection_json, _projection_revision)) = projection {
+            transaction.execute(
+                "INSERT INTO preview_projections (project_id, task_id, projection_json)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT(project_id, task_id) DO UPDATE SET projection_json = excluded.projection_json",
+                params![snapshot.project_id.0, task_id, projection_json],
+            )?;
+        }
+        transaction.commit()
+    }
+
+    pub fn save_preview_revision(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        preview_revision_id: &str,
+        project_revision_id: &str,
+        source_fingerprint: &str,
+        lifecycle_state: &str,
+        revision_json: &str,
+        selection_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO preview_revisions (project_id, task_id, preview_revision_id, project_revision_id, source_fingerprint, lifecycle_state, revision_json, selection_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id, preview_revision_id) DO UPDATE SET
+               task_id = excluded.task_id,
+               project_revision_id = excluded.project_revision_id,
+               source_fingerprint = excluded.source_fingerprint,
+               lifecycle_state = excluded.lifecycle_state,
+               revision_json = excluded.revision_json,
+               selection_json = excluded.selection_json",
+            params![project_id.0, task_id, preview_revision_id, project_revision_id, source_fingerprint, lifecycle_state, revision_json, selection_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_preview_revision(
+        &self,
+        project_id: &ProjectId,
+        preview_revision_id: &str,
+    ) -> rusqlite::Result<Option<(String, String)>> {
+        self.connection
+            .query_row(
+                "SELECT revision_json, selection_json FROM preview_revisions
+                 WHERE project_id = ?1 AND preview_revision_id = ?2",
+                params![project_id.0, preview_revision_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+    }
+
+    pub fn save_preview_projection(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        projection_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO preview_projections (project_id, task_id, projection_json)
+             VALUES (?1, ?2, ?3)
+             ON CONFLICT(project_id, task_id) DO UPDATE SET projection_json = excluded.projection_json",
+            params![project_id.0, task_id, projection_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_preview_projection(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT projection_json FROM preview_projections
+                 WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id.0, task_id],
+                |row| row.get(0),
+            )
+            .optional()
     }
 
     pub fn commit_event_projection_and_command_and_android_requirement_manifest(

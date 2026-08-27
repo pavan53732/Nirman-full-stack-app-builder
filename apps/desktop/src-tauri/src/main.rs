@@ -18,11 +18,15 @@ use nirman_ipc::{
     AndroidRequirementEvaluateResultPayload, AndroidToolchainPreflightCommandPayload,
     AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
     CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
-    EventSink, EventSubscription, ProviderExecuteCommandPayload, ProviderExecuteResultPayload,
-    ProviderTestCommandPayload, ProviderTestResultPayload, ResponseStatus,
-    SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement, SubscriptionBootstrap,
-    SubscriptionControl, SubscriptionStatus, WorkspaceApplyPatchCommandPayload,
-    WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
+    EventSink, EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
+    ProviderExecuteCommandPayload, ProviderExecuteResultPayload, ProviderTestCommandPayload,
+    ProviderTestResultPayload, ResponseStatus, SettingsUpdateProviderCommandPayload,
+    SubscriptionAcknowledgement, SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
+    WorkspaceApplyPatchCommandPayload, WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
+};
+use nirman_preview::{
+    bind_preview_revision, select_fallback, PreviewMode, PreviewProjection, PreviewRequest,
+    PreviewRevision,
 };
 use nirman_project::{
     IndexRequest, MutationBroker, MutationError, MutationRequest, ProjectIndexer,
@@ -811,6 +815,157 @@ fn parse_android_requirement_evaluation(
         manifest_json,
         repair_selection,
         repair_selection_json,
+    })
+}
+
+#[derive(Debug)]
+struct PreparedM48 {
+    task_id: String,
+    preview_revision_id: String,
+    selection: nirman_preview::PreviewFallbackSelection,
+    revision: PreviewRevision,
+    selection_json: String,
+    revision_json: String,
+    projection_json: String,
+}
+
+fn parse_preview_start(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedM48, ErrorEnvelope> {
+    let payload: PreviewStartCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "preview start payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let preview_request: PreviewRequest = payload.request;
+    preview_request.validate().map_err(|error_value| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            error_value.to_string(),
+            false,
+            None,
+        )
+    })?;
+    if preview_request.project_id != request.command.project_id.0
+        || request.command.task_id.as_ref().map(|task| task.0.as_str())
+            != Some(preview_request.task_id.as_str())
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "preview request identity does not match the authenticated command scope",
+            false,
+            None,
+        ));
+    }
+    if preview_request.project_revision_id.trim().is_empty()
+        || preview_request.source_fingerprint.trim().is_empty()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "preview request must bind a source revision and fingerprint",
+            false,
+            None,
+        ));
+    }
+    if preview_request.project_revision_id
+        != format!(
+            "source-{}",
+            state.plane.snapshot().current_source_revision.0
+        )
+        && preview_request.requested_mode != Some(PreviewMode::Diagnostic)
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "preview request does not target the current source revision",
+            true,
+            Some("reload the current committed source revision before starting preview".into()),
+        ));
+    }
+    let selection = select_fallback(&preview_request).map_err(|error_value| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            error_value.to_string(),
+            false,
+            None,
+        )
+    })?;
+    let preview_revision_id = format!("preview-revision-{}", preview_request.request_id);
+    let revision = bind_preview_revision(
+        &preview_request,
+        &selection,
+        &preview_revision_id,
+        now_epoch_seconds(),
+    )
+    .map_err(|error_value| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            error_value.to_string(),
+            false,
+            None,
+        )
+    })?;
+    let mut projection = PreviewProjection::new(
+        preview_request.project_id.clone(),
+        preview_request.task_id.clone(),
+    );
+    projection
+        .apply_candidate(revision.clone(), &preview_request)
+        .map_err(|error_value| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                error_value.to_string(),
+                false,
+                None,
+            )
+        })?;
+    let selection_json = serde_json::to_string(&selection).expect("M48 selection serialization");
+    let revision_json = serde_json::to_string(&revision).expect("M48 revision serialization");
+    let projection_json = serde_json::to_string(&projection).expect("M48 projection serialization");
+    Ok(PreparedM48 {
+        task_id: preview_request.task_id,
+        preview_revision_id,
+        selection,
+        revision,
+        selection_json,
+        revision_json,
+        projection_json,
     })
 }
 
@@ -1952,6 +2107,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let preview_start = if request.command.kind == CommandKind::PreviewStart {
+        Some(parse_preview_start(state, &request)?)
+    } else {
+        None
+    };
     let settings_profile = if request.command.kind == CommandKind::SettingsUpdateProvider {
         Some(parse_provider_profile(&request)?)
     } else {
@@ -2089,7 +2249,25 @@ fn dispatch_request<S: EventSink>(
         }
     }
     let after_sequence = state.plane.snapshot().last_event_sequence;
-    let outcome = if let Some(prepared) = requirement_evaluation.as_ref() {
+    let outcome = if let Some(prepared) = preview_start.as_ref() {
+        state.plane.dispatch_with_result_and_preview_revision(
+            request.command.clone(),
+            &correlation_id,
+            Some((
+                prepared.task_id.as_str(),
+                prepared.preview_revision_id.as_str(),
+                prepared.revision.project_revision_id.as_str(),
+                prepared.revision.source_fingerprint.as_str(),
+                prepared.revision_json.as_str(),
+                prepared.selection_json.as_str(),
+            )),
+            Some((
+                prepared.task_id.as_str(),
+                prepared.projection_json.as_str(),
+                prepared.revision.project_revision_id.as_str(),
+            )),
+        )
+    } else if let Some(prepared) = requirement_evaluation.as_ref() {
         state
             .plane
             .dispatch_with_result_and_android_requirement_manifest(
@@ -2381,6 +2559,74 @@ fn dispatch_request<S: EventSink>(
                 evidence: outcome.evidence,
             })
             .expect("M46 mutation result serialization must remain infallible"),
+        );
+    }
+    if let Some(prepared) = preview_start.as_ref() {
+        let (selection, revision) = if command_response.status == ResponseStatus::Duplicate {
+            let stored = state
+                .plane
+                .load_preview_revision(&prepared.preview_revision_id)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate preview command has no durable preview revision",
+                        true,
+                        Some("reconcile the command and preview revision records".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate preview command has no durable preview revision",
+                        true,
+                        Some("reconcile the command and preview revision records".into()),
+                    )
+                })?;
+            (
+                serde_json::from_str(&stored.1).map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable preview fallback selection is corrupt",
+                        false,
+                        None,
+                    )
+                })?,
+                serde_json::from_str(&stored.0).map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable preview revision is corrupt",
+                        false,
+                        None,
+                    )
+                })?,
+            )
+        } else {
+            (prepared.selection.clone(), prepared.revision.clone())
+        };
+        command_response.status = ResponseStatus::Completed;
+        command_response.result_schema_ref = Some("nirman.preview_start_result.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(PreviewStartResultPayload {
+                selection,
+                revision,
+            })
+            .expect("M48 preview result serialization must remain infallible"),
         );
     }
     if let Some(prepared) = requirement_evaluation.as_ref() {
@@ -3594,6 +3840,125 @@ mod tests {
         });
         let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../../tests/evidence/m3_provider_integration.json");
+        fs::create_dir_all(evidence_path.parent().expect("evidence directory"))
+            .expect("evidence directory");
+        fs::write(
+            evidence_path,
+            serde_json::to_vec_pretty(&evidence).expect("evidence json"),
+        )
+        .expect("evidence write");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn m48_authenticated_host_wires_preview_selection_revision_and_projection() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let preview_request = PreviewRequest {
+            schema_version: nirman_preview::M48_SCHEMA_VERSION,
+            request_id: "preview-request-host".into(),
+            project_id: PROJECT_ID.into(),
+            task_id: "task-m48".into(),
+            project_revision_id: "source-0".into(),
+            checkpoint_id: "checkpoint-m48".into(),
+            source_fingerprint: "source-fingerprint-m48".into(),
+            contract_version: "contract-m39-v1".into(),
+            technology_plan_version: "technology-plan-m39-v1".into(),
+            asset_manifest_version: "assets-m48-v1".into(),
+            build_variant: "debug".into(),
+            device_id: Some("emulator-m48".into()),
+            android_api_level: Some(35),
+            requested_mode: None,
+            selected_language: "kotlin".into(),
+            selected_ui_framework: "Jetpack Compose".into(),
+            changed_paths: vec!["app/src/main/res/values/strings.xml".into()],
+            required_evidence_kinds: vec!["DEVICE_EVIDENCE".into(), "VISUAL_EVIDENCE".into()],
+            policy_decision_id: "policy-m48".into(),
+        };
+        let mut preview_command = request(
+            &state,
+            "m48-preview-command",
+            CommandKind::PreviewStart,
+            serde_json::to_string(&PreviewStartCommandPayload {
+                request: preview_request.clone(),
+            })
+            .expect("M48 payload"),
+            0,
+        );
+        preview_command.command.task_id = Some(TaskId("task-m48".into()));
+        let response = dispatch_request(&sink, &mut state, preview_command.clone())
+            .expect("M48 preview response");
+        assert_eq!(response.status, ResponseStatus::Completed);
+        assert_eq!(
+            response.result_schema_ref.as_deref(),
+            Some("nirman.preview_start_result.v1")
+        );
+        let typed: PreviewStartResultPayload =
+            serde_json::from_value(response.result_payload.clone().expect("M48 typed result"))
+                .expect("M48 result payload");
+        assert_eq!(typed.selection.mode, PreviewMode::ComposeReload);
+        assert_eq!(typed.revision.project_revision_id, "source-0");
+        assert_eq!(typed.revision.source_fingerprint, "source-fingerprint-m48");
+        assert_eq!(
+            typed.revision.lifecycle_state,
+            nirman_preview::PreviewLifecycleState::RequestAuthorized
+        );
+        let durable_revision = state
+            .plane
+            .load_preview_revision("preview-revision-preview-request-host")
+            .expect("M48 revision lookup")
+            .expect("M48 durable revision");
+        assert!(durable_revision.0.contains("source-fingerprint-m48"));
+        let durable_projection = state
+            .plane
+            .load_preview_projection("task-m48")
+            .expect("M48 projection lookup")
+            .expect("M48 durable projection");
+        let projection: PreviewProjection =
+            serde_json::from_str(&durable_projection).expect("M48 projection JSON");
+        assert!(projection.candidate.is_some());
+        let duplicate =
+            dispatch_request(&sink, &mut state, preview_command).expect("M48 duplicate response");
+        assert_eq!(duplicate.status, ResponseStatus::Completed);
+        assert_eq!(duplicate.result_payload, response.result_payload);
+        let mut stale = request(
+            &state,
+            "m48-stale-preview-command",
+            CommandKind::PreviewStart,
+            serde_json::to_string(&PreviewStartCommandPayload {
+                request: PreviewRequest {
+                    project_revision_id: "source-99".into(),
+                    ..preview_request
+                },
+            })
+            .expect("stale M48 payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        stale.command.task_id = Some(TaskId("task-m48".into()));
+        let stale_result = dispatch_request(&sink, &mut state, stale);
+        assert!(
+            stale_result.is_err(),
+            "stale preview source must be rejected"
+        );
+        let evidence = serde_json::json!({
+            "schema": "nirman.m48.host_integration.v1",
+            "authenticatedPreviewCommandObserved": response.result_schema_ref.as_deref() == Some("nirman.preview_start_result.v1"),
+            "fallbackSelectionObserved": typed.selection.mode == PreviewMode::ComposeReload,
+            "revisionBindingObserved": typed.revision.project_revision_id == "source-0" && typed.revision.source_fingerprint == "source-fingerprint-m48",
+            "durablePreviewRevisionObserved": durable_revision.0.contains("source-fingerprint-m48"),
+            "durablePreviewProjectionObserved": projection.candidate.is_some(),
+            "duplicateDurableReloadObserved": duplicate.result_payload == response.result_payload,
+            "staleSourceRejectedObserved": stale_result.is_err(),
+            "buildObserved": false,
+            "installObserved": false,
+            "launchObserved": false,
+            "androidDeviceObserved": false,
+            "nativeWindowsTauriRuntimeObserved": false,
+            "evidenceStatus": "M48_HEADLESS_AUTHENTICATED_PREVIEW_BOUNDARY_TRACE_ONLY"
+        });
+        let evidence_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/evidence/m48_host_integration.json");
         fs::create_dir_all(evidence_path.parent().expect("evidence directory"))
             .expect("evidence directory");
         fs::write(
