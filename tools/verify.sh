@@ -27,6 +27,8 @@ cargo test -p nirman-domain --test m39_contract
 cargo test -p nirman-project --test m45_acceptance
 cargo test -p nirman-project --test m46_acceptance
 cargo test -p nirman-android
+cargo test -p nirman-evidence
+cargo test -p nirman-artifacts
 cargo test -p nirman-android --test m47_acceptance
 cargo test -p nirman-preview
 cargo test -p nirman-preview --test m48_acceptance

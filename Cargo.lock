@@ -2073,6 +2073,11 @@ dependencies = [
 [[package]]
 name = "nirman-artifacts"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
 
 [[package]]
 name = "nirman-control-plane"
@@ -2115,6 +2120,10 @@ dependencies = [
 [[package]]
 name = "nirman-evidence"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "nirman-ipc"
