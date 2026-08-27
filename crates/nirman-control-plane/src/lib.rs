@@ -330,6 +330,30 @@ impl DurableControlPlane {
             .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
     }
 
+    pub fn save_m108_sync_record(
+        &self,
+        task_id: &str,
+        projection_json: &str,
+        evidence_json: &str,
+        last_event_sequence: u64,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_m108_sync_record(
+            &self.snapshot().project_id,
+            task_id,
+            projection_json,
+            evidence_json,
+            last_event_sequence,
+        )
+    }
+
+    pub fn load_m108_sync_record(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<(String, String, u64)>, rusqlite::Error> {
+        self.ledger
+            .load_m108_sync_record(&self.snapshot().project_id, task_id)
+    }
+
     pub fn load_android_synthesis_build(
         &self,
         task_id: &str,

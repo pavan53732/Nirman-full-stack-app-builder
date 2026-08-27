@@ -153,6 +153,14 @@ impl Ledger {
                  selection_json TEXT NOT NULL,
                  PRIMARY KEY (project_id, preview_revision_id)
              );
+             CREATE TABLE IF NOT EXISTS m108_preview_sync_records (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 projection_json TEXT NOT NULL,
+                 evidence_json TEXT NOT NULL,
+                 last_event_sequence INTEGER NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
+             );
              CREATE TABLE IF NOT EXISTS preview_projections (
                  project_id TEXT NOT NULL,
                  task_id TEXT NOT NULL,
@@ -1392,6 +1400,26 @@ impl Ledger {
                 },
             )
             .optional()
+    }
+
+    pub fn save_m108_sync_record(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        projection_json: &str,
+        evidence_json: &str,
+        last_event_sequence: u64,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute("INSERT INTO m108_preview_sync_records (project_id,task_id,projection_json,evidence_json,last_event_sequence) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(project_id,task_id) DO UPDATE SET projection_json=excluded.projection_json,evidence_json=excluded.evidence_json,last_event_sequence=excluded.last_event_sequence", params![project_id.0,task_id,projection_json,evidence_json,last_event_sequence])?;
+        Ok(())
+    }
+
+    pub fn load_m108_sync_record(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<(String, String, u64)>> {
+        self.connection.query_row("SELECT projection_json,evidence_json,last_event_sequence FROM m108_preview_sync_records WHERE project_id=?1 AND task_id=?2", params![project_id.0,task_id], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()
     }
 
     pub fn provider_usage(

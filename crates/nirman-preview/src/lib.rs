@@ -214,6 +214,120 @@ pub struct PreviewSyncEvidenceRecord {
     pub truth: PreviewEventTruth,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct M108ProjectionState {
+    pub project_id: String,
+    pub task_id: String,
+    pub last_event_sequence: u64,
+    pub projection_revision: u64,
+    pub lifecycle_stage: String,
+    pub execution_truth: PreviewEventTruth,
+    pub build_status: String,
+    pub install_status: String,
+    pub launch_status: String,
+    pub runtime_status: String,
+    pub validation_status: String,
+    pub stream_status: String,
+    pub active_preview_revision_id: String,
+    pub evidence_ids: Vec<String>,
+    pub rejected_event_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum M108ReducerError {
+    InvalidEvent(PreviewError),
+    ProjectMismatch,
+    TaskMismatch,
+    SequenceGap { expected: u64, received: u64 },
+    DuplicateEvent,
+    ConflictingDuplicate,
+    StaleEvent,
+}
+impl fmt::Display for M108ReducerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidEvent(e) => write!(f, "invalid M108 event: {e}"),
+            Self::ProjectMismatch => f.write_str("M108 project mismatch"),
+            Self::TaskMismatch => f.write_str("M108 task mismatch"),
+            Self::SequenceGap { expected, received } => write!(
+                f,
+                "M108 sequence gap: expected {expected}, received {received}"
+            ),
+            Self::DuplicateEvent => f.write_str("M108 duplicate event"),
+            Self::ConflictingDuplicate => f.write_str("M108 conflicting duplicate event"),
+            Self::StaleEvent => f.write_str("M108 stale event"),
+        }
+    }
+}
+impl std::error::Error for M108ReducerError {}
+
+impl M108ProjectionState {
+    pub fn new(
+        project_id: impl Into<String>,
+        task_id: impl Into<String>,
+        preview_revision_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            project_id: project_id.into(),
+            task_id: task_id.into(),
+            last_event_sequence: 0,
+            projection_revision: 0,
+            lifecycle_stage: "NOT_REQUESTED".into(),
+            execution_truth: PreviewEventTruth::Predicted,
+            build_status: "NOT_STARTED".into(),
+            install_status: "NOT_STARTED".into(),
+            launch_status: "NOT_STARTED".into(),
+            runtime_status: "NOT_STARTED".into(),
+            validation_status: "NOT_STARTED".into(),
+            stream_status: "CONNECTED".into(),
+            active_preview_revision_id: preview_revision_id.into(),
+            evidence_ids: vec![],
+            rejected_event_ids: vec![],
+        }
+    }
+    pub fn apply(&mut self, event: &PreviewSyncEvent) -> Result<(), M108ReducerError> {
+        event.validate().map_err(M108ReducerError::InvalidEvent)?;
+        if event.project_id != self.project_id {
+            return Err(M108ReducerError::ProjectMismatch);
+        }
+        if event.task_id != self.task_id {
+            return Err(M108ReducerError::TaskMismatch);
+        }
+        if event.candidate_preview_revision_id != self.active_preview_revision_id {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if event.event_sequence <= self.last_event_sequence {
+            return Err(M108ReducerError::StaleEvent);
+        }
+        if event.event_sequence != self.last_event_sequence + 1 {
+            return Err(M108ReducerError::SequenceGap {
+                expected: self.last_event_sequence + 1,
+                received: event.event_sequence,
+            });
+        }
+        self.last_event_sequence = event.event_sequence;
+        self.projection_revision += 1;
+        self.execution_truth = event.event_truth.clone();
+        self.lifecycle_stage = format!("{:?}", event.event_type).to_ascii_uppercase();
+        match event.event_type {
+            PreviewSyncEventType::BuildRequested => self.build_status = "REQUESTED".into(),
+            PreviewSyncEventType::BuildObserved => self.build_status = "OBSERVED".into(),
+            PreviewSyncEventType::InstallRequested => self.install_status = "REQUESTED".into(),
+            PreviewSyncEventType::InstallObserved => self.install_status = "OBSERVED".into(),
+            PreviewSyncEventType::LaunchObserved => self.launch_status = "OBSERVED".into(),
+            PreviewSyncEventType::ObservationCaptured
+            | PreviewSyncEventType::InteractionObserved => self.runtime_status = "OBSERVED".into(),
+            PreviewSyncEventType::ValidationObserved => self.validation_status = "OBSERVED".into(),
+            PreviewSyncEventType::StreamGap => self.stream_status = "GAP_BLOCKED".into(),
+            PreviewSyncEventType::StreamReconnected => self.stream_status = "REPLAYING".into(),
+            _ => {}
+        }
+        self.evidence_ids
+            .extend(event.evidence_refs.iter().cloned());
+        Ok(())
+    }
+}
+
 impl PreviewSyncEvent {
     pub fn validate(&self) -> Result<(), PreviewError> {
         for (field, value) in [
