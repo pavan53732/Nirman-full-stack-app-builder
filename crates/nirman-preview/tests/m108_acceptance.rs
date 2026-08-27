@@ -95,8 +95,10 @@ fn m108_headless_vertical_sequence_reduces_deterministically() {
             correlation_id: "corr".into(),
             causation_id: Some(format!("cause-{index}")),
             candidate_preview_revision_id: "preview-1".into(),
-            event_type,
-            event_truth: if index >= 6 {
+            event_type: event_type.clone(),
+            event_truth: if event_type == PreviewSyncEventType::PreviewPromoted {
+                PreviewEventTruth::Verified
+            } else if index >= 6 {
                 PreviewEventTruth::Observed
             } else {
                 PreviewEventTruth::Requested
@@ -270,4 +272,66 @@ fn m108_integrates_m9_observation_and_m10_artifact_records() {
     assert_eq!(state.validation_status, "OBSERVED");
     assert!(state.evidence_ids.contains(&"m10-apk".into()));
     assert!(state.evidence_ids.contains(&"screenshot-1".into()));
+}
+
+#[test]
+fn m108_rejects_simulated_runtime_and_premature_promotion() {
+    let mut state = M108ProjectionState::new("p", "t", "preview-1");
+    let mut build = PreviewSyncEvent {
+        event_id: "event-simulated-build".into(),
+        event_sequence: 1,
+        project_id: "p".into(),
+        task_id: "t".into(),
+        correlation_id: "corr".into(),
+        causation_id: None,
+        candidate_preview_revision_id: "preview-1".into(),
+        event_type: PreviewSyncEventType::BuildObserved,
+        event_truth: PreviewEventTruth::Simulated,
+        project_revision_id: "source-1".into(),
+        checkpoint_id: "checkpoint-1".into(),
+        source_fingerprint: "sha256:source".into(),
+        artifact_id: Some("apk-1".into()),
+        artifact_fingerprint: Some("sha256:apk".into()),
+        runtime_session_id: None,
+        device_id: None,
+        operation_ref: "operation-build".into(),
+        observation_refs: vec!["observation-build".into()],
+        evidence_refs: vec!["evidence-build".into()],
+        validation_ref: None,
+        payload: "model-only build claim".into(),
+    };
+    assert_eq!(
+        state.apply(&build),
+        Err(nirman_preview::M108ReducerError::EvidenceRequired)
+    );
+    build.event_truth = PreviewEventTruth::Observed;
+    state.apply(&build).expect("observed build");
+
+    let promotion = PreviewSyncEvent {
+        event_id: "event-premature-promotion".into(),
+        event_sequence: 2,
+        project_id: "p".into(),
+        task_id: "t".into(),
+        correlation_id: "corr".into(),
+        causation_id: Some("operation-promote".into()),
+        candidate_preview_revision_id: "preview-1".into(),
+        event_type: PreviewSyncEventType::PreviewPromoted,
+        event_truth: PreviewEventTruth::Observed,
+        project_revision_id: "source-1".into(),
+        checkpoint_id: "checkpoint-1".into(),
+        source_fingerprint: "sha256:source".into(),
+        artifact_id: Some("apk-1".into()),
+        artifact_fingerprint: Some("sha256:apk".into()),
+        runtime_session_id: Some("runtime-1".into()),
+        device_id: Some("emulator-1".into()),
+        operation_ref: "operation-promote".into(),
+        observation_refs: vec!["observation-promote".into()],
+        evidence_refs: vec!["evidence-promote".into()],
+        validation_ref: None,
+        payload: "premature promotion claim".into(),
+    };
+    assert_eq!(
+        state.apply(&promotion),
+        Err(nirman_preview::M108ReducerError::EvidenceRequired)
+    );
 }

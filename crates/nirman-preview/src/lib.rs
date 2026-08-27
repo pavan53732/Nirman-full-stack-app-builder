@@ -241,6 +241,7 @@ pub enum M108ReducerError {
     SequenceGap { expected: u64, received: u64 },
     DuplicateEvent,
     ConflictingDuplicate,
+    EvidenceRequired,
     StaleEvent,
 }
 impl fmt::Display for M108ReducerError {
@@ -255,6 +256,7 @@ impl fmt::Display for M108ReducerError {
             ),
             Self::DuplicateEvent => f.write_str("M108 duplicate event"),
             Self::ConflictingDuplicate => f.write_str("M108 conflicting duplicate event"),
+            Self::EvidenceRequired => f.write_str("M108 event lacks required observed evidence"),
             Self::StaleEvent => f.write_str("M108 stale event"),
         }
     }
@@ -304,6 +306,33 @@ impl M108ProjectionState {
                 expected: self.last_event_sequence + 1,
                 received: event.event_sequence,
             });
+        }
+        if matches!(
+            event.event_type,
+            PreviewSyncEventType::BuildObserved
+                | PreviewSyncEventType::ArtifactObserved
+                | PreviewSyncEventType::InstallObserved
+                | PreviewSyncEventType::LaunchObserved
+                | PreviewSyncEventType::InteractionObserved
+                | PreviewSyncEventType::ObservationCaptured
+                | PreviewSyncEventType::ValidationObserved
+        ) && (!matches!(
+            event.event_truth,
+            PreviewEventTruth::Observed | PreviewEventTruth::Verified
+        ) || event.evidence_refs.is_empty())
+        {
+            return Err(M108ReducerError::EvidenceRequired);
+        }
+        if event.event_type == PreviewSyncEventType::PreviewPromoted
+            && (event.event_truth != PreviewEventTruth::Verified
+                || event.validation_ref.is_none()
+                || self.build_status != "OBSERVED"
+                || self.install_status != "OBSERVED"
+                || self.launch_status != "OBSERVED"
+                || self.runtime_status != "OBSERVED"
+                || self.validation_status != "OBSERVED")
+        {
+            return Err(M108ReducerError::EvidenceRequired);
         }
         self.last_event_sequence = event.event_sequence;
         self.projection_revision += 1;
