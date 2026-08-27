@@ -451,6 +451,7 @@ pub enum CommandKind {
     AndroidConstructionCreate,
     AndroidToolchainPreflight,
     AndroidRequirementEvaluate,
+    AndroidSynthesisBuild,
     ProviderExecute,
     SubmitInstruction,
     Reconnect,

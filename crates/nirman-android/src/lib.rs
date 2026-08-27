@@ -1329,6 +1329,181 @@ pub fn validate_android_workspace(
     })
 }
 
+pub const M4_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidTechnologyPlan {
+    pub schema_version: u16,
+    pub plan_id: String,
+    pub language: String,
+    pub ui_framework: String,
+    pub data_strategy: String,
+    pub source_revision: u64,
+    pub rationale: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidSynthesisRequest {
+    pub schema_version: u16,
+    pub contract: AndroidConstructionContract,
+    pub source_revision: u64,
+    pub workspace_root: String,
+    pub project_fingerprint: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidSynthesisPlan {
+    pub schema_version: u16,
+    pub contract_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub target_platforms: Vec<String>,
+    pub technology_plan: AndroidTechnologyPlan,
+    pub gradle_tasks: Vec<String>,
+    pub required_components: Vec<ToolchainComponentKind>,
+    pub checkpoint_required: bool,
+    pub workspace_root: String,
+    pub source_revision: u64,
+    pub project_fingerprint: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidBuildRequest {
+    pub schema_version: u16,
+    pub project_id: String,
+    pub task_id: String,
+    pub source_revision: u64,
+    pub project_fingerprint: String,
+    pub workspace_root: String,
+    pub build_variant: String,
+    pub gradle_task: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidLocalRuntimeCapabilities {
+    pub java_available: bool,
+    pub gradle_available: bool,
+    pub android_sdk_available: bool,
+    pub adb_available: bool,
+    pub emulator_available: bool,
+    pub native_runtime_observed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum M4Error {
+    InvalidContract,
+    UnsupportedPlatform,
+    EmptyField(&'static str),
+    StaleRevision,
+}
+impl fmt::Display for M4Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidContract => f.write_str("M4 Android construction contract is invalid"),
+            Self::UnsupportedPlatform => f.write_str("M4 supports Android only"),
+            Self::EmptyField(v) => write!(f, "M4 field is empty: {v}"),
+            Self::StaleRevision => f.write_str("M4 source revision is stale"),
+        }
+    }
+}
+impl std::error::Error for M4Error {}
+
+pub fn synthesize_android_plan(
+    request: &AndroidSynthesisRequest,
+) -> Result<AndroidSynthesisPlan, M4Error> {
+    if request.schema_version != M4_SCHEMA_VERSION {
+        return Err(M4Error::InvalidContract);
+    }
+    request
+        .contract
+        .validate()
+        .map_err(|_| M4Error::InvalidContract)?;
+    if request.contract.target_platforms != vec!["android".to_string()] {
+        return Err(M4Error::UnsupportedPlatform);
+    }
+    for (name, value) in [
+        ("workspaceRoot", request.workspace_root.as_str()),
+        ("projectFingerprint", request.project_fingerprint.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(M4Error::EmptyField(name));
+        }
+    }
+    if request.source_revision == 0 {
+        return Err(M4Error::StaleRevision);
+    }
+    let language = if request
+        .contract
+        .user_intent
+        .to_ascii_lowercase()
+        .contains("java")
+    {
+        "java"
+    } else {
+        "kotlin"
+    };
+    let ui_framework = if request
+        .contract
+        .user_intent
+        .to_ascii_lowercase()
+        .contains("view")
+    {
+        "android-views"
+    } else {
+        "jetpack-compose"
+    };
+    let plan = AndroidTechnologyPlan {
+        schema_version: M4_SCHEMA_VERSION,
+        plan_id: format!("technology-plan-{}", request.contract.contract_id),
+        language: language.into(),
+        ui_framework: ui_framework.into(),
+        data_strategy: "requirements-resolved".into(),
+        source_revision: request.source_revision,
+        rationale: "selected from validated Android intent and available contract evidence".into(),
+    };
+    Ok(AndroidSynthesisPlan {
+        schema_version: M4_SCHEMA_VERSION,
+        contract_id: request.contract.contract_id.clone(),
+        project_id: request.contract.project_id.0.clone(),
+        task_id: request.contract.task_id.0.clone(),
+        target_platforms: vec!["android".into()],
+        technology_plan: plan,
+        gradle_tasks: vec!["assembleDebug".into()],
+        required_components: vec![
+            ToolchainComponentKind::Jdk,
+            ToolchainComponentKind::Gradle,
+            ToolchainComponentKind::AndroidSdk,
+            ToolchainComponentKind::BuildTools,
+        ],
+        checkpoint_required: true,
+        workspace_root: request.workspace_root.clone(),
+        source_revision: request.source_revision,
+        project_fingerprint: request.project_fingerprint.clone(),
+    })
+}
+
+pub fn validate_android_build_request(request: &AndroidBuildRequest) -> Result<(), M4Error> {
+    if request.schema_version != M4_SCHEMA_VERSION {
+        return Err(M4Error::InvalidContract);
+    }
+    for (name, value) in [
+        ("projectId", request.project_id.as_str()),
+        ("taskId", request.task_id.as_str()),
+        ("projectFingerprint", request.project_fingerprint.as_str()),
+        ("workspaceRoot", request.workspace_root.as_str()),
+        ("buildVariant", request.build_variant.as_str()),
+        ("gradleTask", request.gradle_task.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(M4Error::EmptyField(name));
+        }
+    }
+    if request.source_revision == 0 || !request.gradle_task.starts_with("assemble") {
+        return Err(M4Error::InvalidContract);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1492,6 +1667,55 @@ mod tests {
             .unwrap()
             .validate()
             .expect("lock valid");
+    }
+
+    #[test]
+    fn m4_synthesis_selects_android_plan_and_gradle_build_contract() {
+        let request = AndroidSynthesisRequest {
+            schema_version: M4_SCHEMA_VERSION,
+            contract: contract(),
+            source_revision: 1,
+            workspace_root: "/workspace/android".into(),
+            project_fingerprint: "fingerprint-1".into(),
+        };
+        let plan = synthesize_android_plan(&request).expect("M4 plan");
+        assert_eq!(plan.target_platforms, vec!["android"]);
+        assert_eq!(plan.technology_plan.ui_framework, "jetpack-compose");
+        assert_eq!(plan.gradle_tasks, vec!["assembleDebug"]);
+        assert!(plan.checkpoint_required);
+        let build = AndroidBuildRequest {
+            schema_version: M4_SCHEMA_VERSION,
+            project_id: plan.project_id,
+            task_id: plan.task_id,
+            source_revision: plan.source_revision,
+            project_fingerprint: plan.project_fingerprint,
+            workspace_root: plan.workspace_root,
+            build_variant: "debug".into(),
+            gradle_task: "assembleDebug".into(),
+        };
+        validate_android_build_request(&build).expect("M4 build request");
+    }
+
+    #[test]
+    fn m4_rejects_non_android_and_stale_synthesis_requests() {
+        let mut request = AndroidSynthesisRequest {
+            schema_version: M4_SCHEMA_VERSION,
+            contract: contract(),
+            source_revision: 1,
+            workspace_root: "/workspace/android".into(),
+            project_fingerprint: "fingerprint-1".into(),
+        };
+        request.contract.target_platforms = vec!["web".into()];
+        assert_eq!(
+            synthesize_android_plan(&request),
+            Err(M4Error::InvalidContract)
+        );
+        request.contract.target_platforms = vec!["android".into()];
+        request.source_revision = 0;
+        assert_eq!(
+            synthesize_android_plan(&request),
+            Err(M4Error::StaleRevision)
+        );
     }
 
     #[test]

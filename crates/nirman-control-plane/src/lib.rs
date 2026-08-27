@@ -145,6 +145,7 @@ impl ControlPlane {
             | CommandKind::AndroidConstructionCreate
             | CommandKind::AndroidToolchainPreflight
             | CommandKind::AndroidRequirementEvaluate
+            | CommandKind::AndroidSynthesisBuild
             | CommandKind::ProviderExecute => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
@@ -327,6 +328,56 @@ impl DurableControlPlane {
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
             .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
+    }
+
+    pub fn load_android_synthesis_build(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+    ) -> Result<Option<(String, String, String, String, String)>, rusqlite::Error> {
+        self.ledger.load_android_synthesis_build(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+        )
+    }
+
+    pub fn dispatch_with_result_and_m4(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        m4: (&str, u64, &str, &str, &str, &str, &str, &str),
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let fingerprint = serde_json::to_string(&command).expect("command serialization");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json)
+                .map_err(|e| DurableControlPlaneError::CorruptCommandResult(e.to_string()))?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate.latest_event().expect("accepted command event");
+        let snapshot_json = serde_json::to_string(&snapshot).expect("snapshot serialization");
+        self.ledger.commit_event_projection_and_command_and_m4(
+            &event,
+            &snapshot,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+            &fingerprint,
+            correlation_id,
+            &snapshot_json,
+            m4,
+        )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
     }
 
     pub fn load_android_requirement_manifest(

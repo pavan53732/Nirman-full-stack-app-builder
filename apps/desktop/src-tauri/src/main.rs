@@ -1,9 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use nirman_android::{
-    infer_android_requirement_manifest, plan_preflight, validate_android_workspace,
-    AndroidRepairRegistry, AndroidRequirementManifest, CapabilityProbe, HostCapabilityProbe,
-    PreflightStatus, RepairFailureFingerprint, RepairSelection,
+    infer_android_requirement_manifest, plan_preflight, synthesize_android_plan,
+    validate_android_build_request, validate_android_workspace, AndroidBuildRequest,
+    AndroidRepairRegistry, AndroidRequirementManifest, AndroidSynthesisRequest, CapabilityProbe,
+    HostCapabilityProbe, PreflightStatus, RepairFailureFingerprint, RepairSelection,
 };
 use nirman_control_plane::{
     deadline_elapsed, DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome,
@@ -15,7 +16,8 @@ use nirman_domain::{
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
     publish_control_event, AndroidRequirementEvaluateCommandPayload,
-    AndroidRequirementEvaluateResultPayload, AndroidToolchainPreflightCommandPayload,
+    AndroidRequirementEvaluateResultPayload, AndroidSynthesisBuildCommandPayload,
+    AndroidSynthesisBuildResultPayload, AndroidToolchainPreflightCommandPayload,
     AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
     CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
     EventSink, EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
@@ -534,6 +536,245 @@ fn parse_android_construction_contract(
         )
     })?;
     Ok((payload.contract, contract_json))
+}
+
+#[derive(Debug)]
+struct PreparedM4 {
+    task_id: String,
+    plan: nirman_android::AndroidSynthesisPlan,
+    build_request: AndroidBuildRequest,
+    plan_json: String,
+    build_request_json: String,
+    toolchain_lock_hash: String,
+    environment_snapshot_id: String,
+}
+
+fn parse_m4_synthesis_build(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedM4, ErrorEnvelope> {
+    let payload: AndroidSynthesisBuildCommandPayload =
+        serde_json::from_str(&request.command.payload).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "M4 synthesis/build payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "M4 synthesis/build requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    payload.contract.validate().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "M4 Android construction contract is invalid",
+            false,
+            None,
+        )
+    })?;
+    if payload.contract.project_id != request.command.project_id
+        || payload.contract.task_id != *task_id
+        || payload.contract.target_platforms != vec!["android".to_string()]
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "M4 contract does not match authenticated Android scope",
+            false,
+            None,
+        ));
+    }
+    let authorized_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Environment,
+                "no authorized project workspace is configured",
+                true,
+                None,
+            )
+        })?;
+    let requested_root = PathBuf::from(&payload.workspace_root)
+        .canonicalize()
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::PermissionDenied,
+                ErrorCategory::Scope,
+                "M4 workspace is unavailable",
+                false,
+                None,
+            )
+        })?;
+    if requested_root != authorized_root {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "M4 workspace is outside the authorized project root",
+            false,
+            None,
+        ));
+    }
+    let index = ProjectIndexer::default()
+        .index_workspace(&requested_root, &IndexRequest::default())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M4 workspace indexing failed",
+                true,
+                None,
+            )
+        })?;
+    if index.project_fingerprint != payload.project_fingerprint {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "M4 project fingerprint is stale",
+            true,
+            None,
+        ));
+    }
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(task_id.0.as_str())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M43 toolchain preflight is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "M4 requires persisted M43 preflight",
+                false,
+                None,
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "M43 preflight could not be restored",
+                false,
+                None,
+            )
+        })?;
+    let lock = preflight.lock.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "M4 requires an available M43 toolchain lock",
+            false,
+            None,
+        )
+    })?;
+    let plan = synthesize_android_plan(&AndroidSynthesisRequest {
+        schema_version: nirman_android::M4_SCHEMA_VERSION,
+        contract: payload.contract.clone(),
+        source_revision: payload.source_revision,
+        workspace_root: requested_root.to_string_lossy().into_owned(),
+        project_fingerprint: payload.project_fingerprint.clone(),
+    })
+    .map_err(|e| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            e.to_string(),
+            false,
+            None,
+        )
+    })?;
+    let build_request = AndroidBuildRequest {
+        schema_version: nirman_android::M4_SCHEMA_VERSION,
+        project_id: payload.contract.project_id.0.clone(),
+        task_id: payload.contract.task_id.0.clone(),
+        source_revision: payload.source_revision,
+        project_fingerprint: payload.project_fingerprint,
+        workspace_root: requested_root.to_string_lossy().into_owned(),
+        build_variant: payload.build_variant,
+        gradle_task: payload.gradle_task,
+    };
+    validate_android_build_request(&build_request).map_err(|e| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            e.to_string(),
+            false,
+            None,
+        )
+    })?;
+    Ok(PreparedM4 {
+        task_id: task_id.0.clone(),
+        plan_json: serde_json::to_string(&plan).expect("M4 plan serialization"),
+        build_request_json: serde_json::to_string(&build_request).expect("M4 build serialization"),
+        toolchain_lock_hash: lock.lock_hash.clone(),
+        environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+        plan,
+        build_request,
+    })
 }
 
 #[derive(Debug)]
@@ -2107,6 +2348,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let m4_synthesis_build = if request.command.kind == CommandKind::AndroidSynthesisBuild {
+        Some(parse_m4_synthesis_build(state, &request)?)
+    } else {
+        None
+    };
     let preview_start = if request.command.kind == CommandKind::PreviewStart {
         Some(parse_preview_start(state, &request)?)
     } else {
@@ -2249,7 +2495,22 @@ fn dispatch_request<S: EventSink>(
         }
     }
     let after_sequence = state.plane.snapshot().last_event_sequence;
-    let outcome = if let Some(prepared) = preview_start.as_ref() {
+    let outcome = if let Some(prepared) = m4_synthesis_build.as_ref() {
+        state.plane.dispatch_with_result_and_m4(
+            request.command.clone(),
+            &correlation_id,
+            (
+                prepared.task_id.as_str(),
+                prepared.build_request.source_revision,
+                prepared.build_request.project_fingerprint.as_str(),
+                prepared.plan.contract_id.as_str(),
+                prepared.plan_json.as_str(),
+                prepared.build_request_json.as_str(),
+                prepared.toolchain_lock_hash.as_str(),
+                prepared.environment_snapshot_id.as_str(),
+            ),
+        )
+    } else if let Some(prepared) = preview_start.as_ref() {
         state.plane.dispatch_with_result_and_preview_revision(
             request.command.clone(),
             &correlation_id,
@@ -2559,6 +2820,90 @@ fn dispatch_request<S: EventSink>(
                 evidence: outcome.evidence,
             })
             .expect("M46 mutation result serialization must remain infallible"),
+        );
+    }
+    if let Some(prepared) = m4_synthesis_build.as_ref() {
+        let (plan, build_request, lock_hash, environment_snapshot_id) =
+            if command_response.status == ResponseStatus::Duplicate {
+                let stored = state
+                    .plane
+                    .load_android_synthesis_build(
+                        &prepared.task_id,
+                        prepared.build_request.source_revision,
+                    )
+                    .map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "duplicate M4 command has no durable synthesis/build record",
+                            true,
+                            None,
+                        )
+                    })?
+                    .ok_or_else(|| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "duplicate M4 command has no durable synthesis/build record",
+                            true,
+                            None,
+                        )
+                    })?;
+                (
+                    serde_json::from_str(&stored.0).map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Internal,
+                            "durable M4 synthesis plan is corrupt",
+                            false,
+                            None,
+                        )
+                    })?,
+                    serde_json::from_str(&stored.1).map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Internal,
+                            "durable M4 build request is corrupt",
+                            false,
+                            None,
+                        )
+                    })?,
+                    stored.2,
+                    stored.3,
+                )
+            } else {
+                (
+                    prepared.plan.clone(),
+                    prepared.build_request.clone(),
+                    prepared.toolchain_lock_hash.clone(),
+                    prepared.environment_snapshot_id.clone(),
+                )
+            };
+        command_response.status = ResponseStatus::Completed;
+        command_response.result_schema_ref =
+            Some("nirman.android_synthesis_build_result.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(AndroidSynthesisBuildResultPayload {
+                contract_id: plan.contract_id.clone(),
+                synthesis_plan: plan,
+                build_request,
+                toolchain_lock_hash: lock_hash,
+                environment_snapshot_id,
+                native_build_observed: false,
+            })
+            .expect("M4 result serialization"),
         );
     }
     if let Some(prepared) = preview_start.as_ref() {
@@ -3647,6 +3992,70 @@ mod tests {
         assert_eq!(result["status"], "AVAILABLE");
         assert_eq!(result["capability_count"], 9);
 
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-m4-host-{}", now_epoch_seconds()));
+        fs::create_dir_all(workspace.join("app/src/main")).expect("M4 workspace");
+        fs::write(workspace.join("settings.gradle.kts"), "include(\":app\")\n").expect("settings");
+        fs::write(
+            workspace.join("app/build.gradle.kts"),
+            "plugins { id(\"com.android.application\") }\n",
+        )
+        .expect("gradle");
+        state.authorized_workspace_root = Some(workspace.clone());
+        let index = ProjectIndexer::default()
+            .index_workspace(&workspace, &IndexRequest::default())
+            .expect("M4 index");
+        let mut m4_request = request(
+            &state,
+            "m4-synthesis-build-command",
+            CommandKind::AndroidSynthesisBuild,
+            serde_json::to_string(&AndroidSynthesisBuildCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                project_fingerprint: index.project_fingerprint.clone(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+            })
+            .expect("M4 payload"),
+            response.projection_revision.0,
+        );
+        m4_request.command.task_id = Some(contract.task_id.clone());
+        let m4_response =
+            dispatch_request(&sink, &mut state, m4_request.clone()).expect("M4 response");
+        assert_eq!(m4_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            m4_response.result_schema_ref.as_deref(),
+            Some("nirman.android_synthesis_build_result.v1")
+        );
+        assert_eq!(
+            m4_response.result_payload.as_ref().unwrap()["native_build_observed"],
+            false
+        );
+        assert!(
+            !m4_response.result_payload.as_ref().unwrap()["toolchain_lock_hash"]
+                .as_str()
+                .unwrap()
+                .is_empty()
+        );
+        let m4_duplicate = dispatch_request(&sink, &mut state, m4_request).expect("M4 duplicate");
+        assert_eq!(m4_duplicate.result_payload, m4_response.result_payload);
+        let m4_stored = state
+            .plane
+            .load_android_synthesis_build(&contract.task_id.0, 1)
+            .expect("M4 load")
+            .expect("M4 durable record");
+        assert_eq!(m4_stored.4, index.project_fingerprint);
+        drop(state);
+        let reopened_m4 =
+            DurableControlPlane::open(&path, ProjectId(PROJECT_ID.into())).expect("M4 reopen");
+        assert!(reopened_m4
+            .load_android_synthesis_build(&contract.task_id.0, 1)
+            .expect("M4 reload")
+            .is_some());
+        let _ = fs::remove_dir_all(workspace);
+        let mut state = test_state_at(&path);
+
         let stored = state
             .plane
             .load_android_toolchain_preflight(&contract.task_id.0)
@@ -3665,10 +4074,11 @@ mod tests {
             Some("pixel-api-35")
         );
         let batches = sink.batches.lock().expect("sink lock");
-        assert_eq!(batches.len(), 2);
+        assert_eq!(batches.len(), 3);
         assert!(batches[1].events[0]
             .kind
             .contains("AndroidToolchainPreflight"));
+        assert!(batches[2].events[0].kind.contains("AndroidSynthesisBuild"));
         drop(batches);
         drop(state);
         let reopened = DurableControlPlane::open(&path, ProjectId(PROJECT_ID.into()))

@@ -1,8 +1,9 @@
 #![forbid(unsafe_code)]
 
-use nirman_android::{AndroidRequirementManifest, RepairSelection};
+use nirman_android::{AndroidRequirementManifest, AndroidSynthesisPlan, RepairSelection};
 use nirman_domain::{
-    CommandEnvelope, CommandKind, ControlEvent, ProjectId, ProjectionSnapshot, Revision, TaskId,
+    AndroidConstructionContract, CommandEnvelope, CommandKind, ControlEvent, ProjectId,
+    ProjectionSnapshot, Revision, TaskId,
 };
 use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
 use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
@@ -334,6 +335,32 @@ pub struct AndroidToolchainPreflightResultPayload {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidConstructionResultPayload {
+    pub contract_id: String,
+    pub synthesis_plan: Option<AndroidSynthesisPlan>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidSynthesisBuildCommandPayload {
+    pub contract: AndroidConstructionContract,
+    pub source_revision: u64,
+    pub workspace_root: String,
+    pub project_fingerprint: String,
+    pub build_variant: String,
+    pub gradle_task: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidSynthesisBuildResultPayload {
+    pub contract_id: String,
+    pub synthesis_plan: AndroidSynthesisPlan,
+    pub build_request: nirman_android::AndroidBuildRequest,
+    pub toolchain_lock_hash: String,
+    pub environment_snapshot_id: String,
+    pub native_build_observed: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AndroidRequirementEvaluateCommandPayload {
     pub workspace_root: String,
     pub project_fingerprint: String,
@@ -551,6 +578,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "AndroidRequirementAuthority",
             "android.requirements.evaluate",
             "Android requirement manifest and repair-selection projection",
+            "local",
+        ),
+        (
+            CommandKind::AndroidSynthesisBuild,
+            "android.synthesis.build",
+            "AndroidSynthesisAuthority",
+            "android.synthesis.build",
+            "Android synthesis and build provenance projection",
             "local",
         ),
     ]
@@ -925,7 +960,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 19);
+        assert_eq!(command_registry().len(), 20);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()
