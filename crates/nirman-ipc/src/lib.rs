@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
-use nirman_android::{AndroidRequirementManifest, AndroidSynthesisPlan, RepairSelection};
+use nirman_android::{
+    AndroidBuildObservation, AndroidRequirementManifest, AndroidSynthesisPlan, RepairSelection,
+};
 use nirman_domain::{
     AndroidConstructionContract, CommandEnvelope, CommandKind, ControlEvent, ProjectId,
     ProjectionSnapshot, Revision, TaskId,
@@ -358,6 +360,20 @@ pub struct AndroidSynthesisBuildResultPayload {
     pub toolchain_lock_hash: String,
     pub environment_snapshot_id: String,
     pub native_build_observed: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactBuildCommandPayload {
+    pub source_revision: u64,
+    pub workspace_root: String,
+    pub project_fingerprint: String,
+    pub build_variant: String,
+    pub gradle_task: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactBuildResultPayload {
+    pub observation: AndroidBuildObservation,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

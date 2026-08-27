@@ -366,6 +366,36 @@ impl DurableControlPlane {
         )
     }
 
+    pub fn save_android_build_observation(
+        &self,
+        execution_id: &str,
+        task_id: &str,
+        source_revision: u64,
+        project_fingerprint: &str,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_android_build_observation(
+            execution_id,
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            project_fingerprint,
+            record_json,
+        )
+    }
+
+    pub fn load_android_build_observation(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_android_build_observation(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+        )
+    }
+
     pub fn dispatch_with_result_and_m4(
         &mut self,
         command: CommandEnvelope,

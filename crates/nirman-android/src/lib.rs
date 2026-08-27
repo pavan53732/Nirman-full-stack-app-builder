@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fmt;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1738,5 +1738,393 @@ mod tests {
         assert_eq!(first.status, PreflightStatus::Unavailable);
         assert_eq!(first.capabilities, second.capabilities);
         assert!(first.lock.is_none());
+    }
+}
+
+pub const M5_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Debug, Default)]
+pub struct BuildCancellation {
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl BuildCancellation {
+    pub fn cancel(&self) {
+        self.cancelled
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn is_cancelled(&self) -> bool {
+        self.cancelled.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct AndroidBuildObservation {
+    pub schema_version: u16,
+    pub execution_id: String,
+    pub command_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub source_revision: u64,
+    pub project_fingerprint: String,
+    pub workspace_root: String,
+    pub build_variant: String,
+    pub gradle_task: String,
+    pub executable: String,
+    pub exit_code: Option<i32>,
+    pub success: bool,
+    pub timed_out: bool,
+    pub cancelled: bool,
+    pub stdout_sha256: String,
+    pub stderr_sha256: String,
+    pub stdout_bytes: u64,
+    pub stderr_bytes: u64,
+    pub artifact_path: Option<String>,
+    pub artifact_sha256: Option<String>,
+    pub started_at_epoch_seconds: u64,
+    pub completed_at_epoch_seconds: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AndroidBuildExecutionError {
+    InvalidRequest(M4Error),
+    InvalidLock(AndroidToolchainError),
+    EmptyCommandId,
+    WorkspaceUnavailable,
+    GradleUnavailable,
+    SpawnFailed,
+    OutputReadFailed,
+}
+
+impl fmt::Display for AndroidBuildExecutionError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidRequest(error) => {
+                write!(formatter, "M5 build request is invalid: {error}")
+            }
+            Self::InvalidLock(error) => write!(formatter, "M5 toolchain lock is invalid: {error}"),
+            Self::EmptyCommandId => formatter.write_str("M5 build command identity is empty"),
+            Self::WorkspaceUnavailable => formatter.write_str("M5 build workspace is unavailable"),
+            Self::GradleUnavailable => {
+                formatter.write_str("M5 locked Gradle executable is unavailable")
+            }
+            Self::SpawnFailed => formatter.write_str("M5 Gradle process could not be started"),
+            Self::OutputReadFailed => formatter.write_str("M5 Gradle output could not be captured"),
+        }
+    }
+}
+
+impl std::error::Error for AndroidBuildExecutionError {}
+
+pub fn execute_android_build(
+    request: &AndroidBuildRequest,
+    lock: &AndroidToolchainLock,
+    command_id: &str,
+    timeout_ms: u64,
+    cancellation: &BuildCancellation,
+) -> Result<AndroidBuildObservation, AndroidBuildExecutionError> {
+    validate_android_build_request(request).map_err(AndroidBuildExecutionError::InvalidRequest)?;
+    lock.validate()
+        .map_err(AndroidBuildExecutionError::InvalidLock)?;
+    if command_id.trim().is_empty() || timeout_ms == 0 {
+        return Err(AndroidBuildExecutionError::EmptyCommandId);
+    }
+    let workspace = Path::new(&request.workspace_root)
+        .canonicalize()
+        .map_err(|_| AndroidBuildExecutionError::WorkspaceUnavailable)?;
+    if !workspace.is_dir() {
+        return Err(AndroidBuildExecutionError::WorkspaceUnavailable);
+    }
+
+    let wrapper = if cfg!(windows) {
+        workspace.join("gradlew.bat")
+    } else {
+        workspace.join("gradlew")
+    };
+    let (program, mut arguments) = if wrapper.is_file() {
+        if cfg!(windows) {
+            (
+                "cmd".to_string(),
+                vec!["/C".to_string(), wrapper.to_string_lossy().into_owned()],
+            )
+        } else {
+            (wrapper.to_string_lossy().into_owned(), Vec::new())
+        }
+    } else {
+        let locked_gradle = lock
+            .entries
+            .iter()
+            .find(|entry| entry.component == ToolchainComponentKind::Gradle)
+            .map(|entry| PathBuf::from(&entry.path))
+            .ok_or(AndroidBuildExecutionError::GradleUnavailable)?;
+        if locked_gradle.as_os_str().is_empty() {
+            return Err(AndroidBuildExecutionError::GradleUnavailable);
+        }
+        let executable = if locked_gradle.is_file() {
+            locked_gradle.to_string_lossy().into_owned()
+        } else {
+            locked_gradle.to_string_lossy().into_owned()
+        };
+        (executable, Vec::new())
+    };
+    arguments.extend([
+        "--no-daemon".to_string(),
+        "--console=plain".to_string(),
+        request.gradle_task.clone(),
+    ]);
+
+    let started_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let mut command = Command::new(&program);
+    command
+        .args(&arguments)
+        .current_dir(&workspace)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let mut child = command.spawn().map_err(|error| match error.kind() {
+        std::io::ErrorKind::NotFound => AndroidBuildExecutionError::GradleUnavailable,
+        _ => AndroidBuildExecutionError::SpawnFailed,
+    })?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or(AndroidBuildExecutionError::OutputReadFailed)?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or(AndroidBuildExecutionError::OutputReadFailed)?;
+    let stdout_thread = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut std::io::BufReader::new(stdout), &mut bytes).map(|_| bytes)
+    });
+    let stderr_thread = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut std::io::BufReader::new(stderr), &mut bytes).map(|_| bytes)
+    });
+
+    let started = std::time::Instant::now();
+    let mut timed_out = false;
+    let mut cancelled = false;
+    let exit_code = loop {
+        if cancellation.is_cancelled() {
+            cancelled = true;
+            let _ = child.kill();
+            break child.wait().ok().and_then(|status| status.code());
+        }
+        if started.elapsed() >= std::time::Duration::from_millis(timeout_ms) {
+            timed_out = true;
+            let _ = child.kill();
+            break child.wait().ok().and_then(|status| status.code());
+        }
+        match child
+            .try_wait()
+            .map_err(|_| AndroidBuildExecutionError::SpawnFailed)?
+        {
+            Some(status) => break status.code(),
+            None => std::thread::sleep(std::time::Duration::from_millis(25)),
+        }
+    };
+    let stdout = stdout_thread
+        .join()
+        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?
+        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?;
+    let stderr = stderr_thread
+        .join()
+        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?
+        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?;
+    let artifact = if exit_code == Some(0) && !timed_out && !cancelled {
+        find_apk(&workspace)
+    } else {
+        None
+    };
+    let completed_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    Ok(AndroidBuildObservation {
+        schema_version: M5_SCHEMA_VERSION,
+        execution_id: format!("build-execution-{command_id}"),
+        command_id: command_id.into(),
+        project_id: request.project_id.clone(),
+        task_id: request.task_id.clone(),
+        source_revision: request.source_revision,
+        project_fingerprint: request.project_fingerprint.clone(),
+        workspace_root: workspace.to_string_lossy().into_owned(),
+        build_variant: request.build_variant.clone(),
+        gradle_task: request.gradle_task.clone(),
+        executable: program,
+        exit_code,
+        success: exit_code == Some(0) && !timed_out && !cancelled,
+        timed_out,
+        cancelled,
+        stdout_sha256: hash_bytes(&stdout),
+        stderr_sha256: hash_bytes(&stderr),
+        stdout_bytes: stdout.len() as u64,
+        stderr_bytes: stderr.len() as u64,
+        artifact_path: artifact.as_ref().map(|(path, _)| path.clone()),
+        artifact_sha256: artifact.map(|(_, hash)| hash),
+        started_at_epoch_seconds: started_at,
+        completed_at_epoch_seconds: completed_at,
+    })
+}
+
+fn find_apk(workspace: &Path) -> Option<(String, String)> {
+    let outputs = workspace.join("app").join("build").join("outputs");
+    let mut stack = vec![outputs];
+    while let Some(path) = stack.pop() {
+        let entries = fs::read_dir(path).ok()?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().and_then(|value| value.to_str()) == Some("apk") {
+                let bytes = fs::read(&path).ok()?;
+                return Some((path.to_string_lossy().into_owned(), hash_bytes(&bytes)));
+            }
+        }
+    }
+    None
+}
+
+fn hash_bytes(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+#[cfg(test)]
+mod build_execution_tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_workspace(name: &str) -> std::path::PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("nirman-{name}-{suffix}"));
+        fs::create_dir_all(path.join("app/build/outputs/apk/debug")).expect("workspace");
+        path
+    }
+
+    fn request(workspace: &Path) -> AndroidBuildRequest {
+        AndroidBuildRequest {
+            schema_version: M4_SCHEMA_VERSION,
+            project_id: "project-test".into(),
+            task_id: "task-test".into(),
+            source_revision: 1,
+            project_fingerprint: "fingerprint-test".into(),
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            build_variant: "debug".into(),
+            gradle_task: "assembleDebug".into(),
+        }
+    }
+
+    fn lock(executable: &Path) -> AndroidToolchainLock {
+        AndroidToolchainLock {
+            schema_version: M43_SCHEMA_VERSION,
+            lock_id: "lock-test".into(),
+            manifest_id: "manifest-test".into(),
+            entries: vec![ToolchainLockEntry {
+                component: ToolchainComponentKind::Gradle,
+                version: "test".into(),
+                path: executable.to_string_lossy().into_owned(),
+                binary_hash: "hash-test".into(),
+                license_id: "license-test".into(),
+                acquisition_source: "test-only".into(),
+            }],
+            lock_hash: "lock-hash-test".into(),
+        }
+    }
+
+    #[cfg(unix)]
+    fn write_gradle_script(workspace: &Path, body: &str) -> std::path::PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let script = workspace.join("gradlew");
+        fs::write(&script, format!("#!/bin/sh\n{body}\n")).expect("script");
+        let mut permissions = fs::metadata(&script).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&script, permissions).expect("permissions");
+        script
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn real_executor_observes_success_and_apk_fingerprint() {
+        let workspace = temp_workspace("build-success");
+        let apk = workspace.join("app/build/outputs/apk/debug/app-debug.apk");
+        fs::write(&apk, b"real-test-apk-bytes").expect("apk");
+        let wrapper = write_gradle_script(&workspace, "printf 'BUILD SUCCESSFUL\\n'");
+        let result = execute_android_build(
+            &request(&workspace),
+            &lock(&wrapper),
+            "command-success",
+            5_000,
+            &BuildCancellation::default(),
+        )
+        .expect("build observation");
+        assert!(result.success);
+        assert_eq!(result.exit_code, Some(0));
+        assert_eq!(
+            result.artifact_path,
+            Some(apk.to_string_lossy().into_owned())
+        );
+        assert_eq!(
+            result.artifact_sha256,
+            Some(hash_bytes(b"real-test-apk-bytes"))
+        );
+        assert!(result.stdout_bytes > 0);
+        let _ = fs::remove_dir_all(workspace);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn real_executor_records_timeout_without_success() {
+        let workspace = temp_workspace("build-timeout");
+        let wrapper = write_gradle_script(&workspace, "sleep 1");
+        let result = execute_android_build(
+            &request(&workspace),
+            &lock(&wrapper),
+            "command-timeout",
+            50,
+            &BuildCancellation::default(),
+        )
+        .expect("timeout observation");
+        assert!(!result.success);
+        assert!(result.timed_out);
+        assert!(!result.cancelled);
+        let _ = fs::remove_dir_all(workspace);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn real_executor_records_cancellation_without_success() {
+        let workspace = temp_workspace("build-cancel");
+        let wrapper = write_gradle_script(&workspace, "sleep 1");
+        let cancellation = BuildCancellation::default();
+        let trigger = cancellation.clone();
+        let result_thread = std::thread::spawn(move || {
+            execute_android_build(
+                &request(&workspace),
+                &lock(&wrapper),
+                "command-cancel",
+                5_000,
+                &cancellation,
+            )
+            .expect("cancellation observation")
+        });
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        trigger.cancel();
+        let result = result_thread.join().expect("build thread");
+        assert!(!result.success);
+        assert!(result.cancelled);
+        assert!(!result.timed_out);
     }
 }

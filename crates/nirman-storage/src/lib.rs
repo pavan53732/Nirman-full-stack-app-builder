@@ -100,6 +100,15 @@ impl Ledger {
                  environment_snapshot_id TEXT NOT NULL,
                  PRIMARY KEY (project_id, task_id, source_revision)
              );
+             CREATE TABLE IF NOT EXISTS android_build_observations (
+                 execution_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 project_fingerprint TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 UNIQUE(project_id, task_id, source_revision)
+             );
              CREATE TABLE IF NOT EXISTS android_requirement_manifests (
                  project_id TEXT NOT NULL,
                  task_id TEXT NOT NULL,
@@ -642,6 +651,40 @@ impl Ledger {
         ) = m4;
         transaction.execute("INSERT INTO android_synthesis_builds (project_id,task_id,source_revision,project_fingerprint,contract_id,plan_json,build_request_json,toolchain_lock_hash,environment_snapshot_id) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT(project_id,task_id,source_revision) DO UPDATE SET project_fingerprint=excluded.project_fingerprint,contract_id=excluded.contract_id,plan_json=excluded.plan_json,build_request_json=excluded.build_request_json,toolchain_lock_hash=excluded.toolchain_lock_hash,environment_snapshot_id=excluded.environment_snapshot_id", params![snapshot.project_id.0,task_id,source_revision,fingerprint,contract_id,plan_json,build_json,lock_hash,environment_id])?;
         transaction.commit()
+    }
+
+    pub fn save_android_build_observation(
+        &self,
+        execution_id: &str,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        project_fingerprint: &str,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_build_observations (execution_id, project_id, task_id, source_revision, project_fingerprint, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(execution_id) DO UPDATE SET record_json=excluded.record_json
+             ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET execution_id=excluded.execution_id, project_fingerprint=excluded.project_fingerprint, record_json=excluded.record_json",
+            params![execution_id, project_id.0, task_id, source_revision, project_fingerprint, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_android_build_observation(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM android_build_observations WHERE project_id=?1 AND task_id=?2 AND source_revision=?3",
+                params![project_id.0, task_id, source_revision],
+                |row| row.get(0),
+            )
+            .optional()
     }
 
     pub fn load_android_synthesis_build(

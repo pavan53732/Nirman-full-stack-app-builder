@@ -1,9 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use nirman_android::{
-    infer_android_requirement_manifest, plan_preflight, synthesize_android_plan,
-    validate_android_build_request, validate_android_workspace, AndroidBuildRequest,
-    AndroidRepairRegistry, AndroidRequirementManifest, AndroidSynthesisRequest, CapabilityProbe,
+    execute_android_build, infer_android_requirement_manifest, plan_preflight,
+    synthesize_android_plan, validate_android_build_request, validate_android_workspace,
+    AndroidBuildExecutionError, AndroidBuildRequest, AndroidRepairRegistry,
+    AndroidRequirementManifest, AndroidSynthesisRequest, BuildCancellation, CapabilityProbe,
     HostCapabilityProbe, PreflightStatus, RepairFailureFingerprint, RepairSelection,
 };
 use nirman_control_plane::{
@@ -18,9 +19,10 @@ use nirman_ipc::{
     publish_control_event, AndroidRequirementEvaluateCommandPayload,
     AndroidRequirementEvaluateResultPayload, AndroidSynthesisBuildCommandPayload,
     AndroidSynthesisBuildResultPayload, AndroidToolchainPreflightCommandPayload,
-    AndroidToolchainPreflightResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
-    CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
-    EventSink, EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
+    AndroidToolchainPreflightResultPayload, ArtifactBuildCommandPayload,
+    ArtifactBuildResultPayload, AuthContext, AuthenticatedSession, CommandRequest, CommandResponse,
+    ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange, EventSink,
+    EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
     ProviderExecuteCommandPayload, ProviderExecuteResultPayload, ProviderTestCommandPayload,
     ProviderTestResultPayload, ResponseStatus, SettingsUpdateProviderCommandPayload,
     SubscriptionAcknowledgement, SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
@@ -2462,6 +2464,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let artifact_build = if request.command.kind == CommandKind::ArtifactBuild {
+        Some(parse_artifact_build(state, &request)?)
+    } else {
+        None
+    };
     let preview_start = if request.command.kind == CommandKind::PreviewStart {
         Some(parse_preview_start(state, &request)?)
     } else {
@@ -2672,6 +2679,12 @@ fn dispatch_request<S: EventSink>(
             request.command.clone(),
             &correlation_id,
             &prepared.transaction,
+        )
+    } else if artifact_build.is_some() {
+        state.plane.dispatch_with_result_and_provider_profile(
+            request.command.clone(),
+            &correlation_id,
+            None,
         )
     } else if let Some((contract, contract_json)) = construction_contract.as_ref() {
         state.plane.dispatch_with_result_and_android_contract(
@@ -2931,6 +2944,117 @@ fn dispatch_request<S: EventSink>(
             })
             .expect("M46 mutation result serialization must remain infallible"),
         );
+    }
+    if let Some(prepared) = artifact_build.as_ref() {
+        let observation = if was_duplicate {
+            let record_json = state
+                .plane
+                .load_android_build_observation(
+                    &prepared.request.task_id,
+                    prepared.request.source_revision,
+                )
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate artifact build has no durable observation",
+                        true,
+                        Some("reconcile the prior Android build execution before retrying".into()),
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate artifact build has no durable observation",
+                        true,
+                        Some("reconcile the prior Android build execution before retrying".into()),
+                    )
+                })?;
+            serde_json::from_str(&record_json).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "durable Android build observation is corrupt",
+                    false,
+                    None,
+                )
+            })?
+        } else {
+            let result = execute_android_build(
+                &prepared.request,
+                &prepared.lock,
+                &command_id,
+                M5_BUILD_TIMEOUT_MS,
+                &BuildCancellation::default(),
+            )
+            .map_err(|build_error| {
+                map_android_build_error(
+                    &correlation_id,
+                    &command_id,
+                    causation_id.clone(),
+                    build_error,
+                )
+            })?;
+            let record_json = serde_json::to_string(&result).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "Android build observation could not be serialized safely",
+                    false,
+                    None,
+                )
+            })?;
+            state
+                .plane
+                .save_android_build_observation(
+                    &result.execution_id,
+                    &result.task_id,
+                    result.source_revision,
+                    &result.project_fingerprint,
+                    &record_json,
+                )
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "Android build observation could not be persisted",
+                        true,
+                        Some("reconcile local build observation storage before retrying".into()),
+                    )
+                })?;
+            result
+        };
+        command_response.status = if was_duplicate {
+            ResponseStatus::Duplicate
+        } else if observation.cancelled {
+            ResponseStatus::Cancelled
+        } else if observation.success {
+            ResponseStatus::Completed
+        } else {
+            ResponseStatus::Failed
+        };
+        command_response.result_schema_ref = Some("nirman.artifact_build_result.v1".into());
+        command_response.result_payload = Some(
+            serde_json::to_value(ArtifactBuildResultPayload { observation })
+                .expect("Android build result serialization"),
+        );
+        return Ok(command_response);
     }
     if let Some(prepared) = m4_synthesis_build.as_ref() {
         let (plan, build_request, lock_hash, environment_snapshot_id) =
@@ -3602,6 +3726,284 @@ fn main() {
         .expect("error while running Nirman desktop application");
 }
 
+#[derive(Debug)]
+struct PreparedArtifactBuild {
+    request: AndroidBuildRequest,
+    lock: nirman_android::AndroidToolchainLock,
+}
+
+const M5_BUILD_TIMEOUT_MS: u64 = 15 * 60 * 1_000;
+
+fn map_android_build_error(
+    correlation_id: &str,
+    command_id: &str,
+    causation_id: Option<String>,
+    build_error: AndroidBuildExecutionError,
+) -> ErrorEnvelope {
+    let (code, category, retryable, recovery) = match build_error {
+        AndroidBuildExecutionError::InvalidRequest(_)
+        | AndroidBuildExecutionError::InvalidLock(_)
+        | AndroidBuildExecutionError::EmptyCommandId => (
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            false,
+            Some("repair the persisted Android build request or toolchain lock".into()),
+        ),
+        AndroidBuildExecutionError::WorkspaceUnavailable => (
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            false,
+            Some("reconcile the authorized Android workspace before retrying".into()),
+        ),
+        AndroidBuildExecutionError::GradleUnavailable
+        | AndroidBuildExecutionError::SpawnFailed
+        | AndroidBuildExecutionError::OutputReadFailed => (
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            true,
+            Some("repair or revalidate the locked local Android toolchain".into()),
+        ),
+    };
+    error(
+        correlation_id,
+        Some(command_id.into()),
+        causation_id,
+        code,
+        category,
+        build_error.to_string(),
+        retryable,
+        recovery,
+    )
+}
+
+fn parse_artifact_build(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedArtifactBuild, ErrorEnvelope> {
+    let payload: ArtifactBuildCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "artifact build payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "artifact build requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    let stored = state
+        .plane
+        .load_android_synthesis_build(&task_id.0, payload.source_revision)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "persisted Android synthesis/build record is unavailable",
+                true,
+                Some("reconcile the M4 durable record before building".into()),
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "artifact build requires a persisted M4 synthesis/build record",
+                false,
+                Some("accept the Android synthesis/build request before artifact build".into()),
+            )
+        })?;
+    let persisted_request: AndroidBuildRequest = serde_json::from_str(&stored.1).map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Internal,
+            "persisted Android build request is corrupt",
+            false,
+            None,
+        )
+    })?;
+    let expected = AndroidBuildRequest {
+        schema_version: nirman_android::M4_SCHEMA_VERSION,
+        project_id: request.command.project_id.0.clone(),
+        task_id: task_id.0.clone(),
+        source_revision: payload.source_revision,
+        project_fingerprint: payload.project_fingerprint.clone(),
+        workspace_root: payload.workspace_root.clone(),
+        build_variant: payload.build_variant.clone(),
+        gradle_task: payload.gradle_task.clone(),
+    };
+    if persisted_request != expected || stored.4 != payload.project_fingerprint {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "artifact build request does not match the persisted M4 provenance",
+            true,
+            Some("recreate the build request from the current source revision".into()),
+        ));
+    }
+    let authorized_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Environment,
+                "no authorized project workspace is configured",
+                true,
+                None,
+            )
+        })?;
+    let requested_root = std::path::PathBuf::from(&payload.workspace_root)
+        .canonicalize()
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::PermissionDenied,
+                ErrorCategory::Scope,
+                "artifact build workspace is unavailable",
+                false,
+                None,
+            )
+        })?;
+    if requested_root != authorized_root {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "artifact build workspace is outside the authorized project root",
+            false,
+            None,
+        ));
+    }
+    let index = ProjectIndexer::default()
+        .index_workspace(&requested_root, &IndexRequest::default())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "artifact build workspace indexing failed",
+                true,
+                None,
+            )
+        })?;
+    if index.project_fingerprint != payload.project_fingerprint {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "artifact build source fingerprint is stale",
+            true,
+            Some("re-index and reconcile the current authorized workspace".into()),
+        ));
+    }
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(task_id.0.as_str())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M43 toolchain preflight is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "artifact build requires persisted M43 preflight",
+                false,
+                None,
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "M43 preflight could not be restored",
+                false,
+                None,
+            )
+        })?;
+    let lock = preflight.lock.ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "artifact build requires an available M43 toolchain lock",
+            false,
+            None,
+        )
+    })?;
+    if lock.lock_hash != stored.2 {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "artifact build toolchain lock is stale",
+            true,
+            Some("rerun M43 preflight and recreate the build request".into()),
+        ));
+    }
+    Ok(PreparedArtifactBuild {
+        request: persisted_request,
+        lock,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4135,6 +4537,21 @@ mod tests {
             "plugins { id(\"com.android.application\") }\n",
         )
         .expect("gradle");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let wrapper = workspace.join("gradlew");
+            fs::write(
+                &wrapper,
+                "#!/bin/sh\nmkdir -p app/build/outputs/apk/debug\nprintf 'fixture-apk' > app/build/outputs/apk/debug/app-debug.apk\nprintf 'BUILD SUCCESSFUL\\n'\n",
+            )
+            .expect("fixture Gradle wrapper");
+            let mut permissions = fs::metadata(&wrapper)
+                .expect("wrapper metadata")
+                .permissions();
+            permissions.set_mode(0o755);
+            fs::set_permissions(&wrapper, permissions).expect("wrapper permissions");
+        }
         state.authorized_workspace_root = Some(workspace.clone());
         let index = ProjectIndexer::default()
             .index_workspace(&workspace, &IndexRequest::default())
@@ -4172,6 +4589,47 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+        #[cfg(unix)]
+        {
+            let mut artifact_request = request(
+                &state,
+                "m5-artifact-build-command",
+                CommandKind::ArtifactBuild,
+                serde_json::to_string(&ArtifactBuildCommandPayload {
+                    source_revision: 1,
+                    workspace_root: workspace.to_string_lossy().into_owned(),
+                    project_fingerprint: index.project_fingerprint.clone(),
+                    build_variant: "debug".into(),
+                    gradle_task: "assembleDebug".into(),
+                })
+                .expect("artifact build payload"),
+                m4_response.projection_revision.0,
+            );
+            artifact_request.command.task_id = Some(contract.task_id.clone());
+            let artifact_response = dispatch_request(&sink, &mut state, artifact_request.clone())
+                .expect("artifact build response");
+            assert_eq!(artifact_response.status, ResponseStatus::Completed);
+            assert_eq!(
+                artifact_response.result_schema_ref.as_deref(),
+                Some("nirman.artifact_build_result.v1")
+            );
+            assert_eq!(
+                artifact_response.result_payload.as_ref().unwrap()["observation"]["success"],
+                true
+            );
+            assert!(state
+                .plane
+                .load_android_build_observation(&contract.task_id.0, 1)
+                .expect("build observation load")
+                .is_some());
+            let artifact_duplicate = dispatch_request(&sink, &mut state, artifact_request)
+                .expect("artifact build duplicate");
+            assert_eq!(artifact_duplicate.status, ResponseStatus::Duplicate);
+            assert_eq!(
+                artifact_duplicate.result_payload,
+                artifact_response.result_payload
+            );
+        }
         let m4_duplicate = dispatch_request(&sink, &mut state, m4_request).expect("M4 duplicate");
         assert_eq!(m4_duplicate.result_payload, m4_response.result_payload);
         let m108_record = state
@@ -4197,6 +4655,10 @@ mod tests {
             .load_android_synthesis_build(&contract.task_id.0, 1)
             .expect("M4 reload")
             .is_some());
+        assert!(reopened_m4
+            .load_android_build_observation(&contract.task_id.0, 1)
+            .expect("build observation reload")
+            .is_some());
         let _ = fs::remove_dir_all(workspace);
         let mut state = test_state_at(&path);
 
@@ -4218,11 +4680,12 @@ mod tests {
             Some("pixel-api-35")
         );
         let batches = sink.batches.lock().expect("sink lock");
-        assert_eq!(batches.len(), 3);
+        assert_eq!(batches.len(), 4);
         assert!(batches[1].events[0]
             .kind
             .contains("AndroidToolchainPreflight"));
         assert!(batches[2].events[0].kind.contains("AndroidSynthesisBuild"));
+        assert!(batches[3].events[0].kind.contains("ArtifactBuild"));
         drop(batches);
         drop(state);
         let reopened = DurableControlPlane::open(&path, ProjectId(PROJECT_ID.into()))
