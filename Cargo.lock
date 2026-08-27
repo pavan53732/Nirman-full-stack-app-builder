@@ -2086,6 +2086,7 @@ dependencies = [
  "nirman-domain",
  "nirman-ipc",
  "nirman-policy",
+ "nirman-project",
  "nirman-storage",
  "nirman-supervisor",
  "nirman-workers",

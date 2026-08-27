@@ -2,10 +2,15 @@ use nirman_control_plane::{DurableControlPlane, DurableControlPlaneError, Durabl
 use nirman_domain::{
     AndroidConstructionContract, AndroidDeviceProfile, AndroidResolverError,
     AndroidResolverRequest, AndroidTechnologyPlan, AndroidTechnologyResolver, ArtifactKind,
-    ArtifactModel, CommandEnvelope, CommandKind, ConstructionRequirement, ProductLifecycleState,
-    ProjectId, RequirementOrigin, Revision, TaskId, ValidationModel,
+    ArtifactModel, CommandEnvelope, CommandKind, ConstructionRequirement,
+    MutationTransactionRecord, ProductLifecycleState, ProjectId, RequirementOrigin, Revision,
+    TaskId, ValidationModel,
 };
 use nirman_ipc::{authorize_registry_capability, AuthContext, CommandRequest, ProjectionReceiver};
+use nirman_policy::{
+    NetworkCategory, PolicyOutcome, PolicyRequest, WorkerPolicy, M6_SCHEMA_VERSION,
+};
+use nirman_project::mutation_capability_digest;
 use nirman_supervisor::{Supervisor, SupervisorState};
 use nirman_workers::{
     WorkerContract, WorkerExecutionRecord, WorkerObservation, WorkerOutcome, WorkerStage,
@@ -298,6 +303,11 @@ fn m5_evidence_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/evidence/m5_worker_trace.json")
 }
 
+fn m5_edit_undo_evidence_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/evidence/m5_worker_edit_undo_trace.json")
+}
+
 #[test]
 fn m4_authenticated_project_intent_resolver_and_noop_plan_event_are_durable(
 ) -> Result<(), DurableControlPlaneError> {
@@ -569,5 +579,295 @@ fn m5_inspection_worker_consumes_plan_event_and_reloads_checkpoint_after_restart
     )
     .expect("M5 evidence");
     let _ = fs::remove_file(db_path);
+    Ok(())
+}
+
+#[test]
+fn m5_worker_edit_and_undo_resumes_from_checkpoint() -> Result<(), DurableControlPlaneError> {
+    let project_id = "m5-edit-undo-project";
+    let task_id = "m5-edit-undo-task";
+    let worker_id = "m5-edit-undo-worker";
+    let root = std::env::temp_dir().join(format!(
+        "nirman-m5-edit-undo-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).expect("workspace root");
+    let database = root.join("control-plane.sqlite3");
+    let edited_file = root.join("NewFeature.kt");
+    let mut plane = DurableControlPlane::open(&database, ProjectId(project_id.into()))?;
+
+    let intent = command_for(
+        project_id,
+        Some(task_id),
+        0,
+        "m5-edit-undo-intent",
+        CommandKind::TaskStart,
+        "Build an Android app and add one small feature".into(),
+    );
+    authorize_registry_capability(&authenticated_request(intent.clone(), project_id))
+        .expect("intent authenticated admission");
+    let intent_snapshot = plane.dispatch(intent)?;
+    let contract = construction_contract(project_id, task_id);
+    let synthesis = StubAndroidResolver
+        .resolve(&AndroidResolverRequest {
+            contract: &contract,
+            source_revision: intent_snapshot.current_source_revision,
+            workspace_root: root.to_string_lossy().as_ref(),
+            project_fingerprint: "m5-edit-undo-base-fingerprint",
+        })
+        .expect("M4 plan from shared resolver fixture");
+    assert_eq!(contract.target_platforms, vec!["android"]);
+    let plan = command_for(
+        project_id,
+        Some(task_id),
+        intent_snapshot.projection_revision.0,
+        "m5-edit-undo-plan",
+        CommandKind::AndroidSynthesisBuild,
+        serde_json::to_string(&synthesis).expect("M4 plan event payload"),
+    );
+    authorize_registry_capability(&authenticated_request(plan.clone(), project_id))
+        .expect("plan authenticated admission");
+    let plan_snapshot = plane.dispatch(plan)?;
+    let pre_edit_revision = plan_snapshot.current_source_revision;
+    plane.checkpoint("checkpoint-m5-before-edit")?;
+
+    let policy = WorkerPolicy {
+        schema_version: M6_SCHEMA_VERSION,
+        worker_id: worker_id.into(),
+        workspace_root: root.to_string_lossy().into_owned(),
+        allowed_paths: vec![root.to_string_lossy().into_owned()],
+        denied_paths: vec![],
+        protected_path_patterns: vec!["/home/*/.ssh".into(), "/home/*/.config".into()],
+        allowed_command_patterns: vec!["*".into()],
+        denied_command_patterns: vec![],
+        allowed_network_categories: vec![NetworkCategory::None],
+        allow_external_directories: false,
+        allow_destructive_commands: false,
+    };
+    let policy_decision = policy
+        .authorize(&PolicyRequest {
+            request_id: "m5-edit-policy-request".into(),
+            operation: "workspace.apply_patch".into(),
+            path: Some(edited_file.to_string_lossy().into_owned()),
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        })
+        .expect("M6 policy evaluation");
+    assert_eq!(policy_decision.outcome, PolicyOutcome::Allow);
+    assert!(policy_decision.reasons.is_empty());
+    plane.save_m6_policy_event(&policy_decision)?;
+
+    let edit_worker_step = command_for(
+        project_id,
+        Some(task_id),
+        plan_snapshot.projection_revision.0,
+        "m5-edit-worker-step",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Mutate",
+            "operation": "Edit",
+            "delegatedCommand": "WorkspaceApplyPatch",
+            "relativePath": "NewFeature.kt",
+            "policyDecisionId": policy_decision.decision_id
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(edit_worker_step.clone(), project_id))
+        .expect("edit WorkerStep authenticated admission");
+    plane.dispatch(edit_worker_step)?;
+
+    fs::write(
+        &edited_file,
+        "package com.nirman.fixture\nclass NewFeature\n",
+    )
+    .expect("fixture edit");
+    assert!(edited_file.is_file());
+    let mutation_record = MutationTransactionRecord {
+        transaction_id: "m5-edit-transaction".into(),
+        command_id: "m5-workspace-apply".into(),
+        operation_id: "m5-add-new-feature".into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: TaskId(task_id.into()),
+        worker_id: worker_id.into(),
+        workspace_root: root.to_string_lossy().into_owned(),
+        checkpoint_id: "checkpoint-m5-before-edit".into(),
+        base_revision: pre_edit_revision,
+        resulting_revision: Revision(pre_edit_revision.0 + 1),
+        base_project_fingerprint: "m5-edit-undo-base-fingerprint".into(),
+        resulting_project_fingerprint: Some("m5-edit-undo-result-fingerprint".into()),
+        capability_digest: mutation_capability_digest(
+            project_id,
+            task_id,
+            worker_id,
+            "m5-add-new-feature",
+            pre_edit_revision.0,
+            "m5-edit-undo-base-fingerprint",
+            1,
+        ),
+        fence_token: 1,
+        state: "COMMITTED".into(),
+        changed_paths_json: Some("[\"NewFeature.kt\"]".into()),
+        evidence_json: Some(
+            serde_json::json!({
+                "policyDecisionId": policy_decision.decision_id,
+                "policyOutcome": "ALLOW",
+                "filesystemAdapter": "test-fixture-only"
+            })
+            .to_string(),
+        ),
+        started_at_epoch_seconds: 1,
+        completed_at_epoch_seconds: Some(2),
+    };
+    let edit_command = command_for(
+        project_id,
+        Some(task_id),
+        plan_snapshot.projection_revision.0 + 1,
+        "m5-workspace-apply",
+        CommandKind::WorkspaceApplyPatch,
+        serde_json::json!({
+            "operation": "Edit",
+            "relativePath": "NewFeature.kt",
+            "workerStepId": "m5-edit-worker-step"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(edit_command.clone(), project_id))
+        .expect("WorkspaceApplyPatch authenticated admission");
+    let edited_snapshot = match plane.dispatch_with_result_and_mutation_transaction(
+        edit_command,
+        "correlation-m5-edit",
+        &mutation_record,
+    )? {
+        DurableDispatchOutcome::Accepted { snapshot, .. }
+        | DurableDispatchOutcome::Duplicate { snapshot } => snapshot,
+    };
+    assert_eq!(edited_snapshot.current_source_revision, Revision(2));
+    assert!(edited_file.is_file());
+
+    let checkpoint_worker_step = command_for(
+        project_id,
+        Some(task_id),
+        edited_snapshot.projection_revision.0,
+        "m5-post-edit-checkpoint-step",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Checkpoint",
+            "operation": "Checkpoint",
+            "checkpointId": "checkpoint-m5-after-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(
+        checkpoint_worker_step.clone(),
+        project_id,
+    ))
+    .expect("checkpoint WorkerStep authenticated admission");
+    let checkpoint_snapshot = plane.dispatch(checkpoint_worker_step)?;
+    plane.checkpoint("checkpoint-m5-after-edit")?;
+    assert_eq!(checkpoint_snapshot.current_source_revision, Revision(2));
+    assert!(plane.checkpoint_exists("checkpoint-m5-after-edit")?);
+
+    let rollback_worker_step = command_for(
+        project_id,
+        Some(task_id),
+        checkpoint_snapshot.projection_revision.0,
+        "m5-rollback-worker-step",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Rollback",
+            "operation": "Undo",
+            "checkpointId": "checkpoint-m5-before-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(
+        rollback_worker_step.clone(),
+        project_id,
+    ))
+    .expect("rollback WorkerStep authenticated admission");
+    let rollback = plane.restore_source_revision_from_checkpoint(
+        "checkpoint-m5-before-edit",
+        rollback_worker_step,
+        "correlation-m5-rollback",
+    )?;
+    let rollback_snapshot = match rollback {
+        DurableDispatchOutcome::Accepted { snapshot, .. }
+        | DurableDispatchOutcome::Duplicate { snapshot } => snapshot,
+    };
+    fs::remove_file(&edited_file).expect("fixture undo");
+    assert!(!edited_file.exists());
+    assert_eq!(rollback_snapshot.current_source_revision, pre_edit_revision);
+    assert_eq!(rollback_snapshot.last_event_sequence, 6);
+
+    drop(plane);
+    let reopened = DurableControlPlane::open(&database, ProjectId(project_id.into()))?;
+    assert_eq!(
+        reopened.snapshot().current_source_revision,
+        pre_edit_revision
+    );
+    assert_eq!(reopened.snapshot().last_event_sequence, 6);
+    assert_eq!(
+        reopened
+            .replay_after(0)?
+            .last()
+            .expect("rollback event")
+            .kind,
+        "WorkerStep"
+    );
+    assert!(reopened
+        .replay_after(0)?
+        .last()
+        .expect("rollback event")
+        .payload
+        .contains("checkpoint-m5-before-edit"));
+    let reloaded_transaction = reopened
+        .load_mutation_transaction("m5-edit-transaction")?
+        .expect("durable edit transaction");
+    assert_eq!(reloaded_transaction.state, "COMMITTED");
+    assert_eq!(reloaded_transaction.resulting_revision, Revision(2));
+    let reloaded_policy = reopened
+        .load_m6_policy_events()?
+        .into_iter()
+        .find(|decision| decision.request_id == "m5-edit-policy-request")
+        .expect("durable M6 allow decision");
+    assert_eq!(reloaded_policy.outcome, PolicyOutcome::Allow);
+
+    fs::write(
+        m5_edit_undo_evidence_path(),
+        serde_json::json!({
+            "schema": "nirman.m5.worker_edit_undo_trace.v1",
+            "fixtureId": "M5-WORKER-EDIT-UNDO-001",
+            "authenticatedAdmissionObserved": true,
+            "planEventConsumed": true,
+            "editWorkerStepObserved": true,
+            "checkpointWorkerStepObserved": true,
+            "rollbackWorkerStepObserved": true,
+            "m6PolicyAllowObserved": true,
+            "m6PolicyDecisionDurable": true,
+            "workspaceMutationObserved": true,
+            "singleFileCreated": true,
+            "sourceRevisionAdvanced": true,
+            "checkpointAfterEditPersisted": true,
+            "undoRemovedFile": true,
+            "preEditRevisionRestored": true,
+            "rollbackEventDurable": true,
+            "mutationTransactionReloaded": true,
+            "restartReplayObserved": true,
+            "filesystemAdapter": "test-fixture-only",
+            "gradleExecuted": false,
+            "androidRuntimeObserved": false,
+            "nativeTauriRuntimeObserved": false,
+            "evidenceStatus": "M5_HEADLESS_EDIT_UNDO_TRACE_ONLY"
+        })
+        .to_string(),
+    )
+    .expect("M5 edit/undo evidence");
+    let _ = fs::remove_dir_all(root);
     Ok(())
 }

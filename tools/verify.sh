@@ -43,6 +43,7 @@ cargo test -p nirman-ipc --test m115_acceptance
 python3 tools/check_m2_evidence.py
 python3 tools/check_m4_evidence.py
 python3 tools/check_m5_evidence.py
+python3 tools/check_m5_edit_undo_evidence.py
 python3 tools/check_desktop_ipc_evidence.py
 python3 tools/check_m3_provider_evidence.py
 python3 tools/check_m39_evidence.py

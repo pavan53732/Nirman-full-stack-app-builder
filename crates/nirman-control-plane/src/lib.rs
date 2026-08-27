@@ -1339,6 +1339,84 @@ impl DurableControlPlane {
             .checkpoint_exists(&self.snapshot().project_id, checkpoint_id)
     }
 
+    pub fn restore_source_revision_from_checkpoint(
+        &mut self,
+        checkpoint_id: &str,
+        command: CommandEnvelope,
+        correlation_id: &str,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        if command.kind != CommandKind::WorkerStep {
+            return Err(DomainError::InvalidTransition.into());
+        }
+        let project_id = self.snapshot().project_id;
+        if command.project_id != project_id
+            || command.expected_projection_revision != self.snapshot().projection_revision
+        {
+            return Err(DomainError::StaleProjection {
+                expected: command.expected_projection_revision,
+                current: self.snapshot().projection_revision,
+            }
+            .into());
+        }
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let (_, source_revision, _) = self
+            .ledger
+            .load_checkpoint(&project_id, checkpoint_id)?
+            .ok_or(DurableControlPlaneError::Storage(
+                rusqlite::Error::QueryReturnedNoRows,
+            ))?;
+        let mut candidate = self.plane.clone();
+        candidate.projection.current_source_revision = source_revision;
+        candidate.projection.projection_revision =
+            next_revision(candidate.projection.projection_revision);
+        let event = ControlEvent {
+            event_id: command.command_id.clone(),
+            sequence: candidate.next_sequence,
+            project_id: project_id.clone(),
+            task_id: command
+                .task_id
+                .clone()
+                .or_else(|| Some(TaskId("task-0001".into()))),
+            kind: format!("{:?}", command.kind),
+            payload: command.payload.clone(),
+            source_revision,
+        };
+        candidate.next_sequence = candidate.next_sequence.saturating_add(1);
+        candidate.projection.last_event_sequence = event.sequence;
+        candidate.events.push(event.clone());
+        let snapshot_json = serde_json::to_string(&candidate.projection)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger.commit_event_projection_and_command(
+            &event,
+            &candidate.projection,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+            &request_fingerprint,
+            correlation_id,
+            &snapshot_json,
+        )?;
+        self.plane = candidate;
+        self.checkpoint_id = Some(checkpoint_id.to_owned());
+        Ok(DurableDispatchOutcome::Accepted {
+            snapshot: self.snapshot(),
+            event,
+        })
+    }
+
     pub fn checkpoint_id(&self) -> Option<&str> {
         self.checkpoint_id.as_deref()
     }

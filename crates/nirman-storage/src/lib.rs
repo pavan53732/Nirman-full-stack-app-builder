@@ -1403,6 +1403,27 @@ impl Ledger {
         Ok(())
     }
 
+    pub fn load_checkpoint(
+        &self,
+        project_id: &ProjectId,
+        checkpoint_id: &str,
+    ) -> rusqlite::Result<Option<(Revision, Revision, u64)>> {
+        self.connection
+            .query_row(
+                "SELECT projection_revision, source_revision, event_sequence
+                 FROM checkpoints WHERE project_id = ?1 AND checkpoint_id = ?2",
+                params![project_id.0, checkpoint_id],
+                |row| {
+                    Ok((
+                        Revision(row.get::<_, u64>(0)?),
+                        Revision(row.get::<_, u64>(1)?),
+                        row.get::<_, u64>(2)?,
+                    ))
+                },
+            )
+            .optional()
+    }
+
     pub fn checkpoint_exists(
         &self,
         project_id: &ProjectId,
