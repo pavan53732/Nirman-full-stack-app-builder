@@ -22,6 +22,7 @@ cargo test -p nirman-android
 cargo test -p nirman-android --test m47_acceptance
 cargo test -p nirman-preview
 cargo test -p nirman-preview --test m48_acceptance
+cargo test -p nirman-agents --test m49_acceptance
 cargo test -p nirman-control-plane --test m115_final_acceptance
 cargo test -p nirman-providers --test m3_acceptance
 cargo test -p nirman-providers m44_bridge -- --nocapture
@@ -38,6 +39,7 @@ cargo test -p nirman-ipc --test m115_acceptance
 & $Python.Source tools/check_m44_evidence.py
 & $Python.Source tools/check_m47_evidence.py
 & $Python.Source tools/check_m48_evidence.py
+& $Python.Source tools/check_m49_evidence.py
 Push-Location apps/desktop
 pnpm install --frozen-lockfile
 Pop-Location

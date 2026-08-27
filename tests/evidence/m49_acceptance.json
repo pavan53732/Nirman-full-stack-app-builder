@@ -1,0 +1,10 @@
+{
+  "androidRuntimeObserved": false,
+  "decisionTraceObserved": true,
+  "headlessOnly": true,
+  "m49Status": "M49_HEADLESS_AUTHORITY_TRACE_ONLY",
+  "nativeWindowsTauriRuntimeObserved": false,
+  "resourceDecisionObserved": true,
+  "safetyGatesPreservedObserved": true,
+  "schema": "nirman.m49.acceptance.v1"
+}
