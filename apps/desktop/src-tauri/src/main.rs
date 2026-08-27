@@ -1403,6 +1403,33 @@ fn parse_preview_start(
             Some("reload the current committed source revision before starting preview".into()),
         ));
     }
+    if let Some(workspace_root) = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+    {
+        for changed_path in &preview_request.changed_paths {
+            let normalized_path =
+                m6_workspace_path(&workspace_root.to_string_lossy(), changed_path.clone());
+            let _policy_decision = authorize_m6_host_operation(
+                state,
+                request,
+                "preview-worker",
+                &workspace_root.to_string_lossy(),
+                vec![workspace_root.to_string_lossy().into_owned()],
+                Vec::new(),
+                PolicyRequest {
+                    request_id: preview_request.request_id.clone(),
+                    operation: "preview.start.changed_path".into(),
+                    path: Some(normalized_path),
+                    command: None,
+                    network_category: NetworkCategory::None,
+                    destructive: false,
+                    external_directory: false,
+                },
+            )?;
+        }
+    }
     let selection = select_fallback(&preview_request).map_err(|error_value| {
         error(
             &request.correlation_id,
@@ -3028,6 +3055,18 @@ fn m6_workspace_path(workspace_root: &str, path: String) -> String {
         path
     } else {
         format!("{}/{}", workspace_root.trim_end_matches(['/', '\\']), path)
+    }
+}
+
+fn m6_canonical_existing_ancestor(path: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mut candidate = path.to_path_buf();
+    loop {
+        if let Ok(canonical) = candidate.canonicalize() {
+            return Some(canonical);
+        }
+        if !candidate.pop() {
+            return None;
+        }
     }
 }
 
@@ -6033,6 +6072,110 @@ fn parse_artifact_export(
             false,
             None,
         ));
+    }
+    if observation.workspace_root.trim().is_empty()
+        || !std::path::Path::new(&observation.workspace_root).is_absolute()
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Scope,
+            "artifact export requires an absolute workspace identity from the build observation",
+            false,
+            Some(
+                "rebuild the current Android source revision with a canonical workspace scope"
+                    .into(),
+            ),
+        ));
+    }
+    let workspace_root_path = std::path::Path::new(&observation.workspace_root)
+        .canonicalize()
+        .map_err(|_| {
+            m8_dependency_error(
+                request,
+                "artifact export workspace identity could not be resolved",
+            )
+        })?;
+    let destination_scope_path =
+        m6_canonical_existing_ancestor(std::path::Path::new(&payload.destination_path))
+            .ok_or_else(|| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Scope,
+                    "artifact export destination has no resolvable local ancestor",
+                    false,
+                    Some("choose a destination under the authorized local workspace".into()),
+                )
+            })?;
+    let destination_in_workspace = destination_scope_path.starts_with(&workspace_root_path);
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "artifact-export-worker",
+        &observation.workspace_root,
+        vec![observation.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "artifact.export.destination".into(),
+            path: Some(payload.destination_path.clone()),
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: !destination_in_workspace,
+        },
+    )?;
+    if let Some(previous_json) = state
+        .plane
+        .load_android_artifact_export(task_id.0.as_str(), payload.source_revision)
+        .map_err(|_| {
+            m8_dependency_error(request, "previous APK export state could not be loaded")
+        })?
+    {
+        let previous: ApkArtifact = serde_json::from_str(&previous_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "previous APK export state is corrupt",
+                false,
+                None,
+            )
+        })?;
+        if previous.copy_uncertain
+            || previous.delivery_status == "UNKNOWN"
+            || previous.delivery_status == "RECONCILING"
+        {
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::IdempotencyConflict,
+                ErrorCategory::Conflict,
+                "artifact export has unresolved prior delivery state",
+                false,
+                Some("inspect and reconcile the previous local copy before retrying".into()),
+            ));
+        }
+        if previous.path != payload.destination_path && previous.delivery_status == "READY_LOCAL" {
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::IdempotencyConflict,
+                ErrorCategory::Conflict,
+                "artifact export destination conflicts with the durable export record",
+                false,
+                Some("use the declared destination from the durable export record".into()),
+            ));
+        }
     }
     Ok(PreparedArtifactExport {
         source_revision: payload.source_revision,
@@ -10528,6 +10671,102 @@ mod m108_export_preview_tests {
             .load_android_artifact_export(&contract.task_id.0, 0)
             .expect("artifact export reload")
             .is_some());
+        let events_after_export = state.plane.snapshot().last_event_sequence;
+
+        let mut protected_export = export_request.clone();
+        protected_export.command.command_id = "m108-fixture-protected-export".into();
+        protected_export.command.idempotency_key =
+            Some("idempotency-m108-fixture-protected-export".into());
+        protected_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
+            source_revision: 0,
+            destination_path: "/home/user/.ssh/id_rsa".into(),
+        })
+        .expect("protected export payload");
+        let protected_error = dispatch_request(&sink, &mut state, protected_export)
+            .expect_err("protected export destination must be denied");
+        assert_eq!(
+            protected_error.code,
+            ControlPlaneErrorCode::PermissionDenied
+        );
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_export
+        );
+        assert!(state
+            .plane
+            .load_android_artifact_export(&contract.task_id.0, 0)
+            .expect("protected export must not mutate record")
+            .is_some());
+
+        let mut unsafe_export = export_request.clone();
+        unsafe_export.command.command_id = "m108-fixture-relative-export".into();
+        unsafe_export.command.idempotency_key =
+            Some("idempotency-m108-fixture-relative-export".into());
+        unsafe_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
+            source_revision: 0,
+            destination_path: "../outside/app.apk".into(),
+        })
+        .expect("relative export payload");
+        let unsafe_error = dispatch_request(&sink, &mut state, unsafe_export)
+            .expect_err("relative export destination must be denied");
+        assert_eq!(unsafe_error.code, ControlPlaneErrorCode::PermissionDenied);
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_export
+        );
+
+        let mut uncertain_artifact = exported.artifact.clone();
+        uncertain_artifact.copy_uncertain = true;
+        uncertain_artifact.delivery_status = "RECONCILING".into();
+        state
+            .plane
+            .save_android_artifact_export(
+                "export-m108-fixture-uncertain",
+                &contract.task_id.0,
+                0,
+                &delivery.to_string_lossy(),
+                &serde_json::to_string(&uncertain_artifact).expect("uncertain artifact json"),
+            )
+            .expect("durable uncertain export state");
+        let mut uncertain_export = export_request.clone();
+        uncertain_export.command.command_id = "m108-fixture-uncertain-export".into();
+        uncertain_export.command.idempotency_key =
+            Some("idempotency-m108-fixture-uncertain-export".into());
+        let uncertain_error = dispatch_request(&sink, &mut state, uncertain_export)
+            .expect_err("uncertain prior copy must block overwrite");
+        assert_eq!(
+            uncertain_error.code,
+            ControlPlaneErrorCode::IdempotencyConflict
+        );
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_export
+        );
+
+        let mut mismatched_observation = observation.clone();
+        mismatched_observation.task_id = "wrong-task-for-export".into();
+        state
+            .plane
+            .save_android_build_observation(
+                &mismatched_observation.execution_id,
+                &contract.task_id.0,
+                mismatched_observation.source_revision,
+                &mismatched_observation.project_fingerprint,
+                &serde_json::to_string(&mismatched_observation)
+                    .expect("mismatched observation json"),
+            )
+            .expect("mismatched observation setup");
+        let mut mismatched_export = export_request.clone();
+        mismatched_export.command.command_id = "m108-fixture-mismatched-export".into();
+        mismatched_export.command.idempotency_key =
+            Some("idempotency-m108-fixture-mismatched-export".into());
+        let mismatched_error = dispatch_request(&sink, &mut state, mismatched_export)
+            .expect_err("mismatched source/task identity must be denied");
+        assert_eq!(mismatched_error.code, ControlPlaneErrorCode::InvalidCommand);
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_export
+        );
 
         let preview_request = PreviewRequest {
             schema_version: nirman_preview::M48_SCHEMA_VERSION,
@@ -10555,7 +10794,7 @@ mod m108_export_preview_tests {
             "m108-fixture-preview",
             CommandKind::PreviewStart,
             serde_json::to_string(&PreviewStartCommandPayload {
-                request: preview_request,
+                request: preview_request.clone(),
             })
             .expect("preview payload"),
             export_response.snapshot.projection_revision.0,
@@ -10578,6 +10817,59 @@ mod m108_export_preview_tests {
         assert_eq!(
             observation.apk_sha256,
             "sha256:b9de1edb74ac03319f14a1c163b3ed045598c3771cf3c3d7ec410864b0c5f738"
+        );
+        let events_after_preview = state.plane.snapshot().last_event_sequence;
+
+        let mut protected_preview = request(
+            &state,
+            "m108-fixture-protected-preview",
+            CommandKind::PreviewStart,
+            serde_json::to_string(&PreviewStartCommandPayload {
+                request: PreviewRequest {
+                    request_id: "m108-fixture-protected-preview".into(),
+                    changed_paths: vec!["/home/user/.ssh/id_rsa".into()],
+                    ..preview_request.clone()
+                },
+            })
+            .expect("protected preview payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        protected_preview.command.task_id = Some(contract.task_id.clone());
+        let protected_preview_error = dispatch_request(&sink, &mut state, protected_preview)
+            .expect_err("protected preview path must be denied");
+        assert_eq!(
+            protected_preview_error.code,
+            ControlPlaneErrorCode::PermissionDenied
+        );
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_preview
+        );
+
+        let mut wrong_task_preview = request(
+            &state,
+            "m108-fixture-wrong-task-preview",
+            CommandKind::PreviewStart,
+            serde_json::to_string(&PreviewStartCommandPayload {
+                request: PreviewRequest {
+                    request_id: "m108-fixture-wrong-task-preview".into(),
+                    task_id: "wrong-task".into(),
+                    ..preview_request.clone()
+                },
+            })
+            .expect("wrong-task preview payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        wrong_task_preview.command.task_id = Some(contract.task_id.clone());
+        let wrong_task_error = dispatch_request(&sink, &mut state, wrong_task_preview)
+            .expect_err("wrong preview task identity must be denied");
+        assert_eq!(
+            wrong_task_error.code,
+            ControlPlaneErrorCode::PermissionDenied
+        );
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            events_after_preview
         );
         assert!(state
             .plane
@@ -10631,6 +10923,22 @@ mod m108_export_preview_tests {
 
         drop(state);
         let mut reopened = test_state_at(&database);
+        let reloaded_policy_events = reopened
+            .plane
+            .load_m6_policy_events()
+            .expect("M6 policy decisions reload");
+        assert!(reloaded_policy_events.iter().any(|decision| {
+            decision.worker_id == "artifact-export-worker"
+                && decision.request_id == "m108-fixture-protected-export"
+                && decision.outcome == PolicyOutcome::Deny
+                && decision.reasons.contains(&"protected-path".into())
+        }));
+        assert!(reloaded_policy_events.iter().any(|decision| {
+            decision.worker_id == "preview-worker"
+                && decision.request_id == "m108-fixture-protected-preview"
+                && decision.outcome == PolicyOutcome::Deny
+                && decision.reasons.contains(&"protected-path".into())
+        }));
         let replay_events = reopened
             .plane
             .load_m108_event_jsons(&contract.task_id.0)

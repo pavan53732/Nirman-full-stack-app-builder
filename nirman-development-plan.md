@@ -227,6 +227,7 @@ Make execution safe before enabling autonomous background work.
 6. Add native Windows restricted-process, ACL, Job Object, resource-quota, toolchain-isolation, and disposable-emulator-snapshot boundaries.
 7. Add dependency and artifact safety checks.
 8. Add repeated-action and doom-loop detection.
+9. **Open contract-gap work item — ArtifactExport/PreviewStart portable policy metadata:** ArtifactExport currently exposes only source revision and destination path at the command boundary, while the durable implementation does not yet expose the canonical export-verification record containing packaging profile, verified artifact identity, source/destination identities, request fingerprint, and `UNKNOWN`/`RECONCILING` copy state. PreviewStart currently exposes task, project revision, checkpoint, source fingerprint, device identity, and changed paths, but not an authoritative workspace root or build identity. Do not apply broad or guessed M6 authorization to either schema. Close this gap only by wiring the canonical export record and preview event identity into the policy boundary; rules requiring a real device session or raw signing material remain deferred to their owning milestones. This is an open contract/integration dependency and is not an M6 completion claim.
 
 ### Exit gate
 
