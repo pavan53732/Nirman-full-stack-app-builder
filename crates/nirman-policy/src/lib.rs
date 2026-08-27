@@ -232,6 +232,285 @@ pub fn govern_resources(
     Ok(ResourceGovernorDecision { schema_version: M49_SCHEMA_VERSION, decision_id: decision_id.into(), pressure, triggered_limits: limits, actions, safety_gates_preserved: true, reason: "resource adaptation changes scheduling only; sandbox, permission, evidence, signing, and artifact gates remain enforced".into() })
 }
 
+pub const M6_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PolicyOutcome {
+    Allow,
+    Ask,
+    Deny,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NetworkCategory {
+    None,
+    Localhost,
+    ApprovedHost,
+    External,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerPolicy {
+    pub schema_version: u16,
+    pub worker_id: String,
+    pub workspace_root: String,
+    pub allowed_paths: Vec<String>,
+    pub denied_paths: Vec<String>,
+    pub protected_path_patterns: Vec<String>,
+    pub allowed_command_patterns: Vec<String>,
+    pub denied_command_patterns: Vec<String>,
+    pub allowed_network_categories: Vec<NetworkCategory>,
+    pub allow_external_directories: bool,
+    pub allow_destructive_commands: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PolicyRequest {
+    pub request_id: String,
+    pub operation: String,
+    pub path: Option<String>,
+    pub command: Option<String>,
+    pub network_category: NetworkCategory,
+    pub destructive: bool,
+    pub external_directory: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PolicyDecision {
+    pub schema_version: u16,
+    pub decision_id: String,
+    pub worker_id: String,
+    pub request_id: String,
+    pub outcome: PolicyOutcome,
+    pub reasons: Vec<String>,
+    pub authority: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PolicyError {
+    InvalidPolicy(&'static str),
+    InvalidRequest(&'static str),
+}
+
+impl fmt::Display for PolicyError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidPolicy(field) => write!(formatter, "M6 policy is invalid: {field}"),
+            Self::InvalidRequest(field) => {
+                write!(formatter, "M6 policy request is invalid: {field}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for PolicyError {}
+
+impl WorkerPolicy {
+    pub fn validate(&self) -> Result<(), PolicyError> {
+        if self.schema_version != M6_SCHEMA_VERSION {
+            return Err(PolicyError::InvalidPolicy("schemaVersion"));
+        }
+        if self.worker_id.trim().is_empty() || self.workspace_root.trim().is_empty() {
+            return Err(PolicyError::InvalidPolicy("identity/workspace"));
+        }
+        if self.allowed_paths.is_empty() || self.protected_path_patterns.is_empty() {
+            return Err(PolicyError::InvalidPolicy("path-rules"));
+        }
+        if self.allowed_paths.iter().any(|allowed| {
+            self.denied_paths
+                .iter()
+                .any(|denied| same_path(allowed, denied))
+        }) {
+            return Err(PolicyError::InvalidPolicy("allowed-denied-overlap"));
+        }
+        Ok(())
+    }
+
+    pub fn authorize(&self, request: &PolicyRequest) -> Result<PolicyDecision, PolicyError> {
+        self.validate()?;
+        if request.request_id.trim().is_empty() || request.operation.trim().is_empty() {
+            return Err(PolicyError::InvalidRequest("identity"));
+        }
+        let mut reasons: Vec<String> = Vec::new();
+        if let Some(path) = request.path.as_deref() {
+            if self
+                .protected_path_patterns
+                .iter()
+                .any(|pattern| path_matches(path, pattern))
+            {
+                reasons.push("protected-path".into());
+            }
+            if self
+                .denied_paths
+                .iter()
+                .any(|rule| path_matches(path, rule))
+            {
+                reasons.push("denied-path".into());
+            } else if !self
+                .allowed_paths
+                .iter()
+                .any(|rule| path_matches(path, rule))
+            {
+                reasons.push("outside-workspace".into());
+            }
+        }
+        if let Some(command) = request.command.as_deref() {
+            if self
+                .denied_command_patterns
+                .iter()
+                .any(|pattern| text_matches(command, pattern))
+            {
+                reasons.push("denied-command".into());
+            } else if !self
+                .allowed_command_patterns
+                .iter()
+                .any(|pattern| text_matches(command, pattern))
+            {
+                reasons.push("unapproved-command".into());
+            }
+        }
+        if request.external_directory && !self.allow_external_directories {
+            reasons.push("external-directory".into());
+        }
+        if request.destructive && !self.allow_destructive_commands {
+            reasons.push("destructive-operation".into());
+        }
+        if !self
+            .allowed_network_categories
+            .contains(&request.network_category)
+        {
+            reasons.push("network-category".into());
+        }
+        let outcome = if reasons.iter().any(|reason| {
+            matches!(
+                reason.as_str(),
+                "protected-path" | "denied-path" | "denied-command"
+            )
+        }) {
+            PolicyOutcome::Deny
+        } else if reasons.is_empty() {
+            PolicyOutcome::Allow
+        } else {
+            PolicyOutcome::Ask
+        };
+        Ok(PolicyDecision {
+            schema_version: M6_SCHEMA_VERSION,
+            decision_id: format!("decision-{}", request.request_id),
+            worker_id: self.worker_id.clone(),
+            request_id: request.request_id.clone(),
+            outcome,
+            reasons,
+            authority: "PolicyAuthority".into(),
+        })
+    }
+}
+
+fn same_path(left: &str, right: &str) -> bool {
+    left.trim_end_matches(['/', '\\'])
+        .eq_ignore_ascii_case(right.trim_end_matches(['/', '\\']))
+}
+
+fn path_matches(value: &str, pattern: &str) -> bool {
+    let value = value.replace('\\', "/").to_ascii_lowercase();
+    let pattern = pattern.replace('\\', "/").to_ascii_lowercase();
+    if let Some(prefix) = pattern.strip_suffix("/*") {
+        value == prefix || value.starts_with(&format!("{prefix}/"))
+    } else {
+        same_path(&value, &pattern)
+    }
+}
+
+fn text_matches(value: &str, pattern: &str) -> bool {
+    pattern == "*"
+        || value.eq_ignore_ascii_case(pattern)
+        || value.starts_with(&format!("{pattern} "))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProcessRecord {
+    pub process_id: u32,
+    pub parent_process_id: Option<u32>,
+    pub worker_id: String,
+    pub cancelled: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct ProcessRegistry {
+    records: Vec<ProcessRecord>,
+}
+
+impl ProcessRegistry {
+    pub fn register(&mut self, record: ProcessRecord) {
+        self.records
+            .retain(|current| current.process_id != record.process_id);
+        self.records.push(record);
+    }
+
+    pub fn cancel_tree(&mut self, process_id: u32) -> Vec<u32> {
+        let mut cancelled = Vec::new();
+        let mut pending = vec![process_id];
+        while let Some(parent) = pending.pop() {
+            for record in self.records.iter_mut().filter(|record| {
+                record.process_id == parent || record.parent_process_id == Some(parent)
+            }) {
+                if !record.cancelled {
+                    record.cancelled = true;
+                    cancelled.push(record.process_id);
+                }
+                if record.process_id != parent {
+                    pending.push(record.process_id);
+                }
+            }
+        }
+        cancelled.sort_unstable();
+        cancelled.dedup();
+        cancelled
+    }
+
+    pub fn records(&self) -> &[ProcessRecord] {
+        &self.records
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QuotaUsage {
+    pub process_count: u16,
+    pub memory_mb: u64,
+    pub disk_write_mb: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProcessQuota {
+    pub max_process_count: u16,
+    pub max_memory_mb: u64,
+    pub max_disk_write_mb: u64,
+}
+
+pub fn quota_allows(usage: &QuotaUsage, quota: &ProcessQuota) -> bool {
+    usage.process_count <= quota.max_process_count
+        && usage.memory_mb <= quota.max_memory_mb
+        && usage.disk_write_mb <= quota.max_disk_write_mb
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct DoomLoopDetector {
+    fingerprints: Vec<String>,
+}
+
+impl DoomLoopDetector {
+    pub fn record(&mut self, fingerprint: impl Into<String>, limit: usize) -> bool {
+        let fingerprint = fingerprint.into();
+        self.fingerprints.push(fingerprint.clone());
+        self.fingerprints
+            .iter()
+            .rev()
+            .take(limit)
+            .all(|current| current == &fingerprint)
+            && self.fingerprints.len() >= limit
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,5 +581,124 @@ mod tests {
         assert!(d
             .actions
             .contains(&ResourceAction::BlockNewWorkForProtection));
+    }
+}
+
+#[cfg(test)]
+mod m6_tests {
+    use super::*;
+
+    fn policy() -> WorkerPolicy {
+        WorkerPolicy {
+            schema_version: M6_SCHEMA_VERSION,
+            worker_id: "worker-m6".into(),
+            workspace_root: "/workspace/project".into(),
+            allowed_paths: vec!["/workspace/project/*".into()],
+            denied_paths: vec!["/workspace/project/.git/*".into()],
+            protected_path_patterns: vec!["/home/user/.ssh/*".into(), "*.env".into()],
+            allowed_command_patterns: vec!["gradlew".into(), "adb".into()],
+            denied_command_patterns: vec!["rm".into(), "format".into()],
+            allowed_network_categories: vec![NetworkCategory::None, NetworkCategory::Localhost],
+            allow_external_directories: false,
+            allow_destructive_commands: false,
+        }
+    }
+
+    fn request(path: Option<&str>, command: Option<&str>) -> PolicyRequest {
+        PolicyRequest {
+            request_id: "request-m6".into(),
+            operation: "test".into(),
+            path: path.map(str::to_owned),
+            command: command.map(str::to_owned),
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        }
+    }
+
+    #[test]
+    fn policy_distinguishes_allow_ask_and_deny() {
+        assert_eq!(
+            policy()
+                .authorize(&request(
+                    Some("/workspace/project/app/Main.java"),
+                    Some("gradlew assembleDebug")
+                ))
+                .unwrap()
+                .outcome,
+            PolicyOutcome::Allow
+        );
+        let mut ask = request(
+            Some("/workspace/project/app/Main.java"),
+            Some("gradlew assembleDebug"),
+        );
+        ask.network_category = NetworkCategory::External;
+        assert_eq!(
+            policy().authorize(&ask).unwrap().outcome,
+            PolicyOutcome::Ask
+        );
+        let denied = policy()
+            .authorize(&request(Some("/home/user/.ssh/id_rsa"), Some("cat")))
+            .unwrap();
+        assert_eq!(denied.outcome, PolicyOutcome::Deny);
+        assert!(denied.reasons.contains(&"protected-path".into()));
+    }
+
+    #[test]
+    fn process_tree_and_quota_are_enforced_deterministically() {
+        let mut registry = ProcessRegistry::default();
+        registry.register(ProcessRecord {
+            process_id: 10,
+            parent_process_id: None,
+            worker_id: "worker-m6".into(),
+            cancelled: false,
+        });
+        registry.register(ProcessRecord {
+            process_id: 11,
+            parent_process_id: Some(10),
+            worker_id: "worker-m6".into(),
+            cancelled: false,
+        });
+        registry.register(ProcessRecord {
+            process_id: 12,
+            parent_process_id: Some(11),
+            worker_id: "worker-m6".into(),
+            cancelled: false,
+        });
+        assert_eq!(registry.cancel_tree(10), vec![10, 11, 12]);
+        assert!(registry.records().iter().all(|record| record.cancelled));
+        assert!(quota_allows(
+            &QuotaUsage {
+                process_count: 1,
+                memory_mb: 128,
+                disk_write_mb: 20
+            },
+            &ProcessQuota {
+                max_process_count: 2,
+                max_memory_mb: 256,
+                max_disk_write_mb: 50
+            }
+        ));
+        assert!(!quota_allows(
+            &QuotaUsage {
+                process_count: 3,
+                memory_mb: 128,
+                disk_write_mb: 20
+            },
+            &ProcessQuota {
+                max_process_count: 2,
+                max_memory_mb: 256,
+                max_disk_write_mb: 50
+            }
+        ));
+    }
+
+    #[test]
+    fn doom_loop_detector_flags_only_repeated_identical_actions() {
+        let mut detector = DoomLoopDetector::default();
+        assert!(!detector.record("build:1", 3));
+        assert!(!detector.record("build:1", 3));
+        assert!(detector.record("build:1", 3));
+        assert!(!detector.record("repair:1", 3));
     }
 }
