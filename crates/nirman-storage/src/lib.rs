@@ -9,7 +9,8 @@ use nirman_domain::{
 };
 use nirman_supervisor::BackgroundRunRecord;
 use nirman_workers::{
-    CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
+    CoordinationTask, M8ReconciliationCheckpoint, WorkerHandoffAcknowledgement,
+    WorkerHandoffRecord, WorkerTaskClaim,
 };
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
@@ -217,6 +218,13 @@ impl Ledger {
                  worker_id TEXT NOT NULL,
                  state TEXT NOT NULL,
                  record_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS m8_reconciliation_checkpoints (
+                 project_id TEXT NOT NULL,
+                 checkpoint_id TEXT NOT NULL,
+                 status TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, checkpoint_id)
              );
              CREATE TABLE IF NOT EXISTS m8_worker_task_claims (
                  project_id TEXT NOT NULL,
@@ -1634,6 +1642,51 @@ impl Ledger {
         transaction.commit()
     }
 
+    pub fn save_m8_reconciliation_checkpoint(
+        &self,
+        project_id: &str,
+        checkpoint: &M8ReconciliationCheckpoint,
+    ) -> rusqlite::Result<()> {
+        checkpoint.validate().map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let record_json = serde_json::to_string(checkpoint).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m8_reconciliation_checkpoints (project_id, checkpoint_id, status, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, checkpoint_id) DO UPDATE SET status = excluded.status, record_json = excluded.record_json",
+            params![project_id, checkpoint.checkpoint_id, format!("{:?}", checkpoint.status), record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_m8_reconciliation_checkpoint(
+        &self,
+        project_id: &str,
+        checkpoint_id: &str,
+    ) -> rusqlite::Result<Option<M8ReconciliationCheckpoint>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m8_reconciliation_checkpoints WHERE project_id = ?1 AND checkpoint_id = ?2",
+                params![project_id, checkpoint_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
     pub fn save_worker_task_claim(
         &self,
         project_id: &str,
@@ -1765,6 +1818,7 @@ impl Ledger {
         request_fingerprint: &str,
         correlation_id: &str,
         snapshot_json: &str,
+        checkpoint: Option<(&str, &str, &str)>,
         task: Option<(&str, &str)>,
         claim: Option<(&str, &str, &str)>,
         handoff: Option<(&str, &str, &str, &str)>,
@@ -1800,6 +1854,12 @@ impl Ledger {
             "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![command_id, snapshot.project_id.0, idempotency_key, request_fingerprint, correlation_id, snapshot_json],
         )?;
+        if let Some((checkpoint_id, status, record_json)) = checkpoint {
+            transaction.execute(
+                "INSERT INTO m8_reconciliation_checkpoints (project_id, checkpoint_id, status, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, checkpoint_id) DO UPDATE SET status = excluded.status, record_json = excluded.record_json",
+                params![snapshot.project_id.0, checkpoint_id, status, record_json],
+            )?;
+        }
         if let Some((task_id, record_json)) = task {
             transaction.execute(
                 "INSERT INTO m8_coordination_tasks (project_id, task_id, record_json) VALUES (?1, ?2, ?3) ON CONFLICT(project_id, task_id) DO UPDATE SET record_json = excluded.record_json",

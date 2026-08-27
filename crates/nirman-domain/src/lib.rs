@@ -461,6 +461,7 @@ pub enum CommandKind {
     WorkerTaskClaim,
     WorkerHandoffSubmit,
     WorkerHandoffAcknowledge,
+    WorkerReconcile,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

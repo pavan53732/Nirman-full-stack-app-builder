@@ -11,7 +11,9 @@ use nirman_domain::{
 use nirman_evidence::AndroidDeviceObservation;
 use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
 use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
-use nirman_workers::{CoordinationTask, WorkerContract, WorkerHandoffAcknowledgement};
+use nirman_workers::{
+    CoordinationTask, M8ReconciliationCheckpoint, WorkerContract, WorkerHandoffAcknowledgement,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -315,6 +317,19 @@ pub struct WorkerHandoffAcknowledgeCommandPayload {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct WorkerHandoffAcknowledgeResultPayload {
     pub acknowledgement: WorkerHandoffAcknowledgement,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerReconcileCommandPayload {
+    pub parent_contract: WorkerContract,
+    pub checkpoint_id: String,
+    pub integration_workspace_root: String,
+    pub handoff_message_ids: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct WorkerReconcileResultPayload {
+    pub checkpoint: M8ReconciliationCheckpoint,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProviderTestCommandPayload {
@@ -685,6 +700,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "WorkerCoordinationAuthority",
             "worker.handoff.acknowledge",
             "Worker handoff acknowledgement projection",
+            "local",
+        ),
+        (
+            CommandKind::WorkerReconcile,
+            "worker.reconcile",
+            "WorkerCoordinationAuthority",
+            "worker.reconcile",
+            "Transactional integration checkpoint projection",
             "local",
         ),
     ]
@@ -1059,7 +1082,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 23);
+        assert_eq!(command_registry().len(), 24);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()

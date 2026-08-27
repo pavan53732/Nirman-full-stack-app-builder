@@ -2217,6 +2217,7 @@ name = "nirman-workers"
 version = "0.1.0"
 dependencies = [
  "nirman-domain",
+ "nirman-project",
  "serde",
 ]
 

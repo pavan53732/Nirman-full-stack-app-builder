@@ -14,7 +14,8 @@ use nirman_domain::{
 use nirman_storage::Ledger;
 use nirman_supervisor::BackgroundRunRecord;
 use nirman_workers::{
-    CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
+    CoordinationTask, M8ReconciliationCheckpoint, WorkerHandoffAcknowledgement,
+    WorkerHandoffRecord, WorkerTaskClaim,
 };
 use std::path::Path;
 
@@ -153,7 +154,8 @@ impl ControlPlane {
             | CommandKind::ProviderExecute
             | CommandKind::WorkerTaskClaim
             | CommandKind::WorkerHandoffSubmit
-            | CommandKind::WorkerHandoffAcknowledge => {}
+            | CommandKind::WorkerHandoffAcknowledge
+            | CommandKind::WorkerReconcile => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
             }
@@ -238,6 +240,7 @@ pub enum DurableControlPlaneError {
 }
 
 pub struct M8DispatchRecord {
+    pub checkpoint: Option<(String, String, String)>,
     pub task: Option<(String, String)>,
     pub claim: Option<(String, String, String)>,
     pub handoff: Option<(String, String, String, String)>,
@@ -339,6 +342,22 @@ impl DurableControlPlane {
             .events_after(&self.snapshot().project_id, sequence)
     }
 
+    pub fn save_m8_reconciliation_checkpoint(
+        &self,
+        checkpoint: &M8ReconciliationCheckpoint,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_m8_reconciliation_checkpoint(&self.snapshot().project_id.0, checkpoint)
+    }
+
+    pub fn load_m8_reconciliation_checkpoint(
+        &self,
+        checkpoint_id: &str,
+    ) -> Result<Option<M8ReconciliationCheckpoint>, rusqlite::Error> {
+        self.ledger
+            .load_m8_reconciliation_checkpoint(&self.snapshot().project_id.0, checkpoint_id)
+    }
+
     pub fn save_worker_task_claim(&self, claim: &WorkerTaskClaim) -> Result<(), rusqlite::Error> {
         self.ledger
             .save_worker_task_claim(&self.snapshot().project_id.0, claim)
@@ -411,6 +430,15 @@ impl DurableControlPlane {
             &request_fingerprint,
             correlation_id,
             &snapshot_json,
+            m8.checkpoint
+                .as_ref()
+                .map(|(checkpoint_id, status, record_json)| {
+                    (
+                        checkpoint_id.as_str(),
+                        status.as_str(),
+                        record_json.as_str(),
+                    )
+                }),
             m8.task
                 .as_ref()
                 .map(|(task_id, record_json)| (task_id.as_str(), record_json.as_str())),
@@ -1380,6 +1408,7 @@ mod m115_command_surface_tests {
             CommandKind::WorkerTaskClaim,
             CommandKind::WorkerHandoffSubmit,
             CommandKind::WorkerHandoffAcknowledge,
+            CommandKind::WorkerReconcile,
         ];
         let command_count = commands.len();
         for (revision, kind) in commands.into_iter().enumerate() {

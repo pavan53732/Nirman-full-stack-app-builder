@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 nirman-domain = { path = "../nirman-domain" }
+nirman-project = { path = "../nirman-project" }
 serde = { version = "1", features = ["derive"] }

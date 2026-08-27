@@ -1,11 +1,13 @@
 #![forbid(unsafe_code)]
 
 use nirman_domain::{ProjectId, Revision, TaskId};
+use nirman_project::MutationRequest;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
 
 pub const M5_SCHEMA_VERSION: u16 = 1;
+pub const M8_RECONCILIATION_SCHEMA_VERSION: u16 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorkerStage {
@@ -322,6 +324,64 @@ pub struct WorkerTaskClaim {
     pub lease: WorkerLease,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReconciliationStatus {
+    Integrated,
+    RolledBack,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReconciliationMutationSummary {
+    pub task_id: String,
+    pub worker_id: String,
+    pub operation_id: String,
+    pub resulting_project_fingerprint: String,
+    pub changed_paths: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct M8ReconciliationCheckpoint {
+    pub schema_version: u16,
+    pub checkpoint_id: String,
+    pub project_id: ProjectId,
+    pub parent_task_id: String,
+    pub workspace_root: String,
+    pub base_revision: Revision,
+    pub base_project_fingerprint: String,
+    pub resulting_project_fingerprint: Option<String>,
+    pub status: ReconciliationStatus,
+    pub handoff_message_ids: Vec<String>,
+    pub mutations: Vec<ReconciliationMutationSummary>,
+    pub reason: String,
+}
+
+impl M8ReconciliationCheckpoint {
+    pub fn validate(&self) -> Result<(), CoordinationError> {
+        if self.schema_version != M8_RECONCILIATION_SCHEMA_VERSION
+            || self.checkpoint_id.trim().is_empty()
+            || self.project_id.0.trim().is_empty()
+            || self.parent_task_id.trim().is_empty()
+            || self.workspace_root.trim().is_empty()
+            || self.base_project_fingerprint.trim().is_empty()
+            || self.handoff_message_ids.is_empty()
+            || self.reason.trim().is_empty()
+        {
+            return Err(CoordinationError::InvalidTask("reconciliationCheckpoint"));
+        }
+        if self.status == ReconciliationStatus::Integrated
+            && (self
+                .resulting_project_fingerprint
+                .as_deref()
+                .is_none_or(str::is_empty)
+                || self.mutations.is_empty())
+        {
+            return Err(CoordinationError::InvalidTask("integratedCheckpointResult"));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CoordinationTask {
     pub schema_version: u16,
@@ -369,6 +429,8 @@ pub struct WorkerHandoffRecord {
     pub changed_paths: Vec<String>,
     pub changed_symbols: Vec<String>,
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub mutation_request: Option<MutationRequest>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -587,6 +649,15 @@ impl MultiWorkerCoordinator {
         }
         if handoff.evidence_refs.is_empty() {
             return Err(CoordinationError::EvidenceRequired);
+        }
+        if let Some(mutation) = handoff.mutation_request.as_ref() {
+            if mutation.task_id != handoff.task_id
+                || mutation.worker_id != handoff.worker_id
+                || mutation.fence_token != handoff.fence_token
+                || mutation.operation_id.trim().is_empty()
+            {
+                return Err(CoordinationError::InvalidTask("handoffMutationIdentity"));
+            }
         }
         if self.handoffs.contains_key(&handoff.task_id) {
             return Err(CoordinationError::DuplicateHandoff);
@@ -860,6 +931,7 @@ mod m8_tests {
             changed_paths: vec![path.into()],
             changed_symbols: vec![format!("symbol-{task_id}")],
             evidence_refs: vec![format!("evidence-{task_id}")],
+            mutation_request: None,
         }
     }
 

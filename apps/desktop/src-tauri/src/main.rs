@@ -14,7 +14,7 @@ use nirman_control_plane::{
 };
 use nirman_domain::{
     AndroidConstructionCommandPayload, AndroidConstructionContract, CommandKind,
-    MutationTransactionRecord, ProjectId, Revision,
+    MutationTransactionRecord, ProjectId, Revision, TaskId,
 };
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
@@ -31,7 +31,8 @@ use nirman_ipc::{
     SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
     WorkerHandoffAcknowledgeCommandPayload, WorkerHandoffAcknowledgeResultPayload,
     WorkerHandoffSubmitCommandPayload, WorkerHandoffSubmitResultPayload,
-    WorkerTaskClaimCommandPayload, WorkerTaskClaimResultPayload, WorkspaceApplyPatchCommandPayload,
+    WorkerReconcileCommandPayload, WorkerReconcileResultPayload, WorkerTaskClaimCommandPayload,
+    WorkerTaskClaimResultPayload, WorkspaceApplyPatchCommandPayload,
     WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
 use nirman_preview::{
@@ -52,7 +53,8 @@ use nirman_supervisor::{
     M7_SCHEMA_VERSION,
 };
 use nirman_workers::{
-    CoordinationError, CoordinationTask, MultiWorkerCoordinator, WorkerContract,
+    CoordinationError, CoordinationTask, M8ReconciliationCheckpoint, MultiWorkerCoordinator,
+    ReconciliationMutationSummary, ReconciliationStatus, WorkerContract,
     WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim, M5_SCHEMA_VERSION,
 };
 use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
@@ -2638,6 +2640,45 @@ fn parse_m8_acknowledgement(
     Ok(payload)
 }
 
+fn parse_m8_reconcile(
+    request: &CommandRequest,
+) -> Result<WorkerReconcileCommandPayload, ErrorEnvelope> {
+    let payload: WorkerReconcileCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "worker reconciliation payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    validate_m8_parent_contract(request, &payload.parent_contract)?;
+    if request
+        .command
+        .task_id
+        .as_ref()
+        .map(|task_id| task_id.0.as_str())
+        != Some(payload.parent_contract.task_id.0.as_str())
+        || payload.checkpoint_id.trim().is_empty()
+        || payload.integration_workspace_root.trim().is_empty()
+        || payload.handoff_message_ids.is_empty()
+        || payload
+            .handoff_message_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker reconciliation requires the parent task, checkpoint, integration workspace, and handoff identities",
+        ));
+    }
+    Ok(payload)
+}
+
 fn validate_m8_parent_and_task(
     request: &CommandRequest,
     parent: &WorkerContract,
@@ -2908,6 +2949,11 @@ fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let m8_reconcile = if request.command.kind == CommandKind::WorkerReconcile {
+        Some(parse_m8_reconcile(&request)?)
+    } else {
+        None
+    };
     let prepared_mutation = if let Some(payload) = workspace_apply_patch.as_ref() {
         prepare_m46_mutation(state, &request, payload)?
     } else {
@@ -3024,7 +3070,10 @@ fn dispatch_request<S: EventSink>(
             ));
         }
     }
-    let m8_is_command = m8_claim.is_some() || m8_handoff.is_some() || m8_acknowledgement.is_some();
+    let m8_is_command = m8_claim.is_some()
+        || m8_handoff.is_some()
+        || m8_acknowledgement.is_some()
+        || m8_reconcile.is_some();
     let m8_duplicate = if m8_is_command {
         state
             .plane
@@ -3040,6 +3089,7 @@ fn dispatch_request<S: EventSink>(
     } else {
         false
     };
+    let mut m8_checkpoint_record: Option<M8ReconciliationCheckpoint> = None;
     let mut m8_task_record: Option<(String, String)> = None;
     let mut m8_claim_record: Option<WorkerTaskClaim> = None;
     let mut m8_handoff_record: Option<WorkerHandoffRecord> = None;
@@ -3139,6 +3189,15 @@ fn dispatch_request<S: EventSink>(
                 .expect("M8 acknowledgement result serialization must remain infallible"),
             );
             m8_acknowledgement_record = Some(acknowledgement);
+        } else if let Some(payload) = m8_reconcile.as_ref() {
+            let checkpoint = reconcile_m8_handoffs(state, &request, payload)?;
+            m8_result_payload = Some(
+                serde_json::to_value(WorkerReconcileResultPayload {
+                    checkpoint: checkpoint.clone(),
+                })
+                .expect("M8 reconciliation result serialization must remain infallible"),
+            );
+            m8_checkpoint_record = Some(checkpoint);
         }
     }
     let after_sequence = state.plane.snapshot().last_event_sequence;
@@ -3210,6 +3269,14 @@ fn dispatch_request<S: EventSink>(
             request.command.clone(),
             &correlation_id,
             M8DispatchRecord {
+                checkpoint: m8_checkpoint_record.as_ref().map(|checkpoint| {
+                    (
+                        checkpoint.checkpoint_id.clone(),
+                        format!("{:?}", checkpoint.status),
+                        serde_json::to_string(checkpoint)
+                            .expect("M8 checkpoint serialization must remain infallible"),
+                    )
+                }),
                 task: m8_task_record,
                 claim: m8_claim_record.as_ref().map(|claim| {
                     (
@@ -3383,6 +3450,20 @@ fn dispatch_request<S: EventSink>(
                         })
                         .expect("M8 acknowledgement result serialization must remain infallible")
                     })
+            } else if let Some(payload) = m8_reconcile.as_ref() {
+                state
+                    .plane
+                    .load_m8_reconciliation_checkpoint(&payload.checkpoint_id)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            &request,
+                            "durable reconciliation checkpoint could not be reloaded",
+                        )
+                    })?
+                    .map(|checkpoint| {
+                        serde_json::to_value(WorkerReconcileResultPayload { checkpoint })
+                            .expect("M8 reconciliation result serialization must remain infallible")
+                    })
             } else {
                 None
             }
@@ -3396,6 +3477,8 @@ fn dispatch_request<S: EventSink>(
                 CommandKind::WorkerHandoffAcknowledge => {
                     "nirman.worker_handoff_acknowledge_result.v1"
                 }
+                CommandKind::WorkerReconcile => "nirman.worker_reconcile_result.v1",
+
                 _ => unreachable!("M8 result payload requires an M8 command"),
             }
             .into(),
@@ -7321,7 +7404,7 @@ mod m8_host_tests {
         std::env::temp_dir().join(format!("nirman-m8-host-{nonce}.sqlite3"))
     }
 
-    fn parent_contract() -> WorkerContract {
+    pub(super) fn parent_contract() -> WorkerContract {
         WorkerContract {
             schema_version: M5_SCHEMA_VERSION,
             worker_id: "worker-parent".into(),
@@ -7336,7 +7419,7 @@ mod m8_host_tests {
         }
     }
 
-    fn child_task(index: usize) -> CoordinationTask {
+    pub(super) fn child_task(index: usize) -> CoordinationTask {
         CoordinationTask {
             schema_version: M8_SCHEMA_VERSION,
             task_id: format!("task-child-{index}"),
@@ -7384,7 +7467,7 @@ mod m8_host_tests {
         }
     }
 
-    fn run(
+    pub(super) fn run(
         sink: &RecordingSink,
         state: &mut RuntimeState,
         command_id: &str,
@@ -7484,6 +7567,7 @@ mod m8_host_tests {
                 changed_paths: vec![format!("app/Worker{index}.kt")],
                 changed_symbols: vec![format!("Worker{index}")],
                 evidence_refs: vec![format!("evidence-worker-{index}")],
+                mutation_request: None,
             };
             let payload = WorkerHandoffSubmitCommandPayload {
                 parent_contract: parent.clone(),
@@ -7618,6 +7702,7 @@ mod m8_host_tests {
                 changed_paths: vec!["app/Shared.kt".into()],
                 changed_symbols: vec!["Shared".into()],
                 evidence_refs: vec![format!("evidence-conflict-{index}")],
+                mutation_request: None,
             };
             let payload = WorkerHandoffSubmitCommandPayload {
                 parent_contract: parent.clone(),
@@ -7661,5 +7746,899 @@ mod m8_host_tests {
             .is_some());
         drop(state);
         let _ = fs::remove_file(path);
+    }
+}
+
+fn copy_directory_tree(
+    source: &std::path::Path,
+    destination: &std::path::Path,
+) -> std::io::Result<()> {
+    fs::create_dir_all(destination)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        if source_path.is_dir() {
+            copy_directory_tree(&source_path, &destination_path)?;
+        } else {
+            fs::copy(source_path, destination_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn restore_directory_tree(
+    backup: &std::path::Path,
+    destination: &std::path::Path,
+) -> std::io::Result<()> {
+    if destination.exists() {
+        fs::remove_dir_all(destination)?;
+    }
+    copy_directory_tree(backup, destination)
+}
+
+fn mutation_payload_from_request(
+    mutation: &MutationRequest,
+    base_revision: u64,
+    base_project_fingerprint: String,
+    base_file_hashes: BTreeMap<String, String>,
+    workspace_root: String,
+) -> Result<WorkspaceApplyPatchCommandPayload, &'static str> {
+    if mutation.touched_paths.len() != 1 {
+        return Err("reconciliation requires exactly one touched path per M46 mutation");
+    }
+    let capability_digest = nirman_project::mutation_capability_digest(
+        &mutation.project_id,
+        &mutation.task_id,
+        &mutation.worker_id,
+        &mutation.operation_id,
+        base_revision,
+        &base_project_fingerprint,
+        mutation.fence_token,
+    );
+    Ok(WorkspaceApplyPatchCommandPayload {
+        worker_id: mutation.worker_id.clone(),
+        operation_id: mutation.operation_id.clone(),
+        base_revision,
+        base_project_fingerprint,
+        workspace_root,
+        allowed_paths: mutation.allowed_paths.clone(),
+        owned_paths: mutation.owned_paths.clone(),
+        touched_paths: mutation.touched_paths.clone(),
+        base_file_hashes,
+        mutation_budget: mutation.mutation_budget,
+        dependency_policy: mutation.dependency_policy.clone(),
+        capability_digest,
+        fence_token: mutation.fence_token,
+        evidence_required: mutation.evidence_required,
+        isolated_transaction: mutation.isolated_transaction,
+        whole_file_fallback: mutation.whole_file_fallback,
+        operation: mutation.operation.clone(),
+    })
+}
+
+fn reconcile_m8_handoffs(
+    state: &mut RuntimeState,
+    request: &CommandRequest,
+    payload: &WorkerReconcileCommandPayload,
+) -> Result<M8ReconciliationCheckpoint, ErrorEnvelope> {
+    let integration_root = PathBuf::from(&payload.integration_workspace_root)
+        .canonicalize()
+        .map_err(|_| m8_validation_error(request, "integration workspace is unavailable"))?;
+    let main_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| m8_dependency_error(request, "authorized main workspace is unavailable"))?;
+    if integration_root == main_root {
+        return Err(m8_validation_error(
+            request,
+            "M8 reconciliation cannot write directly to the main workspace",
+        ));
+    }
+    let base_index = nirman_project::ProjectIndexer::default()
+        .index_workspace(&integration_root, &nirman_project::IndexRequest::default())
+        .map_err(|_| m8_dependency_error(request, "integration workspace could not be indexed"))?;
+    let backup_root = std::env::temp_dir().join(format!(
+        "nirman-m8-reconcile-backup-{}",
+        request.command.command_id
+    ));
+    if backup_root.exists() {
+        fs::remove_dir_all(&backup_root).map_err(|_| {
+            m8_dependency_error(request, "stale reconciliation backup could not be removed")
+        })?;
+    }
+    copy_directory_tree(&integration_root, &backup_root).map_err(|_| {
+        m8_dependency_error(request, "integration workspace could not be snapshotted")
+    })?;
+
+    let mut completed_mutations = Vec::new();
+    let mut completed_records = Vec::new();
+    let mut failure_message = None;
+    let mut handoffs = Vec::new();
+    for message_id in &payload.handoff_message_ids {
+        let handoff = state
+            .plane
+            .load_worker_handoff(message_id)
+            .map_err(|_| m8_dependency_error(request, "worker handoff could not be loaded"))?
+            .ok_or_else(|| {
+                m8_validation_error(request, "reconciliation references a missing handoff")
+            })?;
+        handoffs.push(handoff);
+    }
+    let mut coordinator = restore_m8_coordinator(state, &payload.parent_contract, request)?;
+    if coordinator.reconcile().is_err() {
+        let checkpoint = M8ReconciliationCheckpoint {
+            schema_version: nirman_workers::M8_RECONCILIATION_SCHEMA_VERSION,
+            checkpoint_id: payload.checkpoint_id.clone(),
+            project_id: request.command.project_id.clone(),
+            parent_task_id: payload.parent_contract.task_id.0.clone(),
+            workspace_root: integration_root.to_string_lossy().into_owned(),
+            base_revision: state.plane.snapshot().current_source_revision,
+            base_project_fingerprint: base_index.project_fingerprint,
+            resulting_project_fingerprint: None,
+            status: ReconciliationStatus::Blocked,
+            handoff_message_ids: payload.handoff_message_ids.clone(),
+            mutations: Vec::new(),
+            reason: "worker handoffs are incomplete, unsuccessful, or conflicting".into(),
+        };
+        checkpoint.validate().map_err(|_| {
+            m8_dependency_error(
+                request,
+                "blocked reconciliation checkpoint failed validation",
+            )
+        })?;
+        let _ = fs::remove_dir_all(&backup_root);
+        return Ok(checkpoint);
+    }
+
+    for handoff in handoffs {
+        let Some(original_mutation) = handoff.mutation_request.as_ref() else {
+            failure_message =
+                Some("worker handoff has no authorized M46 mutation request".to_owned());
+            break;
+        };
+        let current_index = nirman_project::ProjectIndexer::default()
+            .index_workspace(&integration_root, &nirman_project::IndexRequest::default())
+            .map_err(|_| m8_dependency_error(request, "integration workspace re-index failed"))?;
+        let path = original_mutation
+            .touched_paths
+            .first()
+            .cloned()
+            .ok_or_else(|| m8_validation_error(request, "worker mutation has no touched path"))?;
+        let current_file_hash = current_index
+            .files
+            .iter()
+            .find(|file| file.relative_path == path)
+            .map(|file| file.content_hash.clone())
+            .ok_or_else(|| {
+                m8_validation_error(
+                    request,
+                    "worker mutation target is absent from integration workspace",
+                )
+            })?;
+        let payload = mutation_payload_from_request(
+            original_mutation,
+            state.plane.snapshot().current_source_revision.0,
+            current_index.project_fingerprint,
+            BTreeMap::from([(path, current_file_hash)]),
+            integration_root.to_string_lossy().into_owned(),
+        )
+        .map_err(|message| m8_validation_error(request, message))?;
+        let mut synthetic_request = request.clone();
+        synthetic_request.command.command_id = format!(
+            "{}-m46-{}",
+            request.command.command_id, original_mutation.operation_id
+        );
+        synthetic_request.command.task_id = Some(TaskId(handoff.task_id.clone()));
+        state
+            .supervisor
+            .register_lease(&handoff.lease_id, &handoff.worker_id, handoff.fence_token);
+        state.supervisor.heartbeat();
+        let prepared = {
+            let previous_root = state.authorized_workspace_root.take();
+            state.authorized_workspace_root = Some(integration_root.clone());
+            let result = prepare_m46_mutation(state, &synthetic_request, &payload);
+            state.authorized_workspace_root = previous_root;
+            result
+        };
+        let prepared = match prepared {
+            Ok(Some(prepared)) => prepared,
+            Ok(None) => {
+                failure_message = Some("M46 mutation transaction was already admitted".into());
+                break;
+            }
+            Err(error) => {
+                failure_message = Some(error.safe_message);
+                break;
+            }
+        };
+        match MutationBroker::default().apply(&prepared.request) {
+            Ok(outcome) => {
+                let committed = MutationTransactionRecord {
+                    state: "COMMITTED".into(),
+                    resulting_revision: state.plane.snapshot().current_source_revision,
+                    resulting_project_fingerprint: Some(outcome.project_fingerprint.clone()),
+                    changed_paths_json: Some(
+                        serde_json::to_string(&outcome.changed_files).map_err(|_| {
+                            m8_dependency_error(request, "M46 mutation result serialization failed")
+                        })?,
+                    ),
+                    evidence_json: Some(serde_json::to_string(&outcome.evidence).map_err(
+                        |_| {
+                            m8_dependency_error(
+                                request,
+                                "M46 mutation evidence serialization failed",
+                            )
+                        },
+                    )?),
+                    completed_at_epoch_seconds: Some(now_epoch_seconds()),
+                    ..prepared.transaction.clone()
+                };
+                state
+                    .plane
+                    .record_mutation_transaction(&committed)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            request,
+                            "M46 committed transaction could not be persisted",
+                        )
+                    })?;
+                state
+                    .consumed_mutation_capabilities
+                    .insert(prepared.request.capability_digest.clone());
+                completed_records.push(committed);
+                completed_mutations.push(ReconciliationMutationSummary {
+                    task_id: handoff.task_id,
+                    worker_id: handoff.worker_id,
+                    operation_id: prepared.request.operation_id,
+                    resulting_project_fingerprint: outcome.project_fingerprint,
+                    changed_paths: outcome
+                        .changed_files
+                        .into_iter()
+                        .map(|file| file.relative_path)
+                        .collect(),
+                });
+            }
+            Err(error) => {
+                let failed = MutationTransactionRecord {
+                    state: "FAILED".into(),
+                    completed_at_epoch_seconds: Some(now_epoch_seconds()),
+                    ..prepared.transaction.clone()
+                };
+                state
+                    .plane
+                    .record_mutation_transaction(&failed)
+                    .map_err(|_| {
+                        m8_dependency_error(
+                            request,
+                            "failed M46 transaction could not be persisted",
+                        )
+                    })?;
+                failure_message = Some(error.to_string());
+                break;
+            }
+        }
+    }
+    if let Some(reason) = failure_message {
+        restore_directory_tree(&backup_root, &integration_root)
+            .map_err(|_| m8_dependency_error(request, "integration workspace rollback failed"))?;
+        for record in completed_records {
+            let rolled_back = MutationTransactionRecord {
+                state: "ROLLED_BACK".into(),
+                completed_at_epoch_seconds: Some(now_epoch_seconds()),
+                ..record
+            };
+            state
+                .plane
+                .record_mutation_transaction(&rolled_back)
+                .map_err(|_| {
+                    m8_dependency_error(
+                        request,
+                        "rolled-back M46 transaction could not be persisted",
+                    )
+                })?;
+        }
+        let checkpoint = M8ReconciliationCheckpoint {
+            schema_version: nirman_workers::M8_RECONCILIATION_SCHEMA_VERSION,
+            checkpoint_id: payload.checkpoint_id.clone(),
+            project_id: request.command.project_id.clone(),
+            parent_task_id: payload.parent_contract.task_id.0.clone(),
+            workspace_root: integration_root.to_string_lossy().into_owned(),
+            base_revision: state.plane.snapshot().current_source_revision,
+            base_project_fingerprint: base_index.project_fingerprint,
+            resulting_project_fingerprint: None,
+            status: ReconciliationStatus::RolledBack,
+            handoff_message_ids: payload.handoff_message_ids.clone(),
+            mutations: completed_mutations,
+            reason,
+        };
+        checkpoint.validate().map_err(|_| {
+            m8_dependency_error(
+                request,
+                "rolled-back reconciliation checkpoint failed validation",
+            )
+        })?;
+        let _ = fs::remove_dir_all(&backup_root);
+        return Ok(checkpoint);
+    }
+    let resulting_index = nirman_project::ProjectIndexer::default()
+        .index_workspace(&integration_root, &nirman_project::IndexRequest::default())
+        .map_err(|_| {
+            m8_dependency_error(request, "integrated workspace could not be re-indexed")
+        })?;
+    let checkpoint = M8ReconciliationCheckpoint {
+        schema_version: nirman_workers::M8_RECONCILIATION_SCHEMA_VERSION,
+        checkpoint_id: payload.checkpoint_id.clone(),
+        project_id: request.command.project_id.clone(),
+        parent_task_id: payload.parent_contract.task_id.0.clone(),
+        workspace_root: integration_root.to_string_lossy().into_owned(),
+        base_revision: state.plane.snapshot().current_source_revision,
+        base_project_fingerprint: base_index.project_fingerprint,
+        resulting_project_fingerprint: Some(resulting_index.project_fingerprint),
+        status: ReconciliationStatus::Integrated,
+        handoff_message_ids: payload.handoff_message_ids.clone(),
+        mutations: completed_mutations,
+        reason: "all isolated worker mutations passed M46 authority and integration validation"
+            .into(),
+    };
+    checkpoint.validate().map_err(|_| {
+        m8_dependency_error(
+            request,
+            "integrated reconciliation checkpoint failed validation",
+        )
+    })?;
+    let _ = fs::remove_dir_all(&backup_root);
+    Ok(checkpoint)
+}
+
+#[cfg(test)]
+mod m8_reconciliation_tests {
+    use super::*;
+    use crate::m8_host_tests::{child_task, parent_contract, run};
+    use crate::tests::RecordingSink;
+    use nirman_domain::{CommandKind, Revision, TaskId};
+    use nirman_project::{IndexRequest, MutationOperation, ProjectIndexer};
+    use nirman_workers::{CoordinationTask, WorkerContract, WorkerHandoffRecord, WorkerOutcome};
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-m8-reconciliation-{nonce}.sqlite3"))
+    }
+
+    fn mutation_for(
+        root: &std::path::Path,
+        task_id: &str,
+        worker_id: &str,
+        operation_id: &str,
+        fence_token: u64,
+        relative_path: &str,
+        symbol: &str,
+        replacement: &str,
+    ) -> nirman_project::MutationRequest {
+        let index = ProjectIndexer::default()
+            .index_workspace(root, &IndexRequest::default())
+            .expect("integration base index");
+        let base_hash = index
+            .files
+            .iter()
+            .find(|file| file.relative_path == relative_path)
+            .expect("integration target indexed")
+            .content_hash
+            .clone();
+        nirman_project::MutationRequest {
+            project_id: PROJECT_ID.into(),
+            task_id: task_id.into(),
+            worker_id: worker_id.into(),
+            operation_id: operation_id.into(),
+            base_revision: 0,
+            base_project_fingerprint: index.project_fingerprint.clone(),
+            workspace_root: "/isolated/worker-worktree".into(),
+            allowed_paths: BTreeSet::from([relative_path.into()]),
+            owned_paths: BTreeSet::from([relative_path.into()]),
+            touched_paths: vec![relative_path.into()],
+            base_file_hashes: BTreeMap::from([(relative_path.into(), base_hash)]),
+            mutation_budget: 1,
+            dependency_policy: "locked-no-new-dependencies".into(),
+            capability_digest: nirman_project::mutation_capability_digest(
+                PROJECT_ID,
+                task_id,
+                worker_id,
+                operation_id,
+                0,
+                &index.project_fingerprint,
+                fence_token,
+            ),
+            fence_token,
+            evidence_required: true,
+            isolated_transaction: true,
+            whole_file_fallback: false,
+            operation: MutationOperation::ReplaceSymbol {
+                path: relative_path.into(),
+                symbol: symbol.into(),
+                replacement: replacement.into(),
+            },
+        }
+    }
+
+    pub(super) fn make_handoff(
+        root: &std::path::Path,
+        task: &CoordinationTask,
+        lease: &nirman_workers::WorkerTaskClaim,
+        message_id: &str,
+        relative_path: &str,
+        symbol: &str,
+        replacement: &str,
+    ) -> WorkerHandoffRecord {
+        WorkerHandoffRecord {
+            message_id: message_id.into(),
+            task_id: task.task_id.clone(),
+            worker_id: task.worker_id.clone(),
+            lease_id: lease.lease.lease_id.clone(),
+            fence_token: lease.lease.fence_token,
+            source_revision: Revision(0),
+            outcome: WorkerOutcome::Success,
+            changed_paths: vec![relative_path.into()],
+            changed_symbols: vec![symbol.into()],
+            evidence_refs: vec![format!("evidence-{message_id}")],
+            mutation_request: Some(mutation_for(
+                root,
+                &task.task_id,
+                &task.worker_id,
+                &format!("operation-{message_id}"),
+                lease.lease.fence_token,
+                relative_path,
+                symbol,
+                replacement,
+            )),
+        }
+    }
+
+    pub(super) fn claim_worker(
+        state: &mut RuntimeState,
+        sink: &RecordingSink,
+        parent: &WorkerContract,
+        task: &CoordinationTask,
+        command_id: &str,
+        revision: u64,
+    ) -> nirman_workers::WorkerTaskClaim {
+        let payload = WorkerTaskClaimCommandPayload {
+            parent_contract: parent.clone(),
+            task: task.clone(),
+            now_epoch_seconds: 100,
+            lease_duration_seconds: 60,
+        };
+        let response = run(
+            sink,
+            state,
+            command_id,
+            CommandKind::WorkerTaskClaim,
+            &task.task_id,
+            serde_json::to_string(&payload).expect("claim payload"),
+            revision,
+        )
+        .expect("claim");
+        serde_json::from_value(response.result_payload.expect("claim result"))
+            .map(
+                |payload: WorkerTaskClaimResultPayload| nirman_workers::WorkerTaskClaim {
+                    task_id: payload.task_id,
+                    lease: nirman_workers::WorkerLease {
+                        lease_id: payload.lease_id,
+                        worker_id: payload.worker_id,
+                        fence_token: payload.fence_token,
+                        expires_at_epoch_seconds: payload.expires_at_epoch_seconds,
+                    },
+                },
+            )
+            .expect("typed claim")
+    }
+
+    #[test]
+    fn m8_reconciliation_delegates_to_m46_integration_workspace_and_replays_checkpoint() {
+        let database = database_path();
+        let main_root =
+            std::env::temp_dir().join(format!("nirman-m8-main-{}", now_epoch_seconds()));
+        let integration_root =
+            std::env::temp_dir().join(format!("nirman-m8-integration-{}", now_epoch_seconds()));
+        fs::create_dir_all(integration_root.join("app")).expect("integration workspace");
+        fs::create_dir_all(&main_root).expect("main workspace");
+        fs::write(
+            integration_root.join("app/Worker.kt"),
+            "class Worker { fun open() {} }\n",
+        )
+        .expect("worker source");
+        fs::write(main_root.join("Main.txt"), "main remains unchanged\n").expect("main marker");
+        let mut state = crate::tests::test_state_at(&database);
+        state.authorized_workspace_root = Some(main_root.clone());
+        let sink = RecordingSink::default();
+        let parent = parent_contract();
+        let task = child_task(0);
+        let claim = claim_worker(&mut state, &sink, &parent, &task, "m8-reconcile-claim", 0);
+        let handoff = make_handoff(
+            &integration_root,
+            &task,
+            &claim,
+            "m8-reconcile-message",
+            "app/Worker.kt",
+            "Worker",
+            "class Worker { fun saved() {} }",
+        );
+        let submit = WorkerHandoffSubmitCommandPayload {
+            parent_contract: parent.clone(),
+            handoff,
+        };
+        run(
+            &sink,
+            &mut state,
+            "m8-reconcile-handoff",
+            CommandKind::WorkerHandoffSubmit,
+            &task.task_id,
+            serde_json::to_string(&submit).expect("handoff payload"),
+            1,
+        )
+        .expect("handoff");
+        let acknowledge = WorkerHandoffAcknowledgeCommandPayload {
+            parent_contract: parent.clone(),
+            acknowledgement_id: "m8-reconcile-ack".into(),
+            message_id: "m8-reconcile-message".into(),
+        };
+        run(
+            &sink,
+            &mut state,
+            "m8-reconcile-ack-command",
+            CommandKind::WorkerHandoffAcknowledge,
+            &task.task_id,
+            serde_json::to_string(&acknowledge).expect("ack payload"),
+            2,
+        )
+        .expect("acknowledgement");
+        let reconcile_payload = WorkerReconcileCommandPayload {
+            parent_contract: parent,
+            checkpoint_id: "m8-reconcile-checkpoint".into(),
+            integration_workspace_root: integration_root.to_string_lossy().into_owned(),
+            handoff_message_ids: vec!["m8-reconcile-message".into()],
+        };
+        let reconcile_request_payload =
+            serde_json::to_string(&reconcile_payload).expect("reconcile payload");
+        let reconcile = run(
+            &sink,
+            &mut state,
+            "m8-reconcile-command",
+            CommandKind::WorkerReconcile,
+            "task-root",
+            reconcile_request_payload.clone(),
+            3,
+        )
+        .expect("reconcile");
+        let checkpoint: WorkerReconcileResultPayload =
+            serde_json::from_value(reconcile.result_payload.clone().expect("reconcile result"))
+                .expect("typed checkpoint");
+        assert_eq!(
+            checkpoint.checkpoint.status,
+            ReconciliationStatus::Integrated
+        );
+        assert!(checkpoint
+            .checkpoint
+            .resulting_project_fingerprint
+            .is_some());
+        assert!(fs::read_to_string(integration_root.join("app/Worker.kt"))
+            .expect("integrated source")
+            .contains("saved"));
+        assert_eq!(
+            fs::read_to_string(main_root.join("Main.txt")).expect("main source"),
+            "main remains unchanged\n"
+        );
+        assert_eq!(
+            state
+                .plane
+                .load_m8_reconciliation_checkpoint("m8-reconcile-checkpoint")
+                .expect("checkpoint load")
+                .expect("checkpoint")
+                .status,
+            ReconciliationStatus::Integrated
+        );
+        let invalid_direct = WorkerReconcileCommandPayload {
+            parent_contract: WorkerContract {
+                task_id: TaskId("task-root".into()),
+                ..crate::m8_host_tests::parent_contract()
+            },
+            checkpoint_id: "m8-direct-main-rejected".into(),
+            integration_workspace_root: main_root.to_string_lossy().into_owned(),
+            handoff_message_ids: vec!["m8-reconcile-message".into()],
+        };
+        let direct_result = run(
+            &sink,
+            &mut state,
+            "m8-direct-main-command",
+            CommandKind::WorkerReconcile,
+            "task-root",
+            serde_json::to_string(&invalid_direct).expect("direct payload"),
+            reconcile.projection_revision.0,
+        );
+        assert!(direct_result.is_err());
+        drop(state);
+        let mut reopened = crate::tests::test_state_at(&database);
+        reopened.authorized_workspace_root = Some(main_root.clone());
+        let duplicate = run(
+            &sink,
+            &mut reopened,
+            "m8-reconcile-command",
+            CommandKind::WorkerReconcile,
+            "task-root",
+            reconcile_request_payload,
+            3,
+        )
+        .expect("duplicate reconcile");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            duplicate.result_schema_ref.as_deref(),
+            Some("nirman.worker_reconcile_result.v1")
+        );
+        let reloaded_checkpoint: WorkerReconcileResultPayload =
+            serde_json::from_value(duplicate.result_payload.expect("duplicate checkpoint"))
+                .expect("reloaded checkpoint");
+        assert_eq!(reloaded_checkpoint.checkpoint, checkpoint.checkpoint);
+        let _ = fs::remove_file(database);
+        let _ = fs::remove_dir_all(main_root);
+        let _ = fs::remove_dir_all(integration_root);
+    }
+}
+
+#[cfg(test)]
+mod m8_reconciliation_failure_tests {
+    use super::*;
+    use crate::m8_host_tests::{child_task, parent_contract, run};
+    use crate::m8_reconciliation_tests::{claim_worker, make_handoff};
+    use crate::tests::RecordingSink;
+    use nirman_domain::CommandKind;
+    use nirman_workers::ReconciliationStatus;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-m8-reconciliation-failure-{nonce}.sqlite3"))
+    }
+
+    #[test]
+    fn conflict_is_blocked_before_m46_and_checkpoint_is_durable() {
+        let database = database_path();
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-m8-conflict-{}", now_epoch_seconds()));
+        fs::create_dir_all(workspace.join("app")).expect("workspace");
+        fs::write(
+            workspace.join("app/Worker.kt"),
+            "class Worker { fun open() {} }\n",
+        )
+        .expect("source");
+        let mut state = crate::tests::test_state_at(&database);
+        let main_root =
+            std::env::temp_dir().join(format!("nirman-m8-conflict-main-{}", now_epoch_seconds()));
+        fs::create_dir_all(&main_root).expect("main root");
+        state.authorized_workspace_root = Some(main_root.clone());
+        let sink = RecordingSink::default();
+        let parent = parent_contract();
+        let task_a = child_task(0);
+        let task_b = child_task(1);
+        let claim_a = claim_worker(
+            &mut state,
+            &sink,
+            &parent,
+            &task_a,
+            "m8-conflict-reconcile-claim-a",
+            0,
+        );
+        let claim_b = claim_worker(
+            &mut state,
+            &sink,
+            &parent,
+            &task_b,
+            "m8-conflict-reconcile-claim-b",
+            1,
+        );
+        for (task, claim, command_id, message_id) in [
+            (
+                &task_a,
+                &claim_a,
+                "m8-conflict-reconcile-handoff-a",
+                "m8-conflict-reconcile-message-a",
+            ),
+            (
+                &task_b,
+                &claim_b,
+                "m8-conflict-reconcile-handoff-b",
+                "m8-conflict-reconcile-message-b",
+            ),
+        ] {
+            let handoff = make_handoff(
+                &workspace,
+                task,
+                claim,
+                message_id,
+                "app/Worker.kt",
+                "Worker",
+                "class Worker { fun shared() {} }",
+            );
+            let payload = WorkerHandoffSubmitCommandPayload {
+                parent_contract: parent.clone(),
+                handoff,
+            };
+            run(
+                &sink,
+                &mut state,
+                command_id,
+                CommandKind::WorkerHandoffSubmit,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("handoff payload"),
+                if task.task_id.ends_with('0') { 2 } else { 3 },
+            )
+            .expect("handoff");
+        }
+        let reconcile = WorkerReconcileCommandPayload {
+            parent_contract: parent,
+            checkpoint_id: "m8-conflict-reconcile-checkpoint".into(),
+            integration_workspace_root: workspace.to_string_lossy().into_owned(),
+            handoff_message_ids: vec![
+                "m8-conflict-reconcile-message-a".into(),
+                "m8-conflict-reconcile-message-b".into(),
+            ],
+        };
+        let response = run(
+            &sink,
+            &mut state,
+            "m8-conflict-reconcile-command",
+            CommandKind::WorkerReconcile,
+            "task-root",
+            serde_json::to_string(&reconcile).expect("reconcile payload"),
+            4,
+        )
+        .expect("blocked reconciliation is a durable result");
+        let result: WorkerReconcileResultPayload =
+            serde_json::from_value(response.result_payload.expect("blocked result"))
+                .expect("typed blocked result");
+        assert_eq!(result.checkpoint.status, ReconciliationStatus::Blocked);
+        assert_eq!(
+            fs::read_to_string(workspace.join("app/Worker.kt")).expect("unchanged source"),
+            "class Worker { fun open() {} }\n"
+        );
+        assert_eq!(
+            state
+                .plane
+                .load_m8_reconciliation_checkpoint("m8-conflict-reconcile-checkpoint")
+                .expect("checkpoint load")
+                .expect("durable blocked checkpoint")
+                .status,
+            ReconciliationStatus::Blocked
+        );
+        let _ = fs::remove_file(database);
+        let _ = fs::remove_dir_all(workspace);
+        let _ = fs::remove_dir_all(main_root);
+    }
+
+    #[test]
+    fn later_m46_failure_rolls_back_earlier_integration_mutation() {
+        let database = database_path();
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-m8-rollback-{}", now_epoch_seconds()));
+        fs::create_dir_all(workspace.join("app")).expect("workspace");
+        fs::write(
+            workspace.join("app/Worker.kt"),
+            "class Worker { fun open() {} }\n",
+        )
+        .expect("worker source");
+        fs::write(
+            workspace.join("app/Other.kt"),
+            "class Other { fun open() {} }\n",
+        )
+        .expect("other source");
+        let original_worker =
+            fs::read_to_string(workspace.join("app/Worker.kt")).expect("original worker");
+        let original_other =
+            fs::read_to_string(workspace.join("app/Other.kt")).expect("original other");
+        let main_root =
+            std::env::temp_dir().join(format!("nirman-m8-rollback-main-{}", now_epoch_seconds()));
+        fs::create_dir_all(&main_root).expect("main root");
+        let mut state = crate::tests::test_state_at(&database);
+        state.authorized_workspace_root = Some(main_root.clone());
+        let sink = RecordingSink::default();
+        let parent = parent_contract();
+        let task_a = child_task(0);
+        let task_b = child_task(1);
+        let claim_a = claim_worker(
+            &mut state,
+            &sink,
+            &parent,
+            &task_a,
+            "m8-rollback-claim-a",
+            0,
+        );
+        let claim_b = claim_worker(
+            &mut state,
+            &sink,
+            &parent,
+            &task_b,
+            "m8-rollback-claim-b",
+            1,
+        );
+        let handoff_a = make_handoff(
+            &workspace,
+            &task_a,
+            &claim_a,
+            "m8-rollback-message-a",
+            "app/Worker.kt",
+            "Worker",
+            "class Worker { fun saved() {} }",
+        );
+        let handoff_b = make_handoff(
+            &workspace,
+            &task_b,
+            &claim_b,
+            "m8-rollback-message-b",
+            "app/Other.kt",
+            "MissingSymbol",
+            "class Other { fun saved() {} }",
+        );
+        for (task, handoff, command_id, revision) in [
+            (&task_a, handoff_a, "m8-rollback-handoff-a", 2_u64),
+            (&task_b, handoff_b, "m8-rollback-handoff-b", 3_u64),
+        ] {
+            let payload = WorkerHandoffSubmitCommandPayload {
+                parent_contract: parent.clone(),
+                handoff,
+            };
+            run(
+                &sink,
+                &mut state,
+                command_id,
+                CommandKind::WorkerHandoffSubmit,
+                &task.task_id,
+                serde_json::to_string(&payload).expect("handoff payload"),
+                revision,
+            )
+            .expect("handoff");
+        }
+        let reconcile = WorkerReconcileCommandPayload {
+            parent_contract: parent,
+            checkpoint_id: "m8-rollback-checkpoint".into(),
+            integration_workspace_root: workspace.to_string_lossy().into_owned(),
+            handoff_message_ids: vec![
+                "m8-rollback-message-a".into(),
+                "m8-rollback-message-b".into(),
+            ],
+        };
+        let response = run(
+            &sink,
+            &mut state,
+            "m8-rollback-command",
+            CommandKind::WorkerReconcile,
+            "task-root",
+            serde_json::to_string(&reconcile).expect("reconcile payload"),
+            4,
+        )
+        .expect("rollback checkpoint");
+        let result: WorkerReconcileResultPayload =
+            serde_json::from_value(response.result_payload.expect("rollback result"))
+                .expect("typed rollback result");
+        assert_eq!(result.checkpoint.status, ReconciliationStatus::RolledBack);
+        assert_eq!(
+            fs::read_to_string(workspace.join("app/Worker.kt")).expect("worker rollback"),
+            original_worker
+        );
+        assert_eq!(
+            fs::read_to_string(workspace.join("app/Other.kt")).expect("other rollback"),
+            original_other
+        );
+        let _ = fs::remove_file(database);
+        let _ = fs::remove_dir_all(workspace);
+        let _ = fs::remove_dir_all(main_root);
     }
 }
