@@ -43,7 +43,10 @@ use nirman_providers::{
     ProviderErrorKind, ProviderProfile, ProviderRequestInput, ProviderRuntime,
     ProviderRuntimeError, ProviderTransport, PROVIDER_BRIDGE_PROTOCOL_VERSION,
 };
-use nirman_supervisor::{Supervisor, SupervisorState};
+use nirman_supervisor::{
+    BackgroundRunRecord, BackgroundRunState, RecoveryAction, Supervisor, SupervisorState,
+    M7_SCHEMA_VERSION,
+};
 use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
@@ -2411,6 +2414,127 @@ fn dispatch(
     dispatch_request(&TauriEventSink { app: &app }, &mut state, request)
 }
 
+fn persist_m7_lifecycle(
+    state: &mut RuntimeState,
+    request: &CommandRequest,
+    snapshot: &nirman_domain::ProjectionSnapshot,
+    accepted: bool,
+) -> Result<(), ErrorEnvelope> {
+    let kind = request.command.kind;
+    if !matches!(
+        kind,
+        CommandKind::TaskStart
+            | CommandKind::SubmitInstruction
+            | CommandKind::PauseTask
+            | CommandKind::ResumeTask
+            | CommandKind::CancelTask
+            | CommandKind::TaskCancel
+    ) {
+        return Ok(());
+    }
+    let run_id = format!("run-{}", request.command.command_id);
+    let mut record = if accepted {
+        let task_id = request
+            .command
+            .task_id
+            .clone()
+            .unwrap_or_else(|| nirman_domain::TaskId("task-0001".into()));
+        BackgroundRunRecord {
+            schema_version: M7_SCHEMA_VERSION,
+            run_id,
+            project_id: snapshot.project_id.0.clone(),
+            task_id: task_id.0,
+            worker_id: "worker-single".into(),
+            checkpoint_id: state.plane.checkpoint_id().map(str::to_owned),
+            state: match kind {
+                CommandKind::PauseTask => BackgroundRunState::Paused,
+                CommandKind::CancelTask | CommandKind::TaskCancel => BackgroundRunState::Cancelled,
+                _ => BackgroundRunState::Running,
+            },
+            last_heartbeat_epoch_seconds: now_epoch_seconds(),
+            attempt: 1,
+            recovery_action: None,
+            failure_fingerprint: None,
+            notification_kind: None,
+        }
+    } else {
+        state
+            .plane
+            .load_background_run(&run_id)
+            .map_err(|_| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Unavailable,
+                    "duplicate background run could not be reloaded",
+                    true,
+                    Some("reconcile the local background-run ledger before retry".into()),
+                )
+            })?
+            .ok_or_else(|| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "duplicate lifecycle command has no durable background-run record",
+                    false,
+                    Some("reconcile the task and background-run records".into()),
+                )
+            })?
+    };
+    if accepted {
+        match kind {
+            CommandKind::PauseTask => record.pause().map_err(|_| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "background run cannot be paused from its current state",
+                    false,
+                    None,
+                )
+            })?,
+            CommandKind::ResumeTask => {
+                if record.checkpoint_id.is_some() {
+                    record.state = BackgroundRunState::Running;
+                    record.recovery_action = Some(RecoveryAction::ResumeFromCheckpoint);
+                }
+            }
+            CommandKind::CancelTask | CommandKind::TaskCancel => record.cancel().map_err(|_| {
+                error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    "background run cannot be cancelled from its current state",
+                    false,
+                    None,
+                )
+            })?,
+            _ => {}
+        }
+    }
+    state.plane.save_background_run(&record).map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            "background-run state could not be persisted",
+            true,
+            Some("reconcile local background-run storage before retry".into()),
+        )
+    })
+}
+
 fn dispatch_request<S: EventSink>(
     sink: &S,
     state: &mut RuntimeState,
@@ -2781,9 +2905,15 @@ fn dispatch_request<S: EventSink>(
         causation_id.clone(),
         snapshot.project_id.clone(),
         snapshot,
-        status,
+        status.clone(),
         event_range,
     );
+    persist_m7_lifecycle(
+        state,
+        &request,
+        &command_response.snapshot,
+        status == ResponseStatus::Accepted,
+    )?;
     if let Some(payload) = workspace_apply_patch {
         if command_response.status == ResponseStatus::Duplicate {
             let transaction_id = format!("mutation-transaction-{}", payload.operation_id);

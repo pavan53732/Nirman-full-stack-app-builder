@@ -12,6 +12,7 @@ use nirman_domain::{
     ProjectionSnapshot, Revision, TaskId,
 };
 use nirman_storage::Ledger;
+use nirman_supervisor::BackgroundRunRecord;
 use std::path::Path;
 
 pub fn deadline_elapsed(deadline_epoch_seconds: Option<u64>, now_epoch_seconds: u64) -> bool {
@@ -304,6 +305,17 @@ impl DurableControlPlane {
     pub fn replay_after(&self, sequence: u64) -> Result<Vec<ControlEvent>, rusqlite::Error> {
         self.ledger
             .events_after(&self.snapshot().project_id, sequence)
+    }
+
+    pub fn save_background_run(&self, record: &BackgroundRunRecord) -> Result<(), rusqlite::Error> {
+        self.ledger.save_background_run(record)
+    }
+
+    pub fn load_background_run(
+        &self,
+        run_id: &str,
+    ) -> Result<Option<BackgroundRunRecord>, rusqlite::Error> {
+        self.ledger.load_background_run(run_id)
     }
 
     pub fn load_provider_profile(

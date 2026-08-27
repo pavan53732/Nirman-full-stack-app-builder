@@ -7,6 +7,7 @@ use nirman_domain::{
     ProductLifecycleState, ProjectId, ProjectionSnapshot, ProviderExecutionRecord, Revision,
     TaskId,
 };
+use nirman_supervisor::BackgroundRunRecord;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
@@ -205,6 +206,14 @@ impl Ledger {
                  evidence_json TEXT NOT NULL,
                  last_event_sequence INTEGER NOT NULL,
                  PRIMARY KEY (project_id, task_id)
+             );
+             CREATE TABLE IF NOT EXISTS m7_background_runs (
+                 run_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 state TEXT NOT NULL,
+                 record_json TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS preview_projections (
                  project_id TEXT NOT NULL,
@@ -1591,6 +1600,60 @@ impl Ledger {
         transaction.commit()
     }
 
+    pub fn save_background_run(&self, record: &BackgroundRunRecord) -> rusqlite::Result<()> {
+        record.validate().map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m7_background_runs (run_id, project_id, task_id, worker_id, state, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(run_id) DO UPDATE SET
+               project_id = excluded.project_id,
+               task_id = excluded.task_id,
+               worker_id = excluded.worker_id,
+               state = excluded.state,
+               record_json = excluded.record_json",
+            params![
+                record.run_id,
+                record.project_id,
+                record.task_id,
+                record.worker_id,
+                serde_json::to_string(&record.state).unwrap_or_else(|_| "null".into()),
+                record_json,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_background_run(
+        &self,
+        run_id: &str,
+    ) -> rusqlite::Result<Option<BackgroundRunRecord>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m7_background_runs WHERE run_id = ?1",
+                params![run_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
     pub fn save_m108_sync_record(
         &self,
         project_id: &ProjectId,
@@ -1739,6 +1802,36 @@ mod tests {
         assert_eq!(
             ledger.projection_revision(&project_id).expect("revision"),
             Some(Revision(1))
+        );
+    }
+}
+
+#[cfg(test)]
+mod m7_tests {
+    use super::*;
+    use nirman_supervisor::{BackgroundRunRecord, BackgroundRunState, M7_SCHEMA_VERSION};
+
+    #[test]
+    fn background_run_record_round_trips_through_sqlite() {
+        let ledger = Ledger::open_in_memory().expect("ledger");
+        let record = BackgroundRunRecord {
+            schema_version: M7_SCHEMA_VERSION,
+            run_id: "run-m7-1".into(),
+            project_id: "project-m7-1".into(),
+            task_id: "task-m7-1".into(),
+            worker_id: "worker-m7-1".into(),
+            checkpoint_id: Some("checkpoint-m7-1".into()),
+            state: BackgroundRunState::Recovering,
+            last_heartbeat_epoch_seconds: 100,
+            attempt: 2,
+            recovery_action: Some(nirman_supervisor::RecoveryAction::ResumeFromCheckpoint),
+            failure_fingerprint: Some("fingerprint-m7".into()),
+            notification_kind: Some("worker-stale".into()),
+        };
+        ledger.save_background_run(&record).expect("save");
+        assert_eq!(
+            ledger.load_background_run("run-m7-1").expect("load"),
+            Some(record)
         );
     }
 }
