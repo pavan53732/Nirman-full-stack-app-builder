@@ -4,6 +4,7 @@
 
 use nirman_domain::BackgroundContinuityState;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt;
 
 pub const M7_SCHEMA_VERSION: u16 = 1;
@@ -54,6 +55,26 @@ pub enum RecoveryAction {
     ForkFromCheckpoint,
     RequestUserApproval,
     SafeFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerHeartbeatRecord {
+    pub run_id: String,
+    pub worker_id: String,
+    pub lease_id: String,
+    pub fence_token: u64,
+    pub process_id: Option<u32>,
+    pub observed_at_epoch_seconds: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RecoveryRecord {
+    pub run_id: String,
+    pub previous_state: BackgroundRunState,
+    pub next_state: BackgroundRunState,
+    pub action: RecoveryAction,
+    pub reason: String,
+    pub checkpoint_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -229,6 +250,179 @@ pub fn recover_interrupted_run(
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct BackgroundScheduler {
+    queued: Vec<BackgroundRunRecord>,
+    active: BTreeMap<String, WorkerHeartbeatRecord>,
+}
+
+impl BackgroundScheduler {
+    pub fn enqueue(&mut self, record: BackgroundRunRecord) -> Result<(), BackgroundRunError> {
+        record.validate()?;
+        if self
+            .queued
+            .iter()
+            .any(|queued| queued.run_id == record.run_id)
+            || self.active.contains_key(&record.run_id)
+        {
+            return Err(BackgroundRunError::InvalidTransition);
+        }
+        self.queued.push(record);
+        Ok(())
+    }
+
+    pub fn claim_next(
+        &mut self,
+        worker_id: &str,
+        lease_id: &str,
+        fence_token: u64,
+        process_id: Option<u32>,
+        now_epoch_seconds: u64,
+    ) -> Result<Option<BackgroundRunRecord>, BackgroundRunError> {
+        let Some(mut record) = self.queued.first().cloned() else {
+            return Ok(None);
+        };
+        self.queued.remove(0);
+        if worker_id.trim().is_empty() || lease_id.trim().is_empty() {
+            return Err(BackgroundRunError::InvalidRecord("worker/lease"));
+        }
+        record.worker_id = worker_id.into();
+        record.state = BackgroundRunState::Running;
+        record.last_heartbeat_epoch_seconds = now_epoch_seconds;
+        self.active.insert(
+            record.run_id.clone(),
+            WorkerHeartbeatRecord {
+                run_id: record.run_id.clone(),
+                worker_id: worker_id.into(),
+                lease_id: lease_id.into(),
+                fence_token,
+                process_id,
+                observed_at_epoch_seconds: now_epoch_seconds,
+            },
+        );
+        Ok(Some(record))
+    }
+
+    pub fn heartbeat(
+        &mut self,
+        run_id: &str,
+        worker_id: &str,
+        lease_id: &str,
+        fence_token: u64,
+        now_epoch_seconds: u64,
+    ) -> Result<WorkerHeartbeatRecord, BackgroundRunError> {
+        let heartbeat = self
+            .active
+            .get_mut(run_id)
+            .ok_or(BackgroundRunError::InvalidRecord("runId"))?;
+        if heartbeat.worker_id != worker_id
+            || heartbeat.lease_id != lease_id
+            || heartbeat.fence_token != fence_token
+        {
+            return Err(BackgroundRunError::InvalidTransition);
+        }
+        heartbeat.observed_at_epoch_seconds = now_epoch_seconds;
+        Ok(heartbeat.clone())
+    }
+
+    pub fn release(&mut self, run_id: &str) -> Option<WorkerHeartbeatRecord> {
+        self.active.remove(run_id)
+    }
+
+    pub fn queued(&self) -> &[BackgroundRunRecord] {
+        &self.queued
+    }
+
+    pub fn active_heartbeats(&self) -> &BTreeMap<String, WorkerHeartbeatRecord> {
+        &self.active
+    }
+}
+
+pub fn retry_from_checkpoint(
+    record: &mut BackgroundRunRecord,
+) -> Result<RecoveryRecord, BackgroundRunError> {
+    let previous_state = record.state;
+    if record.checkpoint_id.is_none() {
+        return Err(BackgroundRunError::MissingCheckpoint);
+    }
+    if !matches!(
+        record.state,
+        BackgroundRunState::Recovering | BackgroundRunState::Paused
+    ) {
+        return Err(BackgroundRunError::InvalidTransition);
+    }
+    record.state = BackgroundRunState::Running;
+    record.attempt = record.attempt.saturating_add(1);
+    record.recovery_action = Some(RecoveryAction::RetryFromCheckpoint);
+    Ok(RecoveryRecord {
+        run_id: record.run_id.clone(),
+        previous_state,
+        next_state: record.state,
+        action: RecoveryAction::RetryFromCheckpoint,
+        reason: "retry authorized from the verified checkpoint".into(),
+        checkpoint_id: record.checkpoint_id.clone(),
+    })
+}
+
+pub fn fork_from_checkpoint(
+    record: &BackgroundRunRecord,
+    fork_run_id: &str,
+) -> Result<BackgroundRunRecord, BackgroundRunError> {
+    if record.checkpoint_id.is_none() {
+        return Err(BackgroundRunError::MissingCheckpoint);
+    }
+    if fork_run_id.trim().is_empty() {
+        return Err(BackgroundRunError::InvalidRecord("forkRunId"));
+    }
+    let mut fork = record.clone();
+    fork.run_id = fork_run_id.into();
+    fork.state = BackgroundRunState::Queued;
+    fork.attempt = 1;
+    fork.recovery_action = Some(RecoveryAction::ForkFromCheckpoint);
+    Ok(fork)
+}
+
+pub fn reconcile_unknown_outcome(
+    record: &mut BackgroundRunRecord,
+    external_effect_fingerprint: &str,
+    resolved: bool,
+) -> Result<RecoveryRecord, BackgroundRunError> {
+    let previous_state = record.state;
+    if external_effect_fingerprint.trim().is_empty() {
+        return Err(BackgroundRunError::InvalidRecord(
+            "externalEffectFingerprint",
+        ));
+    }
+    if !matches!(
+        record.state,
+        BackgroundRunState::Recovering | BackgroundRunState::UserRequired
+    ) {
+        return Err(BackgroundRunError::InvalidTransition);
+    }
+    record.failure_fingerprint = Some(external_effect_fingerprint.into());
+    record.state = if resolved {
+        BackgroundRunState::Running
+    } else {
+        BackgroundRunState::UserRequired
+    };
+    Ok(RecoveryRecord {
+        run_id: record.run_id.clone(),
+        previous_state,
+        next_state: record.state,
+        action: if resolved {
+            RecoveryAction::ResumeFromCheckpoint
+        } else {
+            RecoveryAction::RequestUserApproval
+        },
+        reason: if resolved {
+            "unknown external outcome reconciled by authoritative read-back".into()
+        } else {
+            "unknown external outcome remains unresolved and requires user decision".into()
+        },
+        checkpoint_id: record.checkpoint_id.clone(),
+    })
+}
+
 #[derive(Debug)]
 pub struct Supervisor {
     snapshot: SupervisorSnapshot,
@@ -339,6 +533,52 @@ mod tests {
         assert_eq!(run.state, BackgroundRunState::Recovering);
         assert_eq!(run.attempt, 2);
         run.resume_from_checkpoint().expect("resume");
+        assert_eq!(run.state, BackgroundRunState::Running);
+    }
+
+    #[test]
+    fn scheduler_claims_runs_and_rejects_wrong_fence_heartbeat() {
+        let mut scheduler = BackgroundScheduler::default();
+        scheduler
+            .enqueue(record(Some("checkpoint-1")))
+            .expect("enqueue");
+        let claimed = scheduler
+            .claim_next("worker-1", "lease-1", 7, Some(42), 20)
+            .expect("claim")
+            .expect("queued run");
+        assert_eq!(claimed.state, BackgroundRunState::Running);
+        assert!(scheduler
+            .heartbeat("run-1", "worker-1", "lease-1", 7, 21)
+            .is_ok());
+        assert_eq!(
+            scheduler.heartbeat("run-1", "worker-1", "lease-1", 8, 22),
+            Err(BackgroundRunError::InvalidTransition)
+        );
+    }
+
+    #[test]
+    fn retry_and_fork_keep_checkpoint_lineage() {
+        let mut run = record(Some("checkpoint-1"));
+        run.state = BackgroundRunState::Recovering;
+        let retry = retry_from_checkpoint(&mut run).expect("retry");
+        assert_eq!(retry.action, RecoveryAction::RetryFromCheckpoint);
+        assert_eq!(run.attempt, 2);
+        let fork = fork_from_checkpoint(&run, "run-fork-1").expect("fork");
+        assert_eq!(fork.run_id, "run-fork-1");
+        assert_eq!(fork.state, BackgroundRunState::Queued);
+        assert_eq!(fork.checkpoint_id, Some("checkpoint-1".into()));
+    }
+
+    #[test]
+    fn unknown_outcome_requires_reconciliation_or_user_decision() {
+        let mut run = record(Some("checkpoint-1"));
+        run.state = BackgroundRunState::Recovering;
+        let unresolved = reconcile_unknown_outcome(&mut run, "effect-1", false).expect("unknown");
+        assert_eq!(unresolved.action, RecoveryAction::RequestUserApproval);
+        assert_eq!(run.state, BackgroundRunState::UserRequired);
+        run.state = BackgroundRunState::Recovering;
+        let resolved = reconcile_unknown_outcome(&mut run, "effect-1", true).expect("resolved");
+        assert_eq!(resolved.action, RecoveryAction::ResumeFromCheckpoint);
         assert_eq!(run.state, BackgroundRunState::Running);
     }
 
