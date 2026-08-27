@@ -534,15 +534,17 @@ mod failure_tests {
             execute_android_device_session(&base),
             Err(DeviceSessionError::DeviceUnavailable)
         );
+        let timeout_adb = root.join("adb-timeout");
         fs::write(
-            &adb,
-            "#!/bin/sh\ncase \"$1\" in\nget-state) sleep 1; printf 'device\\n' ;;\n*) exit 0 ;;\nesac\n",
+            &timeout_adb,
+            "#!/bin/sh\nprintf 'device\\n'\nwhile :; do :; done\n",
         )
         .expect("timeout adb");
-        executable(&adb);
+        executable(&timeout_adb);
         let timeout_request = DeviceSessionRequest {
+            adb_executable: timeout_adb.to_string_lossy().into_owned(),
             selected_device_identity: Some("actual-device".into()),
-            timeout_ms: 20,
+            timeout_ms: 500,
             ..base
         };
         assert_eq!(

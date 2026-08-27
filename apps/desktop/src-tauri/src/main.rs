@@ -244,6 +244,11 @@ fn persist_m108_stage(
             "[]".into(),
         )
     };
+    let active_preview_revision_id = if projection.last_event_sequence == 0 {
+        preview_revision_id.to_owned()
+    } else {
+        projection.active_preview_revision_id.clone()
+    };
     let sequence = projection.last_event_sequence + 1;
     let validation_ref = (event_type == PreviewSyncEventType::ValidationObserved)
         .then(|| format!("validation:{command_id}"));
@@ -254,7 +259,7 @@ fn persist_m108_stage(
         task_id: task_id.into(),
         correlation_id: state.correlation_id.clone(),
         causation_id: Some(command_id.into()),
-        candidate_preview_revision_id: preview_revision_id.into(),
+        candidate_preview_revision_id: active_preview_revision_id,
         event_type,
         event_truth,
         project_revision_id: project_revision_id.into(),
@@ -2820,7 +2825,7 @@ fn map_m8_coordination_error(
     )
 }
 
-fn dispatch_request<S: EventSink>(
+pub(crate) fn dispatch_request<S: EventSink>(
     sink: &S,
     state: &mut RuntimeState,
     request: CommandRequest,
@@ -5968,7 +5973,7 @@ mod tests {
             )
     }
 
-    pub(super) fn test_state_at(path: &Path) -> RuntimeState {
+    pub(crate) fn test_state_at(path: &Path) -> RuntimeState {
         let auth = AuthContext {
             installation_id: "installation-test".into(),
             user_scope: "local-user".into(),
@@ -6012,7 +6017,7 @@ mod tests {
         state
     }
 
-    fn request(
+    pub(crate) fn request(
         state: &RuntimeState,
         command_id: &str,
         kind: nirman_domain::CommandKind,
@@ -6037,7 +6042,7 @@ mod tests {
         }
     }
 
-    fn construction_contract(project_id: &str) -> AndroidConstructionContract {
+    pub(crate) fn construction_contract(project_id: &str) -> AndroidConstructionContract {
         let task_id = TaskId("task-m39".into());
         AndroidConstructionContract {
             schema_version: 1,
@@ -8743,5 +8748,370 @@ mod m8_reconciliation_failure_tests {
         let _ = fs::remove_file(database);
         let _ = fs::remove_dir_all(workspace);
         let _ = fs::remove_dir_all(main_root);
+    }
+}
+
+#[cfg(test)]
+#[cfg(unix)]
+mod m108_export_preview_tests {
+    use super::dispatch_request;
+    use super::*;
+    use crate::tests::{construction_contract, request, test_state_at, RecordingSink};
+    use nirman_android::{AndroidBuildObservation, StaticCapabilityProbe, ToolchainComponentKind};
+    use nirman_domain::CommandKind;
+    use nirman_ipc::{ArtifactExportCommandPayload, PreviewStartCommandPayload};
+    use nirman_preview::PreviewEventTruth;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::{Path, PathBuf};
+
+    fn path() -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "nirman-m108-export-preview-{}.sqlite3",
+            now_epoch_seconds()
+        ))
+    }
+
+    fn make_executable(path: &Path) {
+        let mut permissions = fs::metadata(path).expect("fixture metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(path, permissions).expect("fixture permissions");
+    }
+
+    fn fixture_probe(root: &Path) -> StaticCapabilityProbe {
+        let build_tools = root.join("build-tools");
+        let platform_tools = root.join("platform-tools");
+        StaticCapabilityProbe::default()
+            .with_available(
+                ToolchainComponentKind::Jdk,
+                "17",
+                &root.join("jdk").to_string_lossy(),
+                "jdk",
+            )
+            .with_available(
+                ToolchainComponentKind::Gradle,
+                "8.7",
+                &root.join("gradle").to_string_lossy(),
+                "gradle",
+            )
+            .with_available(
+                ToolchainComponentKind::AndroidSdk,
+                "35",
+                &root.join("sdk").to_string_lossy(),
+                "sdk",
+            )
+            .with_available(
+                ToolchainComponentKind::PlatformTools,
+                "35",
+                &platform_tools.to_string_lossy(),
+                "platform-tools",
+            )
+            .with_available(
+                ToolchainComponentKind::Adb,
+                "35",
+                &platform_tools.join("adb").to_string_lossy(),
+                "adb",
+            )
+            .with_available(
+                ToolchainComponentKind::Emulator,
+                "35",
+                &root.join("emulator").to_string_lossy(),
+                "emulator",
+            )
+            .with_available(
+                ToolchainComponentKind::Kotlin,
+                "2.0",
+                &root.join("kotlin").to_string_lossy(),
+                "kotlin",
+            )
+            .with_available(
+                ToolchainComponentKind::AndroidGradlePlugin,
+                "8.7",
+                &root.join("agp").to_string_lossy(),
+                "agp",
+            )
+            .with_available(
+                ToolchainComponentKind::BuildTools,
+                "35.0.0",
+                &build_tools.to_string_lossy(),
+                "build-tools",
+            )
+    }
+
+    #[test]
+    fn authenticated_export_then_preview_is_durable_and_headless_only() {
+        let database = path();
+        let root = std::env::temp_dir().join(format!(
+            "nirman-m108-export-preview-root-{}",
+            now_epoch_seconds()
+        ));
+        let build_tools = root.join("build-tools");
+        let platform_tools = root.join("platform-tools");
+        fs::create_dir_all(&build_tools).expect("build tools");
+        fs::create_dir_all(&platform_tools).expect("platform tools");
+        let aapt = build_tools.join("aapt");
+        fs::write(
+            &aapt,
+            "#!/bin/sh\nprintf \"package: name='com.nirman.fixture' versionCode='1' versionName='1.0'\\n\"\n",
+        )
+        .expect("aapt fixture");
+        make_executable(&aapt);
+        let adb = platform_tools.join("adb");
+        fs::write(
+            &adb,
+            "#!/bin/sh\ncase \"$1\" in\nget-state) printf 'device\\n' ;;\nget-serialno) printf 'pixel-api-35\\n' ;;\ninstall) exit 0 ;;\nlogcat) printf 'I/com.nirman.fixture: headless runtime\\n' ;;\nexec-out) if [ \"$2\" = \"screencap\" ]; then printf 'PNG'; else printf '<hierarchy package=\"com.nirman.fixture\"/>'; fi ;;\nshell) if [ \"$2\" = \"dumpsys\" ]; then printf 'permission: granted'; else exit 0; fi ;;\n*) exit 1 ;;\nesac\n",
+        )
+        .expect("adb fixture");
+        make_executable(&adb);
+        let apk = root.join("app-debug.apk");
+        fs::write(&apk, b"nirman-headless-apk-fixture").expect("apk fixture");
+        let delivery = root.join("delivery").join("app-debug.apk");
+        let mut state = test_state_at(&database);
+        state.capability_probe = Box::new(fixture_probe(&root));
+        state.authorized_workspace_root = Some(root.clone());
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+
+        let mut contract_request = request(
+            &state,
+            "m108-fixture-contract",
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            0,
+        );
+        contract_request.command.task_id = Some(contract.task_id.clone());
+        let contract_response =
+            dispatch_request(&sink, &mut state, contract_request).expect("authenticated contract");
+        assert_eq!(contract_response.status, ResponseStatus::Accepted);
+
+        let mut preflight_request = request(
+            &state,
+            "m108-fixture-preflight",
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            contract_response.snapshot.projection_revision.0,
+        );
+        preflight_request.command.task_id = Some(contract.task_id.clone());
+        let preflight_response = dispatch_request(&sink, &mut state, preflight_request)
+            .expect("authenticated preflight");
+        assert_eq!(preflight_response.status, ResponseStatus::Completed);
+
+        let observation = AndroidBuildObservation {
+            schema_version: 1,
+            execution_id: "m108-fixture-build-observation".into(),
+            command_id: "m108-fixture-build-command".into(),
+            project_id: PROJECT_ID.into(),
+            task_id: contract.task_id.0.clone(),
+            source_revision: 0,
+            project_fingerprint: "fingerprint-m108-fixture".into(),
+            workspace_root: root.to_string_lossy().into_owned(),
+            build_variant: "debug".into(),
+            gradle_task: "assembleDebug".into(),
+            executable: "fixture-gradle".into(),
+            exit_code: Some(0),
+            success: true,
+            timed_out: false,
+            cancelled: false,
+            stdout_sha256: "sha256:stdout".into(),
+            stderr_sha256: "sha256:stderr".into(),
+            stdout_bytes: 1,
+            stderr_bytes: 0,
+            artifact_path: Some(apk.to_string_lossy().into_owned()),
+            artifact_sha256: Some(
+                "b9de1edb74ac03319f14a1c163b3ed045598c3771cf3c3d7ec410864b0c5f738".into(),
+            ),
+            started_at_epoch_seconds: 1,
+            completed_at_epoch_seconds: 2,
+        };
+        state
+            .plane
+            .save_android_build_observation(
+                &observation.execution_id,
+                &observation.task_id,
+                observation.source_revision,
+                &observation.project_fingerprint,
+                &serde_json::to_string(&observation).expect("observation json"),
+            )
+            .expect("durable build observation");
+
+        let mut export_request = request(
+            &state,
+            "m108-fixture-export",
+            CommandKind::ArtifactExport,
+            serde_json::to_string(&ArtifactExportCommandPayload {
+                source_revision: 0,
+                destination_path: delivery.to_string_lossy().into_owned(),
+            })
+            .expect("export payload"),
+            preflight_response.snapshot.projection_revision.0,
+        );
+        export_request.command.task_id = Some(contract.task_id.clone());
+        let export_response = dispatch_request(&sink, &mut state, export_request.clone())
+            .expect("authenticated export");
+        assert_eq!(export_response.status, ResponseStatus::Completed);
+        let exported: ArtifactExportResultPayload = serde_json::from_value(
+            export_response
+                .result_payload
+                .clone()
+                .expect("export result"),
+        )
+        .expect("typed export result");
+        assert!(exported.artifact.delivery_verified);
+        assert_eq!(
+            exported.artifact.delivery_sha256,
+            Some(exported.artifact.sha256.clone())
+        );
+        assert!(state
+            .plane
+            .load_android_artifact_export(&contract.task_id.0, 0)
+            .expect("artifact export reload")
+            .is_some());
+
+        let preview_request = PreviewRequest {
+            schema_version: nirman_preview::M48_SCHEMA_VERSION,
+            request_id: "m108-fixture-preview".into(),
+            project_id: PROJECT_ID.into(),
+            task_id: contract.task_id.0.clone(),
+            project_revision_id: "source-0".into(),
+            checkpoint_id: "checkpoint-m108-fixture".into(),
+            source_fingerprint: "fingerprint-m108-fixture".into(),
+            contract_version: "contract-m39-v1".into(),
+            technology_plan_version: "technology-m39-v1".into(),
+            asset_manifest_version: "assets-m108-v1".into(),
+            build_variant: "debug".into(),
+            device_id: Some("pixel-api-35".into()),
+            android_api_level: Some(35),
+            requested_mode: Some(PreviewMode::ApkReinstall),
+            selected_language: "kotlin".into(),
+            selected_ui_framework: "Jetpack Compose".into(),
+            changed_paths: vec!["app/src/main".into()],
+            required_evidence_kinds: vec!["DEVICE_EVIDENCE".into(), "VISUAL_EVIDENCE".into()],
+            policy_decision_id: "policy-m108-fixture".into(),
+        };
+        let mut preview_command = request(
+            &state,
+            "m108-fixture-preview",
+            CommandKind::PreviewStart,
+            serde_json::to_string(&PreviewStartCommandPayload {
+                request: preview_request,
+            })
+            .expect("preview payload"),
+            export_response.snapshot.projection_revision.0,
+        );
+        preview_command.command.task_id = Some(contract.task_id.clone());
+        let preview_response =
+            dispatch_request(&sink, &mut state, preview_command).expect("authenticated preview");
+        assert_eq!(preview_response.status, ResponseStatus::Completed);
+        let preview_result: PreviewStartResultPayload = serde_json::from_value(
+            preview_response
+                .result_payload
+                .clone()
+                .expect("preview result"),
+        )
+        .expect("typed preview result");
+        let observation = preview_result
+            .device_observation
+            .expect("headless device observation");
+        assert_eq!(observation.device_identity, "pixel-api-35");
+        assert_eq!(
+            observation.apk_sha256,
+            "sha256:b9de1edb74ac03319f14a1c163b3ed045598c3771cf3c3d7ec410864b0c5f738"
+        );
+        assert!(state
+            .plane
+            .load_android_device_observation(&contract.task_id.0, 0, "pixel-api-35")
+            .expect("device observation reload")
+            .is_some());
+
+        let events = state
+            .plane
+            .load_m108_event_jsons(&contract.task_id.0)
+            .expect("M108 event reload");
+        let event_types = events
+            .iter()
+            .map(|json| {
+                serde_json::from_str::<nirman_preview::PreviewSyncEvent>(json)
+                    .expect("event json")
+                    .event_type
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            event_types,
+            vec![
+                PreviewSyncEventType::ArtifactObserved,
+                PreviewSyncEventType::ValidationObserved,
+                PreviewSyncEventType::InstallObserved,
+                PreviewSyncEventType::LaunchObserved,
+                PreviewSyncEventType::InteractionObserved,
+            ]
+        );
+        let stored_projection = state
+            .plane
+            .load_m108_sync_record(&contract.task_id.0)
+            .expect("M108 projection reload")
+            .expect("M108 projection");
+        let projection: M108ProjectionState =
+            serde_json::from_str(&stored_projection.0).expect("projection json");
+        assert_eq!(projection.install_status, "OBSERVED");
+        assert_eq!(projection.launch_status, "OBSERVED");
+        assert_eq!(projection.runtime_status, "OBSERVED");
+        assert_eq!(projection.validation_status, "OBSERVED");
+
+        drop(state);
+        let mut reopened = test_state_at(&database);
+        let replay_events = reopened
+            .plane
+            .load_m108_event_jsons(&contract.task_id.0)
+            .expect("replay events");
+        let mut reconstructed = M108ProjectionState::new(
+            PROJECT_ID,
+            &contract.task_id.0,
+            &projection.active_preview_revision_id,
+        );
+        for json in replay_events {
+            let event: nirman_preview::PreviewSyncEvent =
+                serde_json::from_str(&json).expect("replay event");
+            reconstructed.apply(&event).expect("replay reduction");
+        }
+        assert_eq!(reconstructed, projection);
+        let mut premature_promotion = nirman_preview::PreviewSyncEvent {
+            event_id: "m108-fixture-premature-promotion".into(),
+            event_sequence: projection.last_event_sequence + 1,
+            project_id: PROJECT_ID.into(),
+            task_id: contract.task_id.0.clone(),
+            correlation_id: "m108-fixture".into(),
+            causation_id: Some("m108-fixture-promote".into()),
+            candidate_preview_revision_id: projection.active_preview_revision_id.clone(),
+            event_type: PreviewSyncEventType::PreviewPromoted,
+            event_truth: PreviewEventTruth::Verified,
+            project_revision_id: "source-0".into(),
+            checkpoint_id: "checkpoint-m108-fixture".into(),
+            source_fingerprint: "fingerprint-m108-fixture".into(),
+            artifact_id: Some(exported.artifact.artifact_id),
+            artifact_fingerprint: Some(
+                "sha256:b9de1edb74ac03319f14a1c163b3ed045598c3771cf3c3d7ec410864b0c5f738".into(),
+            ),
+            runtime_session_id: Some(observation.runtime_session_id),
+            device_id: Some("pixel-api-35".into()),
+            operation_ref: "m108-fixture-promote".into(),
+            observation_refs: vec!["m108-fixture-observation".into()],
+            evidence_refs: vec!["m108-fixture-evidence".into()],
+            validation_ref: Some("validation:m108-fixture".into()),
+            payload: "headless promotion must remain blocked".into(),
+        };
+        assert!(matches!(
+            reconstructed.apply(&premature_promotion),
+            Err(nirman_preview::M108ReducerError::EvidenceRequired)
+        ));
+        premature_promotion.event_sequence += 1;
+        let _ = fs::remove_file(database);
+        let _ = fs::remove_dir_all(root);
+        drop(reopened);
     }
 }
