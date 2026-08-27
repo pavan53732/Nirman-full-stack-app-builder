@@ -871,3 +871,458 @@ fn m5_worker_edit_and_undo_resumes_from_checkpoint() -> Result<(), DurableContro
     let _ = fs::remove_dir_all(root);
     Ok(())
 }
+
+fn m7_evidence_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/evidence/m7_task_continuation_trace.json")
+}
+
+#[test]
+fn m7_task_resumes_from_durable_checkpoint_after_restart() -> Result<(), DurableControlPlaneError> {
+    let project_id = "m7-continuation-project";
+    let task_id = "m7-continuation-task";
+    let worker_id = "m7-continuation-worker";
+    let root = std::env::temp_dir().join(format!(
+        "nirman-m7-continuation-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).expect("workspace root");
+    let database = root.join("control-plane.sqlite3");
+    let edited_file = root.join("M7Feature.kt");
+    let mut plane = DurableControlPlane::open(&database, ProjectId(project_id.into()))?;
+
+    let intent = command_for(
+        project_id,
+        Some(task_id),
+        0,
+        "m7-task-start",
+        CommandKind::TaskStart,
+        "Build an Android app and add one small feature".into(),
+    );
+    authorize_registry_capability(&authenticated_request(intent.clone(), project_id))
+        .expect("M7 task authenticated admission");
+    let started = plane.dispatch(intent)?;
+    assert_eq!(started.task_state, ProductLifecycleState::Planning);
+
+    let contract = construction_contract(project_id, task_id);
+    let synthesis = StubAndroidResolver
+        .resolve(&AndroidResolverRequest {
+            contract: &contract,
+            source_revision: started.current_source_revision,
+            workspace_root: root.to_string_lossy().as_ref(),
+            project_fingerprint: "m7-continuation-base-fingerprint",
+        })
+        .expect("M7 plan resolver");
+    let plan = command_for(
+        project_id,
+        Some(task_id),
+        started.projection_revision.0,
+        "m7-plan-event",
+        CommandKind::AndroidSynthesisBuild,
+        serde_json::to_string(&synthesis).expect("M7 plan payload"),
+    );
+    authorize_registry_capability(&authenticated_request(plan.clone(), project_id))
+        .expect("M7 plan authenticated admission");
+    let planned = plane.dispatch(plan)?;
+    let pre_edit_revision = planned.current_source_revision;
+    plane.checkpoint("checkpoint-m7-before-edit")?;
+
+    let worker_contract = WorkerContract {
+        schema_version: M5_SCHEMA_VERSION,
+        worker_id: worker_id.into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: TaskId(task_id.into()),
+        capability_ceiling: vec!["android.inspect".into(), "android.edit".into()],
+        workspace_root: root.to_string_lossy().into_owned(),
+        allowed_paths: vec![root.to_string_lossy().into_owned()],
+        denied_paths: vec![],
+        max_attempts: 3,
+        evidence_requirements: vec!["inspection-summary".into(), "edit-summary".into()],
+    };
+    let mut record = WorkerExecutionRecord::start(worker_contract).expect("M7 worker start");
+    let inspect_observation = WorkerObservation {
+        stage: WorkerStage::Inspect,
+        outcome: WorkerOutcome::Success,
+        source_revision: pre_edit_revision,
+        checkpoint_id: Some("checkpoint-m7-before-edit".into()),
+        changed_paths: vec![],
+        evidence_refs: vec!["evidence:m7:inspect".into()],
+        diagnostic_ref: None,
+    };
+    let inspect_handoff = record
+        .observe("m7-worker-inspect", inspect_observation, None)
+        .expect("M7 inspection observation");
+    assert_eq!(inspect_handoff.next_stage, Some(WorkerStage::Plan));
+
+    let inspect_step = command_for(
+        project_id,
+        Some(task_id),
+        planned.projection_revision.0,
+        "m7-worker-inspect",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Inspect",
+            "operation": "Inspect",
+            "checkpointId": "checkpoint-m7-before-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(inspect_step.clone(), project_id))
+        .expect("M7 Inspect WorkerStep authenticated admission");
+    plane.dispatch_with_result_and_worker_execution(
+        inspect_step,
+        "correlation-m7-inspect",
+        &record,
+    )?;
+
+    let policy = WorkerPolicy {
+        schema_version: M6_SCHEMA_VERSION,
+        worker_id: worker_id.into(),
+        workspace_root: root.to_string_lossy().into_owned(),
+        allowed_paths: vec![root.to_string_lossy().into_owned()],
+        denied_paths: vec![],
+        protected_path_patterns: vec!["/home/*/.ssh".into(), "/home/*/.config".into()],
+        allowed_command_patterns: vec!["*".into()],
+        denied_command_patterns: vec![],
+        allowed_network_categories: vec![NetworkCategory::None],
+        allow_external_directories: false,
+        allow_destructive_commands: false,
+    };
+    let policy_decision = policy
+        .authorize(&PolicyRequest {
+            request_id: "m7-edit-policy-request".into(),
+            operation: "workspace.apply_patch".into(),
+            path: Some(edited_file.to_string_lossy().into_owned()),
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        })
+        .expect("M7 edit M6 policy evaluation");
+    assert_eq!(policy_decision.outcome, PolicyOutcome::Allow);
+    assert!(policy_decision.reasons.is_empty());
+    plane.save_m6_policy_event(&policy_decision)?;
+
+    fs::write(
+        &edited_file,
+        "package com.nirman.fixture\nclass M7Feature\n",
+    )
+    .expect("M7 fixture edit");
+    assert!(edited_file.is_file());
+    let mutation_record = MutationTransactionRecord {
+        transaction_id: "m7-edit-transaction".into(),
+        command_id: "m7-workspace-apply".into(),
+        operation_id: "m7-add-feature".into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: TaskId(task_id.into()),
+        worker_id: worker_id.into(),
+        workspace_root: root.to_string_lossy().into_owned(),
+        checkpoint_id: "checkpoint-m7-before-edit".into(),
+        base_revision: pre_edit_revision,
+        resulting_revision: Revision(pre_edit_revision.0 + 1),
+        base_project_fingerprint: "m7-continuation-base-fingerprint".into(),
+        resulting_project_fingerprint: Some("m7-continuation-edited-fingerprint".into()),
+        capability_digest: mutation_capability_digest(
+            project_id,
+            task_id,
+            worker_id,
+            "m7-add-feature",
+            pre_edit_revision.0,
+            "m7-continuation-base-fingerprint",
+            1,
+        ),
+        fence_token: 1,
+        state: "COMMITTED".into(),
+        changed_paths_json: Some("[\"M7Feature.kt\"]".into()),
+        evidence_json: Some(
+            serde_json::json!({
+                "policyDecisionId": policy_decision.decision_id,
+                "policyOutcome": "ALLOW",
+                "filesystemAdapter": "test-fixture-only"
+            })
+            .to_string(),
+        ),
+        started_at_epoch_seconds: 1,
+        completed_at_epoch_seconds: Some(2),
+    };
+    let edit_command = command_for(
+        project_id,
+        Some(task_id),
+        planned.projection_revision.0 + 1,
+        "m7-workspace-apply",
+        CommandKind::WorkspaceApplyPatch,
+        serde_json::json!({
+            "operation": "Edit",
+            "relativePath": "M7Feature.kt",
+            "workerStepId": "m7-worker-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(edit_command, project_id))
+        .expect("M7 WorkspaceApplyPatch authenticated admission");
+
+    let edited_snapshot = match plane.dispatch_with_result_and_mutation_transaction(
+        command_for(
+            project_id,
+            Some(task_id),
+            planned.projection_revision.0 + 1,
+            "m7-workspace-apply",
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::json!({
+                "operation": "Edit",
+                "relativePath": "M7Feature.kt",
+                "workerStepId": "m7-worker-edit"
+            })
+            .to_string(),
+        ),
+        "correlation-m7-edit",
+        &mutation_record,
+    )? {
+        DurableDispatchOutcome::Accepted { snapshot, .. }
+        | DurableDispatchOutcome::Duplicate { snapshot } => snapshot,
+    };
+    assert!(edited_file.is_file());
+    assert_eq!(edited_snapshot.current_source_revision, Revision(2));
+
+    let edit_step = command_for(
+        project_id,
+        Some(task_id),
+        edited_snapshot.projection_revision.0,
+        "m7-worker-edit",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Mutate",
+            "operation": "Edit",
+            "delegatedCommand": "WorkspaceApplyPatch",
+            "relativePath": "M7Feature.kt",
+            "policyDecisionId": policy_decision.decision_id
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(edit_step, project_id))
+        .expect("M7 Edit WorkerStep authenticated admission");
+    let edited_worker_snapshot = plane.dispatch(command_for(
+        project_id,
+        Some(task_id),
+        edited_snapshot.projection_revision.0,
+        "m7-worker-edit",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Mutate",
+            "operation": "Edit",
+            "delegatedCommand": "WorkspaceApplyPatch",
+            "relativePath": "M7Feature.kt",
+            "policyDecisionId": policy_decision.decision_id
+        })
+        .to_string(),
+    ))?;
+
+    let checkpoint_step = command_for(
+        project_id,
+        Some(task_id),
+        edited_worker_snapshot.projection_revision.0,
+        "m7-worker-checkpoint",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Checkpoint",
+            "operation": "Checkpoint",
+            "checkpointId": "checkpoint-m7-post-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(checkpoint_step.clone(), project_id))
+        .expect("M7 Checkpoint WorkerStep authenticated admission");
+    let checkpoint_snapshot = plane.dispatch(checkpoint_step)?;
+    plane.checkpoint("checkpoint-m7-post-edit")?;
+    assert!(plane.checkpoint_exists("checkpoint-m7-post-edit")?);
+    let post_checkpoint_revision = checkpoint_snapshot.current_source_revision;
+    assert_eq!(post_checkpoint_revision, Revision(2));
+
+    record
+        .observe(
+            "m7-worker-plan",
+            WorkerObservation {
+                stage: WorkerStage::Plan,
+                outcome: WorkerOutcome::Success,
+                source_revision: pre_edit_revision,
+                checkpoint_id: Some("checkpoint-m7-before-edit".into()),
+                changed_paths: vec![],
+                evidence_refs: vec!["evidence:m7:plan".into()],
+                diagnostic_ref: None,
+            },
+            None,
+        )
+        .expect("M7 plan observation");
+    record
+        .observe(
+            "m7-worker-checkpoint",
+            WorkerObservation {
+                stage: WorkerStage::Checkpoint,
+                outcome: WorkerOutcome::Success,
+                source_revision: post_checkpoint_revision,
+                checkpoint_id: Some("checkpoint-m7-post-edit".into()),
+                changed_paths: vec!["M7Feature.kt".into()],
+                evidence_refs: vec!["evidence:m7:checkpoint".into()],
+                diagnostic_ref: None,
+            },
+            Some("checkpoint-m7-post-edit".into()),
+        )
+        .expect("M7 checkpoint observation");
+    plane.save_worker_execution_record(&record)?;
+
+    let worker_events_before_restart = plane
+        .replay_after(0)?
+        .into_iter()
+        .filter(|event| event.kind == "WorkerStep")
+        .collect::<Vec<_>>();
+    assert_eq!(worker_events_before_restart.len(), 3);
+    assert_eq!(worker_events_before_restart[0].sequence, 3);
+    assert_eq!(worker_events_before_restart[1].sequence, 5);
+    assert_eq!(worker_events_before_restart[2].sequence, 6);
+    assert!(worker_events_before_restart[0].payload.contains("Inspect"));
+    assert!(worker_events_before_restart[1].payload.contains("Edit"));
+    assert!(worker_events_before_restart[2]
+        .payload
+        .contains("Checkpoint"));
+    drop(plane);
+
+    let mut reopened = DurableControlPlane::open(&database, ProjectId(project_id.into()))?;
+    let reloaded_task = reopened
+        .load_worker_execution_record(task_id)?
+        .expect("M7 task record after restart");
+    assert_eq!(reloaded_task.worker.contract().task_id.0, task_id);
+    assert_eq!(
+        reloaded_task.worker.source_revision(),
+        post_checkpoint_revision
+    );
+    assert_eq!(
+        reloaded_task.worker.checkpoint_id(),
+        Some("checkpoint-m7-post-edit")
+    );
+    assert_eq!(
+        reloaded_task.worker.lifecycle(),
+        nirman_workers::WorkerLifecycle::Running
+    );
+    assert!(!matches!(
+        reopened.snapshot().task_state,
+        ProductLifecycleState::Cancelled | ProductLifecycleState::Completed
+    ));
+    assert_eq!(
+        reopened.snapshot().current_source_revision,
+        post_checkpoint_revision
+    );
+    assert!(reopened.checkpoint_exists("checkpoint-m7-post-edit")?);
+    let replayed_before_resume = reopened.replay_after(0)?;
+    let replayed_worker_events = replayed_before_resume
+        .iter()
+        .filter(|event| event.kind == "WorkerStep")
+        .collect::<Vec<_>>();
+    assert_eq!(replayed_worker_events.len(), 3);
+    assert!(replayed_worker_events.windows(2).all(|events| {
+        events[0].sequence < events[1].sequence && events[0].event_id != events[1].event_id
+    }));
+    assert_eq!(
+        replayed_worker_events
+            .iter()
+            .map(|event| {
+                if event.payload.contains("Inspect") {
+                    "Inspect"
+                } else if event.payload.contains("Edit") {
+                    "Edit"
+                } else {
+                    "Checkpoint"
+                }
+            })
+            .collect::<Vec<_>>(),
+        vec!["Inspect", "Edit", "Checkpoint"]
+    );
+
+    let resume_step = command_for(
+        project_id,
+        Some(task_id),
+        reopened.snapshot().projection_revision.0,
+        "m7-worker-inspect-resume",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Inspect",
+            "operation": "Inspect",
+            "resumedFromCheckpoint": "checkpoint-m7-post-edit"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(resume_step.clone(), project_id))
+        .expect("M7 resumed Inspect authenticated admission");
+    let resumed_snapshot = reopened.dispatch(resume_step)?;
+    assert_eq!(
+        resumed_snapshot.current_source_revision,
+        post_checkpoint_revision
+    );
+    let replayed_after_resume = reopened.replay_after(0)?;
+    let resumed_worker_events = replayed_after_resume
+        .iter()
+        .filter(|event| event.kind == "WorkerStep")
+        .collect::<Vec<_>>();
+    assert_eq!(resumed_worker_events.len(), 4);
+    assert_eq!(
+        resumed_worker_events
+            .last()
+            .expect("resumed event")
+            .sequence,
+        7
+    );
+    assert_eq!(
+        resumed_worker_events
+            .last()
+            .expect("resumed event")
+            .event_id,
+        "m7-worker-inspect-resume"
+    );
+    assert_eq!(
+        resumed_worker_events
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "m7-worker-inspect",
+            "m7-worker-edit",
+            "m7-worker-checkpoint",
+            "m7-worker-inspect-resume"
+        ]
+    );
+
+    fs::write(
+        m7_evidence_path(),
+        serde_json::json!({
+            "schema": "nirman.m7.task_continuation_trace.v1",
+            "fixtureId": "M7-TASK-CONTINUATION-001",
+            "taskId": task_id,
+            "authenticatedTaskStartObserved": true,
+            "threeWorkerStepsDurableBeforeRestart": true,
+            "workerStepOrder": ["Inspect", "Edit", "Checkpoint"],
+            "m6EditPolicyAllowObserved": true,
+            "m6PolicyDecisionDurable": true,
+            "postCheckpointSourceRevision": post_checkpoint_revision.0,
+            "taskRecordReloadedById": true,
+            "recoverableAfterRestart": true,
+            "checkpointResolvableAfterRestart": true,
+            "sourceRevisionRestoredAfterRestart": true,
+            "orderedWorkerReplayObserved": true,
+            "duplicateWorkerEventsObserved": false,
+            "resumedInspectAppendedToSameStream": true,
+            "resumedEventSequence": 7,
+            "filesystemAdapter": "test-fixture-only",
+            "gradleExecuted": false,
+            "androidRuntimeObserved": false,
+            "nativeTauriRuntimeObserved": false,
+            "evidenceStatus": "M7_HEADLESS_TASK_CONTINUATION_TRACE_ONLY"
+        })
+        .to_string(),
+    )
+    .expect("M7 continuation evidence");
+    let _ = fs::remove_dir_all(root);
+    Ok(())
+}
