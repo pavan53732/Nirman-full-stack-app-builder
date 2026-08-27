@@ -332,6 +332,25 @@ pub struct CoordinationTask {
     pub required_evidence: Vec<String>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HandoffStatus {
+    Accepted,
+    Rejected,
+    Conflict,
+    Applied,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerHandoffAcknowledgement {
+    pub acknowledgement_id: String,
+    pub message_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub status: HandoffStatus,
+    pub reconciliation_checkpoint: Option<String>,
+    pub reason: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkerHandoffRecord {
     pub message_id: String,
@@ -364,6 +383,7 @@ pub enum CoordinationError {
     LeaseFenced,
     DuplicateHandoff,
     MissingHandoff,
+    DuplicateAcknowledgement,
     Conflict(Vec<WorkerConflict>),
     EvidenceRequired,
 }
@@ -389,6 +409,9 @@ impl fmt::Display for CoordinationError {
             Self::MissingHandoff => {
                 formatter.write_str("M8 reconciliation is missing a worker handoff")
             }
+            Self::DuplicateAcknowledgement => {
+                formatter.write_str("M8 worker handoff acknowledgement was already recorded")
+            }
             Self::Conflict(conflicts) => write!(
                 formatter,
                 "M8 worker conflicts detected: {}",
@@ -407,6 +430,7 @@ pub struct MultiWorkerCoordinator {
     tasks: BTreeMap<String, CoordinationTask>,
     leases: BTreeMap<String, WorkerLease>,
     handoffs: BTreeMap<String, WorkerHandoffRecord>,
+    acknowledgements: BTreeMap<String, WorkerHandoffAcknowledgement>,
     next_fence_token: u64,
 }
 
@@ -420,6 +444,7 @@ impl MultiWorkerCoordinator {
             tasks: BTreeMap::new(),
             leases: BTreeMap::new(),
             handoffs: BTreeMap::new(),
+            acknowledgements: BTreeMap::new(),
             next_fence_token: 1,
         })
     }
@@ -513,6 +538,49 @@ impl MultiWorkerCoordinator {
         self.handoffs.insert(handoff.task_id.clone(), handoff);
         self.leases.remove(&task.task_id);
         Ok(())
+    }
+
+    pub fn acknowledge_handoff(
+        &mut self,
+        acknowledgement_id: &str,
+        message_id: &str,
+    ) -> Result<WorkerHandoffAcknowledgement, CoordinationError> {
+        if self.acknowledgements.contains_key(acknowledgement_id) {
+            return Err(CoordinationError::DuplicateAcknowledgement);
+        }
+        let handoff = self
+            .handoffs
+            .values()
+            .find(|handoff| handoff.message_id == message_id)
+            .ok_or(CoordinationError::MissingHandoff)?;
+        let conflicts = self.detect_conflicts();
+        let own_conflict = conflicts.iter().any(|conflict| {
+            conflict.left_task_id == handoff.task_id || conflict.right_task_id == handoff.task_id
+        });
+        let acknowledgement = WorkerHandoffAcknowledgement {
+            acknowledgement_id: acknowledgement_id.into(),
+            message_id: message_id.into(),
+            task_id: handoff.task_id.clone(),
+            worker_id: handoff.worker_id.clone(),
+            status: if own_conflict {
+                HandoffStatus::Conflict
+            } else {
+                HandoffStatus::Accepted
+            },
+            reconciliation_checkpoint: None,
+            reason: if own_conflict {
+                "handoff retained but blocked by changed-path or changed-symbol conflict".into()
+            } else {
+                "handoff accepted by the scoped coordinator".into()
+            },
+        };
+        self.acknowledgements
+            .insert(acknowledgement_id.into(), acknowledgement.clone());
+        Ok(acknowledgement)
+    }
+
+    pub fn acknowledgements(&self) -> &BTreeMap<String, WorkerHandoffAcknowledgement> {
+        &self.acknowledgements
     }
 
     pub fn detect_conflicts(&self) -> Vec<WorkerConflict> {

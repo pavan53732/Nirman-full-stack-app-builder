@@ -13,7 +13,7 @@ use nirman_domain::{
 };
 use nirman_storage::Ledger;
 use nirman_supervisor::BackgroundRunRecord;
-use nirman_workers::{CoordinationTask, WorkerHandoffRecord};
+use nirman_workers::{CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord};
 use std::path::Path;
 
 pub fn deadline_elapsed(deadline_epoch_seconds: Option<u64>, now_epoch_seconds: u64) -> bool {
@@ -327,6 +327,22 @@ impl DurableControlPlane {
     ) -> Result<(), rusqlite::Error> {
         self.ledger
             .save_worker_handoff(&self.snapshot().project_id.0, handoff)
+    }
+
+    pub fn save_worker_handoff_acknowledgement(
+        &self,
+        acknowledgement: &WorkerHandoffAcknowledgement,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_worker_handoff_acknowledgement(&self.snapshot().project_id.0, acknowledgement)
+    }
+
+    pub fn load_worker_handoff_acknowledgement(
+        &self,
+        acknowledgement_id: &str,
+    ) -> Result<Option<WorkerHandoffAcknowledgement>, rusqlite::Error> {
+        self.ledger
+            .load_worker_handoff_acknowledgement(&self.snapshot().project_id.0, acknowledgement_id)
     }
 
     pub fn load_worker_handoff(

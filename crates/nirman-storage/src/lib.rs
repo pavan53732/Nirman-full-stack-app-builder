@@ -8,7 +8,7 @@ use nirman_domain::{
     TaskId,
 };
 use nirman_supervisor::BackgroundRunRecord;
-use nirman_workers::{CoordinationTask, WorkerHandoffRecord};
+use nirman_workers::{CoordinationTask, WorkerHandoffAcknowledgement, WorkerHandoffRecord};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
@@ -229,6 +229,16 @@ impl Ledger {
                  worker_id TEXT NOT NULL,
                  record_json TEXT NOT NULL,
                  PRIMARY KEY (project_id, message_id)
+             );
+             CREATE TABLE IF NOT EXISTS m8_worker_handoff_acknowledgements (
+                 project_id TEXT NOT NULL,
+                 acknowledgement_id TEXT NOT NULL,
+                 message_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, acknowledgement_id),
+                 UNIQUE (project_id, message_id)
              );
              CREATE TABLE IF NOT EXISTS preview_projections (
                  project_id TEXT NOT NULL,
@@ -1676,6 +1686,57 @@ impl Ledger {
         Ok(())
     }
 
+    pub fn save_worker_handoff_acknowledgement(
+        &self,
+        project_id: &str,
+        acknowledgement: &WorkerHandoffAcknowledgement,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(acknowledgement).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m8_worker_handoff_acknowledgements
+             (project_id, acknowledgement_id, message_id, task_id, worker_id, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(project_id, acknowledgement_id) DO UPDATE SET record_json = excluded.record_json",
+            params![
+                project_id,
+                acknowledgement.acknowledgement_id,
+                acknowledgement.message_id,
+                acknowledgement.task_id,
+                acknowledgement.worker_id,
+                record_json,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_worker_handoff_acknowledgement(
+        &self,
+        project_id: &str,
+        acknowledgement_id: &str,
+    ) -> rusqlite::Result<Option<WorkerHandoffAcknowledgement>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m8_worker_handoff_acknowledgements
+                 WHERE project_id = ?1 AND acknowledgement_id = ?2",
+                params![project_id, acknowledgement_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
     pub fn load_worker_handoff(
         &self,
         project_id: &str,
@@ -1931,6 +1992,62 @@ mod m7_tests {
         assert_eq!(
             ledger.load_background_run("run-m7-1").expect("load"),
             Some(record)
+        );
+    }
+}
+
+#[cfg(test)]
+mod m8_tests {
+    use super::*;
+    use nirman_domain::Revision;
+    use nirman_workers::{
+        CoordinationTask, HandoffStatus, WorkerHandoffAcknowledgement, WorkerRole,
+        WorkspaceIsolation, M8_SCHEMA_VERSION,
+    };
+
+    #[test]
+    fn coordination_task_and_acknowledgement_round_trip_through_sqlite() {
+        let ledger = Ledger::open_in_memory().expect("ledger");
+        let task = CoordinationTask {
+            schema_version: M8_SCHEMA_VERSION,
+            task_id: "task-m8-a".into(),
+            parent_task_id: "root-task".into(),
+            worker_id: "worker-a".into(),
+            role: WorkerRole::Implementation,
+            capability_ceiling: vec!["android.build".into()],
+            workspace_root: "/workspace/a".into(),
+            parent_workspace_root: "/workspace/root".into(),
+            isolation: WorkspaceIsolation::GitWorktree,
+            dependencies: vec![],
+            expected_source_revision: Revision(3),
+            required_evidence: vec!["build-evidence".into()],
+        };
+        let acknowledgement = WorkerHandoffAcknowledgement {
+            acknowledgement_id: "ack-m8-a".into(),
+            message_id: "message-m8-a".into(),
+            task_id: task.task_id.clone(),
+            worker_id: task.worker_id.clone(),
+            status: HandoffStatus::Accepted,
+            reconciliation_checkpoint: None,
+            reason: "accepted by scoped coordinator".into(),
+        };
+        ledger
+            .save_coordination_task("project-m8", &task)
+            .expect("save task");
+        ledger
+            .save_worker_handoff_acknowledgement("project-m8", &acknowledgement)
+            .expect("save acknowledgement");
+        assert_eq!(
+            ledger
+                .load_coordination_task("project-m8", "task-m8-a")
+                .expect("load task"),
+            Some(task)
+        );
+        assert_eq!(
+            ledger
+                .load_worker_handoff_acknowledgement("project-m8", "ack-m8-a")
+                .expect("load acknowledgement"),
+            Some(acknowledgement)
         );
     }
 }
