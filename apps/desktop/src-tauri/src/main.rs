@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use serde::{Deserialize, Serialize};
+
 use nirman_android::{
     execute_android_build, infer_android_requirement_manifest, plan_preflight,
     synthesize_android_plan, validate_android_build_request, validate_android_workspace,
@@ -35,6 +37,10 @@ use nirman_ipc::{
     WorkerTaskClaimResultPayload, WorkspaceApplyPatchCommandPayload,
     WorkspaceApplyPatchResultPayload, PROTOCOL_SCHEMA_VERSION,
 };
+use nirman_policy::{
+    DoomLoopDetector, NetworkCategory, PolicyDecision, PolicyOutcome, PolicyRequest, ProcessQuota,
+    ProcessRecord, ProcessRegistry, QuotaUsage, WorkerPolicy,
+};
 use nirman_preview::{
     bind_preview_revision, select_fallback, M108ProjectionState, PreviewEventTruth, PreviewMode,
     PreviewProjection, PreviewRequest, PreviewRevision, PreviewSyncEvent, PreviewSyncEventType,
@@ -54,8 +60,9 @@ use nirman_supervisor::{
 };
 use nirman_workers::{
     CoordinationError, CoordinationTask, M8ReconciliationCheckpoint, MultiWorkerCoordinator,
-    ReconciliationMutationSummary, ReconciliationStatus, WorkerContract,
-    WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim, M5_SCHEMA_VERSION,
+    ReconciliationMutationSummary, ReconciliationStatus, WorkerContract, WorkerExecutionRecord,
+    WorkerHandoff, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerLoopError,
+    WorkerObservation, WorkerOutcome, WorkerStage, WorkerTaskClaim, M5_SCHEMA_VERSION,
 };
 use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
@@ -92,6 +99,9 @@ struct RuntimeState {
     capability_probe: Box<dyn CapabilityProbe>,
     authorized_workspace_root: Option<PathBuf>,
     consumed_mutation_capabilities: BTreeSet<String>,
+    worker_policies: BTreeMap<String, WorkerPolicy>,
+    process_registry: ProcessRegistry,
+    doom_loop_detectors: BTreeMap<String, DoomLoopDetector>,
 }
 
 #[derive(serde::Serialize)]
@@ -1429,6 +1439,150 @@ struct PreparedMutation {
     transaction: MutationTransactionRecord,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct WorkerStepCommandPayload {
+    worker_contract: WorkerContract,
+    observation: WorkerObservation,
+    rollback_checkpoint_id: Option<String>,
+    cancel: bool,
+    #[serde(default)]
+    operation: Option<String>,
+    #[serde(default)]
+    path: Option<String>,
+    #[serde(default)]
+    command: Option<String>,
+    #[serde(default)]
+    network_category: Option<NetworkCategory>,
+    #[serde(default)]
+    destructive: bool,
+    #[serde(default)]
+    external_directory: bool,
+    #[serde(default)]
+    quota_usage: Option<QuotaUsage>,
+    #[serde(default)]
+    process_quota: Option<ProcessQuota>,
+    #[serde(default)]
+    action_fingerprint: Option<String>,
+    #[serde(default)]
+    process_id: Option<u32>,
+    #[serde(default)]
+    parent_process_id: Option<u32>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct WorkerStepResultPayload {
+    worker_id: String,
+    task_id: String,
+    completed_stage: WorkerStage,
+    next_stage: Option<WorkerStage>,
+    lifecycle: nirman_workers::WorkerLifecycle,
+    source_revision: u64,
+    checkpoint_id: Option<String>,
+    evidence_refs: Vec<String>,
+    diagnostic_ref: Option<String>,
+    attempt: u8,
+}
+
+impl WorkerStepResultPayload {
+    fn from_handoff(handoff: &WorkerHandoff) -> Self {
+        Self {
+            worker_id: handoff.worker_id.clone(),
+            task_id: handoff.task_id.0.clone(),
+            completed_stage: handoff.completed_stage,
+            next_stage: handoff.next_stage,
+            lifecycle: handoff.lifecycle,
+            source_revision: handoff.source_revision.0,
+            checkpoint_id: handoff.checkpoint_id.clone(),
+            evidence_refs: handoff.evidence_refs.clone(),
+            diagnostic_ref: handoff.diagnostic_ref.clone(),
+            attempt: handoff.attempt,
+        }
+    }
+
+    fn from_record(record: &WorkerExecutionRecord) -> Self {
+        Self {
+            worker_id: record.worker_id().into(),
+            task_id: record.task_id().0.clone(),
+            completed_stage: record.worker.stage(),
+            next_stage: if record.worker.lifecycle() == nirman_workers::WorkerLifecycle::Completed
+                || record.worker.lifecycle() == nirman_workers::WorkerLifecycle::Cancelled
+            {
+                None
+            } else {
+                Some(record.worker.stage())
+            },
+            lifecycle: record.worker.lifecycle(),
+            source_revision: record.worker.source_revision().0,
+            checkpoint_id: record.worker.checkpoint_id().map(str::to_owned),
+            evidence_refs: record.last_evidence_refs.clone(),
+            diagnostic_ref: record.last_diagnostic_ref.clone(),
+            attempt: record.worker.attempt(),
+        }
+    }
+}
+
+fn authorize_m6_host_operation(
+    state: &RuntimeState,
+    request: &CommandRequest,
+    worker_id: &str,
+    workspace_root: &str,
+    allowed_paths: Vec<String>,
+    denied_paths: Vec<String>,
+    policy_request: PolicyRequest,
+) -> Result<PolicyDecision, ErrorEnvelope> {
+    let policy = WorkerPolicy {
+        schema_version: nirman_policy::M6_SCHEMA_VERSION,
+        worker_id: worker_id.into(),
+        workspace_root: workspace_root.into(),
+        allowed_paths: allowed_paths
+            .into_iter()
+            .map(|path| m6_workspace_path(workspace_root, path))
+            .collect(),
+        denied_paths: denied_paths
+            .into_iter()
+            .map(|path| m6_workspace_path(workspace_root, path))
+            .collect(),
+        protected_path_patterns: vec![
+            "/home/*/.ssh/*".into(),
+            "/home/*/.aws/*".into(),
+            "*.env".into(),
+            "*/credentials".into(),
+            "*/secrets".into(),
+            "*/.git/*".into(),
+        ],
+        allowed_command_patterns: vec![
+            "gradlew".into(),
+            "./gradlew".into(),
+            "adb".into(),
+            "java".into(),
+            "git".into(),
+        ],
+        denied_command_patterns: vec![
+            "rm".into(),
+            "format".into(),
+            "del".into(),
+            "rmdir".into(),
+            "shutdown".into(),
+        ],
+        allowed_network_categories: vec![NetworkCategory::None, NetworkCategory::Localhost],
+        allow_external_directories: false,
+        allow_destructive_commands: false,
+    };
+    let decision = policy.authorize(&policy_request).map_err(|policy_error| {
+        m8_validation_error(
+            request,
+            &format!("M6 tool policy request is invalid: {policy_error}"),
+        )
+    })?;
+    if decision.outcome != PolicyOutcome::Allow {
+        state.plane.save_m6_policy_event(&decision).map_err(|_| {
+            m8_dependency_error(request, "M6 policy decision could not be durably recorded")
+        })?;
+        return Err(m6_policy_error(request, &decision));
+    }
+    Ok(decision)
+}
+
 fn prepare_m46_mutation(
     state: &RuntimeState,
     request: &CommandRequest,
@@ -1446,6 +1600,28 @@ fn prepare_m46_mutation(
             None,
         )
     })?;
+    let mutation_path = payload
+        .touched_paths
+        .first()
+        .cloned()
+        .map(|path| m6_workspace_path(&payload.workspace_root, path));
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        &payload.worker_id,
+        &payload.workspace_root,
+        payload.allowed_paths.iter().cloned().collect(),
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: format!("workspace.{:?}", payload.operation),
+            path: mutation_path,
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
     let transaction_id = format!("mutation-transaction-{}", payload.operation_id);
     if let Some(existing) = state
         .plane
@@ -2701,6 +2877,361 @@ fn m7_lifecycle_candidate(
     Ok(Some(record))
 }
 
+fn m5_stage_capability(stage: WorkerStage) -> &'static str {
+    match stage {
+        WorkerStage::Inspect => "android.inspect",
+        WorkerStage::Plan => "android.plan",
+        WorkerStage::Checkpoint => "workspace.checkpoint",
+        WorkerStage::Mutate => "workspace.mutate",
+        WorkerStage::Build => "android.build",
+        WorkerStage::InstallLaunch => "android.install_launch",
+        WorkerStage::Observe => "android.observe",
+        WorkerStage::Validate => "android.validate",
+        WorkerStage::Repair => "workspace.repair",
+    }
+}
+
+fn parse_worker_step(request: &CommandRequest) -> Result<WorkerStepCommandPayload, ErrorEnvelope> {
+    let payload: WorkerStepCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "worker step payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request
+        .command
+        .task_id
+        .as_ref()
+        .ok_or_else(|| m8_validation_error(request, "worker step requires task identity"))?;
+    if payload.worker_contract.project_id != request.command.project_id
+        || payload.worker_contract.task_id != *task_id
+        || payload.worker_contract.worker_id.trim().is_empty()
+    {
+        return Err(m8_validation_error(
+            request,
+            "worker step contract is outside the authenticated project/task scope",
+        ));
+    }
+    payload.worker_contract.validate().map_err(|error| {
+        m8_validation_error(
+            request,
+            &format!("worker step contract is invalid: {error}"),
+        )
+    })?;
+    if payload.cancel {
+        return Ok(payload);
+    }
+    let required_capability = m5_stage_capability(payload.observation.stage);
+    if !payload
+        .worker_contract
+        .capability_ceiling
+        .iter()
+        .any(|capability| capability == required_capability)
+    {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Authorization,
+            "worker stage exceeds the declared M5 capability ceiling",
+            false,
+            Some("authorize the exact stage capability before retrying".into()),
+        ));
+    }
+    if payload.observation.stage == WorkerStage::Repair
+        && payload.observation.outcome == WorkerOutcome::Success
+        && payload.rollback_checkpoint_id.is_none()
+    {
+        return Err(m8_validation_error(
+            request,
+            "successful worker repair requires a rollback checkpoint reference",
+        ));
+    }
+    Ok(payload)
+}
+
+fn map_m5_worker_error(request: &CommandRequest, worker_error: WorkerLoopError) -> ErrorEnvelope {
+    let (category, recovery) = match worker_error {
+        WorkerLoopError::MissingDiagnostic => (
+            ErrorCategory::Validation,
+            Some("capture a durable diagnostic before retrying the failed stage".into()),
+        ),
+        WorkerLoopError::MissingCheckpoint => (
+            ErrorCategory::Validation,
+            Some("create a durable checkpoint before continuing the worker loop".into()),
+        ),
+        WorkerLoopError::AttemptsExhausted => (
+            ErrorCategory::Conflict,
+            Some("escalate the stuck worker and preserve the last validated checkpoint".into()),
+        ),
+        _ => (
+            ErrorCategory::Validation,
+            Some("repair the worker observation and retry through the M5 boundary".into()),
+        ),
+    };
+    error(
+        &request.correlation_id,
+        Some(request.command.command_id.clone()),
+        request.causation_id.clone(),
+        ControlPlaneErrorCode::InvalidCommand,
+        category,
+        worker_error.to_string(),
+        false,
+        recovery,
+    )
+}
+
+fn m6_workspace_path(workspace_root: &str, path: String) -> String {
+    if path.starts_with('/') || path.contains(':') {
+        path
+    } else {
+        format!("{}/{}", workspace_root.trim_end_matches(['/', '\\']), path)
+    }
+}
+
+fn default_m6_worker_policy(contract: &WorkerContract) -> WorkerPolicy {
+    WorkerPolicy {
+        schema_version: nirman_policy::M6_SCHEMA_VERSION,
+        worker_id: contract.worker_id.clone(),
+        workspace_root: contract.workspace_root.clone(),
+        allowed_paths: contract.allowed_paths.clone(),
+        denied_paths: contract.denied_paths.clone(),
+        protected_path_patterns: vec![
+            "/home/*/.ssh/*".into(),
+            "/home/*/.aws/*".into(),
+            "*.env".into(),
+            "*/credentials".into(),
+            "*/secrets".into(),
+            "*/.git/*".into(),
+        ],
+        allowed_command_patterns: vec![
+            "gradlew".into(),
+            "./gradlew".into(),
+            "adb".into(),
+            "java".into(),
+            "git".into(),
+        ],
+        denied_command_patterns: vec![
+            "rm".into(),
+            "format".into(),
+            "del".into(),
+            "rmdir".into(),
+            "shutdown".into(),
+        ],
+        allowed_network_categories: vec![NetworkCategory::None, NetworkCategory::Localhost],
+        allow_external_directories: false,
+        allow_destructive_commands: false,
+    }
+}
+
+fn persist_m6_policy_event(
+    state: &RuntimeState,
+    decision: &PolicyDecision,
+    request: &CommandRequest,
+) -> Result<(), ErrorEnvelope> {
+    state.plane.save_m6_policy_event(decision).map_err(|_| {
+        m8_dependency_error(request, "M6 policy decision could not be durably recorded")
+    })
+}
+
+fn m6_policy_error(request: &CommandRequest, decision: &PolicyDecision) -> ErrorEnvelope {
+    let (code, recovery, retryable) = match decision.outcome {
+        PolicyOutcome::Deny => (
+            ControlPlaneErrorCode::PermissionDenied,
+            Some("change the operation or use an explicitly authorized capability".into()),
+            false,
+        ),
+        PolicyOutcome::Ask => (
+            ControlPlaneErrorCode::PermissionDenied,
+            Some("obtain the required explicit approval before retrying".into()),
+            false,
+        ),
+        PolicyOutcome::Allow => unreachable!("allowed M6 policy cannot be mapped as an error"),
+    };
+    error(
+        &request.correlation_id,
+        Some(request.command.command_id.clone()),
+        request.causation_id.clone(),
+        code,
+        ErrorCategory::Authorization,
+        "M6 policy authority did not authorize this worker operation",
+        retryable,
+        recovery,
+    )
+}
+
+fn prepare_m5_worker_step(
+    state: &mut RuntimeState,
+    request: &CommandRequest,
+    payload: &WorkerStepCommandPayload,
+) -> Result<Option<(WorkerExecutionRecord, WorkerHandoff)>, ErrorEnvelope> {
+    let duplicate =
+        state
+            .plane
+            .command_is_duplicate(&request.command)
+            .map_err(|runtime_error| {
+                map_runtime_error(
+                    &request.correlation_id,
+                    Some(request.command.command_id.clone()),
+                    request.causation_id.clone(),
+                    runtime_error,
+                )
+            })?;
+    if duplicate {
+        return Ok(None);
+    }
+    let policy = state
+        .worker_policies
+        .entry(payload.worker_contract.worker_id.clone())
+        .or_insert_with(|| default_m6_worker_policy(&payload.worker_contract));
+    let policy_request = PolicyRequest {
+        request_id: request.command.command_id.clone(),
+        operation: payload
+            .operation
+            .clone()
+            .unwrap_or_else(|| format!("worker.stage.{:?}", payload.observation.stage)),
+        path: payload
+            .path
+            .clone()
+            .or_else(|| payload.observation.changed_paths.first().cloned())
+            .map(|path| m6_workspace_path(&payload.worker_contract.workspace_root, path)),
+        command: payload.command.clone(),
+        network_category: payload.network_category.unwrap_or(NetworkCategory::None),
+        destructive: payload.destructive,
+        external_directory: payload.external_directory,
+    };
+    let policy_decision = policy.authorize(&policy_request).map_err(|policy_error| {
+        m8_validation_error(
+            request,
+            &format!("worker policy request is invalid: {policy_error}"),
+        )
+    })?;
+    if policy_decision.outcome != PolicyOutcome::Allow {
+        persist_m6_policy_event(state, &policy_decision, request)?;
+        return Err(m6_policy_error(request, &policy_decision));
+    }
+    if let (Some(usage), Some(quota)) = (&payload.quota_usage, &payload.process_quota) {
+        if !nirman_policy::quota_allows(usage, quota) {
+            let decision = PolicyDecision {
+                schema_version: nirman_policy::M6_SCHEMA_VERSION,
+                decision_id: format!("decision-{}-quota", request.command.command_id),
+                worker_id: payload.worker_contract.worker_id.clone(),
+                request_id: request.command.command_id.clone(),
+                outcome: PolicyOutcome::Deny,
+                reasons: vec!["resource-quota".into()],
+                authority: "PolicyAuthority".into(),
+            };
+            persist_m6_policy_event(state, &decision, request)?;
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::Backpressure,
+                ErrorCategory::Conflict,
+                "worker resource quota would be exceeded",
+                true,
+                Some("reduce the operation resource usage or wait for quota recovery".into()),
+            ));
+        }
+    }
+    if let Some(process_id) = payload.process_id {
+        state.process_registry.register(ProcessRecord {
+            process_id,
+            parent_process_id: payload.parent_process_id,
+            worker_id: payload.worker_contract.worker_id.clone(),
+            cancelled: false,
+        });
+        if payload.cancel {
+            state.process_registry.cancel_tree(process_id);
+        }
+    }
+    let action_fingerprint = payload.action_fingerprint.clone().unwrap_or_else(|| {
+        format!(
+            "{}:{}:{}",
+            policy_request.operation,
+            policy_request.path.as_deref().unwrap_or("-"),
+            policy_request.command.as_deref().unwrap_or("-")
+        )
+    });
+    let doom_limit = payload.worker_contract.max_attempts.max(2) as usize;
+    if state
+        .doom_loop_detectors
+        .entry(payload.worker_contract.worker_id.clone())
+        .or_default()
+        .record(action_fingerprint, doom_limit)
+    {
+        let decision = PolicyDecision {
+            schema_version: nirman_policy::M6_SCHEMA_VERSION,
+            decision_id: format!("decision-{}-doom-loop", request.command.command_id),
+            worker_id: payload.worker_contract.worker_id.clone(),
+            request_id: request.command.command_id.clone(),
+            outcome: PolicyOutcome::Deny,
+            reasons: vec!["doom-loop".into()],
+            authority: "PolicyAuthority".into(),
+        };
+        persist_m6_policy_event(state, &decision, request)?;
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::Backpressure,
+            ErrorCategory::Conflict,
+            "repeated identical worker actions reached the M6 doom-loop limit",
+            false,
+            Some("stop the repeated strategy and select a different recovery action".into()),
+        ));
+    }
+
+    let task_id = request
+        .command
+        .task_id
+        .as_ref()
+        .expect("worker step parser requires task identity");
+    let mut record = if let Some(record) = state
+        .plane
+        .load_worker_execution_record(&task_id.0)
+        .map_err(|_| {
+            m8_dependency_error(request, "M5 worker execution record could not be loaded")
+        })? {
+        if record.worker.contract() != &payload.worker_contract {
+            return Err(m8_validation_error(
+                request,
+                "worker step contract conflicts with the durable worker record",
+            ));
+        }
+        record
+    } else {
+        WorkerExecutionRecord::start(payload.worker_contract.clone())
+            .map_err(|error| map_m5_worker_error(request, error))?
+    };
+    record.last_policy_decision_id = Some(policy_decision.decision_id);
+    record.last_policy_outcome = Some(format!("{:?}", policy_decision.outcome));
+    record.last_policy_reasons = policy_decision.reasons;
+    let handoff = if payload.cancel {
+        record.cancel(request.command.command_id.clone())
+    } else {
+        record
+            .observe(
+                request.command.command_id.clone(),
+                payload.observation.clone(),
+                payload.rollback_checkpoint_id.clone(),
+            )
+            .map_err(|error| map_m5_worker_error(request, error))?
+    };
+    record
+        .validate()
+        .map_err(|error| map_m5_worker_error(request, error))?;
+    Ok(Some((record, handoff)))
+}
+
 fn parse_m8_claim(
     request: &CommandRequest,
 ) -> Result<WorkerTaskClaimCommandPayload, ErrorEnvelope> {
@@ -3126,6 +3657,11 @@ pub(crate) fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+    let m5_worker_step = if request.command.kind == CommandKind::WorkerStep {
+        Some(parse_worker_step(&request)?)
+    } else {
+        None
+    };
     let prepared_mutation = if let Some(payload) = workspace_apply_patch.as_ref() {
         prepare_m46_mutation(state, &request, payload)?
     } else {
@@ -3372,6 +3908,11 @@ pub(crate) fn dispatch_request<S: EventSink>(
             m8_checkpoint_record = Some(checkpoint);
         }
     }
+    let m5_execution = if let Some(payload) = m5_worker_step.as_ref() {
+        prepare_m5_worker_step(state, &request, payload)?
+    } else {
+        None
+    };
     let m7_run = m7_lifecycle_candidate(state, &request)?;
     let after_sequence = state.plane.snapshot().last_event_sequence;
     let outcome = if let Some(prepared) = m4_synthesis_build.as_ref() {
@@ -3486,6 +4027,12 @@ pub(crate) fn dispatch_request<S: EventSink>(
             &correlation_id,
             &prepared.transaction,
         )
+    } else if let Some((record, _handoff)) = m5_execution.as_ref() {
+        state.plane.dispatch_with_result_and_worker_execution(
+            request.command.clone(),
+            &correlation_id,
+            record,
+        )
     } else if let Some(run) = m7_run.as_ref() {
         state.plane.dispatch_with_result_and_background_run(
             request.command.clone(),
@@ -3563,6 +4110,30 @@ pub(crate) fn dispatch_request<S: EventSink>(
         status.clone(),
         event_range,
     );
+    if request.command.kind == CommandKind::WorkerStep {
+        let result = if let Some((_, handoff)) = m5_execution.as_ref() {
+            WorkerStepResultPayload::from_handoff(handoff)
+        } else {
+            let task_id = request
+                .command
+                .task_id
+                .as_ref()
+                .expect("worker step parser requires task identity");
+            let record = state
+                .plane
+                .load_worker_execution_record(&task_id.0)
+                .map_err(|_| {
+                    m8_dependency_error(&request, "duplicate M5 worker execution could not reload")
+                })?
+                .ok_or_else(|| {
+                    m8_dependency_error(&request, "duplicate M5 worker execution record is missing")
+                })?;
+            WorkerStepResultPayload::from_record(&record)
+        };
+        command_response.result_schema_ref = Some("nirman.worker_step_result.v1".into());
+        command_response.result_payload =
+            Some(serde_json::to_value(result).expect("M5 worker step result serialization"));
+    }
     if m8_is_command {
         let result_payload = if let Some(payload) = m8_result_payload {
             Some(payload)
@@ -5134,6 +5705,9 @@ fn runtime_state(app: &AppHandle) -> RuntimeState {
         capability_probe: Box::new(HostCapabilityProbe),
         authorized_workspace_root: std::env::var_os("NIRMAN_PROJECT_WORKSPACE").map(PathBuf::from),
         consumed_mutation_capabilities: BTreeSet::new(),
+        worker_policies: BTreeMap::new(),
+        process_registry: ProcessRegistry::default(),
+        doom_loop_detectors: BTreeMap::new(),
     }
 }
 
@@ -6160,6 +6734,9 @@ mod tests {
             capability_probe: Box::new(m43_probe()),
             authorized_workspace_root: None,
             consumed_mutation_capabilities: BTreeSet::new(),
+            worker_policies: BTreeMap::new(),
+            process_registry: ProcessRegistry::default(),
+            doom_loop_detectors: BTreeMap::new(),
         };
         state.subscriptions.insert(
             "subscription-test".into(),
@@ -7842,6 +8419,581 @@ mod tests {
         let _ = fs::remove_dir_all(workspace);
         let _ = fs::remove_dir_all(outside_workspace);
         let _ = fs::remove_file(ledger_path);
+    }
+}
+
+#[cfg(test)]
+mod m5_host_tests {
+    use super::tests::{request, test_state_at, RecordingSink};
+    use super::*;
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-m5-worker-host-{nonce}.sqlite3"))
+    }
+
+    #[test]
+    fn m5_authenticated_worker_step_loop_is_durable_and_idempotent() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m5-host".into());
+        let contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-m5-host".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: task_id.clone(),
+            capability_ceiling: vec![
+                "android.inspect".into(),
+                "android.plan".into(),
+                "workspace.checkpoint".into(),
+                "workspace.mutate".into(),
+                "android.build".into(),
+                "android.install_launch".into(),
+                "android.observe".into(),
+                "android.validate".into(),
+                "workspace.repair".into(),
+            ],
+            workspace_root: "/tmp/nirman-m5-host".into(),
+            allowed_paths: vec!["/tmp/nirman-m5-host".into()],
+            denied_paths: vec!["/tmp/nirman-m5-host/.git".into()],
+            max_attempts: 3,
+            evidence_requirements: vec!["stage-evidence".into()],
+        };
+        let stages = [
+            WorkerStage::Inspect,
+            WorkerStage::Plan,
+            WorkerStage::Checkpoint,
+            WorkerStage::Mutate,
+            WorkerStage::Build,
+            WorkerStage::InstallLaunch,
+            WorkerStage::Observe,
+            WorkerStage::Validate,
+        ];
+        let mut last_request = None;
+        for (index, stage) in stages.into_iter().enumerate() {
+            let payload = WorkerStepCommandPayload {
+                worker_contract: contract.clone(),
+                observation: WorkerObservation {
+                    stage,
+                    outcome: WorkerOutcome::Success,
+                    source_revision: Revision(index as u64 + 1),
+                    checkpoint_id: Some(format!("checkpoint-m5-{}", index + 1)),
+                    changed_paths: vec![format!("app/src/stage-{index}.kt")],
+                    evidence_refs: vec![format!("evidence-m5-{index}")],
+                    diagnostic_ref: None,
+                },
+                rollback_checkpoint_id: Some(format!("checkpoint-m5-{}", index + 1)),
+                cancel: false,
+                operation: None,
+                path: None,
+                command: None,
+                network_category: None,
+                destructive: false,
+                external_directory: false,
+                quota_usage: None,
+                process_quota: None,
+                action_fingerprint: None,
+                process_id: None,
+                parent_process_id: None,
+            };
+            let mut request = request(
+                &state,
+                &format!("m5-step-{index}"),
+                CommandKind::WorkerStep,
+                serde_json::to_string(&payload).expect("worker step payload"),
+                state.plane.snapshot().projection_revision.0,
+            );
+            request.command.task_id = Some(task_id.clone());
+            let response =
+                dispatch_request(&sink, &mut state, request.clone()).expect("worker step");
+            assert_eq!(response.status, ResponseStatus::Accepted);
+            assert_eq!(
+                response.result_schema_ref.as_deref(),
+                Some("nirman.worker_step_result.v1")
+            );
+            assert!(response.result_payload.is_some());
+            last_request = Some(request);
+        }
+        let record = state
+            .plane
+            .load_worker_execution_record(task_id.0.as_str())
+            .expect("worker record load")
+            .expect("worker record persisted");
+        assert_eq!(
+            record.worker.lifecycle(),
+            nirman_workers::WorkerLifecycle::Completed
+        );
+        assert_eq!(record.worker.history().len(), stages.len());
+        assert!(record.rollback_checkpoint_id.is_some());
+        let last_request = last_request.expect("last request");
+        let duplicate = dispatch_request(&sink, &mut state, last_request.clone())
+            .expect("duplicate worker step");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            state.plane.snapshot().last_event_sequence,
+            stages.len() as u64
+        );
+        drop(state);
+        let mut reopened = test_state_at(&database);
+        let restored = reopened
+            .plane
+            .load_worker_execution_record(task_id.0.as_str())
+            .expect("restored worker record load")
+            .expect("restored worker record");
+        assert_eq!(restored, record);
+        let restarted_duplicate = dispatch_request(&sink, &mut reopened, last_request)
+            .expect("restart duplicate worker step");
+        assert_eq!(restarted_duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(
+            reopened.plane.snapshot().last_event_sequence,
+            stages.len() as u64
+        );
+        let _ = fs::remove_file(database);
+    }
+}
+
+#[cfg(test)]
+mod m5_adversarial_host_tests {
+    use super::*;
+    use crate::tests::{request, test_state_at, RecordingSink};
+
+    fn database_path() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("nirman-m5-adversarial-{nonce}.sqlite3"))
+    }
+
+    fn m6_contract(task_id: &str, worker_id: &str, capabilities: Vec<&str>) -> WorkerContract {
+        WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: worker_id.into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: TaskId(task_id.into()),
+            capability_ceiling: capabilities.into_iter().map(str::to_owned).collect(),
+            workspace_root: format!("/tmp/{worker_id}"),
+            allowed_paths: vec![format!("/tmp/{worker_id}")],
+            denied_paths: vec![format!("/tmp/{worker_id}/.git")],
+            max_attempts: 3,
+            evidence_requirements: vec!["stage-evidence".into()],
+        }
+    }
+
+    fn worker_step_payload(
+        contract: WorkerContract,
+        stage: WorkerStage,
+        outcome: WorkerOutcome,
+    ) -> WorkerStepCommandPayload {
+        WorkerStepCommandPayload {
+            worker_contract: contract,
+            observation: WorkerObservation {
+                stage,
+                outcome,
+                source_revision: Revision(1),
+                checkpoint_id: Some("checkpoint-m6-fixture".into()),
+                changed_paths: vec![],
+                evidence_refs: vec!["evidence-m6-fixture".into()],
+                diagnostic_ref: None,
+            },
+            rollback_checkpoint_id: None,
+            cancel: false,
+            operation: None,
+            path: None,
+            command: None,
+            network_category: None,
+            destructive: false,
+            external_directory: false,
+            quota_usage: None,
+            process_quota: None,
+            action_fingerprint: None,
+            process_id: None,
+            parent_process_id: None,
+        }
+    }
+
+    #[test]
+    fn m5_worker_step_rejects_undeclared_stage_capability_before_admission() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m5-capability".into());
+        let contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-m5-capability".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: task_id.clone(),
+            capability_ceiling: vec!["android.inspect".into()],
+            workspace_root: "/tmp/nirman-m5-capability".into(),
+            allowed_paths: vec!["/tmp/nirman-m5-capability".into()],
+            denied_paths: vec!["/tmp/nirman-m5-capability/.git".into()],
+            max_attempts: 2,
+            evidence_requirements: vec!["stage-evidence".into()],
+        };
+        let payload = WorkerStepCommandPayload {
+            worker_contract: contract,
+            observation: WorkerObservation {
+                stage: WorkerStage::Plan,
+                outcome: WorkerOutcome::Success,
+                source_revision: Revision(1),
+                checkpoint_id: Some("checkpoint-capability".into()),
+                changed_paths: vec![],
+                evidence_refs: vec!["evidence-capability".into()],
+                diagnostic_ref: None,
+            },
+            rollback_checkpoint_id: None,
+            cancel: false,
+            operation: None,
+            path: None,
+            command: None,
+            network_category: None,
+            destructive: false,
+            external_directory: false,
+            quota_usage: None,
+            process_quota: None,
+            action_fingerprint: None,
+            process_id: None,
+            parent_process_id: None,
+        };
+        let mut request = request(
+            &state,
+            "m5-capability-rejected",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        let rejected =
+            dispatch_request(&sink, &mut state, request).expect_err("capability rejection");
+        assert_eq!(rejected.code, ControlPlaneErrorCode::PermissionDenied);
+        assert!(state
+            .plane
+            .load_worker_execution_record(&task_id.0)
+            .expect("record lookup")
+            .is_none());
+        assert_eq!(state.plane.snapshot().last_event_sequence, 0);
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m5_worker_failure_and_repair_preserve_diagnostic_and_rollback_lineage() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m5-repair".into());
+        let contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-m5-repair".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: task_id.clone(),
+            capability_ceiling: vec![
+                "android.inspect".into(),
+                "android.plan".into(),
+                "workspace.checkpoint".into(),
+                "workspace.mutate".into(),
+                "android.build".into(),
+                "workspace.repair".into(),
+            ],
+            workspace_root: "/tmp/nirman-m5-repair".into(),
+            allowed_paths: vec!["/tmp/nirman-m5-repair".into()],
+            denied_paths: vec!["/tmp/nirman-m5-repair/.git".into()],
+            max_attempts: 3,
+            evidence_requirements: vec!["stage-evidence".into()],
+        };
+        for (index, stage) in [
+            WorkerStage::Inspect,
+            WorkerStage::Plan,
+            WorkerStage::Checkpoint,
+            WorkerStage::Mutate,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let payload = WorkerStepCommandPayload {
+                worker_contract: contract.clone(),
+                observation: WorkerObservation {
+                    stage,
+                    outcome: WorkerOutcome::Success,
+                    source_revision: Revision(index as u64 + 1),
+                    checkpoint_id: Some(format!("checkpoint-repair-{index}")),
+                    changed_paths: vec![],
+                    evidence_refs: vec![format!("evidence-repair-{index}")],
+                    diagnostic_ref: None,
+                },
+                rollback_checkpoint_id: Some(format!("checkpoint-repair-{index}")),
+                cancel: false,
+                operation: None,
+                path: None,
+                command: None,
+                network_category: None,
+                destructive: false,
+                external_directory: false,
+                quota_usage: None,
+                process_quota: None,
+                action_fingerprint: None,
+                process_id: None,
+                parent_process_id: None,
+            };
+            let mut request = request(
+                &state,
+                &format!("m5-repair-step-{index}"),
+                CommandKind::WorkerStep,
+                serde_json::to_string(&payload).expect("worker step payload"),
+                state.plane.snapshot().projection_revision.0,
+            );
+            request.command.task_id = Some(task_id.clone());
+            dispatch_request(&sink, &mut state, request).expect("setup worker stage");
+        }
+        let failed_payload = WorkerStepCommandPayload {
+            worker_contract: contract.clone(),
+            observation: WorkerObservation {
+                stage: WorkerStage::Build,
+                outcome: WorkerOutcome::Failure,
+                source_revision: Revision(5),
+                checkpoint_id: Some("checkpoint-repair-4".into()),
+                changed_paths: vec![],
+                evidence_refs: vec!["evidence-build-failure".into()],
+                diagnostic_ref: Some("diagnostic-build-failure".into()),
+            },
+            rollback_checkpoint_id: Some("checkpoint-repair-4".into()),
+            cancel: false,
+            operation: None,
+            path: None,
+            command: None,
+            network_category: None,
+            destructive: false,
+            external_directory: false,
+            quota_usage: None,
+            process_quota: None,
+            action_fingerprint: None,
+            process_id: None,
+            parent_process_id: None,
+        };
+        let mut failed_request = request(
+            &state,
+            "m5-repair-build-failed",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&failed_payload).expect("failed worker payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        failed_request.command.task_id = Some(task_id.clone());
+        dispatch_request(&sink, &mut state, failed_request).expect("failed build observation");
+
+        let repair_payload = WorkerStepCommandPayload {
+            worker_contract: contract,
+            observation: WorkerObservation {
+                stage: WorkerStage::Repair,
+                outcome: WorkerOutcome::Success,
+                source_revision: Revision(6),
+                checkpoint_id: Some("checkpoint-repair-5".into()),
+                changed_paths: vec!["app/src/MainActivity.kt".into()],
+                evidence_refs: vec!["evidence-repair-success".into()],
+                diagnostic_ref: Some("diagnostic-build-failure".into()),
+            },
+            rollback_checkpoint_id: Some("checkpoint-repair-4".into()),
+            cancel: false,
+            operation: None,
+            path: None,
+            command: None,
+            network_category: None,
+            destructive: false,
+            external_directory: false,
+            quota_usage: None,
+            process_quota: None,
+            action_fingerprint: None,
+            process_id: None,
+            parent_process_id: None,
+        };
+        let mut repair_request = request(
+            &state,
+            "m5-repair-applied",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&repair_payload).expect("repair worker payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        repair_request.command.task_id = Some(task_id.clone());
+        dispatch_request(&sink, &mut state, repair_request).expect("repair observation");
+        let record = state
+            .plane
+            .load_worker_execution_record(&task_id.0)
+            .expect("repair record load")
+            .expect("repair record");
+        assert_eq!(
+            record.last_diagnostic_ref.as_deref(),
+            Some("diagnostic-build-failure")
+        );
+        assert_eq!(
+            record.rollback_checkpoint_id.as_deref(),
+            Some("checkpoint-repair-4")
+        );
+        assert_eq!(record.worker.stage(), WorkerStage::Checkpoint);
+        assert_eq!(
+            record.worker.lifecycle(),
+            nirman_workers::WorkerLifecycle::Running
+        );
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m6_protected_path_and_quota_blocks_are_durable_and_pre_admission() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let contract = m6_contract(
+            "task-m6-policy",
+            "worker-m6-policy",
+            vec!["android.inspect"],
+        );
+
+        let mut protected = worker_step_payload(
+            contract.clone(),
+            WorkerStage::Inspect,
+            WorkerOutcome::Success,
+        );
+        protected.path = Some("/home/user/.ssh/id_rsa".into());
+        let mut protected_request = request(
+            &state,
+            "m6-protected-path",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&protected).expect("protected payload"),
+            0,
+        );
+        protected_request.command.task_id = Some(contract.task_id.clone());
+        let protected_error = dispatch_request(&sink, &mut state, protected_request)
+            .expect_err("protected path must be denied");
+        assert_eq!(
+            protected_error.code,
+            ControlPlaneErrorCode::PermissionDenied
+        );
+
+        let mut quota = worker_step_payload(
+            contract.clone(),
+            WorkerStage::Inspect,
+            WorkerOutcome::Success,
+        );
+        quota.quota_usage = Some(QuotaUsage {
+            process_count: 2,
+            memory_mb: 512,
+            disk_write_mb: 100,
+        });
+        quota.process_quota = Some(ProcessQuota {
+            max_process_count: 1,
+            max_memory_mb: 256,
+            max_disk_write_mb: 10,
+        });
+        let mut quota_request = request(
+            &state,
+            "m6-quota-block",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&quota).expect("quota payload"),
+            0,
+        );
+        quota_request.command.task_id = Some(contract.task_id.clone());
+        let quota_error = dispatch_request(&sink, &mut state, quota_request)
+            .expect_err("quota must block before admission");
+        assert_eq!(quota_error.code, ControlPlaneErrorCode::Backpressure);
+        assert!(state
+            .plane
+            .load_worker_execution_record(&contract.task_id.0)
+            .expect("worker record lookup")
+            .is_none());
+        let decisions = state.plane.load_m6_policy_events().expect("policy events");
+        assert_eq!(decisions.len(), 2);
+        assert!(decisions
+            .iter()
+            .any(|decision| decision.reasons.contains(&"protected-path".into())));
+        assert!(decisions
+            .iter()
+            .any(|decision| decision.reasons.contains(&"resource-quota".into())));
+        assert_eq!(state.plane.snapshot().last_event_sequence, 0);
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m6_doom_loop_and_process_tree_controls_are_enforced() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let contract = m6_contract("task-m6-controls", "worker-m6-controls", vec![]);
+        let mut process_child = worker_step_payload(
+            contract.clone(),
+            WorkerStage::Inspect,
+            WorkerOutcome::Success,
+        );
+        process_child.cancel = true;
+        process_child.process_id = Some(11);
+        process_child.parent_process_id = Some(10);
+        process_child.action_fingerprint = Some("cancel-child".into());
+        let mut child_request = request(
+            &state,
+            "m6-process-child",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&process_child).expect("child payload"),
+            0,
+        );
+        child_request.command.task_id = Some(contract.task_id.clone());
+        dispatch_request(&sink, &mut state, child_request).expect("child cancellation");
+
+        let mut process_parent = worker_step_payload(
+            contract.clone(),
+            WorkerStage::Inspect,
+            WorkerOutcome::Success,
+        );
+        process_parent.cancel = true;
+        process_parent.process_id = Some(10);
+        process_parent.action_fingerprint = Some("cancel-parent".into());
+        let mut parent_request = request(
+            &state,
+            "m6-process-parent",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&process_parent).expect("parent payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        parent_request.command.task_id = Some(contract.task_id.clone());
+        dispatch_request(&sink, &mut state, parent_request).expect("parent cancellation");
+        assert!(state
+            .process_registry
+            .records()
+            .iter()
+            .all(|record| record.cancelled));
+
+        let mut repeated =
+            worker_step_payload(contract, WorkerStage::Inspect, WorkerOutcome::Success);
+        repeated.cancel = true;
+        repeated.action_fingerprint = Some("same-recovery-action".into());
+        for index in 0..2 {
+            let mut repeated_request = request(
+                &state,
+                &format!("m6-doom-{index}"),
+                CommandKind::WorkerStep,
+                serde_json::to_string(&repeated).expect("doom payload"),
+                state.plane.snapshot().projection_revision.0,
+            );
+            repeated_request.command.task_id = Some(TaskId("task-m6-controls".into()));
+            let _ = dispatch_request(&sink, &mut state, repeated_request);
+        }
+        let mut doom_request = request(
+            &state,
+            "m6-doom-final",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&repeated).expect("doom payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        doom_request.command.task_id = Some(TaskId("task-m6-controls".into()));
+        let doom_error =
+            dispatch_request(&sink, &mut state, doom_request).expect_err("doom loop must stop");
+        assert_eq!(doom_error.code, ControlPlaneErrorCode::Backpressure);
+        assert!(state
+            .plane
+            .load_m6_policy_events()
+            .expect("policy events")
+            .iter()
+            .any(|decision| decision.reasons.contains(&"doom-loop".into())));
+        let _ = fs::remove_file(database);
     }
 }
 

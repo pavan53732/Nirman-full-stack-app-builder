@@ -462,6 +462,7 @@ pub enum CommandKind {
     WorkerHandoffSubmit,
     WorkerHandoffAcknowledge,
     WorkerReconcile,
+    WorkerStep,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

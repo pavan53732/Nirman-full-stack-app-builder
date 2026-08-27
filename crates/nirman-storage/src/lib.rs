@@ -7,10 +7,11 @@ use nirman_domain::{
     ProductLifecycleState, ProjectId, ProjectionSnapshot, ProviderExecutionRecord, Revision,
     TaskId,
 };
+use nirman_policy::PolicyDecision;
 use nirman_supervisor::BackgroundRunRecord;
 use nirman_workers::{
-    CoordinationTask, M8ReconciliationCheckpoint, WorkerHandoffAcknowledgement,
-    WorkerHandoffRecord, WorkerTaskClaim,
+    CoordinationTask, M8ReconciliationCheckpoint, WorkerExecutionRecord,
+    WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
 };
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
@@ -218,6 +219,21 @@ impl Ledger {
                  worker_id TEXT NOT NULL,
                  state TEXT NOT NULL,
                  record_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS m5_worker_execution_records (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
+             );
+             CREATE TABLE IF NOT EXISTS m6_policy_events (
+                 decision_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 worker_id TEXT NOT NULL,
+                 request_id TEXT NOT NULL,
+                 outcome TEXT NOT NULL,
+                 decision_json TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS m8_reconciliation_checkpoints (
                  project_id TEXT NOT NULL,
@@ -1051,6 +1067,71 @@ impl Ledger {
                 request_fingerprint,
                 correlation_id,
                 snapshot_json,
+            ],
+        )?;
+        transaction.commit()
+    }
+
+    pub fn commit_event_projection_and_command_and_worker_execution(
+        &self,
+        event: &ControlEvent,
+        snapshot: &ProjectionSnapshot,
+        command_id: &str,
+        idempotency_key: Option<&str>,
+        request_fingerprint: &str,
+        correlation_id: &str,
+        snapshot_json: &str,
+        record: &WorkerExecutionRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO events (sequence, event_id, project_id, task_id, kind, payload, source_revision) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                event.sequence,
+                event.event_id,
+                event.project_id.0,
+                event.task_id.as_ref().map(|id| id.0.as_str()),
+                event.kind,
+                event.payload,
+                event.source_revision.0,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO projections (project_id, projection_revision, task_state, continuity_state, preview_truth, source_revision, last_event_sequence, last_known_good_ref) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) ON CONFLICT(project_id) DO UPDATE SET projection_revision=excluded.projection_revision, continuity_state=excluded.continuity_state, preview_truth=excluded.preview_truth, source_revision=excluded.source_revision, last_event_sequence=excluded.last_event_sequence, last_known_good_ref=excluded.last_known_good_ref",
+            params![
+                snapshot.project_id.0,
+                snapshot.projection_revision.0,
+                format!("{:?}", snapshot.task_state),
+                format!("{:?}", snapshot.continuity_state),
+                format!("{:?}", snapshot.preview_truth),
+                snapshot.current_source_revision.0,
+                snapshot.last_event_sequence,
+                snapshot.last_known_good_ref,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO command_results (command_id, project_id, idempotency_key, request_fingerprint, correlation_id, snapshot_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                command_id,
+                snapshot.project_id.0,
+                idempotency_key,
+                request_fingerprint,
+                correlation_id,
+                snapshot_json,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO m5_worker_execution_records (project_id, task_id, worker_id, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, task_id) DO UPDATE SET worker_id=excluded.worker_id, record_json=excluded.record_json",
+            params![
+                snapshot.project_id.0,
+                record.task_id().0,
+                record.worker_id(),
+                record_json,
             ],
         )?;
         transaction.commit()
@@ -2063,6 +2144,90 @@ impl Ledger {
             .query_row(
                 "SELECT record_json FROM m8_worker_handoffs WHERE project_id = ?1 AND message_id = ?2",
                 params![project_id, message_id],
+                |row| {
+                    let record_json: String = row.get(0)?;
+                    serde_json::from_str(&record_json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
+    pub fn save_m6_policy_event(
+        &self,
+        project_id: &ProjectId,
+        decision: &PolicyDecision,
+    ) -> rusqlite::Result<()> {
+        let decision_json = serde_json::to_string(decision).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m6_policy_events (decision_id, project_id, worker_id, request_id, outcome, decision_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(decision_id) DO UPDATE SET outcome=excluded.outcome, decision_json=excluded.decision_json",
+            params![
+                decision.decision_id,
+                project_id.0,
+                decision.worker_id,
+                decision.request_id,
+                format!("{:?}", decision.outcome),
+                decision_json,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_m6_policy_events(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Vec<PolicyDecision>> {
+        let mut statement = self.connection.prepare(
+            "SELECT decision_json FROM m6_policy_events WHERE project_id = ?1 ORDER BY decision_id",
+        )?;
+        let rows = statement.query_map(params![project_id.0], |row| {
+            let decision_json: String = row.get(0)?;
+            serde_json::from_str(&decision_json).map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    0,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn save_worker_execution_record(
+        &self,
+        project_id: &ProjectId,
+        record: &WorkerExecutionRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m5_worker_execution_records (project_id, task_id, worker_id, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, task_id) DO UPDATE SET worker_id = excluded.worker_id, record_json = excluded.record_json",
+            params![project_id.0, record.task_id().0, record.worker_id(), record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_worker_execution_record(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<WorkerExecutionRecord>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m5_worker_execution_records WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id.0, task_id],
                 |row| {
                     let record_json: String = row.get(0)?;
                     serde_json::from_str(&record_json).map_err(|error| {

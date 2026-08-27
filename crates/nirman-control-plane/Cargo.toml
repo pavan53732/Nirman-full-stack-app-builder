@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 nirman-domain = { path = "../nirman-domain" }
+nirman-policy = { path = "../nirman-policy" }
 nirman-storage = { path = "../nirman-storage" }
 nirman-supervisor = { path = "../nirman-supervisor" }
 nirman-workers = { path = "../nirman-workers" }

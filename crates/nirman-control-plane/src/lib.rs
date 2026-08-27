@@ -11,11 +11,12 @@ use nirman_domain::{
     DomainError, MutationTransactionRecord, PreviewTruth, ProductLifecycleState, ProjectId,
     ProjectionSnapshot, Revision, TaskId,
 };
+use nirman_policy::PolicyDecision;
 use nirman_storage::Ledger;
 use nirman_supervisor::BackgroundRunRecord;
 use nirman_workers::{
-    CoordinationTask, M8ReconciliationCheckpoint, WorkerHandoffAcknowledgement,
-    WorkerHandoffRecord, WorkerTaskClaim,
+    CoordinationTask, M8ReconciliationCheckpoint, WorkerExecutionRecord,
+    WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerTaskClaim,
 };
 use std::path::Path;
 
@@ -155,7 +156,8 @@ impl ControlPlane {
             | CommandKind::WorkerTaskClaim
             | CommandKind::WorkerHandoffSubmit
             | CommandKind::WorkerHandoffAcknowledge
-            | CommandKind::WorkerReconcile => {}
+            | CommandKind::WorkerReconcile
+            | CommandKind::WorkerStep => {}
             CommandKind::ValidationRun => {
                 self.projection.task_state = ProductLifecycleState::Validating;
             }
@@ -514,6 +516,32 @@ impl DurableControlPlane {
     ) -> Result<Option<WorkerHandoffRecord>, rusqlite::Error> {
         self.ledger
             .load_worker_handoff(&self.snapshot().project_id.0, message_id)
+    }
+
+    pub fn save_m6_policy_event(&self, decision: &PolicyDecision) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_m6_policy_event(&self.snapshot().project_id, decision)
+    }
+
+    pub fn load_m6_policy_events(&self) -> Result<Vec<PolicyDecision>, rusqlite::Error> {
+        self.ledger
+            .load_m6_policy_events(&self.snapshot().project_id)
+    }
+
+    pub fn save_worker_execution_record(
+        &self,
+        record: &WorkerExecutionRecord,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_worker_execution_record(&self.snapshot().project_id, record)
+    }
+
+    pub fn load_worker_execution_record(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<WorkerExecutionRecord>, rusqlite::Error> {
+        self.ledger
+            .load_worker_execution_record(&self.snapshot().project_id, task_id)
     }
 
     pub fn save_background_run(&self, record: &BackgroundRunRecord) -> Result<(), rusqlite::Error> {
@@ -1090,6 +1118,50 @@ impl DurableControlPlane {
                 correlation_id,
                 &snapshot_json,
                 mutation_transaction,
+            )?;
+        self.plane = candidate;
+        Ok(DurableDispatchOutcome::Accepted { snapshot, event })
+    }
+
+    pub fn dispatch_with_result_and_worker_execution(
+        &mut self,
+        command: CommandEnvelope,
+        correlation_id: &str,
+        record: &WorkerExecutionRecord,
+    ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
+        let project_id = self.snapshot().project_id;
+        let request_fingerprint = serde_json::to_string(&command)
+            .expect("CommandEnvelope serialization must remain infallible");
+        if let Some(previous) = self.ledger.load_command_result(
+            &project_id,
+            &command.command_id,
+            command.idempotency_key.as_deref(),
+        )? {
+            if previous.request_fingerprint != request_fingerprint {
+                return Err(DurableControlPlaneError::IdempotencyConflict);
+            }
+            let snapshot = serde_json::from_str(&previous.snapshot_json).map_err(|error| {
+                DurableControlPlaneError::CorruptCommandResult(error.to_string())
+            })?;
+            return Ok(DurableDispatchOutcome::Duplicate { snapshot });
+        }
+        let mut candidate = self.plane.clone();
+        let snapshot = candidate.accept(command.clone())?;
+        let event = candidate
+            .latest_event()
+            .expect("accepted command always emits one event");
+        let snapshot_json = serde_json::to_string(&snapshot)
+            .expect("ProjectionSnapshot serialization must remain infallible");
+        self.ledger
+            .commit_event_projection_and_command_and_worker_execution(
+                &event,
+                &snapshot,
+                &command.command_id,
+                command.idempotency_key.as_deref(),
+                &request_fingerprint,
+                correlation_id,
+                &snapshot_json,
+                record,
             )?;
         self.plane = candidate;
         Ok(DurableDispatchOutcome::Accepted { snapshot, event })

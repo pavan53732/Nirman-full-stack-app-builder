@@ -414,11 +414,27 @@ fn same_path(left: &str, right: &str) -> bool {
 fn path_matches(value: &str, pattern: &str) -> bool {
     let value = value.replace('\\', "/").to_ascii_lowercase();
     let pattern = pattern.replace('\\', "/").to_ascii_lowercase();
-    if let Some(prefix) = pattern.strip_suffix("/*") {
-        value == prefix || value.starts_with(&format!("{prefix}/"))
-    } else {
-        same_path(&value, &pattern)
+    if !pattern.contains('*') {
+        return same_path(&value, &pattern) || value.starts_with(&format!("{pattern}/"));
     }
+    let segments: Vec<&str> = pattern
+        .split('*')
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    if segments.is_empty() {
+        return true;
+    }
+    let mut cursor = 0usize;
+    for (index, segment) in segments.iter().enumerate() {
+        let Some(relative) = value[cursor..].find(segment) else {
+            return false;
+        };
+        if index == 0 && !pattern.starts_with('*') && relative != 0 {
+            return false;
+        }
+        cursor += relative + segment.len();
+    }
+    pattern.ends_with('*') || cursor == value.len()
 }
 
 fn text_matches(value: &str, pattern: &str) -> bool {
@@ -473,14 +489,14 @@ impl ProcessRegistry {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct QuotaUsage {
     pub process_count: u16,
     pub memory_mb: u64,
     pub disk_write_mb: u64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ProcessQuota {
     pub max_process_count: u16,
     pub max_memory_mb: u64,

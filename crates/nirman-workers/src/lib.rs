@@ -154,7 +154,7 @@ impl WorkerContract {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SingleWorkerLoop {
     contract: WorkerContract,
     lifecycle: WorkerLifecycle,
@@ -191,6 +191,22 @@ impl SingleWorkerLoop {
 
     pub fn history(&self) -> &[WorkerObservation] {
         &self.history
+    }
+
+    pub fn contract(&self) -> &WorkerContract {
+        &self.contract
+    }
+
+    pub fn attempt(&self) -> u8 {
+        self.attempt
+    }
+
+    pub fn checkpoint_id(&self) -> Option<&str> {
+        self.checkpoint_id.as_deref()
+    }
+
+    pub fn source_revision(&self) -> Revision {
+        self.source_revision
     }
 
     pub fn observe(
@@ -286,6 +302,71 @@ impl SingleWorkerLoop {
             diagnostic_ref: observation.diagnostic_ref,
             attempt: self.attempt,
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerExecutionRecord {
+    pub schema_version: u16,
+    pub worker: SingleWorkerLoop,
+    pub last_command_id: Option<String>,
+    pub last_diagnostic_ref: Option<String>,
+    pub last_evidence_refs: Vec<String>,
+    pub last_policy_decision_id: Option<String>,
+    pub last_policy_outcome: Option<String>,
+    pub last_policy_reasons: Vec<String>,
+    pub rollback_checkpoint_id: Option<String>,
+}
+
+impl WorkerExecutionRecord {
+    pub fn start(contract: WorkerContract) -> Result<Self, WorkerLoopError> {
+        Ok(Self {
+            schema_version: M5_SCHEMA_VERSION,
+            worker: SingleWorkerLoop::start(contract)?,
+            last_command_id: None,
+            last_diagnostic_ref: None,
+            last_evidence_refs: Vec::new(),
+            last_policy_decision_id: None,
+            last_policy_outcome: None,
+            last_policy_reasons: Vec::new(),
+            rollback_checkpoint_id: None,
+        })
+    }
+
+    pub fn observe(
+        &mut self,
+        command_id: impl Into<String>,
+        observation: WorkerObservation,
+        rollback_checkpoint_id: Option<String>,
+    ) -> Result<WorkerHandoff, WorkerLoopError> {
+        let handoff = self.worker.observe(observation.clone())?;
+        self.last_command_id = Some(command_id.into());
+        self.last_diagnostic_ref = observation.diagnostic_ref;
+        self.last_evidence_refs = observation.evidence_refs;
+        if rollback_checkpoint_id.is_some() {
+            self.rollback_checkpoint_id = rollback_checkpoint_id;
+        }
+        Ok(handoff)
+    }
+
+    pub fn cancel(&mut self, command_id: impl Into<String>) -> WorkerHandoff {
+        self.last_command_id = Some(command_id.into());
+        self.worker.cancel()
+    }
+
+    pub fn task_id(&self) -> &TaskId {
+        &self.worker.contract.task_id
+    }
+
+    pub fn worker_id(&self) -> &str {
+        &self.worker.contract.worker_id
+    }
+
+    pub fn validate(&self) -> Result<(), WorkerLoopError> {
+        if self.schema_version != M5_SCHEMA_VERSION {
+            return Err(WorkerLoopError::InvalidContract("schemaVersion"));
+        }
+        self.worker.contract.validate()
     }
 }
 

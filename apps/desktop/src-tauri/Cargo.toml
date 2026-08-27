@@ -14,6 +14,7 @@ nirman-evidence = { path = "../../../crates/nirman-evidence" }
 nirman-ipc = { path = "../../../crates/nirman-ipc" }
 nirman-providers = { path = "../../../crates/nirman-providers" }
 nirman-project = { path = "../../../crates/nirman-project" }
+nirman-policy = { path = "../../../crates/nirman-policy" }
 nirman-preview = { path = "../../../crates/nirman-preview" }
 nirman-supervisor = { path = "../../../crates/nirman-supervisor" }
 nirman-workers = { path = "../../../crates/nirman-workers" }

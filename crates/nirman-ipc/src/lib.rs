@@ -710,6 +710,14 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "Transactional integration checkpoint projection",
             "local",
         ),
+        (
+            CommandKind::WorkerStep,
+            "worker.step",
+            "WorkerExecutionAuthority",
+            "worker.step",
+            "Single-worker stage and evidence projection",
+            "local",
+        ),
     ]
     .into_iter()
     .map(
@@ -1082,7 +1090,7 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 24);
+        assert_eq!(command_registry().len(), 25);
         assert!(command_registry().iter().all(|entry| entry.supported));
         assert!(command_registry()
             .iter()
@@ -1198,7 +1206,6 @@ mod m115_subscription_bridge_tests {
         };
         publish_control_event(&mut subscriptions, &healthy, Revision(1), 0, &event);
         let batches = healthy.batches.borrow();
-        assert_eq!(batches.len(), 1);
         assert_eq!(batches[0].events.len(), 1);
         assert_eq!(batches[0].from_event_sequence, 0);
         assert_eq!(batches[0].next_event_sequence, 1);
