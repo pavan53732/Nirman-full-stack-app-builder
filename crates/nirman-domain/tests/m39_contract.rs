@@ -169,3 +169,46 @@ fn unknown_fields_and_unsupported_versions_are_rejected_deterministically() {
         Err(AndroidConstructionContractError::UnsupportedSchemaVersion)
     );
 }
+
+#[test]
+fn m4_plan_and_noop_edit_events_preserve_android_intent_identity() {
+    let contract = valid_contract();
+    contract.validate().expect("valid Android intent");
+    assert_eq!(contract.target_platforms, vec!["android"]);
+    assert_eq!(contract.technology_plan.task_id, contract.task_id);
+
+    let plan_payload = serde_json::to_string(&contract.technology_plan).expect("plan payload");
+    let plan_event = nirman_domain::ControlEvent {
+        event_id: "m4-domain-plan-event".into(),
+        sequence: 1,
+        project_id: contract.project_id.clone(),
+        task_id: Some(contract.task_id.clone()),
+        kind: "AndroidSynthesisBuild".into(),
+        payload: plan_payload.clone(),
+        source_revision: Revision(1),
+    };
+    let restored_plan: AndroidTechnologyPlan =
+        serde_json::from_str(&plan_event.payload).expect("plan event payload");
+    assert_eq!(restored_plan, contract.technology_plan);
+    assert_eq!(plan_event.task_id, Some(contract.task_id.clone()));
+    assert_eq!(plan_event.source_revision, Revision(1));
+
+    let noop_event = nirman_domain::ControlEvent {
+        event_id: "m4-domain-noop-edit".into(),
+        sequence: 2,
+        project_id: contract.project_id,
+        task_id: Some(contract.task_id),
+        kind: "WorkspaceApplyPatch".into(),
+        payload: serde_json::json!({
+            "operation": "NO_OP",
+            "planPayload": plan_payload,
+            "changedPaths": []
+        })
+        .to_string(),
+        source_revision: Revision(2),
+    };
+    let noop: serde_json::Value = serde_json::from_str(&noop_event.payload).expect("no-op event");
+    assert_eq!(noop["operation"], "NO_OP");
+    assert_eq!(noop["changedPaths"], serde_json::json!([]));
+    assert_eq!(noop_event.sequence, 2);
+}

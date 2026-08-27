@@ -1,9 +1,16 @@
-use nirman_control_plane::{DurableControlPlane, DurableControlPlaneError};
+use nirman_control_plane::{DurableControlPlane, DurableControlPlaneError, DurableDispatchOutcome};
 use nirman_domain::{
-    CommandEnvelope, CommandKind, ProductLifecycleState, ProjectId, Revision, TaskId,
+    AndroidConstructionContract, AndroidDeviceProfile, AndroidResolverError,
+    AndroidResolverRequest, AndroidTechnologyPlan, AndroidTechnologyResolver, ArtifactKind,
+    ArtifactModel, CommandEnvelope, CommandKind, ConstructionRequirement, ProductLifecycleState,
+    ProjectId, RequirementOrigin, Revision, TaskId, ValidationModel,
 };
-use nirman_ipc::ProjectionReceiver;
+use nirman_ipc::{authorize_registry_capability, AuthContext, CommandRequest, ProjectionReceiver};
 use nirman_supervisor::{Supervisor, SupervisorState};
+use nirman_workers::{
+    WorkerContract, WorkerExecutionRecord, WorkerObservation, WorkerOutcome, WorkerStage,
+    M5_SCHEMA_VERSION,
+};
 use std::fs;
 use std::path::PathBuf;
 
@@ -114,6 +121,453 @@ fn m2_vertical_trace_persists_replays_recovers_and_rejects_stale_updates(
     )
     .expect("machine-readable evidence");
 
+    let _ = fs::remove_file(db_path);
+    Ok(())
+}
+
+fn authenticated_request(command: CommandEnvelope, project_id: &str) -> CommandRequest {
+    CommandRequest {
+        protocol_schema_version: nirman_ipc::PROTOCOL_SCHEMA_VERSION,
+        auth: AuthContext {
+            installation_id: "installation-portable-fixture".into(),
+            user_scope: "local-user".into(),
+            project_scope: project_id.into(),
+            schema_version: 1,
+        },
+        command,
+        correlation_id: "correlation-portable-fixture".into(),
+        causation_id: None,
+        deadline_epoch_seconds: None,
+    }
+}
+
+fn command_for(
+    project_id: &str,
+    task_id: Option<&str>,
+    revision: u64,
+    id: &str,
+    kind: CommandKind,
+    payload: String,
+) -> CommandEnvelope {
+    CommandEnvelope {
+        command_id: id.into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: task_id.map(|value| TaskId(value.into())),
+        kind,
+        payload,
+        expected_projection_revision: Revision(revision),
+        idempotency_key: Some(format!("idempotency-{id}")),
+    }
+}
+
+struct StubAndroidResolver;
+
+impl AndroidTechnologyResolver for StubAndroidResolver {
+    fn resolve(
+        &self,
+        request: &AndroidResolverRequest<'_>,
+    ) -> Result<AndroidTechnologyPlan, AndroidResolverError> {
+        request
+            .contract
+            .validate()
+            .map_err(|_| AndroidResolverError::InvalidContract)?;
+        if request.contract.target_platforms != vec!["android"] {
+            return Err(AndroidResolverError::UnsupportedPlatform);
+        }
+        if request.source_revision.0 == 0 {
+            return Err(AndroidResolverError::StaleRevision);
+        }
+        if request.workspace_root.is_empty() {
+            return Err(AndroidResolverError::EmptyField("workspaceRoot"));
+        }
+        if request.project_fingerprint.is_empty() {
+            return Err(AndroidResolverError::EmptyField("projectFingerprint"));
+        }
+        let ui_framework = if request
+            .contract
+            .user_intent
+            .to_ascii_lowercase()
+            .contains("view")
+        {
+            "android-views"
+        } else {
+            "jetpack-compose"
+        };
+        Ok(AndroidTechnologyPlan {
+            plan_id: format!("technology-plan-{}", request.contract.contract_id),
+            task_id: request.contract.task_id.clone(),
+            requested_capabilities: vec!["intent-resolved".into()],
+            visual_requirements: vec![],
+            selected_languages: vec!["kotlin".into()],
+            selected_ui_frameworks: vec![ui_framework.into()],
+            selected_runtime_layers: vec!["android-runtime".into()],
+            selected_native_modules: vec![],
+            selected_build_plugins: vec![],
+            selected_device_apis: vec![],
+            selected_libraries: vec![],
+            compatibility_constraints: vec![],
+            rejected_alternatives: vec![],
+            required_toolchains: vec!["jdk".into(), "gradle".into(), "android-sdk".into()],
+            validation_plan: vec!["compile".into(), "unit-tests".into()],
+            confidence: Some("stub-resolver".into()),
+            revision: request.source_revision,
+        })
+    }
+}
+
+fn construction_contract(project_id: &str, task_id: &str) -> AndroidConstructionContract {
+    AndroidConstructionContract {
+        schema_version: 1,
+        contract_id: "contract-portable-m4".into(),
+        project_id: ProjectId(project_id.into()),
+        target_platforms: vec!["android".into()],
+        task_id: TaskId(task_id.into()),
+        user_intent: "Build a Kotlin Android notes app with offline storage and calm views".into(),
+        screenshots: vec![],
+        assets: vec![],
+        features: vec![ConstructionRequirement {
+            requirement_id: "offline-notes".into(),
+            statement: "Notes remain available offline".into(),
+            origin: RequirementOrigin::UserFact,
+            source_reference_ids: vec![],
+        }],
+        ui: vec![ConstructionRequirement {
+            requirement_id: "calm-views".into(),
+            statement: "Use a calm notes interface".into(),
+            origin: RequirementOrigin::UserFact,
+            source_reference_ids: vec![],
+        }],
+        data: vec![ConstructionRequirement {
+            requirement_id: "local-data".into(),
+            statement: "Persist notes locally".into(),
+            origin: RequirementOrigin::UserFact,
+            source_reference_ids: vec![],
+        }],
+        integrations: vec![],
+        technology_plan: AndroidTechnologyPlan {
+            plan_id: "intent-plan-portable-m4".into(),
+            task_id: TaskId(task_id.into()),
+            requested_capabilities: vec!["offline-storage".into()],
+            visual_requirements: vec!["calm-interface".into()],
+            selected_languages: vec!["kotlin".into()],
+            selected_ui_frameworks: vec!["jetpack-compose".into()],
+            selected_runtime_layers: vec!["android-runtime".into()],
+            selected_native_modules: vec![],
+            selected_build_plugins: vec![],
+            selected_device_apis: vec![],
+            selected_libraries: vec![],
+            compatibility_constraints: vec![],
+            rejected_alternatives: vec![],
+            required_toolchains: vec!["jdk".into(), "gradle".into(), "android-sdk".into()],
+            validation_plan: vec!["compile".into(), "unit-tests".into()],
+            confidence: Some("fixture-confidence".into()),
+            revision: Revision(1),
+        },
+        android_requirements: vec![],
+        device_matrix: vec![AndroidDeviceProfile {
+            device_id: "pixel-portable".into(),
+            name: "Portable Pixel".into(),
+            platform_version: "Android 35".into(),
+            api_level: 35,
+            architecture: "x86_64".into(),
+            width: 1080,
+            height: 2400,
+            density: 420,
+            orientation: "portrait".into(),
+            locale: "en-US".into(),
+            permissions: vec![],
+            network_profile: "offline".into(),
+        }],
+        validation_model: ValidationModel {
+            required_checks: vec!["compile".into(), "unit-tests".into()],
+            acceptance_criteria: vec!["offline notes persist".into()],
+        },
+        artifact_model: ArtifactModel {
+            required_artifact: ArtifactKind::Apk,
+            aab_declared: false,
+        },
+    }
+}
+
+fn m4_evidence_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/evidence/m4_control_plane_trace.json")
+}
+
+fn m5_evidence_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/evidence/m5_worker_trace.json")
+}
+
+#[test]
+fn m4_authenticated_project_intent_resolver_and_noop_plan_event_are_durable(
+) -> Result<(), DurableControlPlaneError> {
+    let project_id = "m4-project-portable";
+    let task_id = "m4-task-portable";
+    let db_path = std::env::temp_dir().join(format!(
+        "nirman-m4-portable-{}-{}.sqlite3",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let mut plane = DurableControlPlane::open(&db_path, ProjectId(project_id.into()))?;
+
+    let open = command_for(
+        project_id,
+        None,
+        0,
+        "m4-project-open",
+        CommandKind::ProjectOpen,
+        serde_json::json!({"projectId": project_id}).to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(open.clone(), project_id))
+        .expect("ProjectOpen authenticated admission");
+    let opened = plane.dispatch(open)?;
+    assert_eq!(opened.project_id.0, project_id);
+
+    let intent = command_for(
+        project_id,
+        Some(task_id),
+        opened.projection_revision.0,
+        "m4-intent",
+        CommandKind::TaskStart,
+        "Build an Android notes app with Kotlin views and offline storage".into(),
+    );
+    authorize_registry_capability(&authenticated_request(intent.clone(), project_id))
+        .expect("TaskStart authenticated admission");
+    let intent_snapshot = plane.dispatch(intent)?;
+    assert_eq!(intent_snapshot.current_source_revision, Revision(1));
+
+    let contract = construction_contract(project_id, task_id);
+    contract.validate().expect("valid Android intent contract");
+    let synthesis = StubAndroidResolver
+        .resolve(&AndroidResolverRequest {
+            contract: &contract,
+            source_revision: intent_snapshot.current_source_revision,
+            workspace_root: "/portable/m4-workspace",
+            project_fingerprint: "fingerprint-m4-portable",
+        })
+        .expect("M4 resolver selection");
+    assert_eq!(contract.target_platforms, vec!["android"]);
+    assert_eq!(synthesis.selected_languages, vec!["kotlin"]);
+    assert_eq!(synthesis.selected_ui_frameworks, vec!["android-views"]);
+
+    let plan_event = command_for(
+        project_id,
+        Some(task_id),
+        intent_snapshot.projection_revision.0,
+        "m4-plan-event",
+        CommandKind::AndroidSynthesisBuild,
+        serde_json::to_string(&synthesis).expect("plan event payload"),
+    );
+    authorize_registry_capability(&authenticated_request(plan_event.clone(), project_id))
+        .expect("plan event authenticated admission");
+    let planned = plane.dispatch(plan_event)?;
+    assert_eq!(planned.last_event_sequence, 3);
+
+    let noop_edit = command_for(
+        project_id,
+        Some(task_id),
+        planned.projection_revision.0,
+        "m4-noop-edit",
+        CommandKind::WorkspaceApplyPatch,
+        serde_json::json!({
+            "operation": "NO_OP",
+            "planId": synthesis.plan_id,
+            "changedPaths": []
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(noop_edit.clone(), project_id))
+        .expect("no-op edit authenticated admission");
+    let edited = plane.dispatch(noop_edit)?;
+    assert_eq!(edited.last_event_sequence, 4);
+    assert_eq!(edited.current_source_revision, Revision(2));
+    let events = plane.replay_after(0)?;
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| event.kind.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "ProjectOpen",
+            "TaskStart",
+            "AndroidSynthesisBuild",
+            "WorkspaceApplyPatch"
+        ]
+    );
+    assert!(events[2].payload.contains("android-views"));
+    drop(plane);
+
+    let reopened = DurableControlPlane::open(&db_path, ProjectId(project_id.into()))?;
+    assert_eq!(reopened.snapshot().last_event_sequence, 4);
+    assert_eq!(reopened.snapshot().current_source_revision, Revision(2));
+    assert_eq!(reopened.replay_after(2)?.len(), 2);
+    fs::write(
+        m4_evidence_path(),
+        serde_json::json!({
+            "schema": "nirman.m4.control_plane_trace.v1",
+            "fixtureId": "M4-CONTROL-PLANE-TRACE-001",
+            "projectOpenObserved": true,
+            "intentParsed": true,
+            "authenticatedAdmissionObserved": true,
+            "androidOnlyObserved": contract.target_platforms == vec!["android"],
+            "frameworkSelectionObserved": true,
+            "selectedLanguage": synthesis.selected_languages[0],
+            "selectedUiFramework": synthesis.selected_ui_frameworks[0],
+            "planEventDurable": true,
+            "noopEditEventDurable": true,
+            "restartReplayObserved": true,
+            "gradleExecuted": false,
+            "emulatorExecuted": false,
+            "androidRuntimeObserved": false,
+            "nativeTauriRuntimeObserved": false,
+            "evidenceStatus": "M4_SOURCE_ONLY_DURABLE_PLANNING_TRACE"
+        })
+        .to_string(),
+    )
+    .expect("M4 evidence");
+    let _ = fs::remove_file(db_path);
+    Ok(())
+}
+
+#[test]
+fn m5_inspection_worker_consumes_plan_event_and_reloads_checkpoint_after_restart(
+) -> Result<(), DurableControlPlaneError> {
+    let project_id = "m5-project-portable";
+    let task_id = "m5-task-portable";
+    let db_path = std::env::temp_dir().join(format!(
+        "nirman-m5-portable-{}-{}.sqlite3",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let mut plane = DurableControlPlane::open(&db_path, ProjectId(project_id.into()))?;
+    let intent = command_for(
+        project_id,
+        Some(task_id),
+        0,
+        "m5-intent",
+        CommandKind::TaskStart,
+        "Build an Android inspection fixture".into(),
+    );
+    authorize_registry_capability(&authenticated_request(intent.clone(), project_id))
+        .expect("M5 intent authenticated admission");
+    let intent_snapshot = plane.dispatch(intent)?;
+
+    let plan = command_for(
+        project_id,
+        Some(task_id),
+        intent_snapshot.projection_revision.0,
+        "m5-plan-event",
+        CommandKind::AndroidSynthesisBuild,
+        serde_json::json!({
+            "planId": "m5-plan-portable",
+            "targetPlatforms": ["android"],
+            "selectedUiFramework": "jetpack-compose"
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(plan.clone(), project_id))
+        .expect("M5 plan event authenticated admission");
+    let plan_snapshot = plane.dispatch(plan)?;
+
+    let worker_contract = WorkerContract {
+        schema_version: M5_SCHEMA_VERSION,
+        worker_id: "worker-m5-inspection".into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: TaskId(task_id.into()),
+        capability_ceiling: vec!["android.inspect".into()],
+        workspace_root: "/portable/m5-workspace".into(),
+        allowed_paths: vec!["/portable/m5-workspace".into()],
+        denied_paths: vec![],
+        max_attempts: 3,
+        evidence_requirements: vec!["inspection-summary".into()],
+    };
+    let mut record = WorkerExecutionRecord::start(worker_contract).expect("worker start");
+    let observation = WorkerObservation {
+        stage: WorkerStage::Inspect,
+        outcome: WorkerOutcome::Success,
+        source_revision: Revision(1),
+        checkpoint_id: Some("checkpoint-m5-inspect".into()),
+        changed_paths: vec![],
+        evidence_refs: vec!["evidence:m5:inspection".into()],
+        diagnostic_ref: None,
+    };
+    let handoff = record
+        .observe("m5-worker-step", observation, None)
+        .expect("inspection observation");
+    assert_eq!(handoff.completed_stage, WorkerStage::Inspect);
+    assert_eq!(handoff.next_stage, Some(WorkerStage::Plan));
+    assert_eq!(record.worker.stage(), WorkerStage::Plan);
+
+    let worker_command = command_for(
+        project_id,
+        Some(task_id),
+        plan_snapshot.projection_revision.0,
+        "m5-worker-step",
+        CommandKind::WorkerStep,
+        serde_json::json!({
+            "stage": "Inspect",
+            "outcome": "Success",
+            "checkpointId": "checkpoint-m5-inspect",
+            "changedPaths": []
+        })
+        .to_string(),
+    );
+    authorize_registry_capability(&authenticated_request(worker_command.clone(), project_id))
+        .expect("WorkerStep authenticated admission");
+    let worker_dispatch = plane.dispatch_with_result_and_worker_execution(
+        worker_command,
+        "correlation-m5-worker",
+        &record,
+    )?;
+    assert!(matches!(
+        worker_dispatch,
+        DurableDispatchOutcome::Accepted { .. }
+    ));
+    plane.checkpoint("checkpoint-m5-inspect")?;
+    assert_eq!(plane.checkpoint_id(), Some("checkpoint-m5-inspect"));
+    assert_eq!(plane.replay_after(0)?.len(), 3);
+    drop(plane);
+
+    let reopened = DurableControlPlane::open(&db_path, ProjectId(project_id.into()))?;
+    let reloaded_record = reopened
+        .load_worker_execution_record(task_id)?
+        .expect("worker record after restart");
+    assert_eq!(reloaded_record.worker.stage(), WorkerStage::Plan);
+    assert_eq!(reloaded_record.worker.source_revision(), Revision(1));
+    assert_eq!(reopened.checkpoint_id(), Some("checkpoint-m5-inspect"));
+    assert!(reopened.checkpoint_exists("checkpoint-m5-inspect")?);
+    let replayed = reopened.replay_after(0)?;
+    assert_eq!(replayed[1].kind, "AndroidSynthesisBuild");
+    assert_eq!(replayed[2].kind, "WorkerStep");
+    assert!(replayed[2].payload.contains("Inspect"));
+    fs::write(
+        m5_evidence_path(),
+        serde_json::json!({
+            "schema": "nirman.m5.worker_trace.v1",
+            "fixtureId": "M5-WORKER-TRACE-001",
+            "authenticatedAdmissionObserved": true,
+            "planEventConsumed": true,
+            "inspectionObserved": true,
+            "workerStepDurable": true,
+            "checkpointPersisted": true,
+            "workerRecordReloaded": true,
+            "restartReplayObserved": true,
+            "mutationObserved": false,
+            "gradleExecuted": false,
+            "androidRuntimeObserved": false,
+            "nativeTauriRuntimeObserved": false,
+            "checkpointId": "checkpoint-m5-inspect",
+            "evidenceStatus": "M5_HEADLESS_INSPECTION_CHECKPOINT_TRACE_ONLY"
+        })
+        .to_string(),
+    )
+    .expect("M5 evidence");
     let _ = fs::remove_file(db_path);
     Ok(())
 }

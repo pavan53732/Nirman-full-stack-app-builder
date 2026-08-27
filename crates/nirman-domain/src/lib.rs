@@ -157,6 +157,28 @@ pub struct AndroidTechnologyPlan {
     pub revision: Revision,
 }
 
+pub struct AndroidResolverRequest<'a> {
+    pub contract: &'a AndroidConstructionContract,
+    pub source_revision: Revision,
+    pub workspace_root: &'a str,
+    pub project_fingerprint: &'a str,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AndroidResolverError {
+    InvalidContract,
+    UnsupportedPlatform,
+    EmptyField(&'static str),
+    StaleRevision,
+}
+
+pub trait AndroidTechnologyResolver {
+    fn resolve(
+        &self,
+        request: &AndroidResolverRequest<'_>,
+    ) -> Result<AndroidTechnologyPlan, AndroidResolverError>;
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AndroidDeviceProfile {

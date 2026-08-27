@@ -1,6 +1,9 @@
 #![forbid(unsafe_code)]
 
-use nirman_domain::AndroidConstructionContract;
+use nirman_domain::{
+    AndroidConstructionContract, AndroidResolverError, AndroidResolverRequest,
+    AndroidTechnologyPlan as DomainAndroidTechnologyPlan, AndroidTechnologyResolver,
+};
 use nirman_project::GraphNodeKind;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -1408,55 +1411,98 @@ impl fmt::Display for M4Error {
 }
 impl std::error::Error for M4Error {}
 
+pub struct AndroidResolver;
+
+impl AndroidTechnologyResolver for AndroidResolver {
+    fn resolve(
+        &self,
+        request: &AndroidResolverRequest<'_>,
+    ) -> Result<DomainAndroidTechnologyPlan, AndroidResolverError> {
+        request
+            .contract
+            .validate()
+            .map_err(|_| AndroidResolverError::InvalidContract)?;
+        if request.contract.target_platforms != vec!["android".to_string()] {
+            return Err(AndroidResolverError::UnsupportedPlatform);
+        }
+        for (name, value) in [
+            ("workspaceRoot", request.workspace_root),
+            ("projectFingerprint", request.project_fingerprint),
+        ] {
+            if value.trim().is_empty() {
+                return Err(AndroidResolverError::EmptyField(name));
+            }
+        }
+        if request.source_revision.0 == 0 {
+            return Err(AndroidResolverError::StaleRevision);
+        }
+        let intent = request.contract.user_intent.to_ascii_lowercase();
+        let language = if intent.contains("java") {
+            "java"
+        } else {
+            "kotlin"
+        };
+        let ui_framework = if intent.contains("view") {
+            "android-views"
+        } else {
+            "jetpack-compose"
+        };
+        Ok(DomainAndroidTechnologyPlan {
+            plan_id: format!("technology-plan-{}", request.contract.contract_id),
+            task_id: request.contract.task_id.clone(),
+            requested_capabilities: vec!["intent-resolved".into()],
+            visual_requirements: vec![],
+            selected_languages: vec![language.into()],
+            selected_ui_frameworks: vec![ui_framework.into()],
+            selected_runtime_layers: vec!["android-runtime".into()],
+            selected_native_modules: vec![],
+            selected_build_plugins: vec![],
+            selected_device_apis: vec![],
+            selected_libraries: vec![],
+            compatibility_constraints: vec![],
+            rejected_alternatives: vec![],
+            required_toolchains: vec!["jdk".into(), "gradle".into(), "android-sdk".into()],
+            validation_plan: vec!["compile".into(), "unit-tests".into()],
+            confidence: Some("resolver-derived".into()),
+            revision: request.source_revision,
+        })
+    }
+}
+
 pub fn synthesize_android_plan(
     request: &AndroidSynthesisRequest,
 ) -> Result<AndroidSynthesisPlan, M4Error> {
     if request.schema_version != M4_SCHEMA_VERSION {
         return Err(M4Error::InvalidContract);
     }
-    request
-        .contract
-        .validate()
-        .map_err(|_| M4Error::InvalidContract)?;
-    if request.contract.target_platforms != vec!["android".to_string()] {
-        return Err(M4Error::UnsupportedPlatform);
-    }
-    for (name, value) in [
-        ("workspaceRoot", request.workspace_root.as_str()),
-        ("projectFingerprint", request.project_fingerprint.as_str()),
-    ] {
-        if value.trim().is_empty() {
-            return Err(M4Error::EmptyField(name));
-        }
-    }
-    if request.source_revision == 0 {
-        return Err(M4Error::StaleRevision);
-    }
-    let language = if request
-        .contract
-        .user_intent
-        .to_ascii_lowercase()
-        .contains("java")
-    {
-        "java"
-    } else {
-        "kotlin"
-    };
-    let ui_framework = if request
-        .contract
-        .user_intent
-        .to_ascii_lowercase()
-        .contains("view")
-    {
-        "android-views"
-    } else {
-        "jetpack-compose"
-    };
+    let resolved = AndroidResolver
+        .resolve(&AndroidResolverRequest {
+            contract: &request.contract,
+            source_revision: nirman_domain::Revision(request.source_revision),
+            workspace_root: &request.workspace_root,
+            project_fingerprint: &request.project_fingerprint,
+        })
+        .map_err(|error| match error {
+            AndroidResolverError::InvalidContract => M4Error::InvalidContract,
+            AndroidResolverError::UnsupportedPlatform => M4Error::UnsupportedPlatform,
+            AndroidResolverError::EmptyField(field) => M4Error::EmptyField(field),
+            AndroidResolverError::StaleRevision => M4Error::StaleRevision,
+        })?;
+    let language = resolved
+        .selected_languages
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "kotlin".into());
+    let ui_framework = resolved
+        .selected_ui_frameworks
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "jetpack-compose".into());
     let plan = AndroidTechnologyPlan {
         schema_version: M4_SCHEMA_VERSION,
-        plan_id: format!("technology-plan-{}", request.contract.contract_id),
-        language: language.into(),
-        ui_framework: ui_framework.into(),
+        plan_id: resolved.plan_id,
+        language,
+        ui_framework,
         data_strategy: "requirements-resolved".into(),
         source_revision: request.source_revision,
         rationale: "selected from validated Android intent and available contract evidence".into(),

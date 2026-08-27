@@ -41,6 +41,8 @@ cargo test -p nirman-desktop --bin nirman-desktop -- --nocapture
 cargo test -p nirman-ipc --test desktop_ipc_trace
 cargo test -p nirman-ipc --test m115_acceptance
 python3 tools/check_m2_evidence.py
+python3 tools/check_m4_evidence.py
+python3 tools/check_m5_evidence.py
 python3 tools/check_desktop_ipc_evidence.py
 python3 tools/check_m3_provider_evidence.py
 python3 tools/check_m39_evidence.py
