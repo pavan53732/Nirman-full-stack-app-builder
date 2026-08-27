@@ -330,6 +330,29 @@ impl DurableControlPlane {
             .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
     }
 
+    pub fn append_m108_event_and_projection(
+        &self,
+        task_id: &str,
+        event_sequence: u64,
+        event_id: &str,
+        event_json: &str,
+        evidence_id: &str,
+        evidence_json: &str,
+        projection_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.append_m108_event_and_projection(
+            &self.snapshot().project_id,
+            task_id,
+            event_sequence,
+            event_id,
+            event_json,
+            evidence_id,
+            evidence_json,
+            projection_json,
+            event_sequence,
+        )
+    }
+
     pub fn save_m108_sync_record(
         &self,
         task_id: &str,

@@ -180,6 +180,24 @@ impl Ledger {
                  selection_json TEXT NOT NULL,
                  PRIMARY KEY (project_id, preview_revision_id)
              );
+             CREATE TABLE IF NOT EXISTS m108_preview_sync_events (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 event_sequence INTEGER NOT NULL,
+                 event_id TEXT NOT NULL,
+                 event_json TEXT NOT NULL,
+                 evidence_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id, event_sequence),
+                 UNIQUE (project_id, task_id, event_id)
+             );
+             CREATE TABLE IF NOT EXISTS m108_preview_sync_evidence (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 evidence_id TEXT NOT NULL,
+                 event_sequence INTEGER NOT NULL,
+                 evidence_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id, evidence_id)
+             );
              CREATE TABLE IF NOT EXISTS m108_preview_sync_records (
                  project_id TEXT NOT NULL,
                  task_id TEXT NOT NULL,
@@ -1543,6 +1561,34 @@ impl Ledger {
                 },
             )
             .optional()
+    }
+
+    pub fn append_m108_event_and_projection(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        event_sequence: u64,
+        event_id: &str,
+        event_json: &str,
+        evidence_id: &str,
+        evidence_json: &str,
+        projection_json: &str,
+        last_event_sequence: u64,
+    ) -> rusqlite::Result<()> {
+        let transaction = self.connection.unchecked_transaction()?;
+        transaction.execute(
+            "INSERT INTO m108_preview_sync_events (project_id, task_id, event_sequence, event_id, event_json, evidence_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![project_id.0, task_id, event_sequence, event_id, event_json, evidence_json],
+        )?;
+        transaction.execute(
+            "INSERT INTO m108_preview_sync_evidence (project_id, task_id, evidence_id, event_sequence, evidence_json) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![project_id.0, task_id, evidence_id, event_sequence, evidence_json],
+        )?;
+        transaction.execute(
+            "INSERT INTO m108_preview_sync_records (project_id,task_id,projection_json,evidence_json,last_event_sequence) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(project_id,task_id) DO UPDATE SET projection_json=excluded.projection_json,evidence_json=excluded.evidence_json,last_event_sequence=excluded.last_event_sequence",
+            params![project_id.0, task_id, projection_json, evidence_json, last_event_sequence],
+        )?;
+        transaction.commit()
     }
 
     pub fn save_m108_sync_record(
