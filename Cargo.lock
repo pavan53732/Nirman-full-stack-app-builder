@@ -2209,6 +2209,10 @@ version = "0.1.0"
 [[package]]
 name = "nirman-workers"
 version = "0.1.0"
+dependencies = [
+ "nirman-domain",
+ "serde",
+]
 
 [[package]]
 name = "num-conv"
