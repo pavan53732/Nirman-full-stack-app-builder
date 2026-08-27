@@ -598,6 +598,11 @@ impl DurableControlPlane {
             .load_m108_sync_record(&self.snapshot().project_id, task_id)
     }
 
+    pub fn load_m108_event_jsons(&self, task_id: &str) -> Result<Vec<String>, rusqlite::Error> {
+        self.ledger
+            .load_m108_event_jsons(&self.snapshot().project_id, task_id)
+    }
+
     pub fn load_android_device_observation_for_source(
         &self,
         task_id: &str,

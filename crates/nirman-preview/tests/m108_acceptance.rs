@@ -177,7 +177,9 @@ fn m108_integrates_m9_observation_and_m10_artifact_records() {
         project_revision_id: "source-1".into(),
         device_profile_id: profile.profile_id,
         device_identity: "emulator-1".into(),
+        runtime_session_id: "m9-session-m108-observation".into(),
         package_name: "com.example.app".into(),
+        apk_sha256: "sha256:observed".into(),
         install_status: "OBSERVED_SUCCESS".into(),
         launch_status: "OBSERVED_SUCCESS".into(),
         interaction_status: "OBSERVED_PASS".into(),
@@ -185,6 +187,9 @@ fn m108_integrates_m9_observation_and_m10_artifact_records() {
         screenshot_references: vec!["screenshot-1".into()],
         accessibility_reference: Some("a11y-1".into()),
         visual_comparison_reference: Some("visual-1".into()),
+        permission_result_reference: Some("permissions-1".into()),
+        crash_trace_reference: None,
+        observed_at_epoch_seconds: 1,
         synthetic_data_only: true,
     };
     observation.validate().expect("M9 observation");
@@ -195,13 +200,23 @@ fn m108_integrates_m9_observation_and_m10_artifact_records() {
         task_id: "t".into(),
         project_revision_id: "source-1".into(),
         source_fingerprint: "sha256:source".into(),
+        source_provenance_ref: "android-build-observation:t:1".into(),
         path: "app-debug.apk".into(),
         sha256: "sha256:observed".into(),
         package_name: observation.package_name.clone(),
+        inspection: Some(nirman_artifacts::ApkInspection {
+            package_name: observation.package_name.clone(),
+            version_code: "1".into(),
+            version_name: "1.0".into(),
+            aapt_output_sha256: "inspection-hash".into(),
+        }),
         build_variant: "debug".into(),
         secret_scan_status: "PASS".into(),
         signing_status: "UNSIGNED_DEBUG".into(),
         delivery_status: "READY_LOCAL".into(),
+        delivery_sha256: Some("sha256:observed".into()),
+        delivery_verified: true,
+        copy_uncertain: false,
     };
     nirman_artifacts::validate_apk_delivery(&artifact).expect("M10 artifact");
     let mut state = M108ProjectionState::new("p", "t", "preview-1");

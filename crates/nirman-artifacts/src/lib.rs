@@ -11,13 +11,18 @@ pub struct ApkArtifact {
     pub task_id: String,
     pub project_revision_id: String,
     pub source_fingerprint: String,
+    pub source_provenance_ref: String,
     pub path: String,
     pub sha256: String,
     pub package_name: String,
+    pub inspection: Option<ApkInspection>,
     pub build_variant: String,
     pub secret_scan_status: String,
     pub signing_status: String,
     pub delivery_status: String,
+    pub delivery_sha256: Option<String>,
+    pub delivery_verified: bool,
+    pub copy_uncertain: bool,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum M10Error {
@@ -52,6 +57,7 @@ impl ApkArtifact {
             ("taskId", &self.task_id),
             ("projectRevisionId", &self.project_revision_id),
             ("sourceFingerprint", &self.source_fingerprint),
+            ("sourceProvenanceRef", &self.source_provenance_ref),
             ("path", &self.path),
             ("sha256", &self.sha256),
             ("packageName", &self.package_name),
@@ -64,8 +70,18 @@ impl ApkArtifact {
         if !self.path.to_ascii_lowercase().ends_with(".apk") {
             return Err(M10Error::NotApk);
         }
+        if self.inspection.is_none() {
+            return Err(M10Error::InvalidArtifact);
+        }
         if self.secret_scan_status != "PASS" {
             return Err(M10Error::SecretScanFailed);
+        }
+        if self.delivery_status == "READY_LOCAL"
+            && (self.delivery_sha256.as_deref() != Some(self.sha256.as_str())
+                || !self.delivery_verified
+                || self.copy_uncertain)
+        {
+            return Err(M10Error::InvalidArtifact);
         }
         Ok(())
     }
@@ -83,7 +99,11 @@ impl ApkArtifact {
 }
 pub fn validate_apk_delivery(artifact: &ApkArtifact) -> Result<(), M10Error> {
     artifact.validate_metadata()?;
-    if artifact.delivery_status != "READY_LOCAL" {
+    if artifact.delivery_status != "READY_LOCAL"
+        || artifact.delivery_sha256.as_deref() != Some(artifact.sha256.as_str())
+        || !artifact.delivery_verified
+        || artifact.copy_uncertain
+    {
         return Err(M10Error::InvalidArtifact);
     }
     Ok(())
@@ -111,18 +131,64 @@ mod tests {
             task_id: "t".into(),
             project_revision_id: "r".into(),
             source_fingerprint: "f".into(),
+            source_provenance_ref: "build-observation-r".into(),
             path: p.to_string_lossy().into(),
             sha256: format!("sha256:{:x}", h.finalize()),
             package_name: "com.example.app".into(),
+            inspection: Some(ApkInspection {
+                package_name: "com.example.app".into(),
+                version_code: "1".into(),
+                version_name: "1.0".into(),
+                aapt_output_sha256: "inspection-hash".into(),
+            }),
             build_variant: "debug".into(),
             secret_scan_status: "PASS".into(),
             signing_status: "UNSIGNED_DEBUG".into(),
             delivery_status: "READY_LOCAL".into(),
+            delivery_sha256: Some(format!(
+                "sha256:{:x}",
+                Sha256::digest(b"synthetic apk bytes")
+            )),
+            delivery_verified: true,
+            copy_uncertain: false,
         };
         validate_apk_delivery(&a).unwrap();
         a.verify_file().unwrap();
         fs::remove_file(p).unwrap()
     }
+    #[test]
+    fn delivery_provenance_mismatch_is_rejected() {
+        let artifact = ApkArtifact {
+            schema_version: M10_SCHEMA_VERSION,
+            artifact_id: "delivery-mismatch".into(),
+            project_id: "p".into(),
+            task_id: "t".into(),
+            project_revision_id: "r".into(),
+            source_fingerprint: "f".into(),
+            source_provenance_ref: "build-observation".into(),
+            path: "x.apk".into(),
+            sha256: "sha256:source".into(),
+            package_name: "pkg".into(),
+            inspection: Some(ApkInspection {
+                package_name: "pkg".into(),
+                version_code: "1".into(),
+                version_name: "1.0".into(),
+                aapt_output_sha256: "inspection".into(),
+            }),
+            build_variant: "debug".into(),
+            secret_scan_status: "PASS".into(),
+            signing_status: "UNSIGNED_DEBUG".into(),
+            delivery_status: "READY_LOCAL".into(),
+            delivery_sha256: Some("sha256:other".into()),
+            delivery_verified: true,
+            copy_uncertain: false,
+        };
+        assert_eq!(
+            validate_apk_delivery(&artifact),
+            Err(M10Error::InvalidArtifact)
+        );
+    }
+
     #[test]
     fn non_apk_or_bad_scan_is_rejected() {
         let a = ApkArtifact {
@@ -132,13 +198,18 @@ mod tests {
             task_id: "t".into(),
             project_revision_id: "r".into(),
             source_fingerprint: "f".into(),
+            source_provenance_ref: "build-observation-invalid".into(),
             path: "x.zip".into(),
             sha256: "sha256:x".into(),
             package_name: "pkg".into(),
+            inspection: None,
             build_variant: "debug".into(),
             secret_scan_status: "FAIL".into(),
             signing_status: "UNSIGNED_DEBUG".into(),
             delivery_status: "READY_LOCAL".into(),
+            delivery_sha256: None,
+            delivery_verified: false,
+            copy_uncertain: true,
         };
         assert_eq!(a.validate_metadata(), Err(M10Error::NotApk));
     }
@@ -204,6 +275,9 @@ pub fn deliver_apk_local(
     let mut delivered = artifact.clone();
     delivered.path = destination.into();
     delivered.delivery_status = "READY_LOCAL".into();
+    delivered.delivery_sha256 = Some(delivered.sha256.clone());
+    delivered.delivery_verified = true;
+    delivered.copy_uncertain = false;
     delivered.verify_file()?;
     validate_apk_delivery(&delivered)?;
     Ok(delivered)
@@ -271,18 +345,26 @@ mod execution_tests {
             task_id: "task".into(),
             project_revision_id: "revision-1".into(),
             source_fingerprint: "fingerprint".into(),
+            source_provenance_ref: "build-observation-execution".into(),
             path: apk.to_string_lossy().into_owned(),
             sha256: format!("sha256:{:x}", hasher.finalize()),
-            package_name: inspection.package_name,
+            package_name: inspection.package_name.clone(),
+            inspection: Some(inspection),
             build_variant: "debug".into(),
             secret_scan_status: "PASS".into(),
             signing_status: "UNSIGNED_DEBUG".into(),
             delivery_status: "PENDING_LOCAL".into(),
+            delivery_sha256: None,
+            delivery_verified: false,
+            copy_uncertain: false,
         };
         let destination = root.join("delivery").join("fixture.apk");
         let delivered =
             deliver_apk_local(&artifact, destination.to_string_lossy().as_ref()).expect("delivery");
         assert_eq!(delivered.delivery_status, "READY_LOCAL");
+        assert_eq!(delivered.delivery_sha256, Some(delivered.sha256.clone()));
+        assert!(delivered.delivery_verified);
+        assert!(!delivered.copy_uncertain);
         assert_eq!(fs::read(destination).expect("delivered bytes"), bytes);
         let _ = fs::remove_dir_all(root);
     }

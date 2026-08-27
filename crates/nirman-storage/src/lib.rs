@@ -2098,6 +2098,18 @@ impl Ledger {
         self.connection.query_row("SELECT projection_json,evidence_json,last_event_sequence FROM m108_preview_sync_records WHERE project_id=?1 AND task_id=?2", params![project_id.0,task_id], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()
     }
 
+    pub fn load_m108_event_jsons(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Vec<String>> {
+        let mut statement = self.connection.prepare(
+            "SELECT event_json FROM m108_preview_sync_events WHERE project_id = ?1 AND task_id = ?2 ORDER BY event_sequence ASC",
+        )?;
+        let rows = statement.query_map(params![project_id.0, task_id], |row| row.get(0))?;
+        rows.collect()
+    }
+
     pub fn provider_usage(
         &self,
         request_id: &str,

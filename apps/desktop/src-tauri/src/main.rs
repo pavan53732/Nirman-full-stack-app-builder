@@ -245,6 +245,8 @@ fn persist_m108_stage(
         )
     };
     let sequence = projection.last_event_sequence + 1;
+    let validation_ref = (event_type == PreviewSyncEventType::ValidationObserved)
+        .then(|| format!("validation:{command_id}"));
     let event = PreviewSyncEvent {
         event_id: format!("m108:{command_id}:{sequence}"),
         event_sequence: sequence,
@@ -265,7 +267,7 @@ fn persist_m108_stage(
         operation_ref: command_id.into(),
         observation_refs,
         evidence_refs: evidence_refs.clone(),
-        validation_ref: None,
+        validation_ref,
         payload: "authoritative host boundary event".into(),
     };
     projection.apply(&event).map_err(|e| {
@@ -3787,13 +3789,21 @@ fn dispatch_request<S: EventSink>(
                 task_id: prepared.observation.task_id.clone(),
                 project_revision_id: format!("source-{}", prepared.source_revision),
                 source_fingerprint: prepared.observation.project_fingerprint.clone(),
+                source_provenance_ref: format!(
+                    "android-build-observation:{}:{}",
+                    prepared.observation.task_id, prepared.source_revision
+                ),
                 path: source_path.clone(),
                 sha256: format!("sha256:{source_hash}"),
-                package_name: inspection.package_name,
+                package_name: inspection.package_name.clone(),
+                inspection: Some(inspection),
                 build_variant: prepared.observation.build_variant.clone(),
                 secret_scan_status: "PASS".into(),
                 signing_status: "INSPECTED_BY_BUILD_TOOL".into(),
                 delivery_status: "PENDING_LOCAL".into(),
+                delivery_sha256: None,
+                delivery_verified: false,
+                copy_uncertain: false,
             };
             let delivered = deliver_apk_local(&artifact, &prepared.destination_path).map_err(
                 |artifact_error| {
@@ -3840,6 +3850,79 @@ fn dispatch_request<S: EventSink>(
                 })?;
             delivered
         };
+        if !was_duplicate {
+            let preview_revision_id = state
+                .plane
+                .load_android_synthesis_build(
+                    &prepared.observation.task_id,
+                    prepared.source_revision,
+                )
+                .ok()
+                .flatten()
+                .and_then(|stored| {
+                    serde_json::from_str::<nirman_android::AndroidSynthesisPlan>(&stored.0).ok()
+                })
+                .map(|plan| format!("m108-preview-{}", plan.contract_id))
+                .unwrap_or_else(|| format!("m108-preview-{}", prepared.observation.task_id));
+            let checkpoint = state
+                .plane
+                .checkpoint_id()
+                .map(str::to_owned)
+                .unwrap_or_else(|| "checkpoint-pending".into());
+            let inspection_ref = artifact
+                .inspection
+                .as_ref()
+                .map(|inspection| format!("aapt-output-sha256:{}", inspection.aapt_output_sha256));
+            let artifact_evidence = vec![
+                artifact.source_provenance_ref.clone(),
+                format!("artifact-sha256:{}", artifact.sha256),
+                format!(
+                    "delivery-sha256:{}",
+                    artifact
+                        .delivery_sha256
+                        .clone()
+                        .unwrap_or_else(|| "missing".into())
+                ),
+            ];
+            let artifact_observations = inspection_ref
+                .into_iter()
+                .chain(artifact_evidence.clone())
+                .collect::<Vec<_>>();
+            persist_m108_stage(
+                state,
+                &prepared.observation.task_id,
+                &preview_revision_id,
+                PreviewSyncEventType::ArtifactObserved,
+                PreviewEventTruth::Observed,
+                &format!("source-{}", prepared.observation.source_revision),
+                &checkpoint,
+                &artifact.source_fingerprint,
+                &command_id,
+                Some(artifact.artifact_id.clone()),
+                Some(artifact.sha256.clone()),
+                None,
+                None,
+                vec![artifact.source_provenance_ref.clone()],
+                artifact_observations,
+            )?;
+            persist_m108_stage(
+                state,
+                &prepared.observation.task_id,
+                &preview_revision_id,
+                PreviewSyncEventType::ValidationObserved,
+                PreviewEventTruth::Verified,
+                &format!("source-{}", prepared.observation.source_revision),
+                &checkpoint,
+                &artifact.source_fingerprint,
+                &command_id,
+                Some(artifact.artifact_id.clone()),
+                Some(artifact.sha256.clone()),
+                None,
+                None,
+                vec![artifact.source_provenance_ref.clone()],
+                artifact_evidence,
+            )?;
+        }
         command_response.status = if was_duplicate {
             ResponseStatus::Duplicate
         } else {
@@ -5650,6 +5733,7 @@ fn execute_preview_device_session(
         adb_executable: adb,
         evidence_directory: evidence_dir.to_string_lossy().into_owned(),
         timeout_ms: 120_000,
+        selected_device_identity: prepared.preview_request.device_id.clone(),
         synthetic_device_only: true,
     };
     let observation =
@@ -6362,6 +6446,25 @@ mod tests {
         assert!(m108_record
             .1
             .contains("m108-evidence:m5-artifact-build-command"));
+        let event_jsons = state
+            .plane
+            .load_m108_event_jsons(&contract.task_id.0)
+            .expect("M108 event ledger load");
+        assert_eq!(
+            event_jsons.len(),
+            m108_projection.last_event_sequence as usize
+        );
+        let mut reconstructed = M108ProjectionState::new(
+            PROJECT_ID,
+            &contract.task_id.0,
+            &m108_projection.active_preview_revision_id,
+        );
+        for event_json in event_jsons {
+            let event: nirman_preview::PreviewSyncEvent =
+                serde_json::from_str(&event_json).expect("M108 event parse");
+            reconstructed.apply(&event).expect("M108 replay event");
+        }
+        assert_eq!(reconstructed, m108_projection);
         let m4_stored = state
             .plane
             .load_android_synthesis_build(&contract.task_id.0, 1)

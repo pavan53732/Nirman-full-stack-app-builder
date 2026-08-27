@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub const M9_SCHEMA_VERSION: u16 = 1;
@@ -25,7 +26,9 @@ pub struct AndroidDeviceObservation {
     pub project_revision_id: String,
     pub device_profile_id: String,
     pub device_identity: String,
+    pub runtime_session_id: String,
     pub package_name: String,
+    pub apk_sha256: String,
     pub install_status: String,
     pub launch_status: String,
     pub interaction_status: String,
@@ -33,6 +36,9 @@ pub struct AndroidDeviceObservation {
     pub screenshot_references: Vec<String>,
     pub accessibility_reference: Option<String>,
     pub visual_comparison_reference: Option<String>,
+    pub permission_result_reference: Option<String>,
+    pub crash_trace_reference: Option<String>,
+    pub observed_at_epoch_seconds: u64,
     pub synthetic_data_only: bool,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,7 +97,9 @@ impl AndroidDeviceObservation {
             ("projectRevisionId", &self.project_revision_id),
             ("deviceProfileId", &self.device_profile_id),
             ("deviceIdentity", &self.device_identity),
+            ("runtimeSessionId", &self.runtime_session_id),
             ("packageName", &self.package_name),
+            ("apkSha256", &self.apk_sha256),
         ] {
             if v.trim().is_empty() {
                 return Err(M9Error::EmptyField(n));
@@ -99,6 +107,9 @@ impl AndroidDeviceObservation {
         }
         if !self.synthetic_data_only {
             return Err(M9Error::MissingSyntheticData);
+        }
+        if !self.apk_sha256.starts_with("sha256:") || self.observed_at_epoch_seconds == 0 {
+            return Err(M9Error::InvalidObservation);
         }
         if self.screenshot_references.is_empty() && self.logcat_reference.is_none() {
             return Err(M9Error::InvalidObservation);
@@ -134,7 +145,9 @@ mod tests {
             project_revision_id: "r".into(),
             device_profile_id: profile().profile_id,
             device_identity: "emulator-1".into(),
+            runtime_session_id: "session-1".into(),
             package_name: "com.example.app".into(),
+            apk_sha256: "sha256:fixture".into(),
             install_status: "OBSERVED_SUCCESS".into(),
             launch_status: "OBSERVED_SUCCESS".into(),
             interaction_status: "OBSERVED_PASS".into(),
@@ -142,6 +155,9 @@ mod tests {
             screenshot_references: vec!["screen-1".into()],
             accessibility_reference: Some("a11y-1".into()),
             visual_comparison_reference: Some("visual-1".into()),
+            permission_result_reference: Some("permission-1".into()),
+            crash_trace_reference: None,
+            observed_at_epoch_seconds: 1,
             synthetic_data_only: true,
         };
         o.validate().unwrap();
@@ -160,7 +176,9 @@ mod tests {
             project_revision_id: "r".into(),
             device_profile_id: "d".into(),
             device_identity: "d".into(),
+            runtime_session_id: "session-d".into(),
             package_name: "pkg".into(),
+            apk_sha256: "sha256:fixture".into(),
             install_status: "".into(),
             launch_status: "".into(),
             interaction_status: "".into(),
@@ -168,6 +186,9 @@ mod tests {
             screenshot_references: vec![],
             accessibility_reference: None,
             visual_comparison_reference: None,
+            permission_result_reference: None,
+            crash_trace_reference: None,
+            observed_at_epoch_seconds: 1,
             synthetic_data_only: false,
         };
         assert_eq!(o.validate(), Err(M9Error::MissingSyntheticData));
@@ -188,6 +209,7 @@ pub struct DeviceSessionRequest {
     pub adb_executable: String,
     pub evidence_directory: String,
     pub timeout_ms: u64,
+    pub selected_device_identity: Option<String>,
     pub synthetic_device_only: bool,
 }
 
@@ -234,9 +256,9 @@ pub fn execute_android_device_session(
     {
         return Err(DeviceSessionError::InvalidRequest);
     }
-    if !std::path::Path::new(&request.apk_path).is_file() {
-        return Err(DeviceSessionError::InvalidRequest);
-    }
+    let apk_bytes =
+        std::fs::read(&request.apk_path).map_err(|_| DeviceSessionError::InvalidRequest)?;
+    let apk_sha256 = format!("sha256:{:x}", Sha256::digest(&apk_bytes));
     std::fs::create_dir_all(&request.evidence_directory)
         .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
     let state = run_adb(request, &["get-state"])?;
@@ -248,6 +270,13 @@ pub fn execute_android_device_session(
         .trim()
         .to_owned();
     if serial.is_empty() || serial == "unknown" {
+        return Err(DeviceSessionError::DeviceUnavailable);
+    }
+    if request
+        .selected_device_identity
+        .as_ref()
+        .is_some_and(|selected| selected != &serial)
+    {
         return Err(DeviceSessionError::DeviceUnavailable);
     }
     run_adb(request, &["install", "-r", &request.apk_path])?;
@@ -264,7 +293,17 @@ pub fn execute_android_device_session(
         .join("\n");
     let evidence_dir = std::path::Path::new(&request.evidence_directory);
     let logcat_path = evidence_dir.join("logcat.txt");
-    std::fs::write(&logcat_path, sanitized_logcat)
+    let crash_trace_reference = sanitized_logcat
+        .contains("AndroidRuntime")
+        .then(|| logcat_path.to_string_lossy().into_owned());
+    std::fs::write(&logcat_path, &sanitized_logcat)
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    let permission_output = run_adb(
+        request,
+        &["shell", "dumpsys", "package", &request.package_name],
+    )?;
+    let permission_path = evidence_dir.join("permissions.txt");
+    std::fs::write(&permission_path, permission_output.stdout)
         .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
     let screenshot = run_adb(request, &["exec-out", "screencap", "-p"])?;
     let screenshot_path = evidence_dir.join("screenshot.png");
@@ -294,11 +333,16 @@ pub fn execute_android_device_session(
         package_name: request.package_name.clone(),
         install_status: "OBSERVED_SUCCESS".into(),
         launch_status: "OBSERVED_SUCCESS".into(),
-        interaction_status: "OBSERVED_PASS".into(),
+        runtime_session_id: format!("m9-session-{}", request.observation_id),
+        apk_sha256,
+        interaction_status: "OBSERVED_FORCE_STOP".into(),
         logcat_reference: Some(logcat_path.to_string_lossy().into_owned()),
         screenshot_references: vec![screenshot_path.to_string_lossy().into_owned()],
         accessibility_reference: Some(hierarchy_path.to_string_lossy().into_owned()),
         visual_comparison_reference: None,
+        permission_result_reference: Some(permission_path.to_string_lossy().into_owned()),
+        crash_trace_reference,
+        observed_at_epoch_seconds: epoch_seconds(),
         synthetic_data_only: true,
     };
     observation
@@ -310,6 +354,13 @@ pub fn execute_android_device_session(
 struct AdbOutput {
     stdout: String,
     raw_stdout: Vec<u8>,
+}
+
+fn epoch_seconds() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
 }
 
 fn run_adb(
@@ -402,17 +453,102 @@ mod session_tests {
             adb_executable: adb.to_string_lossy().into_owned(),
             evidence_directory: root.join("evidence").to_string_lossy().into_owned(),
             timeout_ms: 5_000,
+            selected_device_identity: Some("emulator-test".into()),
             synthetic_device_only: true,
         })
         .expect("device observation");
         assert_eq!(observation.device_identity, "emulator-test");
         assert_eq!(observation.install_status, "OBSERVED_SUCCESS");
         assert_eq!(observation.launch_status, "OBSERVED_SUCCESS");
-        assert_eq!(observation.interaction_status, "OBSERVED_PASS");
+        assert_eq!(observation.interaction_status, "OBSERVED_FORCE_STOP");
         assert!(observation.logcat_reference.is_some());
         assert_eq!(observation.screenshot_references.len(), 1);
         assert!(observation.accessibility_reference.is_some());
         observation.validate().expect("valid observation");
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[cfg(test)]
+mod failure_tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[cfg(unix)]
+    fn executable(path: &std::path::Path) {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = fs::metadata(path).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(path, permissions).expect("permissions");
+    }
+
+    #[cfg(unix)]
+    fn profile() -> AndroidDeviceProfile {
+        AndroidDeviceProfile {
+            profile_id: "pixel-api-35".into(),
+            name: "Disposable Pixel API 35".into(),
+            api_level: 35,
+            architecture: "x86_64".into(),
+            width: 1080,
+            height: 2400,
+            density: 420,
+            orientation: "portrait".into(),
+            locale: "en-US".into(),
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn selected_device_mismatch_and_adb_timeout_are_typed_and_bounded() {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("nirman-m9-failures-{suffix}"));
+        fs::create_dir_all(&root).expect("root");
+        let apk = root.join("fixture.apk");
+        fs::write(&apk, b"fixture apk").expect("apk");
+        let adb = root.join("adb");
+        fs::write(
+            &adb,
+            "#!/bin/sh\ncase \"$1\" in\nget-state) printf 'device\\n' ;;\nget-serialno) printf 'actual-device\\n' ;;\n*) exit 0 ;;\nesac\n",
+        )
+        .expect("adb");
+        executable(&adb);
+        let base = DeviceSessionRequest {
+            observation_id: "observation-failure".into(),
+            project_id: "project-test".into(),
+            task_id: "task-test".into(),
+            project_revision_id: "source-1".into(),
+            profile: profile(),
+            package_name: "com.nirman.fixture".into(),
+            apk_path: apk.to_string_lossy().into_owned(),
+            adb_executable: adb.to_string_lossy().into_owned(),
+            evidence_directory: root.join("evidence").to_string_lossy().into_owned(),
+            timeout_ms: 1_000,
+            selected_device_identity: Some("different-device".into()),
+            synthetic_device_only: true,
+        };
+        assert_eq!(
+            execute_android_device_session(&base),
+            Err(DeviceSessionError::DeviceUnavailable)
+        );
+        fs::write(
+            &adb,
+            "#!/bin/sh\ncase \"$1\" in\nget-state) sleep 1; printf 'device\\n' ;;\n*) exit 0 ;;\nesac\n",
+        )
+        .expect("timeout adb");
+        executable(&adb);
+        let timeout_request = DeviceSessionRequest {
+            selected_device_identity: Some("actual-device".into()),
+            timeout_ms: 20,
+            ..base
+        };
+        assert_eq!(
+            execute_android_device_session(&timeout_request),
+            Err(DeviceSessionError::CommandTimeout)
+        );
         let _ = fs::remove_dir_all(root);
     }
 }
