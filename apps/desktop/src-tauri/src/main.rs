@@ -1174,6 +1174,7 @@ fn parse_android_requirement_evaluation(
 
 #[derive(Debug)]
 struct PreparedM48 {
+    preview_request: PreviewRequest,
     task_id: String,
     preview_revision_id: String,
     selection: nirman_preview::PreviewFallbackSelection,
@@ -1313,6 +1314,7 @@ fn parse_preview_start(
     let revision_json = serde_json::to_string(&revision).expect("M48 revision serialization");
     let projection_json = serde_json::to_string(&projection).expect("M48 projection serialization");
     Ok(PreparedM48 {
+        preview_request: preview_request.clone(),
         task_id: preview_request.task_id,
         preview_revision_id,
         selection,
@@ -3378,12 +3380,91 @@ fn dispatch_request<S: EventSink>(
         } else {
             (prepared.selection.clone(), prepared.revision.clone())
         };
+        let device_observation = if was_duplicate {
+            if matches!(
+                prepared.selection.mode,
+                PreviewMode::IncrementalEmulatorInstall
+                    | PreviewMode::ApkReinstall
+                    | PreviewMode::PhysicalDevice
+            ) {
+                let source_revision = prepared
+                    .preview_request
+                    .project_revision_id
+                    .strip_prefix("source-")
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .ok_or_else(|| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::InvalidCommand,
+                            ErrorCategory::Validation,
+                            "duplicate preview device request has an invalid source revision",
+                            false,
+                            None,
+                        )
+                    })?;
+                let record_json = state
+                    .plane
+                    .load_android_device_observation_for_source(&prepared.task_id, source_revision)
+                    .map_err(|_| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "duplicate preview has no durable device observation",
+                            true,
+                            Some("reconcile the previous device session before retrying".into()),
+                        )
+                    })?
+                    .ok_or_else(|| {
+                        error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            "duplicate preview has no durable device observation",
+                            true,
+                            Some("reconcile the previous device session before retrying".into()),
+                        )
+                    })?;
+                Some(
+                    serde_json::from_str::<nirman_evidence::AndroidDeviceObservation>(&record_json)
+                        .map_err(|_| {
+                            error(
+                                &correlation_id,
+                                Some(command_id.clone()),
+                                causation_id.clone(),
+                                ControlPlaneErrorCode::DependencyUnavailable,
+                                ErrorCategory::Internal,
+                                "durable Android device observation is corrupt",
+                                false,
+                                None,
+                            )
+                        })?,
+                )
+            } else {
+                None
+            }
+        } else {
+            execute_preview_device_session(
+                state,
+                prepared,
+                &command_id,
+                &correlation_id,
+                causation_id.clone(),
+            )?
+        };
         command_response.status = ResponseStatus::Completed;
         command_response.result_schema_ref = Some("nirman.preview_start_result.v1".into());
         command_response.result_payload = Some(
             serde_json::to_value(PreviewStartResultPayload {
                 selection,
                 revision,
+                device_observation,
             })
             .expect("M48 preview result serialization must remain infallible"),
         );
@@ -4409,6 +4490,320 @@ fn parse_artifact_build(
         request: persisted_request,
         lock,
     })
+}
+
+fn adb_path_for_lock(lock: &nirman_android::AndroidToolchainLock) -> Option<String> {
+    let path = lock
+        .entries
+        .iter()
+        .find(|entry| entry.component == nirman_android::ToolchainComponentKind::Adb)
+        .map(|entry| std::path::PathBuf::from(&entry.path))?;
+    if path.is_file() {
+        return Some(path.to_string_lossy().into_owned());
+    }
+    if path.is_dir() {
+        let executable = if cfg!(windows) {
+            path.join("adb.exe")
+        } else {
+            path.join("adb")
+        };
+        if executable.is_file() {
+            return Some(executable.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+fn execute_preview_device_session(
+    state: &mut RuntimeState,
+    prepared: &PreparedM48,
+    command_id: &str,
+    correlation_id: &str,
+    causation_id: Option<String>,
+) -> Result<Option<nirman_evidence::AndroidDeviceObservation>, ErrorEnvelope> {
+    if !matches!(
+        prepared.selection.mode,
+        PreviewMode::IncrementalEmulatorInstall
+            | PreviewMode::ApkReinstall
+            | PreviewMode::PhysicalDevice
+    ) {
+        return Ok(None);
+    }
+    let Some(device_id) = prepared.preview_request.device_id.as_ref() else {
+        return Ok(None);
+    };
+    let source_revision = prepared
+        .preview_request
+        .project_revision_id
+        .strip_prefix("source-")
+        .and_then(|value| value.parse::<u64>().ok())
+        .ok_or_else(|| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "preview device execution requires a source revision identity",
+                false,
+                None,
+            )
+        })?;
+    let artifact_json = state
+        .plane
+        .load_android_artifact_export(&prepared.task_id, source_revision)
+        .map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "preview device execution could not load the APK export",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "preview device execution requires a validated local APK export",
+                false,
+                Some("build and export the current Android source revision first".into()),
+            )
+        })?;
+    let artifact: ApkArtifact = serde_json::from_str(&artifact_json).map_err(|_| {
+        error(
+            correlation_id,
+            Some(command_id.into()),
+            causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Internal,
+            "durable APK export record is corrupt",
+            false,
+            None,
+        )
+    })?;
+    let contract_json = state
+        .plane
+        .load_android_construction_contract(&prepared.task_id)
+        .map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "Android construction contract could not be reloaded",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "preview device execution requires the persisted Android construction contract",
+                false,
+                None,
+            )
+        })?;
+    let contract: AndroidConstructionContract =
+        serde_json::from_str(&contract_json).map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "persisted Android construction contract is corrupt",
+                false,
+                None,
+            )
+        })?;
+    let profile = contract
+        .device_matrix
+        .iter()
+        .find(|profile| profile.device_id == *device_id)
+        .ok_or_else(|| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "requested preview device profile is not in the persisted contract",
+                false,
+                None,
+            )
+        })?;
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(&prepared.task_id)
+        .map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M43 toolchain preflight could not be reloaded for device execution",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "preview device execution requires persisted M43 preflight",
+                false,
+                None,
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "M43 preflight could not be restored for device execution",
+                false,
+                None,
+            )
+        })?;
+    let lock = preflight.lock.ok_or_else(|| {
+        error(
+            correlation_id,
+            Some(command_id.into()),
+            causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "preview device execution requires an available M43 lock",
+            false,
+            None,
+        )
+    })?;
+    let adb = adb_path_for_lock(&lock).ok_or_else(|| {
+        error(
+            correlation_id,
+            Some(command_id.into()),
+            causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "locked Android platform-tools do not expose adb",
+            true,
+            Some("repair M43 platform-tools resolution before starting preview".into()),
+        )
+    })?;
+    let evidence_dir = std::path::Path::new(&artifact.path)
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .join(".nirman-evidence")
+        .join(&prepared.preview_revision_id);
+    let request = nirman_evidence::DeviceSessionRequest {
+        observation_id: format!("observation-{command_id}"),
+        project_id: prepared.preview_request.project_id.clone(),
+        task_id: prepared.task_id.clone(),
+        project_revision_id: prepared.preview_request.project_revision_id.clone(),
+        profile: nirman_evidence::AndroidDeviceProfile {
+            profile_id: profile.device_id.clone(),
+            name: profile.name.clone(),
+            api_level: profile.api_level,
+            architecture: profile.architecture.clone(),
+            width: profile.width,
+            height: profile.height,
+            density: profile.density,
+            orientation: profile.orientation.clone(),
+            locale: profile.locale.clone(),
+        },
+        package_name: artifact.package_name.clone(),
+        apk_path: artifact.path.clone(),
+        adb_executable: adb,
+        evidence_directory: evidence_dir.to_string_lossy().into_owned(),
+        timeout_ms: 120_000,
+        synthetic_device_only: true,
+    };
+    let observation =
+        nirman_evidence::execute_android_device_session(&request).map_err(|device_error| {
+            let (code, category, retryable) = match device_error {
+                nirman_evidence::DeviceSessionError::DeviceUnavailable => (
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Device,
+                    true,
+                ),
+                nirman_evidence::DeviceSessionError::CommandTimeout => {
+                    (ControlPlaneErrorCode::Timeout, ErrorCategory::Timeout, true)
+                }
+                nirman_evidence::DeviceSessionError::InvalidRequest => (
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    false,
+                ),
+                nirman_evidence::DeviceSessionError::CommandFailed
+                | nirman_evidence::DeviceSessionError::EvidenceWriteFailed => (
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Device,
+                    true,
+                ),
+            };
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                causation_id,
+                code,
+                category,
+                device_error.to_string(),
+                retryable,
+                Some("reconcile the selected Android device and retry the preview session".into()),
+            )
+        })?;
+    let record_json = serde_json::to_string(&observation).map_err(|_| {
+        error(
+            correlation_id,
+            Some(command_id.into()),
+            None,
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Internal,
+            "Android device observation could not be serialized safely",
+            false,
+            None,
+        )
+    })?;
+    state
+        .plane
+        .save_android_device_observation(
+            &observation.observation_id,
+            &observation.task_id,
+            source_revision,
+            &observation.device_identity,
+            &record_json,
+        )
+        .map_err(|_| {
+            error(
+                correlation_id,
+                Some(command_id.into()),
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "Android device observation could not be persisted",
+                true,
+                Some("reconcile local device observation storage before retrying".into()),
+            )
+        })?;
+    Ok(Some(observation))
 }
 
 #[cfg(test)]

@@ -109,6 +109,15 @@ impl Ledger {
                  record_json TEXT NOT NULL,
                  UNIQUE(project_id, task_id, source_revision)
              );
+             CREATE TABLE IF NOT EXISTS android_device_observations (
+                 observation_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 device_identity TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 UNIQUE(project_id, task_id, source_revision, device_identity)
+             );
              CREATE TABLE IF NOT EXISTS android_artifact_exports (
                  export_id TEXT PRIMARY KEY,
                  project_id TEXT NOT NULL,
@@ -723,6 +732,55 @@ impl Ledger {
         self.connection
             .query_row(
                 "SELECT record_json FROM android_artifact_exports WHERE project_id=?1 AND task_id=?2 AND source_revision=?3",
+                params![project_id.0, task_id, source_revision],
+                |row| row.get(0),
+            )
+            .optional()
+    }
+
+    pub fn save_android_device_observation(
+        &self,
+        observation_id: &str,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        device_identity: &str,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_device_observations (observation_id, project_id, task_id, source_revision, device_identity, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(project_id, task_id, source_revision, device_identity) DO UPDATE SET observation_id=excluded.observation_id, record_json=excluded.record_json",
+            params![observation_id, project_id.0, task_id, source_revision, device_identity, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_android_device_observation(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        device_identity: &str,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM android_device_observations WHERE project_id=?1 AND task_id=?2 AND source_revision=?3 AND device_identity=?4",
+                params![project_id.0, task_id, source_revision, device_identity],
+                |row| row.get(0),
+            )
+            .optional()
+    }
+
+    pub fn load_android_device_observation_for_source(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM android_device_observations WHERE project_id=?1 AND task_id=?2 AND source_revision=?3 ORDER BY observation_id DESC LIMIT 1",
                 params![project_id.0, task_id, source_revision],
                 |row| row.get(0),
             )

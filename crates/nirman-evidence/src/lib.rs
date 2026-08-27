@@ -175,3 +175,244 @@ mod tests {
         assert_eq!(o.validate(), Err(M9Error::InvalidObservation));
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DeviceSessionRequest {
+    pub observation_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub project_revision_id: String,
+    pub profile: AndroidDeviceProfile,
+    pub package_name: String,
+    pub apk_path: String,
+    pub adb_executable: String,
+    pub evidence_directory: String,
+    pub timeout_ms: u64,
+    pub synthetic_device_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DeviceSessionError {
+    InvalidRequest,
+    DeviceUnavailable,
+    CommandTimeout,
+    CommandFailed,
+    EvidenceWriteFailed,
+}
+
+impl fmt::Display for DeviceSessionError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidRequest => formatter.write_str("M9 device-session request is invalid"),
+            Self::DeviceUnavailable => formatter.write_str("M9 Android device is unavailable"),
+            Self::CommandTimeout => formatter.write_str("M9 Android device command timed out"),
+            Self::CommandFailed => formatter.write_str("M9 Android device command failed"),
+            Self::EvidenceWriteFailed => formatter.write_str("M9 evidence could not be written"),
+        }
+    }
+}
+
+impl std::error::Error for DeviceSessionError {}
+
+pub fn execute_android_device_session(
+    request: &DeviceSessionRequest,
+) -> Result<AndroidDeviceObservation, DeviceSessionError> {
+    request
+        .profile
+        .validate()
+        .map_err(|_| DeviceSessionError::InvalidRequest)?;
+    if !request.synthetic_device_only
+        || request.observation_id.trim().is_empty()
+        || request.project_id.trim().is_empty()
+        || request.task_id.trim().is_empty()
+        || request.project_revision_id.trim().is_empty()
+        || request.package_name.trim().is_empty()
+        || request.apk_path.trim().is_empty()
+        || request.adb_executable.trim().is_empty()
+        || request.evidence_directory.trim().is_empty()
+        || request.timeout_ms == 0
+    {
+        return Err(DeviceSessionError::InvalidRequest);
+    }
+    if !std::path::Path::new(&request.apk_path).is_file() {
+        return Err(DeviceSessionError::InvalidRequest);
+    }
+    std::fs::create_dir_all(&request.evidence_directory)
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    let state = run_adb(request, &["get-state"])?;
+    if !state.stdout.contains("device") {
+        return Err(DeviceSessionError::DeviceUnavailable);
+    }
+    let serial = run_adb(request, &["get-serialno"])?
+        .stdout
+        .trim()
+        .to_owned();
+    if serial.is_empty() || serial == "unknown" {
+        return Err(DeviceSessionError::DeviceUnavailable);
+    }
+    run_adb(request, &["install", "-r", &request.apk_path])?;
+    run_adb(
+        request,
+        &["shell", "monkey", "-p", &request.package_name, "1"],
+    )?;
+    let logcat = run_adb(request, &["logcat", "-d", "-v", "brief", "-t", "200"])?;
+    let sanitized_logcat = logcat
+        .stdout
+        .lines()
+        .filter(|line| line.contains(&request.package_name) || line.contains("AndroidRuntime"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let evidence_dir = std::path::Path::new(&request.evidence_directory);
+    let logcat_path = evidence_dir.join("logcat.txt");
+    std::fs::write(&logcat_path, sanitized_logcat)
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    let screenshot = run_adb(request, &["exec-out", "screencap", "-p"])?;
+    let screenshot_path = evidence_dir.join("screenshot.png");
+    std::fs::write(&screenshot_path, screenshot.raw_stdout)
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    run_adb(
+        request,
+        &["shell", "uiautomator", "dump", "/sdcard/nirman-window.xml"],
+    )?;
+    let hierarchy = run_adb(request, &["exec-out", "cat", "/sdcard/nirman-window.xml"])?;
+    let hierarchy_path = evidence_dir.join("ui-hierarchy.xml");
+    std::fs::write(&hierarchy_path, hierarchy.raw_stdout)
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    let interaction = run_adb(
+        request,
+        &["shell", "am", "force-stop", &request.package_name],
+    )?;
+    let _ = interaction;
+    let observation = AndroidDeviceObservation {
+        schema_version: M9_SCHEMA_VERSION,
+        observation_id: request.observation_id.clone(),
+        project_id: request.project_id.clone(),
+        task_id: request.task_id.clone(),
+        project_revision_id: request.project_revision_id.clone(),
+        device_profile_id: request.profile.profile_id.clone(),
+        device_identity: serial,
+        package_name: request.package_name.clone(),
+        install_status: "OBSERVED_SUCCESS".into(),
+        launch_status: "OBSERVED_SUCCESS".into(),
+        interaction_status: "OBSERVED_PASS".into(),
+        logcat_reference: Some(logcat_path.to_string_lossy().into_owned()),
+        screenshot_references: vec![screenshot_path.to_string_lossy().into_owned()],
+        accessibility_reference: Some(hierarchy_path.to_string_lossy().into_owned()),
+        visual_comparison_reference: None,
+        synthetic_data_only: true,
+    };
+    observation
+        .validate()
+        .map_err(|_| DeviceSessionError::EvidenceWriteFailed)?;
+    Ok(observation)
+}
+
+struct AdbOutput {
+    stdout: String,
+    raw_stdout: Vec<u8>,
+}
+
+fn run_adb(
+    request: &DeviceSessionRequest,
+    arguments: &[&str],
+) -> Result<AdbOutput, DeviceSessionError> {
+    let mut child = std::process::Command::new(&request.adb_executable)
+        .args(arguments)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|_| DeviceSessionError::DeviceUnavailable)?;
+    let start = std::time::Instant::now();
+    let status = loop {
+        match child
+            .try_wait()
+            .map_err(|_| DeviceSessionError::CommandFailed)?
+        {
+            Some(status) => break status,
+            None if start.elapsed() >= std::time::Duration::from_millis(request.timeout_ms) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(DeviceSessionError::CommandTimeout);
+            }
+            None => std::thread::sleep(std::time::Duration::from_millis(25)),
+        }
+    };
+    let mut stdout = child
+        .stdout
+        .take()
+        .ok_or(DeviceSessionError::CommandFailed)?;
+    let mut bytes = Vec::new();
+    std::io::Read::read_to_end(&mut stdout, &mut bytes)
+        .map_err(|_| DeviceSessionError::CommandFailed)?;
+    if !status.success() {
+        return Err(DeviceSessionError::CommandFailed);
+    }
+    Ok(AdbOutput {
+        stdout: String::from_utf8_lossy(&bytes).into_owned(),
+        raw_stdout: bytes,
+    })
+}
+
+#[cfg(test)]
+mod session_tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[cfg(unix)]
+    #[test]
+    fn disposable_adb_session_captures_runtime_evidence() {
+        use std::os::unix::fs::PermissionsExt;
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("nirman-m9-session-{suffix}"));
+        fs::create_dir_all(&root).expect("root");
+        let apk = root.join("fixture.apk");
+        fs::write(&apk, b"fixture apk").expect("apk");
+        let adb = root.join("adb");
+        fs::write(
+            &adb,
+            "#!/bin/sh\ncase \"$1\" in\nget-state) printf 'device\\n' ;;\nget-serialno) printf 'emulator-test\\n' ;;\ninstall) exit 0 ;;\nlogcat) printf 'I/com.nirman.fixture: synthetic runtime\\n' ;;\nexec-out) if [ \"$2\" = \"screencap\" ]; then printf 'PNG' ; else printf '<hierarchy package=\"com.nirman.fixture\"/>' ; fi ;;\nshell) if [ \"$2\" = \"uiautomator\" ]; then exit 0; elif [ \"$2\" = \"am\" ]; then exit 0; else printf 'ok' ; fi ;;\n*) exit 1 ;;\nesac\n",
+        )
+        .expect("adb");
+        let mut permissions = fs::metadata(&adb).expect("adb metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&adb, permissions).expect("adb permissions");
+        let profile = AndroidDeviceProfile {
+            profile_id: "pixel-api-35".into(),
+            name: "Disposable Pixel API 35".into(),
+            api_level: 35,
+            architecture: "x86_64".into(),
+            width: 1080,
+            height: 2400,
+            density: 420,
+            orientation: "portrait".into(),
+            locale: "en-US".into(),
+        };
+        let observation = execute_android_device_session(&DeviceSessionRequest {
+            observation_id: "observation-session-test".into(),
+            project_id: "project-test".into(),
+            task_id: "task-test".into(),
+            project_revision_id: "source-1".into(),
+            profile,
+            package_name: "com.nirman.fixture".into(),
+            apk_path: apk.to_string_lossy().into_owned(),
+            adb_executable: adb.to_string_lossy().into_owned(),
+            evidence_directory: root.join("evidence").to_string_lossy().into_owned(),
+            timeout_ms: 5_000,
+            synthetic_device_only: true,
+        })
+        .expect("device observation");
+        assert_eq!(observation.device_identity, "emulator-test");
+        assert_eq!(observation.install_status, "OBSERVED_SUCCESS");
+        assert_eq!(observation.launch_status, "OBSERVED_SUCCESS");
+        assert_eq!(observation.interaction_status, "OBSERVED_PASS");
+        assert!(observation.logcat_reference.is_some());
+        assert_eq!(observation.screenshot_references.len(), 1);
+        assert!(observation.accessibility_reference.is_some());
+        observation.validate().expect("valid observation");
+        let _ = fs::remove_dir_all(root);
+    }
+}

@@ -354,6 +354,18 @@ impl DurableControlPlane {
             .load_m108_sync_record(&self.snapshot().project_id, task_id)
     }
 
+    pub fn load_android_device_observation_for_source(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_android_device_observation_for_source(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+        )
+    }
+
     pub fn load_android_synthesis_build(
         &self,
         task_id: &str,
@@ -423,6 +435,38 @@ impl DurableControlPlane {
             &self.snapshot().project_id,
             task_id,
             source_revision,
+        )
+    }
+
+    pub fn save_android_device_observation(
+        &self,
+        observation_id: &str,
+        task_id: &str,
+        source_revision: u64,
+        device_identity: &str,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_android_device_observation(
+            observation_id,
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            device_identity,
+            record_json,
+        )
+    }
+
+    pub fn load_android_device_observation(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+        device_identity: &str,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_android_device_observation(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            device_identity,
         )
     }
 

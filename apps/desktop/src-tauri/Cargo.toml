@@ -10,6 +10,7 @@ nirman-android = { path = "../../../crates/nirman-android" }
 nirman-artifacts = { path = "../../../crates/nirman-artifacts" }
 nirman-control-plane = { path = "../../../crates/nirman-control-plane" }
 nirman-domain = { path = "../../../crates/nirman-domain" }
+nirman-evidence = { path = "../../../crates/nirman-evidence" }
 nirman-ipc = { path = "../../../crates/nirman-ipc" }
 nirman-providers = { path = "../../../crates/nirman-providers" }
 nirman-project = { path = "../../../crates/nirman-project" }

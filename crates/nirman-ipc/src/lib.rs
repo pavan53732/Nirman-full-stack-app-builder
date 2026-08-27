@@ -8,6 +8,7 @@ use nirman_domain::{
     AndroidConstructionContract, CommandEnvelope, CommandKind, ControlEvent, ProjectId,
     ProjectionSnapshot, Revision, TaskId,
 };
+use nirman_evidence::AndroidDeviceObservation;
 use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
 use nirman_project::{MutationEvidence, MutationFileResult, MutationOperation};
 use serde::{Deserialize, Serialize};
@@ -417,6 +418,7 @@ pub struct PreviewStartCommandPayload {
 pub struct PreviewStartResultPayload {
     pub selection: PreviewFallbackSelection,
     pub revision: PreviewRevision,
+    pub device_observation: Option<AndroidDeviceObservation>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
