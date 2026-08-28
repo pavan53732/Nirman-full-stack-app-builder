@@ -7844,6 +7844,8 @@ mod tests {
             changed_paths: vec!["app/src/main/res/values/strings.xml".into()],
             required_evidence_kinds: vec!["DEVICE_EVIDENCE".into(), "VISUAL_EVIDENCE".into()],
             policy_decision_id: "policy-m48".into(),
+            workspace_root: None,
+            build_identity: None,
         };
         let mut preview_command = request(
             &state,
@@ -10646,6 +10648,12 @@ mod m108_export_preview_tests {
             serde_json::to_string(&ArtifactExportCommandPayload {
                 source_revision: 0,
                 destination_path: delivery.to_string_lossy().into_owned(),
+                packaging_profile_id: "profile-m108-fixture".into(),
+                artifact_kind: "APK".into(),
+                request_fingerprint: "fingerprint-m108-fixture".into(),
+                idempotency_key: "idempotency-m108-fixture-export".into(),
+                deployment_delivery: "REQUIRED_APK".into(),
+                destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
             })
             .expect("export payload"),
             preflight_response.snapshot.projection_revision.0,
@@ -10680,6 +10688,12 @@ mod m108_export_preview_tests {
         protected_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
             source_revision: 0,
             destination_path: "/home/user/.ssh/id_rsa".into(),
+            packaging_profile_id: "profile-m108-fixture".into(),
+            artifact_kind: "APK".into(),
+            request_fingerprint: "fingerprint-m108-fixture".into(),
+            idempotency_key: "idempotency-m108-fixture-protected-export".into(),
+            deployment_delivery: "REQUIRED_APK".into(),
+            destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
         })
         .expect("protected export payload");
         let protected_error = dispatch_request(&sink, &mut state, protected_export)
@@ -10705,6 +10719,12 @@ mod m108_export_preview_tests {
         unsafe_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
             source_revision: 0,
             destination_path: "../outside/app.apk".into(),
+            packaging_profile_id: "profile-m108-fixture".into(),
+            artifact_kind: "APK".into(),
+            request_fingerprint: "fingerprint-m108-fixture".into(),
+            idempotency_key: "idempotency-m108-fixture-relative-export".into(),
+            deployment_delivery: "REQUIRED_APK".into(),
+            destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
         })
         .expect("relative export payload");
         let unsafe_error = dispatch_request(&sink, &mut state, unsafe_export)
@@ -10788,6 +10808,8 @@ mod m108_export_preview_tests {
             changed_paths: vec!["app/src/main".into()],
             required_evidence_kinds: vec!["DEVICE_EVIDENCE".into(), "VISUAL_EVIDENCE".into()],
             policy_decision_id: "policy-m108-fixture".into(),
+            workspace_root: None,
+            build_identity: None,
         };
         let mut preview_command = request(
             &state,

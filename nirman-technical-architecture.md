@@ -4425,6 +4425,8 @@ PreviewRequest
 - requestedMode
 - requiredEvidenceKinds
 - policyDecisionId
+- workspaceRoot
+- buildIdentity
 ```
 
 The resulting `PreviewRevision` is immutable and contains:

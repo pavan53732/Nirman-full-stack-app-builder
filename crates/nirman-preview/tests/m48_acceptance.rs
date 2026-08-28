@@ -28,6 +28,8 @@ fn request(framework: &str, device: Option<&str>, changed_paths: Vec<&str>) -> P
         changed_paths: changed_paths.into_iter().map(String::from).collect(),
         required_evidence_kinds: vec!["PROCESS_EVIDENCE".into()],
         policy_decision_id: "policy-1".into(),
+        workspace_root: None,
+        build_identity: None,
     }
 }
 

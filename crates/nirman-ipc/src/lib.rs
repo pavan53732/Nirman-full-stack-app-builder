@@ -442,6 +442,12 @@ pub struct ArtifactBuildResultPayload {
 pub struct ArtifactExportCommandPayload {
     pub source_revision: u64,
     pub destination_path: String,
+    pub packaging_profile_id: String,
+    pub artifact_kind: String,
+    pub request_fingerprint: String,
+    pub idempotency_key: String,
+    pub deployment_delivery: String,
+    pub destination_kind: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

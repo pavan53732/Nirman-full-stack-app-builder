@@ -81,6 +81,8 @@ pub struct PreviewRequest {
     pub changed_paths: Vec<String>,
     pub required_evidence_kinds: Vec<String>,
     pub policy_decision_id: String,
+    pub workspace_root: Option<String>,
+    pub build_identity: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -1129,6 +1131,8 @@ mod tests {
             changed_paths: vec!["app/src/main/res/values/strings.xml".into()],
             required_evidence_kinds: vec!["DEVICE_EVIDENCE".into(), "VISUAL_EVIDENCE".into()],
             policy_decision_id: "policy-1".into(),
+            workspace_root: None,
+            build_identity: None,
         }
     }
 
