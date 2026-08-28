@@ -685,6 +685,55 @@ pub const ANDROID_LOG_ENTRY_SCHEMA: &str = "nirman.android_log_entry.v1";
 pub const INSTALL_STATUS_SCHEMA: &str = "nirman.install_status.v1";
 pub const RELOAD_STATUS_SCHEMA: &str = "nirman.reload_status.v1";
 
+// ------------------------------------------------- M11 APK delivery contract (work item 5)
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PackagingProfile {
+    pub profile_id: String,
+    pub artifact_kinds: Vec<ArtifactKind>,
+    pub signing_required: bool,
+    pub destination_kind: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ApkDeliveryRecord {
+    pub schema_version: u16,
+    pub delivery_id: String,
+    pub artifact_id: String,
+    pub project_id: String,
+    pub task_id: String,
+    pub source_revision: u64,
+    pub packaging_profile_id: String,
+    pub artifact_kind: ArtifactKind,
+    pub destination_path: String,
+    pub destination_kind: String,
+    pub request_fingerprint: String,
+    pub idempotency_key: String,
+    pub sha256: String,
+    pub byte_count: u64,
+    pub state: DeliveryState,
+    pub created_at_epoch_seconds: u64,
+    pub completed_at_epoch_seconds: Option<u64>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DeliveryState {
+    Pending,
+    Copying,
+    Copied,
+    Verified,
+    Failed,
+    Blocked,
+    Unknown,
+}
+
+pub const PACKAGING_PROFILE_SCHEMA: &str = "nirman.packaging_profile.v1";
+pub const APK_DELIVERY_RECORD_SCHEMA: &str = "nirman.apk_delivery_record.v1";
+
 // ------------------------------------------------- M11 diagnostics schemas
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1005,5 +1054,45 @@ mod tests {
         let json = serde_json::to_string(&status).expect("serialize");
         let back: ReloadStatus = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(status, back);
+    }
+
+    #[test]
+    fn packaging_profile_round_trips_serde() {
+        let profile = PackagingProfile {
+            profile_id: "profile-debug".into(),
+            artifact_kinds: vec![ArtifactKind::Apk],
+            signing_required: false,
+            destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+        };
+        let json = serde_json::to_string(&profile).expect("serialize");
+        let back: PackagingProfile = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(profile, back);
+    }
+
+    #[test]
+    fn apk_delivery_record_round_trips_serde() {
+        let record = ApkDeliveryRecord {
+            schema_version: 1,
+            delivery_id: "delivery-1".into(),
+            artifact_id: "artifact-1".into(),
+            project_id: "project-1".into(),
+            task_id: "task-1".into(),
+            source_revision: 0,
+            packaging_profile_id: "profile-debug".into(),
+            artifact_kind: ArtifactKind::Apk,
+            destination_path: "C:/build/app.apk".into(),
+            destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+            request_fingerprint: "fp-1".into(),
+            idempotency_key: "idem-1".into(),
+            sha256: "sha256:abc".into(),
+            byte_count: 1024,
+            state: DeliveryState::Verified,
+            created_at_epoch_seconds: 1_700_000_000,
+            completed_at_epoch_seconds: Some(1_700_000_100),
+            error_message: None,
+        };
+        let json = serde_json::to_string(&record).expect("serialize");
+        let back: ApkDeliveryRecord = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(record, back);
     }
 }
