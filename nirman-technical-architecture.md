@@ -4411,6 +4411,7 @@ Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly 
 
 ```text
 PreviewRequest
+- schemaVersion
 - requestId
 - projectId
 - taskId
@@ -4422,7 +4423,11 @@ PreviewRequest
 - assetManifestVersion
 - buildVariant
 - deviceId
+- androidApiLevel
 - requestedMode
+- selectedLanguage
+- selectedUiFramework
+- changedPaths
 - requiredEvidenceKinds
 - policyDecisionId
 - workspaceRoot

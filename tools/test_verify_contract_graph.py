@@ -22,6 +22,16 @@ DOCS = ("nirman-build-spec.md", "nirman-technical-architecture.md",
         "nirman-decisions.md", "nirman-development-plan.md")
 BS, TA, DEC, DEV = DOCS
 
+# Extra (relpath, abspath) pairs the mutation battery needs to copy into the
+# temp root so the new command-payload-coverage check can resolve Rust sources
+# relative to the verifier's `root` argument.
+RUST_SOURCES = (
+    ("crates/nirman-ipc/src/lib.rs",
+     os.path.join(REPO, "crates/nirman-ipc/src/lib.rs")),
+    ("crates/nirman-preview/src/lib.rs",
+     os.path.join(REPO, "crates/nirman-preview/src/lib.rs")),
+)
+
 # label -> (doc, find, replace, expected defect check)
 CASES = {
     # ---- check 1: duplicate authority
@@ -498,6 +508,24 @@ CASES = {
         BS, "TEST-FCP-001 | EV-FCP-001",
         "TEST-GEN-001 | EV-GEN-001",
         "reverse break"),
+
+    # ---- check 14: command payload coverage
+    # The check requires ArtifactExportCommandPayload to expose the policy-
+    # mandatory fields. Removing one from the Rust source must fire the check.
+    "command payload field removed from artifact export": (
+        "crates/nirman-ipc/src/lib.rs",
+        "    pub packaging_profile_id: String,\n",
+        "    pub packaging_profile_id_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-ipc/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-ipc/src/lib.rs")),)),
+    "command payload field removed from preview request": (
+        "crates/nirman-preview/src/lib.rs",
+        "    pub workspace_root: Option<String>,\n",
+        "    pub workspace_root_removed: Option<String>,\n",
+        "command payload coverage",
+        (("crates/nirman-preview/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-preview/src/lib.rs")),)),
 }
 
 
@@ -507,6 +535,18 @@ def run(root):
     return p.returncode, p.stdout + p.stderr
 
 
+def _copy_fixture(tmp, files):
+    """Copy the four canonical docs plus any extra (relpath, abspath) files
+    into the temp root, preserving relative paths. The verifier's
+    `os.path.join(repo_root, rel_path)` lookups resolve correctly."""
+    for d in DOCS:
+        shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+    for relpath, abspath in files:
+        dst = os.path.join(tmp, relpath)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(abspath, dst)
+
+
 def failed_checks(out):
     """Defect classes reported by a run.
 
@@ -514,7 +554,7 @@ def failed_checks(out):
     detection, not a pass, so it is surfaced as the synthetic class "FATAL" —
     keeping it distinguishable from a clean exit.
     """
-    hits = set(re.findall(r"^\s*FAIL \(\d+\)\s+(.+)$", out, re.M))
+    hits = {m.group(1) for m in re.finditer(r"^\s*\[([a-z ]+)\] ", out, re.M)}
     if "FATAL:" in out:
         hits.add("FATAL")
     return hits
@@ -537,16 +577,36 @@ def main():
     results.append(("deterministic", out == out2, ""))
 
     covered = set()
-    for label, (doc, find, repl, expect) in CASES.items():
+    for label, case in CASES.items():
+        # Case shape: (doc, find, repl, expect) for doc-only mutations, or
+        # (doc, find, repl, expect, extra_files) when the case also needs
+        # non-doc files copied into the temp root (e.g., Rust source files
+        # for the command-payload-coverage check).
+        if not isinstance(case, tuple) or len(case) not in (4, 5):
+            raise AssertionError(f"bad case shape: {label!r} -> {case!r}")
+        extra = ()
+        if len(case) == 5:
+            doc, find, repl, expect, extra = case
+        else:
+            doc, find, repl, expect = case
         with tempfile.TemporaryDirectory(prefix="hermes-cg-") as tmp:
-            for d in DOCS:
-                shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+            _copy_fixture(tmp, extra)
             path = os.path.join(tmp, doc)
             text = open(path, encoding="utf-8").read()
             if find not in text:
                 results.append((f"negative: {label}", False, "anchor missing -> test invalid"))
                 continue
             open(path, "w", encoding="utf-8").write(text.replace(find, repl, 1))
+            # If the mutation targets a non-doc file in `extra`, apply the
+            # same find/replace to that file's copy in the temp root.
+            for relpath, _abspath in extra:
+                fpath = os.path.join(tmp, relpath)
+                if not os.path.exists(fpath):
+                    continue
+                ftext = open(fpath, encoding="utf-8").read()
+                if find in ftext:
+                    open(fpath, "w", encoding="utf-8").write(
+                        ftext.replace(find, repl, 1))
             rc, out = run(tmp)
             hit = expect in failed_checks(out)
             if hit:
@@ -558,8 +618,7 @@ def main():
     # POSITIVE: renumbering a registry heading must not break registry location,
     # because headings are matched by text rather than by section number.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-renum-") as tmp:
-        for d in DOCS:
-            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        _copy_fixture(tmp, RUST_SOURCES)
         path = os.path.join(tmp, BS)
         text = open(path, encoding="utf-8").read()
         open(path, "w", encoding="utf-8").write(
@@ -573,8 +632,7 @@ def main():
     # POSITIVE CONFORMANCE: identifiers in ordinary prose, comments, and fenced
     # examples must not become graph records or authorities.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-prose-") as tmp:
-        for d in DOCS:
-            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        _copy_fixture(tmp, RUST_SOURCES)
         path = os.path.join(tmp, BS)
         with open(path, "a", encoding="utf-8") as fh:
             fh.write("\nThis explanatory note mentions CONTRACT.RUNTIME.SCOPE, ADR-180, and M95 only as prose.\n")
@@ -588,8 +646,7 @@ def main():
     # POSITIVE CONFORMANCE: harmless Unicode explanatory text must not affect
     # registry addressing or semantic checks.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-unicode-") as tmp:
-        for d in DOCS:
-            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        _copy_fixture(tmp, RUST_SOURCES)
         path = os.path.join(tmp, TA)
         with open(path, "a", encoding="utf-8") as fh:
             fh.write("\nImplementation note — résumé, café, and हिन्दी text are non-normative.\n")
@@ -599,16 +656,14 @@ def main():
                         f"exit={rc}"))
 
     with tempfile.TemporaryDirectory(prefix="hermes-cg-ctl-") as tmp:
-        for d in DOCS:
-            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        _copy_fixture(tmp, RUST_SOURCES)
         rc, out = run(tmp)
         results.append(("control: clean copy certifies", rc == 0, f"exit={rc}"))
 
     # POSITIVE CONFORMANCE: the validated continuity and export contracts are
     # present in the clean synchronized document set and survive certification.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-continuity-export-") as tmp:
-        for d in DOCS:
-            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+        _copy_fixture(tmp, RUST_SOURCES)
         required = (
             (BS, "## 77. Background Continuity Contract"),
             (TA, "## 82. Background Continuity Implementation Contract"),
@@ -632,7 +687,7 @@ def main():
         "duplicate authority", "unregistered contract", "undeclared extension",
         "authority cycle", "clause contradiction", "unversioned override",
         "dangling reference", "forward break", "reverse break", "orphan contract",
-        "canonical identity", "structure",
+        "canonical identity", "structure", "command payload coverage",
     }
     # FATAL is a harness-synthesised class, not a §67.11 check; exclude it from
     # coverage accounting so the ratio cannot exceed the number of real checks.

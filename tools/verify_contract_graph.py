@@ -922,6 +922,113 @@ def _contract_domain_pattern(contract_id):
     return patterns.get(domain)
 
 
+def _camel_to_snake(name):
+    """Convert camelCase or PascalCase to snake_case."""
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _parse_field_block(text, schema_name):
+    """Extract field names from a fenced text block whose first line is `schema_name`.
+
+    Returns a sorted list of field names (without any type annotation).
+    A field is any line matching `^- <field>`, optionally followed by `:` and a
+    type expression that may wrap onto subsequent indented lines. Continuation
+    lines that don't start with `-` are folded into the previous field.
+    """
+    pat = re.compile(r"```text\s*\n" + re.escape(schema_name) + r"\s*\n(.+?)\n```",
+                     re.S)
+    m = pat.search(text)
+    if m is None:
+        return None
+    body = m.group(1)
+    fields = []
+    for line in body.splitlines():
+        s = line.strip()
+        if s.startswith("- "):
+            fld = s[2:].split(":", 1)[0].strip()
+            if fld and re.match(r"^[A-Za-z][A-Za-z0-9]*$", fld):
+                fields.append(fld)
+    return fields
+
+
+def _rust_field_present(source, struct_name, snake_field):
+    """True iff `pub <snake_field>:` appears inside `struct <struct_name>`."""
+    # find the struct block
+    pat = re.compile(
+        r"(?:pub\s+)?struct\s+" + re.escape(struct_name) + r"\s*\{(.+?)\n\}",
+        re.S)
+    m = pat.search(source)
+    if m is None:
+        return False
+    body = m.group(1)
+    field_pat = re.compile(
+        r"^\s*pub\s+" + re.escape(snake_field) + r"\s*:\s", re.M)
+    return bool(field_pat.search(body))
+
+
+def check_command_payload_field_coverage(docs, R, D, root):
+    """Check 14: every command payload exposes the policy-mandatory fields
+    named by the canonical record it materializes.
+
+    The contract is the field list declared in the fenced text block of
+    nirman-technical-architecture.md. The implementation is the Rust struct
+    in the corresponding crate. A drift between the two (the kind that
+    silently weakened the portable M6 policy boundary) is the defect class
+    this check exists to catch.
+    """
+    ta = docs["ta"]
+    # The verifier is rooted at the directory the test runner (or user)
+    # passed in. For the mutation battery this is a temp dir; for the
+    # local-certification entry point it is the repo root. The Rust
+    # source lookup must resolve relative to that root, not to the
+    # verifier's own location.
+    repo_root = root
+
+    # (rust_struct, source_path_relative_to_repo, ta_schema_name,
+    #  mandatory_fields_subset_or_None_for_all, name_aliases)
+    # name_aliases maps canonical camelCase names to the actual snake_case
+    # field in the Rust struct when the names diverged before the check
+    # existed (e.g. legacy fields that predate the canonical record).
+    targets = [
+        ("ArtifactExportCommandPayload",
+         "crates/nirman-ipc/src/lib.rs",
+         "ExportVerificationRecord",
+         {"packagingProfileId", "artifactKind", "requestFingerprint",
+          "idempotencyKey", "deploymentDelivery", "destinationKind",
+          "sourceRevision", "destinationPathReference"},
+         {"destinationPathReference": "destination_path"}),
+        ("PreviewRequest",
+         "crates/nirman-preview/src/lib.rs",
+         "PreviewRequest",
+         None,
+         {}),
+    ]
+
+    for struct_name, rel_path, schema_name, mandatory_subset, aliases in targets:
+        full_path = os.path.join(repo_root, rel_path)
+        if not os.path.exists(full_path):
+            D.add("command payload coverage", struct_name,
+                  f"source file {rel_path} not found; cannot verify coverage")
+            continue
+        with open(full_path, encoding="utf-8") as fh:
+            source = fh.read()
+        canonical = _parse_field_block(ta, schema_name)
+        if canonical is None:
+            D.add("command payload coverage", struct_name,
+                  f"TA has no fenced field block for {schema_name}; "
+                  f"cannot verify coverage")
+            continue
+        required = (set(canonical) if mandatory_subset is None
+                    else mandatory_subset)
+        for fld in sorted(required):
+            snake = aliases.get(fld, _camel_to_snake(fld))
+            if not _rust_field_present(source, struct_name, snake):
+                D.add("command payload coverage", struct_name,
+                      f"required field {fld!r} (Rust: `{snake}`) is missing "
+                      f"or commented out; TA §{schema_name} declares it as a "
+                      f"policy-mandatory field of the canonical record")
+
+
 def check_semantic_documentation(docs, R, D):
     """Detect high-risk semantic drift not covered by the contract graph."""
     bs, ta, dec, dev = docs["bs"], docs["ta"], docs["dec"], docs["dev"]
@@ -1364,6 +1471,7 @@ CHECK_ORDER = (
     "authority cycle", "clause contradiction", "unversioned override",
     "dangling reference", "forward break", "reverse break", "orphan contract",
     "canonical identity", "structure", "semantic documentation",
+    "command payload coverage",
 )
 
 
@@ -1385,6 +1493,7 @@ def verify(root):
     check_canonical_identity(docs, R, D)
     check_semantic_documentation(docs, R, D)
     check_structure(docs, R, D)
+    check_command_payload_field_coverage(docs, R, D, root)
     return R, adj, D
 
 
@@ -1419,8 +1528,9 @@ def main():
         print("\nCERTIFICATION: FAIL")
         return 1
 
-    print("\nall 12 §67.11 graph/structure checks pass in both traversal directions")
+    print("\nall 13 §67.11 graph/structure checks pass in both traversal directions")
     print("semantic documentation lint: PASS")
+    print("command payload coverage: PASS")
     print("CERTIFICATION: PASS")
     return 0
 
