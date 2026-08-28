@@ -615,6 +615,76 @@ pub struct KnownExclusion {
 
 pub const ANDROID_CAPABILITY_REGISTRY_SCHEMA: &str = "nirman.android_capability_registry.v1";
 
+// ------------------------------------------------- M11 logs, install, reload status (work item 4)
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AndroidLogEntry {
+    pub schema_version: u16,
+    pub entry_id: String,
+    pub tag: String,
+    pub level: LogEntryLevel,
+    pub message: String,
+    pub recorded_at_epoch_seconds: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LogEntryLevel {
+    Verbose,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Assert,
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallStatus {
+    pub schema_version: u16,
+    pub device_id: String,
+    pub package_name: String,
+    pub state: InstallState,
+    pub installed_at_epoch_seconds: Option<u64>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum InstallState {
+    Installing,
+    Installed,
+    Failed,
+    Uninstalled,
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ReloadStatus {
+    pub schema_version: u16,
+    pub device_id: String,
+    pub state: ReloadState,
+    pub reloaded_at_epoch_seconds: Option<u64>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ReloadState {
+    Restarting,
+    Restarted,
+    Failed,
+    Idle,
+    Unknown,
+}
+
+pub const ANDROID_LOG_ENTRY_SCHEMA: &str = "nirman.android_log_entry.v1";
+pub const INSTALL_STATUS_SCHEMA: &str = "nirman.install_status.v1";
+pub const RELOAD_STATUS_SCHEMA: &str = "nirman.reload_status.v1";
+
 // ------------------------------------------------- M11 diagnostics schemas
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -891,5 +961,49 @@ mod tests {
             manager.get_device("pixel-35").unwrap().connection_state,
             ConnectionState::Disconnected
         );
+    }
+
+    #[test]
+    fn android_log_entry_round_trips_serde() {
+        let entry = AndroidLogEntry {
+            schema_version: 1,
+            entry_id: "log-1".into(),
+            tag: "TestTag".into(),
+            level: LogEntryLevel::Info,
+            message: "test message".into(),
+            recorded_at_epoch_seconds: 1_700_000_000,
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let back: AndroidLogEntry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(entry, back);
+    }
+
+    #[test]
+    fn install_status_round_trips_serde() {
+        let status = InstallStatus {
+            schema_version: 1,
+            device_id: "pixel-35".into(),
+            package_name: "com.example.app".into(),
+            state: InstallState::Installed,
+            installed_at_epoch_seconds: Some(1_700_000_000),
+            error_message: None,
+        };
+        let json = serde_json::to_string(&status).expect("serialize");
+        let back: InstallStatus = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(status, back);
+    }
+
+    #[test]
+    fn reload_status_round_trips_serde() {
+        let status = ReloadStatus {
+            schema_version: 1,
+            device_id: "pixel-35".into(),
+            state: ReloadState::Restarted,
+            reloaded_at_epoch_seconds: Some(1_700_000_000),
+            error_message: None,
+        };
+        let json = serde_json::to_string(&status).expect("serialize");
+        let back: ReloadStatus = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(status, back);
     }
 }
