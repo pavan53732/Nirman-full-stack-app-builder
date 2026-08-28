@@ -615,6 +615,115 @@ pub struct KnownExclusion {
 
 pub const ANDROID_CAPABILITY_REGISTRY_SCHEMA: &str = "nirman.android_capability_registry.v1";
 
+// ------------------------------------------------- M11 diagnostics schemas
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AndroidDiagnostic {
+    pub schema_version: u16,
+    pub diagnostic_id: String,
+    pub kind: DiagnosticKind,
+    pub status: DiagnosticStatus,
+    pub message: String,
+    pub remediation: Option<String>,
+    pub detected_at_epoch_seconds: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DiagnosticKind {
+    Java,
+    AndroidSdk,
+    Emulator,
+    Device,
+    PackageManager,
+    Gradle,
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DiagnosticStatus {
+    Pass,
+    Fail,
+    Warn,
+    Skipped,
+    Unknown,
+}
+
+pub const ANDROID_DIAGNOSTIC_SCHEMA: &str = "nirman.android_diagnostic.v1";
+
+// ------------------------------------------------- M11 device-manager abstraction
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceSession {
+    pub device_id: String,
+    pub form_factor: String,
+    pub api_level: u32,
+    pub connection_state: ConnectionState,
+    pub is_emulator: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConnectionState {
+    Connected,
+    Disconnected,
+    Unauthorized,
+    Offline,
+    Unknown,
+}
+
+pub trait DeviceManager: Send + Sync {
+    fn list_devices(&self) -> Vec<DeviceSession>;
+    fn get_device(&self, device_id: &str) -> Option<DeviceSession>;
+    fn connect(&mut self, device_id: &str) -> Result<(), AndroidResolverError>;
+    fn disconnect(&mut self, device_id: &str) -> Result<(), AndroidResolverError>;
+}
+
+pub struct InMemoryDeviceManager {
+    devices: Vec<DeviceSession>,
+}
+
+impl InMemoryDeviceManager {
+    pub fn new(devices: Vec<DeviceSession>) -> Self {
+        Self { devices }
+    }
+}
+
+impl DeviceManager for InMemoryDeviceManager {
+    fn list_devices(&self) -> Vec<DeviceSession> {
+        self.devices.clone()
+    }
+    fn get_device(&self, device_id: &str) -> Option<DeviceSession> {
+        self.devices
+            .iter()
+            .find(|d| d.device_id == device_id)
+            .cloned()
+    }
+    fn connect(&mut self, device_id: &str) -> Result<(), AndroidResolverError> {
+        let device = self
+            .devices
+            .iter_mut()
+            .find(|d| d.device_id == device_id)
+            .ok_or(AndroidResolverError::EmptyField("device_id"))?;
+        device.connection_state = ConnectionState::Connected;
+        Ok(())
+    }
+    fn disconnect(&mut self, device_id: &str) -> Result<(), AndroidResolverError> {
+        let device = self
+            .devices
+            .iter_mut()
+            .find(|d| d.device_id == device_id)
+            .ok_or(AndroidResolverError::EmptyField("device_id"))?;
+        device.connection_state = ConnectionState::Disconnected;
+        Ok(())
+    }
+}
+
+pub const DEVICE_SESSION_SCHEMA: &str = "nirman.device_session.v1";
+
 pub fn compose_technology_plan(
     registry: &AndroidCapabilityRegistry,
     composition_id: &str,
@@ -725,5 +834,62 @@ mod tests {
         assert_eq!(plan.selected_languages, vec!["kotlin"]);
         assert_eq!(plan.selected_ui_frameworks, vec!["jetpack-compose"]);
         assert_eq!(plan.selected_native_modules, vec!["camera"]);
+    }
+
+    #[test]
+    fn android_diagnostic_round_trips_serde() {
+        let diagnostic = AndroidDiagnostic {
+            schema_version: 1,
+            diagnostic_id: "diag-1".into(),
+            kind: DiagnosticKind::AndroidSdk,
+            status: DiagnosticStatus::Pass,
+            message: "Android SDK found".into(),
+            remediation: None,
+            detected_at_epoch_seconds: 1_700_000_000,
+        };
+        let json = serde_json::to_string(&diagnostic).expect("serialize");
+        let back: AndroidDiagnostic = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(diagnostic, back);
+    }
+
+    #[test]
+    fn device_session_round_trips_serde() {
+        let session = DeviceSession {
+            device_id: "pixel-35".into(),
+            form_factor: "phone".into(),
+            api_level: 35,
+            connection_state: ConnectionState::Connected,
+            is_emulator: true,
+        };
+        let json = serde_json::to_string(&session).expect("serialize");
+        let back: DeviceSession = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(session, back);
+    }
+
+    #[test]
+    fn in_memory_device_manager_lists_and_mutates() {
+        let session = DeviceSession {
+            device_id: "pixel-35".into(),
+            form_factor: "phone".into(),
+            api_level: 35,
+            connection_state: ConnectionState::Disconnected,
+            is_emulator: true,
+        };
+        let mut manager = InMemoryDeviceManager::new(vec![session.clone()]);
+        assert_eq!(manager.list_devices().len(), 1);
+        assert_eq!(
+            manager.get_device("pixel-35").unwrap().connection_state,
+            ConnectionState::Disconnected
+        );
+        manager.connect("pixel-35").expect("connect");
+        assert_eq!(
+            manager.get_device("pixel-35").unwrap().connection_state,
+            ConnectionState::Connected
+        );
+        manager.disconnect("pixel-35").expect("disconnect");
+        assert_eq!(
+            manager.get_device("pixel-35").unwrap().connection_state,
+            ConnectionState::Disconnected
+        );
     }
 }
