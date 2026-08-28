@@ -551,3 +551,114 @@ impl std::error::Error for DomainError {}
 pub fn next_revision(revision: Revision) -> Revision {
     Revision(revision.0.saturating_add(1))
 }
+
+// ------------------------------------------------- M11 Android capability registry
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AndroidCapabilityRegistry {
+    pub schema_version: u16,
+    pub registry_id: String,
+    pub compositions: Vec<TechnologyComposition>,
+    pub toolchain_locks: Vec<ToolchainLock>,
+    pub device_matrix: Vec<DeviceMatrixEntry>,
+    pub fixtures: Vec<FixtureRecord>,
+    pub known_exclusions: Vec<KnownExclusion>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TechnologyComposition {
+    pub composition_id: String,
+    pub language: String,
+    pub ui_framework: String,
+    pub runtime_layer: String,
+    pub native_modules: Vec<String>,
+    pub build_plugins: Vec<String>,
+    pub device_apis: Vec<String>,
+    pub mixed_architecture: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolchainLock {
+    pub component: String,
+    pub locked_version: String,
+    pub compatible_range: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceMatrixEntry {
+    pub profile_id: String,
+    pub form_factor: String,
+    pub api_levels: Vec<u32>,
+    pub composition_ids: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FixtureRecord {
+    pub fixture_id: String,
+    pub composition_id: String,
+    pub evidence_status: String,
+    pub last_verified_at_epoch_seconds: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct KnownExclusion {
+    pub exclusion_id: String,
+    pub description: String,
+    pub rationale: String,
+}
+
+pub const ANDROID_CAPABILITY_REGISTRY_SCHEMA: &str = "nirman.android_capability_registry.v1";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn android_capability_registry_round_trips_serde() {
+        let registry = AndroidCapabilityRegistry {
+            schema_version: 1,
+            registry_id: "registry-test".into(),
+            compositions: vec![TechnologyComposition {
+                composition_id: "compose-kotlin".into(),
+                language: "kotlin".into(),
+                ui_framework: "jetpack-compose".into(),
+                runtime_layer: "art".into(),
+                native_modules: vec!["camera".into()],
+                build_plugins: vec!["kotlin-kapt".into()],
+                device_apis: vec!["camera2".into()],
+                mixed_architecture: false,
+            }],
+            toolchain_locks: vec![ToolchainLock {
+                component: "gradle".into(),
+                locked_version: "8.4".into(),
+                compatible_range: ">= 8.0, < 9.0".into(),
+            }],
+            device_matrix: vec![DeviceMatrixEntry {
+                profile_id: "phone-api-35".into(),
+                form_factor: "phone".into(),
+                api_levels: vec![35],
+                composition_ids: vec!["compose-kotlin".into()],
+            }],
+            fixtures: vec![FixtureRecord {
+                fixture_id: "fixture-compose-kotlin".into(),
+                composition_id: "compose-kotlin".into(),
+                evidence_status: "VERIFIED".into(),
+                last_verified_at_epoch_seconds: 1_700_000_000,
+            }],
+            known_exclusions: vec![KnownExclusion {
+                exclusion_id: "no-aab-without-keystore".into(),
+                description: "AAB requires signing keystore".into(),
+                rationale: "AAB is only produced when PackagingProfile requires APK_AND_AAB".into(),
+            }],
+        };
+        let json = serde_json::to_string(&registry).expect("serialize");
+        let back: AndroidCapabilityRegistry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(registry, back);
+    }
+}
