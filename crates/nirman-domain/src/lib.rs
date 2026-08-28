@@ -734,6 +734,30 @@ pub enum DeliveryState {
 pub const PACKAGING_PROFILE_SCHEMA: &str = "nirman.packaging_profile.v1";
 pub const APK_DELIVERY_RECORD_SCHEMA: &str = "nirman.apk_delivery_record.v1";
 
+// ------------------------------------------------- M11 signing configuration (work item 6)
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SigningConfig {
+    pub config_id: String,
+    pub keystore_reference: String,
+    pub key_alias: String,
+    pub signing_scheme: SigningScheme,
+    pub keystore_password_reference: Option<String>,
+    pub key_password_reference: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SigningScheme {
+    V1,
+    V2,
+    V1V2,
+    Unknown,
+}
+
+pub const SIGNING_CONFIG_SCHEMA: &str = "nirman.signing_config.v1";
+
 // ------------------------------------------------- M11 diagnostics schemas
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1094,5 +1118,20 @@ mod tests {
         let json = serde_json::to_string(&record).expect("serialize");
         let back: ApkDeliveryRecord = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(record, back);
+    }
+
+    #[test]
+    fn signing_config_round_trips_serde() {
+        let config = SigningConfig {
+            config_id: "signing-debug".into(),
+            keystore_reference: "keychain://nirman/keystore/debug".into(),
+            key_alias: "debug-key".into(),
+            signing_scheme: SigningScheme::V1V2,
+            keystore_password_reference: Some("keychain://nirman/keystore/debug/password".into()),
+            key_password_reference: Some("keychain://nirman/key/debug/password".into()),
+        };
+        let json = serde_json::to_string(&config).expect("serialize");
+        let back: SigningConfig = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(config, back);
     }
 }
