@@ -615,6 +615,38 @@ pub struct KnownExclusion {
 
 pub const ANDROID_CAPABILITY_REGISTRY_SCHEMA: &str = "nirman.android_capability_registry.v1";
 
+pub fn compose_technology_plan(
+    registry: &AndroidCapabilityRegistry,
+    composition_id: &str,
+    task_id: TaskId,
+    revision: Revision,
+) -> Result<AndroidTechnologyPlan, AndroidResolverError> {
+    let composition = registry
+        .compositions
+        .iter()
+        .find(|c| c.composition_id == composition_id)
+        .ok_or(AndroidResolverError::EmptyField("composition_id"))?;
+    Ok(AndroidTechnologyPlan {
+        plan_id: format!("plan-{composition_id}"),
+        task_id,
+        requested_capabilities: vec![],
+        visual_requirements: vec![],
+        selected_languages: vec![composition.language.clone()],
+        selected_ui_frameworks: vec![composition.ui_framework.clone()],
+        selected_runtime_layers: vec![composition.runtime_layer.clone()],
+        selected_native_modules: composition.native_modules.clone(),
+        selected_build_plugins: composition.build_plugins.clone(),
+        selected_device_apis: composition.device_apis.clone(),
+        selected_libraries: vec![],
+        compatibility_constraints: vec![],
+        rejected_alternatives: vec![],
+        required_toolchains: vec![],
+        validation_plan: vec![],
+        confidence: None,
+        revision,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -660,5 +692,38 @@ mod tests {
         let json = serde_json::to_string(&registry).expect("serialize");
         let back: AndroidCapabilityRegistry = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(registry, back);
+    }
+
+    #[test]
+    fn compose_technology_plan_from_registry() {
+        let registry = AndroidCapabilityRegistry {
+            schema_version: 1,
+            registry_id: "registry-test".into(),
+            compositions: vec![TechnologyComposition {
+                composition_id: "compose-kotlin".into(),
+                language: "kotlin".into(),
+                ui_framework: "jetpack-compose".into(),
+                runtime_layer: "art".into(),
+                native_modules: vec!["camera".into()],
+                build_plugins: vec!["kotlin-kapt".into()],
+                device_apis: vec!["camera2".into()],
+                mixed_architecture: false,
+            }],
+            toolchain_locks: vec![],
+            device_matrix: vec![],
+            fixtures: vec![],
+            known_exclusions: vec![],
+        };
+        let plan = compose_technology_plan(
+            &registry,
+            "compose-kotlin",
+            TaskId("task-1".into()),
+            Revision(0),
+        )
+        .expect("compose");
+        assert_eq!(plan.plan_id, "plan-compose-kotlin");
+        assert_eq!(plan.selected_languages, vec!["kotlin"]);
+        assert_eq!(plan.selected_ui_frameworks, vec!["jetpack-compose"]);
+        assert_eq!(plan.selected_native_modules, vec!["camera"]);
     }
 }
