@@ -989,6 +989,14 @@ def check_command_payload_field_coverage(docs, R, D, root):
     # name_aliases maps canonical camelCase names to the actual snake_case
     # field in the Rust struct when the names diverged before the check
     # existed (e.g. legacy fields that predate the canonical record).
+    #
+    # For M11 domain types, `ta_schema_name` is None: there is no canonical
+    # fenced text block in TA yet, so the check asserts the struct itself
+    # exists with the expected field set declared in the check's
+    # `mandatory_fields_subset`. Once a canonical TA block exists, set
+    # `ta_schema_name` to the block name and the check will switch to
+    # reading the field list from the spec.
+    domain_crate = "crates/nirman-domain/src/lib.rs"
     targets = [
         ("ArtifactExportCommandPayload",
          "crates/nirman-ipc/src/lib.rs",
@@ -1002,6 +1010,83 @@ def check_command_payload_field_coverage(docs, R, D, root):
          "PreviewRequest",
          None,
          {}),
+        # M11 work item 1: Android capability registry
+        ("AndroidCapabilityRegistry",
+         domain_crate, None,
+         {"schemaVersion", "registryId", "compositions", "toolchainLocks",
+          "deviceMatrix", "fixtures", "knownExclusions"},
+         {}),
+        ("TechnologyComposition",
+         domain_crate, None,
+         {"compositionId", "language", "uiFramework", "runtimeLayer",
+          "nativeModules", "buildPlugins", "deviceApis",
+          "mixedArchitecture"},
+         {}),
+        ("ToolchainLock",
+         domain_crate, None,
+         {"component", "lockedVersion", "compatibleRange"},
+         {}),
+        ("DeviceMatrixEntry",
+         domain_crate, None,
+         {"profileId", "formFactor", "apiLevels", "compositionIds"},
+         {}),
+        ("FixtureRecord",
+         domain_crate, None,
+         {"fixtureId", "compositionId", "evidenceStatus",
+          "lastVerifiedAtEpochSeconds"},
+         {}),
+        ("KnownExclusion",
+         domain_crate, None,
+         {"exclusionId", "description", "rationale"},
+         {}),
+        # M11 work item 2: diagnostics
+        ("AndroidDiagnostic",
+         domain_crate, None,
+         {"schemaVersion", "diagnosticId", "kind", "status", "message",
+          "remediation", "detectedAtEpochSeconds"},
+         {}),
+        # M11 work item 3: device-manager abstraction
+        ("DeviceSession",
+         domain_crate, None,
+         {"deviceId", "formFactor", "apiLevel", "connectionState",
+          "isEmulator"},
+         {}),
+        # M11 work item 4: logs, install, reload
+        ("AndroidLogEntry",
+         domain_crate, None,
+         {"schemaVersion", "entryId", "tag", "level", "message",
+          "recordedAtEpochSeconds"},
+         {}),
+        ("InstallStatus",
+         domain_crate, None,
+         {"schemaVersion", "deviceId", "packageName", "state",
+          "installedAtEpochSeconds", "errorMessage"},
+         {}),
+        ("ReloadStatus",
+         domain_crate, None,
+         {"schemaVersion", "deviceId", "state", "reloadedAtEpochSeconds",
+          "errorMessage"},
+         {}),
+        # M11 work item 5: APK delivery
+        ("PackagingProfile",
+         domain_crate, None,
+         {"profileId", "artifactKinds", "signingRequired", "destinationKind"},
+         {}),
+        ("ApkDeliveryRecord",
+         domain_crate, None,
+         {"schemaVersion", "deliveryId", "artifactId", "projectId",
+          "taskId", "sourceRevision", "packagingProfileId", "artifactKind",
+          "destinationPath", "destinationKind", "requestFingerprint",
+          "idempotencyKey", "sha256", "byteCount", "state",
+          "createdAtEpochSeconds", "completedAtEpochSeconds",
+          "errorMessage"},
+         {}),
+        # M11 work item 6: signing configuration
+        ("SigningConfig",
+         domain_crate, None,
+         {"configId", "keystoreReference", "keyAlias", "signingScheme",
+          "keystorePasswordReference", "keyPasswordReference"},
+         {}),
     ]
 
     for struct_name, rel_path, schema_name, mandatory_subset, aliases in targets:
@@ -1012,20 +1097,34 @@ def check_command_payload_field_coverage(docs, R, D, root):
             continue
         with open(full_path, encoding="utf-8") as fh:
             source = fh.read()
-        canonical = _parse_field_block(ta, schema_name)
-        if canonical is None:
-            D.add("command payload coverage", struct_name,
-                  f"TA has no fenced field block for {schema_name}; "
-                  f"cannot verify coverage")
-            continue
-        required = (set(canonical) if mandatory_subset is None
-                    else mandatory_subset)
+        if schema_name is not None:
+            canonical = _parse_field_block(ta, schema_name)
+            if canonical is None:
+                D.add("command payload coverage", struct_name,
+                      f"TA has no fenced field block for {schema_name}; "
+                      f"cannot verify coverage")
+                continue
+            required = (set(canonical) if mandatory_subset is None
+                        else mandatory_subset)
+            source_label = f"TA §{schema_name}"
+        else:
+            # No canonical TA block for this struct yet. The check falls back
+            # to the field set declared inline in the `mandatory_subset`,
+            # which is the M11 domain-schema source of truth until a fenced
+            # block is added to the spec.
+            if mandatory_subset is None:
+                D.add("command payload coverage", struct_name,
+                      "no canonical TA block and no mandatory_subset declared; "
+                      "cannot verify coverage")
+                continue
+            required = mandatory_subset
+            source_label = "the M11 domain schema declaration"
         for fld in sorted(required):
             snake = aliases.get(fld, _camel_to_snake(fld))
             if not _rust_field_present(source, struct_name, snake):
                 D.add("command payload coverage", struct_name,
                       f"required field {fld!r} (Rust: `{snake}`) is missing "
-                      f"or commented out; TA §{schema_name} declares it as a "
+                      f"or commented out; {source_label} declares it as a "
                       f"policy-mandatory field of the canonical record")
 
 

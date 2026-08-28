@@ -26,6 +26,8 @@ BS, TA, DEC, DEV = DOCS
 # temp root so the new command-payload-coverage check can resolve Rust sources
 # relative to the verifier's `root` argument.
 RUST_SOURCES = (
+    ("crates/nirman-domain/src/lib.rs",
+     os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),
     ("crates/nirman-ipc/src/lib.rs",
      os.path.join(REPO, "crates/nirman-ipc/src/lib.rs")),
     ("crates/nirman-preview/src/lib.rs",
@@ -526,6 +528,109 @@ CASES = {
         "command payload coverage",
         (("crates/nirman-preview/src/lib.rs",
           os.path.join(REPO, "crates/nirman-preview/src/lib.rs")),)),
+    # ---- check 14 (extended): M11 domain type coverage
+    # The check now asserts all M11 domain structs declared in
+    # crates/nirman-domain/src/lib.rs expose the policy-mandatory field
+    # set. Each mutation removes one required field from the Rust source and
+    # expects the verifier to report "command payload coverage".
+    "android capability registry body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub registry_id: String,\n",
+        "    pub registry_id_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "technology composition body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub ui_framework: String,\n",
+        "    pub ui_framework_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "toolchain lock body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub locked_version: String,\n",
+        "    pub locked_version_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "device matrix entry body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub api_levels: Vec<u32>,\n",
+        "    pub api_levels_removed: Vec<u32>,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "fixture record body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub evidence_status: String,\n",
+        "    pub evidence_status_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "known exclusion body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub description: String,\n",
+        "    pub description_removed: String,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "android diagnostic body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub status: DiagnosticStatus,\n",
+        "    pub status_removed: DiagnosticStatus,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "device session body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub connection_state: ConnectionState,\n",
+        "    pub connection_state_removed: ConnectionState,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "android log entry body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub level: LogEntryLevel,\n",
+        "    pub level_removed: LogEntryLevel,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "install status body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub state: InstallState,\n",
+        "    pub state_removed: InstallState,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "reload status body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub state: ReloadState,\n",
+        "    pub state_removed: ReloadState,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "packaging profile body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub artifact_kinds: Vec<ArtifactKind>,\n",
+        "    pub artifact_kinds_removed: Vec<ArtifactKind>,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "apk delivery record body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub source_revision: u64,\n",
+        "    pub source_revision_removed: u64,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+    "signing config body removed": (
+        "crates/nirman-domain/src/lib.rs",
+        "    pub signing_scheme: SigningScheme,\n",
+        "    pub signing_scheme_removed: SigningScheme,\n",
+        "command payload coverage",
+        (("crates/nirman-domain/src/lib.rs",
+          os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
 }
 
 
