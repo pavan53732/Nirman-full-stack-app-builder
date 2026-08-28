@@ -13,8 +13,10 @@ use nirman_policy::{
 use nirman_project::mutation_capability_digest;
 use nirman_supervisor::{Supervisor, SupervisorState};
 use nirman_workers::{
-    WorkerContract, WorkerExecutionRecord, WorkerObservation, WorkerOutcome, WorkerStage,
-    M5_SCHEMA_VERSION,
+    CoordinationError, CoordinationTask, HandoffStatus, MultiWorkerCoordinator, WorkerContract,
+    WorkerExecutionRecord, WorkerHandoffAcknowledgement, WorkerHandoffRecord, WorkerObservation,
+    WorkerOutcome, WorkerRole, WorkerStage, WorkspaceIsolation, M5_SCHEMA_VERSION,
+    M8_SCHEMA_VERSION,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -1324,5 +1326,359 @@ fn m7_task_resumes_from_durable_checkpoint_after_restart() -> Result<(), Durable
     )
     .expect("M7 continuation evidence");
     let _ = fs::remove_dir_all(root);
+    Ok(())
+}
+
+fn m8_evidence_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/evidence/m8_multi_worker_trace.json")
+}
+
+#[test]
+fn m8_three_workers_isolated_handoffs_and_forced_conflict_detected(
+) -> Result<(), DurableControlPlaneError> {
+    let project_id = "m8-coordination-project";
+    let parent_task_id = "m8-parent-task";
+    let parent_root = std::env::temp_dir().join(format!(
+        "nirman-m8-coordinator-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&parent_root).expect("parent workspace root");
+    let shared_database = parent_root.join("shared-task-ledger.sqlite3");
+    let shared_ledger =
+        DurableControlPlane::open(&shared_database, ProjectId("m8-shared-ledger".into()))?;
+    let parent_contract = WorkerContract {
+        schema_version: M5_SCHEMA_VERSION,
+        worker_id: "m8-coordinator".into(),
+        project_id: ProjectId(project_id.into()),
+        task_id: TaskId(parent_task_id.into()),
+        capability_ceiling: vec!["android.edit".into()],
+        workspace_root: parent_root.to_string_lossy().into_owned(),
+        allowed_paths: vec![parent_root.to_string_lossy().into_owned()],
+        denied_paths: vec![],
+        max_attempts: 3,
+        evidence_requirements: vec!["handoff-summary".into()],
+    };
+    let mut coordinator =
+        MultiWorkerCoordinator::new(parent_contract.clone()).expect("M8 coordinator");
+    let worker_specs = [
+        ("T1", "worker-a", "worker-a-workspace", "A.kt"),
+        ("T2", "worker-b", "worker-b-workspace", "B.kt"),
+        ("T3", "worker-c", "worker-c-workspace", "C.kt"),
+    ];
+    for (task_id, worker_id, workspace_name, _file_name) in worker_specs {
+        let worker_root = parent_root.join(workspace_name);
+        fs::create_dir_all(&worker_root).expect("worker workspace root");
+        let task = CoordinationTask {
+            schema_version: M8_SCHEMA_VERSION,
+            task_id: task_id.into(),
+            parent_task_id: parent_task_id.into(),
+            worker_id: worker_id.into(),
+            role: WorkerRole::Implementation,
+            capability_ceiling: vec!["android.edit".into()],
+            workspace_root: worker_root.to_string_lossy().into_owned(),
+            parent_workspace_root: parent_root.to_string_lossy().into_owned(),
+            isolation: WorkspaceIsolation::GitWorktree,
+            dependencies: vec![],
+            expected_source_revision: Revision(1),
+            required_evidence: vec![format!("evidence:m8:{task_id}:handoff")],
+        };
+        coordinator
+            .register_task(task.clone())
+            .expect("register isolated task");
+        shared_ledger
+            .save_coordination_task(&task)
+            .expect("persist isolated task");
+    }
+    assert_eq!(coordinator.tasks().len(), 3);
+
+    for (index, (task_id, worker_id, workspace_name, file_name)) in
+        worker_specs.into_iter().enumerate()
+    {
+        let lease = coordinator
+            .claim(task_id, 100 + index as u64, 60)
+            .expect("atomic task claim");
+        assert_eq!(lease.worker_id, worker_id);
+        let worker_root = parent_root.join(workspace_name);
+        let worker_database = worker_root.join("worker-control-plane.sqlite3");
+        let mut worker_plane =
+            DurableControlPlane::open(&worker_database, ProjectId(project_id.into()))?;
+        let task_start = command_for(
+            project_id,
+            Some(task_id),
+            0,
+            &format!("m8-{task_id}-start"),
+            CommandKind::TaskStart,
+            format!("Plan isolated Android edit for {task_id}"),
+        );
+        authorize_registry_capability(&authenticated_request(task_start.clone(), project_id))
+            .expect("worker TaskStart authenticated admission");
+        let started = worker_plane.dispatch(task_start)?;
+        assert_eq!(started.current_source_revision, Revision(1));
+        worker_plane.checkpoint(&format!("checkpoint-m8-{task_id}-before-edit"))?;
+
+        let worker_contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: worker_id.into(),
+            project_id: ProjectId(project_id.into()),
+            task_id: TaskId(task_id.into()),
+            capability_ceiling: vec!["android.edit".into()],
+            workspace_root: worker_root.to_string_lossy().into_owned(),
+            allowed_paths: vec![worker_root.to_string_lossy().into_owned()],
+            denied_paths: vec![],
+            max_attempts: 3,
+            evidence_requirements: vec![format!("evidence:m8:{task_id}:edit")],
+        };
+        let mut worker_record =
+            WorkerExecutionRecord::start(worker_contract).expect("worker execution record");
+        worker_record
+            .observe(
+                &format!("m8-{task_id}-inspect"),
+                WorkerObservation {
+                    stage: WorkerStage::Inspect,
+                    outcome: WorkerOutcome::Success,
+                    source_revision: Revision(1),
+                    checkpoint_id: Some(format!("checkpoint-m8-{task_id}-before-edit")),
+                    changed_paths: vec![],
+                    evidence_refs: vec![format!("evidence:m8:{task_id}:inspect")],
+                    diagnostic_ref: None,
+                },
+                None,
+            )
+            .expect("M8 inspection observation");
+        worker_record
+            .observe(
+                &format!("m8-{task_id}-plan"),
+                WorkerObservation {
+                    stage: WorkerStage::Plan,
+                    outcome: WorkerOutcome::Success,
+                    source_revision: Revision(1),
+                    checkpoint_id: Some(format!("checkpoint-m8-{task_id}-before-edit")),
+                    changed_paths: vec![],
+                    evidence_refs: vec![format!("evidence:m8:{task_id}:plan")],
+                    diagnostic_ref: None,
+                },
+                None,
+            )
+            .expect("M8 plan observation");
+        worker_record
+            .observe(
+                &format!("m8-{task_id}-checkpoint"),
+                WorkerObservation {
+                    stage: WorkerStage::Checkpoint,
+                    outcome: WorkerOutcome::Success,
+                    source_revision: Revision(1),
+                    checkpoint_id: Some(format!("checkpoint-m8-{task_id}-before-edit")),
+                    changed_paths: vec![],
+                    evidence_refs: vec![format!("evidence:m8:{task_id}:checkpoint")],
+                    diagnostic_ref: None,
+                },
+                None,
+            )
+            .expect("M8 checkpoint observation");
+        assert_eq!(worker_record.worker.stage(), WorkerStage::Mutate);
+
+        let edited_file = worker_root.join(file_name);
+        let policy = WorkerPolicy {
+            schema_version: M6_SCHEMA_VERSION,
+            worker_id: worker_id.into(),
+            workspace_root: worker_root.to_string_lossy().into_owned(),
+            allowed_paths: vec![worker_root.to_string_lossy().into_owned()],
+            denied_paths: vec![],
+            protected_path_patterns: vec!["/home/*/.ssh".into(), "/home/*/.config".into()],
+            allowed_command_patterns: vec!["*".into()],
+            denied_command_patterns: vec![],
+            allowed_network_categories: vec![NetworkCategory::None],
+            allow_external_directories: false,
+            allow_destructive_commands: false,
+        };
+        let policy_decision = policy
+            .authorize(&PolicyRequest {
+                request_id: format!("m8-{task_id}-edit-policy"),
+                operation: "workspace.apply_patch".into(),
+                path: Some(edited_file.to_string_lossy().into_owned()),
+                command: None,
+                network_category: NetworkCategory::None,
+                destructive: false,
+                external_directory: false,
+            })
+            .expect("M8 edit policy evaluation");
+        assert_eq!(policy_decision.outcome, PolicyOutcome::Allow);
+        worker_plane.save_m6_policy_event(&policy_decision)?;
+
+        let edit_step = command_for(
+            project_id,
+            Some(task_id),
+            started.projection_revision.0,
+            &format!("m8-{task_id}-edit"),
+            CommandKind::WorkerStep,
+            serde_json::json!({
+                "stage": "Mutate",
+                "operation": "Edit",
+                "relativePath": file_name,
+                "policyDecisionId": policy_decision.decision_id
+            })
+            .to_string(),
+        );
+        authorize_registry_capability(&authenticated_request(edit_step.clone(), project_id))
+            .expect("M8 Edit WorkerStep authenticated admission");
+        let edit_dispatch = worker_plane.dispatch_with_result_and_worker_execution(
+            edit_step,
+            &format!("correlation-m8-{task_id}-edit"),
+            &worker_record,
+        )?;
+        assert!(matches!(
+            edit_dispatch,
+            DurableDispatchOutcome::Accepted { .. }
+        ));
+        fs::write(&edited_file, format!("class {file_name}\n")).expect("isolated fixture edit");
+        assert!(edited_file.is_file());
+
+        let apply_patch = command_for(
+            project_id,
+            Some(task_id),
+            started.projection_revision.0 + 1,
+            &format!("m8-{task_id}-apply"),
+            CommandKind::WorkspaceApplyPatch,
+            serde_json::json!({
+                "operation": "Edit",
+                "relativePath": file_name,
+                "workerStepId": format!("m8-{task_id}-edit")
+            })
+            .to_string(),
+        );
+        authorize_registry_capability(&authenticated_request(apply_patch.clone(), project_id))
+            .expect("M8 WorkspaceApplyPatch authenticated admission");
+        let edited = worker_plane.dispatch(apply_patch)?;
+        assert_eq!(edited.current_source_revision, Revision(2));
+
+        let handoff = WorkerHandoffRecord {
+            message_id: format!("m8-{task_id}-handoff"),
+            task_id: task_id.into(),
+            worker_id: worker_id.into(),
+            lease_id: lease.lease_id.clone(),
+            fence_token: lease.fence_token,
+            source_revision: edited.current_source_revision,
+            outcome: WorkerOutcome::Success,
+            changed_paths: vec![format!("src/{file_name}")],
+            changed_symbols: vec![format!("{task_id}Feature")],
+            evidence_refs: vec![format!("evidence:m8:{task_id}:edit")],
+            mutation_request: None,
+        };
+        coordinator
+            .record_handoff(handoff.clone())
+            .expect("structured handoff");
+        shared_ledger
+            .save_worker_handoff(&handoff)
+            .expect("persist structured handoff");
+        assert!(worker_plane
+            .load_m6_policy_events()?
+            .iter()
+            .any(|decision| decision.request_id == format!("m8-{task_id}-edit-policy")));
+    }
+
+    assert_eq!(coordinator.handoffs().len(), 3);
+    assert_eq!(coordinator.tasks().len(), 3);
+    assert!(coordinator.handoffs().values().all(|handoff| {
+        handoff.outcome == WorkerOutcome::Success && handoff.changed_paths.len() == 1
+    }));
+    let conflict_lease = coordinator
+        .claim("T2", 200, 60)
+        .expect("canonical T2 re-claim for conflict probe");
+    let conflict_handoff = WorkerHandoffRecord {
+        message_id: "m8-T2-reclaim-handoff".into(),
+        task_id: "T2".into(),
+        worker_id: "worker-b".into(),
+        lease_id: conflict_lease.lease_id,
+        fence_token: conflict_lease.fence_token,
+        source_revision: Revision(2),
+        outcome: WorkerOutcome::Success,
+        changed_paths: vec!["src/B.kt".into()],
+        changed_symbols: vec!["T2Feature".into()],
+        evidence_refs: vec!["evidence:m8:T2-reclaim:conflict".into()],
+        mutation_request: None,
+    };
+    let conflict = coordinator.record_handoff(conflict_handoff);
+    assert!(matches!(conflict, Err(CoordinationError::Conflict(_))));
+    assert_eq!(
+        coordinator.claim("T2", 201, 60),
+        Err(CoordinationError::LeaseRequired)
+    );
+    let conflict_ack = WorkerHandoffAcknowledgement {
+        acknowledgement_id: "m8-conflict-ack".into(),
+        message_id: "m8-T2-reclaim-handoff".into(),
+        task_id: "T2".into(),
+        worker_id: "worker-b".into(),
+        status: HandoffStatus::Conflict,
+        reconciliation_checkpoint: None,
+        reason: "re-claim rejected because T2 changed-path overlaps its preserved handoff".into(),
+    };
+    shared_ledger.save_worker_handoff_acknowledgement(&conflict_ack)?;
+    assert!(coordinator.handoffs().contains_key("T2"));
+    assert_eq!(coordinator.handoffs()["T2"].changed_paths, vec!["src/B.kt"]);
+    assert_eq!(
+        coordinator
+            .reconcile()
+            .expect("three original handoffs reconcile"),
+        "m8-integration-checkpoint-3"
+    );
+
+    drop(shared_ledger);
+    let reopened =
+        DurableControlPlane::open(&shared_database, ProjectId("m8-shared-ledger".into()))?;
+    assert_eq!(
+        reopened
+            .load_worker_handoff("m8-T2-handoff")?
+            .expect("original T2 handoff")
+            .changed_paths,
+        vec!["src/B.kt"]
+    );
+    assert!(reopened
+        .load_worker_handoff("m8-T2-reclaim-handoff")?
+        .is_none());
+    let durable_conflict = reopened
+        .load_worker_handoff_acknowledgement("m8-conflict-ack")?
+        .expect("durable conflict acknowledgement");
+    assert_eq!(durable_conflict.status, HandoffStatus::Conflict);
+    assert_eq!(reopened.load_coordination_task("T1")?.is_some(), true);
+    assert_eq!(reopened.load_coordination_task("T2")?.is_some(), true);
+    assert_eq!(reopened.load_coordination_task("T3")?.is_some(), true);
+
+    fs::write(
+        m8_evidence_path(),
+        serde_json::json!({
+            "schema": "nirman.m8.multi_worker_trace.v1",
+            "fixtureId": "M8-MULTI-WORKER-001",
+            "sharedLedgerSeparateSqlite": true,
+            "workerFixtureCount": 3,
+            "isolatedWorkspaceCount": 3,
+            "tasksSeeded": ["T1", "T2", "T3"],
+            "atomicClaimsObserved": true,
+            "doubleClaimRejected": true,
+            "missedTaskCount": 0,
+            "workerStepEditCount": 3,
+            "m6AllowDecisionCount": 3,
+            "structuredHandoffsPersisted": 3,
+            "handoffChangedPaths": ["src/A.kt", "src/B.kt", "src/C.kt"],
+            "forcedOverlapPath": "src/B.kt",
+            "typedConflictDetected": true,
+            "originalT2HandoffPreserved": true,
+            "reconciliationBlockedOnConflict": false,
+            "reconciliationCheckpointAfterRejectedConflict": "m8-integration-checkpoint-3",
+            "conflictAcknowledgementDurable": true,
+            "restartReloadObserved": true,
+            "filesystemAdapter": "test-fixture-only",
+            "nativeWindowsRuntimeObserved": false,
+            "androidRuntimeObserved": false,
+            "evidenceStatus": "M8_HEADLESS_MULTI_WORKER_TRACE_ONLY"
+        })
+        .to_string(),
+    )
+    .expect("M8 evidence");
+    let _ = fs::remove_dir_all(parent_root);
     Ok(())
 }

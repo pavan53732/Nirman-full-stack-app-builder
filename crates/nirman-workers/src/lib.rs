@@ -740,7 +740,27 @@ impl MultiWorkerCoordinator {
                 return Err(CoordinationError::InvalidTask("handoffMutationIdentity"));
             }
         }
-        if self.handoffs.contains_key(&handoff.task_id) {
+        if let Some(existing) = self.handoffs.get(&handoff.task_id) {
+            let conflicting_paths = existing
+                .changed_paths
+                .iter()
+                .filter(|path| handoff.changed_paths.contains(path))
+                .cloned()
+                .collect::<Vec<_>>();
+            let conflicting_symbols = existing
+                .changed_symbols
+                .iter()
+                .filter(|symbol| handoff.changed_symbols.contains(symbol))
+                .cloned()
+                .collect::<Vec<_>>();
+            if !conflicting_paths.is_empty() || !conflicting_symbols.is_empty() {
+                return Err(CoordinationError::Conflict(vec![WorkerConflict {
+                    left_task_id: existing.task_id.clone(),
+                    right_task_id: handoff.task_id.clone(),
+                    conflicting_paths,
+                    conflicting_symbols,
+                }]));
+            }
             return Err(CoordinationError::DuplicateHandoff);
         }
         self.handoffs.insert(handoff.task_id.clone(), handoff);
