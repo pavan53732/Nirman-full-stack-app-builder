@@ -2194,6 +2194,15 @@ name = "nirman-recovery"
 version = "0.1.0"
 
 [[package]]
+name = "nirman-skills"
+version = "0.1.0"
+dependencies = [
+ "nirman-domain",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "nirman-storage"
 version = "0.1.0"
 dependencies = [
