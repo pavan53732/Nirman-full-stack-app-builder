@@ -4745,8 +4745,12 @@ pub(crate) fn dispatch_request<S: EventSink>(
         };
         command_response.result_schema_ref = Some("nirman.artifact_export_result.v1".into());
         command_response.result_payload = Some(
-            serde_json::to_value(ArtifactExportResultPayload { artifact })
-                .expect("APK export result serialization"),
+            serde_json::to_value(ArtifactExportResultPayload {
+                artifact,
+                delivery_record: delivered.clone(),
+                signing_config: None,
+            })
+            .expect("APK export result serialization"),
         );
         return Ok(command_response);
     }

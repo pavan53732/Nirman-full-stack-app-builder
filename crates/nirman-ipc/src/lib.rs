@@ -5,8 +5,8 @@ use nirman_android::{
 };
 use nirman_artifacts::ApkArtifact;
 use nirman_domain::{
-    AndroidConstructionContract, CommandEnvelope, CommandKind, ControlEvent, ProjectId,
-    ProjectionSnapshot, Revision, TaskId,
+    AndroidConstructionContract, ApkDeliveryRecord, CommandEnvelope, CommandKind, ControlEvent,
+    ProjectId, ProjectionSnapshot, Revision, SigningConfig, TaskId,
 };
 use nirman_evidence::AndroidDeviceObservation;
 use nirman_preview::{PreviewFallbackSelection, PreviewRequest, PreviewRevision};
@@ -453,6 +453,8 @@ pub struct ArtifactExportCommandPayload {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactExportResultPayload {
     pub artifact: ApkArtifact,
+    pub delivery_record: ApkDeliveryRecord,
+    pub signing_config: Option<SigningConfig>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1011,6 +1013,7 @@ impl ProjectionReceiver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::*;
     use nirman_domain::{BackgroundContinuityState, PreviewTruth};
 
     fn context() -> AuthContext {
@@ -1239,6 +1242,61 @@ mod m115_subscription_bridge_tests {
             Err(ControlPlaneErrorCode::ReplayGap)
         );
     }
+}
+
+#[test]
+fn artifact_export_result_payload_round_trips_with_delivery_and_signing() {
+    use nirman_artifacts::ApkArtifact;
+    use nirman_domain::{ArtifactKind, DeliveryState};
+
+    let artifact = ApkArtifact {
+        schema_version: 1,
+        artifact_id: "artifact-1".into(),
+        project_id: "project-1".into(),
+        task_id: "task-1".into(),
+        project_revision_id: "source-1".into(),
+        source_fingerprint: "fp".into(),
+        source_provenance_ref: "ref".into(),
+        path: "/apk".into(),
+        sha256: "sha256:abc".into(),
+        package_name: "com.example".into(),
+        inspection: None,
+        build_variant: "release".into(),
+        secret_scan_status: "PASS".into(),
+        signing_status: "INSPECTED_BY_BUILD_TOOL".into(),
+        delivery_status: "DELIVERED".into(),
+        delivery_sha256: None,
+        delivery_verified: true,
+        copy_uncertain: false,
+    };
+    let delivery_record = ApkDeliveryRecord {
+        schema_version: 1,
+        delivery_id: "delivery-1".into(),
+        artifact_id: "artifact-1".into(),
+        project_id: "project-1".into(),
+        task_id: "task-1".into(),
+        source_revision: 0,
+        packaging_profile_id: "profile-1".into(),
+        artifact_kind: ArtifactKind::Apk,
+        destination_path: "/dest/app.apk".into(),
+        destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+        request_fingerprint: "fp".into(),
+        idempotency_key: "key".into(),
+        sha256: "sha256:abc".into(),
+        byte_count: 1024,
+        state: DeliveryState::Copied,
+        created_at_epoch_seconds: 0,
+        completed_at_epoch_seconds: Some(1),
+        error_message: None,
+    };
+    let payload = ArtifactExportResultPayload {
+        artifact: artifact.clone(),
+        delivery_record: delivery_record.clone(),
+        signing_config: None,
+    };
+    let json = serde_json::to_string(&payload).expect("serialize");
+    let back: ArtifactExportResultPayload = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(payload, back);
 }
 
 #[cfg(test)]
