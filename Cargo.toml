@@ -16,6 +16,7 @@ members = [
   "crates/nirman-preview",
   "crates/nirman-evidence",
   "crates/nirman-recovery",
+  "crates/nirman-skills",
   "crates/nirman-artifacts",
   "apps/desktop/src-tauri",
 ]
