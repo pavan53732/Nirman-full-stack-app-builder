@@ -74,6 +74,8 @@ No implementation may add a hosted web/server product, PWA, Windows-app generati
 
 Nirman must remain instruction-driven. The user describes the Android application and may provide screenshots or assets. The resolver selects and composes the required Android technologies. Do not expose a fixed template catalog as the primary creation path or narrow the product to one framework. Internal bootstraps are implementation details and cannot become user-facing product limits.
 
+Nirman requires **no account, login, subscription, license fee, or hosted platform** for local use. This is a binding product invariant (Build Spec §1.5; ADR-205). No feature, integration, or workflow may introduce a mandatory account, subscription, license fee, or hosted-platform dependency for Nirman itself. AI provider access (API keys, base URLs, model IDs) is supplied and paid for by the user directly with their chosen provider; Nirman does not proxy, resell, or charge for provider usage. Any proposal that would add such a dependency must stop and report the conflict rather than implementing it.
+
 ## 3. Core authority rule
 
 > The model proposes; deterministic runtime authorities decide.
