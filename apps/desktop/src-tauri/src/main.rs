@@ -2,12 +2,17 @@
 
 use serde::{Deserialize, Serialize};
 
+use nirman_agents::{
+    diagnose_failure, AgentAction, AgentActionType, AgentLoopRecord, AgentLoopReducer,
+    AgentLoopState, FailureClass, KernelDecision, LoopObservation, ProgressStatus,
+};
 use nirman_android::{
     execute_android_build, infer_android_requirement_manifest, plan_preflight,
-    synthesize_android_plan, validate_android_build_request, validate_android_workspace,
-    AndroidBuildExecutionError, AndroidBuildRequest, AndroidRepairRegistry,
-    AndroidRequirementManifest, AndroidSynthesisRequest, BuildCancellation, CapabilityProbe,
-    HostCapabilityProbe, PreflightStatus, RepairFailureFingerprint, RepairSelection,
+    scaffold_android_project, synthesize_android_plan, validate_android_build_request,
+    validate_android_workspace, AndroidBuildExecutionError, AndroidBuildRequest,
+    AndroidRepairRegistry, AndroidRequirementManifest, AndroidSynthesisRequest,
+    AndroidTechnologyPlan, AndroidToolchainLock, BuildCancellation, CapabilityProbe,
+    HostCapabilityProbe, PreflightStatus, RepairFailureFingerprint, RepairSelection, ScaffoldError,
 };
 use nirman_artifacts::{deliver_apk_local, inspect_apk, scan_apk_for_secrets, ApkArtifact};
 use nirman_control_plane::{
@@ -15,22 +20,24 @@ use nirman_control_plane::{
     M8DispatchRecord,
 };
 use nirman_domain::{
-    AndroidConstructionCommandPayload, AndroidConstructionContract, CommandKind,
-    MutationTransactionRecord, ProjectId, Revision, TaskId,
+    AndroidConstructionCommandPayload, AndroidConstructionContract, ApkDeliveryRecord,
+    ArtifactKind, CommandKind, DeliveryState, MutationTransactionRecord, ProjectId, Revision,
+    TaskId,
 };
 use nirman_ipc::{
     acknowledge_event_subscription, authorize_registry_capability, command_registry,
-    publish_control_event, AndroidRequirementEvaluateCommandPayload,
-    AndroidRequirementEvaluateResultPayload, AndroidSynthesisBuildCommandPayload,
-    AndroidSynthesisBuildResultPayload, AndroidToolchainPreflightCommandPayload,
-    AndroidToolchainPreflightResultPayload, ArtifactBuildCommandPayload,
-    ArtifactBuildResultPayload, ArtifactExportCommandPayload, ArtifactExportResultPayload,
-    AuthContext, AuthenticatedSession, CommandRequest, CommandResponse, ControlPlaneErrorCode,
-    ErrorCategory, ErrorEnvelope, EventBatch, EventRange, EventSink, EventSubscription,
-    PreviewStartCommandPayload, PreviewStartResultPayload, ProviderExecuteCommandPayload,
-    ProviderExecuteResultPayload, ProviderTestCommandPayload, ProviderTestResultPayload,
-    ResponseStatus, SettingsUpdateProviderCommandPayload, SubscriptionAcknowledgement,
-    SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
+    publish_control_event, AgentLoopRunCommandPayload, AgentLoopRunResultPayload,
+    AndroidProjectScaffoldCommandPayload, AndroidProjectScaffoldResultPayload,
+    AndroidRequirementEvaluateCommandPayload, AndroidRequirementEvaluateResultPayload,
+    AndroidSynthesisBuildCommandPayload, AndroidSynthesisBuildResultPayload,
+    AndroidToolchainPreflightCommandPayload, AndroidToolchainPreflightResultPayload,
+    ArtifactBuildCommandPayload, ArtifactBuildResultPayload, ArtifactExportCommandPayload,
+    ArtifactExportResultPayload, AuthContext, AuthenticatedSession, CommandRequest,
+    CommandResponse, ControlPlaneErrorCode, ErrorCategory, ErrorEnvelope, EventBatch, EventRange,
+    EventSink, EventSubscription, PreviewStartCommandPayload, PreviewStartResultPayload,
+    ProviderExecuteCommandPayload, ProviderExecuteResultPayload, ProviderTestCommandPayload,
+    ProviderTestResultPayload, ResponseStatus, SettingsUpdateProviderCommandPayload,
+    SubscriptionAcknowledgement, SubscriptionBootstrap, SubscriptionControl, SubscriptionStatus,
     WorkerHandoffAcknowledgeCommandPayload, WorkerHandoffAcknowledgeResultPayload,
     WorkerHandoffSubmitCommandPayload, WorkerHandoffSubmitResultPayload,
     WorkerReconcileCommandPayload, WorkerReconcileResultPayload, WorkerTaskClaimCommandPayload,
@@ -68,7 +75,8 @@ use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -86,6 +94,44 @@ impl EventSink for TauriEventSink<'_> {
     }
 }
 
+/// Cancellation flags for in-flight agent loops, keyed by task id. The map
+/// uses interior mutability so a `CancelTask` dispatched from the UI can flip
+/// a running loop's flag WITHOUT taking the runtime-state lock the loop
+/// itself holds for the whole dispatch.
+type LoopCancellationMap = std::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>;
+
+fn new_loop_cancellation_map() -> Arc<LoopCancellationMap> {
+    Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+/// Flips the registered cancellation flag for a task's in-flight agent loop.
+/// Returns true when an in-flight loop was actually signalled. Mirrors the
+/// task-scope default `dispatch_request` applies to lifecycle commands.
+fn cancel_registered_loop(
+    registry: &LoopCancellationMap,
+    project_id: &str,
+    task_id: Option<&nirman_domain::TaskId>,
+) -> bool {
+    let task = task_id
+        .map(|id| id.0.clone())
+        .unwrap_or_else(|| format!("task-{project_id}"));
+    let guarded = registry.lock().ok();
+    let Some(flags) = guarded else {
+        return false;
+    };
+    flags
+        .get(&task)
+        .map(|flag| {
+            flag.store(true, Ordering::SeqCst);
+            true
+        })
+        .unwrap_or(false)
+}
+
+/// Tauri-managed handle to the loop cancellation registry; shares the same
+/// Arc as `RuntimeState::loop_cancellations`.
+struct LoopCancellationState(Arc<LoopCancellationMap>);
+
 struct RuntimeState {
     plane: DurableControlPlane,
     session: AuthenticatedSession,
@@ -98,6 +144,7 @@ struct RuntimeState {
     provider_transport: Box<dyn ProviderTransport>,
     capability_probe: Box<dyn CapabilityProbe>,
     authorized_workspace_root: Option<PathBuf>,
+    loop_cancellations: Arc<LoopCancellationMap>,
     consumed_mutation_capabilities: BTreeSet<String>,
     worker_policies: BTreeMap<String, WorkerPolicy>,
     process_registry: ProcessRegistry,
@@ -110,6 +157,14 @@ struct SessionHandshake {
     correlation_id: String,
     schema_version: u16,
     expires_at_epoch_seconds: u64,
+}
+
+#[derive(serde::Serialize)]
+struct WorkspaceDescriptor {
+    /// Canonical authorized project workspace the UI must pass to the
+    /// Android scaffold/build/agent-loop commands; null when the host was
+    /// started without `NIRMAN_PROJECT_WORKSPACE`.
+    workspace_root: Option<String>,
 }
 
 fn map_mutation_error(
@@ -1012,6 +1067,986 @@ fn parse_m4_synthesis_build(
         environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
         plan,
         build_request,
+    })
+}
+
+/// Validates the workspace authorization shared by every Android workspace
+/// command: the requested root must exist and equal the authorized root.
+fn authorized_workspace_root_for(
+    state: &RuntimeState,
+    request: &CommandRequest,
+    requested_root: &str,
+    scope_label: &str,
+) -> Result<PathBuf, ErrorEnvelope> {
+    let authorized_root = state
+        .authorized_workspace_root
+        .as_ref()
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Environment,
+                "no authorized project workspace is configured",
+                true,
+                None,
+            )
+        })?;
+    let requested = PathBuf::from(requested_root).canonicalize().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            &format!("{scope_label} workspace is unavailable"),
+            false,
+            None,
+        )
+    })?;
+    if requested != authorized_root {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            &format!("{scope_label} workspace is outside the authorized project root"),
+            false,
+            None,
+        ));
+    }
+    Ok(requested)
+}
+
+/// Loads the persisted M43 preflight and its toolchain lock for the task.
+fn load_task_toolchain_lock(
+    state: &RuntimeState,
+    request: &CommandRequest,
+    task_id: &TaskId,
+) -> Result<
+    (
+        nirman_android::AndroidToolchainPreflight,
+        AndroidToolchainLock,
+    ),
+    ErrorEnvelope,
+> {
+    let preflight_json = state
+        .plane
+        .load_android_toolchain_preflight(task_id.0.as_str())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M43 toolchain preflight is unavailable",
+                true,
+                None,
+            )
+        })?
+        .ok_or_else(|| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Environment,
+                "the command requires a persisted M43 preflight",
+                false,
+                None,
+            )
+        })?;
+    let preflight: nirman_android::AndroidToolchainPreflight =
+        serde_json::from_str(&preflight_json).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "M43 preflight could not be restored",
+                false,
+                None,
+            )
+        })?;
+    let lock = preflight.lock.clone().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Environment,
+            "the command requires an available M43 toolchain lock",
+            false,
+            None,
+        )
+    })?;
+    Ok((preflight, lock))
+}
+
+#[derive(Debug)]
+struct PreparedScaffold {
+    task_id: String,
+    source_revision: u64,
+    workspace_root: PathBuf,
+    scaffold: nirman_android::AndroidProjectScaffold,
+}
+
+/// M4b parse phase: validate the contract, workspace authorization, pre-scaffold
+/// fingerprint, and the M43 preflight lock; then generate the scaffold
+/// in memory. File writes happen in the execution phase after durable admission.
+fn parse_android_project_scaffold(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedScaffold, ErrorEnvelope> {
+    let payload: AndroidProjectScaffoldCommandPayload =
+        serde_json::from_str(&request.command.payload).map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "M4b project scaffold payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "M4b project scaffold requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    payload.contract.validate().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "M4b construction contract is invalid",
+            false,
+            None,
+        )
+    })?;
+    if payload.source_revision == 0 {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "M4b source revision is stale",
+            false,
+            None,
+        ));
+    }
+    let workspace_root =
+        authorized_workspace_root_for(state, request, &payload.workspace_root, "M4b")?;
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "android-scaffold-worker",
+        &payload.workspace_root,
+        vec![payload.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "android.project_scaffold".into(),
+            path: Some(payload.workspace_root.clone()),
+            // Scaffolding writes files inside the authorized workspace and
+            // spawns no process, so no command pattern applies.
+            command: None,
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
+    // The caller's fingerprint must describe the workspace BEFORE scaffolding.
+    // A duplicate replay legitimately sees the post-scaffold workspace, so
+    // the fingerprint gate only applies to first admission.
+    let is_duplicate_replay = state
+        .plane
+        .command_result_exists(
+            &request.command.command_id,
+            request.command.idempotency_key.as_deref(),
+        )
+        .unwrap_or(false);
+    let index = ProjectIndexer::default()
+        .index_workspace(&workspace_root, &IndexRequest::default())
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "M4b workspace indexing failed",
+                true,
+                None,
+            )
+        })?;
+    if !is_duplicate_replay && index.project_fingerprint != payload.project_fingerprint {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::StaleProjection,
+            ErrorCategory::StaleProjection,
+            "M4b project fingerprint is stale",
+            true,
+            Some("re-index the workspace and retry the scaffold".into()),
+        ));
+    }
+    let (_preflight, lock) = load_task_toolchain_lock(state, request, task_id)?;
+    // The scaffold derives its technology plan from the validated contract.
+    let language = payload
+        .contract
+        .technology_plan
+        .selected_languages
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "kotlin".into());
+    let ui_framework = payload
+        .contract
+        .technology_plan
+        .selected_ui_frameworks
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "jetpack-compose".into());
+    let technology_plan = AndroidTechnologyPlan {
+        schema_version: nirman_android::M4_SCHEMA_VERSION,
+        plan_id: format!("technology-plan-{}", payload.contract.contract_id),
+        language,
+        ui_framework,
+        data_strategy: "requirements-resolved".into(),
+        source_revision: payload.source_revision,
+        rationale: "derived from the validated AndroidConstructionContract".into(),
+    };
+    let scaffold = scaffold_android_project(&payload.contract, &technology_plan).map_err(
+        |scaffold_error: ScaffoldError| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                format!("M4b scaffold generation failed: {scaffold_error}"),
+                false,
+                None,
+            )
+        },
+    )?;
+    let _ = lock;
+    Ok(PreparedScaffold {
+        task_id: task_id.0.clone(),
+        source_revision: payload.source_revision,
+        workspace_root,
+        scaffold,
+    })
+}
+
+#[derive(Debug)]
+struct PreparedAgentLoop {
+    task_id: String,
+    source_revision: u64,
+    workspace_root: PathBuf,
+    contract: AndroidConstructionContract,
+    build_variant: String,
+    gradle_task: String,
+    iteration_budget: u32,
+    build_timeout_ms: u64,
+    toolchain_lock_hash: String,
+    environment_snapshot_id: String,
+    lock: AndroidToolchainLock,
+}
+
+/// M58 parse phase: validate the contract, workspace authorization, and the
+/// M43 preflight lock. The kernel starts and drives actions only in the
+/// execution phase after durable admission.
+fn parse_agent_loop_run(
+    state: &RuntimeState,
+    request: &CommandRequest,
+) -> Result<PreparedAgentLoop, ErrorEnvelope> {
+    let payload: AgentLoopRunCommandPayload = serde_json::from_str(&request.command.payload)
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                "agent loop payload is invalid",
+                false,
+                None,
+            )
+        })?;
+    let task_id = request.command.task_id.as_ref().ok_or_else(|| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "agent loop run requires a task scope",
+            false,
+            None,
+        )
+    })?;
+    payload.contract.validate().map_err(|_| {
+        error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "agent loop construction contract is invalid",
+            false,
+            None,
+        )
+    })?;
+    for (field, value) in [
+        ("buildVariant", payload.build_variant.as_str()),
+        ("gradleTask", payload.gradle_task.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::Validation,
+                format!("agent loop {field} is required"),
+                false,
+                None,
+            ));
+        }
+    }
+    if payload.source_revision == 0 {
+        return Err(error(
+            &request.correlation_id,
+            Some(request.command.command_id.clone()),
+            request.causation_id.clone(),
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "agent loop source revision is stale",
+            false,
+            None,
+        ));
+    }
+    let build_timeout_ms = if payload.build_timeout_ms == 0 {
+        M5_BUILD_TIMEOUT_MS
+    } else {
+        payload.build_timeout_ms
+    };
+    let workspace_root =
+        authorized_workspace_root_for(state, request, &payload.workspace_root, "agent loop")?;
+    let _policy_decision = authorize_m6_host_operation(
+        state,
+        request,
+        "agent-loop-worker",
+        &payload.workspace_root,
+        vec![payload.workspace_root.clone()],
+        Vec::new(),
+        PolicyRequest {
+            request_id: request.command.command_id.clone(),
+            operation: "agent.loop_run".into(),
+            path: Some(payload.workspace_root.clone()),
+            command: Some(format!("gradlew {}", payload.gradle_task)),
+            network_category: NetworkCategory::None,
+            destructive: false,
+            external_directory: false,
+        },
+    )?;
+    let (preflight, lock) = load_task_toolchain_lock(state, request, task_id)?;
+    Ok(PreparedAgentLoop {
+        task_id: task_id.0.clone(),
+        source_revision: payload.source_revision,
+        workspace_root,
+        contract: payload.contract,
+        build_variant: payload.build_variant,
+        gradle_task: payload.gradle_task,
+        iteration_budget: payload.iteration_budget,
+        build_timeout_ms,
+        toolchain_lock_hash: lock.lock_hash.clone(),
+        environment_snapshot_id: preflight.environment_snapshot.snapshot_id.clone(),
+        lock,
+    })
+}
+
+/// Persists the loop record after every kernel transition so a crashed run
+/// leaves a replayable trail in the control plane.
+fn persist_agent_loop_record(
+    state: &RuntimeState,
+    record: &AgentLoopRecord,
+) -> Result<(), ErrorEnvelope> {
+    let record_json = serde_json::to_string(record).expect("agent loop record serialization");
+    state
+        .plane
+        .save_agent_loop_record(
+            &record.loop_id,
+            &record.task_id,
+            &format!("{:?}", record.state),
+            record.updated_at_epoch_seconds,
+            &record_json,
+        )
+        .map_err(|_| {
+            error(
+                &state.correlation_id,
+                None,
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "agent loop record could not be durably saved",
+                true,
+                None,
+            )
+        })
+}
+
+/// Classifies a gradle execution failure from the observation fields.
+fn classify_build_observation(
+    observation: &nirman_android::AndroidBuildObservation,
+) -> Option<FailureClass> {
+    if observation.success {
+        return None;
+    }
+    if observation.cancelled {
+        Some(FailureClass::Cancelled)
+    } else if observation.timed_out {
+        Some(FailureClass::Timeout)
+    } else {
+        Some(FailureClass::BuildFailed)
+    }
+}
+
+/// Executes one agent action through the real authorities (workspace mutation,
+/// gradle executor) and returns the observation the kernel consumes.
+#[allow(clippy::too_many_arguments)]
+fn execute_agent_action(
+    state: &RuntimeState,
+    prepared: &PreparedAgentLoop,
+    action: &AgentAction,
+    cancellation: &BuildCancellation,
+    plan: &mut Option<nirman_android::AndroidSynthesisPlan>,
+    build_request: &mut Option<AndroidBuildRequest>,
+    scaffold_summary: &mut Option<nirman_android::ScaffoldSummary>,
+    resulting_fingerprint: &mut Option<String>,
+) -> Result<LoopObservation, ErrorEnvelope> {
+    let observation_id = format!("observation-{}", action.action_id);
+    let base_summary = format!("{} executed", action.action_type.as_str());
+    match action.action_type {
+        AgentActionType::SynthesizeProject => {
+            let synthesized = synthesize_android_plan(&AndroidSynthesisRequest {
+                schema_version: nirman_android::M4_SCHEMA_VERSION,
+                contract: prepared.contract.clone(),
+                source_revision: prepared.source_revision,
+                workspace_root: prepared.workspace_root.to_string_lossy().into_owned(),
+                project_fingerprint: resulting_fingerprint
+                    .clone()
+                    .unwrap_or_else(|| "pending-scaffold".into()),
+            })
+            .map_err(|synthesis_error| {
+                error(
+                    &state.correlation_id,
+                    None,
+                    None,
+                    ControlPlaneErrorCode::InvalidCommand,
+                    ErrorCategory::Validation,
+                    format!("agent loop synthesis failed: {synthesis_error}"),
+                    false,
+                    None,
+                )
+            })?;
+            *plan = Some(synthesized);
+            Ok(LoopObservation {
+                observation_id,
+                action_id: action.action_id.clone(),
+                success: true,
+                summary: base_summary,
+                evidence_id: Some(format!("synthesis:{}", action.action_id)),
+                failure_class: None,
+            })
+        }
+        AgentActionType::ScaffoldProject => {
+            let plan = plan.as_ref().ok_or_else(|| {
+                error(
+                    &state.correlation_id,
+                    None,
+                    None,
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "agent loop scaffold requires a synthesized plan",
+                    false,
+                    None,
+                )
+            })?;
+            let scaffold = scaffold_android_project(&prepared.contract, &plan.technology_plan)
+                .map_err(|scaffold_error| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::InvalidCommand,
+                        ErrorCategory::Validation,
+                        format!("agent loop scaffold generation failed: {scaffold_error}"),
+                        false,
+                        None,
+                    )
+                })?;
+            scaffold
+                .apply(&prepared.workspace_root)
+                .map_err(|scaffold_error| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        format!("agent loop scaffold application failed: {scaffold_error}"),
+                        true,
+                        None,
+                    )
+                })?;
+            let index = ProjectIndexer::default()
+                .index_workspace(&prepared.workspace_root, &IndexRequest::default())
+                .map_err(|_| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "agent loop post-scaffold indexing failed",
+                        true,
+                        None,
+                    )
+                })?;
+            *resulting_fingerprint = Some(index.project_fingerprint.clone());
+            let request = AndroidBuildRequest {
+                schema_version: nirman_android::M4_SCHEMA_VERSION,
+                project_id: prepared.contract.project_id.0.clone(),
+                task_id: prepared.task_id.clone(),
+                source_revision: prepared.source_revision,
+                project_fingerprint: index.project_fingerprint.clone(),
+                workspace_root: prepared.workspace_root.to_string_lossy().into_owned(),
+                build_variant: prepared.build_variant.clone(),
+                gradle_task: prepared.gradle_task.clone(),
+            };
+            // Persist the M4 synthesis/build provenance and the scaffold
+            // record so standalone ArtifactBuild/Export commands work after
+            // the loop completes.
+            let plan_json = serde_json::to_string(plan).expect("agent loop plan serialization");
+            let request_json =
+                serde_json::to_string(&request).expect("agent loop request serialization");
+            state
+                .plane
+                .save_android_synthesis_build(
+                    &prepared.task_id,
+                    prepared.source_revision,
+                    &index.project_fingerprint,
+                    &plan.contract_id,
+                    &plan_json,
+                    &request_json,
+                    &prepared.toolchain_lock_hash,
+                    &prepared.environment_snapshot_id,
+                )
+                .map_err(|_| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "agent loop synthesis provenance could not be saved",
+                        true,
+                        None,
+                    )
+                })?;
+            *build_request = Some(request);
+            let summary = scaffold.summary(&index.project_fingerprint);
+            state
+                .plane
+                .save_android_project_scaffold(
+                    &prepared.task_id,
+                    prepared.source_revision,
+                    &scaffold.scaffold_id,
+                    &scaffold.contract_id,
+                    &scaffold.scaffold_fingerprint,
+                    &index.project_fingerprint,
+                    &serde_json::to_string(&AndroidProjectScaffoldResultPayload {
+                        scaffold: summary.clone(),
+                        files: scaffold.files.clone(),
+                        resulting_project_fingerprint: index.project_fingerprint.clone(),
+                    })
+                    .expect("agent loop scaffold result serialization"),
+                )
+                .map_err(|_| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "agent loop scaffold record could not be saved",
+                        true,
+                        None,
+                    )
+                })?;
+            *scaffold_summary = Some(summary);
+            Ok(LoopObservation {
+                observation_id,
+                action_id: action.action_id.clone(),
+                success: true,
+                summary: base_summary,
+                evidence_id: Some(format!("scaffold:{}", scaffold.scaffold_fingerprint)),
+                failure_class: None,
+            })
+        }
+        AgentActionType::BuildArtifact => {
+            let request = build_request.as_ref().ok_or_else(|| {
+                error(
+                    &state.correlation_id,
+                    None,
+                    None,
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "agent loop build requires a scaffolded project",
+                    false,
+                    None,
+                )
+            })?;
+            // Apply the variation the diagnosis selected: timeout retries get
+            // a multiplied budget, clean rebuilds prepend the clean task.
+            let mut effective_request = request.clone();
+            let mut effective_timeout = prepared.build_timeout_ms;
+            if action.variation.starts_with("timeout-x") {
+                let factor = action
+                    .variation
+                    .trim_start_matches("timeout-x")
+                    .parse::<u64>()
+                    .unwrap_or(2)
+                    .max(1);
+                effective_timeout = prepared
+                    .build_timeout_ms
+                    .saturating_mul(factor)
+                    .max(prepared.build_timeout_ms);
+            } else if action.variation.starts_with("clean") {
+                effective_request.gradle_task = format!("clean {}", request.gradle_task);
+            }
+            match execute_android_build(
+                &effective_request,
+                &prepared.lock,
+                &action.action_id,
+                effective_timeout,
+                cancellation,
+            ) {
+                Ok(observation) => {
+                    let failure_class = classify_build_observation(&observation);
+                    let success = observation.success;
+                    let observation_json =
+                        serde_json::to_string(&observation).expect("observation serialization");
+                    let _ = state.plane.save_android_build_observation(
+                        &observation.execution_id,
+                        &prepared.task_id,
+                        prepared.source_revision,
+                        &observation.project_fingerprint,
+                        &observation_json,
+                    );
+                    Ok(LoopObservation {
+                        observation_id,
+                        action_id: action.action_id.clone(),
+                        success,
+                        summary: base_summary,
+                        evidence_id: Some(format!("build:{}", observation.execution_id)),
+                        failure_class,
+                    })
+                }
+                Err(build_error) => {
+                    let failure_class = matches!(
+                        build_error,
+                        AndroidBuildExecutionError::GradleUnavailable
+                            | AndroidBuildExecutionError::WorkspaceUnavailable
+                    )
+                    .then_some(FailureClass::EnvironmentUnavailable)
+                    .unwrap_or(FailureClass::BuildFailed);
+                    Ok(LoopObservation {
+                        observation_id,
+                        action_id: action.action_id.clone(),
+                        success: false,
+                        summary: base_summary,
+                        evidence_id: None,
+                        failure_class: Some(failure_class),
+                    })
+                }
+            }
+        }
+        AgentActionType::DiagnoseFailure => {
+            // Deterministic diagnosis; provider-augmented diagnosis can be
+            // layered on later without changing the kernel contract.
+            Ok(LoopObservation {
+                observation_id,
+                action_id: action.action_id.clone(),
+                success: true,
+                summary: base_summary,
+                evidence_id: Some(format!("diagnosis:{}", action.action_id)),
+                failure_class: None,
+            })
+        }
+        AgentActionType::ValidateArtifact => {
+            // Validation is observation-based: the artifact must exist with a
+            // recorded checksum from a successful build observation.
+            let stored = state
+                .plane
+                .load_android_build_observation(&prepared.task_id, prepared.source_revision)
+                .map_err(|_| {
+                    error(
+                        &state.correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "agent loop validation could not load the build observation",
+                        true,
+                        None,
+                    )
+                })?
+                .and_then(|json| {
+                    serde_json::from_str::<nirman_android::AndroidBuildObservation>(&json).ok()
+                });
+            let artifact_ok = stored.as_ref().is_some_and(|observation| {
+                observation.success
+                    && observation.artifact_sha256.is_some()
+                    && observation.artifact_path.is_some()
+            });
+            Ok(LoopObservation {
+                observation_id,
+                action_id: action.action_id.clone(),
+                success: artifact_ok,
+                summary: base_summary,
+                evidence_id: stored
+                    .as_ref()
+                    .map(|observation| format!("artifact:{}", observation.execution_id)),
+                failure_class: (!artifact_ok).then_some(FailureClass::MissingArtifact),
+            })
+        }
+    }
+}
+
+/// RAII deregistration for a loop's cancellation flag: removes the map
+/// entry on every exit path (including error returns) so a stale flag can
+/// never cancel a future loop for the same task.
+struct LoopCancellationGuard {
+    registry: Arc<LoopCancellationMap>,
+    task_id: String,
+}
+
+impl LoopCancellationGuard {
+    fn register(state: &RuntimeState, task_id: &str) -> (Self, Arc<AtomicBool>) {
+        let flag = Arc::new(AtomicBool::new(false));
+        let guard = Self {
+            registry: state.loop_cancellations.clone(),
+            task_id: task_id.to_owned(),
+        };
+        if let Ok(mut flags) = state.loop_cancellations.lock() {
+            flags.insert(task_id.to_owned(), flag.clone());
+        }
+        (guard, flag)
+    }
+}
+
+impl Drop for LoopCancellationGuard {
+    fn drop(&mut self) {
+        if let Ok(mut flags) = self.registry.lock() {
+            flags.remove(&self.task_id);
+        }
+    }
+}
+
+/// True when the task's durable M7 background run is already cancelled —
+/// the loop must then finish cancelled instead of mutating the workspace.
+fn task_run_already_cancelled(state: &RuntimeState, prepared: &PreparedAgentLoop) -> bool {
+    let run_id = m7_run_id(
+        &prepared.contract.project_id.0,
+        &TaskId(prepared.task_id.clone()),
+    );
+    state
+        .plane
+        .load_background_run(&run_id)
+        .ok()
+        .flatten()
+        .is_some_and(|record| record.state == BackgroundRunState::Cancelled)
+}
+
+fn cancelled_observation(action: &AgentAction) -> LoopObservation {
+    LoopObservation {
+        observation_id: format!("observation-{}", action.action_id),
+        action_id: action.action_id.clone(),
+        success: false,
+        summary: format!(
+            "{} skipped: task cancellation was observed",
+            action.action_type.as_str()
+        ),
+        evidence_id: None,
+        failure_class: Some(FailureClass::Cancelled),
+    }
+}
+
+/// Drives the agent loop from kernel start to a terminal state: synthesis,
+/// scaffolding, gradle build, bounded diagnosis/retry, and artifact
+/// validation, persisting every transition.
+fn run_agent_loop(
+    state: &RuntimeState,
+    prepared: &PreparedAgentLoop,
+    command_id: &str,
+    correlation_id: &str,
+) -> Result<AgentLoopRunResultPayload, ErrorEnvelope> {
+    let _ = command_id;
+    let budget = if prepared.iteration_budget == 0 {
+        nirman_agents::DEFAULT_ITERATION_BUDGET
+    } else {
+        prepared.iteration_budget
+    };
+    let (_cancellation_guard, cancellation_flag) =
+        LoopCancellationGuard::register(state, &prepared.task_id);
+    let cancellation = BuildCancellation::from_shared(cancellation_flag.clone());
+    let run_already_cancelled = task_run_already_cancelled(state, prepared);
+    let (mut record, mut action) = AgentLoopReducer::start(
+        correlation_id,
+        &prepared.task_id,
+        prepared.source_revision,
+        budget,
+        now_epoch_seconds(),
+    )
+    .map_err(|loop_error| {
+        error(
+            correlation_id,
+            None,
+            None,
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            format!("agent loop could not start: {loop_error}"),
+            false,
+            None,
+        )
+    })?;
+    persist_agent_loop_record(state, &record)?;
+
+    let mut plan: Option<nirman_android::AndroidSynthesisPlan> = None;
+    let mut build_request: Option<AndroidBuildRequest> = None;
+    let mut scaffold_summary: Option<nirman_android::ScaffoldSummary> = None;
+    let mut resulting_fingerprint: Option<String> = None;
+    let mut build_observation: Option<nirman_android::AndroidBuildObservation> = None;
+    let mut last_failure_class: Option<FailureClass> = None;
+
+    loop {
+        // Cancellation is observed before every action: either the durable
+        // M7 run was cancelled before the loop started, or the shared flag
+        // was flipped by a concurrent CancelTask while the loop runs.
+        let cancellation_requested =
+            run_already_cancelled || cancellation_flag.load(Ordering::SeqCst);
+        // DiagnoseFailure actions need the failure class of the observation
+        // that triggered them; deterministic classification happens inline.
+        let observation = if cancellation_requested {
+            cancelled_observation(&action)
+        } else if action.action_type == AgentActionType::DiagnoseFailure {
+            let class = last_failure_class.unwrap_or(FailureClass::BuildFailed);
+            let report = diagnose_failure(class, record.variation_attempts);
+            let observation = LoopObservation {
+                observation_id: format!("observation-{}", action.action_id),
+                action_id: action.action_id.clone(),
+                success: true,
+                summary: format!(
+                    "{} executed with strategy {}",
+                    action.action_type.as_str(),
+                    report.strategy
+                ),
+                evidence_id: Some(format!("diagnosis:{}", report.diagnosis_id)),
+                failure_class: None,
+            };
+            // The diagnosis action itself always succeeds; the variation it
+            // selected is already recorded on the kernel record.
+            observation
+        } else {
+            execute_agent_action(
+                state,
+                prepared,
+                &action,
+                &cancellation,
+                &mut plan,
+                &mut build_request,
+                &mut scaffold_summary,
+                &mut resulting_fingerprint,
+            )?
+        };
+        if let Some(class) = observation.failure_class {
+            last_failure_class = Some(class);
+        }
+        // Capture the latest build observation for the result payload.
+        if action.action_type == AgentActionType::BuildArtifact {
+            if let Some(json) = state
+                .plane
+                .load_android_build_observation(&prepared.task_id, prepared.source_revision)
+                .ok()
+                .and_then(|json| json)
+            {
+                build_observation =
+                    serde_json::from_str::<nirman_android::AndroidBuildObservation>(&json).ok();
+            }
+        }
+        let (next_record, decision) =
+            AgentLoopReducer::advance(&record, &observation, now_epoch_seconds()).map_err(
+                |loop_error| {
+                    error(
+                        correlation_id,
+                        None,
+                        None,
+                        ControlPlaneErrorCode::InvalidCommand,
+                        ErrorCategory::Internal,
+                        format!("agent loop transition rejected: {loop_error}"),
+                        false,
+                        None,
+                    )
+                },
+            )?;
+        record = next_record;
+        persist_agent_loop_record(state, &record)?;
+        match decision {
+            KernelDecision::Execute(next_action) => action = next_action,
+            KernelDecision::Finished => break,
+        }
+    }
+
+    let outcome = match record.state {
+        AgentLoopState::Complete => "COMPLETE",
+        AgentLoopState::Failed => "FAILED",
+        AgentLoopState::Exhausted => "EXHAUSTED",
+        AgentLoopState::Cancelled => "CANCELLED",
+        AgentLoopState::Running | AgentLoopState::Suspended => match record.progress_status {
+            ProgressStatus::Complete => "COMPLETE",
+            ProgressStatus::Cancelled => "CANCELLED",
+            _ => "INTERRUPTED",
+        },
+    };
+    Ok(AgentLoopRunResultPayload {
+        loop_record: record,
+        outcome: outcome.into(),
+        build_observation,
+        scaffold: scaffold_summary,
+        resulting_project_fingerprint: resulting_fingerprint,
+        toolchain_lock_hash: Some(prepared.toolchain_lock_hash.clone()),
+        environment_snapshot_id: Some(prepared.environment_snapshot_id.clone()),
     })
 }
 
@@ -2349,6 +3384,31 @@ fn projection(
     ))
 }
 
+/// Reports the authorized project workspace so the UI can pass the exact
+/// canonical root to the Android scaffold/build/agent-loop commands.
+#[tauri::command]
+fn workspace(state: State<'_, Mutex<RuntimeState>>) -> Result<WorkspaceDescriptor, ErrorEnvelope> {
+    let state = state.lock().map_err(|_| {
+        error(
+            "session-host",
+            None,
+            None,
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            "runtime state lock is unavailable",
+            true,
+            None,
+        )
+    })?;
+    Ok(WorkspaceDescriptor {
+        workspace_root: state
+            .authorized_workspace_root
+            .as_ref()
+            .and_then(|path| path.canonicalize().ok())
+            .map(|path| path.to_string_lossy().into_owned()),
+    })
+}
+
 #[tauri::command]
 fn subscribe_events(
     state: State<'_, Mutex<RuntimeState>>,
@@ -2703,10 +3763,24 @@ fn close_subscription(
 fn dispatch(
     app: AppHandle,
     state: State<'_, Mutex<RuntimeState>>,
+    cancellations: State<'_, LoopCancellationState>,
     request: CommandRequest,
 ) -> Result<CommandResponse, ErrorEnvelope> {
     let correlation_id = request.correlation_id.clone();
     let command_id = request.command.command_id.clone();
+    // Fast path: a lifecycle cancellation flips the in-flight agent loop's
+    // shared flag BEFORE waiting for the runtime-state lock the loop holds,
+    // so the UI can cancel a long Gradle build.
+    if matches!(
+        request.command.kind,
+        CommandKind::CancelTask | CommandKind::TaskCancel
+    ) {
+        cancel_registered_loop(
+            &cancellations.0,
+            &request.command.project_id.0,
+            request.command.task_id.as_ref(),
+        );
+    }
     let mut state = state.lock().map_err(|_| {
         error(
             &correlation_id,
@@ -3672,6 +4746,16 @@ pub(crate) fn dispatch_request<S: EventSink>(
     };
     let m4_synthesis_build = if request.command.kind == CommandKind::AndroidSynthesisBuild {
         Some(parse_m4_synthesis_build(state, &request)?)
+    } else {
+        None
+    };
+    let android_project_scaffold = if request.command.kind == CommandKind::AndroidProjectScaffold {
+        Some(parse_android_project_scaffold(state, &request)?)
+    } else {
+        None
+    };
+    let agent_loop_run = if request.command.kind == CommandKind::AgentLoopRun {
+        Some(parse_agent_loop_run(state, &request)?)
     } else {
         None
     };
@@ -4744,10 +5828,40 @@ pub(crate) fn dispatch_request<S: EventSink>(
             ResponseStatus::Completed
         };
         command_response.result_schema_ref = Some("nirman.artifact_export_result.v1".into());
+        let delivery_byte_count = std::fs::metadata(&prepared.destination_path)
+            .map(|metadata| metadata.len())
+            .unwrap_or(0);
+        let delivery_record = ApkDeliveryRecord {
+            schema_version: 1,
+            delivery_id: format!("delivery-{command_id}"),
+            artifact_id: artifact.artifact_id.clone(),
+            project_id: artifact.project_id.clone(),
+            task_id: artifact.task_id.clone(),
+            source_revision: prepared.source_revision,
+            packaging_profile_id: "default-apk-only".into(),
+            artifact_kind: ArtifactKind::Apk,
+            destination_path: prepared.destination_path.clone(),
+            destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+            request_fingerprint: artifact.source_fingerprint.clone(),
+            idempotency_key: format!("artifact-export-{command_id}"),
+            sha256: artifact
+                .delivery_sha256
+                .clone()
+                .unwrap_or_else(|| artifact.sha256.clone()),
+            byte_count: delivery_byte_count,
+            state: if artifact.delivery_verified {
+                DeliveryState::Copied
+            } else {
+                DeliveryState::Pending
+            },
+            created_at_epoch_seconds: now_epoch_seconds(),
+            completed_at_epoch_seconds: artifact.delivery_verified.then(now_epoch_seconds),
+            error_message: None,
+        };
         command_response.result_payload = Some(
             serde_json::to_value(ArtifactExportResultPayload {
                 artifact,
-                delivery_record: delivered.clone(),
+                delivery_record,
                 signing_config: None,
             })
             .expect("APK export result serialization"),
@@ -5042,6 +6156,220 @@ pub(crate) fn dispatch_request<S: EventSink>(
             })
             .expect("M4 result serialization"),
         );
+    }
+    if let Some(prepared) = android_project_scaffold.as_ref() {
+        let payload = if was_duplicate {
+            let stored = state
+                .plane
+                .load_android_project_scaffold(&prepared.task_id, prepared.source_revision)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate M4b command has no durable scaffold record",
+                        true,
+                        None,
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate M4b command has no durable scaffold record",
+                        true,
+                        None,
+                    )
+                })?;
+            serde_json::from_str::<AndroidProjectScaffoldResultPayload>(&stored).map_err(|_| {
+                error(
+                    &correlation_id,
+                    Some(command_id.clone()),
+                    causation_id.clone(),
+                    ControlPlaneErrorCode::DependencyUnavailable,
+                    ErrorCategory::Internal,
+                    "durable M4b scaffold record is corrupt",
+                    false,
+                    None,
+                )
+            })?
+        } else {
+            // Apply the validated scaffold to the authorized workspace, then
+            // re-index so the result carries the post-scaffold fingerprint.
+            prepared
+                .scaffold
+                .apply(&prepared.workspace_root)
+                .map_err(|scaffold_error| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        format!("M4b scaffold application failed: {scaffold_error}"),
+                        true,
+                        None,
+                    )
+                })?;
+            let index = ProjectIndexer::default()
+                .index_workspace(&prepared.workspace_root, &IndexRequest::default())
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "M4b post-scaffold workspace indexing failed",
+                        true,
+                        None,
+                    )
+                })?;
+            let payload = AndroidProjectScaffoldResultPayload {
+                scaffold: prepared.scaffold.summary(&index.project_fingerprint),
+                files: prepared.scaffold.files.clone(),
+                resulting_project_fingerprint: index.project_fingerprint.clone(),
+            };
+            state
+                .plane
+                .save_android_project_scaffold(
+                    &prepared.task_id,
+                    prepared.source_revision,
+                    &prepared.scaffold.scaffold_id,
+                    &prepared.scaffold.contract_id,
+                    &prepared.scaffold.scaffold_fingerprint,
+                    &index.project_fingerprint,
+                    &serde_json::to_string(&payload).expect("M4b result serialization"),
+                )
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "M4b scaffold record could not be durably saved",
+                        true,
+                        None,
+                    )
+                })?;
+            payload
+        };
+        if !was_duplicate {
+            command_response.status = ResponseStatus::Completed;
+        }
+        command_response.result_schema_ref = Some(nirman_android::SCAFFOLD_SCHEMA_REF.into());
+        command_response.result_payload =
+            Some(serde_json::to_value(payload).expect("M4b result serialization"));
+    }
+    if let Some(prepared) = agent_loop_run.as_ref() {
+        let payload = if was_duplicate {
+            // Rebuild the result from durable records: the loop record, the
+            // scaffold record, the synthesis/build provenance, and the last
+            // build observation.
+            let loop_id = format!("loop-{}-{}", prepared.task_id, prepared.source_revision);
+            let stored_loop = state
+                .plane
+                .load_agent_loop_record(&loop_id)
+                .map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate agent loop command has no durable loop record",
+                        true,
+                        None,
+                    )
+                })?
+                .ok_or_else(|| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Unavailable,
+                        "duplicate agent loop command has no durable loop record",
+                        true,
+                        None,
+                    )
+                })?;
+            let loop_record: AgentLoopRecord =
+                serde_json::from_str(&stored_loop).map_err(|_| {
+                    error(
+                        &correlation_id,
+                        Some(command_id.clone()),
+                        causation_id.clone(),
+                        ControlPlaneErrorCode::DependencyUnavailable,
+                        ErrorCategory::Internal,
+                        "durable agent loop record is corrupt",
+                        false,
+                        None,
+                    )
+                })?;
+            let scaffold_summary = state
+                .plane
+                .load_android_project_scaffold(&prepared.task_id, prepared.source_revision)
+                .ok()
+                .flatten()
+                .and_then(|json| {
+                    serde_json::from_str::<AndroidProjectScaffoldResultPayload>(&json).ok()
+                })
+                .map(|payload| payload.scaffold);
+            let synthesis = state
+                .plane
+                .load_android_synthesis_build(&prepared.task_id, prepared.source_revision)
+                .ok()
+                .flatten();
+            let build_observation = state
+                .plane
+                .load_android_build_observation(&prepared.task_id, prepared.source_revision)
+                .ok()
+                .flatten()
+                .and_then(|json| {
+                    serde_json::from_str::<nirman_android::AndroidBuildObservation>(&json).ok()
+                });
+            let outcome = match loop_record.state {
+                AgentLoopState::Complete => "COMPLETE",
+                AgentLoopState::Failed => "FAILED",
+                AgentLoopState::Exhausted => "EXHAUSTED",
+                AgentLoopState::Cancelled => "CANCELLED",
+                AgentLoopState::Running | AgentLoopState::Suspended => {
+                    match loop_record.progress_status {
+                        ProgressStatus::Complete => "COMPLETE",
+                        ProgressStatus::Cancelled => "CANCELLED",
+                        _ => "INTERRUPTED",
+                    }
+                }
+            };
+            AgentLoopRunResultPayload {
+                loop_record,
+                outcome: outcome.into(),
+                build_observation,
+                scaffold: scaffold_summary,
+                resulting_project_fingerprint: synthesis.as_ref().map(|record| record.4.clone()),
+                toolchain_lock_hash: synthesis.as_ref().map(|record| record.2.clone()),
+                environment_snapshot_id: synthesis.as_ref().map(|record| record.3.clone()),
+            }
+        } else {
+            run_agent_loop(state, prepared, &command_id, &correlation_id)?
+        };
+        if !was_duplicate {
+            command_response.status = match payload.outcome.as_str() {
+                "COMPLETE" => ResponseStatus::Completed,
+                "EXHAUSTED" | "FAILED" => ResponseStatus::Failed,
+                _ => ResponseStatus::Completed,
+            };
+        }
+        command_response.result_schema_ref = Some(nirman_agents::AGENT_LOOP_SCHEMA_REF.into());
+        command_response.result_payload =
+            Some(serde_json::to_value(payload).expect("agent loop result serialization"));
     }
     if let Some(prepared) = preview_start.as_ref() {
         let (selection, revision) = if command_response.status == ResponseStatus::Duplicate {
@@ -5735,7 +7063,7 @@ pub(crate) fn dispatch_request<S: EventSink>(
     Ok(command_response)
 }
 
-fn runtime_state(app: &AppHandle) -> RuntimeState {
+fn runtime_state(app: &AppHandle, loop_cancellations: Arc<LoopCancellationMap>) -> RuntimeState {
     let ledger_path = std::env::var_os("NIRMAN_LEDGER_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
@@ -5781,6 +7109,7 @@ fn runtime_state(app: &AppHandle) -> RuntimeState {
         ),
         capability_probe: Box::new(HostCapabilityProbe),
         authorized_workspace_root: std::env::var_os("NIRMAN_PROJECT_WORKSPACE").map(PathBuf::from),
+        loop_cancellations,
         consumed_mutation_capabilities: BTreeSet::new(),
         worker_policies: BTreeMap::new(),
         process_registry: ProcessRegistry::default(),
@@ -5789,13 +7118,20 @@ fn runtime_state(app: &AppHandle) -> RuntimeState {
 }
 
 fn main() {
+    let loop_cancellations = new_loop_cancellation_map();
     tauri::Builder::default()
-        .setup(|app| {
-            app.manage(Mutex::new(runtime_state(app.handle())));
+        .setup(move |app| {
+            let cancellations = LoopCancellationState(loop_cancellations.clone());
+            app.manage(cancellations);
+            app.manage(Mutex::new(runtime_state(
+                app.handle(),
+                loop_cancellations.clone(),
+            )));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             handshake,
+            workspace,
             projection,
             subscribe_events,
             replay_events,
@@ -6931,6 +8267,7 @@ mod tests {
             provider_transport: Box::new(TestTransport),
             capability_probe: Box::new(m43_probe()),
             authorized_workspace_root: None,
+            loop_cancellations: new_loop_cancellation_map(),
             consumed_mutation_capabilities: BTreeSet::new(),
             worker_policies: BTreeMap::new(),
             process_registry: ProcessRegistry::default(),
@@ -7616,7 +8953,7 @@ mod tests {
             .expect("build observation reload")
             .is_some());
         let _ = fs::remove_dir_all(workspace);
-        let mut state = test_state_at(&path);
+        let state = test_state_at(&path);
 
         let stored = state
             .plane
@@ -7701,6 +9038,1021 @@ mod tests {
             serde_json::to_vec_pretty(&evidence).expect("M43 evidence JSON"),
         )
         .expect("M43 evidence write");
+    }
+
+    /// Creates an authorized workspace with a fixture Gradle wrapper that
+    /// produces a debug APK, and returns (workspace, pre-loop fingerprint).
+    fn loop_workspace(tag: &str, failing: bool) -> (PathBuf, String) {
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-agent-loop-{tag}-{}", now_epoch_seconds()));
+        fs::create_dir_all(&workspace).expect("workspace root");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let wrapper = workspace.join("gradlew");
+            let script = if failing {
+                "#!/bin/sh\nprintf 'fixture failure\\n' >&2\nexit 1\n"
+            } else {
+                "#!/bin/sh\nmkdir -p app/build/outputs/apk/debug\nprintf 'fixture-apk' > app/build/outputs/apk/debug/app-debug.apk\nprintf 'BUILD SUCCESSFUL\\n'\n"
+            };
+            fs::write(&wrapper, script).expect("fixture Gradle wrapper");
+            let mut permissions = fs::metadata(&wrapper)
+                .expect("wrapper metadata")
+                .permissions();
+            permissions.set_mode(0o755);
+            fs::set_permissions(&wrapper, permissions).expect("wrapper permissions");
+        }
+        let index = ProjectIndexer::default()
+            .index_workspace(&workspace, &IndexRequest::default())
+            .expect("workspace index");
+        (workspace, index.project_fingerprint)
+    }
+
+    /// Dispatches the M39 contract + M43 preflight sequence a scaffold or
+    /// agent-loop run depends on, returning the projection revision.
+    fn dispatch_contract_and_preflight(
+        sink: &RecordingSink,
+        state: &mut RuntimeState,
+        contract: &AndroidConstructionContract,
+    ) -> u64 {
+        let mut construction_request = request(
+            state,
+            &format!("construction-{}", contract.contract_id),
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            0,
+        );
+        construction_request.command.task_id = Some(contract.task_id.clone());
+        let contract_response =
+            dispatch_request(sink, state, construction_request).expect("contract response");
+        let mut preflight_request = request(
+            state,
+            &format!("preflight-{}", contract.contract_id),
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            contract_response.projection_revision.0,
+        );
+        preflight_request.command.task_id = Some(contract.task_id.clone());
+        let preflight_response =
+            dispatch_request(sink, state, preflight_request).expect("preflight response");
+        assert_eq!(preflight_response.status, ResponseStatus::Completed);
+        preflight_response.projection_revision.0
+    }
+
+    #[test]
+    fn android_project_scaffold_command_writes_real_gradle_project() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+        let revision = dispatch_contract_and_preflight(&sink, &mut state, &contract);
+
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-scaffold-cmd-{}", now_epoch_seconds()));
+        fs::create_dir_all(&workspace).expect("workspace root");
+        state.authorized_workspace_root = Some(workspace.clone());
+        let index = ProjectIndexer::default()
+            .index_workspace(&workspace, &IndexRequest::default())
+            .expect("pre-scaffold index");
+        let empty_fingerprint = index.project_fingerprint.clone();
+
+        let mut scaffold_request = request(
+            &state,
+            "m4b-scaffold-command",
+            CommandKind::AndroidProjectScaffold,
+            serde_json::to_string(&AndroidProjectScaffoldCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                project_fingerprint: empty_fingerprint.clone(),
+            })
+            .expect("scaffold payload"),
+            revision,
+        );
+        scaffold_request.command.task_id = Some(contract.task_id.clone());
+        let scaffold_response = dispatch_request(&sink, &mut state, scaffold_request.clone())
+            .expect("scaffold response");
+        assert_eq!(scaffold_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            scaffold_response.result_schema_ref.as_deref(),
+            Some("nirman.android_project_scaffold.v1")
+        );
+        let result = scaffold_response
+            .result_payload
+            .clone()
+            .expect("scaffold result");
+        assert!(result["scaffold"]["file_count"].as_u64().unwrap() >= 10);
+        assert_eq!(result["scaffold"]["package_name"], "com.nirman.project0001");
+        assert_eq!(result["scaffold"]["ui_framework"], "jetpack-compose");
+        assert_eq!(result["scaffold"]["min_sdk"], 35);
+        let resulting_fingerprint = result["resulting_project_fingerprint"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(!resulting_fingerprint.is_empty());
+        assert_ne!(resulting_fingerprint, empty_fingerprint);
+
+        // The workspace now contains a real Android Gradle project.
+        for expected in [
+            "settings.gradle.kts",
+            "build.gradle.kts",
+            "gradle.properties",
+            "gradle/wrapper/gradle-wrapper.properties",
+            "app/build.gradle.kts",
+            "app/proguard-rules.pro",
+            "app/src/main/AndroidManifest.xml",
+            "app/src/main/res/values/strings.xml",
+            "app/src/main/res/values/themes.xml",
+        ] {
+            assert!(
+                workspace.join(expected).is_file(),
+                "scaffold missing {expected}"
+            );
+        }
+        let manifest = fs::read_to_string(workspace.join("app/src/main/AndroidManifest.xml"))
+            .expect("manifest");
+        assert!(manifest.contains("<application"));
+        assert!(manifest.contains("android.intent.action.MAIN"));
+        let main_activity =
+            workspace.join("app/src/main/java/com/nirman/project0001/MainActivity.kt");
+        assert!(main_activity.is_file(), "MainActivity.kt missing");
+
+        // The scaffold record is durable and duplicates replay it.
+        assert!(state
+            .plane
+            .load_android_project_scaffold(&contract.task_id.0, 1)
+            .expect("scaffold record load")
+            .is_some());
+        let duplicate =
+            dispatch_request(&sink, &mut state, scaffold_request).expect("duplicate response");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(duplicate.result_payload, scaffold_response.result_payload);
+
+        // A second scaffold with the stale (pre-scaffold) fingerprint is rejected.
+        let mut stale_request = request(
+            &state,
+            "m4b-scaffold-stale",
+            CommandKind::AndroidProjectScaffold,
+            serde_json::to_string(&AndroidProjectScaffoldCommandPayload {
+                contract: contract.clone(),
+                source_revision: 2,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                project_fingerprint: empty_fingerprint,
+            })
+            .expect("stale payload"),
+            duplicate.projection_revision.0,
+        );
+        stale_request.command.task_id = Some(contract.task_id.clone());
+        let stale = dispatch_request(&RecordingSink::default(), &mut state, stale_request)
+            .expect_err("stale fingerprint must reject");
+        assert_eq!(stale.code, ControlPlaneErrorCode::StaleProjection);
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn agent_loop_runs_synthesis_scaffold_build_to_apk() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+        let revision = dispatch_contract_and_preflight(&sink, &mut state, &contract);
+
+        let (workspace, _pre_fingerprint) = loop_workspace("ok", false);
+        state.authorized_workspace_root = Some(workspace.clone());
+
+        let mut loop_request = request(
+            &state,
+            "agent-loop-run-command",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 60_000,
+            })
+            .expect("loop payload"),
+            revision,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request.clone()).expect("loop response");
+        assert_eq!(loop_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            loop_response.result_schema_ref.as_deref(),
+            Some("nirman.agent_loop_record.v1")
+        );
+        let result = loop_response.result_payload.clone().expect("loop result");
+        assert_eq!(result["outcome"], "COMPLETE");
+        assert_eq!(result["loop_record"]["state"], "Complete");
+        assert_eq!(result["loop_record"]["progress_status"], "Complete");
+        assert_eq!(result["loop_record"]["iteration"], 4);
+        assert_eq!(result["loop_record"]["completed_action_count"], 4);
+        assert_eq!(
+            result["build_observation"]["success"],
+            serde_json::Value::Bool(true)
+        );
+        let artifact_path = result["build_observation"]["artifact_path"]
+            .as_str()
+            .expect("artifact path")
+            .to_owned();
+        assert!(artifact_path.ends_with(".apk"));
+        assert!(Path::new(&artifact_path).is_file(), "APK must exist");
+        assert!(result["scaffold"]["file_count"].as_u64().unwrap() >= 10);
+        let resulting_fingerprint = result["resulting_project_fingerprint"]
+            .as_str()
+            .expect("fingerprint")
+            .to_owned();
+        assert!(!resulting_fingerprint.is_empty());
+
+        // The scaffolded project is real.
+        assert!(workspace.join("settings.gradle.kts").is_file());
+        assert!(workspace.join("app/src/main/AndroidManifest.xml").is_file());
+        assert!(workspace
+            .join("app/src/main/java/com/nirman/project0001/MainActivity.kt")
+            .is_file());
+        assert!(workspace
+            .join("app/build/outputs/apk/debug/app-debug.apk")
+            .is_file());
+
+        // Every loop stage is durable.
+        let loop_id = format!("loop-{}-1", contract.task_id.0);
+        let stored_loop = state
+            .plane
+            .load_agent_loop_record(&loop_id)
+            .expect("loop record load")
+            .expect("loop record persisted");
+        let stored: nirman_agents::AgentLoopRecord =
+            serde_json::from_str(&stored_loop).expect("loop record parse");
+        assert_eq!(stored.state, nirman_agents::AgentLoopState::Complete);
+        assert!(state
+            .plane
+            .load_android_project_scaffold(&contract.task_id.0, 1)
+            .expect("scaffold record")
+            .is_some());
+        let synthesis = state
+            .plane
+            .load_android_synthesis_build(&contract.task_id.0, 1)
+            .expect("synthesis record")
+            .expect("synthesis persisted");
+        assert_eq!(synthesis.4, resulting_fingerprint);
+        assert!(state
+            .plane
+            .load_android_build_observation(&contract.task_id.0, 1)
+            .expect("observation record")
+            .is_some());
+
+        // Duplicate dispatch replays the same durable outcome.
+        let duplicate = dispatch_request(&sink, &mut state, loop_request).expect("duplicate loop");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(duplicate.result_payload, loop_response.result_payload);
+
+        // The loop's persisted M4 provenance supports a standalone build.
+        let mut artifact_request = request(
+            &state,
+            "agent-loop-artifact-build",
+            CommandKind::ArtifactBuild,
+            serde_json::to_string(&ArtifactBuildCommandPayload {
+                source_revision: 1,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                project_fingerprint: resulting_fingerprint,
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+            })
+            .expect("artifact payload"),
+            duplicate.projection_revision.0,
+        );
+        artifact_request.command.task_id = Some(contract.task_id.clone());
+        let artifact_response = dispatch_request(&sink, &mut state, artifact_request)
+            .expect("standalone artifact build");
+        assert_eq!(artifact_response.status, ResponseStatus::Completed);
+        assert_eq!(
+            artifact_response.result_payload.as_ref().unwrap()["observation"]["success"],
+            true
+        );
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn agent_loop_diagnoses_and_retries_failed_builds_within_budget() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = construction_contract(PROJECT_ID);
+        let revision = dispatch_contract_and_preflight(&sink, &mut state, &contract);
+
+        let (workspace, _pre_fingerprint) = loop_workspace("fail", true);
+        state.authorized_workspace_root = Some(workspace.clone());
+
+        let mut loop_request = request(
+            &state,
+            "agent-loop-failing-build",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 30_000,
+            })
+            .expect("loop payload"),
+            revision,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request).expect("loop response");
+        // The build keeps failing: the loop must terminate safely rather
+        // than cycle, and the failure must be recorded with the retry trail.
+        assert_eq!(loop_response.status, ResponseStatus::Failed);
+        let result = loop_response.result_payload.expect("loop result");
+        assert_eq!(result["outcome"], "FAILED");
+        assert_eq!(result["loop_record"]["state"], "Failed");
+        assert_eq!(
+            result["loop_record"]["variation_attempts"],
+            serde_json::json!(2)
+        );
+        assert_eq!(
+            result["loop_record"]["consecutive_failures"],
+            serde_json::json!(3)
+        );
+        assert_eq!(
+            result["build_observation"]["success"],
+            serde_json::Value::Bool(false)
+        );
+        // The scaffolded project still exists for inspection/recovery.
+        assert!(workspace.join("settings.gradle.kts").is_file());
+        // The iteration budget bounded the loop.
+        assert!(
+            result["loop_record"]["iteration"].as_u64().unwrap() <= 8,
+            "iteration budget must bound the loop"
+        );
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    /// Mirrors the frontend's `deriveConstructionPipeline` output for the
+    /// default notes intent (see apps/desktop/src/contract.ts): the Rust
+    /// integration tests dispatch the exact contract shape the React UI
+    /// sends, so this path is the tested frontend-to-backend contract.
+    pub(crate) fn frontend_derived_contract(
+        project_id: &str,
+        task_id: &str,
+    ) -> AndroidConstructionContract {
+        let requirement = |id: &str, statement: &str| ConstructionRequirement {
+            requirement_id: id.into(),
+            statement: statement.into(),
+            origin: RequirementOrigin::UserFact,
+            source_reference_ids: vec![],
+        };
+        AndroidConstructionContract {
+            schema_version: 1,
+            contract_id: "contract-ui-frontend-1".into(),
+            project_id: ProjectId(project_id.into()),
+            target_platforms: vec!["android".into()],
+            task_id: TaskId(task_id.into()),
+            user_intent: "Create a calm, offline-first notes app with camera capture.".into(),
+            screenshots: vec![],
+            assets: vec![],
+            features: vec![requirement(
+                "feature-ui-frontend-1-1",
+                "Create a calm, offline-first notes app with camera capture.",
+            )],
+            ui: vec![requirement(
+                "ui-ui-frontend-1-1",
+                "Present each feature as a distinct screen with Material 3 components",
+            )],
+            data: vec![requirement(
+                "data-ui-frontend-1-1",
+                "Persist all user content on device so the app works without network access",
+            )],
+            integrations: vec![],
+            technology_plan: AndroidTechnologyPlan {
+                plan_id: "plan-ui-frontend-1".into(),
+                task_id: TaskId(task_id.into()),
+                requested_capabilities: vec!["camera-capture".into(), "offline-storage".into()],
+                visual_requirements: vec!["material-3".into(), "adaptive-layout".into()],
+                selected_languages: vec!["kotlin".into()],
+                selected_ui_frameworks: vec!["jetpack-compose".into()],
+                selected_runtime_layers: vec![],
+                selected_native_modules: vec![],
+                selected_build_plugins: vec!["android-gradle-plugin".into()],
+                selected_device_apis: vec!["camera-capture".into(), "offline-storage".into()],
+                selected_libraries: vec!["room".into()],
+                compatibility_constraints: vec!["android-api-29-plus".into()],
+                rejected_alternatives: vec!["web-target".into(), "flutter-target".into()],
+                required_toolchains: vec!["jdk".into(), "gradle".into(), "android-sdk".into()],
+                validation_plan: vec!["unit-tests".into(), "android-build".into()],
+                confidence: Some("high".into()),
+                revision: Revision(1),
+            },
+            android_requirements: vec![requirement(
+                "android-ui-frontend-1-1",
+                "Support the declared Android API range and device permissions",
+            )],
+            device_matrix: vec![AndroidDeviceProfile {
+                device_id: "pixel-api-35".into(),
+                name: "Pixel API 35".into(),
+                platform_version: "Android 15".into(),
+                api_level: 35,
+                architecture: "x86_64".into(),
+                width: 1080,
+                height: 2400,
+                density: 420,
+                orientation: "portrait".into(),
+                locale: "en-US".into(),
+                permissions: vec!["android.permission.CAMERA".into()],
+                network_profile: "offline-capable".into(),
+            }],
+            validation_model: ValidationModel {
+                required_checks: vec!["compile".into(), "android-build".into()],
+                acceptance_criteria: vec![
+                    "Create a calm, offline-first notes app with camera capture.".into(),
+                ],
+            },
+            artifact_model: ArtifactModel {
+                required_artifact: ArtifactKind::Apk,
+                aab_declared: false,
+            },
+        }
+    }
+
+    /// A workspace whose fixture Gradle wrapper sleeps long enough that a
+    /// concurrent cancellation always lands while the build is in flight.
+    #[cfg(unix)]
+    fn slow_loop_workspace() -> (PathBuf, String) {
+        let workspace =
+            std::env::temp_dir().join(format!("nirman-agent-loop-slow-{}", now_epoch_seconds()));
+        fs::create_dir_all(&workspace).expect("workspace root");
+        use std::os::unix::fs::PermissionsExt;
+        let wrapper = workspace.join("gradlew");
+        fs::write(
+            &wrapper,
+            "#!/bin/sh\nsleep 60\nmkdir -p app/build/outputs/apk/debug\nprintf 'fixture-apk' > app/build/outputs/apk/debug/app-debug.apk\nprintf 'BUILD SUCCESSFUL\\n'\n",
+        )
+        .expect("slow fixture Gradle wrapper");
+        let mut permissions = fs::metadata(&wrapper)
+            .expect("wrapper metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&wrapper, permissions).expect("wrapper permissions");
+        let index = ProjectIndexer::default()
+            .index_workspace(&workspace, &IndexRequest::default())
+            .expect("workspace index");
+        (workspace, index.project_fingerprint)
+    }
+
+    /// Dispatches the exact frontend command sequence for one user intent:
+    /// SubmitInstruction (raw text) -> AndroidConstructionCreate ->
+    /// AndroidToolchainPreflight, returning the projection revision and the
+    /// durable source revision the AgentLoopRun must carry.
+    pub(crate) fn dispatch_frontend_prefix(
+        sink: &RecordingSink,
+        state: &mut RuntimeState,
+        contract: &AndroidConstructionContract,
+        intent: &str,
+    ) -> (u64, u64) {
+        let mut instruction_request = request(
+            state,
+            "instruction-ui-frontend-1",
+            CommandKind::SubmitInstruction,
+            intent.to_owned(),
+            0,
+        );
+        instruction_request.command.task_id = Some(contract.task_id.clone());
+        let instruction_response = dispatch_request(sink, state, instruction_request)
+            .expect("frontend instruction accepted");
+        assert_eq!(instruction_response.status, ResponseStatus::Accepted);
+        assert_eq!(
+            instruction_response.snapshot.current_source_revision.0, 1,
+            "the durable instruction must open the source revision the loop builds"
+        );
+        let source_revision = instruction_response.snapshot.current_source_revision.0;
+
+        let mut construction_request = request(
+            state,
+            "construction-ui-frontend-1",
+            CommandKind::AndroidConstructionCreate,
+            serde_json::to_string(&AndroidConstructionCommandPayload {
+                contract: contract.clone(),
+            })
+            .expect("contract payload"),
+            instruction_response.snapshot.projection_revision.0,
+        );
+        construction_request.command.task_id = Some(contract.task_id.clone());
+        let construction_response = dispatch_request(sink, state, construction_request)
+            .expect("frontend contract accepted");
+        assert!(matches!(
+            construction_response.status,
+            ResponseStatus::Accepted | ResponseStatus::Completed
+        ));
+
+        let mut preflight_request = request(
+            state,
+            "preflight-ui-frontend-1",
+            CommandKind::AndroidToolchainPreflight,
+            serde_json::to_string(&AndroidToolchainPreflightCommandPayload {
+                build_variant: "debug".into(),
+            })
+            .expect("preflight payload"),
+            construction_response.snapshot.projection_revision.0,
+        );
+        preflight_request.command.task_id = Some(contract.task_id.clone());
+        let preflight_response =
+            dispatch_request(sink, state, preflight_request).expect("frontend preflight");
+        assert_eq!(preflight_response.status, ResponseStatus::Completed);
+        (
+            preflight_response.snapshot.projection_revision.0,
+            source_revision,
+        )
+    }
+
+    #[test]
+    fn frontend_pipeline_runs_instruction_loop_and_apk_export_end_to_end() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = frontend_derived_contract(PROJECT_ID, "task-ui-frontend-1");
+        let (workspace, _fingerprint) = loop_workspace("frontend", false);
+        state.authorized_workspace_root = Some(workspace.clone());
+        // The export path inspects the APK through the locked build-tools
+        // aapt, so the fixture probe needs a real (fake) aapt on disk.
+        let build_tools = workspace.join("build-tools");
+        fs::create_dir_all(&build_tools).expect("build tools fixture");
+        let aapt = build_tools.join("aapt");
+        fs::write(
+            &aapt,
+            "#!/bin/sh\nprintf \"package: name='com.nirman.project0001' versionCode='1' versionName='1.0'\\n\"\n",
+        )
+        .expect("aapt fixture");
+        crate::m108_export_preview_tests::make_executable(&aapt);
+        state.capability_probe =
+            Box::new(crate::m108_export_preview_tests::fixture_probe(&workspace));
+        let (revision, source_revision) = dispatch_frontend_prefix(
+            &sink,
+            &mut state,
+            &contract,
+            "Create a calm, offline-first notes app with camera capture.",
+        );
+
+        // The AgentLoopRun the React UI dispatches after the preflight.
+        let mut loop_request = request(
+            &state,
+            "agent-loop-ui-frontend-1",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 60_000,
+            })
+            .expect("loop payload"),
+            revision,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request.clone()).expect("loop response");
+        assert_eq!(loop_response.status, ResponseStatus::Completed);
+        let result = loop_response.result_payload.clone().expect("loop result");
+        assert_eq!(result["outcome"], "COMPLETE");
+        assert_eq!(
+            result["loop_record"]["completed_action_count"],
+            serde_json::json!(4)
+        );
+        assert_eq!(
+            result["build_observation"]["success"],
+            serde_json::Value::Bool(true)
+        );
+        let artifact_path = result["build_observation"]["artifact_path"]
+            .as_str()
+            .expect("artifact path")
+            .to_owned();
+        assert!(Path::new(&artifact_path).is_file(), "APK must exist");
+        // The keyword-derived camera capability reached the manifest.
+        let manifest =
+            fs::read_to_string(workspace.join("app/src/main/AndroidManifest.xml")).unwrap();
+        assert!(manifest.contains("android.permission.CAMERA"));
+
+        // Duplicate dispatch replays the same durable outcome (idempotency).
+        let duplicate = dispatch_request(&sink, &mut state, loop_request).expect("duplicate");
+        assert_eq!(duplicate.status, ResponseStatus::Duplicate);
+        assert_eq!(duplicate.result_payload, loop_response.result_payload);
+
+        // The UI's export step: destination inside the authorized workspace.
+        let destination = workspace.join("exports/nirman-ui-frontend-1-debug.apk");
+        let mut export_request = request(
+            &state,
+            "artifact-export-ui-frontend-1",
+            CommandKind::ArtifactExport,
+            serde_json::to_string(&ArtifactExportCommandPayload {
+                source_revision,
+                destination_path: destination.to_string_lossy().into_owned(),
+                packaging_profile_id: "debug-local".into(),
+                artifact_kind: "APK".into(),
+                request_fingerprint: result["build_observation"]["artifact_sha256"]
+                    .as_str()
+                    .unwrap_or("fingerprint-frontend")
+                    .into(),
+                idempotency_key: "export-ui-frontend-1".into(),
+                deployment_delivery: "REQUIRED_APK".into(),
+                destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+            })
+            .expect("export payload"),
+            duplicate.projection_revision.0,
+        );
+        export_request.command.task_id = Some(contract.task_id.clone());
+        let export_response = dispatch_request(&sink, &mut state, export_request.clone())
+            .expect("frontend export response");
+        assert_eq!(export_response.status, ResponseStatus::Completed);
+        let exported: ArtifactExportResultPayload = serde_json::from_value(
+            export_response
+                .result_payload
+                .clone()
+                .expect("export result"),
+        )
+        .expect("typed export result");
+        assert_eq!(exported.artifact.delivery_status, "READY_LOCAL");
+        assert!(exported.artifact.delivery_verified);
+        assert!(destination.is_file(), "delivered APK must exist on disk");
+        assert_eq!(
+            exported.delivery_record.state,
+            DeliveryState::Copied,
+            "the durable delivery record must claim the verified copy"
+        );
+
+        // A second export to the same destination is a safe re-delivery.
+        let mut export_retry = export_request.clone();
+        export_retry.command.command_id = "artifact-export-ui-frontend-2".into();
+        export_retry.command.idempotency_key = Some("export-ui-frontend-2".into());
+        export_retry.command.expected_projection_revision =
+            export_response.snapshot.projection_revision;
+        let retry_response = dispatch_request(&sink, &mut state, export_retry)
+            .expect("destination-idempotent re-export");
+        assert_eq!(retry_response.status, ResponseStatus::Completed);
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn agent_loop_finishes_cancelled_when_task_cancelled_before_start() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = frontend_derived_contract(PROJECT_ID, "task-ui-cancelled-1");
+        let (workspace, _fingerprint) = loop_workspace("cancelled", false);
+        state.authorized_workspace_root = Some(workspace.clone());
+
+        let (revision, source_revision) = dispatch_frontend_prefix(
+            &sink,
+            &mut state,
+            &contract,
+            "Create a calm, offline-first notes app with camera capture.",
+        );
+
+        // The UI's Cancel button cancels the durable background run before
+        // the loop ever starts.
+        let mut cancel_request = request(
+            &state,
+            "cancel-ui-cancelled-1",
+            CommandKind::CancelTask,
+            String::new(),
+            revision,
+        );
+        cancel_request.command.task_id = Some(contract.task_id.clone());
+        let cancel_response =
+            dispatch_request(&sink, &mut state, cancel_request).expect("cancel response");
+        assert_eq!(cancel_response.status, ResponseStatus::Accepted);
+
+        let mut loop_request = request(
+            &state,
+            "agent-loop-ui-cancelled-1",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 60_000,
+            })
+            .expect("loop payload"),
+            cancel_response.snapshot.projection_revision.0,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request).expect("loop response");
+        let result = loop_response.result_payload.clone().expect("loop result");
+        assert_eq!(result["outcome"], "CANCELLED");
+        assert_eq!(result["loop_record"]["state"], "Cancelled");
+        assert_eq!(
+            result["loop_record"]["completed_action_count"],
+            serde_json::json!(0),
+            "a cancelled task must not mutate the workspace"
+        );
+        // The loop record is durable for reconciliation.
+        let loop_id = format!("loop-{}-{}", contract.task_id.0, source_revision);
+        let stored = state
+            .plane
+            .load_agent_loop_record(&loop_id)
+            .expect("loop record load")
+            .expect("cancelled loop record persisted");
+        let record: AgentLoopRecord = serde_json::from_str(&stored).expect("loop record parse");
+        assert_eq!(record.state, AgentLoopState::Cancelled);
+        // Nothing was scaffolded or built.
+        assert!(!workspace.join("settings.gradle.kts").exists());
+        assert!(!workspace
+            .join("app/build/outputs/apk/debug/app-debug.apk")
+            .exists());
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn agent_loop_cancels_in_flight_gradle_build_through_shared_flag() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = frontend_derived_contract(PROJECT_ID, "task-ui-inflight-1");
+        let (workspace, _fingerprint) = slow_loop_workspace();
+        state.authorized_workspace_root = Some(workspace.clone());
+        let (revision, source_revision) = dispatch_frontend_prefix(
+            &sink,
+            &mut state,
+            &contract,
+            "Create a calm, offline-first notes app with camera capture.",
+        );
+
+        // The Tauri fast path flips the shared flag without holding the
+        // runtime-state lock; simulate it from another thread once the loop
+        // has registered its flag and the build is in flight.
+        let registry = state.loop_cancellations.clone();
+        let task_id = contract.task_id.0.clone();
+        let canceller = std::thread::spawn(move || {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+            let flag = loop {
+                if let Ok(flags) = registry.lock() {
+                    if let Some(flag) = flags.get(&task_id) {
+                        break flag.clone();
+                    }
+                }
+                if std::time::Instant::now() >= deadline {
+                    panic!("in-flight loop never registered its cancellation flag");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            };
+            // Give the loop time to reach the (sleeping) Gradle build.
+            std::thread::sleep(std::time::Duration::from_millis(750));
+            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+        });
+
+        let mut loop_request = request(
+            &state,
+            "agent-loop-ui-inflight-1",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 120_000,
+            })
+            .expect("loop payload"),
+            revision,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let started = std::time::Instant::now();
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request).expect("loop response");
+        let elapsed = started.elapsed();
+        canceller.join().expect("cancelling thread");
+        // The kill must actually interrupt the 60s fixture build.
+        assert!(
+            elapsed < std::time::Duration::from_secs(30),
+            "cancellation must interrupt the in-flight build (took {elapsed:?})"
+        );
+        let result = loop_response.result_payload.clone().expect("loop result");
+        assert_eq!(result["outcome"], "CANCELLED");
+        assert_eq!(result["loop_record"]["state"], "Cancelled");
+        // Synthesis + scaffolding completed; the build was cancelled.
+        assert_eq!(
+            result["loop_record"]["completed_action_count"],
+            serde_json::json!(2)
+        );
+        if let Some(observation) = result["build_observation"].as_object() {
+            assert_eq!(observation["cancelled"], serde_json::Value::Bool(true));
+            assert_eq!(observation["success"], serde_json::Value::Bool(false));
+        }
+        // No APK was produced or claimed.
+        assert!(!workspace
+            .join("app/build/outputs/apk/debug/app-debug.apk")
+            .exists());
+        // The flag was deregistered after the loop finished.
+        {
+            let flags = state.loop_cancellations.lock().expect("registry lock");
+            assert!(!flags.contains_key(&contract.task_id.0));
+        }
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn agent_loop_exhausts_iteration_budget_and_fails_safely() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = frontend_derived_contract(PROJECT_ID, "task-ui-budget-1");
+        let (workspace, _fingerprint) = loop_workspace("budget", true);
+        state.authorized_workspace_root = Some(workspace.clone());
+        let (revision, source_revision) = dispatch_frontend_prefix(
+            &sink,
+            &mut state,
+            &contract,
+            "Create a calm, offline-first notes app with camera capture.",
+        );
+
+        let mut loop_request = request(
+            &state,
+            "agent-loop-ui-budget-1",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision,
+                workspace_root: workspace.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 3,
+                build_timeout_ms: 30_000,
+            })
+            .expect("loop payload"),
+            revision,
+        );
+        loop_request.command.task_id = Some(contract.task_id.clone());
+        let loop_response =
+            dispatch_request(&sink, &mut state, loop_request).expect("loop response");
+        assert_eq!(loop_response.status, ResponseStatus::Failed);
+        let result = loop_response.result_payload.expect("loop result");
+        assert_eq!(result["outcome"], "EXHAUSTED");
+        assert_eq!(result["loop_record"]["state"], "Exhausted");
+        assert_eq!(result["loop_record"]["iteration"], serde_json::json!(3));
+        assert_eq!(
+            result["loop_record"]["retry_strategy"],
+            "budget-exhausted-after-3-iterations"
+        );
+        // The failed loop never claims an artifact.
+        assert_ne!(
+            result["build_observation"]["success"],
+            serde_json::Value::Bool(true)
+        );
+
+        let _ = fs::remove_dir_all(workspace);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn agent_loop_rejects_unauthorized_workspace_and_missing_preflight() {
+        let path = database_path();
+        let mut state = test_state_at(&path);
+        let sink = RecordingSink::default();
+        let contract = frontend_derived_contract(PROJECT_ID, "task-ui-scope-1");
+
+        // Authorized workspace is a different directory than the payload's.
+        let (authorized, _fingerprint) = loop_workspace("scope-authorized", false);
+        let (outside, _outside_fingerprint) = loop_workspace("scope-outside", false);
+        state.authorized_workspace_root = Some(authorized.clone());
+
+        // No preflight was persisted for this task yet.
+        let mut missing_preflight = request(
+            &state,
+            "agent-loop-ui-scope-1",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: authorized.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 60_000,
+            })
+            .expect("loop payload"),
+            0,
+        );
+        missing_preflight.command.task_id = Some(contract.task_id.clone());
+        let preflight_error =
+            dispatch_request(&RecordingSink::default(), &mut state, missing_preflight)
+                .expect_err("loop without preflight must fail safely");
+        assert_eq!(preflight_error.code, ControlPlaneErrorCode::InvalidCommand);
+        assert_eq!(preflight_error.category, ErrorCategory::Environment);
+        assert!(preflight_error.safe_message.contains("M43 preflight"));
+
+        // A workspace outside the authorized root is a scope rejection even
+        // with a persisted preflight.
+        let (_revision, _source_revision) = dispatch_frontend_prefix(
+            &sink,
+            &mut state,
+            &contract,
+            "Create a calm, offline-first notes app with camera capture.",
+        );
+        let mut out_of_scope = request(
+            &state,
+            "agent-loop-ui-scope-2",
+            CommandKind::AgentLoopRun,
+            serde_json::to_string(&AgentLoopRunCommandPayload {
+                contract: contract.clone(),
+                source_revision: 1,
+                workspace_root: outside.to_string_lossy().into_owned(),
+                build_variant: "debug".into(),
+                gradle_task: "assembleDebug".into(),
+                iteration_budget: 8,
+                build_timeout_ms: 60_000,
+            })
+            .expect("loop payload"),
+            state.plane.snapshot().projection_revision.0,
+        );
+        out_of_scope.command.task_id = Some(contract.task_id.clone());
+        let scope_error = dispatch_request(&RecordingSink::default(), &mut state, out_of_scope)
+            .expect_err("out-of-scope workspace must be rejected");
+        assert_eq!(scope_error.code, ControlPlaneErrorCode::PermissionDenied);
+        assert_eq!(scope_error.category, ErrorCategory::Scope);
+        // Nothing was written to the out-of-scope workspace.
+        assert!(!outside.join("settings.gradle.kts").exists());
+
+        let _ = fs::remove_dir_all(authorized);
+        let _ = fs::remove_dir_all(outside);
+        drop(state);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn cancel_registered_loop_flips_default_and_explicit_task_flags() {
+        let registry = new_loop_cancellation_map();
+        // Without a registered loop there is nothing to signal.
+        assert!(!cancel_registered_loop(
+            &registry,
+            PROJECT_ID,
+            Some(&TaskId("task-unknown".into()))
+        ));
+        assert!(!cancel_registered_loop(&registry, PROJECT_ID, None));
+
+        // Explicit task scope: the flag flips and stays flipped.
+        let explicit = Arc::new(AtomicBool::new(false));
+        registry
+            .lock()
+            .unwrap()
+            .insert("task-explicit".into(), explicit.clone());
+        assert!(cancel_registered_loop(
+            &registry,
+            PROJECT_ID,
+            Some(&TaskId("task-explicit".into()))
+        ));
+        assert!(explicit.load(Ordering::SeqCst));
+
+        // Default scope: a CancelTask without task identity targets the
+        // project's implicit task, mirroring dispatch_request normalization.
+        let implicit = Arc::new(AtomicBool::new(false));
+        registry
+            .lock()
+            .unwrap()
+            .insert(format!("task-{PROJECT_ID}"), implicit.clone());
+        assert!(cancel_registered_loop(&registry, PROJECT_ID, None));
+        assert!(implicit.load(Ordering::SeqCst));
+        // An explicit scope for an unregistered task signals nothing.
+        assert!(!cancel_registered_loop(
+            &registry,
+            PROJECT_ID,
+            Some(&TaskId("task-other".into()))
+        ));
     }
 
     #[test]
@@ -9679,7 +12031,7 @@ fn reconcile_m8_handoffs(
             })?;
         handoffs.push(handoff);
     }
-    let mut coordinator = restore_m8_coordinator(state, &payload.parent_contract, request)?;
+    let coordinator = restore_m8_coordinator(state, &payload.parent_contract, request)?;
     if coordinator.reconcile().is_err() {
         let checkpoint = M8ReconciliationCheckpoint {
             schema_version: nirman_workers::M8_RECONCILIATION_SCHEMA_VERSION,
@@ -10477,13 +12829,13 @@ mod m108_export_preview_tests {
         ))
     }
 
-    fn make_executable(path: &Path) {
+    pub(crate) fn make_executable(path: &Path) {
         let mut permissions = fs::metadata(path).expect("fixture metadata").permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(path, permissions).expect("fixture permissions");
     }
 
-    fn fixture_probe(root: &Path) -> StaticCapabilityProbe {
+    pub(crate) fn fixture_probe(root: &Path) -> StaticCapabilityProbe {
         let build_tools = root.join("build-tools");
         let platform_tools = root.join("platform-tools");
         StaticCapabilityProbe::default()
@@ -10948,7 +13300,7 @@ mod m108_export_preview_tests {
         assert_eq!(projection.validation_status, "OBSERVED");
 
         drop(state);
-        let mut reopened = test_state_at(&database);
+        let reopened = test_state_at(&database);
         let reloaded_policy_events = reopened
             .plane
             .load_m6_policy_events()
