@@ -1477,7 +1477,11 @@ def check_semantic_documentation(docs, R, D):
         ("ExportVerificationRecord\n- exportId", ta, "export verification schema"),
         ("APKExportRecord", ta, "APK export implementation view"),
         ("deliveryProjection", ta, "export delivery projection wiring"),
-        ("UNKNOWN → RECONCILING", ta, "export reconciliation lifecycle"),
+        # Anchored to the §83.2 export-copy sentence, not the bare lifecycle
+        # token: ADR-203's ExternalEffectRecord generalization (§20.3) also
+        # quotes `UNKNOWN → RECONCILING`, so a bare-token check would pass
+        # even if the export-specific lifecycle wording were removed.
+        ("partially completed follows `UNKNOWN → RECONCILING`", ta, "export reconciliation lifecycle"),
     )
     for token, text, subject in export_tokens:
         if token not in text:

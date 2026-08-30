@@ -342,9 +342,13 @@ CASES = {
         TA, "backgroundContinuityProjection",
         "missingContinuityProjection",
         "semantic documentation"),
+    # Anchored to the §83.2 export-copy sentence: ADR-203's
+    # ExternalEffectRecord generalization quotes the same bare lifecycle token
+    # earlier in TA, so a bare-token mutation would corrupt the wrong site and
+    # leave the export sentence intact (undetected).
     "semantic export reconciliation lifecycle removed": (
-        TA, "UNKNOWN → RECONCILING",
-        "UNKNOWN_ONLY",
+        TA, "partially completed follows `UNKNOWN → RECONCILING`",
+        "partially completed follows `UNKNOWN_ONLY`",
         "semantic documentation"),
     "semantic preview sync section removed": (
         BS, "## 71. Preview Synchronization Protocol",
