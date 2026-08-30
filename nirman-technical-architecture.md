@@ -1860,6 +1860,15 @@ ExternalEffectRecord
 - compensationPlan
 - compensationState
 - localTransactionId
+- reconciliationState: KNOWN_SUCCESS | KNOWN_FAILURE | UNKNOWN | RECONCILING | RESOLVED
+
+`ExternalEffectRecord.reconciliationState` generalizes the export-only `UNKNOWN → RECONCILING` pattern (ADR-203) to every external side effect. Every adapter that performs an external effect—ADB install, emulator/device launch, provider/model request, signing operation, filesystem copy, package installation, process creation, and remote API—MUST record an `ExternalEffectRecord` and implement reconciliation against the canonical `reconciliationState` lifecycle:
+- `KNOWN_SUCCESS` / `KNOWN_FAILURE`: observed and verified terminal state.
+- `UNKNOWN`: the effect was issued but its outcome could not be confirmed (timeout, partial response, device/provider drop, interrupted copy, process disappearance).
+- `RECONCILING`: an `UNKNOWN` outcome is being resolved by destination/identity/hash inspection or provider/device status re-check; no retry of the effect is permitted until resolution.
+- `RESOLVED`: reconciliation completed and the outcome was deterministically classified as success or failure (recorded in `responseReference` / compensation state).
+
+An `UNKNOWN` outcome MUST NOT be retried, promoted, or reported as success until it transitions to `RESOLVED`. This applies uniformly; the export copy path (M117/ADR-203) is one instance, not a special case. The `CanonicalSchemaRegistry` owns this schema; adapter-local variants are explanatory only and must not redefine the enum.
 
 UsageRecord
 - usageId
