@@ -102,9 +102,7 @@ impl SkillPackage {
     }
 
     pub fn is_invocable(&self) -> bool {
-        self.enabled
-            && self.is_scanned()
-            && !matches!(self.trust_status, TrustStatus::Revoked)
+        self.enabled && self.is_scanned() && !matches!(self.trust_status, TrustStatus::Revoked)
     }
 
     pub fn declared_tools(&self) -> Vec<String> {
