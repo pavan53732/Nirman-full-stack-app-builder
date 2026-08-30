@@ -1235,6 +1235,24 @@ Parallel candidates leave the primary workspace untouched. The winning candidate
 
 These earlier milestones are referenced by the twelve-edge table of build spec §67.15 and must carry the same identifiers.
 
+### Coarse-to-refined milestone ownership map
+
+To prevent duplicate implementation of the same capability across coarse (M0–M38) and refined (M39–M117) milestones, every canonical capability carries exactly one owning refined milestone. Coarse milestones establish scope and interfaces; refined milestones own the executable contract, test identity, and evidence identity. An agent must not open a second implementation path for a capability already owned by a refined milestone. The mapping is:
+
+| Capability area | Coarse scope (M0–M38) | Refined owner (M39–M117) | Canonical contract | Test / Evidence |
+|---|---|---|---|---|
+| Toolchain / clean build | M4 local runtime, M5 build→install | M43 AndroidToolchainManifest (ADR-049 toolchain authority) | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-TC-001 / EV-TC-001 |
+| Provider gateway | M3 foundation, M22 settings | M22 ModelGateway (full), M44 bridge | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.SCOPE | TEST-PRV-001 / EV-PRV-001 |
+| Preview | M4/M9/M20 runtime preview | M108 PreviewSync | CONTRACT.RUNTIME.PREVIEW_SYNC (ADR-195) | TEST-PSYNC-001 / EV-PSYNC-001 |
+| Execution kernel | M39 construction runtime | M65 AgentExecutionKernel | CONTRACT.RUNTIME.AUTHORITY (ADR-066/071) | TEST-GEN-001 / EV-GEN-001 |
+| Packaging | M10 packaging | M10 (mechanism), M11 (coverage), M117 (export delivery) | CONTRACT.RUNTIME.APK_EXPORT (ADR-203) | TEST-APK-001 / EV-APK-001 |
+| Reservation/lease/capability | M39 session/lease | M39/M43 reservation+lease+capability ordering | CONTRACT.RUNTIME.WORKSPACE (ADR-068) | TEST-RES-001 / EV-RES-001 |
+| Evidence graph | M38 evidence foundations | M93 twelve-edge coverage; M108/114 evidence linkage | CONTRACT.RUNTIME.EVIDENCE (ADR-071) | TEST-INV-001 / EV-INV-001 |
+| Continuity | M116 background continuity | M116 (orthogonal to lifecycle, ADR-202) | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 / EV-BG-001 |
+| Frontend boundary | M115 protocol | M115 (ADR-201) split gates A–F | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 / EV-FCP-001 |
+
+Refinement rule: when a coarse milestone and a refined milestone appear to overlap, the refined milestone's contract is authoritative. Coarse acceptance semantics are overridden by the refined milestone's exit gate. No capability may be implemented twice; the owning refined milestone is the single source of the executable contract.
+
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id |
 |---|---|---|---|---|
 | M11 | CONTRACT.RUNTIME.SCOPE | ADR-180 | TEST-GEN-001 | EV-GEN-001 |
@@ -1550,3 +1568,7 @@ Implement orthogonal UI, host, device, provider, lease, and reconciliation dimen
 ## M117 — Local APK export provenance and delivery admission
 Implement profile-bound local deployment export using `ExportVerificationRecord` with the `APKExportRecord` view, including artifact identity, packaging profile, source revision, checkpoint, source/destination file identities, request fingerprint, idempotency key, signing binding, validation and promotion decisions, reconciliation reference, failure evidence, destination identity, source/destination hashes, byte count, and copy state. Wire export state into the authoritative delivery projection. Preserve separate source/workspace, ZIP, and Git access as `SOURCE_ACCESS_ONLY`.
 **Exit gate:** executable fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds or external deployment destinations, `UNKNOWN → RECONCILING` copy recovery, source/destination hash equality, idempotent retry protection, signing/validation/promotion linkage, delivery projection visibility, and refusal to treat source access as deployment completion.
+
+### M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
+The M6 partial closure exposed six command-payload fields but left the remaining 22 `ExportVerificationRecord` fields reachable only through durable observation, not the command boundary (dev-plan M6 §9/§10). M117 must close this: the `ArtifactExport` command response envelope MUST surface the canonical `ExportVerificationRecord` in full at the command boundary (artifact/destination/source file identity, hashes, byte count, lifecycle state, post-copy verification, policy decision, signing/validation/promotion binding, reconciliation/failure evidence) — not merely the six request-side payload fields. This is required by ADR-203 (provenance-complete export). The `command_payload_field_coverage` verifier check added in M6 must be extended to assert response-side record coverage so the command boundary cannot drift from the durable record. No second export record may be introduced; the command envelope references the single canonical `ExportVerificationRecord` owned by the `CanonicalSchemaRegistry`.
+
