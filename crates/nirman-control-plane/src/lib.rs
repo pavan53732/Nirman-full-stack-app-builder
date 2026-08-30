@@ -164,6 +164,19 @@ impl ControlPlane {
             CommandKind::ArtifactBuild => {
                 self.projection.task_state = ProductLifecycleState::Packaging;
             }
+            CommandKind::AndroidProjectScaffold => {
+                self.projection.task_state = ProductLifecycleState::Implementing;
+                self.projection.current_source_revision =
+                    next_revision(self.projection.current_source_revision);
+            }
+            CommandKind::AgentLoopRun => {
+                // The agent loop drives planning through packaging in one
+                // durable command; the projection records implementation.
+                self.projection.task_state = ProductLifecycleState::Implementing;
+                self.projection.preview_truth = PreviewTruth::Requested;
+                self.projection.current_source_revision =
+                    next_revision(self.projection.current_source_revision);
+            }
             CommandKind::Reconnect => {
                 self.projection.continuity_state = BackgroundContinuityState::ActiveBackground;
             }
@@ -669,6 +682,86 @@ impl DurableControlPlane {
             task_id,
             source_revision,
         )
+    }
+
+    pub fn save_android_synthesis_build(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+        project_fingerprint: &str,
+        contract_id: &str,
+        plan_json: &str,
+        build_request_json: &str,
+        toolchain_lock_hash: &str,
+        environment_snapshot_id: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_android_synthesis_build(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            project_fingerprint,
+            contract_id,
+            plan_json,
+            build_request_json,
+            toolchain_lock_hash,
+            environment_snapshot_id,
+        )
+    }
+
+    pub fn save_android_project_scaffold(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+        scaffold_id: &str,
+        contract_id: &str,
+        scaffold_fingerprint: &str,
+        resulting_project_fingerprint: &str,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_android_project_scaffold(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+            scaffold_id,
+            contract_id,
+            scaffold_fingerprint,
+            resulting_project_fingerprint,
+            record_json,
+        )
+    }
+
+    pub fn load_android_project_scaffold(
+        &self,
+        task_id: &str,
+        source_revision: u64,
+    ) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_android_project_scaffold(
+            &self.snapshot().project_id,
+            task_id,
+            source_revision,
+        )
+    }
+
+    pub fn save_agent_loop_record(
+        &self,
+        loop_id: &str,
+        task_id: &str,
+        state: &str,
+        updated_at_epoch_seconds: u64,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger.save_agent_loop_record(
+            loop_id,
+            &self.snapshot().project_id,
+            task_id,
+            state,
+            updated_at_epoch_seconds,
+            record_json,
+        )
+    }
+
+    pub fn load_agent_loop_record(&self, loop_id: &str) -> Result<Option<String>, rusqlite::Error> {
+        self.ledger.load_agent_loop_record(loop_id)
     }
 
     pub fn save_android_build_observation(

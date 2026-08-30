@@ -1,5 +1,12 @@
 #![forbid(unsafe_code)]
 
+pub mod scaffold;
+
+pub use scaffold::{
+    scaffold_android_project, AndroidProjectScaffold, ScaffoldError, ScaffoldFile,
+    ScaffoldLanguage, ScaffoldSummary, SCAFFOLD_SCHEMA_REF, SCAFFOLD_SCHEMA_VERSION,
+};
+
 use nirman_domain::{
     AndroidConstructionContract, AndroidResolverError, AndroidResolverRequest,
     AndroidTechnologyPlan as DomainAndroidTechnologyPlan, AndroidTechnologyResolver,
@@ -1803,6 +1810,16 @@ impl BuildCancellation {
     fn is_cancelled(&self) -> bool {
         self.cancelled.load(std::sync::atomic::Ordering::SeqCst)
     }
+
+    /// Wraps an externally owned flag so a control plane can cancel an
+    /// in-flight build without holding the runtime-state lock.
+    pub fn from_shared(flag: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
+        Self { cancelled: flag }
+    }
+
+    pub fn shared_flag(&self) -> std::sync::Arc<std::sync::atomic::AtomicBool> {
+        self.cancelled.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1943,14 +1960,34 @@ pub fn execute_android_build(
         .stderr
         .take()
         .ok_or(AndroidBuildExecutionError::OutputReadFailed)?;
-    let stdout_thread = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        std::io::Read::read_to_end(&mut std::io::BufReader::new(stdout), &mut bytes).map(|_| bytes)
-    });
-    let stderr_thread = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        std::io::Read::read_to_end(&mut std::io::BufReader::new(stderr), &mut bytes).map(|_| bytes)
-    });
+    // Output streams are collected on reader threads and reported through a
+    // channel so a killed build never blocks the control plane: the killed
+    // process's ORPHANED children (e.g. the gradle daemon or a shell's
+    // sub-commands) inherit the pipe handles and can keep them open long
+    // after the direct child is dead. After a cancellation/timeout kill the
+    // collection is bounded by a grace period and then detached.
+    let (output_tx, output_rx) = std::sync::mpsc::channel::<(bool, std::io::Result<Vec<u8>>)>();
+    let stdout_thread = {
+        let output_tx = output_tx.clone();
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let result =
+                std::io::Read::read_to_end(&mut std::io::BufReader::new(stdout), &mut bytes)
+                    .map(|_| bytes);
+            let _ = output_tx.send((true, result));
+        })
+    };
+    let stderr_thread = {
+        let output_tx = output_tx.clone();
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let result =
+                std::io::Read::read_to_end(&mut std::io::BufReader::new(stderr), &mut bytes)
+                    .map(|_| bytes);
+            let _ = output_tx.send((false, result));
+        })
+    };
+    drop(output_tx);
 
     let started = std::time::Instant::now();
     let mut timed_out = false;
@@ -1974,14 +2011,47 @@ pub fn execute_android_build(
             None => std::thread::sleep(std::time::Duration::from_millis(25)),
         }
     };
-    let stdout = stdout_thread
-        .join()
-        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?
-        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?;
-    let stderr = stderr_thread
-        .join()
-        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?
-        .map_err(|_| AndroidBuildExecutionError::OutputReadFailed)?;
+    // Normal exits close every pipe writer, so both streams arrive; killed
+    // builds only wait for the grace period before detaching the readers.
+    let grace = if cancelled || timed_out {
+        Some(std::time::Instant::now() + std::time::Duration::from_secs(2))
+    } else {
+        None
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let mut pending = 2usize;
+    while pending > 0 {
+        let received = match grace {
+            Some(limit) => match output_rx.recv_timeout(
+                limit
+                    .saturating_duration_since(std::time::Instant::now())
+                    .max(std::time::Duration::from_millis(1)),
+            ) {
+                Ok(value) => Some(value),
+                Err(_) => break,
+            },
+            None => output_rx.recv().ok(),
+        };
+        let Some((is_stdout, result)) = received else {
+            break;
+        };
+        pending = pending.saturating_sub(1);
+        if let Ok(bytes) = result {
+            if is_stdout {
+                stdout = bytes;
+            } else {
+                stderr = bytes;
+            }
+        }
+    }
+    if pending > 0 {
+        // The readers are still blocked on inherited pipe handles held by
+        // orphaned grandchildren; dropping the join handles detaches them
+        // and they exit once the orphans close the pipes.
+        drop(stdout_thread);
+        drop(stderr_thread);
+    }
     let artifact = if exit_code == Some(0) && !timed_out && !cancelled {
         find_apk(&workspace)
     } else {

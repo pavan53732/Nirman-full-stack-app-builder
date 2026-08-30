@@ -1,7 +1,9 @@
 #![forbid(unsafe_code)]
 
+use nirman_agents::AgentLoopRecord;
 use nirman_android::{
     AndroidBuildObservation, AndroidRequirementManifest, AndroidSynthesisPlan, RepairSelection,
+    ScaffoldFile, ScaffoldSummary,
 };
 use nirman_artifacts::ApkArtifact;
 use nirman_domain::{
@@ -425,6 +427,45 @@ pub struct AndroidSynthesisBuildResultPayload {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidProjectScaffoldCommandPayload {
+    pub contract: AndroidConstructionContract,
+    pub source_revision: u64,
+    pub workspace_root: String,
+    pub project_fingerprint: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AndroidProjectScaffoldResultPayload {
+    pub scaffold: ScaffoldSummary,
+    pub files: Vec<ScaffoldFile>,
+    /// Fingerprint of the workspace AFTER the scaffold was applied; the
+    /// follow-up synthesis/build commands must carry this value.
+    pub resulting_project_fingerprint: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AgentLoopRunCommandPayload {
+    pub contract: AndroidConstructionContract,
+    pub source_revision: u64,
+    pub workspace_root: String,
+    pub build_variant: String,
+    pub gradle_task: String,
+    pub iteration_budget: u32,
+    pub build_timeout_ms: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AgentLoopRunResultPayload {
+    pub loop_record: AgentLoopRecord,
+    pub outcome: String,
+    pub build_observation: Option<AndroidBuildObservation>,
+    pub scaffold: Option<ScaffoldSummary>,
+    pub resulting_project_fingerprint: Option<String>,
+    pub toolchain_lock_hash: Option<String>,
+    pub environment_snapshot_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactBuildCommandPayload {
     pub source_revision: u64,
     pub workspace_root: String,
@@ -687,6 +728,22 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
             "local",
         ),
         (
+            CommandKind::AndroidProjectScaffold,
+            "android.project.scaffold",
+            "AndroidSynthesisAuthority",
+            "android.project.scaffold",
+            "Android project workspace and revision projection",
+            "local",
+        ),
+        (
+            CommandKind::AgentLoopRun,
+            "agent.loop.run",
+            "LifecycleAuthority",
+            "agent.loop.run",
+            "Agent loop record and build projection",
+            "local",
+        ),
+        (
             CommandKind::WorkerTaskClaim,
             "worker.task.claim",
             "WorkerCoordinationAuthority",
@@ -764,6 +821,27 @@ pub fn command_registry() -> Vec<CommandRegistryEntry> {
                 "task.pause",
                 "LifecycleAuthority",
                 "task.pause",
+                "Task projection",
+            ),
+            (
+                CommandKind::SubmitInstruction,
+                "task.submit_instruction",
+                "LifecycleAuthority",
+                "task.submit_instruction",
+                "Task and instruction projection",
+            ),
+            (
+                CommandKind::CancelTask,
+                "task.cancel",
+                "LifecycleAuthority",
+                "task.cancel",
+                "Cancellation projection",
+            ),
+            (
+                CommandKind::ResumeTask,
+                "task.resume",
+                "LifecycleAuthority",
+                "task.resume",
                 "Task projection",
             ),
         ]
@@ -1013,7 +1091,6 @@ impl ProjectionReceiver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::*;
     use nirman_domain::{BackgroundContinuityState, PreviewTruth};
 
     fn context() -> AuthContext {
@@ -1099,11 +1176,36 @@ mod tests {
 
     #[test]
     fn registry_and_android_adapter_are_typed() {
-        assert_eq!(command_registry().len(), 25);
+        assert_eq!(command_registry().len(), 30);
         assert!(command_registry().iter().all(|entry| entry.supported));
+        // The UI-facing lifecycle commands must be dispatchable: the React
+        // client submits instructions and cancels tasks through them.
+        for ui_kind in [
+            CommandKind::SubmitInstruction,
+            CommandKind::CancelTask,
+            CommandKind::ResumeTask,
+        ] {
+            assert!(
+                command_registry()
+                    .into_iter()
+                    .any(|entry| entry.command_kind == ui_kind),
+                "UI lifecycle command {ui_kind:?} must be registered"
+            );
+        }
         assert!(command_registry()
             .iter()
             .any(|entry| entry.canonical_kind == "artifact.export"));
+        let scaffold = command_registry()
+            .into_iter()
+            .find(|entry| entry.command_kind == CommandKind::AndroidProjectScaffold)
+            .expect("M4b scaffold command registry entry");
+        assert_eq!(scaffold.canonical_kind, "android.project.scaffold");
+        let agent_loop = command_registry()
+            .into_iter()
+            .find(|entry| entry.command_kind == CommandKind::AgentLoopRun)
+            .expect("M58 agent loop command registry entry");
+        assert_eq!(agent_loop.canonical_kind, "agent.loop.run");
+        assert_eq!(agent_loop.required_authority, "LifecycleAuthority");
         let m47 = command_registry()
             .into_iter()
             .find(|entry| entry.command_kind == CommandKind::AndroidRequirementEvaluate)

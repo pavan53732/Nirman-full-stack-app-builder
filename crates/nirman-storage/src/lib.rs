@@ -279,6 +279,26 @@ impl Ledger {
                  projection_json TEXT NOT NULL,
                  PRIMARY KEY (project_id, task_id)
              );
+             CREATE TABLE IF NOT EXISTS android_project_scaffolds (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 scaffold_id TEXT NOT NULL,
+                 contract_id TEXT NOT NULL,
+                 scaffold_fingerprint TEXT NOT NULL,
+                 resulting_project_fingerprint TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id, source_revision),
+                 UNIQUE (project_id, scaffold_id)
+             );
+             CREATE TABLE IF NOT EXISTS agent_loop_records (
+                 loop_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 state TEXT NOT NULL,
+                 updated_at_epoch_seconds INTEGER NOT NULL,
+                 record_json TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS projections (
                  project_id TEXT PRIMARY KEY,
                  projection_revision INTEGER NOT NULL,
@@ -879,6 +899,136 @@ impl Ledger {
         source_revision: u64,
     ) -> rusqlite::Result<Option<(String, String, String, String, String)>> {
         self.connection.query_row("SELECT plan_json,build_request_json,toolchain_lock_hash,environment_snapshot_id,project_fingerprint FROM android_synthesis_builds WHERE project_id=?1 AND task_id=?2 AND source_revision=?3", params![project_id.0,task_id,source_revision], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?))).optional()
+    }
+
+    pub fn save_android_synthesis_build(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        project_fingerprint: &str,
+        contract_id: &str,
+        plan_json: &str,
+        build_request_json: &str,
+        toolchain_lock_hash: &str,
+        environment_snapshot_id: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_synthesis_builds
+                 (project_id, task_id, source_revision, project_fingerprint, contract_id,
+                  plan_json, build_request_json, toolchain_lock_hash, environment_snapshot_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET
+               project_fingerprint = excluded.project_fingerprint,
+               contract_id = excluded.contract_id,
+               plan_json = excluded.plan_json,
+               build_request_json = excluded.build_request_json,
+               toolchain_lock_hash = excluded.toolchain_lock_hash,
+               environment_snapshot_id = excluded.environment_snapshot_id",
+            params![
+                project_id.0,
+                task_id,
+                source_revision,
+                project_fingerprint,
+                contract_id,
+                plan_json,
+                build_request_json,
+                toolchain_lock_hash,
+                environment_snapshot_id
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn save_android_project_scaffold(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        scaffold_id: &str,
+        contract_id: &str,
+        scaffold_fingerprint: &str,
+        resulting_project_fingerprint: &str,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO android_project_scaffolds
+                 (project_id, task_id, source_revision, scaffold_id, contract_id,
+                  scaffold_fingerprint, resulting_project_fingerprint, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(project_id, task_id, source_revision) DO UPDATE SET
+               scaffold_id = excluded.scaffold_id,
+               contract_id = excluded.contract_id,
+               scaffold_fingerprint = excluded.scaffold_fingerprint,
+               resulting_project_fingerprint = excluded.resulting_project_fingerprint,
+               record_json = excluded.record_json",
+            params![
+                project_id.0,
+                task_id,
+                source_revision,
+                scaffold_id,
+                contract_id,
+                scaffold_fingerprint,
+                resulting_project_fingerprint,
+                record_json
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_android_project_scaffold(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+    ) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM android_project_scaffolds
+                 WHERE project_id = ?1 AND task_id = ?2 AND source_revision = ?3",
+                params![project_id.0, task_id, source_revision],
+                |row| row.get(0),
+            )
+            .optional()
+    }
+
+    pub fn save_agent_loop_record(
+        &self,
+        loop_id: &str,
+        project_id: &ProjectId,
+        task_id: &str,
+        state: &str,
+        updated_at_epoch_seconds: u64,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO agent_loop_records
+                 (loop_id, project_id, task_id, state, updated_at_epoch_seconds, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(loop_id) DO UPDATE SET
+               state = excluded.state,
+               updated_at_epoch_seconds = excluded.updated_at_epoch_seconds,
+               record_json = excluded.record_json",
+            params![
+                loop_id,
+                project_id.0,
+                task_id,
+                state,
+                updated_at_epoch_seconds,
+                record_json
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_agent_loop_record(&self, loop_id: &str) -> rusqlite::Result<Option<String>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM agent_loop_records WHERE loop_id = ?1",
+                params![loop_id],
+                |row| row.get(0),
+            )
+            .optional()
     }
 
     pub fn commit_event_projection_and_command_and_android_requirement_manifest(

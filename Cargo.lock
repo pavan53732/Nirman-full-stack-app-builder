@@ -2098,6 +2098,7 @@ dependencies = [
 name = "nirman-desktop"
 version = "0.1.0"
 dependencies = [
+ "nirman-agents",
  "nirman-android",
  "nirman-artifacts",
  "nirman-control-plane",
@@ -2137,6 +2138,7 @@ dependencies = [
 name = "nirman-ipc"
 version = "0.1.0"
 dependencies = [
+ "nirman-agents",
  "nirman-android",
  "nirman-artifacts",
  "nirman-control-plane",

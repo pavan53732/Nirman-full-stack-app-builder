@@ -1,5 +1,14 @@
 #![forbid(unsafe_code)]
 
+pub mod loop_kernel;
+
+pub use loop_kernel::{
+    diagnose_failure, AgentAction, AgentActionType, AgentLoopError, AgentLoopRecord,
+    AgentLoopReducer, AgentLoopState, DiagnosticReport, FailureClass, KernelDecision,
+    LoopContinuation, LoopObservation, ProgressStatus, AGENT_LOOP_SCHEMA_REF,
+    AGENT_LOOP_SCHEMA_VERSION, DEFAULT_ITERATION_BUDGET,
+};
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 

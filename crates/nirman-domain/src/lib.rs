@@ -474,6 +474,8 @@ pub enum CommandKind {
     AndroidToolchainPreflight,
     AndroidRequirementEvaluate,
     AndroidSynthesisBuild,
+    AndroidProjectScaffold,
+    AgentLoopRun,
     ProviderExecute,
     SubmitInstruction,
     Reconnect,
