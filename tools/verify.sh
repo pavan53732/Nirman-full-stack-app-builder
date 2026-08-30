@@ -61,6 +61,7 @@ python3 tools/check_m49_evidence.py
   pnpm install --frozen-lockfile
   cd ../..
   node --experimental-strip-types tests/desktop_projection_store_trace.ts
+  node --test --experimental-strip-types apps/desktop/src/contract.test.ts
   cd apps/desktop
   pnpm build
 )

@@ -6,7 +6,7 @@ export const PROTOCOL_SCHEMA_VERSION = 1;
 export type PreviewTruth = "Predicted" | "Requested" | "Observed" | "Verified" | "Stale" | "Invalidated";
 export type ProductLifecycleState = "Created" | "Planning" | "Implementing" | "Paused" | "Previewing" | "Validating" | "Recovering" | "Packaging" | "Completed" | "UserRequired" | "SafelyFailed" | "Cancelled";
 export type BackgroundContinuityState = "ActiveBackground" | "UiDisconnected" | "HostSuspended" | "HostOffline" | "DeviceUnavailable" | "ProviderUnavailable" | "Recovering" | "Reconciling" | "UserRequired" | "SafelyFailed" | "Completed";
-export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "ProviderExecute" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask";
+export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "ProviderExecute" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "AndroidRequirementEvaluate" | "AndroidSynthesisBuild" | "AndroidProjectScaffold" | "AgentLoopRun" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask" | "WorkerTaskClaim" | "WorkerHandoffSubmit" | "WorkerHandoffAcknowledge" | "WorkerReconcile" | "WorkerStep";
 export type ResponseStatus = "Accepted" | "Completed" | "Rejected" | "Duplicate" | "Stale" | "Cancelled" | "Failed";
 export type SubscriptionStatus = "Requested" | "Active" | "Paused" | "Gap" | "Closed";
 
@@ -78,6 +78,164 @@ export interface AndroidConstructionContract { schemaVersion: number; contractId
 export interface AndroidConstructionCommandPayload { contract: AndroidConstructionContract }
 export interface AndroidToolchainPreflightCommandPayload { buildVariant: string }
 export interface AndroidToolchainPreflightResultPayload { preflightId: string; status: "AVAILABLE" | "REPAIRABLE" | "USER_REQUIRED" | "UNAVAILABLE"; lockHash: string | null; environmentSnapshotId: string; capabilityCount: number }
+
+export interface AgentLoopRunCommandPayload {
+  contract: AndroidConstructionContract;
+  source_revision: number;
+  workspace_root: string;
+  build_variant: string;
+  gradle_task: string;
+  iteration_budget: number;
+  build_timeout_ms: number;
+}
+export type AgentLoopState = "Running" | "Suspended" | "Complete" | "Failed" | "Exhausted" | "Cancelled";
+export type AgentLoopPhase = "Observe" | "Understand" | "Plan" | "SelectAction" | "Authorize" | "Execute" | "ObserveResult" | "UpdateState" | "EvaluateProgress";
+export type ProgressStatus = "NotStarted" | "OnTrack" | "Recovering" | "Replanning" | "Complete" | "Failed" | "Exhausted" | "Cancelled";
+export interface AgentLoopRecord {
+  schema_version: number;
+  loop_id: string;
+  session_id: string;
+  task_id: string;
+  agent_instance_id: string;
+  state: AgentLoopState;
+  state_version: number;
+  goal_revision: number;
+  plan_revision: number;
+  project_revision: number;
+  last_observation_id: string | null;
+  last_proposal_id: string | null;
+  progress_status: ProgressStatus;
+  retry_strategy: string;
+  cancellation_scope: string;
+  created_at_epoch_seconds: number;
+  updated_at_epoch_seconds: number;
+  phase: AgentLoopPhase;
+  iteration: number;
+  iteration_budget: number;
+  consecutive_failures: number;
+  max_consecutive_failures: number;
+  last_failed_action: string | null;
+  last_failed_action_fingerprint: string | null;
+  variation_attempts: number;
+  pending_variation: string | null;
+  completed_action_count: number;
+}
+export interface AndroidBuildObservation {
+  schema_version: number;
+  execution_id: string;
+  command_id: string;
+  project_id: string;
+  task_id: string;
+  source_revision: number;
+  project_fingerprint: string;
+  workspace_root: string;
+  build_variant: string;
+  gradle_task: string;
+  executable: string;
+  exit_code: number | null;
+  success: boolean;
+  timed_out: boolean;
+  cancelled: boolean;
+  stdout_sha256: string;
+  stderr_sha256: string;
+  stdout_bytes: number;
+  stderr_bytes: number;
+  artifact_path: string | null;
+  artifact_sha256: string | null;
+  started_at_epoch_seconds: number;
+  completed_at_epoch_seconds: number;
+}
+export interface ScaffoldSummary {
+  scaffold_id: string;
+  contract_id: string;
+  project_id: string;
+  task_id: string;
+  package_name: string;
+  application_name: string;
+  language: string;
+  ui_framework: string;
+  min_sdk: number;
+  target_sdk: number;
+  compile_sdk: number;
+  version_code: number;
+  version_name: string;
+  permissions: string[];
+  file_count: number;
+  scaffold_fingerprint: string;
+}
+export interface AgentLoopRunResultPayload {
+  loop_record: AgentLoopRecord;
+  outcome: "COMPLETE" | "FAILED" | "EXHAUSTED" | "CANCELLED" | "INTERRUPTED";
+  build_observation: AndroidBuildObservation | null;
+  scaffold: ScaffoldSummary | null;
+  resulting_project_fingerprint: string | null;
+  toolchain_lock_hash: string | null;
+  environment_snapshot_id: string | null;
+}
+export interface ArtifactBuildCommandPayload {
+  source_revision: number;
+  workspace_root: string;
+  project_fingerprint: string;
+  build_variant: string;
+  gradle_task: string;
+}
+export interface ArtifactBuildResultPayload { observation: AndroidBuildObservation }
+export interface ArtifactExportCommandPayload {
+  source_revision: number;
+  destination_path: string;
+  packaging_profile_id: string;
+  artifact_kind: string;
+  request_fingerprint: string;
+  idempotency_key: string;
+  deployment_delivery: string;
+  destination_kind: string;
+}
+export interface ApkArtifact {
+  schema_version: number;
+  artifact_id: string;
+  project_id: string;
+  task_id: string;
+  project_revision_id: string;
+  source_fingerprint: string;
+  source_provenance_ref: string;
+  path: string;
+  sha256: string;
+  package_name: string;
+  inspection: unknown | null;
+  build_variant: string;
+  secret_scan_status: string;
+  signing_status: string;
+  delivery_status: string;
+  delivery_sha256: string | null;
+  delivery_verified: boolean;
+  copy_uncertain: boolean;
+}
+export interface ApkDeliveryRecord {
+  schema_version: number;
+  delivery_id: string;
+  artifact_id: string;
+  project_id: string;
+  task_id: string;
+  source_revision: number;
+  packaging_profile_id: string;
+  artifact_kind: string;
+  destination_path: string;
+  destination_kind: string;
+  request_fingerprint: string;
+  idempotency_key: string;
+  sha256: string;
+  byte_count: number;
+  state: "PENDING" | "COPYING" | "COPIED" | "VERIFIED" | "FAILED" | "BLOCKED" | "UNKNOWN";
+  created_at_epoch_seconds: number;
+  completed_at_epoch_seconds: number | null;
+  error_message: string | null;
+}
+export interface ArtifactExportResultPayload {
+  artifact: ApkArtifact;
+  delivery_record: ApkDeliveryRecord;
+  signing_config: unknown | null;
+}
+export interface WorkspaceDescriptor { workspace_root: string | null }
 
 export interface CommandResponse {
   response_id: string;
@@ -308,6 +466,10 @@ export async function getHandshake(): Promise<SessionHandshake> {
   if (!isTauriHost()) throw hostUnavailable();
   return invoke<SessionHandshake>("handshake");
 }
+export async function getWorkspace(): Promise<WorkspaceDescriptor> {
+  if (!isTauriHost()) throw hostUnavailable();
+  return invoke<WorkspaceDescriptor>("workspace");
+}
 export async function getProjection(handshake: SessionHandshake): Promise<CommandResponse> {
   if (!isTauriHost()) throw hostUnavailable();
   return invoke<CommandResponse>("projection", { auth: handshake.auth, correlation_id: handshake.correlation_id });
@@ -372,6 +534,68 @@ export async function executeProvider(
     },
   };
   return dispatchCommand(request);
+}
+
+function taskScopedCommandRequest(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  commandId: string,
+  kind: CommandKind,
+  payload: string,
+): CommandRequest {
+  return {
+    protocol_schema_version: PROTOCOL_SCHEMA_VERSION,
+    auth: handshake.auth,
+    correlation_id: handshake.correlation_id,
+    causation_id: null,
+    deadline_epoch_seconds: null,
+    command: {
+      command_id: commandId,
+      project_id: snapshot.project_id,
+      task_id: taskId,
+      kind,
+      payload,
+      expected_projection_revision: snapshot.projection_revision,
+      idempotency_key: makeClientId("ui"),
+    },
+  };
+}
+
+export async function runAgentLoop(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  payload: AgentLoopRunCommandPayload,
+  commandId = makeClientId("agent-loop-run"),
+): Promise<CommandResponse> {
+  return dispatchCommand(
+    taskScopedCommandRequest(handshake, snapshot, taskId, commandId, "AgentLoopRun", JSON.stringify(payload)),
+  );
+}
+
+export async function buildArtifact(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  payload: ArtifactBuildCommandPayload,
+  commandId = makeClientId("artifact-build"),
+): Promise<CommandResponse> {
+  return dispatchCommand(
+    taskScopedCommandRequest(handshake, snapshot, taskId, commandId, "ArtifactBuild", JSON.stringify(payload)),
+  );
+}
+
+export async function exportArtifact(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  payload: ArtifactExportCommandPayload,
+  commandId = makeClientId("artifact-export"),
+): Promise<CommandResponse> {
+  return dispatchCommand(
+    taskScopedCommandRequest(handshake, snapshot, taskId, commandId, "ArtifactExport", JSON.stringify(payload)),
+  );
 }
 
 export async function createAndroidConstructionContract(
