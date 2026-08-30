@@ -7,9 +7,10 @@
 #![forbid(unsafe_code)]
 
 use nirman_domain::{
-    next_revision, BackgroundContinuityState, CommandEnvelope, CommandKind, ControlEvent,
-    DomainError, MutationTransactionRecord, PreviewTruth, ProductLifecycleState, ProjectId,
-    ProjectionSnapshot, Revision, TaskId,
+    next_revision, ArtifactProjectionSummary, BackgroundContinuityState, CommandEnvelope,
+    CommandKind, ControlEvent, DeliveryProjectionSummary, DeliveryState, DomainError,
+    EvidenceProjectionSummary, MutationTransactionRecord, PreviewTruth, ProductLifecycleState,
+    ProjectId, ProjectionSnapshot, Revision, TaskId, WorkerProjectionSummary,
 };
 use nirman_policy::PolicyDecision;
 use nirman_storage::Ledger;
@@ -45,6 +46,10 @@ impl ControlPlane {
                 current_source_revision: Revision(0),
                 last_event_sequence: 0,
                 last_known_good_ref: None,
+                worker_projection: None,
+                artifact_projection: None,
+                evidence_projection: None,
+                delivery_projection: None,
             },
             Vec::new(),
         )
@@ -148,10 +153,8 @@ impl ControlPlane {
             | CommandKind::ArtifactExport
             | CommandKind::ProviderTest
             | CommandKind::SettingsUpdateProvider
-            | CommandKind::AndroidConstructionCreate
             | CommandKind::AndroidToolchainPreflight
             | CommandKind::AndroidRequirementEvaluate
-            | CommandKind::AndroidSynthesisBuild
             | CommandKind::ProviderExecute
             | CommandKind::WorkerTaskClaim
             | CommandKind::WorkerHandoffSubmit
@@ -164,15 +167,21 @@ impl ControlPlane {
             CommandKind::ArtifactBuild => {
                 self.projection.task_state = ProductLifecycleState::Packaging;
             }
-            CommandKind::AndroidProjectScaffold => {
-                self.projection.task_state = ProductLifecycleState::Implementing;
+            CommandKind::AndroidConstructionCreate
+            | CommandKind::AndroidSynthesisBuild
+            | CommandKind::AndroidProjectScaffold => {
+                // Contract creation, synthesis planning, and scaffolding are
+                // the canonical SYNTHESIZING stage (build-spec §5.7.2).
+                self.projection.task_state = ProductLifecycleState::Synthesizing;
                 self.projection.current_source_revision =
                     next_revision(self.projection.current_source_revision);
             }
             CommandKind::AgentLoopRun => {
-                // The agent loop drives planning through packaging in one
-                // durable command; the projection records implementation.
-                self.projection.task_state = ProductLifecycleState::Implementing;
+                // The agent loop drives synthesis through packaging in one
+                // durable command; it begins with the SynthesizeProject
+                // action, so the projection records the SYNTHESIZING stage
+                // (build-spec §5.7.2) until the next observed boundary.
+                self.projection.task_state = ProductLifecycleState::Synthesizing;
                 self.projection.preview_truth = PreviewTruth::Requested;
                 self.projection.current_source_revision =
                     next_revision(self.projection.current_source_revision);
@@ -215,6 +224,32 @@ impl ControlPlane {
 
     fn latest_event(&self) -> Option<ControlEvent> {
         self.events.last().cloned()
+    }
+
+    /// Append a runtime progress event (no command admission). Progress
+    /// events advance the durable event sequence so live subscriptions can
+    /// observe long-running work between command boundaries while keeping
+    /// the persisted-before-delivery rule; they do not change task,
+    /// continuity, or preview truth.
+    pub fn append_progress_event(
+        &mut self,
+        task_id: Option<TaskId>,
+        kind: &str,
+        payload: &str,
+    ) -> ControlEvent {
+        let event = ControlEvent {
+            event_id: format!("progress-{}-{}", self.next_sequence, kind.to_lowercase()),
+            sequence: self.next_sequence,
+            project_id: self.project_id.clone(),
+            task_id: task_id.or_else(|| Some(TaskId("task-0001".into()))),
+            kind: kind.to_owned(),
+            payload: payload.to_owned(),
+            source_revision: self.projection.current_source_revision,
+        };
+        self.next_sequence = self.next_sequence.saturating_add(1);
+        self.projection.last_event_sequence = event.sequence;
+        self.events.push(event.clone());
+        event
     }
 
     fn record_timeout(
@@ -330,7 +365,175 @@ impl DurableControlPlane {
     }
 
     pub fn snapshot(&self) -> ProjectionSnapshot {
+        self.attach_projections(self.plane.snapshot())
+    }
+
+    /// Cheap internal accessor for the authoritative core projection without
+    /// re-deriving the typed projection summaries from the ledger. Internal
+    /// bookkeeping (project-id lookups, persistence keys) uses this so the
+    /// enrichment queries only run on snapshot surfaces the UI consumes.
+    fn core_snapshot(&self) -> ProjectionSnapshot {
         self.plane.snapshot()
+    }
+
+    /// Returns `snapshot` with the AGENTS §8 typed projection summaries
+    /// refreshed from the durable ledger. Core fields stay exactly as given,
+    /// so idempotent replays keep their original authoritative state.
+    pub fn enriched_snapshot(&self, snapshot: ProjectionSnapshot) -> ProjectionSnapshot {
+        self.attach_projections(snapshot)
+    }
+
+    /// Attaches the worker/artifact/evidence/delivery projection summaries
+    /// (AGENTS §8) from the durable record tables. Any read failure leaves
+    /// the corresponding summary absent rather than blocking the snapshot —
+    /// the summaries are derived views, never new truth.
+    fn attach_projections(&self, mut snapshot: ProjectionSnapshot) -> ProjectionSnapshot {
+        let project_id = snapshot.project_id.clone();
+        if let Ok(tasks) = self.ledger.load_coordination_tasks(&project_id.0) {
+            let handoffs = self
+                .ledger
+                .load_worker_handoffs(&project_id.0)
+                .unwrap_or_default();
+            let acknowledgements = self
+                .ledger
+                .load_worker_handoff_acknowledgements(&project_id.0)
+                .unwrap_or_default();
+            let claims = self
+                .ledger
+                .load_worker_task_claims(&project_id.0)
+                .unwrap_or_default();
+            let acknowledged_message_ids: Vec<&str> = acknowledgements
+                .iter()
+                .map(|acknowledgement| acknowledgement.message_id.as_str())
+                .collect();
+            let open_task_ids = tasks
+                .iter()
+                .filter(|task| {
+                    !handoffs.iter().any(|handoff| {
+                        handoff.task_id == task.task_id
+                            && acknowledged_message_ids.contains(&handoff.message_id.as_str())
+                    })
+                })
+                .map(|task| task.task_id.clone())
+                .collect::<Vec<_>>();
+            let mut roles = tasks
+                .iter()
+                .map(|task| format!("{:?}", task.role))
+                .collect::<Vec<_>>();
+            roles.sort();
+            roles.dedup();
+            snapshot.worker_projection = Some(WorkerProjectionSummary {
+                task_count: tasks.len() as u32,
+                claim_count: claims.len() as u32,
+                handoff_count: handoffs.len() as u32,
+                acknowledged_handoff_count: acknowledgements.len() as u32,
+                roles,
+                open_task_ids,
+            });
+        }
+        if let Ok(Some((task_id, source_revision, record_json))) =
+            self.ledger.latest_android_build_observation(&project_id)
+        {
+            if let Ok(observation) =
+                serde_json::from_str::<nirman_android::AndroidBuildObservation>(&record_json)
+            {
+                snapshot.artifact_projection = Some(ArtifactProjectionSummary {
+                    task_id,
+                    source_revision,
+                    build_variant: observation.build_variant.clone(),
+                    build_success: observation.success,
+                    timed_out: observation.timed_out,
+                    cancelled: observation.cancelled,
+                    artifact_path: observation.artifact_path.clone(),
+                    artifact_sha256: observation.artifact_sha256.clone(),
+                    project_fingerprint: observation.project_fingerprint.clone(),
+                });
+            }
+        }
+        if let Ok((m108_event_count, m108_evidence_count, device_observation_count)) =
+            self.ledger.evidence_census(&project_id)
+        {
+            let (latest_observation_id, latest_device_identity) = self
+                .ledger
+                .latest_device_observation_identity(&project_id)
+                .unwrap_or(None)
+                .map(|(observation_id, device_identity)| {
+                    (Some(observation_id), Some(device_identity))
+                })
+                .unwrap_or((None, None));
+            snapshot.evidence_projection = Some(EvidenceProjectionSummary {
+                m108_event_count,
+                m108_evidence_count,
+                device_observation_count,
+                latest_observation_id,
+                latest_device_identity,
+            });
+        }
+        if let Ok(Some((task_id, source_revision, record_json))) =
+            self.ledger.latest_apk_delivery_record(&project_id)
+        {
+            if let Ok(delivery) =
+                serde_json::from_str::<nirman_domain::ApkDeliveryRecord>(&record_json)
+            {
+                snapshot.delivery_projection = Some(DeliveryProjectionSummary {
+                    delivery_id: delivery.delivery_id.clone(),
+                    task_id,
+                    source_revision,
+                    state: format!("{:?}", delivery.state),
+                    delivery_kind: format!("{:?}", delivery.artifact_kind),
+                    destination_kind: delivery.destination_kind.clone(),
+                    destination_path: delivery.destination_path.clone(),
+                    artifact_fingerprint: delivery.source_sha256.clone(),
+                    post_copy_verified: delivery.post_copy_verified,
+                    copy_uncertain: delivery.state == DeliveryState::Unknown,
+                    reconciliation_reference: delivery.reconciliation_reference.clone(),
+                    failure_evidence_id: delivery.failure_evidence_id.clone(),
+                    deployment_delivery: delivery.deployment_delivery.clone(),
+                    checkpoint_id: delivery.checkpoint_id.clone(),
+                });
+            }
+        }
+        snapshot
+    }
+
+    /// Durable persistence of an APK delivery record (spec §74.3) so the
+    /// delivery projection and later reconciliation survive restarts.
+    pub fn save_apk_delivery_record(
+        &self,
+        delivery_id: &str,
+        task_id: &str,
+        source_revision: u64,
+        state: &str,
+        record_json: &str,
+    ) -> Result<(), rusqlite::Error> {
+        let project_id = self.plane.snapshot().project_id;
+        self.ledger.save_apk_delivery_record(
+            delivery_id,
+            &project_id,
+            task_id,
+            source_revision,
+            state,
+            record_json,
+        )
+    }
+
+    /// Durable append of a runtime progress event (agent-loop phase
+    /// transitions and other long-running observations) with the projection
+    /// cursor advanced in the same transaction.
+    pub fn append_progress_event(
+        &mut self,
+        task_id: Option<&nirman_domain::TaskId>,
+        kind: &str,
+        payload: &str,
+    ) -> Result<ControlEvent, DurableControlPlaneError> {
+        let event = self
+            .plane
+            .append_progress_event(task_id.cloned(), kind, payload);
+        let snapshot = self.plane.snapshot();
+        self.ledger
+            .commit_event_and_projection(&event, &snapshot)
+            .map_err(DurableControlPlaneError::Storage)?;
+        Ok(event)
     }
 
     pub fn command_is_duplicate(
@@ -340,7 +543,7 @@ impl DurableControlPlane {
         let fingerprint = serde_json::to_string(command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             &command.command_id,
             command.idempotency_key.as_deref(),
         )? {
@@ -354,7 +557,7 @@ impl DurableControlPlane {
 
     pub fn replay_after(&self, sequence: u64) -> Result<Vec<ControlEvent>, rusqlite::Error> {
         self.ledger
-            .events_after(&self.snapshot().project_id, sequence)
+            .events_after(&self.core_snapshot().project_id, sequence)
     }
 
     pub fn save_m8_reconciliation_checkpoint(
@@ -362,7 +565,7 @@ impl DurableControlPlane {
         checkpoint: &M8ReconciliationCheckpoint,
     ) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_m8_reconciliation_checkpoint(&self.snapshot().project_id.0, checkpoint)
+            .save_m8_reconciliation_checkpoint(&self.core_snapshot().project_id.0, checkpoint)
     }
 
     pub fn load_m8_reconciliation_checkpoint(
@@ -370,12 +573,12 @@ impl DurableControlPlane {
         checkpoint_id: &str,
     ) -> Result<Option<M8ReconciliationCheckpoint>, rusqlite::Error> {
         self.ledger
-            .load_m8_reconciliation_checkpoint(&self.snapshot().project_id.0, checkpoint_id)
+            .load_m8_reconciliation_checkpoint(&self.core_snapshot().project_id.0, checkpoint_id)
     }
 
     pub fn save_worker_task_claim(&self, claim: &WorkerTaskClaim) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_worker_task_claim(&self.snapshot().project_id.0, claim)
+            .save_worker_task_claim(&self.core_snapshot().project_id.0, claim)
     }
 
     pub fn load_worker_task_claim(
@@ -383,29 +586,29 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<WorkerTaskClaim>, rusqlite::Error> {
         self.ledger
-            .load_worker_task_claim(&self.snapshot().project_id.0, task_id)
+            .load_worker_task_claim(&self.core_snapshot().project_id.0, task_id)
     }
 
     pub fn load_m8_tasks(&self) -> Result<Vec<CoordinationTask>, rusqlite::Error> {
         self.ledger
-            .load_coordination_tasks(&self.snapshot().project_id.0)
+            .load_coordination_tasks(&self.core_snapshot().project_id.0)
     }
 
     pub fn load_m8_claims(&self) -> Result<Vec<WorkerTaskClaim>, rusqlite::Error> {
         self.ledger
-            .load_worker_task_claims(&self.snapshot().project_id.0)
+            .load_worker_task_claims(&self.core_snapshot().project_id.0)
     }
 
     pub fn load_m8_handoffs(&self) -> Result<Vec<WorkerHandoffRecord>, rusqlite::Error> {
         self.ledger
-            .load_worker_handoffs(&self.snapshot().project_id.0)
+            .load_worker_handoffs(&self.core_snapshot().project_id.0)
     }
 
     pub fn load_m8_acknowledgements(
         &self,
     ) -> Result<Vec<WorkerHandoffAcknowledgement>, rusqlite::Error> {
         self.ledger
-            .load_worker_handoff_acknowledgements(&self.snapshot().project_id.0)
+            .load_worker_handoff_acknowledgements(&self.core_snapshot().project_id.0)
     }
 
     pub fn dispatch_with_result_and_m8(
@@ -414,7 +617,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         m8: M8DispatchRecord,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -488,7 +691,7 @@ impl DurableControlPlane {
 
     pub fn save_coordination_task(&self, task: &CoordinationTask) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_coordination_task(&self.snapshot().project_id.0, task)
+            .save_coordination_task(&self.core_snapshot().project_id.0, task)
     }
 
     pub fn load_coordination_task(
@@ -496,7 +699,7 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<CoordinationTask>, rusqlite::Error> {
         self.ledger
-            .load_coordination_task(&self.snapshot().project_id.0, task_id)
+            .load_coordination_task(&self.core_snapshot().project_id.0, task_id)
     }
 
     pub fn save_worker_handoff(
@@ -504,23 +707,27 @@ impl DurableControlPlane {
         handoff: &WorkerHandoffRecord,
     ) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_worker_handoff(&self.snapshot().project_id.0, handoff)
+            .save_worker_handoff(&self.core_snapshot().project_id.0, handoff)
     }
 
     pub fn save_worker_handoff_acknowledgement(
         &self,
         acknowledgement: &WorkerHandoffAcknowledgement,
     ) -> Result<(), rusqlite::Error> {
-        self.ledger
-            .save_worker_handoff_acknowledgement(&self.snapshot().project_id.0, acknowledgement)
+        self.ledger.save_worker_handoff_acknowledgement(
+            &self.core_snapshot().project_id.0,
+            acknowledgement,
+        )
     }
 
     pub fn load_worker_handoff_acknowledgement(
         &self,
         acknowledgement_id: &str,
     ) -> Result<Option<WorkerHandoffAcknowledgement>, rusqlite::Error> {
-        self.ledger
-            .load_worker_handoff_acknowledgement(&self.snapshot().project_id.0, acknowledgement_id)
+        self.ledger.load_worker_handoff_acknowledgement(
+            &self.core_snapshot().project_id.0,
+            acknowledgement_id,
+        )
     }
 
     pub fn load_worker_handoff(
@@ -528,17 +735,17 @@ impl DurableControlPlane {
         message_id: &str,
     ) -> Result<Option<WorkerHandoffRecord>, rusqlite::Error> {
         self.ledger
-            .load_worker_handoff(&self.snapshot().project_id.0, message_id)
+            .load_worker_handoff(&self.core_snapshot().project_id.0, message_id)
     }
 
     pub fn save_m6_policy_event(&self, decision: &PolicyDecision) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_m6_policy_event(&self.snapshot().project_id, decision)
+            .save_m6_policy_event(&self.core_snapshot().project_id, decision)
     }
 
     pub fn load_m6_policy_events(&self) -> Result<Vec<PolicyDecision>, rusqlite::Error> {
         self.ledger
-            .load_m6_policy_events(&self.snapshot().project_id)
+            .load_m6_policy_events(&self.core_snapshot().project_id)
     }
 
     pub fn save_worker_execution_record(
@@ -546,7 +753,7 @@ impl DurableControlPlane {
         record: &WorkerExecutionRecord,
     ) -> Result<(), rusqlite::Error> {
         self.ledger
-            .save_worker_execution_record(&self.snapshot().project_id, record)
+            .save_worker_execution_record(&self.core_snapshot().project_id, record)
     }
 
     pub fn load_worker_execution_record(
@@ -554,7 +761,7 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<WorkerExecutionRecord>, rusqlite::Error> {
         self.ledger
-            .load_worker_execution_record(&self.snapshot().project_id, task_id)
+            .load_worker_execution_record(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn save_background_run(&self, record: &BackgroundRunRecord) -> Result<(), rusqlite::Error> {
@@ -568,7 +775,11 @@ impl DurableControlPlane {
     ) -> Result<bool, rusqlite::Error> {
         Ok(self
             .ledger
-            .load_command_result(&self.snapshot().project_id, command_id, idempotency_key)?
+            .load_command_result(
+                &self.core_snapshot().project_id,
+                command_id,
+                idempotency_key,
+            )?
             .is_some())
     }
 
@@ -584,7 +795,7 @@ impl DurableControlPlane {
         provider_id: &str,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
-            .load_provider_profile(&self.snapshot().project_id, provider_id)
+            .load_provider_profile(&self.core_snapshot().project_id, provider_id)
     }
 
     pub fn load_android_construction_contract(
@@ -592,7 +803,7 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
-            .load_android_construction_contract(&self.snapshot().project_id, task_id)
+            .load_android_construction_contract(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn load_android_toolchain_preflight(
@@ -600,7 +811,7 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
-            .load_android_toolchain_preflight(&self.snapshot().project_id, task_id)
+            .load_android_toolchain_preflight(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn append_m108_event_and_projection(
@@ -614,7 +825,7 @@ impl DurableControlPlane {
         projection_json: &str,
     ) -> Result<(), rusqlite::Error> {
         self.ledger.append_m108_event_and_projection(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             event_sequence,
             event_id,
@@ -628,7 +839,7 @@ impl DurableControlPlane {
 
     pub fn load_m108_evidence_jsons(&self, task_id: &str) -> Result<Vec<String>, rusqlite::Error> {
         self.ledger
-            .load_m108_evidence_jsons(&self.snapshot().project_id, task_id)
+            .load_m108_evidence_jsons(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn save_m108_sync_record(
@@ -639,7 +850,7 @@ impl DurableControlPlane {
         last_event_sequence: u64,
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_m108_sync_record(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             projection_json,
             evidence_json,
@@ -652,12 +863,12 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<(String, String, u64)>, rusqlite::Error> {
         self.ledger
-            .load_m108_sync_record(&self.snapshot().project_id, task_id)
+            .load_m108_sync_record(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn load_m108_event_jsons(&self, task_id: &str) -> Result<Vec<String>, rusqlite::Error> {
         self.ledger
-            .load_m108_event_jsons(&self.snapshot().project_id, task_id)
+            .load_m108_event_jsons(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn load_android_device_observation_for_source(
@@ -666,7 +877,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger.load_android_device_observation_for_source(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -678,7 +889,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<(String, String, String, String, String)>, rusqlite::Error> {
         self.ledger.load_android_synthesis_build(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -696,7 +907,7 @@ impl DurableControlPlane {
         environment_snapshot_id: &str,
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_android_synthesis_build(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             project_fingerprint,
@@ -719,7 +930,7 @@ impl DurableControlPlane {
         record_json: &str,
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_android_project_scaffold(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             scaffold_id,
@@ -736,7 +947,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger.load_android_project_scaffold(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -752,7 +963,7 @@ impl DurableControlPlane {
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_agent_loop_record(
             loop_id,
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             state,
             updated_at_epoch_seconds,
@@ -774,7 +985,7 @@ impl DurableControlPlane {
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_android_build_observation(
             execution_id,
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             project_fingerprint,
@@ -788,7 +999,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger.load_android_build_observation(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -804,7 +1015,7 @@ impl DurableControlPlane {
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_android_artifact_export(
             export_id,
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             destination_path,
@@ -818,7 +1029,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger.load_android_artifact_export(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -834,7 +1045,7 @@ impl DurableControlPlane {
     ) -> Result<(), rusqlite::Error> {
         self.ledger.save_android_device_observation(
             observation_id,
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             device_identity,
@@ -849,7 +1060,7 @@ impl DurableControlPlane {
         device_identity: &str,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger.load_android_device_observation(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
             device_identity,
@@ -862,7 +1073,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         m4: (&str, u64, &str, &str, &str, &str, &str, &str),
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let fingerprint = serde_json::to_string(&command).expect("command serialization");
         if let Some(previous) = self.ledger.load_command_result(
             &project_id,
@@ -900,7 +1111,7 @@ impl DurableControlPlane {
         source_revision: u64,
     ) -> Result<Option<(String, String, String)>, rusqlite::Error> {
         self.ledger.load_android_requirement_manifest(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             task_id,
             source_revision,
         )
@@ -911,7 +1122,7 @@ impl DurableControlPlane {
         preview_revision_id: &str,
     ) -> Result<Option<(String, String)>, rusqlite::Error> {
         self.ledger
-            .load_preview_revision(&self.snapshot().project_id, preview_revision_id)
+            .load_preview_revision(&self.core_snapshot().project_id, preview_revision_id)
     }
 
     pub fn load_preview_projection(
@@ -919,7 +1130,7 @@ impl DurableControlPlane {
         task_id: &str,
     ) -> Result<Option<String>, rusqlite::Error> {
         self.ledger
-            .load_preview_projection(&self.snapshot().project_id, task_id)
+            .load_preview_projection(&self.core_snapshot().project_id, task_id)
     }
 
     pub fn record_mutation_transaction(
@@ -949,7 +1160,8 @@ impl DurableControlPlane {
     }
 
     pub fn retention_floor(&self) -> Result<Option<u64>, rusqlite::Error> {
-        self.ledger.retention_floor(&self.snapshot().project_id)
+        self.ledger
+            .retention_floor(&self.core_snapshot().project_id)
     }
 
     pub fn replay_after_with_gap(
@@ -971,7 +1183,7 @@ impl DurableControlPlane {
         first_available_sequence: u64,
     ) -> Result<(), rusqlite::Error> {
         self.ledger
-            .set_retention_floor(&self.snapshot().project_id, first_available_sequence)
+            .set_retention_floor(&self.core_snapshot().project_id, first_available_sequence)
     }
 
     pub fn dispatch(
@@ -998,7 +1210,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         contract: Option<(&str, &str, &str, u16)>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1043,7 +1255,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         preflight: Option<(&str, &str, &str, &str, Option<&str>, &str)>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1089,7 +1301,7 @@ impl DurableControlPlane {
         preview: Option<(&str, &str, &str, &str, &str, &str)>,
         projection: Option<(&str, &str, &str)>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1134,7 +1346,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         manifest: Option<(&str, &str, u64, &str, &str, Option<&str>)>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1178,7 +1390,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         mutation_transaction: &MutationTransactionRecord,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1222,7 +1434,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         record: &WorkerExecutionRecord,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1266,7 +1478,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         run: Option<&BackgroundRunRecord>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1322,7 +1534,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         provider_profile: Option<(&str, &str)>,
     ) -> Result<DurableDispatchOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::to_string(&command)
             .expect("CommandEnvelope serialization must remain infallible");
         if let Some(previous) = self.ledger.load_command_result(
@@ -1368,7 +1580,7 @@ impl DurableControlPlane {
         correlation_id: &str,
         reason: &str,
     ) -> Result<DurableTimeoutOutcome, DurableControlPlaneError> {
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         let request_fingerprint = serde_json::json!({
             "timeoutId": timeout_id,
             "commandId": command_id,
@@ -1411,9 +1623,9 @@ impl DurableControlPlane {
     pub fn checkpoint(&mut self, checkpoint_id: impl Into<String>) -> Result<(), rusqlite::Error> {
         let checkpoint_id = checkpoint_id.into();
         self.ledger.save_checkpoint(
-            &self.snapshot().project_id,
+            &self.core_snapshot().project_id,
             &checkpoint_id,
-            &self.snapshot(),
+            &self.core_snapshot(),
         )?;
         self.checkpoint_id = Some(checkpoint_id);
         Ok(())
@@ -1429,7 +1641,7 @@ impl DurableControlPlane {
 
     pub fn checkpoint_exists(&self, checkpoint_id: &str) -> Result<bool, rusqlite::Error> {
         self.ledger
-            .checkpoint_exists(&self.snapshot().project_id, checkpoint_id)
+            .checkpoint_exists(&self.core_snapshot().project_id, checkpoint_id)
     }
 
     pub fn restore_source_revision_from_checkpoint(
@@ -1441,13 +1653,13 @@ impl DurableControlPlane {
         if command.kind != CommandKind::WorkerStep {
             return Err(DomainError::InvalidTransition.into());
         }
-        let project_id = self.snapshot().project_id;
+        let project_id = self.core_snapshot().project_id;
         if command.project_id != project_id
-            || command.expected_projection_revision != self.snapshot().projection_revision
+            || command.expected_projection_revision != self.core_snapshot().projection_revision
         {
             return Err(DomainError::StaleProjection {
                 expected: command.expected_projection_revision,
-                current: self.snapshot().projection_revision,
+                current: self.core_snapshot().projection_revision,
             }
             .into());
         }
@@ -1505,7 +1717,7 @@ impl DurableControlPlane {
         self.plane = candidate;
         self.checkpoint_id = Some(checkpoint_id.to_owned());
         Ok(DurableDispatchOutcome::Accepted {
-            snapshot: self.snapshot(),
+            snapshot: self.core_snapshot(),
             event,
         })
     }

@@ -97,6 +97,16 @@ impl ApkArtifact {
         Ok(())
     }
 }
+/// Hex sha256 of a file's contents, prefixed with `sha256:` to match the
+/// artifact fingerprint vocabulary. Returns `None` when the file cannot be
+/// read (used by export reconciliation to treat a missing destination as
+/// "not yet copied" rather than an error).
+pub fn sha256_file(path: &str) -> Option<String> {
+    let bytes = fs::read(path).ok()?;
+    let digest = Sha256::digest(&bytes);
+    Some(format!("sha256:{digest:x}"))
+}
+
 pub fn validate_apk_delivery(artifact: &ApkArtifact) -> Result<(), M10Error> {
     artifact.validate_metadata()?;
     if artifact.delivery_status != "READY_LOCAL"

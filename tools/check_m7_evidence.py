@@ -50,8 +50,8 @@ def main() -> int:
             raise SystemExit(f"M7 continuation evidence must keep {key}={expected}")
     if record.get("workerStepOrder") != ["Inspect", "Edit", "Checkpoint"]:
         raise SystemExit("M7 continuation WorkerStep order is not Inspect/Edit/Checkpoint")
-    if record.get("postCheckpointSourceRevision") != 2:
-        raise SystemExit("M7 continuation post-checkpoint revision is not the observed revision 2")
+    if record.get("postCheckpointSourceRevision") != 3:
+        raise SystemExit("M7 continuation post-checkpoint revision is not the observed revision 3")
     if record.get("resumedEventSequence") != 7:
         raise SystemExit("M7 continuation resumed event sequence is not the same-stream sequence 7")
     if record.get("filesystemAdapter") != "test-fixture-only":

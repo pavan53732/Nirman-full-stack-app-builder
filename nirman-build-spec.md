@@ -5108,7 +5108,7 @@ The frontend may own view preferences, form input, selection, filters, scroll po
 
 ### 76.1 UICommandRegistry
 
-Every command must be registered with `commandKind`, `requestSchemaRef`, `responseSchemaRef`, `requiredAuthority`, `requiredCapability`, `projectScope`, `transactionDomain`, `idempotencyPolicy`, `timeoutPolicy`, `cancellationPolicy`, `emittedEventTypes`, `projectionEffects`, `errorCodes`, and `sensitiveFields`. The initial registry is:
+Every command must be registered with `commandKind`, `requestSchemaRef`, `responseSchemaRef`, `requiredAuthority`, `requiredCapability`, `projectScope`, `transactionDomain`, `idempotencyPolicy`, `timeoutPolicy`, `cancellationPolicy`, `emittedEventTypes`, `projectionEffects`, `errorCodes`, and `sensitiveFields`. The registry (mirrored by `command_registry()` in `nirman-ipc`) is:
 
 | Command kind | Domain use case | Required authority | Transaction domain | Projection effect |
 |---|---|---|---|---|
@@ -5116,6 +5116,9 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `task.start` | Start an approved Android goal | Lifecycle, policy, and capability authority | Local | Task and worker projection |
 | `task.cancel` | Request cancellation | Lifecycle authority | Local | Cancellation and recovery projection |
 | `task.resume` | Resume an eligible task | Lifecycle and recovery authority | Local | Task and continuation projection |
+| `task.submit_instruction` | Submit a natural-language build instruction that opens the task's background run | Lifecycle authority | Local | Task and instruction projection |
+| `task.pause` | Pause an active task while preserving the background run | Lifecycle authority | Local | Task projection |
+| `connection.reconnect` | Rebind a UI session to the running host after a disconnect | Recovery authority | Local | Continuity projection |
 | `workspace.apply_patch` | Admit a worker or user patch | Workspace, reconciliation, and policy authority | Local | Revision and diff projection |
 | `preview.start` | Start a revision-bound preview | Preview and lifecycle authority | Device | Preview candidate projection |
 | `preview.stop` | Stop a managed preview session | Lifecycle authority | Device | Preview lifecycle projection |
@@ -5124,7 +5127,21 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `artifact.build` | Build a declared Android artifact | Toolchain and artifact authority | Local | Build and artifact projection |
 | `artifact.export` | Export a verified source or declared artifact; deployment delivery is profile-bound | Artifact and external-effect authority | Local | Delivery and export projection |
 | `provider.test` | Test a configured provider profile | Provider and credential policy authority | External | Provider operationality projection |
+| `provider.execute` | Execute a provider request through the M44 bridge under a locked environment | Provider bridge authority | External | Provider execution projection |
 | `settings.update_provider` | Update a provider profile | Credential and policy authority | Local | Settings and provider projection |
+| `android.construction.create` | Create and validate the Android construction contract (M39/M47) | Construction contract authority | Local | Android construction contract projection |
+| `android.toolchain.preflight` | Preflight and lock the Android toolchain environment (M43) | Toolchain authority | Local | Android toolchain and environment projection |
+| `android.requirements.evaluate` | Evaluate Android requirements and select repairs (M47) | Android requirement authority | Local | Android requirement manifest and repair-selection projection |
+| `android.synthesis.build` | Record the Android synthesis plan and build provenance (M4) | Android synthesis authority | Local | Android synthesis and build provenance projection |
+| `android.project.scaffold` | Scaffold the real Android Gradle project workspace (M4b) | Android synthesis authority | Local | Android project workspace and revision projection |
+| `agent.loop.run` | Drive the agent loop from synthesis through validated APK (M58) | Lifecycle authority | Local | Agent loop record and build projection |
+| `worker.task.claim` | Claim a coordination task under an expiring lease (M8) | Worker coordination authority | Local | Worker lease and coordination projection |
+| `worker.handoff.submit` | Submit a worker handoff for integration (M8) | Worker coordination authority | Local | Worker handoff projection |
+| `worker.handoff.acknowledge` | Acknowledge a worker handoff outcome (M8) | Worker coordination authority | Local | Worker handoff acknowledgement projection |
+| `worker.reconcile` | Reconcile a worker integration transactionally (M8) | Worker coordination authority | Local | Transactional integration checkpoint projection |
+| `worker.step` | Execute one worker stage with declared capability and evidence (M5) | Worker execution authority | Local | Single-worker stage and evidence projection |
+
+The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of thirty command kinds admitted by the authenticated boundary; commands not listed are rejected before a domain transaction begins.
 
 For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins.
 

@@ -9,23 +9,27 @@ import {
   getWorkspace,
   isTauriHost,
   type AgentLoopRunResultPayload,
+  type AndroidConstructionContract,
   type ArtifactExportResultPayload,
   type CommandKind,
   type CommandRequest,
   type CommandResponse,
+  type PreviewStartResultPayload,
   type ProjectionSnapshot,
   ProjectionStore,
   PROTOCOL_SCHEMA_VERSION,
   preflightAndroidToolchain,
   type ProjectId,
+  readPreviewEvidence,
   runAgentLoop,
   safeErrorMessage,
   replayEvents,
+  startPreview,
   subscribeEvents,
   subscribeToControlEvents,
   type SessionHandshake,
 } from "./ipcClient";
-import { deriveConstructionPipeline, exportDestination } from "./contract";
+import { deriveConstructionPipeline, derivePreviewRequest, exportDestination } from "./contract";
 
 type NavItem = "Workspace" | "Tasks" | "Files" | "Preview" | "Logs" | "Settings";
 type ConnectionState = "connecting" | "connected" | "unavailable" | "error";
@@ -81,11 +85,18 @@ function App() {
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [loopResult, setLoopResult] = useState<AgentLoopRunResultPayload | null>(null);
   const [exportResult, setExportResult] = useState<ArtifactExportResultPayload | null>(null);
+  const [previewResult, setPreviewResult] = useState<PreviewStartResultPayload | null>(null);
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
+  const [logcatText, setLogcatText] = useState<string | null>(null);
+  const [deviceSerial, setDeviceSerial] = useState("");
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([
     { who: "agent", text: "Describe the Android app you want. Nirman derives a construction contract, scaffolds a real Gradle project, builds the APK through the agent loop, and exports the verified artifact." },
   ]);
   const storeRef = useRef(new ProjectionStore());
   const pipelineTaskRef = useRef<ProjectId | null>(null);
+  const contractRef = useRef<AndroidConstructionContract | null>(null);
+  const pipelineIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
@@ -206,11 +217,15 @@ function App() {
     const pipelineId = makeId("ui").replace("ui-", "");
     const taskId: ProjectId = [`task-${pipelineId}`];
     pipelineTaskRef.current = taskId;
+    pipelineIdRef.current = pipelineId;
     setPipelineRunning(true);
     setCommandPending(true);
     setErrorMessage(null);
     setLoopResult(null);
     setExportResult(null);
+    setPreviewResult(null);
+    setScreenshotDataUrl(null);
+    setLogcatText(null);
     setTranscript((current) => [...current, { who: "user", text: intent }]);
     const steps: PipelineStep[] = [
       { label: "Submit instruction", detail: "Durable intent event + background run", status: "pending" },
@@ -226,6 +241,7 @@ function App() {
       intent,
       pipelineId,
     });
+    contractRef.current = derive.contract;
     try {
       // Step 1: durable instruction (also opens the task's background run).
       setPipeline((current) => updateStep(current, 0, { status: "running" }));
@@ -344,6 +360,68 @@ function App() {
     }
   }
 
+  /** Starts the real M48 preview pipeline. With an adb serial bound, the host
+   * installs the exported APK on that device, launches it, and records the
+   * device observation (screenshot, logcat, UI dump). Without a serial, the
+   * host selects the headless smoke-test fallback — no runtime session is
+   * claimed. Every result below comes from the durable control plane. */
+  async function runDevicePreview() {
+    if (!handshake || !snapshot || commandPending || previewBusy) return;
+    const taskId = pipelineTaskRef.current;
+    const contract = contractRef.current;
+    const pipelineId = pipelineIdRef.current;
+    if (!taskId || !contract || !pipelineId || !loopResult) {
+      setErrorMessage("Run a build first; preview binds the loop's committed source revision.");
+      return;
+    }
+    const serial = deviceSerial.trim();
+    if (serial.length > 0 && !exportResult) {
+      setErrorMessage("Device preview requires the exported APK; export the artifact first.");
+      return;
+    }
+    setPreviewBusy(true);
+    setErrorMessage(null);
+    setScreenshotDataUrl(null);
+    setLogcatText(null);
+    try {
+      const request = derivePreviewRequest({
+        contract,
+        pipelineId,
+        sourceRevision: Math.max(0, snapshot.current_source_revision[0]),
+        sourceFingerprint: loopResult.build_observation?.artifact_sha256 ?? loopResult.resulting_project_fingerprint ?? `source-${snapshot.current_source_revision[0]}`,
+        buildVariant: loopResult.build_observation?.build_variant ?? "debug",
+        deviceSerial: serial,
+      });
+      const response = await startPreview(handshake, snapshot, taskId, { request });
+      if (!storeRef.current.acceptAuthoritativeSnapshot(response.snapshot)) throw new Error("preview snapshot was rejected as non-authoritative");
+      setSnapshot(storeRef.current.snapshot());
+      const payload = response.result_payload as PreviewStartResultPayload | null;
+      if (!payload) throw new Error("preview start returned no result payload");
+      setPreviewResult(payload);
+      const observation = payload.device_observation;
+      if (observation) {
+        const screenshotReference = observation.screenshot_references[0];
+        if (screenshotReference) {
+          const evidence = await readPreviewEvidence(handshake, screenshotReference);
+          if (evidence.kind === "image" && evidence.data_base64) setScreenshotDataUrl(`data:${evidence.mime};base64,${evidence.data_base64}`);
+        }
+        if (observation.logcat_reference) {
+          const evidence = await readPreviewEvidence(handshake, observation.logcat_reference);
+          if (evidence.kind === "text" && evidence.text !== null) setLogcatText(evidence.text);
+        }
+        setTranscript((entries) => [...entries, { who: "agent", text: `Preview observed on ${observation.device_identity}: ${observation.install_status.toLowerCase()}/install, ${observation.launch_status.toLowerCase()}/launch, ${observation.interaction_status.toLowerCase()}/interaction — evidence ${observation.observation_id} bound to source revision ${snapshot.current_source_revision[0]}.` }]);
+      } else {
+        setTranscript((entries) => [...entries, { who: "agent", text: `Preview fallback ${payload.selection.mode}: ${payload.selection.reason}. Runtime observation not required at this rank.` }]);
+      }
+      setLastDelivery(`PreviewStart ${payload.selection.mode} accepted for source revision ${snapshot.current_source_revision[0]}`);
+    } catch (error) {
+      setErrorMessage(safeErrorMessage(error));
+      setTranscript((entries) => [...entries, { who: "agent", text: `Preview rejected by the control plane: ${safeErrorMessage(error)}` }]);
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
   const truth = snapshot?.preview_truth ?? "Predicted";
   const taskState = snapshot?.task_state ?? "Created";
   const continuity = snapshot?.continuity_state ?? "Reconnecting";
@@ -399,16 +477,29 @@ function App() {
           </section>
 
           <section className="preview-column panel">
-            <div className="panel-heading preview-heading"><div><span className="eyebrow">LIVE PREVIEW</span><h2>Android runtime</h2></div><button className="device-selector" type="button">{loopResult?.scaffold ? `${loopResult.scaffold.package_name}` : "Pixel 8"} <span>⌄</span></button></div>
-            <div className={`preview-stage ${truth.toLowerCase()}`}><div className="phone-frame"><div className="phone-speaker" /><div className="phone-screen"><div className="screen-status"><span>9:41</span><span>▮ ◉ ▰</span></div><div className="app-header"><span className="app-kicker">TUESDAY, APRIL 22</span><h3>Your thoughts,<br /><em>in one place.</em></h3><span className="add-note">＋</span></div><div className="note-card primary"><span className="note-tag">TODAY</span><strong>Ideas worth keeping</strong><p>Small details become<br />meaningful memories.</p><span className="note-time">09:32</span></div><div className="note-card secondary"><span className="note-tag">PERSONAL</span><strong>Walk by the river</strong><p>Remember the blue hour.</p><span className="note-time">YESTERDAY</span></div><div className="phone-nav"><span className="selected">⌂</span><span>⌕</span><span>◌</span><span>☰</span></div></div></div>{truth !== "Observed" && <div className="preview-overlay"><div className="overlay-icon">{truth === "Stale" ? "!" : "◌"}</div><strong>{truth === "Stale" ? "Preview is stale" : "Preview not observed yet"}</strong><span>{statusCopy}</span></div>}</div>
-            <div className="preview-footer"><div className="truth-label"><span className={`truth-dot ${truth.toLowerCase()}`} /><strong>{truth.toUpperCase()}</strong><span>·</span><span>{statusCopy}</span></div><div className="preview-actions"><button disabled={!snapshot || commandPending && !pipelineRunning || taskState === "Created"} onClick={() => void sendCommand("PauseTask")} type="button">Pause</button><button disabled={!snapshot || commandPending && !pipelineRunning || taskState !== "Paused"} onClick={() => void sendCommand("ResumeTask")} type="button">Resume</button><button disabled={!snapshot || taskState === "Cancelled" || taskState === "Completed"} onClick={() => void sendCommand("CancelTask")} type="button">Cancel</button></div></div>
+            <div className="panel-heading preview-heading"><div><span className="eyebrow">LIVE PREVIEW</span><h2>Android runtime</h2></div><input aria-label="Device serial (adb devices)" className="device-input" disabled={!snapshot || previewBusy || pipelineRunning} onChange={(event) => setDeviceSerial(event.target.value)} placeholder="adb serial (e.g. emulator-5554) · empty = headless" title="Real adb device serial — must match `adb devices`" value={deviceSerial} /></div>
+            <div className={`preview-stage ${truth.toLowerCase()}`}>{screenshotDataUrl ? <div className="phone-frame"><div className="phone-speaker" /><div className="phone-screen real-capture"><img alt="Real device screenshot captured by the preview session" src={screenshotDataUrl} /></div></div> : previewResult?.device_observation ? <div className="phone-frame"><div className="phone-speaker" /><div className="phone-screen observed-placeholder"><span className="overlay-icon">◉</span><strong>Observed without a screenshot</strong><span>{previewResult.device_observation.device_identity} · {previewResult.device_observation.package_name}</span></div></div> : <div className="phone-frame"><div className="phone-speaker" /><div className="phone-screen"><div className="screen-status"><span>9:41</span><span>▮ ◉ ▰</span></div><div className="app-header"><span className="app-kicker">TUESDAY, APRIL 22</span><h3>Your thoughts,<br /><em>in one place.</em></h3><span className="add-note">＋</span></div><div className="note-card primary"><span className="note-tag">TODAY</span><strong>Ideas worth keeping</strong><p>Small details become<br />meaningful memories.</p><span className="note-time">09:32</span></div><div className="note-card secondary"><span className="note-tag">PERSONAL</span><strong>Walk by the river</strong><p>Remember the blue hour.</p><span className="note-time">YESTERDAY</span></div><div className="phone-nav"><span className="selected">⌂</span><span>⌕</span><span>◌</span><span>☰</span></div></div></div>}{truth !== "Observed" && <div className="preview-overlay"><div className="overlay-icon">{truth === "Stale" ? "!" : "◌"}</div><strong>{truth === "Stale" ? "Preview is stale" : "Preview not observed yet"}</strong><span>{statusCopy}</span></div>}</div>
+            {previewResult && (
+              <div className="preview-observation">
+                <div className="observation-row"><span>Mode</span><strong>{previewResult.selection.mode}</strong><small>{previewResult.selection.reason}</small></div>
+                {previewResult.device_observation ? (<>
+                  <div className="observation-row"><span>Device</span><strong>{previewResult.device_observation.device_identity}</strong><small>{previewResult.device_observation.package_name} · APK {previewResult.device_observation.apk_sha256.slice(0, 16)}…</small></div>
+                  <div className="observation-row"><span>Session</span><strong>{previewResult.device_observation.install_status} · {previewResult.device_observation.launch_status} · {previewResult.device_observation.interaction_status}</strong><small>observation {previewResult.device_observation.observation_id} · evidence {previewResult.device_observation.screenshot_references.length} screenshot(s)</small></div>
+                </>) : (<div className="observation-row"><span>Revision</span><strong>{previewResult.revision.lifecycle_state}</strong><small>{previewResult.revision.preview_mode} bound to {previewResult.revision.project_revision_id}</small></div>)}
+                {logcatText !== null && logcatText.trim().length > 0 && (<details className="logcat-details"><summary>Device logcat (filtered, {logcatText.split("\n").length} line(s))</summary><pre>{logcatText}</pre></details>)}
+              </div>
+            )}
+            <div className="preview-footer"><div className="truth-label"><span className={`truth-dot ${truth.toLowerCase()}`} /><strong>{truth.toUpperCase()}</strong><span>·</span><span>{statusCopy}</span></div><div className="preview-actions"><button className="preview-run" disabled={!snapshot || commandPending || previewBusy || pipelineRunning || loopResult?.outcome !== "COMPLETE"} onClick={() => void runDevicePreview()} type="button">{previewBusy ? "Observing…" : "Run preview"}</button><button disabled={!snapshot || commandPending && !pipelineRunning || taskState === "Created"} onClick={() => void sendCommand("PauseTask")} type="button">Pause</button><button disabled={!snapshot || commandPending && !pipelineRunning || taskState !== "Paused"} onClick={() => void sendCommand("ResumeTask")} type="button">Resume</button><button disabled={!snapshot || taskState === "Cancelled" || taskState === "Completed"} onClick={() => void sendCommand("CancelTask")} type="button">Cancel</button></div></div>
           </section>
 
           <section className="files-column panel"><div className="panel-heading"><div><span className="eyebrow">PROJECT SURFACE</span><h2>Files & evidence</h2></div><button className="small-action" type="button">＋</button></div><div className="file-list">
             {(loopResult?.scaffold ? ["settings.gradle.kts", "app/build.gradle.kts", "app/src/main/AndroidManifest.xml", "MainActivity.kt (Compose)", loopResult.build_observation?.artifact_path?.split("/").pop() ?? "app-debug.apk"] : ["app/", "src/", "package.json", "README.md"]).map((file, index) => <button className="file-row" key={file} type="button"><span className={`file-icon ${index < 2 ? "folder" : "doc"}`}>{index < 2 ? "⌄" : "·"}</span><span>{file}</span>{!loopResult && index === 2 && <span className="file-status">host-owned</span>}</button>)}
           </div><div className="evidence-section"><div className="section-label">LATEST EVIDENCE</div><div className="evidence-row"><span className="evidence-icon">{snapshot?.last_event_sequence ? "✓" : "○"}</span><div><strong>Control-plane projection</strong><small>{snapshot ? `Durable event cursor #${String(snapshot.last_event_sequence).padStart(4, "0")}` : "Waiting for host snapshot"}</small></div><span className={snapshot ? "verified" : "waiting"}>{snapshot ? "VALID" : "WAITING"}</span></div>
             <div className="evidence-row"><span className="evidence-icon">{loopResult?.outcome === "COMPLETE" ? "✓" : "○"}</span><div><strong>Android build</strong><small>{loopResult ? `${loopResult.outcome} · iteration ${loopResult.loop_record.iteration}/${loopResult.loop_record.iteration_budget}` : "Waiting for an agent loop run"}</small></div><span className={loopResult?.outcome === "COMPLETE" ? "verified" : "waiting"}>{loopResult ? (loopResult.outcome === "COMPLETE" ? "VALID" : loopResult.outcome) : "WAITING"}</span></div>
-            <div className="evidence-row dim"><span className="evidence-icon">{exportResult ? "✓" : "○"}</span><div><strong>APK delivery</strong><small>{exportResult ? `${exportResult.delivery_record.state} · ${exportResult.delivery_record.destination_path}` : loopResult?.outcome === "COMPLETE" ? "Ready to export" : "Waiting for a validated APK"}</small></div><span className={exportResult ? "verified" : "waiting"}>{exportResult ? exportResult.delivery_record.state : "WAITING"}</span></div>
+            <div className="evidence-row dim"><span className="evidence-icon">{exportResult ? "✓" : "○"}</span><div><strong>APK delivery</strong><small>{exportResult ? `${exportResult.delivery_record.state} · ${exportResult.delivery_record.destinationPath}` : loopResult?.outcome === "COMPLETE" ? "Ready to export" : "Waiting for a validated APK"}</small></div><span className={exportResult ? "verified" : "waiting"}>{exportResult ? exportResult.delivery_record.state : "WAITING"}</span></div>
+            {snapshot?.delivery_projection && <div className="evidence-row dim"><span className="evidence-icon">{snapshot.delivery_projection.post_copy_verified ? "✓" : "○"}</span><div><strong>Delivery projection</strong><small>{snapshot.delivery_projection.state} · {snapshot.delivery_projection.delivery_kind} → {snapshot.delivery_projection.destination_kind} (rev {snapshot.delivery_projection.source_revision}){snapshot.delivery_projection.copy_uncertain ? " · copy uncertain, reconciliation pending" : ""}</small></div><span className={snapshot.delivery_projection.post_copy_verified ? "verified" : "waiting"}>{snapshot.delivery_projection.post_copy_verified ? "VERIFIED" : "PENDING"}</span></div>}
+            {snapshot?.evidence_projection && (snapshot.evidence_projection.m108_event_count > 0 || snapshot.evidence_projection.device_observation_count > 0) && <div className="evidence-row dim"><span className="evidence-icon">{snapshot.evidence_projection.device_observation_count > 0 ? "✓" : "○"}</span><div><strong>Evidence projection</strong><small>{snapshot.evidence_projection.m108_event_count} M108 event(s) · {snapshot.evidence_projection.m108_evidence_count} evidence record(s) · {snapshot.evidence_projection.device_observation_count} device observation(s){snapshot.evidence_projection.latest_device_identity ? ` · latest ${snapshot.evidence_projection.latest_device_identity}` : ""}</small></div><span className={snapshot.evidence_projection.device_observation_count > 0 ? "verified" : "waiting"}>{snapshot.evidence_projection.device_observation_count > 0 ? "OBSERVED" : "WAITING"}</span></div>}
+            {snapshot?.worker_projection && snapshot.worker_projection.task_count > 0 && <div className="evidence-row dim"><span className="evidence-icon">{snapshot.worker_projection.open_task_ids.length === 0 ? "✓" : "○"}</span><div><strong>Worker projection</strong><small>{snapshot.worker_projection.task_count} coordination task(s) · {snapshot.worker_projection.claim_count} claim(s) · {snapshot.worker_projection.handoff_count} handoff(s) · {snapshot.worker_projection.acknowledged_handoff_count} acknowledged · roles {snapshot.worker_projection.roles.join(", ")}</small></div><span className={snapshot.worker_projection.open_task_ids.length === 0 ? "verified" : "waiting"}>{snapshot.worker_projection.open_task_ids.length === 0 ? "SETTLED" : `${snapshot.worker_projection.open_task_ids.length} OPEN`}</span></div>}
           </div>
             <button className="build-button" style={{ width: "100%", marginTop: 12 }} disabled={!canExport || commandPending} onClick={() => void exportApk()} type="button">Export APK{loopResult?.build_observation?.artifact_sha256 ? ` · ${loopResult.build_observation.artifact_sha256.slice(0, 12)}…` : ""}</button>
           </section>

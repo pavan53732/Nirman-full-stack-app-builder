@@ -85,6 +85,8 @@ fn m115_authenticated_subscription_and_envelopes_round_trip() {
         task_id: None,
         from_event_sequence: 0,
         snapshot_revision: Some(Revision(0)),
+        snapshot_projection_revision: None,
+        last_projection_revision: None,
         requested_projection_kinds: vec!["task".into()],
         acknowledged_event_sequence: 0,
         heartbeat_interval_seconds: 15,

@@ -3,8 +3,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export const PROTOCOL_SCHEMA_VERSION = 1;
 
-export type PreviewTruth = "Predicted" | "Requested" | "Observed" | "Verified" | "Stale" | "Invalidated";
-export type ProductLifecycleState = "Created" | "Planning" | "Implementing" | "Paused" | "Previewing" | "Validating" | "Recovering" | "Packaging" | "Completed" | "UserRequired" | "SafelyFailed" | "Cancelled";
+export type PreviewTruth = "Predicted" | "Simulated" | "Requested" | "Observed" | "Verified" | "Stale" | "Invalidated";
+export type ProductLifecycleState = "Created" | "Planning" | "Synthesizing" | "Implementing" | "Paused" | "Previewing" | "Validating" | "Recovering" | "Packaging" | "Completed" | "Blocked" | "UserRequired" | "SafelyFailed" | "Cancelled";
 export type BackgroundContinuityState = "ActiveBackground" | "UiDisconnected" | "HostSuspended" | "HostOffline" | "DeviceUnavailable" | "ProviderUnavailable" | "Recovering" | "Reconciling" | "UserRequired" | "SafelyFailed" | "Completed";
 export type CommandKind = "ProjectOpen" | "TaskStart" | "TaskCancel" | "TaskResume" | "WorkspaceApplyPatch" | "PreviewStart" | "PreviewStop" | "PreviewPromote" | "ValidationRun" | "ArtifactBuild" | "ArtifactExport" | "ProviderTest" | "ProviderExecute" | "SettingsUpdateProvider" | "AndroidConstructionCreate" | "AndroidToolchainPreflight" | "AndroidRequirementEvaluate" | "AndroidSynthesisBuild" | "AndroidProjectScaffold" | "AgentLoopRun" | "SubmitInstruction" | "Reconnect" | "PauseTask" | "ResumeTask" | "CancelTask" | "WorkerTaskClaim" | "WorkerHandoffSubmit" | "WorkerHandoffAcknowledge" | "WorkerReconcile" | "WorkerStep";
 export type ResponseStatus = "Accepted" | "Completed" | "Rejected" | "Duplicate" | "Stale" | "Cancelled" | "Failed";
@@ -12,6 +12,48 @@ export type SubscriptionStatus = "Requested" | "Active" | "Paused" | "Gap" | "Cl
 
 export type ProjectId = [string];
 export interface AuthContext { installation_id: string; user_scope: string; project_scope: string; schema_version: number }
+export interface WorkerProjectionSummary {
+  task_count: number;
+  claim_count: number;
+  handoff_count: number;
+  acknowledged_handoff_count: number;
+  roles: string[];
+  open_task_ids: string[];
+}
+export interface ArtifactProjectionSummary {
+  task_id: string;
+  source_revision: number;
+  build_variant: string;
+  build_success: boolean;
+  timed_out: boolean;
+  cancelled: boolean;
+  artifact_path: string | null;
+  artifact_sha256: string | null;
+  project_fingerprint: string;
+}
+export interface EvidenceProjectionSummary {
+  m108_event_count: number;
+  m108_evidence_count: number;
+  device_observation_count: number;
+  latest_observation_id: string | null;
+  latest_device_identity: string | null;
+}
+export interface DeliveryProjectionSummary {
+  delivery_id: string;
+  task_id: string;
+  source_revision: number;
+  state: string;
+  delivery_kind: string;
+  destination_kind: string;
+  destination_path: string;
+  artifact_fingerprint: string | null;
+  post_copy_verified: boolean;
+  copy_uncertain: boolean;
+  reconciliation_reference: string | null;
+  failure_evidence_id: string | null;
+  deployment_delivery: string | null;
+  checkpoint_id: string | null;
+}
 export interface ProjectionSnapshot {
   project_id: ProjectId;
   projection_revision: [number];
@@ -21,6 +63,10 @@ export interface ProjectionSnapshot {
   current_source_revision: [number];
   last_event_sequence: number;
   last_known_good_ref: string | null;
+  worker_projection?: WorkerProjectionSummary | null;
+  artifact_projection?: ArtifactProjectionSummary | null;
+  evidence_projection?: EvidenceProjectionSummary | null;
+  delivery_projection?: DeliveryProjectionSummary | null;
 }
 export interface CommandEnvelope {
   command_id: string;
@@ -211,24 +257,31 @@ export interface ApkArtifact {
   copy_uncertain: boolean;
 }
 export interface ApkDeliveryRecord {
-  schema_version: number;
-  delivery_id: string;
-  artifact_id: string;
-  project_id: string;
-  task_id: string;
-  source_revision: number;
-  packaging_profile_id: string;
-  artifact_kind: string;
-  destination_path: string;
-  destination_kind: string;
-  request_fingerprint: string;
-  idempotency_key: string;
+  schemaVersion: number;
+  deliveryId: string;
+  artifactId: string;
+  projectId: string;
+  taskId: string;
+  sourceRevision: number;
+  packagingProfileId: string;
+  artifactKind: string;
+  destinationPath: string;
+  destinationKind: string;
+  requestFingerprint: string;
+  idempotencyKey: string;
   sha256: string;
-  byte_count: number;
-  state: "PENDING" | "COPYING" | "COPIED" | "VERIFIED" | "FAILED" | "BLOCKED" | "UNKNOWN";
-  created_at_epoch_seconds: number;
-  completed_at_epoch_seconds: number | null;
-  error_message: string | null;
+  byteCount: number;
+  state: "PENDING" | "COPYING" | "COPIED" | "RECONCILING" | "VERIFIED" | "FAILED" | "BLOCKED" | "UNKNOWN";
+  sourcePath: string | null;
+  sourceSha256: string | null;
+  postCopyVerified: boolean;
+  reconciliationReference: string | null;
+  failureEvidenceId: string | null;
+  deploymentDelivery: string | null;
+  checkpointId: string | null;
+  createdAtEpochSeconds: number;
+  completedAtEpochSeconds: number | null;
+  errorMessage: string | null;
 }
 export interface ArtifactExportResultPayload {
   artifact: ApkArtifact;
@@ -236,6 +289,105 @@ export interface ArtifactExportResultPayload {
   signing_config: unknown | null;
 }
 export interface WorkspaceDescriptor { workspace_root: string | null }
+
+export interface PreviewStartCommandPayload { request: PreviewRequest }
+export interface PreviewRequest {
+  schema_version: number;
+  request_id: string;
+  project_id: string;
+  task_id: string;
+  project_revision_id: string;
+  checkpoint_id: string;
+  source_fingerprint: string;
+  contract_version: string;
+  technology_plan_version: string;
+  asset_manifest_version: string;
+  build_variant: string;
+  device_id: string | null;
+  android_api_level: number | null;
+  requested_mode: string | null;
+  selected_language: string;
+  selected_ui_framework: string;
+  changed_paths: string[];
+  required_evidence_kinds: string[];
+  policy_decision_id: string;
+  workspace_root: string | null;
+  build_identity: string | null;
+}
+export interface PreviewFallbackSelection {
+  schema_version: number;
+  request_id: string;
+  mode: string;
+  reason: string;
+  selection_rank: number;
+  runtime_observation_required: boolean;
+  evidence_kinds: string[];
+}
+export interface PreviewRevision {
+  schema_version: number;
+  preview_revision_id: string;
+  project_id: string;
+  task_id: string;
+  project_revision_id: string;
+  checkpoint_id: string;
+  source_fingerprint: string;
+  artifact_id: string | null;
+  artifact_fingerprint: string | null;
+  device_id: string | null;
+  android_api_level: number | null;
+  build_variant: string;
+  preview_mode: string;
+  technology_plan_version: string;
+  asset_manifest_version: string;
+  lifecycle_state: string;
+  execution_truth: string;
+  status: string;
+  build_status: string;
+  install_status: string;
+  launch_status: string;
+  runtime_status: string;
+  validation_status: string;
+  evidence_ids: string[];
+  created_at_epoch_seconds: number;
+  observed_at_epoch_seconds: number | null;
+  invalidated_at_epoch_seconds: number | null;
+  invalidated_reason: string | null;
+}
+export interface AndroidDeviceObservation {
+  schema_version: number;
+  observation_id: string;
+  project_id: string;
+  task_id: string;
+  project_revision_id: string;
+  device_profile_id: string;
+  device_identity: string;
+  runtime_session_id: string;
+  package_name: string;
+  apk_sha256: string;
+  install_status: string;
+  launch_status: string;
+  interaction_status: string;
+  logcat_reference: string | null;
+  screenshot_references: string[];
+  accessibility_reference: string | null;
+  visual_comparison_reference: string | null;
+  permission_result_reference: string | null;
+  crash_trace_reference: string | null;
+  observed_at_epoch_seconds: number;
+  synthetic_data_only: boolean;
+}
+export interface PreviewStartResultPayload {
+  selection: PreviewFallbackSelection;
+  revision: PreviewRevision;
+  device_observation: AndroidDeviceObservation | null;
+}
+export interface PreviewEvidenceReadResult {
+  kind: "image" | "text";
+  mime: string;
+  data_base64: string | null;
+  text: string | null;
+  byte_count: number;
+}
 
 export interface CommandResponse {
   response_id: string;
@@ -596,6 +748,35 @@ export async function exportArtifact(
   return dispatchCommand(
     taskScopedCommandRequest(handshake, snapshot, taskId, commandId, "ArtifactExport", JSON.stringify(payload)),
   );
+}
+
+/** Starts the M48 preview pipeline for the current source revision. With a
+ * device serial bound the host runs a real adb install/launch/observation
+ * session against the exported APK; without one the host selects the
+ * headless smoke-test fallback. */
+export async function startPreview(
+  handshake: SessionHandshake,
+  snapshot: ProjectionSnapshot,
+  taskId: ProjectId,
+  payload: PreviewStartCommandPayload,
+  commandId = makeClientId("preview-start"),
+): Promise<CommandResponse> {
+  return dispatchCommand(
+    taskScopedCommandRequest(handshake, snapshot, taskId, commandId, "PreviewStart", JSON.stringify(payload)),
+  );
+}
+
+/** Reads one persisted preview-evidence file (screenshot, logcat, UI dump)
+ * recorded by a real device session. The host verifies the session and keeps
+ * reads inside the workspace `.nirman-evidence` tree. */
+export async function readPreviewEvidence(
+  handshake: SessionHandshake,
+  path: string,
+): Promise<PreviewEvidenceReadResult> {
+  if (!isTauriHost()) throw hostUnavailable();
+  return invoke<PreviewEvidenceReadResult>("read_preview_evidence", {
+    request: { auth: handshake.auth, correlation_id: handshake.correlation_id, path },
+  });
 }
 
 export async function createAndroidConstructionContract(

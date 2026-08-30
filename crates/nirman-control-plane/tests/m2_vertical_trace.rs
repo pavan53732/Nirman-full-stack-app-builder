@@ -395,7 +395,7 @@ fn m4_authenticated_project_intent_resolver_and_noop_plan_event_are_durable(
         .expect("no-op edit authenticated admission");
     let edited = plane.dispatch(noop_edit)?;
     assert_eq!(edited.last_event_sequence, 4);
-    assert_eq!(edited.current_source_revision, Revision(2));
+    assert_eq!(edited.current_source_revision, Revision(3));
     let events = plane.replay_after(0)?;
     assert_eq!(
         events
@@ -414,7 +414,7 @@ fn m4_authenticated_project_intent_resolver_and_noop_plan_event_are_durable(
 
     let reopened = DurableControlPlane::open(&db_path, ProjectId(project_id.into()))?;
     assert_eq!(reopened.snapshot().last_event_sequence, 4);
-    assert_eq!(reopened.snapshot().current_source_revision, Revision(2));
+    assert_eq!(reopened.snapshot().current_source_revision, Revision(3));
     assert_eq!(reopened.replay_after(2)?.len(), 2);
     fs::write(
         m4_evidence_path(),
@@ -749,7 +749,7 @@ fn m5_worker_edit_and_undo_resumes_from_checkpoint() -> Result<(), DurableContro
         DurableDispatchOutcome::Accepted { snapshot, .. }
         | DurableDispatchOutcome::Duplicate { snapshot } => snapshot,
     };
-    assert_eq!(edited_snapshot.current_source_revision, Revision(2));
+    assert_eq!(edited_snapshot.current_source_revision, Revision(3));
     assert!(edited_file.is_file());
 
     let checkpoint_worker_step = command_for(
@@ -772,7 +772,7 @@ fn m5_worker_edit_and_undo_resumes_from_checkpoint() -> Result<(), DurableContro
     .expect("checkpoint WorkerStep authenticated admission");
     let checkpoint_snapshot = plane.dispatch(checkpoint_worker_step)?;
     plane.checkpoint("checkpoint-m5-after-edit")?;
-    assert_eq!(checkpoint_snapshot.current_source_revision, Revision(2));
+    assert_eq!(checkpoint_snapshot.current_source_revision, Revision(3));
     assert!(plane.checkpoint_exists("checkpoint-m5-after-edit")?);
 
     let rollback_worker_step = command_for(
@@ -832,7 +832,7 @@ fn m5_worker_edit_and_undo_resumes_from_checkpoint() -> Result<(), DurableContro
         .load_mutation_transaction("m5-edit-transaction")?
         .expect("durable edit transaction");
     assert_eq!(reloaded_transaction.state, "COMMITTED");
-    assert_eq!(reloaded_transaction.resulting_revision, Revision(2));
+    assert_eq!(reloaded_transaction.resulting_revision, Revision(3));
     let reloaded_policy = reopened
         .load_m6_policy_events()?
         .into_iter()
@@ -1088,7 +1088,7 @@ fn m7_task_resumes_from_durable_checkpoint_after_restart() -> Result<(), Durable
         | DurableDispatchOutcome::Duplicate { snapshot } => snapshot,
     };
     assert!(edited_file.is_file());
-    assert_eq!(edited_snapshot.current_source_revision, Revision(2));
+    assert_eq!(edited_snapshot.current_source_revision, Revision(3));
 
     let edit_step = command_for(
         project_id,
@@ -1142,7 +1142,7 @@ fn m7_task_resumes_from_durable_checkpoint_after_restart() -> Result<(), Durable
     plane.checkpoint("checkpoint-m7-post-edit")?;
     assert!(plane.checkpoint_exists("checkpoint-m7-post-edit")?);
     let post_checkpoint_revision = checkpoint_snapshot.current_source_revision;
-    assert_eq!(post_checkpoint_revision, Revision(2));
+    assert_eq!(post_checkpoint_revision, Revision(3));
 
     record
         .observe(

@@ -133,6 +133,14 @@ impl Ledger {
                  record_json TEXT NOT NULL,
                  UNIQUE(project_id, task_id, source_revision)
              );
+             CREATE TABLE IF NOT EXISTS apk_delivery_records (
+                 delivery_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 source_revision INTEGER NOT NULL,
+                 state TEXT NOT NULL,
+                 record_json TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS android_requirement_manifests (
                  project_id TEXT NOT NULL,
                  task_id TEXT NOT NULL,
@@ -841,6 +849,98 @@ impl Ledger {
                 |row| row.get(0),
             )
             .optional()
+    }
+
+    /// Persists an APK delivery record (spec §74.3) so the delivery
+    /// projection and later reconciliation reads survive host restarts.
+    pub fn save_apk_delivery_record(
+        &self,
+        delivery_id: &str,
+        project_id: &ProjectId,
+        task_id: &str,
+        source_revision: u64,
+        state: &str,
+        record_json: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO apk_delivery_records (delivery_id, project_id, task_id, source_revision, state, record_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(delivery_id) DO UPDATE SET state=excluded.state, record_json=excluded.record_json",
+            params![delivery_id, project_id.0, task_id, source_revision, state, record_json],
+        )?;
+        Ok(())
+    }
+
+    /// Most recently persisted APK delivery record for the project
+    /// (task id, source revision, serialized ApkDeliveryRecord).
+    pub fn latest_apk_delivery_record(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Option<(String, u64, String)>> {
+        self.connection
+            .query_row(
+                "SELECT task_id, source_revision, record_json FROM apk_delivery_records
+                 WHERE project_id=?1 ORDER BY rowid DESC LIMIT 1",
+                params![project_id.0],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()
+    }
+
+    /// Most recently recorded Android build observation for the project
+    /// (task id, source revision, serialized AndroidBuildObservation).
+    pub fn latest_android_build_observation(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Option<(String, u64, String)>> {
+        self.connection
+            .query_row(
+                "SELECT task_id, source_revision, record_json FROM android_build_observations
+                 WHERE project_id=?1 ORDER BY rowid DESC LIMIT 1",
+                params![project_id.0],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()
+    }
+
+    /// Identity of the most recent device observation plus the project-wide
+    /// observation count for the evidence projection.
+    pub fn latest_device_observation_identity(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Option<(String, String)>> {
+        self.connection
+            .query_row(
+                "SELECT observation_id, device_identity FROM android_device_observations
+                 WHERE project_id=?1 ORDER BY rowid DESC LIMIT 1",
+                params![project_id.0],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+    }
+
+    /// Project-wide durable evidence census for the evidence projection.
+    pub fn evidence_census(&self, project_id: &ProjectId) -> rusqlite::Result<(u32, u32, u32)> {
+        let m108_event_count = self.connection.query_row(
+            "SELECT COUNT(*) FROM m108_preview_sync_events WHERE project_id=?1",
+            params![project_id.0],
+            |row| row.get::<_, i64>(0),
+        )? as u32;
+        let m108_evidence_count = self.connection.query_row(
+            "SELECT COUNT(*) FROM m108_preview_sync_evidence WHERE project_id=?1",
+            params![project_id.0],
+            |row| row.get::<_, i64>(0),
+        )? as u32;
+        let device_observation_count = self.connection.query_row(
+            "SELECT COUNT(*) FROM android_device_observations WHERE project_id=?1",
+            params![project_id.0],
+            |row| row.get::<_, i64>(0),
+        )? as u32;
+        Ok((
+            m108_event_count,
+            m108_evidence_count,
+            device_observation_count,
+        ))
     }
 
     pub fn save_android_device_observation(
@@ -1639,6 +1739,13 @@ impl Ledger {
                     current_source_revision: Revision(source_revision),
                     last_event_sequence,
                     last_known_good_ref,
+                    // Typed projection summaries are derived from the durable
+                    // record tables, not from the persisted core projection;
+                    // the durable control plane re-attaches them on read.
+                    worker_projection: None,
+                    artifact_projection: None,
+                    evidence_projection: None,
+                    delivery_projection: None,
                 })
             },
         )
@@ -2555,6 +2662,7 @@ fn parse_task_state(value: &str) -> rusqlite::Result<ProductLifecycleState> {
     match value {
         "Created" => Ok(ProductLifecycleState::Created),
         "Planning" => Ok(ProductLifecycleState::Planning),
+        "Synthesizing" => Ok(ProductLifecycleState::Synthesizing),
         "Implementing" => Ok(ProductLifecycleState::Implementing),
         "Paused" => Ok(ProductLifecycleState::Paused),
         "Previewing" => Ok(ProductLifecycleState::Previewing),
@@ -2562,6 +2670,7 @@ fn parse_task_state(value: &str) -> rusqlite::Result<ProductLifecycleState> {
         "Recovering" => Ok(ProductLifecycleState::Recovering),
         "Packaging" => Ok(ProductLifecycleState::Packaging),
         "Completed" => Ok(ProductLifecycleState::Completed),
+        "Blocked" => Ok(ProductLifecycleState::Blocked),
         "UserRequired" => Ok(ProductLifecycleState::UserRequired),
         "SafelyFailed" => Ok(ProductLifecycleState::SafelyFailed),
         "Cancelled" => Ok(ProductLifecycleState::Cancelled),
@@ -2593,6 +2702,7 @@ fn parse_continuity_state(value: &str) -> rusqlite::Result<BackgroundContinuityS
 fn parse_preview_truth(value: &str) -> rusqlite::Result<PreviewTruth> {
     match value {
         "Predicted" => Ok(PreviewTruth::Predicted),
+        "Simulated" => Ok(PreviewTruth::Simulated),
         "Requested" => Ok(PreviewTruth::Requested),
         "Observed" => Ok(PreviewTruth::Observed),
         "Verified" => Ok(PreviewTruth::Verified),
@@ -2622,6 +2732,10 @@ mod tests {
             current_source_revision: Revision(1),
             last_event_sequence: 1,
             last_known_good_ref: None,
+            worker_projection: None,
+            artifact_projection: None,
+            evidence_projection: None,
+            delivery_projection: None,
         };
         let event = ControlEvent {
             event_id: "event-1".into(),
@@ -2661,6 +2775,10 @@ mod m7_tests {
             current_source_revision: Revision(0),
             last_event_sequence: 1,
             last_known_good_ref: None,
+            worker_projection: None,
+            artifact_projection: None,
+            evidence_projection: None,
+            delivery_projection: None,
         };
         let event = ControlEvent {
             event_id: "event-m7-atomic".into(),

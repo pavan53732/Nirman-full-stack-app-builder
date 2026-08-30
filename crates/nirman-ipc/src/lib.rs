@@ -179,6 +179,15 @@ pub struct EventSubscription {
     pub backpressure_policy: BackpressurePolicy,
     pub status: SubscriptionStatus,
     pub correlation_id: String,
+    /// Projection revision of the bootstrap snapshot this subscription was
+    /// created from (spec §76.3 `snapshotRevisionOptional`).
+    #[serde(default)]
+    pub snapshot_projection_revision: Option<Revision>,
+    /// Latest projection revision delivered to this subscription, updated
+    /// on every published batch so heartbeats can report it without taking
+    /// a fresh core snapshot while long builds hold the core lock.
+    #[serde(default)]
+    pub last_projection_revision: Option<Revision>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -241,8 +250,13 @@ pub fn publish_control_event<S: EventSink>(
             has_gap: false,
             status: SubscriptionStatus::Active,
         };
-        if subscription.max_batch_size < batch.events.len() || sink.emit_batch(batch).is_err() {
-            if let Some(stored) = subscriptions.get_mut(&subscription.subscription_id) {
+        let delivered =
+            subscription.max_batch_size >= batch.events.len() && sink.emit_batch(batch).is_ok();
+        if let Some(stored) = subscriptions.get_mut(&subscription.subscription_id) {
+            // Track the latest delivered projection revision so heartbeats
+            // can report it without a fresh core snapshot.
+            stored.last_projection_revision = Some(projection_revision);
+            if !delivered {
                 stored.status = SubscriptionStatus::Paused;
             }
         }
@@ -1148,6 +1162,10 @@ mod tests {
             current_source_revision: Revision(1),
             last_event_sequence: 0,
             last_known_good_ref: None,
+            worker_projection: None,
+            artifact_projection: None,
+            evidence_projection: None,
+            delivery_projection: None,
         };
         let mut receiver = ProjectionReceiver::default();
         assert!(receiver.observe_snapshot(snapshot));
@@ -1278,6 +1296,8 @@ mod m115_subscription_bridge_tests {
             task_id: None,
             from_event_sequence: 0,
             snapshot_revision: Some(Revision(0)),
+            snapshot_projection_revision: Some(Revision(0)),
+            last_projection_revision: None,
             requested_projection_kinds: vec!["task".into()],
             acknowledged_event_sequence: 0,
             heartbeat_interval_seconds: 15,
@@ -1387,6 +1407,13 @@ fn artifact_export_result_payload_round_trips_with_delivery_and_signing() {
         sha256: "sha256:abc".into(),
         byte_count: 1024,
         state: DeliveryState::Copied,
+        source_path: Some("/apk".into()),
+        source_sha256: Some("sha256:abc".into()),
+        post_copy_verified: true,
+        reconciliation_reference: None,
+        failure_evidence_id: None,
+        deployment_delivery: Some("REQUIRED_APK".into()),
+        checkpoint_id: Some("checkpoint-1".into()),
         created_at_epoch_seconds: 0,
         completed_at_epoch_seconds: Some(1),
         error_message: None,

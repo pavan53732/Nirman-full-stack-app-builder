@@ -418,6 +418,7 @@ pub struct AndroidConstructionCommandPayload {
 pub enum ProductLifecycleState {
     Created,
     Planning,
+    Synthesizing,
     Implementing,
     Paused,
     Previewing,
@@ -425,6 +426,7 @@ pub enum ProductLifecycleState {
     Recovering,
     Packaging,
     Completed,
+    Blocked,
     UserRequired,
     SafelyFailed,
     Cancelled,
@@ -448,6 +450,7 @@ pub enum BackgroundContinuityState {
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PreviewTruth {
     Predicted,
+    Simulated,
     Requested,
     Observed,
     Verified,
@@ -521,6 +524,87 @@ pub struct ProjectionSnapshot {
     pub current_source_revision: Revision,
     pub last_event_sequence: u64,
     pub last_known_good_ref: Option<String>,
+    /// AGENTS §8 typed worker coordination projection (M8). Absent on
+    /// snapshots produced by the in-memory plane and on persisted core
+    /// snapshots; the durable control plane refreshes it from the ledger.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worker_projection: Option<WorkerProjectionSummary>,
+    /// AGENTS §8 typed artifact projection (latest durable Android build
+    /// observation and its validated artifact identity).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_projection: Option<ArtifactProjectionSummary>,
+    /// AGENTS §8 typed evidence projection (durable runtime-evidence census).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_projection: Option<EvidenceProjectionSummary>,
+    /// AGENTS §8 typed delivery projection (latest durable APK delivery).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery_projection: Option<DeliveryProjectionSummary>,
+}
+
+/// Worker coordination (M8) projection summary: the durable census of
+/// coordination tasks, claims, handoffs, and acknowledgements for the
+/// project, plus the still-open task identifiers.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+pub struct WorkerProjectionSummary {
+    pub task_count: u32,
+    pub claim_count: u32,
+    pub handoff_count: u32,
+    pub acknowledged_handoff_count: u32,
+    /// Distinct worker roles named by the durable coordination tasks.
+    pub roles: Vec<String>,
+    /// Coordination task ids that have not produced an acknowledged handoff
+    /// yet (still being worked or awaiting reconciliation).
+    pub open_task_ids: Vec<String>,
+}
+
+/// Artifact projection summary: the latest durable Android build
+/// observation, including the validated artifact identity when the build
+/// produced one.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactProjectionSummary {
+    pub task_id: String,
+    pub source_revision: u64,
+    pub build_variant: String,
+    pub build_success: bool,
+    pub timed_out: bool,
+    pub cancelled: bool,
+    pub artifact_path: Option<String>,
+    pub artifact_sha256: Option<String>,
+    pub project_fingerprint: String,
+}
+
+/// Evidence projection summary: the durable runtime-evidence census for the
+/// project across M108 preview-sync events, captured evidence records, and
+/// device observations.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+pub struct EvidenceProjectionSummary {
+    pub m108_event_count: u32,
+    pub m108_evidence_count: u32,
+    pub device_observation_count: u32,
+    pub latest_observation_id: Option<String>,
+    pub latest_device_identity: Option<String>,
+}
+
+/// Delivery projection summary: the latest durable APK delivery record,
+/// including export state, destination identity, artifact fingerprint, and
+/// the post-copy verification reference (AGENTS §8 `deliveryProjection`).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DeliveryProjectionSummary {
+    pub delivery_id: String,
+    pub task_id: String,
+    pub source_revision: u64,
+    /// DeliveryState name (PENDING/COPYING/COPIED/RECONCILING/VERIFIED/...).
+    pub state: String,
+    pub delivery_kind: String,
+    pub destination_kind: String,
+    pub destination_path: String,
+    pub artifact_fingerprint: Option<String>,
+    pub post_copy_verified: bool,
+    pub copy_uncertain: bool,
+    pub reconciliation_reference: Option<String>,
+    pub failure_evidence_id: Option<String>,
+    pub deployment_delivery: Option<String>,
+    pub checkpoint_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -716,6 +800,33 @@ pub struct ApkDeliveryRecord {
     pub sha256: String,
     pub byte_count: u64,
     pub state: DeliveryState,
+    /// Absolute path of the source artifact that was copied (spec §74.3
+    /// `sourcePathReference`). Older records deserialize as `None`.
+    #[serde(default)]
+    pub source_path: Option<String>,
+    /// sha256 of the source artifact, distinct from the destination hash in
+    /// `sha256` (spec §74.3 `sourceArtifactHash`).
+    #[serde(default)]
+    pub source_sha256: Option<String>,
+    /// Whether the durable post-copy verification (destination hash equality)
+    /// has passed (spec §74.3 `postCopyCheck`).
+    #[serde(default)]
+    pub post_copy_verified: bool,
+    /// Reference resolving an `Unknown`/interrupted copy back to the
+    /// reconciliation decision (spec §74.3 `reconciliationReference`).
+    #[serde(default)]
+    pub reconciliation_reference: Option<String>,
+    /// Evidence id produced when a copy fails (spec §74.3 `failureEvidenceId`).
+    #[serde(default)]
+    pub failure_evidence_id: Option<String>,
+    /// REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY
+    /// (spec §74.3 `deploymentDelivery`).
+    #[serde(default)]
+    pub deployment_delivery: Option<String>,
+    /// Durable checkpoint binding for the exported revision
+    /// (spec §74.3 `checkpointId`).
+    #[serde(default)]
+    pub checkpoint_id: Option<String>,
     pub created_at_epoch_seconds: u64,
     pub completed_at_epoch_seconds: Option<u64>,
     pub error_message: Option<String>,
@@ -727,6 +838,7 @@ pub enum DeliveryState {
     Pending,
     Copying,
     Copied,
+    Reconciling,
     Verified,
     Failed,
     Blocked,
@@ -1113,6 +1225,13 @@ mod tests {
             sha256: "sha256:abc".into(),
             byte_count: 1024,
             state: DeliveryState::Verified,
+            source_path: Some("C:/build/app-release.apk".into()),
+            source_sha256: Some("sha256:abc".into()),
+            post_copy_verified: true,
+            reconciliation_reference: None,
+            failure_evidence_id: None,
+            deployment_delivery: Some("REQUIRED_APK".into()),
+            checkpoint_id: Some("checkpoint-1".into()),
             created_at_epoch_seconds: 1_700_000_000,
             completed_at_epoch_seconds: Some(1_700_000_100),
             error_message: None,
@@ -1120,6 +1239,36 @@ mod tests {
         let json = serde_json::to_string(&record).expect("serialize");
         let back: ApkDeliveryRecord = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(record, back);
+    }
+
+    #[test]
+    fn apk_delivery_record_deserializes_legacy_v1_without_export_provenance() {
+        let legacy = serde_json::json!({
+            "schemaVersion": 1,
+            "deliveryId": "delivery-legacy",
+            "artifactId": "artifact-1",
+            "projectId": "project-1",
+            "taskId": "task-1",
+            "sourceRevision": 0,
+            "packagingProfileId": "profile-debug",
+            "artifactKind": "apk",
+            "destinationPath": "C:/build/app.apk",
+            "destinationKind": "LOCAL_WINDOWS_FILESYSTEM",
+            "requestFingerprint": "fp-1",
+            "idempotencyKey": "idem-1",
+            "sha256": "sha256:abc",
+            "byteCount": 1024,
+            "state": "COPIED",
+            "createdAtEpochSeconds": 1_700_000_000,
+            "completedEpochSeconds": null,
+            "errorMessage": null
+        });
+        let record: ApkDeliveryRecord =
+            serde_json::from_value(legacy).expect("legacy record deserializes");
+        assert_eq!(record.state, DeliveryState::Copied);
+        assert!(!record.post_copy_verified);
+        assert_eq!(record.source_path, None);
+        assert_eq!(record.deployment_delivery, None);
     }
 
     #[test]

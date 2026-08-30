@@ -132,6 +132,8 @@ fn desktop_ipc_trace_proves_durable_typed_projection_boundary_without_overclaimi
         task_id: None,
         from_event_sequence: initial.last_event_sequence,
         snapshot_revision: Some(accepted_snapshot.projection_revision),
+        snapshot_projection_revision: None,
+        last_projection_revision: None,
         requested_projection_kinds: vec!["task".into(), "preview".into()],
         acknowledged_event_sequence: initial.last_event_sequence,
         heartbeat_interval_seconds: 15,

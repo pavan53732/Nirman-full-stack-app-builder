@@ -9,6 +9,7 @@ import type {
   AndroidDeviceProfile,
   AndroidTechnologyPlan,
   ConstructionRequirement,
+  PreviewRequest,
 } from "./ipcClient.js";
 
 /** Capability keywords recognized in user intents, mirroring the scaffold's
@@ -172,4 +173,52 @@ export function exportDestination(workspaceRoot: string, pipelineId: string, bui
   const root = workspaceRoot.replace(/[\\/]+$/, "");
   const separator = root.includes("\\") && !root.includes("/") ? "\\" : "/";
   return `${root}${separator}exports${separator}nirman-${pipelineId}-${buildVariant}.apk`;
+}
+
+export interface DerivePreviewInput {
+  /** The construction contract already accepted by the control plane. */
+  contract: AndroidConstructionContract;
+  /** The pipeline identifier used for the contract (`ui-<uuid>`). */
+  pipelineId: string;
+  /** The durable source revision the preview binds to (`source-<n>`). */
+  sourceRevision: number;
+  /** The fingerprint of the source that produced the exported APK. */
+  sourceFingerprint: string;
+  buildVariant: string;
+  /** Real adb device serial (e.g. `emulator-5554`). Empty/null selects the
+   * headless smoke-test fallback — no device session is claimed. */
+  deviceSerial: string | null;
+}
+
+/** Derives the M48 PreviewStart request from an accepted construction
+ * contract. Deterministic per pipeline: the same inputs always produce the
+ * same request, so retries stay idempotent through the control plane.
+ * Device binding requires the REAL adb serial because the host compares it
+ * against `adb get-serialno` during the device session. */
+export function derivePreviewRequest(input: DerivePreviewInput): PreviewRequest {
+  const device = input.contract.deviceMatrix[0];
+  const serial = input.deviceSerial?.trim() ?? "";
+  return {
+    schema_version: 1,
+    request_id: `preview-request-${input.pipelineId}`,
+    project_id: input.contract.projectId[0],
+    task_id: input.contract.taskId[0],
+    project_revision_id: `source-${input.sourceRevision}`,
+    checkpoint_id: `checkpoint-${input.pipelineId}`,
+    source_fingerprint: input.sourceFingerprint,
+    contract_version: input.contract.contractId,
+    technology_plan_version: input.contract.technologyPlan.planId,
+    asset_manifest_version: `assets-${input.pipelineId}`,
+    build_variant: input.buildVariant,
+    device_id: serial.length > 0 ? serial : null,
+    android_api_level: serial.length > 0 ? (device?.apiLevel ?? 35) : null,
+    requested_mode: null,
+    selected_language: input.contract.technologyPlan.selectedLanguages[0] ?? "kotlin",
+    selected_ui_framework: input.contract.technologyPlan.selectedUiFrameworks[0] ?? "jetpack-compose",
+    changed_paths: [],
+    required_evidence_kinds: ["PROCESS_EVIDENCE", "DEVICE_EVIDENCE", "VISUAL_EVIDENCE"],
+    policy_decision_id: `policy-${input.pipelineId}`,
+    workspace_root: null,
+    build_identity: null,
+  };
 }

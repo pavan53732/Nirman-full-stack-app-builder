@@ -62,8 +62,7 @@ use nirman_providers::{
     ProviderRuntimeError, ProviderTransport, PROVIDER_BRIDGE_PROTOCOL_VERSION,
 };
 use nirman_supervisor::{
-    BackgroundRunRecord, BackgroundRunState, RecoveryAction, Supervisor, SupervisorState,
-    M7_SCHEMA_VERSION,
+    BackgroundRunRecord, BackgroundRunState, Supervisor, SupervisorState, M7_SCHEMA_VERSION,
 };
 use nirman_workers::{
     CoordinationError, CoordinationTask, M8ReconciliationCheckpoint, MultiWorkerCoordinator,
@@ -75,7 +74,7 @@ use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -137,8 +136,12 @@ struct RuntimeState {
     session: AuthenticatedSession,
     auth: AuthContext,
     correlation_id: String,
-    subscriptions: BTreeMap<String, EventSubscription>,
-    supervisor: Supervisor,
+    /// Subscription registry, shared with the dedicated `SubscriptionRuntime`
+    /// managed state so acknowledgements and heartbeats stay responsive
+    /// while an agent loop holds the runtime core (ADR-024: background
+    /// work must be non-blocking).
+    subscriptions: Arc<Mutex<BTreeMap<String, EventSubscription>>>,
+    supervisor: Arc<Mutex<Supervisor>>,
     provider_runtime: ProviderRuntime,
     credential_resolver: Box<dyn CredentialResolver>,
     provider_transport: Box<dyn ProviderTransport>,
@@ -149,6 +152,20 @@ struct RuntimeState {
     worker_policies: BTreeMap<String, WorkerPolicy>,
     process_registry: ProcessRegistry,
     doom_loop_detectors: BTreeMap<String, DoomLoopDetector>,
+    /// Monotonic durable event cursor, updated on every event commit and
+    /// shared with `SubscriptionRuntime` so the subscription protocol can
+    /// validate acknowledgements without the runtime-core lock.
+    last_durable_event_sequence: Arc<AtomicU64>,
+}
+
+/// Lock-light companion to `RuntimeState` for the subscription protocol:
+/// acknowledgements, heartbeats, and closes never wait on the runtime-core
+/// mutex that a long agent loop (e.g. a 15-minute Gradle build) holds.
+struct SubscriptionRuntime {
+    subscriptions: Arc<Mutex<BTreeMap<String, EventSubscription>>>,
+    session: AuthenticatedSession,
+    supervisor: Arc<Mutex<Supervisor>>,
+    last_durable_event_sequence: Arc<AtomicU64>,
 }
 
 #[derive(serde::Serialize)]
@@ -252,6 +269,177 @@ fn now_epoch_seconds() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
         .unwrap_or(0)
+}
+
+/// The M108 preview-sync stream preserves its identity across retries: if the
+/// task's preview-sync record already pins a checkpoint, reuse it so retried
+/// preview commands stay on the same stream instead of being rejected as
+/// stale events after new checkpoints land.
+fn m108_stream_checkpoint(state: &RuntimeState, task_id: &str) -> String {
+    if let Ok(Some((projection_json, _, _))) = state.plane.load_m108_sync_record(task_id) {
+        if let Ok(record) = serde_json::from_str::<M108ProjectionState>(&projection_json) {
+            if let Some(checkpoint) = record.checkpoint_id {
+                if !checkpoint.trim().is_empty() {
+                    return checkpoint;
+                }
+            }
+        }
+    }
+    state
+        .plane
+        .checkpoint_id()
+        .map(str::to_owned)
+        .unwrap_or_else(|| "checkpoint-pending".into())
+}
+
+/// The task's M108 stream anchor: the preview revision derived from the
+/// durable synthesis plan (stable per task), falling back to the given
+/// fallback when no synthesis plan is recorded.
+fn m108_preview_revision_id_for(
+    state: &RuntimeState,
+    task_id: &str,
+    project_revision_id: &str,
+    fallback: String,
+) -> String {
+    project_revision_id
+        .strip_prefix("source-")
+        .and_then(|value| value.parse::<u64>().ok())
+        .and_then(|revision| {
+            state
+                .plane
+                .load_android_synthesis_build(task_id, revision)
+                .ok()
+                .flatten()
+        })
+        .and_then(|stored| {
+            serde_json::from_str::<nirman_android::AndroidSynthesisPlan>(&stored.0).ok()
+        })
+        .map(|plan| format!("m108-preview-{}", plan.contract_id))
+        .unwrap_or(fallback)
+}
+
+/// Preview-flow wrapper: the prepared request carries the identity and the
+/// fallback preview revision.
+fn m108_preview_revision_id(state: &RuntimeState, prepared: &PreparedM48) -> String {
+    m108_preview_revision_id_for(
+        state,
+        &prepared.task_id,
+        &prepared.preview_request.project_revision_id,
+        prepared.preview_revision_id.clone(),
+    )
+}
+
+/// Opens the task's M108 preview-sync stream with the durable early-stage
+/// lineage (build-spec §71): the accepted instruction, the validated
+/// construction contract, the recorded synthesis plan, the durable
+/// checkpoint, and the committed source revision. Every event references
+/// records that already exist in the durable plane — nothing is claimed
+/// beyond them. Only runs once per task (the first preview stream).
+fn persist_m108_early_lineage(
+    state: &mut RuntimeState,
+    task_id: &str,
+    project_revision_id: &str,
+    source_fingerprint: &str,
+    command_id: &str,
+    checkpoint_id: &str,
+) -> Result<(), ErrorEnvelope> {
+    let stream_exists = matches!(state.plane.load_m108_sync_record(task_id), Ok(Some(_)));
+    if stream_exists {
+        return Ok(());
+    }
+    let source_revision = project_revision_id
+        .strip_prefix("source-")
+        .and_then(|value| value.parse::<u64>().ok());
+    let contract_reference = state
+        .plane
+        .load_android_construction_contract(task_id)
+        .ok()
+        .flatten()
+        .and_then(|contract_json| {
+            serde_json::from_str::<AndroidConstructionContract>(&contract_json).ok()
+        })
+        .map(|contract| format!("contract:{}", contract.contract_id));
+    let synthesis_reference = source_revision
+        .and_then(|revision| {
+            state
+                .plane
+                .load_android_synthesis_build(task_id, revision)
+                .ok()
+                .flatten()
+        })
+        .and_then(|stored| {
+            serde_json::from_str::<nirman_android::AndroidSynthesisPlan>(&stored.0).ok()
+        })
+        .map(|plan| format!("synthesis-plan:{}", plan.contract_id));
+    let build_reference = source_revision
+        .and_then(|revision| {
+            state
+                .plane
+                .load_android_build_observation(task_id, revision)
+                .ok()
+                .flatten()
+        })
+        .and_then(|observation_json| {
+            serde_json::from_str::<nirman_android::AndroidBuildObservation>(&observation_json).ok()
+        })
+        .map(|observation| format!("build:{}", observation.execution_id));
+    // The M108 stream anchor is the preview revision derived from the
+    // durable synthesis plan, matching the observation events below.
+    let m108_preview_revision_id = m108_preview_revision_id_for(
+        state,
+        task_id,
+        project_revision_id,
+        format!("m108-preview-{task_id}"),
+    );
+
+    let mut lineage: Vec<(PreviewSyncEventType, Vec<String>)> = vec![(
+        PreviewSyncEventType::IntentAccepted,
+        vec![format!("instruction:{task_id}")],
+    )];
+    if let Some(contract_reference) = contract_reference.clone() {
+        lineage.push((
+            PreviewSyncEventType::ContractValidated,
+            vec![contract_reference],
+        ));
+    }
+    if let Some(synthesis_reference) = synthesis_reference.clone() {
+        lineage.push((
+            PreviewSyncEventType::PlanRecorded,
+            vec![synthesis_reference],
+        ));
+    }
+    lineage.push((
+        PreviewSyncEventType::CheckpointCreated,
+        vec![format!("checkpoint:{checkpoint_id}")],
+    ));
+    let mut source_committed_refs = vec![format!("source-revision:{project_revision_id}")];
+    if let Some(build_reference) = build_reference.clone() {
+        source_committed_refs.push(build_reference);
+    }
+    lineage.push((
+        PreviewSyncEventType::SourceRevisionCommitted,
+        source_committed_refs,
+    ));
+    for (event_type, evidence_refs) in lineage {
+        persist_m108_stage(
+            state,
+            task_id,
+            &m108_preview_revision_id,
+            event_type,
+            PreviewEventTruth::Observed,
+            project_revision_id,
+            checkpoint_id,
+            source_fingerprint,
+            command_id,
+            None,
+            None,
+            None,
+            None,
+            Vec::new(),
+            evidence_refs,
+        )?;
+    }
+    Ok(())
 }
 
 fn persist_m108_stage(
@@ -1903,11 +2091,65 @@ fn cancelled_observation(action: &AgentAction) -> LoopObservation {
     }
 }
 
+/// Append a durable `AgentLoopProgress` event for a kernel transition and
+/// fan it out to active subscriptions. Progress events keep the durable
+/// event sequence monotonic so replay and gap detection stay intact.
+fn emit_agent_loop_progress<S: EventSink>(
+    state: &mut RuntimeState,
+    sink: &S,
+    record: &nirman_agents::AgentLoopRecord,
+) -> Result<(), ErrorEnvelope> {
+    let payload = serde_json::json!({
+        "phase": format!("{:?}", record.phase),
+        "state": format!("{:?}", record.state),
+        "iteration": record.iteration,
+        "iterationBudget": record.iteration_budget,
+        "progressStatus": format!("{:?}", record.progress_status),
+        "completedActionCount": record.completed_action_count,
+        "variationAttempts": record.variation_attempts,
+    })
+    .to_string();
+    let event = state
+        .plane
+        .append_progress_event(
+            Some(&TaskId(record.task_id.clone())),
+            "AgentLoopProgress",
+            &payload,
+        )
+        .map_err(|_| {
+            error(
+                state.correlation_id.as_str(),
+                None,
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "agent-loop progress event could not be persisted",
+                true,
+                None,
+            )
+        })?;
+    state
+        .last_durable_event_sequence
+        .store(event.sequence, Ordering::SeqCst);
+    let projection_revision = state.plane.snapshot().projection_revision;
+    if let Ok(mut subscriptions) = state.subscriptions.lock() {
+        publish_control_event(
+            &mut subscriptions,
+            sink,
+            projection_revision,
+            event.sequence.saturating_sub(1),
+            &event,
+        );
+    }
+    Ok(())
+}
+
 /// Drives the agent loop from kernel start to a terminal state: synthesis,
 /// scaffolding, gradle build, bounded diagnosis/retry, and artifact
 /// validation, persisting every transition.
-fn run_agent_loop(
-    state: &RuntimeState,
+fn run_agent_loop<S: EventSink>(
+    state: &mut RuntimeState,
+    sink: &S,
     prepared: &PreparedAgentLoop,
     command_id: &str,
     correlation_id: &str,
@@ -2022,6 +2264,11 @@ fn run_agent_loop(
             )?;
         record = next_record;
         persist_agent_loop_record(state, &record)?;
+        // Stream live progress to subscribed clients: a long Gradle build
+        // must not leave the UI silent between command boundaries
+        // (ADR-024). The event is durable before delivery, exactly like
+        // every other control event.
+        emit_agent_loop_progress(state, sink, &record)?;
         match decision {
             KernelDecision::Execute(next_action) => action = next_action,
             KernelDecision::Finished => break,
@@ -2791,8 +3038,24 @@ fn prepare_m46_mutation(
             MutationError::BaseRevisionMismatch,
         ));
     }
-    let active_fence = state.supervisor.snapshot().active_fence;
-    if state.supervisor.snapshot().state != SupervisorState::Running
+    let supervisor_snapshot = state
+        .supervisor
+        .lock()
+        .map_err(|_| {
+            error(
+                &request.correlation_id,
+                Some(request.command.command_id.clone()),
+                request.causation_id.clone(),
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "supervisor lock is unavailable",
+                true,
+                None,
+            )
+        })?
+        .snapshot();
+    let active_fence = supervisor_snapshot.active_fence;
+    if supervisor_snapshot.state != SupervisorState::Running
         || active_fence.as_ref().is_none_or(|fence| {
             fence.owner_id != payload.worker_id || fence.fence_token != payload.fence_token
         })
@@ -3241,11 +3504,10 @@ fn authorize(state: &RuntimeState, request: &CommandRequest) -> Result<(), Error
 }
 
 fn authorize_subscription(
-    state: &RuntimeState,
+    session: &AuthenticatedSession,
     subscription: &EventSubscription,
 ) -> Result<(), ErrorEnvelope> {
-    state
-        .session
+    session
         .authorize_context(
             &subscription.auth,
             &subscription.project_id,
@@ -3409,12 +3671,272 @@ fn workspace(state: State<'_, Mutex<RuntimeState>>) -> Result<WorkspaceDescripto
     })
 }
 
+/// A UI request to read one persisted preview-evidence file (screenshot,
+/// logcat, UI dump) recorded under the authorized workspace by a real
+/// device session. Reads stay inside `.nirman-evidence` directories and the
+/// authenticated session is verified before any byte leaves the host.
+#[derive(Debug, Deserialize)]
+struct PreviewEvidenceReadRequest {
+    auth: AuthContext,
+    correlation_id: String,
+    path: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PreviewEvidenceReadResult {
+    kind: &'static str,
+    mime: &'static str,
+    data_base64: Option<String>,
+    text: Option<String>,
+    byte_count: u64,
+}
+
+/// Maximum evidence payload handed to the UI in one read (screenshots and
+/// logcat tails stay far below this; larger captures are rejected instead of
+/// freezing the webview with a multi-hundred-megabyte IPC payload).
+const PREVIEW_EVIDENCE_MAX_BYTES: u64 = 16 * 1024 * 1024;
+
+#[tauri::command]
+fn read_preview_evidence(
+    state: State<'_, Mutex<RuntimeState>>,
+    request: PreviewEvidenceReadRequest,
+) -> Result<PreviewEvidenceReadResult, ErrorEnvelope> {
+    fn evidence_error(
+        correlation_id: &str,
+        code: ControlPlaneErrorCode,
+        category: ErrorCategory,
+        message: &str,
+        retryable: bool,
+    ) -> ErrorEnvelope {
+        error(
+            correlation_id,
+            None,
+            None,
+            code,
+            category,
+            message,
+            retryable,
+            None,
+        )
+    }
+    let workspace_root = {
+        let state = state.lock().map_err(|_| {
+            error(
+                &request.correlation_id,
+                None,
+                None,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Unavailable,
+                "runtime state lock is unavailable",
+                true,
+                None,
+            )
+        })?;
+        state
+            .session
+            .authorize_context(&request.auth, PROJECT_ID, &request.correlation_id)
+            .map_err(|code| {
+                error(
+                    &request.correlation_id,
+                    None,
+                    None,
+                    code,
+                    ErrorCategory::Authentication,
+                    "authenticated local session rejected the evidence read",
+                    false,
+                    None,
+                )
+            })?;
+        state
+            .authorized_workspace_root
+            .as_ref()
+            .and_then(|path| path.canonicalize().ok())
+            .ok_or_else(|| {
+                evidence_error(
+                    &request.correlation_id,
+                    ControlPlaneErrorCode::PermissionDenied,
+                    ErrorCategory::Scope,
+                    "no authorized workspace is configured for preview evidence",
+                    false,
+                )
+            })?
+    };
+    read_preview_evidence_inner(
+        &request.correlation_id,
+        Some(&workspace_root),
+        &request.path,
+    )
+}
+
+/// Path-validated read of one preview-evidence file. The file must live inside
+/// a `.nirman-evidence` directory under the authorized workspace root so the
+/// UI can never use this channel to read arbitrary host files.
+fn read_preview_evidence_inner(
+    correlation_id: &str,
+    workspace_root: Option<&std::path::Path>,
+    requested_path: &str,
+) -> Result<PreviewEvidenceReadResult, ErrorEnvelope> {
+    fn evidence_error(
+        correlation_id: &str,
+        code: ControlPlaneErrorCode,
+        category: ErrorCategory,
+        message: &str,
+        retryable: bool,
+    ) -> ErrorEnvelope {
+        error(
+            correlation_id,
+            None,
+            None,
+            code,
+            category,
+            message,
+            retryable,
+            None,
+        )
+    }
+    let workspace_root = workspace_root
+        .and_then(|path| path.canonicalize().ok())
+        .ok_or_else(|| {
+            evidence_error(
+                correlation_id,
+                ControlPlaneErrorCode::PermissionDenied,
+                ErrorCategory::Scope,
+                "no authorized workspace is configured for preview evidence",
+                false,
+            )
+        })?;
+    let requested = std::path::Path::new(requested_path)
+        .canonicalize()
+        .map_err(|_| {
+            evidence_error(
+                correlation_id,
+                ControlPlaneErrorCode::InvalidCommand,
+                ErrorCategory::NotFound,
+                "preview evidence path does not resolve on this host",
+                false,
+            )
+        })?;
+    if !requested.starts_with(&workspace_root)
+        || !requested
+            .components()
+            .any(|component| component.as_os_str() == ".nirman-evidence")
+    {
+        return Err(evidence_error(
+            correlation_id,
+            ControlPlaneErrorCode::PermissionDenied,
+            ErrorCategory::Scope,
+            "preview evidence reads must stay inside the workspace .nirman-evidence tree",
+            false,
+        ));
+    }
+    let metadata = std::fs::metadata(&requested).map_err(|_| {
+        evidence_error(
+            correlation_id,
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::NotFound,
+            "preview evidence file is not readable",
+            false,
+        )
+    })?;
+    if !metadata.is_file() {
+        return Err(evidence_error(
+            correlation_id,
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "preview evidence path is not a regular file",
+            false,
+        ));
+    }
+    if metadata.len() > PREVIEW_EVIDENCE_MAX_BYTES {
+        return Err(evidence_error(
+            correlation_id,
+            ControlPlaneErrorCode::InvalidCommand,
+            ErrorCategory::Validation,
+            "preview evidence capture exceeds the UI read limit",
+            false,
+        ));
+    }
+    let bytes = std::fs::read(&requested).map_err(|_| {
+        evidence_error(
+            correlation_id,
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            "preview evidence file could not be read",
+            true,
+        )
+    })?;
+    let extension = requested
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let (kind, mime) = match extension.as_str() {
+        "png" => ("image", "image/png"),
+        "jpg" | "jpeg" => ("image", "image/jpeg"),
+        "webp" => ("image", "image/webp"),
+        _ => ("text", "text/plain"),
+    };
+    if kind == "image" {
+        Ok(PreviewEvidenceReadResult {
+            kind,
+            mime,
+            data_base64: Some(base64_encode(&bytes)),
+            text: None,
+            byte_count: bytes.len() as u64,
+        })
+    } else {
+        let text = String::from_utf8(bytes).map_err(|_| {
+            evidence_error(
+                correlation_id,
+                ControlPlaneErrorCode::DependencyUnavailable,
+                ErrorCategory::Internal,
+                "preview evidence text is not valid UTF-8",
+                false,
+            )
+        })?;
+        Ok(PreviewEvidenceReadResult {
+            kind,
+            mime,
+            data_base64: None,
+            text: Some(text.clone()),
+            byte_count: text.len() as u64,
+        })
+    }
+}
+
+/// Standard base64 (RFC 4648, with padding) used for evidence payloads that
+/// must travel through the Tauri IPC boundary as JSON strings.
+fn base64_encode(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let byte_0 = chunk[0] as u32;
+        let byte_1 = *chunk.get(1).unwrap_or(&0) as u32;
+        let byte_2 = *chunk.get(2).unwrap_or(&0) as u32;
+        let triple = (byte_0 << 16) | (byte_1 << 8) | byte_2;
+        encoded.push(ALPHABET[(triple >> 18) as usize & 0x3F] as char);
+        encoded.push(ALPHABET[(triple >> 12) as usize & 0x3F] as char);
+        encoded.push(if chunk.len() > 1 {
+            ALPHABET[(triple >> 6) as usize & 0x3F] as char
+        } else {
+            '='
+        });
+        encoded.push(if chunk.len() > 2 {
+            ALPHABET[triple as usize & 0x3F] as char
+        } else {
+            '='
+        });
+    }
+    encoded
+}
+
 #[tauri::command]
 fn subscribe_events(
     state: State<'_, Mutex<RuntimeState>>,
     mut subscription: EventSubscription,
 ) -> Result<SubscriptionBootstrap, ErrorEnvelope> {
-    let mut state = state.lock().map_err(|_| {
+    let state = state.lock().map_err(|_| {
         error(
             &subscription.correlation_id,
             None,
@@ -3426,7 +3948,7 @@ fn subscribe_events(
             None,
         )
     })?;
-    authorize_subscription(&state, &subscription)?;
+    authorize_subscription(&state.session, &subscription)?;
     if subscription.status != SubscriptionStatus::Requested {
         return Err(error(
             &subscription.correlation_id,
@@ -3442,6 +3964,8 @@ fn subscribe_events(
     let snapshot = state.plane.snapshot();
     subscription.status = SubscriptionStatus::Active;
     subscription.snapshot_revision = Some(snapshot.projection_revision);
+    subscription.snapshot_projection_revision = Some(snapshot.projection_revision);
+    subscription.last_projection_revision = Some(snapshot.projection_revision);
     subscription.acknowledged_event_sequence = snapshot.last_event_sequence;
     let initial_batch = batch(
         &subscription,
@@ -3451,8 +3975,7 @@ fn subscribe_events(
         SubscriptionStatus::Active,
         false,
     );
-    state
-        .subscriptions
+    lock_subscriptions(&state.subscriptions, &subscription.correlation_id)?
         .insert(subscription.subscription_id.clone(), subscription.clone());
     Ok(SubscriptionBootstrap {
         subscription,
@@ -3478,10 +4001,10 @@ fn replay_events(
             None,
         )
     })?;
-    authorize_subscription(&state, &subscription)?;
-    let stored = state
-        .subscriptions
+    authorize_subscription(&state.session, &subscription)?;
+    let stored = lock_subscriptions(&state.subscriptions, &subscription.correlation_id)?
         .get(&subscription.subscription_id)
+        .cloned()
         .ok_or_else(|| {
             error(
                 &subscription.correlation_id,
@@ -3564,11 +4087,12 @@ fn replay_events(
 }
 
 fn acknowledge_subscription_inner(
-    state: &mut RuntimeState,
+    runtime: &SubscriptionRuntime,
     acknowledgement: &SubscriptionAcknowledgement,
 ) -> Result<(), ErrorEnvelope> {
-    let stored = state
-        .subscriptions
+    let mut subscriptions =
+        lock_subscriptions(&runtime.subscriptions, &acknowledgement.correlation_id)?;
+    let stored = subscriptions
         .get(&acknowledgement.subscription_id)
         .cloned()
         .ok_or_else(|| {
@@ -3583,14 +4107,14 @@ fn acknowledge_subscription_inner(
                 None,
             )
         })?;
-    authorize_subscription(state, &stored)?;
+    authorize_subscription(&runtime.session, &stored)?;
     let mut updated = stored.clone();
     acknowledge_event_subscription(
         &mut updated,
         &acknowledgement.auth,
         &acknowledgement.correlation_id,
         acknowledgement.acknowledged_event_sequence,
-        state.plane.snapshot().last_event_sequence,
+        runtime.last_durable_event_sequence.load(Ordering::SeqCst),
     )
     .map_err(|code| {
         let (category, retryable, recovery_action) = match code {
@@ -3617,65 +4141,61 @@ fn acknowledge_subscription_inner(
             recovery_action,
         )
     })?;
-    state
-        .subscriptions
-        .insert(acknowledgement.subscription_id.clone(), updated);
+    subscriptions.insert(acknowledgement.subscription_id.clone(), updated);
     Ok(())
+}
+
+/// Lock the shared subscription registry, mapping lock poisoning to the
+/// typed unavailable error used across the subscription protocol.
+fn lock_subscriptions<'a>(
+    subscriptions: &'a Arc<Mutex<BTreeMap<String, EventSubscription>>>,
+    correlation_id: &str,
+) -> Result<std::sync::MutexGuard<'a, BTreeMap<String, EventSubscription>>, ErrorEnvelope> {
+    subscriptions.lock().map_err(|_| {
+        error(
+            correlation_id,
+            None,
+            None,
+            ControlPlaneErrorCode::DependencyUnavailable,
+            ErrorCategory::Unavailable,
+            "subscription registry lock is unavailable",
+            true,
+            None,
+        )
+    })
 }
 
 #[tauri::command]
 fn acknowledge_subscription(
-    state: State<'_, Mutex<RuntimeState>>,
+    runtime: State<'_, SubscriptionRuntime>,
     acknowledgement: SubscriptionAcknowledgement,
 ) -> Result<(), ErrorEnvelope> {
-    let mut state = state.lock().map_err(|_| {
-        error(
-            &acknowledgement.correlation_id,
-            None,
-            None,
-            ControlPlaneErrorCode::DependencyUnavailable,
-            ErrorCategory::Unavailable,
-            "runtime state lock is unavailable",
-            true,
-            None,
-        )
-    })?;
-    acknowledge_subscription_inner(&mut state, &acknowledgement)
+    acknowledge_subscription_inner(&runtime, &acknowledgement)
 }
 
 #[tauri::command]
 fn heartbeat_subscription(
-    state: State<'_, Mutex<RuntimeState>>,
+    runtime: State<'_, SubscriptionRuntime>,
     control: SubscriptionControl,
 ) -> Result<EventBatch, ErrorEnvelope> {
-    let mut state = state.lock().map_err(|_| {
+    // Heartbeats never wait on the runtime-core mutex: an agent loop may be
+    // holding it for the duration of a long Gradle build (ADR-024).
+    if let Ok(mut supervisor) = runtime.supervisor.lock() {
+        supervisor.heartbeat();
+    }
+    let subscriptions = lock_subscriptions(&runtime.subscriptions, &control.correlation_id)?;
+    let stored = subscriptions.get(&control.subscription_id).ok_or_else(|| {
         error(
             &control.correlation_id,
             None,
             None,
-            ControlPlaneErrorCode::DependencyUnavailable,
-            ErrorCategory::Unavailable,
-            "runtime state lock is unavailable",
-            true,
+            ControlPlaneErrorCode::SubscriptionNotFound,
+            ErrorCategory::NotFound,
+            "event subscription is not active",
+            false,
             None,
         )
     })?;
-    state.supervisor.heartbeat();
-    let stored = state
-        .subscriptions
-        .get(&control.subscription_id)
-        .ok_or_else(|| {
-            error(
-                &control.correlation_id,
-                None,
-                None,
-                ControlPlaneErrorCode::SubscriptionNotFound,
-                ErrorCategory::NotFound,
-                "event subscription is not active",
-                false,
-                None,
-            )
-        })?;
     if stored.auth != control.auth || stored.correlation_id != control.correlation_id {
         return Err(error(
             &control.correlation_id,
@@ -3700,10 +4220,16 @@ fn heartbeat_subscription(
             Some("create a new subscription and replay from its snapshot cursor".into()),
         ));
     }
-    let snapshot = state.plane.snapshot();
+    // The heartbeat batch reports the subscription's last observed
+    // projection revision rather than taking a fresh core snapshot: the
+    // in-memory projection may be mid-build behind the core mutex.
+    let projection_revision = stored
+        .last_projection_revision
+        .or(stored.snapshot_projection_revision)
+        .unwrap_or(Revision(0));
     Ok(batch(
-        stored,
-        snapshot.projection_revision,
+        &stored,
+        projection_revision,
         stored.acknowledged_event_sequence,
         Vec::new(),
         SubscriptionStatus::Active,
@@ -3713,36 +4239,22 @@ fn heartbeat_subscription(
 
 #[tauri::command]
 fn close_subscription(
-    state: State<'_, Mutex<RuntimeState>>,
+    runtime: State<'_, SubscriptionRuntime>,
     control: SubscriptionControl,
 ) -> Result<(), ErrorEnvelope> {
-    let mut state = state.lock().map_err(|_| {
+    let mut subscriptions = lock_subscriptions(&runtime.subscriptions, &control.correlation_id)?;
+    let stored = subscriptions.get(&control.subscription_id).ok_or_else(|| {
         error(
             &control.correlation_id,
             None,
             None,
-            ControlPlaneErrorCode::DependencyUnavailable,
-            ErrorCategory::Unavailable,
-            "runtime state lock is unavailable",
-            true,
+            ControlPlaneErrorCode::SubscriptionNotFound,
+            ErrorCategory::NotFound,
+            "event subscription is not active",
+            false,
             None,
         )
     })?;
-    let stored = state
-        .subscriptions
-        .get(&control.subscription_id)
-        .ok_or_else(|| {
-            error(
-                &control.correlation_id,
-                None,
-                None,
-                ControlPlaneErrorCode::SubscriptionNotFound,
-                ErrorCategory::NotFound,
-                "event subscription is not active",
-                false,
-                None,
-            )
-        })?;
     if stored.auth != control.auth || stored.correlation_id != control.correlation_id {
         return Err(error(
             &control.correlation_id,
@@ -3755,7 +4267,7 @@ fn close_subscription(
             None,
         ));
     }
-    state.subscriptions.remove(&control.subscription_id);
+    subscriptions.remove(&control.subscription_id);
     Ok(())
 }
 
@@ -4689,7 +5201,12 @@ pub(crate) fn dispatch_request<S: EventSink>(
             None,
         )
     })?;
-    if state.supervisor.snapshot().state == SupervisorState::Reconciling {
+    if state
+        .supervisor
+        .lock()
+        .map(|supervisor| supervisor.snapshot().state == SupervisorState::Reconciling)
+        .unwrap_or(false)
+    {
         return Err(error(
             &correlation_id,
             Some(command_id.clone()),
@@ -5238,10 +5755,23 @@ pub(crate) fn dispatch_request<S: EventSink>(
             ) {
                 state.plane.request_worker_cancel();
             }
-            (snapshot, ResponseStatus::Accepted, Some(event))
+            // The durable plane snapshot is identical to the accepted outcome
+            // snapshot plus the AGENTS §8 typed projection summaries.
+            let _ = snapshot;
+            (
+                state.plane.snapshot(),
+                ResponseStatus::Accepted,
+                Some(event),
+            )
         }
         DurableDispatchOutcome::Duplicate { snapshot } => {
-            (snapshot, ResponseStatus::Duplicate, None)
+            // Idempotent replay: keep the original authoritative core state,
+            // refresh only the derived typed projection summaries.
+            (
+                state.plane.enriched_snapshot(snapshot),
+                ResponseStatus::Duplicate,
+                None,
+            )
         }
     };
     let event_range = event.as_ref().map(|event| EventRange {
@@ -5249,13 +5779,20 @@ pub(crate) fn dispatch_request<S: EventSink>(
         last_sequence: event.sequence,
     });
     if let Some(event) = event {
-        publish_control_event(
-            &mut state.subscriptions,
-            sink,
-            snapshot.projection_revision,
-            after_sequence,
-            &event,
-        );
+        // Advance the shared durable event cursor before fan-out so the
+        // lock-light subscription runtime can validate acknowledgements.
+        state
+            .last_durable_event_sequence
+            .store(event.sequence, Ordering::SeqCst);
+        if let Ok(mut subscriptions) = state.subscriptions.lock() {
+            publish_control_event(
+                &mut subscriptions,
+                sink,
+                snapshot.projection_revision,
+                after_sequence,
+                &event,
+            );
+        }
     }
     let was_duplicate = status == ResponseStatus::Duplicate;
     let mut command_response = response(
@@ -5581,6 +6118,16 @@ pub(crate) fn dispatch_request<S: EventSink>(
         );
     }
     if let Some(prepared) = artifact_export.as_ref() {
+        // Export reconciliation state (spec §78.2/§83.2): an interrupted
+        // (UNKNOWN) copy must be resolved by destination inspection and
+        // hash comparison before any retry may copy again.
+        let checkpoint_id = state
+            .plane
+            .checkpoint_id()
+            .map(str::to_owned)
+            .unwrap_or_else(|| "checkpoint-pending".into());
+        let mut reconciled_from_uncertain = false;
+        let mut destination_hash: Option<String> = None;
         let artifact = if was_duplicate {
             let record_json = state
                 .plane
@@ -5704,16 +6251,47 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 delivery_verified: false,
                 copy_uncertain: false,
             };
-            let delivered = deliver_apk_local(&artifact, &prepared.destination_path).map_err(
-                |artifact_error| {
-                    map_artifact_error(
-                        &correlation_id,
-                        &command_id,
-                        causation_id.clone(),
-                        artifact_error,
-                    )
-                },
-            )?;
+            // Spec §83.2: before re-copying, reconcile an uncertain prior
+            // copy of the same source to the same destination by inspection
+            // and identity/hash comparison (UNKNOWN → RECONCILING →
+            // VERIFIED). A destination whose hash already equals the source
+            // artifact hash is a reconciled, verified delivery — no new copy
+            // is attempted.
+            let source_fingerprint = format!("sha256:{source_hash}");
+            destination_hash = nirman_artifacts::sha256_file(&prepared.destination_path);
+            reconciled_from_uncertain = destination_hash
+                .as_ref()
+                .is_some_and(|hash| hash == &source_fingerprint);
+            let delivered = if reconciled_from_uncertain {
+                let mut reconciled_artifact = artifact.clone();
+                reconciled_artifact.delivery_status = "READY_LOCAL".into();
+                reconciled_artifact.delivery_sha256 = Some(reconciled_artifact.sha256.clone());
+                reconciled_artifact.delivery_verified = true;
+                reconciled_artifact.copy_uncertain = false;
+                reconciled_artifact
+            } else {
+                deliver_apk_local(&artifact, &prepared.destination_path).map_err(
+                    |artifact_error| {
+                        // The copy failed after it may have started: persist
+                        // the durable UNKNOWN delivery outcome so restart or
+                        // retry must reconcile it before copying again
+                        // (spec §78.2 — interrupted copies stay durable).
+                        persist_uncertain_delivery_record(
+                            state,
+                            &command_id,
+                            &artifact,
+                            &prepared.destination_path,
+                            &checkpoint_id,
+                        );
+                        map_artifact_error(
+                            &correlation_id,
+                            &command_id,
+                            causation_id.clone(),
+                            artifact_error,
+                        )
+                    },
+                )?
+            };
             let record_json = serde_json::to_string(&delivered).map_err(|_| {
                 error(
                     &correlation_id,
@@ -5763,11 +6341,19 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 })
                 .map(|plan| format!("m108-preview-{}", plan.contract_id))
                 .unwrap_or_else(|| format!("m108-preview-{}", prepared.observation.task_id));
-            let checkpoint = state
-                .plane
-                .checkpoint_id()
-                .map(str::to_owned)
-                .unwrap_or_else(|| "checkpoint-pending".into());
+            let checkpoint = m108_stream_checkpoint(state, &prepared.observation.task_id);
+            // The export is the first M108-emitting boundary in the real
+            // pipeline: open the stream with the durable early-stage lineage
+            // (instruction, contract, plan, checkpoint, source revision)
+            // before claiming the artifact observation (spec §71 ordering).
+            persist_m108_early_lineage(
+                state,
+                &prepared.observation.task_id,
+                &format!("source-{}", prepared.observation.source_revision),
+                &prepared.observation.project_fingerprint,
+                &command_id,
+                &checkpoint,
+            )?;
             let inspection_ref = artifact
                 .inspection
                 .as_ref()
@@ -5850,14 +6436,41 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 .unwrap_or_else(|| artifact.sha256.clone()),
             byte_count: delivery_byte_count,
             state: if artifact.delivery_verified {
-                DeliveryState::Copied
+                // The post-copy hash check inside deliver_apk_local (or the
+                // reconciliation path above) proved source/destination hash
+                // equality: the canonical VERIFIED state (spec §78.2).
+                DeliveryState::Verified
             } else {
                 DeliveryState::Pending
             },
+            source_path: prepared.observation.artifact_path.clone(),
+            source_sha256: Some(artifact.sha256.clone()),
+            post_copy_verified: artifact.delivery_verified,
+            reconciliation_reference: reconciled_from_uncertain.then(|| {
+                format!(
+                    "destination-hash-reconciled:{}",
+                    destination_hash.clone().unwrap_or_default()
+                )
+            }),
+            failure_evidence_id: None,
+            deployment_delivery: Some("REQUIRED_APK".into()),
+            checkpoint_id: Some(checkpoint_id.clone()),
             created_at_epoch_seconds: now_epoch_seconds(),
             completed_at_epoch_seconds: artifact.delivery_verified.then(now_epoch_seconds),
             error_message: None,
         };
+        // The delivery record is durable (spec §74.3): persist it so the
+        // delivery projection and post-restart reconciliation can read the
+        // real export state instead of only the response payload.
+        if let Ok(delivery_json) = serde_json::to_string(&delivery_record) {
+            let _ = state.plane.save_apk_delivery_record(
+                &delivery_record.delivery_id,
+                &delivery_record.task_id,
+                delivery_record.source_revision,
+                &format!("{:?}", delivery_record.state),
+                &delivery_json,
+            );
+        }
         command_response.result_payload = Some(
             serde_json::to_value(ArtifactExportResultPayload {
                 artifact,
@@ -6358,7 +6971,7 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 environment_snapshot_id: synthesis.as_ref().map(|record| record.3.clone()),
             }
         } else {
-            run_agent_loop(state, prepared, &command_id, &correlation_id)?
+            run_agent_loop(state, sink, prepared, &command_id, &correlation_id)?
         };
         if !was_duplicate {
             command_response.status = match payload.outcome.as_str() {
@@ -6499,6 +7112,45 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 None
             }
         } else {
+            // A fresh preview opens the task's M108 stream with its durable
+            // early-stage lineage (§71) before any device interaction is
+            // claimed, then records the install request that the device
+            // session below will either satisfy or fail honestly.
+            let stream_checkpoint = m108_stream_checkpoint(state, &prepared.task_id);
+            persist_m108_early_lineage(
+                state,
+                &prepared.task_id,
+                &prepared.preview_request.project_revision_id,
+                &prepared.preview_request.source_fingerprint,
+                &command_id,
+                &stream_checkpoint,
+            )?;
+            if matches!(
+                prepared.selection.mode,
+                PreviewMode::IncrementalEmulatorInstall
+                    | PreviewMode::ApkReinstall
+                    | PreviewMode::PhysicalDevice
+            ) && prepared.preview_request.device_id.is_some()
+            {
+                let m108_preview_revision_id = m108_preview_revision_id(state, prepared);
+                persist_m108_stage(
+                    state,
+                    &prepared.task_id,
+                    &m108_preview_revision_id,
+                    PreviewSyncEventType::InstallRequested,
+                    PreviewEventTruth::Requested,
+                    &prepared.preview_request.project_revision_id,
+                    &stream_checkpoint,
+                    &prepared.preview_request.source_fingerprint,
+                    &command_id,
+                    None,
+                    None,
+                    None,
+                    prepared.preview_request.device_id.clone(),
+                    Vec::new(),
+                    Vec::new(),
+                )?;
+            }
             execute_preview_device_session(
                 state,
                 prepared,
@@ -6508,7 +7160,8 @@ pub(crate) fn dispatch_request<S: EventSink>(
             )?
         };
         if let Some(observation) = device_observation.as_ref() {
-            let source_revision = prepared
+            // The observation must bind to a parseable durable source revision.
+            let _source_revision = prepared
                 .preview_request
                 .project_revision_id
                 .strip_prefix("source-")
@@ -6525,21 +7178,8 @@ pub(crate) fn dispatch_request<S: EventSink>(
                         None,
                     )
                 })?;
-            let m108_preview_revision_id = state
-                .plane
-                .load_android_synthesis_build(&prepared.task_id, source_revision)
-                .ok()
-                .flatten()
-                .and_then(|stored| {
-                    serde_json::from_str::<nirman_android::AndroidSynthesisPlan>(&stored.0).ok()
-                })
-                .map(|plan| format!("m108-preview-{}", plan.contract_id))
-                .unwrap_or_else(|| prepared.preview_revision_id.clone());
-            let checkpoint = state
-                .plane
-                .checkpoint_id()
-                .map(str::to_owned)
-                .unwrap_or_else(|| "checkpoint-pending".into());
+            let m108_preview_revision_id = m108_preview_revision_id(state, prepared);
+            let checkpoint = m108_stream_checkpoint(state, &prepared.task_id);
             let evidence_refs = observation
                 .logcat_reference
                 .iter()
@@ -6586,6 +7226,26 @@ pub(crate) fn dispatch_request<S: EventSink>(
                 &prepared.task_id,
                 &m108_preview_revision_id,
                 PreviewSyncEventType::InteractionObserved,
+                PreviewEventTruth::Observed,
+                &prepared.preview_request.project_revision_id,
+                &checkpoint,
+                &prepared.preview_request.source_fingerprint,
+                &command_id,
+                None,
+                None,
+                Some(format!("session-{}", observation.observation_id)),
+                Some(observation.device_identity.clone()),
+                vec![observation.observation_id.clone()],
+                evidence_refs.clone(),
+            )?;
+            // The device session also captured the runtime evidence bundle
+            // itself (logcat tail, screenshot, permission dump, UI hierarchy):
+            // OBSERVATION_CAPTURED pins those captures to the stream (§71).
+            persist_m108_stage(
+                state,
+                &prepared.task_id,
+                &m108_preview_revision_id,
+                PreviewSyncEventType::ObservationCaptured,
                 PreviewEventTruth::Observed,
                 &prepared.preview_request.project_revision_id,
                 &checkpoint,
@@ -7095,13 +7755,18 @@ fn runtime_state(app: &AppHandle, loop_cancellations: Arc<LoopCancellationMap>) 
     }
     let provider_runtime = ProviderRuntime::open(&ledger_path)
         .expect("Nirman provider usage ledger must open before the desktop host starts");
+    let subscriptions: Arc<Mutex<BTreeMap<String, EventSubscription>>> =
+        Arc::new(Mutex::new(BTreeMap::new()));
+    let supervisor = Arc::new(Mutex::new(supervisor));
+    let last_durable_event_sequence =
+        Arc::new(AtomicU64::new(plane.snapshot().last_event_sequence));
     RuntimeState {
         plane,
         session,
         auth,
         correlation_id,
-        subscriptions: BTreeMap::new(),
-        supervisor,
+        subscriptions: subscriptions.clone(),
+        supervisor: supervisor.clone(),
         provider_runtime,
         credential_resolver: Box::new(OsCredentialResolver),
         provider_transport: Box::new(
@@ -7114,6 +7779,18 @@ fn runtime_state(app: &AppHandle, loop_cancellations: Arc<LoopCancellationMap>) 
         worker_policies: BTreeMap::new(),
         process_registry: ProcessRegistry::default(),
         doom_loop_detectors: BTreeMap::new(),
+        last_durable_event_sequence: last_durable_event_sequence.clone(),
+    }
+}
+
+/// Build the lock-light subscription runtime sharing the runtime core's
+/// registry, supervisor, and durable event cursor.
+fn subscription_runtime(state: &RuntimeState) -> SubscriptionRuntime {
+    SubscriptionRuntime {
+        subscriptions: state.subscriptions.clone(),
+        session: state.session.clone(),
+        supervisor: state.supervisor.clone(),
+        last_durable_event_sequence: state.last_durable_event_sequence.clone(),
     }
 }
 
@@ -7123,15 +7800,20 @@ fn main() {
         .setup(move |app| {
             let cancellations = LoopCancellationState(loop_cancellations.clone());
             app.manage(cancellations);
-            app.manage(Mutex::new(runtime_state(
-                app.handle(),
-                loop_cancellations.clone(),
-            )));
+            let core = Mutex::new(runtime_state(app.handle(), loop_cancellations.clone()));
+            let subscriptions = subscription_runtime(
+                &core
+                    .lock()
+                    .expect("runtime state must initialize before the subscription runtime"),
+            );
+            app.manage(core);
+            app.manage(subscriptions);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             handshake,
             workspace,
+            read_preview_evidence,
             projection,
             subscribe_events,
             replay_events,
@@ -7200,6 +7882,72 @@ fn map_android_build_error(
         retryable,
         recovery,
     )
+}
+
+/// Persist a durable UNKNOWN delivery outcome for an interrupted local copy
+/// (spec §78.2 / §83.2): the uncertain export stays durable so any retry must
+/// reconcile the destination (inspect + hash-compare) before copying again.
+/// The uncertain state is carried on the persisted artifact record
+/// (`copy_uncertain = true`), which the next export for the same
+/// task/revision loads and reconciles.
+fn persist_uncertain_delivery_record(
+    state: &RuntimeState,
+    command_id: &str,
+    artifact: &nirman_artifacts::ApkArtifact,
+    destination_path: &str,
+    checkpoint_id: &str,
+) {
+    let mut uncertain = artifact.clone();
+    uncertain.copy_uncertain = true;
+    uncertain.delivery_status = "COPY_UNKNOWN".into();
+    uncertain.delivery_verified = false;
+    if let Ok(artifact_json) = serde_json::to_string(&uncertain) {
+        let _ = state.plane.save_android_artifact_export(
+            &format!("export-{command_id}"),
+            &uncertain.task_id,
+            0,
+            destination_path,
+            &artifact_json,
+        );
+    }
+    // The interrupted copy is recorded as an UNKNOWN delivery (spec §74.3)
+    // so restart reconciliation and the delivery projection can resolve it.
+    let uncertain_delivery = ApkDeliveryRecord {
+        schema_version: 1,
+        delivery_id: format!("delivery-{command_id}"),
+        artifact_id: uncertain.artifact_id.clone(),
+        project_id: uncertain.project_id.clone(),
+        task_id: uncertain.task_id.clone(),
+        source_revision: 1,
+        packaging_profile_id: "default-apk-only".into(),
+        artifact_kind: ArtifactKind::Apk,
+        destination_path: destination_path.to_owned(),
+        destination_kind: "LOCAL_WINDOWS_FILESYSTEM".into(),
+        request_fingerprint: uncertain.source_fingerprint.clone(),
+        idempotency_key: format!("artifact-export-{command_id}"),
+        sha256: uncertain.sha256.clone(),
+        byte_count: 0,
+        state: DeliveryState::Unknown,
+        source_path: None,
+        source_sha256: Some(uncertain.sha256.clone()),
+        post_copy_verified: false,
+        reconciliation_reference: Some(format!("interrupted-copy:checkpoint:{checkpoint_id}")),
+        failure_evidence_id: None,
+        deployment_delivery: Some("REQUIRED_APK".into()),
+        checkpoint_id: Some(checkpoint_id.to_owned()),
+        created_at_epoch_seconds: now_epoch_seconds(),
+        completed_at_epoch_seconds: None,
+        error_message: Some("destination copy was interrupted before completion".into()),
+    };
+    if let Ok(delivery_json) = serde_json::to_string(&uncertain_delivery) {
+        let _ = state.plane.save_apk_delivery_record(
+            &uncertain_delivery.delivery_id,
+            &uncertain_delivery.task_id,
+            0,
+            "Unknown",
+            &delivery_json,
+        );
+    }
 }
 
 fn map_artifact_error(
@@ -8015,8 +8763,9 @@ fn execute_preview_device_session(
         selected_device_identity: prepared.preview_request.device_id.clone(),
         synthetic_device_only: true,
     };
-    let observation =
-        nirman_evidence::execute_android_device_session(&request).map_err(|device_error| {
+    let observation = match nirman_evidence::execute_android_device_session(&request) {
+        Ok(observation) => observation,
+        Err(device_error) => {
             let (code, category, retryable) = match device_error {
                 nirman_evidence::DeviceSessionError::DeviceUnavailable => (
                     ControlPlaneErrorCode::DependencyUnavailable,
@@ -8038,7 +8787,33 @@ fn execute_preview_device_session(
                     true,
                 ),
             };
-            error(
+            // A failed device session opens the documented recovery path:
+            // RECOVERY_STARTED pins the failure to the M108 stream (§71)
+            // so the retry is a real recovery with full lineage, not a
+            // silent restart. Persistence failures here never mask the
+            // original device error.
+            if retryable {
+                let stream_checkpoint = m108_stream_checkpoint(state, &prepared.task_id);
+                let m108_preview_revision_id = m108_preview_revision_id(state, prepared);
+                let _ = persist_m108_stage(
+                    state,
+                    &prepared.task_id,
+                    &m108_preview_revision_id,
+                    PreviewSyncEventType::RecoveryStarted,
+                    PreviewEventTruth::Requested,
+                    &prepared.preview_request.project_revision_id,
+                    &stream_checkpoint,
+                    &prepared.preview_request.source_fingerprint,
+                    command_id,
+                    None,
+                    None,
+                    None,
+                    prepared.preview_request.device_id.clone(),
+                    Vec::new(),
+                    vec![format!("device-session-failure:{device_error}")],
+                );
+            }
+            return Err(error(
                 correlation_id,
                 Some(command_id.into()),
                 causation_id,
@@ -8047,8 +8822,9 @@ fn execute_preview_device_session(
                 device_error.to_string(),
                 retryable,
                 Some("reconcile the selected Android device and retry the preview session".into()),
-            )
-        })?;
+            ));
+        }
+    };
     let record_json = serde_json::to_string(&observation).map_err(|_| {
         error(
             correlation_id,
@@ -8098,6 +8874,7 @@ mod tests {
         CredentialReference, ProviderError, ProviderErrorKind, ProviderTransport,
         RawProviderResponse,
     };
+    use nirman_supervisor::RecoveryAction;
     use std::path::{Path, PathBuf};
     use std::sync::Mutex as StdMutex;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -8255,13 +9032,15 @@ mod tests {
             schema_version: PROTOCOL_SCHEMA_VERSION,
         };
         let correlation_id = "session-test".to_owned();
-        let mut state = RuntimeState {
-            plane: DurableControlPlane::open(path, ProjectId(PROJECT_ID.into())).expect("plane"),
+        let plane = DurableControlPlane::open(path, ProjectId(PROJECT_ID.into())).expect("plane");
+        let last_event_sequence = plane.snapshot().last_event_sequence;
+        let state = RuntimeState {
+            plane,
             session: AuthenticatedSession::issue(auth.clone(), correlation_id.clone(), 3600),
             auth: auth.clone(),
             correlation_id: correlation_id.clone(),
-            subscriptions: BTreeMap::new(),
-            supervisor: Supervisor::start(),
+            subscriptions: Arc::new(Mutex::new(BTreeMap::new())),
+            supervisor: Arc::new(Mutex::new(Supervisor::start())),
             provider_runtime: ProviderRuntime::open(path).expect("provider runtime"),
             credential_resolver: Box::new(TestResolver),
             provider_transport: Box::new(TestTransport),
@@ -8272,26 +9051,31 @@ mod tests {
             worker_policies: BTreeMap::new(),
             process_registry: ProcessRegistry::default(),
             doom_loop_detectors: BTreeMap::new(),
+            last_durable_event_sequence: Arc::new(AtomicU64::new(last_event_sequence)),
         };
-        state.subscriptions.insert(
-            "subscription-test".into(),
-            EventSubscription {
-                subscription_id: "subscription-test".into(),
-                connection_id: "connection-test".into(),
-                auth,
-                project_id: PROJECT_ID.into(),
-                task_id: None,
-                from_event_sequence: 0,
-                snapshot_revision: None,
-                requested_projection_kinds: vec!["settings".into(), "provider".into()],
-                acknowledged_event_sequence: 0,
-                heartbeat_interval_seconds: 15,
-                max_batch_size: 64,
-                backpressure_policy: nirman_ipc::BackpressurePolicy::RejectOverLimit,
-                status: SubscriptionStatus::Active,
-                correlation_id,
-            },
-        );
+        lock_subscriptions(&state.subscriptions, "test")
+            .expect("test subscription registry")
+            .insert(
+                "subscription-test".into(),
+                EventSubscription {
+                    subscription_id: "subscription-test".into(),
+                    connection_id: "connection-test".into(),
+                    auth,
+                    project_id: PROJECT_ID.into(),
+                    task_id: None,
+                    from_event_sequence: 0,
+                    snapshot_revision: None,
+                    snapshot_projection_revision: None,
+                    last_projection_revision: None,
+                    requested_projection_kinds: vec!["settings".into(), "provider".into()],
+                    acknowledged_event_sequence: 0,
+                    heartbeat_interval_seconds: 15,
+                    max_batch_size: 64,
+                    backpressure_policy: nirman_ipc::BackpressurePolicy::RejectOverLimit,
+                    status: SubscriptionStatus::Active,
+                    correlation_id,
+                },
+            );
         state
     }
 
@@ -8734,27 +9518,33 @@ mod tests {
     }
 
     fn reopened_state_for_test(path: &Path) -> RuntimeState {
-        let mut state = test_state_at(path);
-        state.subscriptions.clear();
-        state.subscriptions.insert(
-            "subscription-test".into(),
-            EventSubscription {
-                subscription_id: "subscription-test".into(),
-                connection_id: "connection-test".into(),
-                auth: state.auth.clone(),
-                project_id: PROJECT_ID.into(),
-                task_id: None,
-                from_event_sequence: 0,
-                snapshot_revision: None,
-                requested_projection_kinds: vec!["android-construction".into()],
-                acknowledged_event_sequence: 0,
-                heartbeat_interval_seconds: 15,
-                max_batch_size: 64,
-                backpressure_policy: nirman_ipc::BackpressurePolicy::RejectOverLimit,
-                status: SubscriptionStatus::Active,
-                correlation_id: state.correlation_id.clone(),
-            },
-        );
+        let state = test_state_at(path);
+        lock_subscriptions(&state.subscriptions, "test")
+            .expect("test subscription registry")
+            .clear();
+        lock_subscriptions(&state.subscriptions, "test")
+            .expect("test subscription registry")
+            .insert(
+                "subscription-test".into(),
+                EventSubscription {
+                    subscription_id: "subscription-test".into(),
+                    connection_id: "connection-test".into(),
+                    auth: state.auth.clone(),
+                    project_id: PROJECT_ID.into(),
+                    task_id: None,
+                    from_event_sequence: 0,
+                    snapshot_revision: None,
+                    snapshot_projection_revision: None,
+                    last_projection_revision: None,
+                    requested_projection_kinds: vec!["android-construction".into()],
+                    acknowledged_event_sequence: 0,
+                    heartbeat_interval_seconds: 15,
+                    max_batch_size: 64,
+                    backpressure_policy: nirman_ipc::BackpressurePolicy::RejectOverLimit,
+                    status: SubscriptionStatus::Active,
+                    correlation_id: state.correlation_id.clone(),
+                },
+            );
         state
     }
 
@@ -9696,8 +10486,20 @@ mod tests {
         assert!(destination.is_file(), "delivered APK must exist on disk");
         assert_eq!(
             exported.delivery_record.state,
-            DeliveryState::Copied,
-            "the durable delivery record must claim the verified copy"
+            DeliveryState::Verified,
+            "the durable delivery record must claim the post-copy-verified delivery"
+        );
+        assert!(
+            exported.delivery_record.post_copy_verified,
+            "post-copy hash verification must be recorded"
+        );
+        assert_eq!(
+            exported.delivery_record.deployment_delivery.as_deref(),
+            Some("REQUIRED_APK")
+        );
+        assert!(
+            exported.delivery_record.checkpoint_id.is_some(),
+            "delivery record must bind the durable checkpoint"
         );
 
         // A second export to the same destination is a safe re-delivery.
@@ -10792,8 +11594,10 @@ mod tests {
         state.authorized_workspace_root = Some(workspace.clone());
         state
             .supervisor
+            .lock()
+            .expect("supervisor")
             .register_lease("m46-lease", "worker-m46", 1);
-        state.supervisor.heartbeat();
+        state.supervisor.lock().expect("supervisor").heartbeat();
         let base_index = nirman_project::ProjectIndexer::default()
             .index_workspace(&workspace, &nirman_project::IndexRequest::default())
             .expect("base index");
@@ -12096,10 +12900,12 @@ fn reconcile_m8_handoffs(
             request.command.command_id, original_mutation.operation_id
         );
         synthetic_request.command.task_id = Some(TaskId(handoff.task_id.clone()));
-        state
-            .supervisor
-            .register_lease(&handoff.lease_id, &handoff.worker_id, handoff.fence_token);
-        state.supervisor.heartbeat();
+        state.supervisor.lock().expect("supervisor").register_lease(
+            &handoff.lease_id,
+            &handoff.worker_id,
+            handoff.fence_token,
+        );
+        state.supervisor.lock().expect("supervisor").heartbeat();
         let prepared = {
             let previous_root = state.authorized_workspace_root.take();
             state.authorized_workspace_root = Some(integration_root.clone());
@@ -12965,7 +13771,7 @@ mod m108_export_preview_tests {
             command_id: "m108-fixture-build-command".into(),
             project_id: PROJECT_ID.into(),
             task_id: contract.task_id.0.clone(),
-            source_revision: 0,
+            source_revision: 1,
             project_fingerprint: "fingerprint-m108-fixture".into(),
             workspace_root: root.to_string_lossy().into_owned(),
             build_variant: "debug".into(),
@@ -13002,7 +13808,7 @@ mod m108_export_preview_tests {
             "m108-fixture-export",
             CommandKind::ArtifactExport,
             serde_json::to_string(&ArtifactExportCommandPayload {
-                source_revision: 0,
+                source_revision: 1,
                 destination_path: delivery.to_string_lossy().into_owned(),
                 packaging_profile_id: "profile-m108-fixture".into(),
                 artifact_kind: "APK".into(),
@@ -13032,7 +13838,7 @@ mod m108_export_preview_tests {
         );
         assert!(state
             .plane
-            .load_android_artifact_export(&contract.task_id.0, 0)
+            .load_android_artifact_export(&contract.task_id.0, 1)
             .expect("artifact export reload")
             .is_some());
         let events_after_export = state.plane.snapshot().last_event_sequence;
@@ -13042,7 +13848,7 @@ mod m108_export_preview_tests {
         protected_export.command.idempotency_key =
             Some("idempotency-m108-fixture-protected-export".into());
         protected_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
-            source_revision: 0,
+            source_revision: 1,
             destination_path: "/home/user/.ssh/id_rsa".into(),
             packaging_profile_id: "profile-m108-fixture".into(),
             artifact_kind: "APK".into(),
@@ -13064,7 +13870,7 @@ mod m108_export_preview_tests {
         );
         assert!(state
             .plane
-            .load_android_artifact_export(&contract.task_id.0, 0)
+            .load_android_artifact_export(&contract.task_id.0, 1)
             .expect("protected export must not mutate record")
             .is_some());
 
@@ -13073,7 +13879,7 @@ mod m108_export_preview_tests {
         unsafe_export.command.idempotency_key =
             Some("idempotency-m108-fixture-relative-export".into());
         unsafe_export.command.payload = serde_json::to_string(&ArtifactExportCommandPayload {
-            source_revision: 0,
+            source_revision: 1,
             destination_path: "../outside/app.apk".into(),
             packaging_profile_id: "profile-m108-fixture".into(),
             artifact_kind: "APK".into(),
@@ -13099,7 +13905,7 @@ mod m108_export_preview_tests {
             .save_android_artifact_export(
                 "export-m108-fixture-uncertain",
                 &contract.task_id.0,
-                0,
+                1,
                 &delivery.to_string_lossy(),
                 &serde_json::to_string(&uncertain_artifact).expect("uncertain artifact json"),
             )
@@ -13149,7 +13955,7 @@ mod m108_export_preview_tests {
             request_id: "m108-fixture-preview".into(),
             project_id: PROJECT_ID.into(),
             task_id: contract.task_id.0.clone(),
-            project_revision_id: "source-0".into(),
+            project_revision_id: "source-1".into(),
             checkpoint_id: "checkpoint-m108-fixture".into(),
             source_fingerprint: "fingerprint-m108-fixture".into(),
             contract_version: "contract-m39-v1".into(),
@@ -13251,7 +14057,7 @@ mod m108_export_preview_tests {
         );
         assert!(state
             .plane
-            .load_android_device_observation(&contract.task_id.0, 0, "pixel-api-35")
+            .load_android_device_observation(&contract.task_id.0, 1, "pixel-api-35")
             .expect("device observation reload")
             .is_some());
 
@@ -13270,11 +14076,21 @@ mod m108_export_preview_tests {
         assert_eq!(
             event_types,
             vec![
+                // The export opened the stream with the durable early-stage
+                // lineage before claiming the artifact observation (no
+                // synthesis plan was dispatched in this fixture, so
+                // PlanRecorded is absent).
+                PreviewSyncEventType::IntentAccepted,
+                PreviewSyncEventType::ContractValidated,
+                PreviewSyncEventType::CheckpointCreated,
+                PreviewSyncEventType::SourceRevisionCommitted,
                 PreviewSyncEventType::ArtifactObserved,
                 PreviewSyncEventType::ValidationObserved,
+                PreviewSyncEventType::InstallRequested,
                 PreviewSyncEventType::InstallObserved,
                 PreviewSyncEventType::LaunchObserved,
                 PreviewSyncEventType::InteractionObserved,
+                PreviewSyncEventType::ObservationCaptured,
             ]
         );
         let evidence_records = state
@@ -13366,5 +14182,97 @@ mod m108_export_preview_tests {
         let _ = fs::remove_file(database);
         let _ = fs::remove_dir_all(root);
         drop(reopened);
+    }
+    // ---------- M48 preview evidence reads (real device captures) ----------
+
+    #[test]
+    fn base64_encode_matches_rfc4648_vectors() {
+        assert_eq!(base64_encode(b""), "");
+        assert_eq!(base64_encode(b"f"), "Zg==");
+        assert_eq!(base64_encode(b"fo"), "Zm8=");
+        assert_eq!(base64_encode(b"foo"), "Zm9v");
+        assert_eq!(base64_encode(b"foob"), "Zm9vYg==");
+        assert_eq!(base64_encode(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
+        // A 256-byte walk over all byte values keeps every alphabet slot busy.
+        let all_bytes: Vec<u8> = (0..=255u8).collect();
+        let encoded = base64_encode(&all_bytes);
+        assert_eq!(encoded.len(), 256usize.div_ceil(3) * 4);
+        assert!(encoded
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='));
+    }
+
+    #[test]
+    fn preview_evidence_reads_stay_inside_the_nirman_evidence_tree() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("nirman-m48-evidence-{nonce}"));
+        let evidence = root.join(".nirman-evidence").join("preview-revision-1");
+        fs::create_dir_all(&evidence).expect("evidence dir");
+        fs::write(evidence.join("logcat.txt"), "I/TestApp( 1): launched\n").expect("logcat");
+        let png_bytes: Vec<u8> = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
+        fs::write(evidence.join("screenshot.png"), &png_bytes).expect("screenshot");
+        fs::write(root.join("build.gradle.kts"), "// project file").expect("project file");
+
+        // A real evidence file inside the tree reads back as text with its bytes intact.
+        let logcat = read_preview_evidence_inner(
+            "correlation-evidence",
+            Some(&root),
+            evidence.join("logcat.txt").to_str().expect("path"),
+        )
+        .expect("logcat read");
+        assert_eq!(logcat.kind, "text");
+        assert_eq!(logcat.text.as_deref(), Some("I/TestApp( 1): launched\n"));
+        assert_eq!(logcat.byte_count, 24);
+
+        // Screenshots come back as base64 images the webview can render inline.
+        let screenshot = read_preview_evidence_inner(
+            "correlation-evidence",
+            Some(&root),
+            evidence.join("screenshot.png").to_str().expect("path"),
+        )
+        .expect("screenshot read");
+        assert_eq!(screenshot.kind, "image");
+        assert_eq!(screenshot.mime, "image/png");
+        assert_eq!(
+            screenshot.data_base64.as_deref(),
+            Some(base64_encode(&png_bytes).as_str())
+        );
+        assert_eq!(screenshot.byte_count, png_bytes.len() as u64);
+
+        // Workspace files outside the .nirman-evidence tree are rejected even
+        // though they live under the same authorized root.
+        let outside = read_preview_evidence_inner(
+            "correlation-evidence",
+            Some(&root),
+            root.join("build.gradle.kts").to_str().expect("path"),
+        );
+        assert!(
+            outside.is_err(),
+            "workspace files must not be readable as evidence"
+        );
+        assert!(outside
+            .expect_err("rejected")
+            .safe_message
+            .contains(".nirman-evidence"));
+
+        // Paths that escape the workspace entirely are rejected as well.
+        let escape = read_preview_evidence_inner(
+            "correlation-evidence",
+            Some(&root),
+            std::env::temp_dir()
+                .join("definitely-not-evidence.txt")
+                .to_str()
+                .expect("path"),
+        );
+        assert!(escape.is_err());
+
+        // A missing workspace root is an authorization failure, not a crash.
+        assert!(read_preview_evidence_inner("correlation-evidence", None, "whatever.txt").is_err());
+
+        let _ = fs::remove_dir_all(root);
     }
 }
