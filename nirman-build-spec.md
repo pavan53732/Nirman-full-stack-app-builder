@@ -49,6 +49,21 @@ The application should combine the most useful characteristics of conversational
 
 Nirman can become highly autonomous, but “fully autonomous” must be defined carefully. It should be capable of planning, implementing, running, testing, inspecting, and repairing a project within a permissioned local workspace. It should not silently access arbitrary files, publish software, spend money, sign release builds, or transmit private information without user approval.
 
+### 1.5 Distribution and licensing model
+
+Nirman is a **local Windows desktop application** with the following distribution invariants:
+
+| Property | Requirement |
+|---|---|
+| Account / login | **None required** — no user account, no authentication to Nirman services |
+| Subscription / recurring payment | **None** — no subscription, no license fee, no recurring charge to use Nirman |
+| Hosted platform dependency | **None** — no mandatory cloud service, no hosted execution, no platform account |
+| AI provider costs | **User's own responsibility** — user supplies their own API keys, base URLs, model IDs; Nirman does not proxy, resell, or charge for provider usage |
+| Distribution artifact | Windows `.exe` installer built from source; user builds locally or obtains from a trusted source |
+| Source access | Full source code available; user may build, modify, redistribute per the eventual license |
+
+These invariants are binding product constraints. No future feature, integration, or workflow may introduce a mandatory account, subscription, license fee, or hosted-platform dependency for Nirman itself. AI provider usage remains the user's separate commercial relationship with their chosen provider(s).
+
 ### Runtime authority principle
 
 The target is **autonomous system recovery**, not “the AI becomes the authority.” The model may propose plans, edits, tool calls, recovery strategies, and self-improvements, but deterministic runtime authorities remain in control of execution. Nirman must recover, retry, checkpoint, repair, reconcile, degrade, or fail safely by itself while lifecycle, permission, sandbox, storage, checkpoint, evidence, promotion, rollback, and termination authorities enforce the boundaries.
