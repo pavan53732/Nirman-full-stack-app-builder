@@ -271,6 +271,8 @@ This order prevents the project from becoming a superficial chat interface that 
 
 No production license or release distribution is declared yet. This repository is an evolving internal specification and implementation workspace. Treat all capabilities as planned until the corresponding runtime source, executable tests, and evidence are present.
 
+**No account, login, subscription, or license fee is required to use Nirman.** It is a local Windows desktop application you build from source (or obtain as a `.exe`). AI provider access (API keys, base URLs, model IDs) is supplied and paid for by you directly with your chosen provider; Nirman itself never charges, proxies, or requires a hosted platform. See Build Spec §1.5 and ADR-205 for the binding invariant.
+
 ## References
 
 The canonical sources for this guide are the repository documents listed in the [Repository map](#repository-map). This README summarizes their current intent and status; it does not supersede their contracts, decisions, or acceptance criteria.
