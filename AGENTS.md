@@ -97,7 +97,7 @@ The authoritative local control plane owns task state, workers, leases, events, 
 | Completion evaluator | Sole authority for user-goal completion |
 | Model and agent layer | Planning, reasoning, delegation, interpretation, and proposals only |
 
-If an implementation needs a new authority name, first determine whether it is an alias for an existing authority. The continuity aliases are fixed: `SupervisorAuthority` means the existing supervisor/process-supervision authority; `LeaseAuthority` means `WorkspaceLeaseManager` and lease/fencing control; `RecoveryAuthority` remains the canonical recovery/reconciliation owner; `DeviceAuthority` means the existing device-session/device-operation authority; and `ProviderOperationalityAuthority` means the existing integration/provider operationality authority. Export labels `SigningAuthority`, `ValidationAuthority`, `PromotionAuthority`, and `ExternalEffectCoordinator` are aliases for the existing signing-policy, evidence/validation, `PreviewPromotionGate`, and external-effect transaction/reconciliation owners. These aliases cannot create second authorities or override lifecycle, policy, evidence, artifact, preview, or completion decisions. Any genuinely new authority requires a canonical contract, scope, precedence, persistence, lifecycle, decision rights, forbidden powers, ADR, milestone, test, and evidence identity.
+If an implementation needs a new authority name, first determine whether it is an alias for an existing authority. The continuity aliases are fixed: `SupervisorAuthority` means the existing supervisor/process-supervision authority; `LeaseAuthority` means `WorkspaceLeaseManager` and lease/fencing control; `RecoveryAuthority` remains the canonical recovery/reconciliation owner; `DeviceAuthority` means the existing device-session/device-operation authority; and `ProviderOperationalityAuthority` means the existing integration/provider operationality authority. Export labels `SigningAuthority`, `ValidationAuthority`, `PromotionAuthority`, and `ExternalEffectCoordinator` are aliases for the existing signing-policy, evidence/validation, `PreviewPromotionGate`, and external-effect transaction/reconciliation owners. These aliases cannot create second authorities or override lifecycle, policy, evidence, artifact, preview, or completion decisions. Any genuinely new authority requires a canonical contract, scope, precedence, persistence, lifecycle, decision rights, forbidden powers, ADR, milestone, test, and evidence identity. The platform capability decision points of `CONTRACT.RUNTIME.PLATFORM_CAPABILITY` (build spec §79, TA §84) are fixed the same way: `CrossCompilationAuthority` is the cross-build admission decision point inside `ToolBroker`/`PolicyAuthority` fed by the `EnvironmentCapabilityPlanner` classification, and `NativeRuntimeValidationAuthority` is the native target-runtime validation gate inside `EvidenceAuthority` and the completion evaluator. Neither name creates a new authority, and neither may be implemented as one.
 
 ## 4. No private chain-of-thought persistence
 
@@ -171,6 +171,8 @@ chat instruction
 
 Each stage must be durable, attributable, cancellable, replayable where applicable, and linked to the project revision, task, checkpoint, worker, operation, and evidence. A model statement such as “done,” a successful compile alone, a screenshot alone, or a predicted/simulated result is never sufficient for completion.
 
+Host, target, validation platform, and certification status are separate states (build spec §79.1). Environment preflight must record host and target explicitly and classify the required platform capabilities as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a build or validation path. Successful compilation or cross-compilation on the host must never be represented as target-runtime validation. A missing target validation environment must produce a durable `USER_REQUIRED`/`UNAVAILABLE` node stating what can and cannot continue, never a skipped or simulated gate.
+
 The runtime should continue eligible work after UI closure or reconnect loss. It must not silently continue through hard safety, credential, signing, destructive, external-effect, or unresolved user-decision gates. When a blocker cannot be deterministically resolved, record the blocker and fail safely rather than inventing success.
 
 ## 8. Frontend and control-plane protocol
@@ -228,6 +230,8 @@ Observation
 ```
 
 Every evidence item must identify its source event, operation, session, project revision, checkpoint, artifact or preview identity where applicable, device/toolchain identity where applicable, policy version, freshness, dependencies, supersession, and invalidation reason. Any relevant source, asset, toolchain, device, dependency, integration, contract, or policy change invalidates dependent evidence unless independence is proven.
+
+Platform evidence truth: no worker, model, or skill may infer target-runtime success from host-platform compilation or cross-compilation. A claim about target-platform runtime behavior (for example ConPTY, Job Objects, native IPC, process recovery, or installer behavior) is admissible only when the evidence authority holds a target-platform observation bound to a matching environment fingerprint, platform, and source revision. Without that observation the capability is reported `UNAVAILABLE` or `USER_REQUIRED`, and the aggregate status is at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` (build spec §79.5–§79.6).
 
 ## 10. Background continuity and recovery
 
@@ -368,6 +372,9 @@ An agent must not:
 - make the model, UI, worker, skill, plugin, or verifier an authority;
 - persist or display raw private chain-of-thought;
 - claim completion from model text, compilation, a screenshot, simulated evidence, or documentation certification;
+- infer target-runtime capability or certification from host-platform compilation or cross-compilation;
+- claim target-platform runtime evidence, or a target-platform validation pass, without an authoritative observation from a matching validation environment;
+- substitute a container, VM, WSL, or simulated environment for the declared target platform's native validation;
 - mutate source outside an approved workspace or transaction;
 - overwrite user edits or newer revisions;
 - retry unknown external/device/filesystem outcomes without reconciliation;

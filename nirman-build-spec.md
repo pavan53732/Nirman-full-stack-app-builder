@@ -309,7 +309,8 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
 | CAP.ANDROID.AUTONOMOUS_REASONING | Decide what to do next from evidence, and delegate within bounded authority | CONTRACT.RUNTIME.REASONING | TEST-RSN-001 | EV-RSN-001 | PLANNED |
 | CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
-| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-INV-001 | EV-INV-001 | PLANNED |
+| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold and platform capability states (host, target, validation, certification) are truthful and evidence-bound | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-INV-001 | EV-INV-001 | PLANNED |
+| CAP.PLATFORM.CAPABILITY_TRUTH | Classify and report build, cross-build, and target-runtime capability states truthfully, with host, target, validation, and certification kept distinct and evidence-bound | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-PLAT-001 | EV-PLAT-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
@@ -714,6 +715,8 @@ Nirman should detect the presence and versions of tools required by the selected
 | Git export | Git executable and repository permissions |
 
 The diagnostic screen should distinguish between installed, missing, outdated, misconfigured, and inaccessible tools. It should provide a command or official installation reference where appropriate.
+
+Diagnostics are per-tool state. Platform capability state — what this host can build, cross-build, and validate for a declared target platform — is a separate classification defined by §79 and recorded in the `EnvironmentCapabilityRecord`. A tool being installed on the host does not by itself establish target-platform runtime capability, validation capability, or certification capability.
 
 ### 9.3 Process controls
 
@@ -2156,6 +2159,15 @@ Generated code must not automatically access personal files, browser cookies, SS
 - extendedClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
 - nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION
 
+**ContractId:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.PLATFORM_CAPABILITY
+- authoritySection: §79
+- extendingSection: §37
+- extensionType: adds_component
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.PLATFORM.HOST_TARGET_SEPARATION, CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION, CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION, CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET
+
 Nirman must distinguish among model claims, runtime events, and evidence records. A model statement such as “the login screen is complete” is not completion evidence. Completion requires applicable proof from builds, installation, automated flows, screenshots, visual comparison, Logcat, permissions, security scans, performance checks, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` metadata.
 
 The final report must identify what passed, what failed, what was repaired, what could not be tested, the source revision, the active checkpoint, the artifact checksum, and any unresolved warnings. No model claim may mark a requirement complete without a corresponding evidence record.
@@ -2785,6 +2797,15 @@ The stack is considered correctly implemented only when the UI can restart witho
 - extendedClauses: none
 - nonOverriddenClauses: CLAUSE.SKILL.NO_PERMISSION_GRANT, CLAUSE.SKILL.SESSION_PINNING
 
+**ContractId:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`  
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.PLATFORM_CAPABILITY
+- authoritySection: §79
+- extendingSection: §52
+- extensionType: adds_component
+- extendedClauses: none
+- nonOverriddenClauses: CLAUSE.PLATFORM.HOST_TARGET_SEPARATION, CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION, CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION, CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET
+
 ### 52.1 Purpose
 
 Nirman must expose a first-class **AgentExecutionKernel** between the goal/task graph and worker, skill, and tool execution. Existing worker lifecycle states describe whether a process is created, active, waiting, or stopped; the kernel describes how autonomous reasoning and verified execution progress from an observation to the next evidence-backed state.
@@ -2960,6 +2981,8 @@ Nirman must map goals to required capabilities, then capabilities to skills, wor
 
 Each required environment capability must be classified as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a validation path. The planner must surface the distinction early instead of discovering an impossible prerequisite after a long build.
 
+Host platform, target platform, and validation platform are distinct, explicitly recorded fields of the environment record (§79.1 and §79.2). The planner classifies cross-compilation capability and native target-runtime capability as separate prerequisites and must never derive one from the other: a successful cross-build is an artifact-production result, not a runtime-validation result (§79.5 and §79.6).
+
 ### 52.10 ValidationPlanner and mutation/regression intelligence
 
 The `ValidationPlanner` must choose checks from changed files, changed symbols, call graph, route graph, dependency graph, requirements, acceptance criteria, project type, risk level, previous failures, device profiles, and available resources.
@@ -2972,6 +2995,10 @@ The planner must emit a traceability chain:
 Requirement
   ↓
 Acceptance criterion
+  ↓
+Environment requirement
+  ↓
+Capability resolution
   ↓
 Task graph node
   ↓
@@ -2987,6 +3014,8 @@ Evidence
   ↓
 APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact
 ```
+
+The environment requirement and capability resolution edges are populated by the platform capability contract of §79 before the task graph is compiled: the declared target platform, the observed host platform, and the classified capability set (`AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, `UNAVAILABLE`) are part of the chain, and a plan that commits to a validation path whose capability is not `AVAILABLE` or `REPAIRABLE` without a durable `USER_REQUIRED`/`UNAVAILABLE` node is a planning defect.
 
 ### 52.11 Trajectory Replay and Simulation mode
 
@@ -4037,6 +4066,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76 | — | TA §81 | ADR-201 | M115 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | BS §77 | — | TA §82 | ADR-202 | M116 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.APK_EXPORT | BS §78 | — | TA §83 | ADR-203 | M117 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.PLATFORM_CAPABILITY | BS §79 | BS §37, BS §52 | TA §84 | ADR-206 | M118 | CROSS_CUTTING |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4180,6 +4210,12 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.EXPORT.PROFILE_BOUND | CONTRACT.RUNTIME.APK_EXPORT | §78 | deployment delivery exports only a verified artifact allowed by the declared PackagingProfile and destination policy; source access remains a separate operation | SEALED |
 | CLAUSE.EXPORT.HASH_AND_IDENTITY | CONTRACT.RUNTIME.APK_EXPORT | §78 | local APK delivery records source and destination identity, byte count, hashes, signing binding, validation and promotion decisions, and post-copy verification | SEALED |
 | CLAUSE.EXPORT.SOURCE_NOT_DELIVERY | CONTRACT.RUNTIME.APK_EXPORT | §78 | workspace, ZIP, and Git access never satisfies deployment-artifact delivery or Android completion by itself | SEALED |
+| CLAUSE.PLATFORM.HOST_TARGET_SEPARATION | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | host environment, target platform, validation platform, and certification status are distinct state values and are never collapsed into one build, validation, or completion result | SEALED |
+| CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | host-platform compilation or cross-compilation never establishes native target-runtime capability, runtime validation, or certification | SEALED |
+| CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | platform capability state (AVAILABLE, REPAIRABLE, USER_REQUIRED, UNAVAILABLE) is classified by the deterministic EnvironmentCapabilityPlanner from observed preflight; a model, worker, or skill never sets or raises it | SEALED |
+| CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | platform runtime evidence is valid only when bound to the matching EnvironmentCapabilityRecord fingerprint, target platform, and source revision; a mismatch invalidates it | SEALED |
+| CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | native target-validation tasks execute only after reserving a matching ValidationEnvironment under a durable lease; without the lease there is no validation or certification claim | SEALED |
+| CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | containers, VMs, WSL, simulated, or remote environments never substitute for the declared target platform's native runtime validation, and are never generated product targets | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -4255,6 +4291,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | CAP.ANDROID.FRONTEND_CONTROL_PLANE | BS §76 | BS §76 | TA §81 | TA §81.1 | BS §76 | TA §81.2 | TA §81.3 | ADR-201 | M115 | TEST-FCP-001 | EV-FCP-001 |
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
+| CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -5344,3 +5381,208 @@ A deployment export is admitted only when an immutable `PackagingProfile` is ide
 
 ### 78.3 Source-access separation and completion
 `SOURCE_ACCESS_ONLY` may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence, satisfy the required APK gate, or advance Android completion. Deployment completion requires source/destination identity and hash equality, approved destination scope, durable post-copy verification, matching packaging-profile, artifact, signing, validation, promotion, and evidence references, and a resolved `reconciliationReference` whenever the copy entered `UNKNOWN` or `RECONCILING`. Export success does not independently prove preview currency, integration functionality, runtime integrity, or user-goal completion.
+
+## 79. Platform and Target Environment Contract
+**ContractId:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.PLATFORM_CAPABILITY` (see §67.8)
+
+This contract separates the machine where work is performed from the machine the work must prove. It governs every artifact Nirman builds or validates — including Nirman's own Windows desktop host (Tauri 2, React/TypeScript/Vite, Rust, Windows installer) and the generated Android application — and every capability claim, gate, or certification derived from that work. It extends the environment prerequisite classification of §52.9 and the tool diagnostics of §9.2 with an explicit host/target dimension; it does not replace them and creates no new runtime authority.
+
+### 79.1 The four-state invariant
+
+```text
+HOST ENVIRONMENT     = the machine on which a command executes
+TARGET PLATFORM      = the platform the artifact or capability is declared for
+VALIDATION PLATFORM  = the platform on which runtime behavior is observed
+CERTIFICATION STATUS = the gate result over accumulated, bound evidence
+```
+
+These are distinct state values and MUST never be collapsed into one `BUILD=SUCCESS`, one completion claim, or one capability status. A task running on a Linux x64 host for a Windows x64 target MUST be represented, after preflight, as:
+
+```text
+host_platform:             linux x86_64
+target_platform:           windows x86_64
+cross_compilation:         AVAILABLE   (only when toolchain preflight proves it)
+native_target_execution:   UNAVAILABLE
+target_runtime_validation: USER_REQUIRED or UNAVAILABLE
+certification:             cannot complete without target-platform runtime evidence
+```
+
+A worker, model, skill, or report that merges these states into a single result fails this contract and every gate that consumes it.
+
+### 79.2 Environment Capability Contract
+
+Every environment preflight MUST produce a durable `EnvironmentCapabilityRecord` (schema: TA §84.1) before a task commits to a build or validation path:
+
+```text
+EnvironmentCapabilityRecord
+- environment_id
+- host_platform
+- host_architecture
+- target_platform
+- target_architecture
+- shell
+- compiler, linker, sdk, runtime, build_tools, installer_tools
+- native_dependencies
+- tool_versions
+- environment_fingerprint
+- capability_results
+- repair_attempts
+- required_user_actions
+- runtime_validation_available
+- cross_compilation_available
+- evidence_ids
+```
+
+Host and target are explicit fields of the record. No worker, skill, or model may infer host or target platform from `uname` output, toolchain heuristics, directory layout, or conversation context; the planner and the evidence authority consume only the recorded values. Tool and dependency state inside the record uses the §9.2 diagnostic vocabulary (`installed`, `missing`, `outdated`, `misconfigured`, `inaccessible`); platform capability state uses the §52.9 classification (`AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, `UNAVAILABLE`).
+
+### 79.3 Platform Capability Matrix
+
+The runtime maintains a canonical platform capability matrix (`PlatformCapabilityEntry` in TA §84.1) mapping (host platform, capability) to an expected result class. The matrix is a prior for preflight, not a truth source: the environment preflight observes the actual environment, and the observed classification wins. Cells that depend on the concrete environment MUST be recorded as `environment_dependent` and MUST be classified from observation at preflight time. The matrix MUST NOT hard-code a tool or capability as universally unavailable on a host platform when an authorized toolchain can make it available — for example, Windows cross-compilation from Linux with a proven Rust target, linker, and Windows SDK is `environment_dependent`, not a fixed `unavailable_by_platform`.
+
+At minimum the matrix covers, for each host platform: source compilation; dependency installation; static analysis; host-native test execution; cross-compilation to each declared target; target installer generation; artifact inspection; target native execution; target-specific runtime facilities (for the Windows host target: ConPTY, Job Objects, restricted tokens, ACL workspaces, Credential Manager/DPAPI, native IPC); process supervision and recovery validation; and device-dependent validation (Android emulator or physical device, per TA §49 and §50).
+
+### 79.4 Environment Capability Resolution
+
+Resolution is capability-driven, not model-driven:
+
+```text
+Task declares required capabilities
+        ↓
+ToolCapabilityGraph maps capabilities → required tools + environment prerequisites
+        ↓
+EnvironmentCapabilityPlanner classifies each prerequisite against the
+observed EnvironmentCapabilityRecord
+        ↓
+AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
+        ↓
+TaskGraphCompiler schedules work only inside the admitted capability set
+```
+
+A model may propose a build, repair, or validation plan. It cannot set, raise, or waive a capability classification. A classification that is not backed by an observed preflight, by a successful repair executed through the normal policy/transaction path, or by an explicit user action is a contract violation (CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION).
+
+When a required capability is absent, the planner MUST split the work rather than block everything: independent implementation, static analysis, host-native tests, cross-build, and artifact inspection continue, while the blocked capability becomes a durable `USER_REQUIRED` or `UNAVAILABLE` node with a stated reason, a resume condition, and the two lists defined in §79.11.
+
+### 79.5 Cross-Compilation Policy and Build Gates
+
+Cross-compilation is permitted when the toolchain preflight proves the required target toolchain (target Rust triple, linker, Windows SDK or equivalent, bundler, installer toolchain). Cross-compilation is **artifact production only**: it establishes that a target-platform artifact can be produced. It does not establish that the artifact runs, that target-specific behavior works, or that any runtime capability is validated.
+
+Build stages and runtime stages are separate evidence gates. A target-platform build MUST pass each stage with its own evidence before the next stage is admitted:
+
+```text
+Source
+  → Compile
+  → Target build
+  → Bundle
+  → Artifact inspection
+  → Install            (target host)
+  → Launch             (target host)
+  → Runtime validation (target host)
+  → Platform-specific validation (target host)
+  → Recovery validation (target host)
+  → Certification
+```
+
+Stages executed on the host platform (compile, target build, bundle, artifact inspection) produce host-platform evidence. Stages that require the target platform (install through certification) produce target-platform evidence only when observed on a matching `ValidationEnvironment` (§79.8). A cross-built Windows installer produced on a Linux host may therefore close `Artifact inspection` and nothing beyond it: `Native launch`, `ConPTY`, `Job Objects`, `native IPC`, `recovery`, and `Windows certification` remain `UNAVAILABLE` or `USER_REQUIRED`, and the honest aggregate status is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, never `SUPPORTED`.
+
+### 79.6 Native Runtime Validation Policy
+
+A platform runtime capability may be claimed only with authoritative observation from the matching target platform. Each capability's matrix entry declares its required evidence; for the Windows host target this includes at minimum a Windows host fingerprint, a process-launch observation with executable path and process identity, runtime output, IPC observation, the required Windows API behavior (ConPTY, Job Objects, restricted tokens, Credential Manager/DPAPI, as applicable), and recovery behavior.
+
+```text
+no matching-platform observation
+        ↓
+no evidence
+        ↓
+no capability promotion
+        ↓
+no certification
+```
+
+Evidence that does not bind to the `EnvironmentCapabilityRecord` fingerprint, target platform, and source revision that produced it is invalid (CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, §5.7.4). A model statement, worker report, or simulation asserting target-runtime behavior without such bound evidence is a rejected completion claim; the completion evaluator MUST reject it and the rejection is durable.
+
+### 79.7 Platform-Specific Build and Validation Skills
+
+Platform behavior is carried by dedicated implementation skills, not by a generic AI-coding skill. A `UniversalCodingSkill` or equivalent catch-all prompt is prohibited: it cannot encode the host/target distinction and it cannot be evidence.
+
+Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requiredCapabilities`, `triggerConditions`, `permissionRequests`, `inputSchema`, `outputSchema`, and its fixture set. Skills remain permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every execution they describe still passes through ToolBroker and PolicyAuthority, and a skill whose `requiredCapabilities` resolve to `UNAVAILABLE` or `USER_REQUIRED` MUST NOT execute the gated steps and MUST report the blocked state. The v1 platform skill set:
+
+| Skill | Scope | Gated by |
+|---|---|---|
+| `environment-preflight` | Identify host and target; inspect toolchain, SDKs, runtimes, native dependencies; classify executable and validation capabilities; produce the environment fingerprint | runs before implementation; host tools |
+| `environment-repair` | Authorized repairs: missing tool, wrong tool version, missing target, broken PATH, missing SDK or dependency, incorrect configuration | repair capability + policy approval through the normal transaction path |
+| `windows-desktop-build` | Tauri 2 / React / TypeScript / Vite / Rust build for Windows x64, bundling, and installer | cross-compilation capability or Windows host; **never claims runtime validation** |
+| `windows-runtime-validation` | Nirman.exe and NirmanSupervisor startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior | `target_platform = windows` AND `native_execution = AVAILABLE`; otherwise `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
+| `cross-platform-build-diagnostics` | Determine what can be cross-built, which artifacts can be produced, and which validation evidence necessarily remains missing for a host→target pair | host toolchain observation |
+| `android-toolchain` | Node, package manager, Java, Gradle, Android SDK, platform tools, emulator, physical device, native dependencies, signing | Android toolchain authority (TA §49); independent of host-target build capability |
+
+A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
+
+### 79.8 Validation Environment as a First-Class Resource
+
+Native target validation consumes a `ValidationEnvironment` (schema: TA §84.1) as a first-class resource:
+
+```text
+ValidationEnvironment
+- environment_id
+- platform
+- architecture
+- toolchain
+- runtime
+- available_tools
+- available_devices
+- isolation_profile
+- network_policy
+- fingerprint
+- health
+- lease
+```
+
+A target validation task reserves the matching validation environment before execution:
+
+```text
+target validation task
+  → ValidationEnvironment reservation (durable lease via WorkspaceLeaseManager)
+  → tool sessions (ToolSessionRegistry)
+  → target processes
+  → observations
+  → bound evidence
+```
+
+No native-validation or certification claim exists without the lease and the observation set it produced. A lease, fingerprint, toolchain, device, or policy change invalidates the evidence produced under it (CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION).
+
+### 79.9 No Substitute Execution Targets
+
+A container, virtual machine, WSL, Windows Sandbox, remote build farm, or simulated environment MUST NOT substitute for the declared target platform in native runtime validation, and no such environment may be introduced as a generated product target (BS §2, ADR-001). Nirman's correct behavior when the target validation environment is absent is to recognize the absence, classify the capability `UNAVAILABLE` or `USER_REQUIRED`, continue independent work, and wait or escalate truthfully.
+
+### 79.10 Host Development and Target Certification Are Different Lanes
+
+Development on a non-target host is permitted and expected where the toolchain exists: reading and editing source, static analysis, host-native Rust and frontend tests, cross-build of the target artifact, artifact inspection, documentation verification, and platform-independent fixtures. The target environment then performs install, launch, platform-specific runtime tests, process supervision and recovery tests, and installer tests. Certification combines evidence: host-platform evidence plus target-platform evidence, each bound to its own record. Neither lane may report the other lane's result.
+
+### 79.11 Unavailable Validation Environment as a Hidden Human Dependency
+
+An absent or unrecoverable target validation environment is a hidden human dependency in the sense of §69.10. An unattended task MUST resolve it by exactly one of: (a) an explicitly authorized automatic action that provisions or reattaches the environment, (b) a durable `USER_REQUIRED` decision naming the required environment and the reason, or (c) a truthful blocked state. The pending node MUST state both lists:
+
+```text
+WAITING / USER_REQUIRED
+Reason: native Windows runtime environment required for target validation.
+Can continue: cross-build and platform-independent checks.
+Cannot continue: Windows runtime certification.
+```
+
+Silent continuation that skips the gate, or a claim that the gate passed, is a certification failure.
+
+### 79.12 WorkerContract Platform Requirements
+
+`WorkerContract` (registry: TA §36.1) gains platform requirement fields, extended in TA §84.1: `requiredHostPlatforms`, `requiredTargetPlatforms`, `requiredArchitectures`, `requiredCapabilities`, `requiredSkills`, `requiredToolchain`, `requiredValidationEnvironment`, `crossCompilationAllowed`, `nativeExecutionRequired`, and `evidenceRequirements`. A worker whose contract sets `nativeExecutionRequired = true` for a platform that is `UNAVAILABLE` in the current `EnvironmentCapabilityRecord` MUST NOT be scheduled for the gated steps; the scheduler places the node in the §79.11 blocked state. A worker running on a host platform outside `requiredHostPlatforms` cannot claim host-specific results for that contract.
+
+### 79.13 Hallucination-Prevention Fixtures
+
+The following are mandatory runtime-certification fixtures (test family `TEST-PLAT-001`, evidence `EV-PLAT-001`; implementation: TA §84.5, M118):
+
+| Fixture | Setup | Required behavior |
+|---|---|---|
+| A — host mismatch | host = Linux, target = Windows; task: "build and validate" | cross-build may execute; native Windows validation MUST NOT be claimed; the blocked node records `USER_REQUIRED`/`UNAVAILABLE` with the two §79.11 lists |
+| B — successful cross-build | a Windows `.exe`/installer is produced from a non-Windows host | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` are both recorded; the aggregate status is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, never `SUPPORTED` |
+| C — fake completion | a model or worker reports "Windows runtime tests passed" with no target observation | the completion claim is durably rejected by the completion evaluator and the rejection cites the missing evidence |
+| D — stale target evidence | target-platform evidence exists, then the source revision, toolchain identity, or environment fingerprint changes | the prior target evidence is `INVALIDATED`; the certification gate re-closes until re-validation on the target platform |

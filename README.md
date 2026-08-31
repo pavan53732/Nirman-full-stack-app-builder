@@ -23,7 +23,7 @@ The repository has moved past specification-only certification into vertical, ex
 | APK delivery and optional declared AAB | APK export executes with secret scan, APK inspection, hash-verified copy, interrupted-copy UNKNOWN → reconciliation → VERIFIED recovery, and durable delivery records surfaced through the delivery projection |
 | Documentation certification | Passing |
 | Conformance mutation harness | Passing: 147/147 checks |
-| Windows `.exe` release | Cross-compilation and NSIS installer toolchain proven; signed public release and end-user Windows runtime validation remain |
+| Windows `.exe` release | Cross-compilation and NSIS installer toolchain proven (artifact production only, per build spec §79.5); signed public release and end-user Windows runtime validation remain a separate, target-platform gate |
 
 Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage — plus, today, an extensive headless integration suite (173+ Rust tests) that exercises the real pipeline in-process: durable ledger persistence and replay, pause/resume/cancellation transitions, checkpoint reload, supervisor reconciliation, lease-fence replacement, stale/out-of-order projection rejection, typed envelope round-tripping, agent-loop synthesis/scaffold/build/retry, real Gradle project scaffolding, APK export with reconciliation recovery, M108 preview-sync lineage, and evidence-backed device-session fixtures. It does not prove end-user Windows hardware behavior, a real Google Play-grade signing pipeline, or cloud provider availability; those remain runtime certifications that require their real environments. Known environment dependencies: the agent loop builds through a locked local JDK/Gradle/Android SDK (M43 preflight repairs or reports), and device previews require an attached emulator/device whose adb serial matches the request.
 
@@ -208,6 +208,8 @@ The following distinctions are mandatory:
 | `BLOCKED` | A deterministic policy or dependency prevents execution |
 | `STALE` / `INVALIDATED` | Existing evidence or projection no longer applies |
 | `CERTIFIED` / `COMPLETED` | Only after the applicable runtime evidence and deterministic gates pass |
+
+Host environment, target platform, validation platform, and certification status are separate states (build spec §79, ADR-206). Cross-compilation from a non-target host establishes artifact production only; target-runtime validation and certification require observation on a matching validation environment. When that environment is absent, the affected gate is reported as `USER_REQUIRED` or `UNAVAILABLE` and independent work continues — it is never represented as a pass.
 
 ## Repository map
 

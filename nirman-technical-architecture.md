@@ -1766,6 +1766,10 @@ AndroidRuntimeIntegrityObservation
 ContinuityDimensions
 BackgroundContinuityRecord
 APKExportRecord
+EnvironmentCapabilityRecord
+PlatformCapabilityEntry
+ValidationEnvironment
+BuildGateRecord
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
@@ -2078,7 +2082,7 @@ Large projects use virtualized trees, repository-map shards, dependency fingerpr
 
 ### 41.1 Documentation and runtime certification boundary
 
-The contract-graph verifier certifies document structure, contract addressing, authority references, and selected semantic rules only. It is not the runtime certification authority. Runtime certification requires separate executable jobs for schema compilation, reducer transitions, transaction and lease behavior, Windows process and IPC isolation, provider fixtures, Android build and emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, and self-development rollback.
+The contract-graph verifier certifies document structure, contract addressing, authority references, and selected semantic rules only. It is not the runtime certification authority. Runtime certification requires separate executable jobs for schema compilation, reducer transitions, transaction and lease behavior, Windows process and IPC isolation, provider fixtures, Android build and emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, self-development rollback, and platform capability and cross-compilation fixtures (§84.5).
 
 ## 42. Runtime Architecture Acceptance Tests
 
@@ -2934,6 +2938,8 @@ AgentExecutionKernel
       ├── ToolSessionRegistry
       ├── ToolCapabilityGraph
       ├── EnvironmentCapabilityPlanner
+      ├── TargetPlatformResolver
+      ├── PlatformCapabilityRegistry
       ├── ValidationPlanner
       ├── MutationRegressionAnalyzer
       ├── TrajectoryReplayEngine
@@ -3167,6 +3173,8 @@ A tool session may be reattached after worker replacement or UI restart, but rea
 `ToolCapabilityGraph` maps an outcome to capability requirements, skills, worker profiles, tools, and environment prerequisites. For example, Android BLE validation may require Android APIs, a compatible SDK, a native module, Bluetooth permissions, ADB, an emulator or selected physical device, and device-test capability.
 
 `EnvironmentCapabilityPlanner` evaluates each prerequisite before expensive execution and classifies it as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE`. It records the toolchain lock, environment fingerprint, repair attempt, and evidence used for the classification.
+
+Platform dimensions are explicit (build spec §79). The planner resolves host and target platforms through `TargetPlatformResolver`, consults the `PlatformCapabilityRegistry` matrix as a prior for preflight, and classifies cross-compilation capability and native target-runtime capability as separate prerequisites. It never derives native runtime capability from a successful build or cross-build: the cross-build admission decision point and the native-validation gate are the §84.3 decision points owned by the existing authorities, and a classification is never raised by model assertion.
 
 ### 58.9 ValidationPlanner and mutation regression analysis
 
@@ -4971,3 +4979,44 @@ The handler creates one `ExportVerificationRecord` before copying and records so
 
 ### 83.3 Runtime acceptance
 Acceptance fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds and external deployment destinations, source/destination hash equality, destination identity, interrupted-copy reconciliation, signing/validation/promotion linkage, and refusal to treat source access as deployment completion. Documentation certification proves contract presence only; runtime certification must execute the fixtures.
+
+## 84. Platform Capability and Cross-Compilation Implementation Contract
+**Implements:** build spec §79 and `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
+**Canonical schema owner:** `CanonicalSchemaRegistry` in §36.1 (new entries below)
+**Implementation owner:** `EnvironmentCapabilityPlanner` (classification), `ToolBroker`/`PolicyAuthority` (command admission), `EvidenceAuthority` (evidence binding and invalidation), and the completion evaluator (gate closure), with `WorkspaceLeaseManager` and `ToolSessionRegistry` as the lease and session substrate. This contract creates no new authority. The names `CrossCompilationAuthority` and `NativeRuntimeValidationAuthority` are fixed as decision points, not authorities: `CrossCompilationAuthority` is the cross-build admission decision point inside `ToolBroker`/`PolicyAuthority` fed by the `EnvironmentCapabilityPlanner` classification, and `NativeRuntimeValidationAuthority` is the native-runtime validation gate inside `EvidenceAuthority` and the completion evaluator.
+
+### 84.1 Schemas
+
+`EnvironmentCapabilityRecord` (registry: §36.1): `environment_id`, `host_platform`, `host_architecture`, `target_platform`, `target_architecture`, `shell`, `compiler`, `linker`, `sdk`, `runtime`, `build_tools`, `installer_tools`, `native_dependencies`, `tool_versions`, `environment_fingerprint`, `capability_results`, `repair_attempts`, `required_user_actions`, `runtime_validation_available`, `cross_compilation_available`, `evidence_ids`, `recorded_at`, `supersedes`. Host and target are explicit fields; nothing downstream may re-infer them.
+
+`PlatformCapabilityEntry` (registry: §36.1): `capability_id`, `host_platform`, `expected_result: available | environment_dependent | unavailable_by_platform`, `required_toolchain`, `evidence_requirements`, `matrix_version`. The matrix is a prior for preflight; the observed record wins.
+
+`ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_devices`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease_id`, `reserved_by_task`, `acquired_at`, `released_at`.
+
+`BuildGateRecord` (registry: §36.1): `gate_id`, `stage: compile | target_build | bundle | artifact_inspection | install | launch | runtime_validation | platform_specific_validation | recovery_validation | certification`, `platform`, `environment_id`, `revision`, `command_or_operation_ref`, `evidence_ids`, `result: VERIFIED | UNVERIFIED | UNAVAILABLE | USER_REQUIRED | FAILED`, `recorded_at`.
+
+`WorkerContract` extension (canonical owner: the `WorkerContract` entry in §36.1): adds `required_host_platforms`, `required_target_platforms`, `required_architectures`, `required_capabilities`, `required_skills`, `required_toolchain`, `required_validation_environment`, `cross_compilation_allowed`, `native_execution_required`, `evidence_requirements`. The scheduler, not the worker, refuses a worker whose fields are not satisfied by the current `EnvironmentCapabilityRecord`.
+
+### 84.2 Persistence and invalidation
+
+Records persist in the SQLite execution ledger through the storage authority with the standard atomic-write, migration, backup, and rollback rules (§36.1). `EnvironmentCapabilityRecord` and `BuildGateRecord` are revision- and fingerprint-bound: any change to source revision, toolchain identity, environment fingerprint, target platform, isolation profile, or policy version invalidates dependent `BuildGateRecord` results and any `ValidationResult`, `CertificationDecision`, or completion claim that consumed them, through the existing evidence dependency graph (TA §23, BS §5.7.4). `PlatformCapabilityEntry` rows are versioned; a matrix version change re-opens preflight classification without invalidating observed records.
+
+### 84.3 Resolution and gates
+
+`TargetPlatformResolver` (module: §58.1) resolves the declared target for a task from the task contract and the immutable packaging/profile declarations, records host and target in the `EnvironmentCapabilityRecord`, and rejects a task whose target is not a declared target of the product scope (Android for generated applications; the Windows desktop host for Nirman itself).
+
+`PlatformCapabilityRegistry` (module: §58.1) serves the BS §79.3 matrix to the planner and reports `environment_dependent` cells for preflight classification.
+
+The cross-build admission decision point (`CrossCompilationAuthority`) evaluates, before a target-build command executes: the command's declared operation (`TARGET_BUILD` versus `RUNTIME_VALIDATION`), the observed toolchain, and the classification of the required capabilities. A `TARGET_BUILD` may be admitted on a proven toolchain. A command or claim that implies runtime validation is not admitted on a non-matching host; it is re-routed to the BS §79.11 blocked state.
+
+The native-runtime validation gate (`NativeRuntimeValidationAuthority`) admits a validation task only when a matching `ValidationEnvironment` lease exists, and closes only when the declared `evidence_requirements` are satisfied by bound observations. It reports `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` to the task graph and never reports a simulated pass.
+
+Android toolchain preflight (TA §49) continues to own Android build and device capability. This contract governs the host/target dimensions §49 does not, and the two record sets cross-reference through `environment_id`.
+
+### 84.4 Failure and recovery
+
+Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation evidence, fences the lease, and moves the node to the BS §79.11 blocked state with the resume condition "matching validation environment available." Toolchain or fingerprint drift detected by preflight invalidates dependent records and re-opens the affected gates without touching unaffected host-platform evidence. Repairs run only through the normal policy/transaction path; a failed repair records a `repair_attempt` and the classification remains truthful.
+
+### 84.5 Runtime acceptance
+
+`TEST-PLAT-001` (evidence `EV-PLAT-001`) implements the BS §79.13 fixtures A–D and MUST additionally prove: the planner emits the extended traceability chain with the environment-requirement and capability-resolution edges populated; the target-mismatch guard rejects a runtime-validation claim from a non-matching host before execution; worker scheduling honors the `WorkerContract` platform fields; lease loss fences in-flight validation; and a matrix version change re-runs preflight without invalidating unrelated observed records. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.

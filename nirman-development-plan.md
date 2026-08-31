@@ -391,6 +391,10 @@ Security tests should verify that protected files cannot enter model context, de
 
 Recovery tests should forcibly close the UI, terminate the control plane, kill a worker, fill the disk quota, cross an adaptive time or usage threshold, interrupt a database transaction, create a merge conflict, and disconnect the provider. Crossing an ordinary threshold must verify that the task adapts or continues rather than ending automatically. Every scenario should end in a clear resumable, escalated, or safely rolled-back state.
 
+### 16.6 Platform capability and cross-build tests
+
+Platform capability tests should run on at least two host platforms with at least one non-target host→target pair (for example, Linux host → Windows target). They must prove the four-state invariant (host ≠ target ≠ validation ≠ certification), that a successful cross-build records `ARTIFACT_BUILD = VERIFIED` with the runtime state `UNVERIFIED`, that a model or worker completion claim without matching-platform observation is durably rejected, that a revision, toolchain, or fingerprint change invalidates prior target-platform evidence, and that an absent validation environment produces a durable `USER_REQUIRED`/`UNAVAILABLE` node with the continue/cannot-continue lists while independent work proceeds. The fixture family is `TEST-PLAT-001` with evidence `EV-PLAT-001` (M118; build spec §79.13).
+
 ---
 
 ## 17. Release Gates
@@ -1291,6 +1295,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M115 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | ADR-201 | TEST-FCP-001 | EV-FCP-001 | Frontend–control-plane protocol and generated service adapter gate |
 | M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
+| M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1571,4 +1576,32 @@ Implement profile-bound local deployment export using `ExportVerificationRecord`
 
 ### M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
 The M6 partial closure exposed six command-payload fields but left the remaining 22 `ExportVerificationRecord` fields reachable only through durable observation, not the command boundary (dev-plan M6 §9/§10). M117 must close this: the `ArtifactExport` command response envelope MUST surface the canonical `ExportVerificationRecord` in full at the command boundary (artifact/destination/source file identity, hashes, byte count, lifecycle state, post-copy verification, policy decision, signing/validation/promotion binding, reconciliation/failure evidence) — not merely the six request-side payload fields. This is required by ADR-203 (provenance-complete export). The `command_payload_field_coverage` verifier check added in M6 must be extended to assert response-side record coverage so the command boundary cannot drift from the durable record. No second export record may be introduced; the command envelope references the single canonical `ExportVerificationRecord` owned by the `CanonicalSchemaRegistry`.
+
+## M118 — Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures
+
+M118 implements build spec §79 and technical architecture §84 and locks ADR-206. It extends the existing `EnvironmentCapabilityPlanner` (M71), `ToolCapabilityGraph` (M70), `WorkspaceLeaseManager`, `ToolSessionRegistry`, and evidence dependency machinery. It must not create a second lifecycle, policy, evidence, preview, or completion authority, and it must not add a container, VM, WSL, or simulated substitute for the declared target platform.
+
+| Work item | Acceptance condition |
+|---|---|
+| Environment capability records | `EnvironmentCapabilityRecord`, `PlatformCapabilityEntry`, `ValidationEnvironment`, and `BuildGateRecord` have `CanonicalSchemaRegistry` entries, version compatibility, and ledger persistence bound to revision and environment fingerprint |
+| Target platform resolution | `TargetPlatformResolver` and `PlatformCapabilityRegistry` resolve the declared target before planning, record host and target as explicit fields, and reject undeclared targets |
+| Cross-build admission gate | the `CrossCompilationAuthority` decision point admits `TARGET_BUILD` only on a proven toolchain and refuses runtime-validation claims from a non-matching host before execution |
+| Native validation gate | the `NativeRuntimeValidationAuthority` gate requires a reserved `ValidationEnvironment` lease and bound evidence; absence reports `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
+| Worker contract platform fields | the scheduler honors `requiredHostPlatforms`, `requiredTargetPlatforms`, `requiredArchitectures`, `requiredCapabilities`, `requiredValidationEnvironment`, `crossCompilationAllowed`, `nativeExecutionRequired`, and `evidenceRequirements` |
+| Platform skills | `environment-preflight`, `environment-repair`, `windows-desktop-build`, `windows-runtime-validation`, `cross-platform-build-diagnostics`, and `android-toolchain` skill packages with declared capabilities, trigger conditions, permission-neutrality, and fixture sets |
+| Hallucination-prevention fixtures | `TEST-PLAT-001` implements build spec §79.13 fixtures A–D plus target-mismatch, scheduling, lease-loss, and matrix-version fixtures; evidence recorded as `EV-PLAT-001` |
+| Verifier conformance | contract-graph verifier checks: the six sealed platform capability clauses of BS §67.12, the ExtensionDeclarations of BS §37 and §52, the twelve-edge row for `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`, and cross-document identity of ADR-206, M118, TA §84, `TEST-PLAT-001`, and `EV-PLAT-001` |
+
+**Exit gate:** on a non-Windows host with the Windows toolchain present, a "build and validate" task produces a verified Windows artifact with `WINDOWS_RUNTIME = UNVERIFIED` and a durable `USER_REQUIRED`/`UNAVAILABLE` validation node carrying the continue/cannot-continue lists; a model or worker completion claim without target observation is durably rejected with the missing evidence cited; a revision or fingerprint change invalidates prior target evidence and re-closes the certification gate; the four-state invariant holds in the ledger for every executed task; independent work continued during the wait; and no fixture passes by simulation. Documentation graph certification is reported separately from runtime certification.
+
+### M118 acceptance matrix
+
+| Capability | Required proof |
+|---|---|
+| Four-state invariant | host, target, validation, and certification states are distinct ledger fields and are never collapsed into one build or completion result |
+| Cross-build honesty | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` coexist in the same task record; aggregate status is at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` |
+| Deterministic classification | capability state changes only through observed preflight, an authorized repair, or an explicit user action — never model assertion |
+| Evidence binding | target evidence validates only against the matching environment fingerprint, target platform, and source revision |
+| Work splitting | independent host-platform work continues while the validation node waits; the wait is durable, cited, and resumable |
+| No substitute target | no container, VM, WSL, or simulated environment produces native-validation evidence |
 
