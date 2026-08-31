@@ -11818,6 +11818,7 @@ mod m5_host_tests {
             denied_paths: vec!["/tmp/nirman-m5-host/.git".into()],
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: None,
         };
         let stages = [
             WorkerStage::Inspect,
@@ -11937,6 +11938,7 @@ mod m5_adversarial_host_tests {
             denied_paths: vec![format!("/tmp/{worker_id}/.git")],
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: None,
         }
     }
 
@@ -11989,6 +11991,7 @@ mod m5_adversarial_host_tests {
             denied_paths: vec!["/tmp/nirman-m5-capability/.git".into()],
             max_attempts: 2,
             evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: None,
         };
         let payload = WorkerStepCommandPayload {
             worker_contract: contract,
@@ -12059,6 +12062,7 @@ mod m5_adversarial_host_tests {
             denied_paths: vec!["/tmp/nirman-m5-repair/.git".into()],
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: None,
         };
         for (index, stage) in [
             WorkerStage::Inspect,
@@ -12385,6 +12389,7 @@ mod m8_host_tests {
             denied_paths: vec!["/home/ubuntu/.ssh".into()],
             max_attempts: 3,
             evidence_requirements: vec!["worker-evidence".into()],
+            platform_requirements: None,
         }
     }
 

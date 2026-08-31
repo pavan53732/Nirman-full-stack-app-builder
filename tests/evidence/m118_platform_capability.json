@@ -1,0 +1,50 @@
+{
+  "additional": {
+    "leaseLossFencesValidation": true,
+    "matrixVersionChangeRerunsPreflight": true,
+    "schedulingHonorsPlatformFields": true,
+    "targetMismatchGuardRejectedBeforeExecution": true,
+    "traceabilityChainPopulated": true
+  },
+  "adr": "ADR-206",
+  "androidDeviceObserved": false,
+  "contract": "CONTRACT.RUNTIME.PLATFORM_CAPABILITY",
+  "crossBuildExecutedOnHost": false,
+  "evidenceId": "EV-PLAT-001",
+  "fixtureA": {
+    "blockedState": "UNAVAILABLE",
+    "canContinue": [
+      "cross-build and platform-independent checks"
+    ],
+    "cannotContinue": [
+      "Windows runtime certification"
+    ],
+    "crossBuildAdmitted": true,
+    "name": "host_mismatch",
+    "nativeValidationClaimed": false,
+    "runtimeClaimRejectedBeforeExecution": true
+  },
+  "fixtureB": {
+    "aggregate": "SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS",
+    "artifactBuild": "Verified",
+    "name": "successful_cross_build",
+    "windowsRuntime": "Unverified"
+  },
+  "fixtureC": {
+    "completionClaimAccepted": false,
+    "name": "fake_completion",
+    "rejection": "target-host gate is Verified without bound evidence",
+    "rejectionCitesMissingEvidence": true
+  },
+  "fixtureD": {
+    "certificationGateReClosed": true,
+    "name": "stale_target_evidence",
+    "priorEvidenceInvalidated": true
+  },
+  "generatedAtEpochSeconds": 1700000000,
+  "honestyNote": "Fixtures execute deterministic gate logic over synthetic observed records. No Windows runtime, Android device, or real cross-build was executed in this test.",
+  "milestone": "M118",
+  "schema": "nirman.m118.platform_capability.v1",
+  "testFamily": "TEST-PLAT-001",
+  "windowsRuntimeObserved": false
+}

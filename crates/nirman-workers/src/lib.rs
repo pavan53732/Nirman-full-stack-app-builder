@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use nirman_domain::{ProjectId, Revision, TaskId};
+use nirman_domain::{PlatformRequirements, ProjectId, Revision, TaskId};
 use nirman_project::MutationRequest;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -51,6 +51,12 @@ pub struct WorkerContract {
     pub denied_paths: Vec<String>,
     pub max_attempts: u8,
     pub evidence_requirements: Vec<String>,
+    /// M118 platform requirements (BS §79.12, TA §84.1 WorkerContract
+    /// extension). The scheduler checks these against the current
+    /// `EnvironmentCapabilityRecord` before dispatch; an empty value keeps
+    /// pre-M118 contracts behavior-compatible.
+    #[serde(default)]
+    pub platform_requirements: Option<PlatformRequirements>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -889,6 +895,7 @@ mod tests {
             denied_paths: vec!["/home/ubuntu/.ssh".into()],
             max_attempts: 3,
             evidence_requirements: vec!["build".into(), "runtime".into()],
+            platform_requirements: None,
         }
     }
 
@@ -990,6 +997,7 @@ mod m8_tests {
             denied_paths: vec!["/workspace/root/.git".into()],
             max_attempts: 3,
             evidence_requirements: vec!["handoff".into()],
+            platform_requirements: None,
         }
     }
 

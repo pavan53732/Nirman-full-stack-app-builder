@@ -2229,6 +2229,11 @@ dependencies = [
 [[package]]
 name = "nirman-tools"
 version = "0.1.0"
+dependencies = [
+ "nirman-domain",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "nirman-workers"

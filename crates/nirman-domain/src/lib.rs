@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -1358,4 +1358,259 @@ mod tests {
         assert!(json.contains("\"reconciliationState\":\"RECONCILING\""));
         assert!(json.contains("\"requestState\":\"ACKNOWLEDGED\""));
     }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// M118: Platform and Target Environment Contract (ADR-206, BS §79, TA §84.1).
+//
+// The four-state invariant: host environment, target platform, validation
+// platform, and certification status are distinct state values (BS §79.1).
+// These records are the canonical machine-readable forms owned by the
+// CanonicalSchemaRegistry (TA §36.1/§84.1); host and target are explicit
+// fields and must never be re-inferred downstream (BS §79.2).
+// ───────────────────────────────────────────────────────────────────────────
+
+/// Platform capability classification (BS §52.9, §79.4). Decided by the
+/// deterministic planner from observed preflight — never by model assertion
+/// (CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION).
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum PlatformCapabilityState {
+    Available,
+    Repairable,
+    UserRequired,
+    Unavailable,
+}
+
+/// Per-capability result recorded inside an `EnvironmentCapabilityRecord`
+/// (the `capability_results` element, TA §84.1). The Android toolchain's
+/// per-component record (`nirman_android::EnvironmentCapabilityRecord`,
+/// M43) is a toolchain-scoped implementation view of this element type.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EnvironmentCapabilityResult {
+    pub capability_id: String,
+    pub state: PlatformCapabilityState,
+    pub observed_version: Option<String>,
+    pub path: Option<String>,
+    pub fingerprint: Option<String>,
+    pub detail: String,
+    pub evidence_id: String,
+}
+
+/// Canonical environment-level capability record (TA §84.1, registry
+/// §36.1). Revision- and fingerprint-bound for invalidation (TA §84.2).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EnvironmentCapabilityRecord {
+    pub schema_version: u16,
+    pub environment_id: String,
+    pub host_platform: String,
+    pub host_architecture: String,
+    pub target_platform: String,
+    pub target_architecture: String,
+    pub shell: String,
+    pub compiler: String,
+    pub linker: String,
+    pub sdk: String,
+    pub runtime: String,
+    pub build_tools: Vec<String>,
+    pub installer_tools: Vec<String>,
+    pub native_dependencies: Vec<String>,
+    pub tool_versions: BTreeMap<String, String>,
+    pub environment_fingerprint: String,
+    pub capability_results: Vec<EnvironmentCapabilityResult>,
+    pub repair_attempts: Vec<String>,
+    pub required_user_actions: Vec<String>,
+    pub runtime_validation_available: bool,
+    pub cross_compilation_available: bool,
+    pub evidence_ids: Vec<String>,
+    pub recorded_at_epoch_seconds: u64,
+    pub supersedes: Option<String>,
+}
+
+impl EnvironmentCapabilityRecord {
+    pub const SCHEMA_VERSION: u16 = 1;
+
+    /// Returns the recorded state for one capability id.
+    pub fn capability_state(&self, capability_id: &str) -> Option<PlatformCapabilityState> {
+        self.capability_results
+            .iter()
+            .find(|result| result.capability_id == capability_id)
+            .map(|result| result.state)
+    }
+
+    /// Fingerprint/identity drift detection (TA §84.2, BS §79.6): when `self`
+    /// is the newer observation, dependent target-platform evidence and gate
+    /// results produced under `older` are invalid.
+    pub fn invalidates_older(&self, older: &EnvironmentCapabilityRecord) -> bool {
+        self.environment_fingerprint != older.environment_fingerprint
+            || self.target_platform != older.target_platform
+            || self.tool_versions != older.tool_versions
+    }
+}
+
+/// Platform capability matrix entry (TA §84.1, BS §79.3). The matrix is a
+/// prior for preflight; the observed record wins. `environment_dependent`
+/// cells must be classified from observation and are never hard-coded
+/// unavailable.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PlatformCapabilityEntry {
+    pub capability_id: String,
+    pub host_platform: String,
+    pub expected_result: MatrixExpectedResult,
+    pub required_toolchain: Vec<String>,
+    pub evidence_requirements: Vec<String>,
+    pub matrix_version: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MatrixExpectedResult {
+    Available,
+    EnvironmentDependent,
+    UnavailableByPlatform,
+}
+
+/// First-class validation environment resource (TA §84.1, BS §79.8).
+/// Native target validation executes only under a durable lease
+/// (CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ValidationEnvironment {
+    pub schema_version: u16,
+    pub environment_id: String,
+    pub platform: String,
+    pub architecture: String,
+    pub toolchain: String,
+    pub runtime: String,
+    pub available_tools: Vec<String>,
+    pub available_devices: Vec<String>,
+    pub isolation_profile: String,
+    pub network_policy: String,
+    pub fingerprint: String,
+    pub health: ValidationEnvironmentHealth,
+    pub lease_id: Option<String>,
+    pub reserved_by_task: Option<String>,
+    pub acquired_at_epoch_seconds: Option<u64>,
+    pub released_at_epoch_seconds: Option<u64>,
+}
+
+impl ValidationEnvironment {
+    pub const SCHEMA_VERSION: u16 = 1;
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ValidationEnvironmentHealth {
+    Healthy,
+    Degraded,
+    Unhealthy,
+}
+
+/// Build gate stages — separate evidence gates (BS §79.5). Stages from
+/// `Install` onward require the target host; earlier stages may run on the
+/// build host (cross-build artifact production).
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum BuildGateStage {
+    Compile,
+    TargetBuild,
+    Bundle,
+    ArtifactInspection,
+    Install,
+    Launch,
+    RuntimeValidation,
+    PlatformSpecificValidation,
+    RecoveryValidation,
+    Certification,
+}
+
+impl BuildGateStage {
+    pub fn requires_target_host(self) -> bool {
+        matches!(
+            self,
+            BuildGateStage::Install
+                | BuildGateStage::Launch
+                | BuildGateStage::RuntimeValidation
+                | BuildGateStage::PlatformSpecificValidation
+                | BuildGateStage::RecoveryValidation
+                | BuildGateStage::Certification
+        )
+    }
+}
+
+/// Gate outcome (BS §79.5 vocabulary; §5.6 status mapping).
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum BuildGateResult {
+    Verified,
+    Unverified,
+    Unavailable,
+    UserRequired,
+    Failed,
+}
+
+impl std::fmt::Display for BuildGateResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            BuildGateResult::Verified => "Verified",
+            BuildGateResult::Unverified => "Unverified",
+            BuildGateResult::Unavailable => "Unavailable",
+            BuildGateResult::UserRequired => "UserRequired",
+            BuildGateResult::Failed => "Failed",
+        };
+        f.write_str(name)
+    }
+}
+
+impl std::fmt::Display for PlatformCapabilityState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            PlatformCapabilityState::Available => "Available",
+            PlatformCapabilityState::Repairable => "Repairable",
+            PlatformCapabilityState::UserRequired => "UserRequired",
+            PlatformCapabilityState::Unavailable => "Unavailable",
+        };
+        f.write_str(name)
+    }
+}
+
+/// One build gate stage's evidence record (TA §84.1). A `Verified` result
+/// for a target-host stage without bound evidence is a contract violation
+/// (CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct BuildGateRecord {
+    pub schema_version: u16,
+    pub gate_id: String,
+    pub stage: BuildGateStage,
+    pub platform: String,
+    pub environment_id: String,
+    pub revision: Revision,
+    pub command_or_operation_ref: String,
+    pub evidence_ids: Vec<String>,
+    pub result: BuildGateResult,
+    pub recorded_at_epoch_seconds: u64,
+}
+
+impl BuildGateRecord {
+    pub const SCHEMA_VERSION: u16 = 1;
+}
+
+/// WorkerContract platform requirements (BS §79.12, TA §84.1 extension of
+/// the WorkerContract registry entry).
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PlatformRequirements {
+    pub required_host_platforms: Vec<String>,
+    pub required_target_platforms: Vec<String>,
+    pub required_architectures: Vec<String>,
+    pub required_capabilities: Vec<String>,
+    pub required_skills: Vec<String>,
+    pub required_toolchain: Vec<String>,
+    pub required_validation_environment: Option<String>,
+    pub cross_compilation_allowed: bool,
+    pub native_execution_required: bool,
 }

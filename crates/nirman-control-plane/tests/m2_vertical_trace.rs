@@ -498,6 +498,7 @@ fn m5_inspection_worker_consumes_plan_event_and_reloads_checkpoint_after_restart
         denied_paths: vec![],
         max_attempts: 3,
         evidence_requirements: vec!["inspection-summary".into()],
+        platform_requirements: None,
     };
     let mut record = WorkerExecutionRecord::start(worker_contract).expect("worker start");
     let observation = WorkerObservation {
@@ -944,6 +945,7 @@ fn m7_task_resumes_from_durable_checkpoint_after_restart() -> Result<(), Durable
         denied_paths: vec![],
         max_attempts: 3,
         evidence_requirements: vec!["inspection-summary".into(), "edit-summary".into()],
+        platform_requirements: None,
     };
     let mut record = WorkerExecutionRecord::start(worker_contract).expect("M7 worker start");
     let inspect_observation = WorkerObservation {
@@ -1362,6 +1364,7 @@ fn m8_three_workers_isolated_handoffs_and_forced_conflict_detected(
         denied_paths: vec![],
         max_attempts: 3,
         evidence_requirements: vec!["handoff-summary".into()],
+        platform_requirements: None,
     };
     let mut coordinator =
         MultiWorkerCoordinator::new(parent_contract.clone()).expect("M8 coordinator");
@@ -1432,6 +1435,7 @@ fn m8_three_workers_isolated_handoffs_and_forced_conflict_detected(
             denied_paths: vec![],
             max_attempts: 3,
             evidence_requirements: vec![format!("evidence:m8:{task_id}:edit")],
+            platform_requirements: None,
         };
         let mut worker_record =
             WorkerExecutionRecord::start(worker_contract).expect("worker execution record");
