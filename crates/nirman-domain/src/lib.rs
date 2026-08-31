@@ -872,6 +872,55 @@ pub enum SigningScheme {
 
 pub const SIGNING_CONFIG_SCHEMA: &str = "nirman.signing_config.v1";
 
+// ------------------------------------------------- M11 external-effect record (work item 4 generalization)
+// Canonical ExternalEffectRecord + reconciliation lifecycle (ADR-203, TA §20.3).
+// Generalization of the export UNKNOWN -> RECONCILING pattern to every external
+// side effect (ADB, provider, signing, filesystem, process, remote API).
+
+pub const EXTERNAL_EFFECT_RECORD_SCHEMA: &str = "nirman.external_effect_record.v1";
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExternalEffectRecord {
+    pub schema_version: u16,
+    pub effect_id: String,
+    pub operation_type: String,
+    pub target_identity: String,
+    pub request_fingerprint: String,
+    pub authority_grant_id: Option<String>,
+    pub idempotency_key: Option<String>,
+    pub request_state: ExternalEffectRequestState,
+    #[serde(default)]
+    pub response_reference: Option<String>,
+    #[serde(default)]
+    pub compensation_plan: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compensation_state: Option<String>,
+    #[serde(default)]
+    pub local_transaction_id: Option<String>,
+    pub reconciliation_state: ExternalEffectReconciliationState,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ExternalEffectRequestState {
+    NotSent,
+    Sent,
+    Acknowledged,
+    Unknown,
+    Failed,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ExternalEffectReconciliationState {
+    KnownSuccess,
+    KnownFailure,
+    Unknown,
+    Reconciling,
+    Resolved,
+}
+
 // ------------------------------------------------- M11 diagnostics schemas
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1284,5 +1333,29 @@ mod tests {
         let json = serde_json::to_string(&config).expect("serialize");
         let back: SigningConfig = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(config, back);
+    }
+
+    #[test]
+    fn external_effect_record_round_trips_serde() {
+        let record = ExternalEffectRecord {
+            schema_version: 1,
+            effect_id: "effect-1".into(),
+            operation_type: "ADB_INSTALL".into(),
+            target_identity: "emulator-5554".into(),
+            request_fingerprint: "fp-1".into(),
+            authority_grant_id: Some("grant-1".into()),
+            idempotency_key: Some("idem-1".into()),
+            request_state: ExternalEffectRequestState::Acknowledged,
+            response_reference: None,
+            compensation_plan: None,
+            compensation_state: None,
+            local_transaction_id: Some("txn-1".into()),
+            reconciliation_state: ExternalEffectReconciliationState::Reconciling,
+        };
+        let json = serde_json::to_string(&record).expect("serialize");
+        let back: ExternalEffectRecord = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(record, back);
+        assert!(json.contains("\"reconciliationState\":\"RECONCILING\""));
+        assert!(json.contains("\"requestState\":\"ACKNOWLEDGED\""));
     }
 }
