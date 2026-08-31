@@ -338,7 +338,24 @@ impl Ledger {
                  stage TEXT NOT NULL,
                  record_json TEXT NOT NULL,
                  PRIMARY KEY (project_id, decision_id, task_id)
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS m119_skill_packages (
+                 project_id TEXT NOT NULL,
+                 skill_id TEXT NOT NULL,
+                 version TEXT NOT NULL,
+                 package_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, skill_id, version)
+             );
+             CREATE TABLE IF NOT EXISTS m119_skill_invocation_records (
+                 invocation_id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL,
+                 skill_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_m119_skill_invocations_task
+                 ON m119_skill_invocation_records (project_id, task_id);
+             ",
         )
     }
 
@@ -2806,6 +2823,102 @@ impl Ledger {
             decisions.push(row?);
         }
         Ok(decisions)
+    }
+
+    // ─────────────────────────── M119 skill registry records ─────────────
+
+    pub fn save_skill_package(
+        &self,
+        project_id: &ProjectId,
+        package: &nirman_skills::SkillPackage,
+    ) -> rusqlite::Result<()> {
+        let package_json = serde_json::to_string(package).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m119_skill_packages (project_id, skill_id, version, package_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, skill_id, version) DO UPDATE SET package_json = excluded.package_json",
+            params![project_id.0, package.skill_id, package.version, package_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_skill_packages(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Vec<nirman_skills::SkillPackage>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT package_json FROM m119_skill_packages WHERE project_id = ?1 ORDER BY skill_id, version")?;
+        let rows = statement
+            .query_map(params![project_id.0], |row| {
+                let json: String = row.get(0)?;
+                serde_json::from_str(&json).map_err(|error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::other(error.to_string())),
+                    )
+                })
+            })
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut packages = Vec::new();
+        for row in rows {
+            packages.push(row?);
+        }
+        Ok(packages)
+    }
+
+    pub fn save_skill_invocation_record(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        record: &nirman_skills::SkillInvocationRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m119_skill_invocation_records (invocation_id, project_id, skill_id, task_id, record_json) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(invocation_id) DO UPDATE SET project_id = excluded.project_id, skill_id = excluded.skill_id, task_id = excluded.task_id, record_json = excluded.record_json",
+            params![
+                record.invocation_id,
+                project_id.0,
+                record.skill_id,
+                task_id,
+                record_json
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_skill_invocation_records(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Vec<nirman_skills::SkillInvocationRecord>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT record_json FROM m119_skill_invocation_records WHERE project_id = ?1 AND task_id = ?2 ORDER BY invocation_id")?;
+        let rows = statement
+            .query_map(params![project_id.0, task_id], |row| {
+                let json: String = row.get(0)?;
+                serde_json::from_str(&json).map_err(|error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::other(error.to_string())),
+                    )
+                })
+            })
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut records = Vec::new();
+        for row in rows {
+            records.push(row?);
+        }
+        Ok(records)
     }
 }
 

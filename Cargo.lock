@@ -2089,6 +2089,7 @@ dependencies = [
  "nirman-ipc",
  "nirman-policy",
  "nirman-project",
+ "nirman-skills",
  "nirman-storage",
  "nirman-supervisor",
  "nirman-tools",
@@ -2112,6 +2113,7 @@ dependencies = [
  "nirman-preview",
  "nirman-project",
  "nirman-providers",
+ "nirman-skills",
  "nirman-supervisor",
  "nirman-tools",
  "nirman-workers",
@@ -2215,6 +2217,7 @@ version = "0.1.0"
 dependencies = [
  "nirman-domain",
  "nirman-policy",
+ "nirman-skills",
  "nirman-supervisor",
  "nirman-workers",
  "rusqlite",

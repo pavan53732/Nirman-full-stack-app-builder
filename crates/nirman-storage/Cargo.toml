@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 nirman-domain = { path = "../nirman-domain" }
 nirman-policy = { path = "../nirman-policy" }
+nirman-skills = { path = "../nirman-skills" }
 nirman-supervisor = { path = "../nirman-supervisor" }
 nirman-workers = { path = "../nirman-workers" }
 rusqlite = { version = "0.29", features = ["bundled"] }

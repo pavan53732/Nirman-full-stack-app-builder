@@ -71,7 +71,7 @@ pub struct SkillInvocationRecord {
     pub status: SkillInvocationStatus,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SkillInvocationStatus {
     Active,
@@ -298,6 +298,148 @@ pub fn evaluate_skill_admission(
         state,
         reason,
     }
+}
+
+/// The outcome of resolving one requested skill id against the registry
+/// and the current environment record (TA §19.1 selection, BS §79.7).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SkillSelectionOutcome {
+    /// The skill package is registered, invocable, and its gated steps are
+    /// admissible under the environment record.
+    Admitted { package: SkillPackage },
+    /// No registered package carries the requested id.
+    NotFound {
+        requested: String,
+        available: Vec<String>,
+    },
+    /// Registered, but not invocable (disabled, unscanned, or untrusted).
+    NotInvocable {
+        package: SkillPackage,
+        reason: String,
+    },
+    /// Invocable, but the required capabilities are not AVAILABLE in the
+    /// environment record (or no record exists for a capability-bearing
+    /// skill): the gated steps must not execute.
+    Blocked {
+        package: SkillPackage,
+        admission: SkillAdmission,
+    },
+}
+
+/// Monotonic version key for skill package versions ("1.0.0" style);
+/// unknown segments sort first, so a parseable version always wins.
+fn version_key(version: &str) -> (u64, u64, u64) {
+    let parts: Vec<u64> = version
+        .split('.')
+        .map(|part| part.parse::<u64>().unwrap_or(0))
+        .collect();
+    let part = |index: usize| parts.get(index).copied().unwrap_or(0);
+    (part(0), part(1), part(2))
+}
+
+/// Deterministic skill selection for a worker contract (TA §19.1, BS
+/// §79.7): each requested id resolves to the highest registered version;
+/// the package must be invocable, and its required capabilities must be
+/// AVAILABLE in the environment record. Requested ids are deduplicated
+/// while preserving order. A missing record blocks any capability-bearing
+/// skill fail-closed; capability-free skills (e.g. environment-preflight)
+/// are admitted without one. The model never decides an outcome.
+pub fn select_required_skills(
+    requested: &[String],
+    registry: &[SkillPackage],
+    record: Option<&nirman_domain::EnvironmentCapabilityRecord>,
+) -> Vec<(String, SkillSelectionOutcome)> {
+    let mut seen: Vec<String> = Vec::new();
+    for id in requested {
+        if !seen.contains(id) {
+            seen.push(id.clone());
+        }
+    }
+    let available: Vec<String> = registry
+        .iter()
+        .map(|package| package.skill_id.clone())
+        .collect();
+    seen
+        .iter()
+        .map(|id| {
+            let candidates: Vec<&SkillPackage> = registry
+                .iter()
+                .filter(|package| package.skill_id == *id)
+                .collect();
+            match candidates.iter().max_by_key(|package| version_key(&package.version)) {
+                None => (
+                    id.clone(),
+                    SkillSelectionOutcome::NotFound {
+                        requested: id.clone(),
+                        available: available.clone(),
+                    },
+                ),
+                Some(&package) => {
+                    let outcome = if !package.enabled {
+                        SkillSelectionOutcome::NotInvocable {
+                            package: package.clone(),
+                            reason: "the skill package is disabled".into(),
+                        }
+                    } else if !package.is_scanned() {
+                        SkillSelectionOutcome::NotInvocable {
+                            package: package.clone(),
+                            reason: format!(
+                                "the skill package scan status is {:?} (a clean scan is required before activation)",
+                                package.scan_status
+                            ),
+                        }
+                    } else if package.trust_status == TrustStatus::Revoked {
+                        SkillSelectionOutcome::NotInvocable {
+                            package: package.clone(),
+                            reason: "the skill package trust has been revoked".into(),
+                        }
+                    } else if let Some(record) = record {
+                        match evaluate_skill_admission(package, record) {
+                            SkillAdmission::Admitted => {
+                                SkillSelectionOutcome::Admitted {
+                                    package: package.clone(),
+                                }
+                            }
+                            SkillAdmission::Blocked { .. } => {
+                                let admission = evaluate_skill_admission(package, record);
+                                SkillSelectionOutcome::Blocked {
+                                    package: package.clone(),
+                                    admission,
+                                }
+                            }
+                        }
+                    } else if package.required_capabilities.is_empty() {
+                        SkillSelectionOutcome::Admitted {
+                            package: package.clone(),
+                        }
+                    } else {
+                        let admission = SkillAdmission::Blocked {
+                            blocked_capabilities: package
+                                .required_capabilities
+                                .iter()
+                                .map(|id| {
+                                    (
+                                        id.clone(),
+                                        nirman_domain::PlatformCapabilityState::Unavailable,
+                                    )
+                                })
+                                .collect(),
+                            state: nirman_domain::PlatformCapabilityState::Unavailable,
+                            reason: format!(
+                                "skill {} gated steps must not execute: no environment capability record exists for this task, so the required capabilities are unproven (the contract must declare platform requirements so the preflight record exists)",
+                                package.skill_id
+                            ),
+                        };
+                        SkillSelectionOutcome::Blocked {
+                            package: package.clone(),
+                            admission,
+                        }
+                    };
+                    (id.clone(), outcome)
+                }
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

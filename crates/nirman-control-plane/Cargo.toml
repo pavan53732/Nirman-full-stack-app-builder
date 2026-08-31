@@ -10,6 +10,7 @@ nirman-android = { path = "../nirman-android" }
 nirman-artifacts = { path = "../nirman-artifacts" }
 nirman-domain = { path = "../nirman-domain" }
 nirman-policy = { path = "../nirman-policy" }
+nirman-skills = { path = "../nirman-skills" }
 nirman-storage = { path = "../nirman-storage" }
 nirman-tools = { path = "../nirman-tools" }
 nirman-supervisor = { path = "../nirman-supervisor" }

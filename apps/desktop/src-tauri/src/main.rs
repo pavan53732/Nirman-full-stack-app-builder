@@ -264,6 +264,22 @@ fn preflight_status_name(status: &PreflightStatus) -> &'static str {
     }
 }
 
+/// Resolves the root directory holding the built-in skill packages: a
+/// deployment can point `NIRMAN_BUILTIN_SKILLS_DIR` at a bundled copy
+/// (a directory containing the per-platform skill subdirectories under
+/// `skills/`); in a repository/dev checkout the source-tree location is
+/// used. When neither exists, skill discovery finds nothing and required
+/// skills fail closed (BS §79.7).
+fn builtin_skills_dir() -> Option<std::path::PathBuf> {
+    if let Ok(dir) = std::env::var("NIRMAN_BUILTIN_SKILLS_DIR") {
+        let path = std::path::PathBuf::from(dir);
+        return path.join("skills").is_dir().then_some(path);
+    }
+    let dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../crates/nirman-skills");
+    dir.join("skills").is_dir().then_some(dir)
+}
+
 fn now_epoch_seconds() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -5415,6 +5431,150 @@ pub(crate) fn dispatch_request<S: EventSink>(
             }
         }
     }
+
+    // ── M119 dispatch-time skill gate (TA §19.1, BS §79.7) ──────────────────
+    // A worker contract that declares required skills must resolve each
+    // skill from the durable registry, be invocable, and be admitted under
+    // the current environment record before the step executes. Stale active
+    // invocations from a step that never completed are reconciled first.
+    if let Some(payload) = m5_worker_step.as_ref() {
+        let task_id = payload.worker_contract.task_id.0.as_str();
+        // 1) Reconcile active skill invocations the previous step never
+        //    completed: a cancelled step cancels them, anything else failed.
+        if let Ok(records) = state.plane.load_skill_invocation_records(task_id) {
+            let final_status = if payload.cancel {
+                nirman_skills::SkillInvocationStatus::Cancelled
+            } else {
+                nirman_skills::SkillInvocationStatus::Failed
+            };
+            for mut record in records.into_iter().filter(|record| {
+                matches!(record.status, nirman_skills::SkillInvocationStatus::Active)
+            }) {
+                record.status = final_status;
+                record.completed_at = Some(now_epoch_seconds());
+                let _ = state.plane.save_skill_invocation_record(task_id, &record);
+            }
+        }
+        // 2) Required skills: discover (if the registry is empty), select,
+        //    admit, and record the admitted invocations.
+        if !payload.cancel && !payload.worker_contract.required_skills.is_empty() {
+            let registry_empty = state
+                .plane
+                .load_skill_packages()
+                .map(|packages| packages.is_empty())
+                .unwrap_or(true);
+            if registry_empty {
+                if let Some(dir) = builtin_skills_dir() {
+                    if let Ok(packages) = nirman_skills::load_builtin_skill_packages(&dir) {
+                        for package in packages {
+                            let _ = state.plane.save_skill_package(&package);
+                        }
+                    }
+                }
+            }
+            let registry = state.plane.load_skill_packages().unwrap_or_default();
+            let record = state.plane.load_platform_preflight(task_id).ok().flatten();
+            let selection = nirman_skills::select_required_skills(
+                &payload.worker_contract.required_skills,
+                &registry,
+                record.as_ref(),
+            );
+            for (_requested, outcome) in &selection {
+                match outcome {
+                    nirman_skills::SkillSelectionOutcome::Admitted { .. } => {}
+                    nirman_skills::SkillSelectionOutcome::NotFound {
+                        requested,
+                        available,
+                    } => {
+                        return Err(error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            &format!(
+                                "M119 skill gate blocked the worker step: required skill {requested} is not in the registry (available: {})",
+                                available.join(", ")
+                            ),
+                            false,
+                            Some(
+                                "install the required skill package or remove it from the worker contract"
+                                    .into(),
+                            ),
+                        ));
+                    }
+                    nirman_skills::SkillSelectionOutcome::NotInvocable { package, reason } => {
+                        return Err(error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            &format!(
+                                "M119 skill gate blocked the worker step: skill {} is not invocable: {reason}",
+                                package.skill_id
+                            ),
+                            false,
+                            Some(
+                                "restore the skill's scan and trust state before retrying the step"
+                                    .into(),
+                            ),
+                        ));
+                    }
+                    nirman_skills::SkillSelectionOutcome::Blocked { package, admission } => {
+                        let (reason, state) = match admission {
+                            nirman_skills::SkillAdmission::Blocked { reason, state, .. } => {
+                                (reason.clone(), *state)
+                            }
+                            _ => (
+                                "skill admission blocked".to_string(),
+                                nirman_domain::PlatformCapabilityState::Unavailable,
+                            ),
+                        };
+                        return Err(error(
+                            &correlation_id,
+                            Some(command_id.clone()),
+                            causation_id.clone(),
+                            ControlPlaneErrorCode::DependencyUnavailable,
+                            ErrorCategory::Unavailable,
+                            &format!("M119 skill gate blocked the worker step: {reason}"),
+                            false,
+                            Some(format!(
+                                "skill {} is blocked (state {state}); continue the independent work and re-attempt the step once the required capabilities are available — no substitute is accepted",
+                                package.skill_id
+                            )),
+                        ));
+                    }
+                }
+            }
+            // 3) Record the admitted invocations for this step.
+            let revision = payload.observation.source_revision.0;
+            for (_, outcome) in &selection {
+                if let nirman_skills::SkillSelectionOutcome::Admitted { package } = outcome {
+                    let invocation = nirman_skills::SkillInvocationRecord {
+                        invocation_id: format!(
+                            "skillinv-{task_id}-rev{revision}-{}",
+                            package.skill_id
+                        ),
+                        skill_id: package.skill_id.clone(),
+                        skill_version: package.version.clone(),
+                        session_id: format!("task-{task_id}"),
+                        requested_by: payload.worker_contract.worker_id.clone(),
+                        trigger_reason: "worker_contract".into(),
+                        granted_permissions: vec![],
+                        tool_calls: vec![],
+                        started_at: now_epoch_seconds(),
+                        completed_at: None,
+                        status: nirman_skills::SkillInvocationStatus::Active,
+                    };
+                    let _ = state
+                        .plane
+                        .save_skill_invocation_record(task_id, &invocation);
+                }
+            }
+        }
+    }
+
     let prepared_mutation = if let Some(payload) = workspace_apply_patch.as_ref() {
         prepare_m46_mutation(state, &request, payload)?
     } else {
@@ -5906,6 +6066,21 @@ pub(crate) fn dispatch_request<S: EventSink>(
         command_response.result_schema_ref = Some("nirman.worker_step_result.v1".into());
         command_response.result_payload =
             Some(serde_json::to_value(result).expect("M5 worker step result serialization"));
+        // M119: the step completed successfully — finalize the admitted
+        // skill invocations recorded for this task.
+        if let Some(task_ref) = request.command.task_id.as_ref() {
+            if let Ok(records) = state.plane.load_skill_invocation_records(&task_ref.0) {
+                for mut record in records.into_iter().filter(|record| {
+                    matches!(record.status, nirman_skills::SkillInvocationStatus::Active)
+                }) {
+                    record.status = nirman_skills::SkillInvocationStatus::Completed;
+                    record.completed_at = Some(now_epoch_seconds());
+                    let _ = state
+                        .plane
+                        .save_skill_invocation_record(&task_ref.0, &record);
+                }
+            }
+        }
     }
     if m8_is_command {
         let result_payload = if let Some(payload) = m8_result_payload {
@@ -11898,6 +12073,8 @@ mod m5_host_tests {
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         };
         let stages = [
             WorkerStage::Inspect,
@@ -12018,6 +12195,8 @@ mod m5_adversarial_host_tests {
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         }
     }
 
@@ -12071,6 +12250,8 @@ mod m5_adversarial_host_tests {
             max_attempts: 2,
             evidence_requirements: vec!["stage-evidence".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         };
         let payload = WorkerStepCommandPayload {
             worker_contract: contract,
@@ -12142,6 +12323,8 @@ mod m5_adversarial_host_tests {
             max_attempts: 3,
             evidence_requirements: vec!["stage-evidence".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         };
         for (index, stage) in [
             WorkerStage::Inspect,
@@ -12467,6 +12650,8 @@ mod m5_adversarial_host_tests {
                 native_execution_required: true,
                 ..Default::default()
             }),
+
+            required_skills: vec![],
         };
         let payload = worker_step_payload(contract, WorkerStage::Validate, WorkerOutcome::Success);
         let mut request = request(
@@ -12549,6 +12734,8 @@ mod m5_adversarial_host_tests {
                 cross_compilation_allowed: true,
                 ..Default::default()
             }),
+
+            required_skills: vec![],
         };
         let payload = worker_step_payload(contract, WorkerStage::Observe, WorkerOutcome::Success);
         let mut request = request(
@@ -12647,6 +12834,202 @@ mod m5_adversarial_host_tests {
         }
         let _ = fs::remove_file(database);
     }
+
+    #[test]
+    fn m119_worker_step_required_skill_admitted_records_invocation_lifecycle() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m119-admitted".into());
+        let mut contract = m6_contract(
+            "task-m119-admitted",
+            "worker-m119-admitted",
+            vec!["android.inspect"],
+        );
+        contract.required_skills = vec!["environment-preflight".into()];
+        let payload = worker_step_payload(contract, WorkerStage::Inspect, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m119-admitted-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        dispatch_request(&sink, &mut state, request).expect("admitted step proceeds");
+        // The skill was discovered from the built-in set, selected, and the
+        // invocation record is durable and completed by the successful step.
+        let packages = state.plane.load_skill_packages().expect("registry");
+        assert!(
+            packages
+                .iter()
+                .any(|package| package.skill_id == "environment-preflight"),
+            "discovery must populate the registry from the built-in set"
+        );
+        let invocations = state
+            .plane
+            .load_skill_invocation_records(&task_id.0)
+            .expect("invocations");
+        assert_eq!(invocations.len(), 1, "one invocation record for the step");
+        assert_eq!(invocations[0].skill_id, "environment-preflight");
+        assert_eq!(
+            invocations[0].status,
+            nirman_skills::SkillInvocationStatus::Completed,
+            "a successful step finalizes its admitted invocations"
+        );
+        assert!(invocations[0].completed_at.is_some());
+        assert!(
+            invocations[0].granted_permissions.is_empty(),
+            "skills never auto-grant permissions"
+        );
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m119_worker_step_required_skill_blocked_reports_truthful_envelope() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m119-blocked".into());
+        // windows-runtime-validation requires native Windows capabilities.
+        // The contract declares no platform requirements, so no environment
+        // record exists: the capability-bearing skill must block fail-closed.
+        let mut contract = m6_contract(
+            "task-m119-blocked",
+            "worker-m119-blocked",
+            vec!["android.validate"],
+        );
+        contract.required_skills = vec!["windows-runtime-validation".into()];
+        let payload = worker_step_payload(contract, WorkerStage::Validate, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m119-blocked-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        let rejected =
+            dispatch_request(&sink, &mut state, request).expect_err("gated skill must block");
+        assert_eq!(rejected.code, ControlPlaneErrorCode::DependencyUnavailable);
+        assert!(
+            rejected.safe_message.contains("M119 skill gate blocked"),
+            "envelope must cite the skill gate: {}",
+            rejected.safe_message
+        );
+        assert!(
+            rejected.safe_message.contains("windows-runtime-validation"),
+            "envelope must name the skill: {}",
+            rejected.safe_message
+        );
+        // No invocation was recorded and the task did not advance.
+        assert!(state
+            .plane
+            .load_skill_invocation_records(&task_id.0)
+            .expect("invocations")
+            .is_empty());
+        assert_eq!(state.plane.snapshot().last_event_sequence, 0);
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m119_worker_step_unknown_skill_is_not_found() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m119-unknown".into());
+        let mut contract = m6_contract(
+            "task-m119-unknown",
+            "worker-m119-unknown",
+            vec!["android.observe"],
+        );
+        contract.required_skills = vec!["no-such-skill".into()];
+        let payload = worker_step_payload(contract, WorkerStage::Observe, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m119-unknown-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        let rejected =
+            dispatch_request(&sink, &mut state, request).expect_err("unknown skill must fail");
+        assert_eq!(rejected.code, ControlPlaneErrorCode::DependencyUnavailable);
+        assert!(
+            rejected.safe_message.contains("no-such-skill")
+                && rejected.safe_message.contains("not in the registry"),
+            "envelope must report the missing skill: {}",
+            rejected.safe_message
+        );
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m119_stale_active_invocation_is_reconciled() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m119-reconcile".into());
+        // A previous step left an active invocation that never completed.
+        let stale = nirman_skills::SkillInvocationRecord {
+            invocation_id: "skillinv-task-m119-reconcile-rev0-stale-skill".into(),
+            skill_id: "environment-preflight".into(),
+            skill_version: "1.0.0".into(),
+            session_id: "task-task-m119-reconcile".into(),
+            requested_by: "worker-stale".into(),
+            trigger_reason: "worker_contract".into(),
+            granted_permissions: vec![],
+            tool_calls: vec![],
+            started_at: now_epoch_seconds() - 1,
+            completed_at: None,
+            status: nirman_skills::SkillInvocationStatus::Active,
+        };
+        state
+            .plane
+            .save_skill_invocation_record(&task_id.0, &stale)
+            .expect("stale record");
+        let mut contract = m6_contract(
+            "task-m119-reconcile",
+            "worker-m119-reconcile",
+            vec!["android.inspect"],
+        );
+        contract.required_skills = vec!["environment-preflight".into()];
+        let payload = worker_step_payload(contract, WorkerStage::Inspect, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m119-reconcile-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        dispatch_request(&sink, &mut state, request).expect("step proceeds");
+        let invocations = state
+            .plane
+            .load_skill_invocation_records(&task_id.0)
+            .expect("invocations");
+        assert_eq!(invocations.len(), 2, "stale + new records");
+        let stale_now = invocations
+            .iter()
+            .find(|record| record.invocation_id == stale.invocation_id)
+            .expect("stale record");
+        assert_eq!(
+            stale_now.status,
+            nirman_skills::SkillInvocationStatus::Failed,
+            "an active invocation a step never completed reconciles to Failed"
+        );
+        assert!(stale_now.completed_at.is_some());
+        let fresh = invocations
+            .iter()
+            .find(|record| record.invocation_id != stale.invocation_id)
+            .expect("fresh record");
+        assert_eq!(
+            fresh.status,
+            nirman_skills::SkillInvocationStatus::Completed
+        );
+        let _ = fs::remove_file(database);
+    }
 }
 
 #[cfg(test)]
@@ -12682,6 +13065,8 @@ mod m8_host_tests {
             max_attempts: 3,
             evidence_requirements: vec!["worker-evidence".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         }
     }
 
@@ -13614,6 +13999,7 @@ mod m8_reconciliation_tests {
         let invalid_direct = WorkerReconcileCommandPayload {
             parent_contract: WorkerContract {
                 task_id: TaskId("task-root".into()),
+                required_skills: vec![],
                 ..crate::m8_host_tests::parent_contract()
             },
             checkpoint_id: "m8-direct-main-rejected".into(),

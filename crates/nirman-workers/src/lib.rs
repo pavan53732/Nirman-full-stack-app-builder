@@ -57,6 +57,14 @@ pub struct WorkerContract {
     /// pre-M118 contracts behavior-compatible.
     #[serde(default)]
     pub platform_requirements: Option<PlatformRequirements>,
+    /// M118 required skill packages (BS §79.12 WorkerContract extension):
+    /// skill ids the worker's gated steps depend on. The scheduler resolves
+    /// each id against the durable skill registry, verifies the package is
+    /// invocable, and admits it against the current environment record
+    /// before dispatch; an empty value keeps pre-skill contracts
+    /// behavior-compatible.
+    #[serde(default)]
+    pub required_skills: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -896,6 +904,8 @@ mod tests {
             max_attempts: 3,
             evidence_requirements: vec!["build".into(), "runtime".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         }
     }
 
@@ -998,6 +1008,8 @@ mod m8_tests {
             max_attempts: 3,
             evidence_requirements: vec!["handoff".into()],
             platform_requirements: None,
+
+            required_skills: vec![],
         }
     }
 

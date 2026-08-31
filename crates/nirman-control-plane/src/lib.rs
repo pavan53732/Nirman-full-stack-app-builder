@@ -1041,6 +1041,38 @@ impl DurableControlPlane {
         Ok(decision)
     }
 
+    // ─────────────────────────── M119 skill registry records ──────────────
+
+    pub fn save_skill_package(
+        &self,
+        package: &nirman_skills::SkillPackage,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_skill_package(&self.core_snapshot().project_id, package)
+    }
+
+    pub fn load_skill_packages(&self) -> Result<Vec<nirman_skills::SkillPackage>, rusqlite::Error> {
+        self.ledger
+            .load_skill_packages(&self.core_snapshot().project_id)
+    }
+
+    pub fn save_skill_invocation_record(
+        &self,
+        task_id: &str,
+        record: &nirman_skills::SkillInvocationRecord,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_skill_invocation_record(&self.core_snapshot().project_id, task_id, record)
+    }
+
+    pub fn load_skill_invocation_records(
+        &self,
+        task_id: &str,
+    ) -> Result<Vec<nirman_skills::SkillInvocationRecord>, rusqlite::Error> {
+        self.ledger
+            .load_skill_invocation_records(&self.core_snapshot().project_id, task_id)
+    }
+
     pub fn load_android_device_observation_for_source(
         &self,
         task_id: &str,
