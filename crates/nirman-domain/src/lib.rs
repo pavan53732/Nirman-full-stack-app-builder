@@ -1432,6 +1432,11 @@ pub struct EnvironmentCapabilityRecord {
 impl EnvironmentCapabilityRecord {
     pub const SCHEMA_VERSION: u16 = 1;
 
+    /// True when the record describes a cross-host (cross-build) task.
+    pub fn is_cross_build(&self) -> bool {
+        self.host_platform != self.target_platform
+    }
+
     /// Returns the recorded state for one capability id.
     pub fn capability_state(&self, capability_id: &str) -> Option<PlatformCapabilityState> {
         self.capability_results

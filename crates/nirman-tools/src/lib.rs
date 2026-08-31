@@ -24,9 +24,9 @@
 //! OS itself, so its fixtures are deterministic and platform-independent.
 
 use nirman_domain::{
-    BuildGateRecord, BuildGateResult, EnvironmentCapabilityRecord, MatrixExpectedResult,
-    PlatformCapabilityEntry, PlatformCapabilityState, PlatformRequirements, ValidationEnvironment,
-    ValidationEnvironmentHealth,
+    BuildGateRecord, BuildGateResult, EnvironmentCapabilityRecord, EnvironmentCapabilityResult,
+    MatrixExpectedResult, PlatformCapabilityEntry, PlatformCapabilityState, PlatformRequirements,
+    ValidationEnvironment, ValidationEnvironmentHealth,
 };
 use std::collections::BTreeMap;
 
@@ -741,6 +741,421 @@ pub fn emit_platform_trace_edges(
         }
     }
     edges
+}
+
+// ───────────────────────────── Preflight collection ────────────────────────
+
+/// Observed state of one tool from a probe (the §9.2 diagnostic
+/// vocabulary, M43-style: a real observation, never an assumption).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolObservation {
+    pub state: ToolState,
+    pub version: Option<String>,
+    pub detail: String,
+}
+
+impl ToolObservation {
+    pub fn installed(version: &str, detail: &str) -> Self {
+        Self {
+            state: ToolState::Installed,
+            version: Some(version.to_string()),
+            detail: detail.to_string(),
+        }
+    }
+    pub fn missing(detail: &str) -> Self {
+        Self {
+            state: ToolState::Missing,
+            version: None,
+            detail: detail.to_string(),
+        }
+    }
+    pub fn inaccessible(detail: &str) -> Self {
+        Self {
+            state: ToolState::Inaccessible,
+            version: None,
+            detail: detail.to_string(),
+        }
+    }
+}
+
+/// Injectable environment probe (the M43 `CapabilityProbe` pattern):
+/// deterministic tests script a fake; `OsProbe` inspects the real host.
+/// The planner never probes the OS itself — it consumes these observations,
+/// so classification stays a pure function of the probe (BS §79.4).
+pub trait PlatformProbe: Send {
+    fn host_platform(&self) -> String;
+    fn host_architecture(&self) -> String;
+    fn observe_tool(&self, name: &str) -> ToolObservation;
+    /// Environment variables that participate in the fingerprint. The OS
+    /// probe returns none: the fingerprint is over platform, architecture,
+    /// and tool versions so it is stable across shells.
+    fn fingerprint_env(&self) -> BTreeMap<String, String>;
+}
+
+/// FNV-1a 64-bit fingerprint of the environment identity. Deliberately not
+/// cryptographic: it exists for equality-based invalidation (TA §84.2), and
+/// it must be cheap, deterministic, and readable in logs.
+fn fnv1a64(data: &[u8]) -> u64 {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0000_0100_0000_01B3;
+    let mut h = OFFSET;
+    for byte in data {
+        h ^= u64::from(*byte);
+        h = h.wrapping_mul(PRIME);
+    }
+    h
+}
+
+pub fn environment_fingerprint(
+    host_platform: &str,
+    host_architecture: &str,
+    tool_versions: &BTreeMap<String, String>,
+    fingerprint_env: &BTreeMap<String, String>,
+) -> String {
+    let mut canonical = String::from("nirman.envfp.v1|");
+    canonical.push_str(host_platform);
+    canonical.push('|');
+    canonical.push_str(host_architecture);
+    canonical.push('|');
+    for (tool, version) in tool_versions {
+        canonical.push_str(tool);
+        canonical.push('=');
+        canonical.push_str(version);
+        canonical.push(';');
+    }
+    for (key, value) in fingerprint_env {
+        canonical.push_str(key);
+        canonical.push('=');
+        canonical.push_str(value);
+        canonical.push(';');
+    }
+    format!("{:016x}", fnv1a64(canonical.as_bytes()))
+}
+
+/// Probes the real host (the M43 `HostCapabilityProbe` analogue). Version
+/// output follows the M43 convention: first non-empty line of stdout, with
+/// stderr as fallback (java prints its version to stderr).
+pub struct OsProbe;
+
+impl OsProbe {
+    fn probe_spec(
+        name: &str,
+    ) -> Option<(&'static str, &'static [&'static str], Option<&'static str>)> {
+        match name {
+            "rustc" => Some(("rustc", &["--version"], None)),
+            "cargo" => Some(("cargo", &["--version"], None)),
+            "node" => Some(("node", &["--version"], None)),
+            "tsc" => Some(("tsc", &["--version"], None)),
+            "file" => Some(("file", &["--version"], None)),
+            "package_manager" => Some(("pnpm", &["--version"], None)),
+            "rust_target_windows" => Some((
+                "rustup",
+                &["target", "list", "--installed"],
+                Some("x86_64-pc-windows-gnu"),
+            )),
+            "windows_linker" => Some(("x86_64-w64-mingw32-gcc", &["--version"], None)),
+            "linker" => Some(("x86_64-w64-mingw32-gcc", &["--version"], None)),
+            "nsis" => Some(("makensis", &["-VERSION"], None)),
+            "wine" => Some(("wine", &["--version"], None)),
+            "java" => Some(("java", &["-version"], None)),
+            "gradle" => Some(("gradle", &["--version"], None)),
+            "android_sdk" => Some(("sdkmanager", &["--version"], None)),
+            "emulator" => Some(("emulator", &["-list-avds"], None)),
+            "adb" => Some(("adb", &["version"], None)),
+            _ => None,
+        }
+    }
+
+    fn run_spec(program: &str, args: &[&str], requires_substring: Option<&str>) -> ToolObservation {
+        let output = std::process::Command::new(program).args(args).output();
+        match output {
+            Ok(output) if output.status.success() => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let text = if stdout.trim().is_empty() {
+                    String::from_utf8_lossy(&output.stderr).to_string()
+                } else {
+                    stdout.to_string()
+                };
+                if let Some(required) = requires_substring {
+                    if !text.contains(required) {
+                        return ToolObservation::missing(&format!(
+                            "installed set does not include {required}"
+                        ));
+                    }
+                }
+                let version = text.lines().next().unwrap_or("unknown").trim().to_string();
+                ToolObservation::installed(&version, "host-observed")
+            }
+            Ok(_) => ToolObservation::missing("tool command returned a non-success status"),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                ToolObservation::missing("tool command is not installed or not discoverable")
+            }
+            Err(_) => ToolObservation::inaccessible("tool command could not be inspected"),
+        }
+    }
+}
+
+impl PlatformProbe for OsProbe {
+    fn host_platform(&self) -> String {
+        std::env::consts::OS.to_string()
+    }
+
+    fn host_architecture(&self) -> String {
+        std::env::consts::ARCH.to_string()
+    }
+
+    fn observe_tool(&self, name: &str) -> ToolObservation {
+        match name {
+            "windows_os" | "dpapi" => {
+                if self.host_platform() == "windows" {
+                    ToolObservation::installed("native", "host platform is windows")
+                } else {
+                    ToolObservation::missing(
+                        "host platform is not windows; no substitute target is accepted",
+                    )
+                }
+            }
+            "device" => {
+                let adb = Self::run_spec("adb", &["devices"], None);
+                if adb.state != ToolState::Installed {
+                    return ToolObservation::missing(
+                        "adb is not available, so no device can be attached",
+                    );
+                }
+                let attached = std::process::Command::new("adb")
+                    .arg("devices")
+                    .output()
+                    .ok()
+                    .map(|o| {
+                        String::from_utf8_lossy(&o.stdout)
+                            .lines()
+                            .filter(|l| l.ends_with("device"))
+                            .count()
+                    })
+                    .unwrap_or(0);
+                if attached > 0 {
+                    ToolObservation::installed(
+                        &format!("{attached} attached"),
+                        "adb device session available",
+                    )
+                } else {
+                    ToolObservation::missing("adb is present but no device is attached")
+                }
+            }
+            _ => match Self::probe_spec(name) {
+                Some((program, args, substring)) => Self::run_spec(program, args, substring),
+                None => ToolObservation::missing("no probe spec for this tool in this environment"),
+            },
+        }
+    }
+
+    fn fingerprint_env(&self) -> BTreeMap<String, String> {
+        BTreeMap::new()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PreflightError {
+    UndeclaredTarget(String),
+    UnknownHostPlatform(String),
+    EmptyPlatform,
+}
+
+impl std::fmt::Display for PreflightError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PreflightError::UndeclaredTarget(t) => {
+                write!(
+                    f,
+                    "declared target platform is not in the product scope: {t}"
+                )
+            }
+            PreflightError::UnknownHostPlatform(p) => {
+                write!(
+                    f,
+                    "the canonical capability matrix does not cover host platform: {p}"
+                )
+            }
+            PreflightError::EmptyPlatform => write!(f, "platform identifier is empty"),
+        }
+    }
+}
+
+/// `EnvironmentCapabilityPlanner` (TA §58.8, §84.1): resolves host and
+/// target, consults the matrix as a prior, and classifies every capability
+/// for the host from probe observations. It never derives native runtime
+/// capability from a build or cross-build result, and a classification is
+/// never raised by model assertion.
+pub struct EnvironmentCapabilityPlanner {
+    probe: Box<dyn PlatformProbe>,
+    registry: PlatformCapabilityRegistry,
+}
+
+impl EnvironmentCapabilityPlanner {
+    pub fn new(probe: Box<dyn PlatformProbe>, registry: PlatformCapabilityRegistry) -> Self {
+        Self { probe, registry }
+    }
+
+    pub fn registry(&self) -> &PlatformCapabilityRegistry {
+        &self.registry
+    }
+
+    pub fn run(
+        &self,
+        declared_target: &str,
+        target_architecture: &str,
+    ) -> Result<EnvironmentCapabilityRecord, PreflightError> {
+        let host_platform = self.probe.host_platform();
+        let host_architecture = self.probe.host_architecture();
+        if host_platform.trim().is_empty() || host_architecture.trim().is_empty() {
+            return Err(PreflightError::EmptyPlatform);
+        }
+        if !self
+            .registry
+            .entries
+            .iter()
+            .any(|e| e.host_platform == host_platform)
+        {
+            return Err(PreflightError::UnknownHostPlatform(host_platform));
+        }
+        let resolved = TargetPlatformResolver::resolve(
+            &host_platform,
+            &host_architecture,
+            declared_target,
+            target_architecture,
+        )
+        .map_err(|e| match e {
+            TargetResolutionError::UndeclaredTarget(t) => PreflightError::UndeclaredTarget(t),
+            TargetResolutionError::EmptyPlatform => PreflightError::EmptyPlatform,
+        })?;
+
+        let mut tool_cache: BTreeMap<String, ToolObservation> = BTreeMap::new();
+        let mut capability_results = Vec::new();
+        let mut user_actions = Vec::new();
+
+        for entry in self
+            .registry
+            .entries
+            .iter()
+            .filter(|e| e.host_platform == host_platform)
+        {
+            let tool_states: BTreeMap<String, ToolState> = entry
+                .required_toolchain
+                .iter()
+                .map(|tool| {
+                    let observation = tool_cache
+                        .entry(tool.clone())
+                        .or_insert_with(|| self.probe.observe_tool(tool));
+                    (tool.clone(), observation.state)
+                })
+                .collect();
+            let state = classify_capability(entry, &tool_states);
+            if matches!(
+                state,
+                PlatformCapabilityState::UserRequired | PlatformCapabilityState::Unavailable
+            ) {
+                user_actions.push(format!(
+                    "capability {}: {} (prior: {:?}; required tools: {})",
+                    entry.capability_id,
+                    state,
+                    entry.expected_result,
+                    entry.required_toolchain.join(", ")
+                ));
+            }
+            capability_results.push(EnvironmentCapabilityResult {
+                capability_id: entry.capability_id.clone(),
+                state,
+                observed_version: None,
+                path: None,
+                fingerprint: None,
+                detail: format!(
+                    "matrix v{} prior {:?}",
+                    entry.matrix_version, entry.expected_result
+                ),
+                evidence_id: format!("pf-{}", entry.capability_id),
+            });
+        }
+
+        let tool_versions: BTreeMap<String, String> = tool_cache
+            .iter()
+            .filter(|(_, obs)| obs.state == ToolState::Installed)
+            .filter_map(|(tool, obs)| obs.version.clone().map(|v| (tool.clone(), v)))
+            .collect();
+        let installed_tools: Vec<String> = tool_cache
+            .iter()
+            .filter(|(_, obs)| obs.state == ToolState::Installed)
+            .map(|(tool, _)| tool.clone())
+            .collect();
+
+        let cross = resolved.is_cross_build();
+        let cross_state = capability_results
+            .iter()
+            .find(|r| r.capability_id == capability::CROSS_BUILD_WINDOWS)
+            .map(|r| r.state)
+            .unwrap_or(PlatformCapabilityState::Unavailable);
+        let native_state = capability_results
+            .iter()
+            .find(|r| r.capability_id == capability::WINDOWS_NATIVE_EXECUTION)
+            .map(|r| r.state)
+            .unwrap_or(PlatformCapabilityState::Unavailable);
+        let fingerprint = environment_fingerprint(
+            &host_platform,
+            &host_architecture,
+            &tool_versions,
+            &self.probe.fingerprint_env(),
+        );
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        Ok(EnvironmentCapabilityRecord {
+            schema_version: EnvironmentCapabilityRecord::SCHEMA_VERSION,
+            environment_id: format!("env-{host_platform}-{fingerprint}"),
+            host_platform: host_platform.clone(),
+            host_architecture: host_architecture.clone(),
+            target_platform: resolved.target_platform.clone(),
+            target_architecture: resolved.target_architecture.clone(),
+            shell: if host_platform == "windows" {
+                "powershell".into()
+            } else {
+                "sh".into()
+            },
+            compiler: tool_versions.get("rustc").cloned().unwrap_or_default(),
+            linker: tool_versions
+                .get("windows_linker")
+                .cloned()
+                .or_else(|| tool_versions.get("linker").cloned())
+                .unwrap_or_default(),
+            sdk: tool_versions
+                .get("android_sdk")
+                .cloned()
+                .unwrap_or_default(),
+            runtime: tool_versions.get("node").cloned().unwrap_or_default(),
+            build_tools: installed_tools
+                .iter()
+                .filter(|t| matches!(t.as_str(), "rustc" | "cargo" | "node" | "gradle" | "java"))
+                .cloned()
+                .collect(),
+            installer_tools: installed_tools
+                .iter()
+                .filter(|t| matches!(t.as_str(), "nsis" | "wine"))
+                .cloned()
+                .collect(),
+            native_dependencies: vec![],
+            tool_versions,
+            environment_fingerprint: fingerprint,
+            capability_results,
+            repair_attempts: vec![],
+            required_user_actions: user_actions,
+            runtime_validation_available: !cross
+                && native_state == PlatformCapabilityState::Available,
+            cross_compilation_available: cross && cross_state == PlatformCapabilityState::Available,
+            evidence_ids: vec![],
+            recorded_at_epoch_seconds: now,
+            supersedes: None,
+        })
+    }
 }
 
 // ─────────────────────────── Worker scheduling ─────────────────────────────

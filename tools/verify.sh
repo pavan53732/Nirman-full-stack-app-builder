@@ -58,6 +58,7 @@ python3 tools/check_m47_evidence.py
 python3 tools/check_m48_evidence.py
 python3 tools/check_m49_evidence.py
 python3 tools/check_m118_evidence.py
+python3 tools/check_m118_preflight_evidence.py
 (
   cd apps/desktop
   pnpm install --frozen-lockfile

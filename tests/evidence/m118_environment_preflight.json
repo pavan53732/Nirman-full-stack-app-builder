@@ -1,0 +1,215 @@
+{
+  "androidDeviceSessionObserved": false,
+  "crossBuildExecutedOnHost": false,
+  "declaredTarget": "windows",
+  "declaredTargetArchitecture": "x86_64",
+  "evidenceId": "EV-PLAT-001",
+  "milestone": "M118",
+  "note": "Real OsProbe observation of the developer host at test time. The probe inspects the environment only: no build, runtime, or device session was executed by this test.",
+  "observedByRealProbe": true,
+  "record": {
+    "build_tools": [
+      "cargo",
+      "java",
+      "node",
+      "rustc"
+    ],
+    "capability_results": [
+      {
+        "capability_id": "source_compilation",
+        "detail": "matrix v1 prior Available",
+        "evidence_id": "pf-source_compilation",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "available"
+      },
+      {
+        "capability_id": "dependency_installation",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-dependency_installation",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "available"
+      },
+      {
+        "capability_id": "static_analysis",
+        "detail": "matrix v1 prior Available",
+        "evidence_id": "pf-static_analysis",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "repairable"
+      },
+      {
+        "capability_id": "host_native_tests",
+        "detail": "matrix v1 prior Available",
+        "evidence_id": "pf-host_native_tests",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "available"
+      },
+      {
+        "capability_id": "artifact_inspection",
+        "detail": "matrix v1 prior Available",
+        "evidence_id": "pf-artifact_inspection",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "available"
+      },
+      {
+        "capability_id": "cross_build_windows",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-cross_build_windows",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "available"
+      },
+      {
+        "capability_id": "windows_installer_generation",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-windows_installer_generation",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "repairable"
+      },
+      {
+        "capability_id": "windows_native_execution",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_native_execution",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_conpty",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_conpty",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_job_objects",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_job_objects",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_restricted_tokens",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_restricted_tokens",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_credential_storage",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_credential_storage",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_native_ipc",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_native_ipc",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "windows_process_supervision_recovery",
+        "detail": "matrix v1 prior UnavailableByPlatform",
+        "evidence_id": "pf-windows_process_supervision_recovery",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "unavailable"
+      },
+      {
+        "capability_id": "android_build",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-android_build",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "repairable"
+      },
+      {
+        "capability_id": "android_emulator",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-android_emulator",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "repairable"
+      },
+      {
+        "capability_id": "android_physical_device",
+        "detail": "matrix v1 prior EnvironmentDependent",
+        "evidence_id": "pf-android_physical_device",
+        "fingerprint": null,
+        "observed_version": null,
+        "path": null,
+        "state": "repairable"
+      }
+    ],
+    "compiler": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "cross_compilation_available": true,
+    "environment_fingerprint": "c56dfca2764bf4bb",
+    "environment_id": "env-linux-c56dfca2764bf4bb",
+    "evidence_ids": [],
+    "host_architecture": "x86_64",
+    "host_platform": "linux",
+    "installer_tools": [],
+    "linker": "x86_64-w64-mingw32-gcc (GCC) 14-win32",
+    "native_dependencies": [],
+    "recorded_at_epoch_seconds": 1788189802,
+    "repair_attempts": [],
+    "required_user_actions": [
+      "capability windows_native_execution: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",
+      "capability windows_conpty: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",
+      "capability windows_job_objects: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",
+      "capability windows_restricted_tokens: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",
+      "capability windows_credential_storage: Unavailable (prior: UnavailableByPlatform; required tools: windows_os, dpapi)",
+      "capability windows_native_ipc: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",
+      "capability windows_process_supervision_recovery: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)"
+    ],
+    "runtime": "v22.23.2",
+    "runtime_validation_available": false,
+    "schema_version": 1,
+    "sdk": "",
+    "shell": "sh",
+    "supersedes": null,
+    "target_architecture": "x86_64",
+    "target_platform": "windows",
+    "tool_versions": {
+      "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+      "file": "file-5.46",
+      "java": "openjdk version \"11\" 2018-09-25",
+      "node": "v22.23.2",
+      "package_manager": "9.15.9",
+      "rust_target_windows": "x86_64-pc-windows-gnu",
+      "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+      "windows_linker": "x86_64-w64-mingw32-gcc (GCC) 14-win32"
+    }
+  },
+  "schema": "nirman.m118.environment_preflight.v1",
+  "testFamily": "TEST-PLAT-001",
+  "windowsRuntimeObserved": false
+}
