@@ -1603,5 +1603,22 @@ M118 implements build spec §79 and technical architecture §84 and locks ADR-20
 | Deterministic classification | capability state changes only through observed preflight, an authorized repair, or an explicit user action — never model assertion |
 | Evidence binding | target evidence validates only against the matching environment fingerprint, target platform, and source revision |
 | Work splitting | independent host-platform work continues while the validation node waits; the wait is durable, cited, and resumable |
-| No substitute target | no container, VM, WSL, or simulated environment produces native-validation evidence |
+|| No substitute target | no container, VM, WSL, or simulated environment produces native-validation evidence |
+
+## M119 — Platform Skill Registry Persistence and Fail-Closed Selection
+
+M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1) with durable platform skill package persistence and fail-closed selection against the `EnvironmentCapabilityRecord`. It extends the `EnvironmentCapabilityPlanner` (M118) and `DurableControlPlane` (M2) so that skill invocation records are revision- and fingerprint-bound, and that capability-bearing skills are denied admission when their required capabilities are not `AVAILABLE` or `REPAIRABLE` in the current environment record. It must not create a new authority; selection flows through the existing `ToolBroker`/`PolicyAuthority` admission path and the `EvidenceAuthority` binding and invalidation path (TA §84.3–§84.4).
+
+|| Work item | Acceptance condition |
+|---|---|---|
+| Skill package persistence | `SkillPackage` has a `CanonicalSchemaRegistry` entry (TA §19.1) with version compatibility; packages persist through the M2 SQLite ledger as `SkillInvocationRecord` and `SkillAdmission` records |
+| Fail-closed selection | `select_required_skills` resolves required skill ids against the registry and the `EnvironmentCapabilityRecord`; an admitted capability-bearing skill requires a matching `PlatformCapabilityState::Available` or `Repairable` record; absence reports `Blocked` or `NotFound`, never inferred success |
+| Capability-bearing admission | a skill whose `required_capabilities` intersect a non-`Available`/`Repairable` capability in the environment record is blocked fail-closed before any tool call or instruction load |
+| Trust and scan gating | unscanned packages (`ScanStatus::Pending`/`Scanning`) are `NotInvocable`; revoked packages (`TrustStatus::Revoked`) are `NotInvocable`; built-in packages are the M118 v1 set |
+| Durable invocation records | `SkillInvocationRecord` persists invocation id, skill version, session, permissions granted, tool calls with policy outcomes, start/complete timestamps, and terminal status; restart reloads records from the ledger |
+| Idempotency and versioning | re-saving the same package upserts; distinct versions coexist; `installedAt` and `lastUsedAt` are recorded |
+| Evidence binding | `SkillInvocationRecord` and `BuildGateRecord` share a `environmentId` and `sourceRevision`; a fingerprint or revision change invalidates dependent invocation evidence through the existing evidence dependency graph (TA §23, BS §5.7.4) |
+| Verifier conformance | contract-graph verifier checks: the twelve-edge row for `CONTRACT.RUNTIME.SKILL` and `CAP.ANDROID.SKILL_WORKFLOW` identity `M66`; the six platform capability clauses of BS §67.12 remain sealed; the `SkillPackage` schema fields appear in the registry entry |
+
+**Exit gate:** on a non-Windows host, the M118 v1 built-in skill set loads exactly 6 packages; `environment-preflight` is admitted (no capabilities required); `windows-runtime-validation` is blocked fail-closed against the `WINDOWS_NATIVE_EXECUTION` = `UNAVAILABLE` capability result; a revoked or unscanned package is `NotInvocable`; invocation records survive supervisor restart with version pinning; and a changed environment fingerprint invalidates prior invocation evidence. Documentation graph certification is reported separately from runtime certification.
 
