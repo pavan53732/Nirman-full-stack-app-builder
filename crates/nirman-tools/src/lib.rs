@@ -24,9 +24,10 @@
 //! OS itself, so its fixtures are deterministic and platform-independent.
 
 use nirman_domain::{
-    BuildGateRecord, BuildGateResult, EnvironmentCapabilityRecord, EnvironmentCapabilityResult,
-    MatrixExpectedResult, PlatformCapabilityEntry, PlatformCapabilityState, PlatformRequirements,
-    ValidationEnvironment, ValidationEnvironmentHealth,
+    BuildGateRecord, BuildGateResult, BuildGateStage, EnvironmentCapabilityRecord,
+    EnvironmentCapabilityResult, MatrixExpectedResult, PlatformCapabilityEntry,
+    PlatformCapabilityState, PlatformRequirements, ValidationEnvironment,
+    ValidationEnvironmentHealth,
 };
 use std::collections::BTreeMap;
 
@@ -1155,6 +1156,215 @@ impl EnvironmentCapabilityPlanner {
             recorded_at_epoch_seconds: now,
             supersedes: None,
         })
+    }
+}
+
+// ────────────────────────── Dispatch-time admission ───────────────────────
+
+/// The verdict of the platform admission evaluation at dispatch time
+/// (TA §84.3): either the task's operation is admitted against the observed
+/// record, or durable blocked nodes (BS §79.11) with the two continuation
+/// lists are produced and the gated work must not be scheduled.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlatformAdmissionDecision {
+    Admitted,
+    Blocked {
+        decisions: Vec<nirman_domain::PlatformBlockedDecision>,
+    },
+}
+
+/// Maps a worker stage to the platform operation it performs (BS §79.5):
+/// build stages produce the target artifact (cross-build when the host
+/// differs), install/launch/validate stages run on the target host,
+/// everything else is host-local.
+pub fn operation_for_stage(
+    stage: BuildGateStage,
+    record: &EnvironmentCapabilityRecord,
+) -> CommandOperation {
+    match stage {
+        BuildGateStage::Install
+        | BuildGateStage::Launch
+        | BuildGateStage::RuntimeValidation
+        | BuildGateStage::PlatformSpecificValidation
+        | BuildGateStage::RecoveryValidation
+        | BuildGateStage::Certification => CommandOperation::RuntimeValidation,
+        BuildGateStage::Compile
+        | BuildGateStage::TargetBuild
+        | BuildGateStage::Bundle
+        | BuildGateStage::ArtifactInspection => {
+            if record.is_cross_build() {
+                CommandOperation::TargetBuild
+            } else {
+                CommandOperation::HostBuild
+            }
+        }
+    }
+}
+
+/// Deterministic dispatch-time admission (the §84.3 decision points, made
+/// executable): worker platform requirements first, then the operation
+/// gate (cross-build admission or native-validation lease gate). Returns
+/// the blocked nodes with their §79.11 lists when the work must not run.
+pub fn evaluate_platform_admission(
+    record: &EnvironmentCapabilityRecord,
+    requirements: &PlatformRequirements,
+    stage: BuildGateStage,
+    now_epoch_seconds: u64,
+) -> PlatformAdmissionDecision {
+    // BS §79.12: the scheduler refuses a worker whose platform
+    // requirements the current environment record does not satisfy.
+    if !worker_satisfies_platform_requirements(requirements, record) {
+        let state = if record.host_platform != record.target_platform
+            && requirements.native_execution_required
+        {
+            PlatformCapabilityState::Unavailable
+        } else {
+            PlatformCapabilityState::UserRequired
+        };
+        return PlatformAdmissionDecision::Blocked {
+            decisions: vec![blocked_decision(
+                record,
+                stage,
+                state,
+                &format!(
+                    "worker platform requirements are not satisfied by environment {} (host {} -> target {})",
+                    record.environment_id, record.host_platform, record.target_platform
+                ),
+                now_epoch_seconds,
+            )],
+        };
+    }
+
+    let operation = operation_for_stage(stage, record);
+    let cross_compilation_allowed =
+        requirements.cross_compilation_allowed || stage == BuildGateStage::Compile;
+    match operation {
+        CommandOperation::HostBuild => PlatformAdmissionDecision::Admitted,
+        CommandOperation::TargetBuild => match admit_target_operation(operation, record, cross_compilation_allowed) {
+            AdmissionOutcome::Admitted { .. } => PlatformAdmissionDecision::Admitted,
+            AdmissionOutcome::ToolchainNotProven(state) => PlatformAdmissionDecision::Blocked {
+                decisions: vec![blocked_decision(
+                    record,
+                    stage,
+                    state,
+                    &format!(
+                        "cross-build toolchain for {} is not proven: {state}",
+                        record.target_platform
+                    ),
+                    now_epoch_seconds,
+                )],
+            },
+            AdmissionOutcome::CrossCompilationNotAllowedForContract => {
+                PlatformAdmissionDecision::Blocked {
+                    decisions: vec![blocked_decision(
+                        record,
+                        stage,
+                        PlatformCapabilityState::UserRequired,
+                        "the worker contract does not allow cross-compilation for this task",
+                        now_epoch_seconds,
+                    )],
+                }
+            }
+            AdmissionOutcome::RuntimeValidationClaimOnNonMatchingHost
+            | AdmissionOutcome::UnknownCapability(_) => PlatformAdmissionDecision::Blocked {
+                decisions: vec![blocked_decision(
+                    record,
+                    stage,
+                    PlatformCapabilityState::Unavailable,
+                    "operation is not admissible for this host/target pair",
+                    now_epoch_seconds,
+                )],
+            },
+        },
+        CommandOperation::RuntimeValidation => match admit_native_validation(record, None) {
+            NativeValidationOutcome::Admitted { .. } => PlatformAdmissionDecision::Admitted,
+            NativeValidationOutcome::HostDoesNotMatchTarget => PlatformAdmissionDecision::Blocked {
+                decisions: vec![blocked_decision(
+                    record,
+                    stage,
+                    PlatformCapabilityState::Unavailable,
+                    &format!(
+                        "native {} runtime environment required for target validation; the host is {} and no substitute target is accepted",
+                        record.target_platform, record.host_platform
+                    ),
+                    now_epoch_seconds,
+                )],
+            },
+            NativeValidationOutcome::NoValidationEnvironmentLease(state) => {
+                PlatformAdmissionDecision::Blocked {
+                    decisions: vec![blocked_decision(
+                        record,
+                        stage,
+                        state,
+                        &format!(
+                            "no durable ValidationEnvironment lease for {} target validation",
+                            record.target_platform
+                        ),
+                        now_epoch_seconds,
+                    )],
+                }
+            }
+            NativeValidationOutcome::EnvironmentNotMatchingTarget => PlatformAdmissionDecision::Blocked {
+                decisions: vec![blocked_decision(
+                    record,
+                    stage,
+                    PlatformCapabilityState::Unavailable,
+                    "the reserved validation environment does not match the target platform/architecture",
+                    now_epoch_seconds,
+                )],
+            },
+            NativeValidationOutcome::EnvironmentUnhealthy => PlatformAdmissionDecision::Blocked {
+                decisions: vec![blocked_decision(
+                    record,
+                    stage,
+                    PlatformCapabilityState::UserRequired,
+                    "the reserved validation environment is unhealthy",
+                    now_epoch_seconds,
+                )],
+            },
+        },
+    }
+}
+
+/// Builds a §79.11 blocked node with both continuation lists derived from
+/// the observed record — what can continue independently, and what cannot.
+fn blocked_decision(
+    record: &EnvironmentCapabilityRecord,
+    stage: BuildGateStage,
+    state: PlatformCapabilityState,
+    reason: &str,
+    now_epoch_seconds: u64,
+) -> nirman_domain::PlatformBlockedDecision {
+    let mut can_continue = Vec::new();
+    if record.cross_compilation_available {
+        can_continue.push("cross-build and platform-independent checks".into());
+    }
+    if record.capability_state(capability::HOST_NATIVE_TESTS)
+        == Some(PlatformCapabilityState::Available)
+    {
+        can_continue.push("host-native builds and tests".into());
+    }
+    if can_continue.is_empty() {
+        can_continue.push("none — re-scope the task to host-local work".into());
+    }
+    let cannot_continue = vec![format!(
+        "{} certification on {} (stage {:?})",
+        record.target_platform.to_uppercase(),
+        record.target_platform,
+        stage
+    )];
+    nirman_domain::PlatformBlockedDecision {
+        schema_version: nirman_domain::PlatformBlockedDecision::SCHEMA_VERSION,
+        decision_id: format!("pbld-{}-{:?}", record.target_platform, stage),
+        task_id: String::new(),
+        stage,
+        platform: record.target_platform.clone(),
+        state,
+        reason: reason.to_string(),
+        can_continue,
+        cannot_continue,
+        environment_id: Some(record.environment_id.clone()),
+        recorded_at_epoch_seconds: now_epoch_seconds,
     }
 }
 

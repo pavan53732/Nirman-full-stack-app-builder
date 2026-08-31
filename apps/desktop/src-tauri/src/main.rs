@@ -5336,6 +5336,85 @@ pub(crate) fn dispatch_request<S: EventSink>(
     } else {
         None
     };
+
+    // ── M118 dispatch-time platform gate (TA §84.3, BS §79.11/§79.12) ──────────
+    // A worker contract that declares platform requirements must pass the
+    // durable preflight + admission evaluation before the step executes.
+    // Blocked steps return the truthful state with both continuation lists;
+    // the durable blocked node persists across restart. Admitted steps keep
+    // exactly the existing behavior.
+    if let Some(payload) = m5_worker_step.as_ref() {
+        if !payload.cancel {
+            if let Some(platform_requirements) =
+                payload.worker_contract.platform_requirements.as_ref()
+            {
+                let declared_target = platform_requirements
+                    .required_target_platforms
+                    .first()
+                    .cloned()
+                    .unwrap_or_default();
+                if !declared_target.is_empty() {
+                    let gate_stage = match payload.observation.stage {
+                        WorkerStage::Build => nirman_domain::BuildGateStage::TargetBuild,
+                        WorkerStage::InstallLaunch | WorkerStage::Validate => {
+                            nirman_domain::BuildGateStage::RuntimeValidation
+                        }
+                        _ => nirman_domain::BuildGateStage::Compile,
+                    };
+                    let task_id = payload.worker_contract.task_id.0.clone();
+                    match state.plane.run_platform_preflight_and_admit(
+                        &task_id,
+                        &declared_target,
+                        "x86_64",
+                        platform_requirements,
+                        gate_stage,
+                        Box::new(nirman_tools::OsProbe),
+                        now_epoch_seconds(),
+                    ) {
+                        Ok(nirman_tools::PlatformAdmissionDecision::Admitted) => {
+                            // Gate open: no behavior change for the step.
+                        }
+                        Ok(nirman_tools::PlatformAdmissionDecision::Blocked { decisions }) => {
+                            let first = decisions.first().expect("blocked decisions are non-empty");
+                            return Err(error(
+                                &correlation_id,
+                                Some(command_id.clone()),
+                                causation_id.clone(),
+                                ControlPlaneErrorCode::DependencyUnavailable,
+                                ErrorCategory::Unavailable,
+                                &format!(
+                                    "M118 platform gate blocked the worker step: {} — can continue: {}; cannot continue: {}",
+                                    first.reason,
+                                    first.can_continue.join(", "),
+                                    first.cannot_continue.join(", ")
+                                ),
+                                false,
+                                Some(format!(
+                                    "durable blocked node {} (state {}) is recorded; continue the independent work and re-attempt the gated stage once a matching environment exists — no substitute target is accepted",
+                                    first.decision_id, first.state
+                                )),
+                            ));
+                        }
+                        Err(err) => {
+                            return Err(error(
+                                &correlation_id,
+                                Some(command_id.clone()),
+                                causation_id.clone(),
+                                ControlPlaneErrorCode::DependencyUnavailable,
+                                ErrorCategory::Unavailable,
+                                &format!("M118 platform preflight failed: {err}"),
+                                false,
+                                Some(
+                                    "reconcile the host environment record and retry the gated step"
+                                        .into(),
+                                ),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
     let prepared_mutation = if let Some(payload) = workspace_apply_patch.as_ref() {
         prepare_m46_mutation(state, &request, payload)?
     } else {
@@ -12353,6 +12432,219 @@ mod m5_adversarial_host_tests {
             .expect("policy events")
             .iter()
             .any(|decision| decision.reasons.contains(&"doom-loop".into())));
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m118_worker_step_blocked_by_platform_gate_returns_truthful_envelope() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m118-blocked".into());
+        // A native-execution requirement for a platform that is not the host:
+        // the deterministic gate must refuse the gated step and persist the
+        // blocked node (BS §79.11/§79.12, TA §84.3).
+        let host_platform_now = nirman_tools::PlatformProbe::host_platform(&nirman_tools::OsProbe);
+        let blocked_platform = if host_platform_now == "windows" {
+            "linux"
+        } else {
+            "windows"
+        };
+        let contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-m118-blocked".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: task_id.clone(),
+            capability_ceiling: vec!["android.validate".into()],
+            workspace_root: "/tmp/nirman-m118-blocked".into(),
+            allowed_paths: vec!["/tmp/nirman-m118-blocked".into()],
+            denied_paths: vec!["/tmp/nirman-m118-blocked/.git".into()],
+            max_attempts: 3,
+            evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: Some(nirman_domain::PlatformRequirements {
+                required_host_platforms: vec![blocked_platform.into()],
+                required_target_platforms: vec![blocked_platform.into()],
+                native_execution_required: true,
+                ..Default::default()
+            }),
+        };
+        let payload = worker_step_payload(contract, WorkerStage::Validate, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m118-blocked-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        let rejected =
+            dispatch_request(&sink, &mut state, request).expect_err("gated step must be blocked");
+        assert_eq!(rejected.code, ControlPlaneErrorCode::DependencyUnavailable);
+        assert!(
+            rejected.safe_message.contains("M118 platform gate blocked"),
+            "envelope must cite the gate: {}",
+            rejected.safe_message
+        );
+        assert!(
+            rejected.safe_message.contains("can continue:")
+                && rejected.safe_message.contains("cannot continue:"),
+            "both continuation lists must be surfaced: {}",
+            rejected.safe_message
+        );
+        // The durable blocked node and its gate record persist in the ledger.
+        let decision = state
+            .plane
+            .load_platform_blocked_decisions(&task_id.0)
+            .expect("blocked decisions")
+            .pop()
+            .expect("durable blocked node");
+        assert_eq!(
+            decision.state,
+            nirman_domain::PlatformCapabilityState::Unavailable
+        );
+        assert!(!decision.can_continue.is_empty());
+        assert!(!decision.cannot_continue.is_empty());
+        assert!(
+            decision.environment_id.is_some(),
+            "the blocked node must cite the observed environment"
+        );
+        let gate = state
+            .plane
+            .load_platform_gate_records()
+            .expect("gate records")
+            .into_iter()
+            .find(|gate| gate.command_or_operation_ref == format!("worker-step-{}", task_id.0))
+            .expect("gate record for the step");
+        assert_eq!(gate.result, nirman_domain::BuildGateResult::Unavailable);
+        // A refused step must not advance the task or emit control events.
+        assert_eq!(state.plane.snapshot().last_event_sequence, 0);
+        let _ = fs::remove_file(database);
+    }
+
+    #[test]
+    fn m118_worker_step_gate_outcome_is_durable_and_consistent() {
+        let database = database_path();
+        let mut state = test_state_at(&database);
+        let sink = RecordingSink::default();
+        let task_id = TaskId("task-m118-admitted".into());
+        // A cross-capable contract targeting windows: the deterministic gate
+        // decides from the observed host. On a host with a proven windows
+        // cross toolchain the step proceeds; without it the step is blocked
+        // with the truthful state. Either way the outcome is durable and the
+        // gate record, the ledger, and the event stream stay consistent.
+        let contract = WorkerContract {
+            schema_version: M5_SCHEMA_VERSION,
+            worker_id: "worker-m118-admitted".into(),
+            project_id: ProjectId(PROJECT_ID.into()),
+            task_id: task_id.clone(),
+            capability_ceiling: vec!["android.observe".into()],
+            workspace_root: "/tmp/nirman-m118-admitted".into(),
+            allowed_paths: vec!["/tmp/nirman-m118-admitted".into()],
+            denied_paths: vec!["/tmp/nirman-m118-admitted/.git".into()],
+            max_attempts: 3,
+            evidence_requirements: vec!["stage-evidence".into()],
+            platform_requirements: Some(nirman_domain::PlatformRequirements {
+                required_target_platforms: vec!["windows".into()],
+                required_capabilities: vec!["cross_build_windows".into()],
+                cross_compilation_allowed: true,
+                ..Default::default()
+            }),
+        };
+        let payload = worker_step_payload(contract, WorkerStage::Observe, WorkerOutcome::Success);
+        let mut request = request(
+            &state,
+            "m118-admitted-step",
+            CommandKind::WorkerStep,
+            serde_json::to_string(&payload).expect("worker step payload"),
+            0,
+        );
+        request.command.task_id = Some(task_id.clone());
+        match dispatch_request(&sink, &mut state, request) {
+            Ok(_response) => {
+                // Admitted: the gate opened and the durable record exists.
+                let record = state
+                    .plane
+                    .load_platform_preflight(&task_id.0)
+                    .expect("preflight lookup")
+                    .expect("durable environment record");
+                assert_eq!(record.target_platform, "windows");
+                let gate = state
+                    .plane
+                    .load_platform_gate_records()
+                    .expect("gate records")
+                    .into_iter()
+                    .find(|gate| {
+                        gate.command_or_operation_ref == format!("worker-step-{}", task_id.0)
+                    })
+                    .expect("gate record for the step");
+                assert_eq!(gate.result, nirman_domain::BuildGateResult::Unverified);
+                assert!(state
+                    .plane
+                    .load_platform_blocked_decisions(&task_id.0)
+                    .expect("decisions")
+                    .is_empty());
+            }
+            Err(rejected) => {
+                if !rejected.safe_message.contains("M118 platform gate") {
+                    // The gate admitted the step; the error comes from the
+                    // ordinary worker path, and the ledger must show an open
+                    // gate with no blocked node.
+                    let record = state
+                        .plane
+                        .load_platform_preflight(&task_id.0)
+                        .expect("preflight lookup")
+                        .expect("durable environment record");
+                    assert_eq!(record.target_platform, "windows");
+                    let gate = state
+                        .plane
+                        .load_platform_gate_records()
+                        .expect("gate records")
+                        .into_iter()
+                        .find(|gate| {
+                            gate.command_or_operation_ref == format!("worker-step-{}", task_id.0)
+                        })
+                        .expect("gate record for the step");
+                    assert_eq!(gate.result, nirman_domain::BuildGateResult::Unverified);
+                    assert!(state
+                        .plane
+                        .load_platform_blocked_decisions(&task_id.0)
+                        .expect("decisions")
+                        .is_empty());
+                    let _ = fs::remove_file(database);
+                    return;
+                }
+                // Gate-blocked: truthful state, both lists, and a durable node.
+                assert_eq!(rejected.code, ControlPlaneErrorCode::DependencyUnavailable);
+                let decision = state
+                    .plane
+                    .load_platform_blocked_decisions(&task_id.0)
+                    .expect("blocked decisions")
+                    .pop()
+                    .expect("durable blocked node");
+                assert!(!decision.can_continue.is_empty());
+                assert!(!decision.cannot_continue.is_empty());
+                let gate = state
+                    .plane
+                    .load_platform_gate_records()
+                    .expect("gate records")
+                    .into_iter()
+                    .find(|gate| {
+                        gate.command_or_operation_ref == format!("worker-step-{}", task_id.0)
+                    })
+                    .expect("gate record for the step");
+                let expected_gate_result = match decision.state {
+                    nirman_domain::PlatformCapabilityState::Unavailable => {
+                        nirman_domain::BuildGateResult::Unavailable
+                    }
+                    nirman_domain::PlatformCapabilityState::UserRequired => {
+                        nirman_domain::BuildGateResult::UserRequired
+                    }
+                    _ => nirman_domain::BuildGateResult::Unverified,
+                };
+                assert_eq!(gate.result, expected_gate_result);
+                assert_eq!(state.plane.snapshot().last_event_sequence, 0);
+            }
+        }
         let _ = fs::remove_file(database);
     }
 }

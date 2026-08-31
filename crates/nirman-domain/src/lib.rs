@@ -1619,3 +1619,28 @@ pub struct PlatformRequirements {
     pub cross_compilation_allowed: bool,
     pub native_execution_required: bool,
 }
+
+/// Durable blocked node for a platform gate (BS §79.11, TA §84.1): the
+/// pending decision that names the required environment, records a
+/// truthful state, and states both continuation lists. Silent continuation
+/// that skips the gate, or a claim that the gate passed, is a certification
+/// failure — this record is the durable proof of the opposite.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PlatformBlockedDecision {
+    pub schema_version: u16,
+    pub decision_id: String,
+    pub task_id: String,
+    pub stage: BuildGateStage,
+    pub platform: String,
+    pub state: PlatformCapabilityState,
+    pub reason: String,
+    pub can_continue: Vec<String>,
+    pub cannot_continue: Vec<String>,
+    pub environment_id: Option<String>,
+    pub recorded_at_epoch_seconds: u64,
+}
+
+impl PlatformBlockedDecision {
+    pub const SCHEMA_VERSION: u16 = 1;
+}

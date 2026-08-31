@@ -325,6 +325,32 @@ impl From<DomainError> for DurableControlPlaneError {
     }
 }
 
+/// Failure of the M118 dispatch-time platform gate (TA §84.3): either the
+/// preflight itself could not run (undeclared target, uncovered host) or
+/// durable storage was unavailable. Neither case admits the gated work.
+#[derive(Debug)]
+pub enum PlatformPreflightAdmissionError {
+    Preflight(nirman_tools::PreflightError),
+    Storage(rusqlite::Error),
+}
+
+impl From<rusqlite::Error> for PlatformPreflightAdmissionError {
+    fn from(error: rusqlite::Error) -> Self {
+        Self::Storage(error)
+    }
+}
+
+impl std::fmt::Display for PlatformPreflightAdmissionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlatformPreflightAdmissionError::Preflight(error) => write!(f, "{error}"),
+            PlatformPreflightAdmissionError::Storage(error) => {
+                write!(f, "platform preflight storage is unavailable: {error}")
+            }
+        }
+    }
+}
+
 impl From<rusqlite::Error> for DurableControlPlaneError {
     fn from(error: rusqlite::Error) -> Self {
         Self::Storage(error)
@@ -869,6 +895,150 @@ impl DurableControlPlane {
     pub fn load_m108_event_jsons(&self, task_id: &str) -> Result<Vec<String>, rusqlite::Error> {
         self.ledger
             .load_m108_event_jsons(&self.core_snapshot().project_id, task_id)
+    }
+
+    // ─────────────────────────── M118 platform admission ──────────────────
+
+    pub fn save_platform_preflight(
+        &self,
+        record: &nirman_domain::EnvironmentCapabilityRecord,
+        task_id: &str,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_platform_preflight(&self.core_snapshot().project_id, task_id, record)
+    }
+
+    pub fn load_platform_preflight(
+        &self,
+        task_id: &str,
+    ) -> Result<Option<nirman_domain::EnvironmentCapabilityRecord>, rusqlite::Error> {
+        self.ledger
+            .load_platform_preflight(&self.core_snapshot().project_id, task_id)
+    }
+
+    pub fn save_platform_gate_record(
+        &self,
+        record: &nirman_domain::BuildGateRecord,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_platform_gate_record(&self.core_snapshot().project_id, record)
+    }
+
+    pub fn load_platform_gate_records(
+        &self,
+    ) -> Result<Vec<nirman_domain::BuildGateRecord>, rusqlite::Error> {
+        self.ledger
+            .load_platform_gate_records(&self.core_snapshot().project_id)
+    }
+
+    pub fn save_platform_blocked_decision(
+        &self,
+        decision: &nirman_domain::PlatformBlockedDecision,
+    ) -> Result<(), rusqlite::Error> {
+        self.ledger
+            .save_platform_blocked_decision(&self.core_snapshot().project_id, decision)
+    }
+
+    pub fn load_platform_blocked_decisions(
+        &self,
+        task_id: &str,
+    ) -> Result<Vec<nirman_domain::PlatformBlockedDecision>, rusqlite::Error> {
+        self.ledger
+            .load_platform_blocked_decisions(&self.core_snapshot().project_id, task_id)
+    }
+
+    /// M118 (TA §84.3, BS §79.11): the dispatch-time platform gate. Runs the
+    /// `EnvironmentCapabilityPlanner` against the supplied probe, durably
+    /// records the environment capability record (superseding the previous
+    /// one only when the environment identity changed), evaluates the
+    /// dispatch-time admission for one stage, and persists the gate record
+    /// plus any blocked decisions. Restart-replayable: re-running under an
+    /// unchanged environment reuses the recorded record idempotently.
+    ///
+    /// The probe is injected: production passes `OsProbe` (the real host),
+    /// tests pass a scripted probe. The decision points are the §84.3 ones —
+    /// no new authority is created here.
+    pub fn run_platform_preflight_and_admit(
+        &self,
+        task_id: &str,
+        declared_target: &str,
+        target_architecture: &str,
+        requirements: &nirman_domain::PlatformRequirements,
+        stage: nirman_domain::BuildGateStage,
+        probe: Box<dyn nirman_tools::PlatformProbe>,
+        now_epoch_seconds: u64,
+    ) -> Result<nirman_tools::PlatformAdmissionDecision, PlatformPreflightAdmissionError> {
+        let project_id = self.core_snapshot().project_id;
+        let planner = nirman_tools::EnvironmentCapabilityPlanner::new(
+            probe,
+            nirman_tools::PlatformCapabilityRegistry::canonical_v1(),
+        );
+        let mut record = planner
+            .run(declared_target, target_architecture)
+            .map_err(PlatformPreflightAdmissionError::Preflight)?;
+        let previous = self.ledger.load_platform_preflight(&project_id, task_id)?;
+        if let Some(previous) = previous {
+            if previous.environment_fingerprint == record.environment_fingerprint {
+                // Unchanged environment: reuse the recorded record so
+                // replay keeps the original identity (idempotency).
+                record = previous;
+            } else {
+                // Environment identity changed: the new record supersedes
+                // the previous one (TA §84.2 invalidation lineage).
+                record.supersedes = Some(previous.environment_id);
+            }
+        }
+        self.ledger
+            .save_platform_preflight(&project_id, task_id, &record)?;
+
+        let decision = nirman_tools::evaluate_platform_admission(
+            &record,
+            requirements,
+            stage,
+            now_epoch_seconds,
+        );
+        let gate_id = format!("m118-{}-{stage:?}-{}", record.target_platform, task_id);
+        let gate_result = match &decision {
+            nirman_tools::PlatformAdmissionDecision::Admitted => {
+                nirman_domain::BuildGateResult::Unverified
+            }
+            nirman_tools::PlatformAdmissionDecision::Blocked { decisions } => {
+                let first = decisions
+                    .first()
+                    .expect("blocked decisions are never empty");
+                let outcome = match first.state {
+                    nirman_domain::PlatformCapabilityState::Unavailable => {
+                        nirman_domain::BuildGateResult::Unavailable
+                    }
+                    nirman_domain::PlatformCapabilityState::UserRequired => {
+                        nirman_domain::BuildGateResult::UserRequired
+                    }
+                    _ => nirman_domain::BuildGateResult::Unverified,
+                };
+                for decision in decisions {
+                    let mut decision = decision.clone();
+                    decision.task_id = task_id.to_string();
+                    self.ledger
+                        .save_platform_blocked_decision(&project_id, &decision)?;
+                }
+                outcome
+            }
+        };
+        let gate_record = nirman_domain::BuildGateRecord {
+            schema_version: nirman_domain::BuildGateRecord::SCHEMA_VERSION,
+            gate_id,
+            stage,
+            platform: record.target_platform.clone(),
+            environment_id: record.environment_id.clone(),
+            revision: self.core_snapshot().current_source_revision,
+            command_or_operation_ref: format!("worker-step-{task_id}"),
+            evidence_ids: vec![],
+            result: gate_result,
+            recorded_at_epoch_seconds: now_epoch_seconds,
+        };
+        self.ledger
+            .save_platform_gate_record(&project_id, &gate_record)?;
+        Ok(decision)
     }
 
     pub fn load_android_device_observation_for_source(

@@ -179,7 +179,7 @@
     "installer_tools": [],
     "linker": "x86_64-w64-mingw32-gcc (GCC) 14-win32",
     "native_dependencies": [],
-    "recorded_at_epoch_seconds": 1788189802,
+    "recorded_at_epoch_seconds": 1788196865,
     "repair_attempts": [],
     "required_user_actions": [
       "capability windows_native_execution: Unavailable (prior: UnavailableByPlatform; required tools: windows_os)",

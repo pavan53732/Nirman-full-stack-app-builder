@@ -316,6 +316,28 @@ impl Ledger {
                  source_revision INTEGER NOT NULL,
                  last_event_sequence INTEGER NOT NULL,
                  last_known_good_ref TEXT
+             );
+             CREATE TABLE IF NOT EXISTS m118_platform_preflights (
+                 project_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 environment_id TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, task_id)
+             );
+             CREATE TABLE IF NOT EXISTS m118_platform_gate_records (
+                 project_id TEXT NOT NULL,
+                 gate_id TEXT NOT NULL,
+                 stage TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, gate_id)
+             );
+             CREATE TABLE IF NOT EXISTS m118_platform_blocked_decisions (
+                 project_id TEXT NOT NULL,
+                 decision_id TEXT NOT NULL,
+                 task_id TEXT NOT NULL,
+                 stage TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 PRIMARY KEY (project_id, decision_id, task_id)
              );",
         )
     }
@@ -2646,6 +2668,144 @@ impl Ledger {
                 },
             )
             .optional()
+    }
+
+    // ─────────────────────────── M118 platform records ───────────────────
+
+    pub fn save_platform_preflight(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+        record: &nirman_domain::EnvironmentCapabilityRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        self.connection.execute(
+            "INSERT INTO m118_platform_preflights (project_id, task_id, environment_id, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, task_id) DO UPDATE SET environment_id = excluded.environment_id, record_json = excluded.record_json",
+            params![project_id.0, task_id, record.environment_id, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_platform_preflight(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Option<nirman_domain::EnvironmentCapabilityRecord>> {
+        self.connection
+            .query_row(
+                "SELECT record_json FROM m118_platform_preflights WHERE project_id = ?1 AND task_id = ?2",
+                params![project_id.0, task_id],
+                |row| {
+                    let json: String = row.get(0)?;
+                    serde_json::from_str(&json).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            0,
+                            rusqlite::types::Type::Text,
+                            Box::new(std::io::Error::other(error.to_string())),
+                        )
+                    })
+                },
+            )
+            .optional()
+    }
+
+    pub fn save_platform_gate_record(
+        &self,
+        project_id: &ProjectId,
+        record: &nirman_domain::BuildGateRecord,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(record).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let stage = serde_json::to_string(&record.stage)
+            .expect("BuildGateStage serialization is infallible")
+            .trim_matches('"')
+            .to_string();
+        self.connection.execute(
+            "INSERT INTO m118_platform_gate_records (project_id, gate_id, stage, record_json) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(project_id, gate_id) DO UPDATE SET stage = excluded.stage, record_json = excluded.record_json",
+            params![project_id.0, record.gate_id, stage, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_platform_gate_records(
+        &self,
+        project_id: &ProjectId,
+    ) -> rusqlite::Result<Vec<nirman_domain::BuildGateRecord>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT record_json FROM m118_platform_gate_records WHERE project_id = ?1 ORDER BY gate_id")?;
+        let rows = statement
+            .query_map(params![project_id.0], |row| {
+                let json: String = row.get(0)?;
+                serde_json::from_str(&json).map_err(|error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::other(error.to_string())),
+                    )
+                })
+            })
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut records = Vec::new();
+        for row in rows {
+            records.push(row?);
+        }
+        Ok(records)
+    }
+
+    pub fn save_platform_blocked_decision(
+        &self,
+        project_id: &ProjectId,
+        decision: &nirman_domain::PlatformBlockedDecision,
+    ) -> rusqlite::Result<()> {
+        let record_json = serde_json::to_string(decision).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                error.to_string(),
+            )))
+        })?;
+        let stage = serde_json::to_string(&decision.stage)
+            .expect("BuildGateStage serialization is infallible")
+            .trim_matches('"')
+            .to_string();
+        self.connection.execute(
+            "INSERT INTO m118_platform_blocked_decisions (project_id, decision_id, task_id, stage, record_json) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(project_id, decision_id, task_id) DO UPDATE SET stage = excluded.stage, record_json = excluded.record_json",
+            params![project_id.0, decision.decision_id, decision.task_id, stage, record_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_platform_blocked_decisions(
+        &self,
+        project_id: &ProjectId,
+        task_id: &str,
+    ) -> rusqlite::Result<Vec<nirman_domain::PlatformBlockedDecision>> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT record_json FROM m118_platform_blocked_decisions WHERE project_id = ?1 AND task_id = ?2 ORDER BY decision_id")?;
+        let rows = statement
+            .query_map(params![project_id.0, task_id], |row| {
+                let json: String = row.get(0)?;
+                serde_json::from_str(&json).map_err(|error| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::other(error.to_string())),
+                    )
+                })
+            })
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut decisions = Vec::new();
+        for row in rows {
+            decisions.push(row?);
+        }
+        Ok(decisions)
     }
 }
 
