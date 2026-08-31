@@ -1,0 +1,38 @@
+{
+  "skillId": "environment-repair",
+  "name": "Environment Repair",
+  "description": "Performs authorized environment repairs: a missing tool, a wrong tool version, a missing target, a broken PATH, a missing SDK or dependency, or an incorrect configuration. Repairs run only through the repair capability plus policy approval via the normal transaction path; the skill itself requests no permissions and grants none.",
+  "version": "1.0.0",
+  "scope": "BUILT_IN",
+  "compatibleWorkerRoles": ["orchestrator", "build_worker"],
+  "triggerConditions": [
+    "capability_state_is_REPAIRABLE",
+    "preflight_reported_repair_action"
+  ],
+  "requiredTools": [],
+  "requiredCapabilities": [],
+  "permissionRequests": ["environment.repair"],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "environmentId": { "type": "string" },
+      "capabilityId": { "type": "string" },
+      "repairAction": { "type": "string" }
+    },
+    "required": ["environmentId", "capabilityId", "repairAction"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "outcome": { "type": "string", "enum": ["repaired", "failed", "rejected"] },
+      "evidenceRefs": { "type": "array" }
+    },
+    "required": ["outcome", "evidenceRefs"]
+  },
+  "sourcePath": "builtin/environment/environment-repair",
+  "scanStatus": "CLEAN",
+  "trustStatus": "TRUSTED",
+  "enabled": true,
+  "installedAt": 0,
+  "lastUsedAt": null
+}

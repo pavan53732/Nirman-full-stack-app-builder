@@ -1,0 +1,39 @@
+{
+  "skillId": "windows-desktop-build",
+  "name": "Windows Desktop Build",
+  "description": "Tauri 2 / React / TypeScript / Vite / Rust build for Windows x64, bundling, and installer generation. Runs as a cross-build from a non-Windows host or natively on a Windows host. Produces artifact-production evidence only; it never claims native Windows runtime validation.",
+  "version": "1.0.0",
+  "scope": "BUILT_IN",
+  "compatibleWorkerRoles": ["build_worker"],
+  "triggerConditions": [
+    "target_platform_is_windows",
+    "stage_is_build_or_bundle_or_installer"
+  ],
+  "requiredTools": ["rustc", "cargo", "node", "tsc", "package_manager"],
+  "requiredCapabilities": ["cross_build_windows", "windows_installer_generation"],
+  "permissionRequests": [],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "environmentId": { "type": "string" },
+      "targetArchitecture": { "type": "string", "enum": ["x86_64"] },
+      "stage": { "type": "string", "enum": ["build", "bundle", "installer"] }
+    },
+    "required": ["environmentId", "targetArchitecture", "stage"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "artifactIds": { "type": "array" },
+      "buildGateResult": { "type": "string" },
+      "runtimeValidationClaimed": { "type": "boolean", "const": false }
+    },
+    "required": ["artifactIds", "buildGateResult", "runtimeValidationClaimed"]
+  },
+  "sourcePath": "builtin/windows/windows-desktop-build",
+  "scanStatus": "CLEAN",
+  "trustStatus": "TRUSTED",
+  "enabled": true,
+  "installedAt": 0,
+  "lastUsedAt": null
+}

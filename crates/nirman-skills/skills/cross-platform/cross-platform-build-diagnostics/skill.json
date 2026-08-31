@@ -1,0 +1,39 @@
+{
+  "skillId": "cross-platform-build-diagnostics",
+  "name": "Cross-Platform Build Diagnostics",
+  "description": "For a host-to-target pair, determines what can be cross-built, which target artifacts can be produced, and which validation evidence necessarily remains missing. Consumes the environment capability record; it never claims the missing evidence.",
+  "version": "1.0.0",
+  "scope": "BUILT_IN",
+  "compatibleWorkerRoles": ["orchestrator", "build_worker", "validation_worker"],
+  "triggerConditions": [
+    "host_platform_differs_from_target",
+    "capability_state_is_not_available"
+  ],
+  "requiredTools": [],
+  "requiredCapabilities": [],
+  "permissionRequests": [],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "environmentId": { "type": "string" },
+      "hostPlatform": { "type": "string" },
+      "targetPlatform": { "type": "string" }
+    },
+    "required": ["environmentId", "hostPlatform", "targetPlatform"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "canCrossBuild": { "type": "boolean" },
+      "producibleArtifacts": { "type": "array" },
+      "missingValidationEvidence": { "type": "array" }
+    },
+    "required": ["canCrossBuild", "producibleArtifacts", "missingValidationEvidence"]
+  },
+  "sourcePath": "builtin/cross-platform/cross-platform-build-diagnostics",
+  "scanStatus": "CLEAN",
+  "trustStatus": "TRUSTED",
+  "enabled": true,
+  "installedAt": 0,
+  "lastUsedAt": null
+}

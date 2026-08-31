@@ -36,6 +36,7 @@ cargo test -p nirman-preview --test m108_acceptance
 cargo test -p nirman-agents --test m49_acceptance
 cargo test -p nirman-control-plane --test m115_final_acceptance
 cargo test -p nirman-control-plane --test m118_control_plane_acceptance
+cargo test -p nirman-skills --test m118_platform_skills_acceptance
 cargo test -p nirman-providers --test m3_acceptance
 cargo test -p nirman-providers m44_bridge -- --nocapture
 cargo test -p nirman-tools
