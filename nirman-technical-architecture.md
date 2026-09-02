@@ -93,6 +93,8 @@ Development servers, test runners, package managers, emulators, browsers, and bu
 
 The process manager must support cancellation of the whole process tree, not only the parent process. It must capture stdout and stderr separately, enforce output limits, and preserve the final diagnostic output when a process is terminated.
 
+Job handles MUST be created with handle inheritance DISABLED. If a child inherits the handle, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE does not reap the tree when the parent exits, because an open handle keeps the job alive. Termination MUST NOT rely on parent-child process-tree walking alone. A grandchild assigned to its own nested job, or reparented after its parent exits, is missed. Assignment to the supervisor job at spawn is the only durable containment. Every spawned build, emulator, device, and package-manager process MUST be assigned to the job BEFORE it is resumed. The gradlew.bat → java.exe and Metro/Expo → node.exe shapes are the cases that leak. A leaked Gradle daemon holds file locks and corrupts the next run; supervisor restart MUST reconcile orphaned descendants from the ledger before starting new work.
+
 ---
 
 ## 4. Local State and Persistence
@@ -5385,6 +5387,12 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 `EnvironmentCapabilityRecord` (registry: §36.1): `environment_id`, `host_platform`, `host_architecture`, `target_platform`, `target_architecture`, `shell`, `compiler`, `linker`, `sdk`, `runtime`, `build_tools`, `installer_tools`, `native_dependencies`, `tool_versions`, `environment_fingerprint`, `capability_results`, `repair_attempts`, `required_user_actions`, `runtime_validation_available`, `cross_compilation_available`, `evidence_ids`, `recorded_at`, `supersedes`. Host and target are explicit fields; nothing downstream may re-infer them.
 
 `PlatformCapabilityEntry` (registry: §36.1): `capability_id`, `host_platform`, `expected_result: available | environment_dependent | unavailable_by_platform`, `required_toolchain`, `evidence_requirements`, `matrix_version`. The matrix is a prior for preflight; the observed record wins.
+
+| capability_id | host_platform | expected_result | required_toolchain | evidence_requirements | matrix_version |
+|---|---|---|---|---|---|
+| `job_object_containment` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, process_launch_observation_with_executable_path, job_object_assignment_before_resume, tree_termination_observation, orphaned_descendant_reconciliation | 1 |
+
+Job Object containment is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 
 `ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_devices`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease_id`, `reserved_by_task`, `acquired_at`, `released_at`.
 
