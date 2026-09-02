@@ -703,7 +703,7 @@ Implement the capability registry, technology planner, framework resolver, mixed
 
 ## 31. Definition of Done for Nirman v1
 
-Nirman v1 is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman.
+Nirman v1 is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASSED under the no-human-intervention definition.
 
 The product is not considered autonomous-ready unless the runtime, rather than the model, remains the authority over lifecycle, permissions, sandboxing, storage, evidence, recovery, promotion, rollback, and termination.
 
@@ -755,6 +755,33 @@ These fixtures are internal acceptance categories, not user-facing templates. Th
 ### Acceptance criteria
 
 Every capability fixture can be generated from an instruction and optional screenshots, built, installed or launched, tested, visually validated, repaired, reconciled, and packaged as an installable APK, or an AAB only when the active PackagingProfile requires `APK_AND_AAB`, where applicable. The technology plan must explain the selected stack and the evidence ledger must prove the result.
+
+### Frozen product-progress battery
+
+The battery is a fixed set of eight natural-language prompts, frozen at first definition and never edited to make a result look better. It is run in full at the end of every milestone group. Its purpose is a single comparable number over time, not coverage — §35's category fixtures own coverage.
+
+| Id | Prompt | Primary stress |
+|---|---|---|
+| FIX-PROG-01 | A tip calculator | Pure UI and state |
+| FIX-PROG-02 | A todo list with local persistence | Local storage |
+| FIX-PROG-03 | A habit tracker with streaks and 8pm reminders | Scheduling and notifications |
+| FIX-PROG-04 | A weather app using a public REST API | Network and error states |
+| FIX-PROG-05 | A note-taking app with search | Query and list state |
+| FIX-PROG-06 | A photo gallery reading device storage | Runtime permissions |
+| FIX-PROG-07 | A pomodoro timer with a foreground service | Background execution |
+| FIX-PROG-08 | An expense tracker with a chart and CSV export | Data visualization and file output |
+
+The ordering is deliberate: FIX-PROG-01 and 02 exercise UI and storage only; 03 to 05 add scheduling, network, and query state; 06 and 07 require runtime permissions and background execution; 08 combines data visualization with file output.
+
+A battery entry counts as PASSED only when the prompt alone produces a built, installed, launched, and validated Android application with no human intervention beyond the initial prompt, and the evidence ledger carries the observations that prove it. A run that required a manual fix, a retry directed by the user, or an unexplained repair is FAILED for scoring purposes even if an APK was produced.
+
+Target: at least 6 of 8 PASSED. Below that, the product is not autonomous regardless of how many category fixtures pass.
+
+Battery results are recorded per run with the source revision, toolchain lock, environment fingerprint, and evidence ids, so results across milestone groups are comparable. A battery result is never a completion decision; it is an aggregate observation (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
+
+FIX-PROG-01..08 follow the existing FIX-* fixture id convention already used in this document (FIX-DEL-*). They are fixture ids in the development plan only and are not contract-bearing test identities.
+
+The battery is not a milestone. It is run as part of existing milestone group exit gates, particularly the §35 fixture coverage gate and the §31 v1 Definition of Done.
 
 ## 36. No-Routine-Intervention Gate
 
