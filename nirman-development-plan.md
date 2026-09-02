@@ -1516,6 +1516,52 @@ M108 implements build spec §71 and technical architecture §75. It must follow 
 
 Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` with canonical schema registry entries, version compatibility, durable event sequences, idempotent replay, projection revisions, preview identity checks, causal lineage, authority classes, and evidence lineage. Record acceptance using `TEST-PSYNC-001` and `EV-PSYNC-001`. Connect the user chat request to intent acceptance, contract validation, agent authorization, source revision, checkpoint, Android build, APK artifact, emulator/device installation, launch, interaction, observation, validation, promotion, and panel projection.
 
+### M108 work items
+
+| Work item | Implements | Acceptance condition |
+|---|---|---|
+| Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered with `adapterId`, `adapterVersion`, `technologyIds`, `supportedCompositions`, `requiredToolchainCapabilities`, `requiredDeviceCapabilities`, `compatibilityRules`; each operation returns `AndroidTechnologyAdapterObservation`; no operation mutates authoritative state, evidence identity, artifact promotion, preview projection, or completion state directly; `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash` |
+| Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly |
+| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by both emulator and physical-device implementations; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
+| Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
+| Preview Panel Pipeline | TA §73.14 | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry and by the contract-graph verifier |
+
+### M108 acceptance chain
+
+For every certified Android profile, the durable execution path MUST resolve:
+
+```text
+AndroidTechnologyPlan
+  → AndroidTechnologyAdapter (adapterId, adapterVersion, technologyPlanHash)
+  → AndroidToolchainLock
+  → AndroidBuildAdapter → AndroidBuildObservation
+  → Artifact identity
+  → AndroidDeviceAdapter → install and launch observation
+  → RuntimeObservation
+  → PreviewSyncEvent (carries adapterId, adapterVersion, technologyPlanHash)
+  → PreviewProjection
+  → Evidence (PreviewSyncEvidenceRecord carries adapterId, adapterVersion, technologyPlanHash)
+  → PreviewPromotionGate
+```
+
+### M108 parameterized fixture matrix
+
+The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event-store, reducer, projection, evidence, promotion, and replay tests over each row of the matrix. Each row is a profile instance of `AndroidCapabilityProfile` (with the new `adapterId`, `adapterVersion`, `technologyPlanHash`, `buildStrategyId`, `previewStrategyId`, `runtimeStrategyId`, `validationStrategyId` fields populated) and exercises one legal preview-mode branch from the §73.11 rule table.
+
+| Fixture | Required path |
+|---|---|
+| Kotlin + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Kotlin + Compose | `NativeAndroidAdapter`; `COMPOSE_RELOAD` for Compose-only changes, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Java + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| React Native | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with healthy Metro, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Expo | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with healthy Expo runtime, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Native module | `MixedAndroidAdapter`; `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
+| NDK or CMake | `MixedAndroidAdapter` (composed Gradle plus NDK or CMake); `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
+| Device API | `AndroidDeviceAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` with device-permission observation recorded |
+| Native + JavaScript | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+
+The matrix is one parameterized test harness. M108 MUST NOT spawn nine separate test systems; the existing M108 fixture runner, the verifier, and the conformance battery must be extended to walk the matrix with `profileId`-keyed inputs.
+
 **Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance.
 
 ## M109 — Preview projection resilience and runtime-certification evidence

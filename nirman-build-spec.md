@@ -338,6 +338,13 @@ AndroidCapabilityProfile
 - testIds
 - evidenceReportIds
 - status
+- adapterId
+- adapterVersion
+- technologyPlanHash
+- buildStrategyId
+- previewStrategyId
+- runtimeStrategyId
+- validationStrategyId
 - certifiedRevision
 ```
 
@@ -3968,7 +3975,7 @@ Capability → Requirement → Build-spec contract → Architecture contract →
 | Capability → Requirement | The capability is stated as a numbered requirement, not implied |
 | Requirement → Build-spec contract | A section of this document defines the required behavior |
 | → Architecture contract | The technical architecture defines the component that implements it |
-| → Schema or state machine | A typed record or explicit state machine exists |
+| → Schema or state machine | A typed record or explicit state machine exists, including the adapter operation contracts (`AndroidTechnologyAdapter`, `AndroidDeviceAdapter`, `AndroidBuildAdapter`) and the deterministic preview-mode resolver (`PreviewModeResolverInput`, `PreviewModeResolverOutput`) where preview sync depends on them |
 | → Authority | The deciding authority is named |
 | → Persistence | What is stored, where, and its retention is stated |
 | → Failure and recovery | The failure modes and recovery behavior are stated |
@@ -4192,6 +4199,8 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | displayed completed stages require current evidence bound to the projection | SEALED |
 | CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | a disconnected UI cannot advance preview truth or evidence locally | SEALED |
 | CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | an event may update only a compatible preview identity and revision | SEALED |
+| CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | every preview operation that performs build, install, launch, reload, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work MUST carry the `adapterId`, `adapterVersion`, and `technologyPlanHash` of the registered `AndroidTechnologyAdapter`; the adapter is an execution provider and MUST NOT mutate authoritative state, evidence identity, artifact promotion, preview projection, or completion state | SEALED |
+| CLAUSE.PREVIEW_SYNC.MODE_RESOLVER | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | the `PreviewRevision.previewMode` is selected only by the deterministic resolver defined in technical architecture §73.11; a model, worker, UI, or prompt MUST NOT select the preview mode directly | SEALED |
 | CLAUSE.COST.NO_UNTRACKED_USAGE | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | every billable or budget-relevant operation records reserved, settled, or rejected usage | SEALED |
 | CLAUSE.COST.EXHAUSTION_EXPLICIT | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | budget exhaustion causes a recorded downgrade, pause, approval request, or safe failure and never silent continuation | SEALED |
 | CLAUSE.TRUST.SCAN_BEFORE_EXECUTION | CONTRACT.RUNTIME.AGENT_TRUST | §73 | untrusted skill, MCP, plugin, or instruction content cannot execute before trust assessment and policy admission | SEALED |
@@ -4849,6 +4858,10 @@ A boundary fixture must prove that source and destination identity, schema and p
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.PREVIEW_SYNC` (see BS §67.8)
 
 This contract defines how the user’s chat instruction and autonomous agent activity become a truthful live Android preview projection. It extends the existing intent, execution, evidence, preview, and integration-boundary contracts. It creates no second preview authority: `PreviewCoordinator` remains the sole service that creates, reloads, installs, invalidates, rolls back, or promotes a preview, and the deterministic runtime remains the sole lifecycle and evidence authority.
+
+### 71.0 Adapter binding
+
+`CONTRACT.RUNTIME.PREVIEW_SYNC` requires the selected `AndroidTechnologyPlan` to resolve through exactly one registered `AndroidTechnologyAdapter` (technical architecture §73.10). Every preview operation that performs build, install, launch, reload, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work MUST carry the `adapterId`, `adapterVersion`, and `technologyPlanHash` on the emitted `PreviewSyncEvent` and on the corresponding `PreviewSyncEvidenceRecord`. The adapter is an execution and observation provider, never an authority: lifecycle, policy, evidence, preview, artifact, recovery, promotion, and completion decisions remain with the existing specialized authorities. The deterministic preview-mode resolver defined in technical architecture §73.11 is the sole normative selector for the `PreviewRevision.previewMode` field; a model, worker, UI, or prompt MUST NOT select the preview mode directly.
 
 ### 71.1 Canonical synchronization schemas
 

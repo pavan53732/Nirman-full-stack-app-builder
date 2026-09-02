@@ -4582,6 +4582,256 @@ The preview architecture must pass tests proving that:
 9. The final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` evidence refers to the same source, asset, and preview revisions.
 10. The panel never labels a model statement as process, device, test, or artifact evidence.
 
+### 73.10 Android technology adapter contract
+
+The §73.2 `AndroidTechnologyResolver` selects Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user's intent, environment capabilities, and validation evidence. Every resulting `AndroidTechnologyPlan` MUST resolve to exactly one registered `AndroidTechnologyAdapter` implementation. Adapters are execution and observation providers; they are not authorities. Lifecycle, policy, evidence, preview, artifact, recovery, promotion, and completion decisions remain with the existing specialized authorities; the adapter only executes the operation it is given and returns a typed observation.
+
+```text
+AndroidTechnologyAdapter
+- adapterId
+- adapterVersion
+- technologyIds
+- supportedCompositions
+- requiredToolchainCapabilities
+- requiredDeviceCapabilities
+- compatibilityRules
+
+AndroidTechnologyAdapterObservation
+- operationId
+- adapterId
+- adapterVersion
+- technologyPlanHash
+- sourceRevisionId
+- toolchainLockId
+- environmentFingerprint
+- artifactIdentity
+- deviceOrRuntimeIdentity
+- result
+- evidenceReferences
+- failureClassification
+- invalidationDependencies
+- capturedAt
+```
+
+The adapter MUST expose the following operations. Each operation MUST return an `AndroidTechnologyAdapterObservation`; no operation may mutate authoritative state, the `PreviewProjection`, evidence identity, artifact promotion, or completion state directly. Mutation of those projections remains the responsibility of the relevant specialized authority, which consumes the observation.
+
+```text
+AndroidTechnologyAdapter operations
+- validatePlan()
+- initializeProject()
+- planBuild()
+- executeBuild()
+- resolveArtifact()
+- install()
+- launch()
+- reload()
+- observeRuntime()
+- captureScreenshot()
+- captureUiHierarchy()
+- collectLogcat()
+- runValidation()
+- classifyFailure()
+```
+
+The three internal implementation families registered at M108 are execution providers, not user-facing framework choices. The §73.2 no-template rule remains binding; the resolver never surfaces these family names to the user as a framework picker.
+
+```text
+NativeAndroidAdapter (internal implementation family)
+- composition: Kotlin or Java, Views or Compose, Gradle
+- adapterId prefix: nirman.adapter.native
+- operations: validatePlan, initializeProject, planBuild, executeBuild,
+  resolveArtifact, install, launch, reload (Compose reload variant),
+  observeRuntime, captureScreenshot, captureUiHierarchy, collectLogcat,
+  runValidation, classifyFailure
+
+JavaScriptAndroidAdapter (internal implementation family)
+- composition: React Native or Expo, Metro or Expo runtime, native Gradle shell
+- adapterId prefix: nirman.adapter.javascript
+- operations: validatePlan, initializeProject, planBuild, executeBuild,
+  resolveArtifact, install, launch, reload (Metro Fast Refresh or
+  Expo Fast Refresh variant), observeRuntime, captureScreenshot,
+  captureUiHierarchy, collectLogcat, runValidation, classifyFailure
+
+MixedAndroidAdapter (internal implementation family)
+- composition: native plus JavaScript plus native modules, NDK or CMake
+  when selected, device APIs
+- adapterId prefix: nirman.adapter.mixed
+- operations: validatePlan, initializeProject, planBuild, executeBuild
+  (composed Gradle plus Metro or Expo plus NDK or CMake), resolveArtifact,
+  install, launch, reload, observeRuntime, captureScreenshot,
+  captureUiHierarchy, collectLogcat, runValidation, classifyFailure
+```
+
+The `AndroidTechnologyAdapter` registry is part of the toolchain lock surface. A revision, toolchain update, environment fingerprint change, or compatibility-rule change invalidates dependent observations and completion claims; the adapter registry entry, `adapterVersion`, and `technologyPlanHash` together identify a reproducible execution context. The `PreviewSyncEvent` payload defined in build spec §71.1 gains `adapterId`, `adapterVersion`, and `technologyPlanHash` as required event fields when the event is emitted by an adapter-mediated operation; the §71 `PreviewSyncEvidenceRecord` carries the same three fields per observation. This extends §71.1; it does not redefine the `PreviewSyncEvent` schema.
+
+### 73.11 Deterministic preview-mode resolver
+
+The preview mode is selected by a deterministic resolver over a recorded input set. The resolver is a pure function of the recorded input and the canonical rule table; it is not a model decision.
+
+```text
+PreviewModeResolverInput
+- technologyPlanHash
+- changedPaths
+- impactGraphRevision
+- sourceRevisionId
+- buildIdentity
+- artifactIdentity
+- deviceSessionId
+- runtimeSessionId
+- environmentFingerprint
+- toolchainLockId
+
+PreviewModeResolverOutput
+- previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD |
+                INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL |
+                HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY |
+                USER_REQUIRED | BLOCKED
+- decisionReason
+- requiredOperations
+- invalidationSet
+```
+
+Canonical rule table (applied in order; first match wins):
+
+```text
+1. Build unavailable for the recorded toolchain lock, source revision,
+   or environment fingerprint
+   → DIAGNOSTIC_SOURCE_ONLY
+2. No usable device or runtime session for the declared profile
+   → HEADLESS_SMOKE or USER_REQUIRED (USER_REQUIRED when no
+     replacement device can satisfy the profile)
+3. applicationId, ABI, device, or runtime identity changed
+   → FULL_APK_REINSTALL
+4. Native code, resource, manifest, dependency, or native-module change
+   detected in impactGraphRevision
+   → INCREMENTAL_APK_INSTALL or FULL_APK_REINSTALL (FULL_APK_REINSTALL
+     when the change touches applicationId, signing, ABI split, or
+     native-module ABI)
+5. Compose-only compatible change detected and a compatible runtime
+   session is available
+   → COMPOSE_RELOAD
+6. JavaScript or TypeScript-only change with the same native identity
+   and a healthy Metro or Expo runtime
+   → RN_EXPO_FAST_REFRESH
+7. No recognized change or insufficient impact-graph resolution
+   → BLOCKED
+```
+
+A resolver output is recorded as part of the `PreviewRequest` decision trace. The mode returned is one of the `PreviewRevision.previewMode` values enumerated in §73.3; introducing new mode identifiers requires a versioned contract update through ADR-195. The resolver MUST NOT mutate authoritative state; it returns a decision, and `PreviewCoordinator` owns the resulting lifecycle transition.
+
+### 73.12 Android device adapter contract
+
+The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Emulator and physical-device implementations MUST satisfy this interface; the interface is an execution contract, not an authority.
+
+```text
+AndroidDeviceAdapter
+- adapterId
+- adapterVersion
+- supportedAbiFamilies
+- supportedAndroidApiLevels
+- supportedDeviceKinds: EMULATOR | PHYSICAL
+
+AndroidDeviceAdapter operations
+- enumerate()
+- acquire()
+- prepare()
+- boot()
+- waitReady()
+- install()
+- uninstall()
+- launch()
+- forceStop()
+- reload()
+- interact()
+- captureScreenshot()
+- captureUiHierarchy()
+- collectLogcat()
+- collectCrash()
+- collectPermissionState()
+- reset()
+- snapshot()
+- restore()
+- release()
+```
+
+Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, device identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
+
+### 73.13 Android build adapter contract
+
+Build execution is bound to a canonical `AndroidBuildAdapter` interface. The interface is an execution contract, not an authority; it does not authorize builds, and it does not promote artifacts.
+
+```text
+AndroidBuildAdapter
+- adapterId
+- adapterVersion
+- technologyPlanHash
+- toolchainLockId
+- buildVariant
+- workingDirectory
+- environmentFingerprint
+- commandPlan
+- artifactRules
+
+AndroidBuildObservation
+- buildId
+- sourceRevisionId
+- toolchainLockId
+- adapterId
+- adapterVersion
+- environmentFingerprint
+- exitCode
+- artifactIds
+- artifactFingerprints
+- diagnostics
+- logs
+- reproducibilityStatus
+- capturedAt
+```
+
+The same interface MUST cover: Gradle native; Gradle plus Metro or Expo; React Native; NDK or CMake; and mixed native plus JavaScript. `AndroidBuildAdapter` is invoked by `PreviewCoordinator` through the `AndroidTechnologyAdapter` selected for the `AndroidTechnologyPlan`; it does not create a separate build authority, and it does not bypass `ToolchainAuthority` or `ArtifactAuthority`. A revision, toolchain update, environment fingerprint change, or adapter version change invalidates dependent observations and completion claims.
+
+### 73.14 Rendering principle and UI pipeline
+
+Nirman does not render Android frameworks itself. The desktop preview panel is a projection of the real Android runtime produced by the registered adapters and the supervised execution path; it is never a second renderer.
+
+```text
+Rendering authority
+Android source
+  → selected AndroidTechnologyAdapter (per AndroidTechnologyPlan)
+  → native build or runtime toolchain
+  → APK or runtime process
+  → emulator or physical Android device (via AndroidDeviceAdapter)
+  → screenshot, UI hierarchy, runtime observations
+  → PreviewSyncEvent
+  → PreviewProjectionReducer
+  → desktop preview projection
+```
+
+The legal pipeline from the UI to a preview operation is:
+
+```text
+UI
+  → typed Preview command (per CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE)
+  → PreviewCoordinator
+  → AndroidTechnologyAdapter
+  → AndroidBuildAdapter and AndroidDeviceAdapter
+  → AndroidTechnologyAdapterObservation and AndroidBuildObservation
+  → PreviewSyncEvent
+  → PreviewProjectionReducer
+  → PreviewPanel
+```
+
+The following paths are forbidden and MUST be rejected by the typed command registry and the contract-graph verifier:
+
+```text
+UI → ADB
+UI → Gradle
+UI → Metro or Expo
+UI → emulator
+```
+
+The §73.8 rule that the preview panel is a read model of durable control-plane events is preserved; the adapters and build and device adapters do not change the panel authority, they only supply observations through the existing `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` flow.
+
 ## 74. Integration Boundary Implementation Contract
 
 **Implements:** build spec §70 and `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
