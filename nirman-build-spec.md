@@ -1582,7 +1582,7 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 | Total active workers | Minimum of 8 or available-resource policy |
 | Worker heartbeat interval | 10 seconds |
 | Worker stale threshold | 60 seconds, configurable |
-| Default task wall-clock policy | No fixed completion lock; adaptive monitoring with optional user-configured hard safety cap |
+| Default task wall-clock policy | Default 200-minute duration budget, user-configurable per task or project. Exhaustion resolved per CLAUSE.COST.EXHAUSTION_EXPLICIT — reduce context, reduce concurrency, change model, pause for approval, continue under renewed policy, safely fail, or degrade classification. NOT a termination trigger and NOT a completion claim. The "no fixed completion lock" principle is preserved: the budget triggers an explicit outcome, it does not lock completion. |
 | Default repair attempts per failure | 3 strategy changes, not three identical retries |
 | Default task context budget | Provider-dependent with a visible cap |
 | Default disk quota per task | 10 GB unless project policy overrides |
@@ -5124,7 +5124,7 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 
 Cost governance is a deterministic policy authority placed beside permission and resource policy. It governs token budgets, provider request budgets, duration, CPU, memory, disk, emulator, and estimated monetary cost without turning ordinary budget thresholds into false completion.
 
-The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
+The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. The `durationBudget` defaults to 200 minutes and is user-configurable per task or project; exhaustion follows CLAUSE.COST.EXHAUSTION_EXPLICIT. `costCap` remains optional with no default value. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
 
 Budget exhaustion must produce one explicit outcome: reduce context, reduce concurrency, change an approved model or provider, pause for approval, continue under a renewed policy, safely fail, or degrade the task classification. Exhaustion cannot silently authorize a broader permission, discard required evidence, or mark a goal complete. The authority hierarchy is policy authority, then cost governance for resource admission, then operation capability and lifecycle authority; cost governance cannot override safety, privacy, signing, evidence, or completion authority.
 
