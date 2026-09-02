@@ -198,7 +198,7 @@ Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch
 1. Implement authorized tools for inspect, search, read, write, patch, command, build, install/launch, observe, validate, diff, checkpoint, repair, and rollback.
 2. Add plan and Android acceptance-contract generation from the selected `AndroidTechnologyPlan`.
 3. Add file-change grouping, source-revision tracking, and diff display.
-4. Route every tool call through the M115 command envelope, control plane, authority, transaction, and durable event path; React must not invoke Android tooling directly.
+4. Route every tool call through the M115 command envelope, control plane, authority, transaction, and durable event path; the WinUI 3 client must not invoke Android tooling directly.
 5. Add an automatic checkpoint before mutation and a rollback/undo reference after a failed repair or validation.
 6. Add Gradle/build execution, installation or launch, runtime observation, and diagnostic capture.
 7. Add failure classification, injected-failure fixtures, and focused repair prompts.

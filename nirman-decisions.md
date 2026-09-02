@@ -2286,7 +2286,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Decision:** The C#/.NET + WinUI 3 frontend communicates with the authoritative local control plane through authenticated, project-scoped, schema-versioned commands and durable event subscriptions. The command registry, response and error envelopes, transaction ownership, projection snapshots, replay cursor, backpressure, idempotency, and optimistic-state separation are canonical. The UI cannot authorize operations, write domain state, fill event gaps, promote artifacts, or advance evidence. Generated Android service adapters are separate from Nirman IPC and own only generated application behavior.
 
-**Rationale:** A frontend that directly manipulates state, assumes successful requests, or reconstructs missing events from local memory becomes a second authority and can display progress that the backend never accepted. Typed envelopes and cursor-atomic replay make the UI reconnectable, diagnosable, and safe without coupling domain persistence to React components.
+**Rationale:** A frontend that directly manipulates state, assumes successful requests, or reconstructs missing events from local memory becomes a second authority and can display progress that the backend never accepted. Typed envelopes and cursor-atomic replay make the UI reconnectable, diagnosable, and safe without coupling domain persistence to WinUI 3 components.
 
 **Consequences:** M115 must prove the command registry, typed failures, projection reconstruction, replay and backpressure behavior, SQLite transaction ownership, and generated Android service boundary.
 

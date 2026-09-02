@@ -5232,7 +5232,7 @@ The authoritative `ProjectionSnapshot` includes typed references for `taskProjec
 ### 81.2 Command-to-domain wiring
 
 ```text
-React ViewModel / presentation controller
+WinUI 3 ViewModel / presentation controller
   → typed IPC client
   → UICommandEnvelope
   → SupervisorConnection
@@ -5255,7 +5255,7 @@ The local IPC transport uses the `SupervisorConnection` handshake and the `Event
 
 ### 81.4 Frontend state layers
 
-React state is divided into `AuthoritativeProjectionState`, `OptimisticInputState`, `PendingCommandState`, `RejectedCommandState`, and `ConnectionState`. Only the first is derived from supervisor snapshots and durable events; optimistic input cannot update task, worker, preview, artifact, evidence, policy, signing, or completion truth. Reconnect discards stale derived state and rebuilds from the accepted snapshot cursor.
+WinUI 3 state is divided into `AuthoritativeProjectionState`, `OptimisticInputState`, `PendingCommandState`, `RejectedCommandState`, and `ConnectionState`. Only the first is derived from supervisor snapshots and durable events; optimistic input cannot update task, worker, preview, artifact, evidence, policy, signing, or completion truth. Reconnect discards stale derived state and rebuilds from the accepted snapshot cursor.
 
 ### 81.5 Generated Android service adapter
 
