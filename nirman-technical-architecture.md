@@ -1104,20 +1104,20 @@ The official API reference distinguishes a response-oriented surface for direct 
 The AI Settings page should store a provider profile with the following shape:
 
 ```text
-| ProviderProfile |
-|- providerId |
-|- displayName |
-|- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE |
-|- protocol: chat_completions | responses | messages | custom |
-|- baseUrl |
-|- apiKeySecretRef |
-|- modelId |
-|- visionModelId |
-|- embeddingModelId |
-|- rerankerModelId |
-|- organizationIdOptional |
-|- projectIdOptional |
-|- customHeadersSecretRefs |
+ProviderProfile
+- providerId
+- displayName
+- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE
+- protocol: chat_completions | responses | messages | custom
+- baseUrl
+- apiKeySecretRef
+- modelId
+- visionModelId
+- embeddingModelId
+- rerankerModelId
+- organizationIdOptional
+- projectIdOptional
+- customHeadersSecretRefs
 - defaultParameters
 - capabilityOverrides
 - reasoningModelIdOptional
