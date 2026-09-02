@@ -241,6 +241,24 @@ No category of Android application is excluded by product intent. The system mus
 
 When a requested capability requires a missing SDK, device, vendor tool, native dependency, signing configuration, or external service, the runtime must diagnose and repair the environment where authorized, select an approved alternative, continue with a degraded but explicit mode, or report a precise technical blocker. It must not silently narrow the product scope because the user did not choose a predefined framework.
 
+Product intent excludes no category. Reliable inference from natural language does have limits, and those limits are stated rather than discovered by the user after delivery.
+
+The following categories are known to exceed what a natural-language instruction reliably specifies. When a request depends on one, the runtime MUST classify the affected capability `DEGRADED` or `USER_REQUIRED` with a stated reason and a description of what was and was not implemented. It MUST NOT silently produce a simplified implementation and present it as complete.
+
+| Category | Why natural language under-specifies it |
+|---|---|
+| Custom animation, physics, or elastic interaction | Timing, easing, and feel are not inferable from prose |
+| Performance-critical custom view rendering | Large datasets, real-time updates, and touch-scaled drawing need explicit performance targets |
+| Non-standard sensor or peripheral integration | Bluetooth LE profiles and custom hardware protocols require device-specific specification |
+| Offline synchronization with conflict resolution | Conflict semantics are application-specific and cannot be assumed |
+| Densely interconnected business rules | Interacting edge cases are rarely stated completely in prose |
+| Accessibility beyond standard semantics | Announcement order and custom traversal for non-standard layouts require explicit direction |
+| Specific cryptographic or key-management methodology | Security design must be specified, never inferred |
+
+This list records where inference is unreliable. It is not a list of unsupported features: each remains implementable when the user supplies the missing specification, and a clarifying question under §69.11's clarification gate is the correct first response when the request is otherwise well-formed.
+
+Declaring the ceiling honestly is required by the capability-status vocabulary of §5.6. Reporting `SUPPORTED` for a capability whose implementation was silently simplified is a contract violation regardless of whether an APK was produced.
+
 ---
 
 
