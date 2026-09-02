@@ -1520,7 +1520,7 @@ Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, a
 
 | Work item | Implements | Acceptance condition |
 |---|---|---|
-| Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered with `adapterId`, `adapterVersion`, `technologyIds`, `supportedCompositions`, `requiredToolchainCapabilities`, `requiredDeviceCapabilities`, `compatibilityRules`; each operation returns `AndroidTechnologyAdapterObservation`; no operation mutates authoritative state, evidence identity, artifact promotion, preview projection, or completion state directly; `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash` |
+| Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered as strategy and composition adapters; only `validatePlan`, `initializeProject`, `planBuild`, `classifyFailure`, `resolveBuildAdapter`, `resolveDeviceAdapter` exposed; no concrete execution operation on the technology adapter; `resolveBuildAdapter` and `resolveDeviceAdapter` are deterministic over the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities`; emitted `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` |
 | Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly |
 | Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by both emulator and physical-device implementations; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
 | Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
@@ -1533,16 +1533,22 @@ For every certified Android profile, the durable execution path MUST resolve:
 ```text
 AndroidTechnologyPlan
   → AndroidTechnologyAdapter (adapterId, adapterVersion, technologyPlanHash)
+  → AndroidTechnologyAdapter.validatePlan | planBuild | classifyFailure
+  → AndroidTechnologyAdapter.resolveBuildAdapter (deterministic, auditable)
+  → AndroidTechnologyAdapter.resolveDeviceAdapter (deterministic, auditable)
   → AndroidToolchainLock
   → AndroidBuildAdapter → AndroidBuildObservation
   → Artifact identity
   → AndroidDeviceAdapter → install and launch observation
   → RuntimeObservation
-  → PreviewSyncEvent (carries adapterId, adapterVersion, technologyPlanHash)
+  → PreviewSyncEvent (carries adapterId, adapterVersion,
+    technologyPlanHash, buildAdapterIdentity, deviceAdapterIdentity)
   → PreviewProjection
-  → Evidence (PreviewSyncEvidenceRecord carries adapterId, adapterVersion, technologyPlanHash)
+  → Evidence (PreviewSyncEvidenceRecord carries the same identities)
   → PreviewPromotionGate
 ```
+
+The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each.
 
 ### M108 parameterized fixture matrix
 
@@ -1551,18 +1557,28 @@ The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event
 | Fixture | Required path |
 |---|---|
 | Kotlin + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Kotlin + Compose | `NativeAndroidAdapter`; `COMPOSE_RELOAD` for Compose-only changes, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Kotlin + Compose | `NativeAndroidAdapter`; `COMPOSE_RELOAD` for Compose-only changes with `sameNativeIdentity`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
 | Java + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| React Native | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with healthy Metro, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Expo | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with healthy Expo runtime, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| React Native | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Expo | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
 | Native module | `MixedAndroidAdapter`; `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
 | NDK or CMake | `MixedAndroidAdapter` (composed Gradle plus NDK or CMake); `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
 | Device API | `AndroidDeviceAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` with device-permission observation recorded |
-| Native + JavaScript | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Native + JavaScript | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Insufficient impact information (any row) | `CONSERVATIVE_FULL_REINSTALL` selected by §73.11 rule 7b with `decisionReason = INSUFFICIENT_IMPACT_INFORMATION` |
+| Known unsafe-to-fast-refresh (any row) | `FULL_APK_REINSTALL` selected by §73.11 rule 7a with `decisionReason = KNOWN_UNSAFE_TO_FAST_REFRESH` |
 
 The matrix is one parameterized test harness. M108 MUST NOT spawn nine separate test systems; the existing M108 fixture runner, the verifier, and the conformance battery must be extended to walk the matrix with `profileId`-keyed inputs.
 
-**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance.
+### M108 documentation-versus-runtime status
+
+Documentation and contracts: the contract and parameterized fixture specification cover nine Android profiles plus the §73.11 fallback branches. This is the strongest defensible claim from the documentation layer.
+
+Parameterized coverage: nine technology profiles specified as `AndroidCapabilityProfile` instances and reachable through `resolveBuildAdapter` / `resolveDeviceAdapter` against the canonical rule table.
+
+Runtime certification: not claimed by this milestone. Runtime certification of the nine profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, device sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on an actually attached matching device and the runtime adapter implementations; neither is asserted by this documentation milestone.
+
+**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001`; runtime execution of each row is tracked separately and is not asserted by this milestone.
 
 ## M109 — Preview projection resilience and runtime-certification evidence
 
