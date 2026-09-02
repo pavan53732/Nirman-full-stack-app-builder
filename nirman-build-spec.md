@@ -268,7 +268,9 @@ Every Android capability supported by product intent must belong to one of:
 | **DEGRADED** | Capability can operate with a documented reduced behavior. |
 | **USER_REQUIRED** | Required credential, device, hardware, approval, or external dependency is unavailable. |
 | **UNAVAILABLE** | The current runtime cannot safely provide the capability. |
-| **PLANNED** | Accepted product scope but lacks an implemented runtime contract. |
+|| **PLANNED** | Accepted product scope but lacks an implemented runtime contract. |
+
+`PLANNED` in the product capability registry means product certification maturity, not "no source implementation exists." A capability may have source code and partial implementation but still be `PLANNED` until its complete contract chain, validation path, recovery behavior, and fixture evidence exist.
 
 Certification scope is explicit: `DOCUMENTATION_CERTIFIED` means contract-graph, canonical-identity, and traceability checks pass; `RUNTIME_CERTIFIED` means the applicable executable fixture and runtime evidence pass; and `PRODUCT_COMPLETED` means the user’s `GoalContract` completion predicate passes. The unqualified word “certified” must not be used to conflate these scopes.
 
@@ -2596,7 +2598,7 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 | `MODEL_ESCALATION` | Show a provider/model capability change | “Escalating to the approved reasoning-capable model because uncertainty remained above threshold.” |
 | `NO_PROGRESS` | Show why the current reasoning approach stopped | “Further reasoning produced no measurable movement; gathering new evidence.” |
 | `DELIBERATION_RESUMED` | Show continuation after compaction/failover | “Resumed deliberation with two rejected hypotheses and remaining budget intact.” |
-| `COMPLETION` | Summarize validated output | “APK and AAB passed the required gates and are ready for export.” |
+|| `COMPLETION` | Summarize validated output | "APK passed the required gates; optional AAB passed only when the declared packaging profile requires it." |
 
 Every event MUST contain a concise title, human-readable summary, event sequence, session/task/worker IDs, project revision, timestamp, status, provenance references, and evidence IDs when applicable.
 

@@ -723,6 +723,23 @@ Nirman must define approval behavior through an explicit execution profile rathe
 
 Routine approval prompts must not be required merely because the UI is disconnected or a task is running in the background. Every approval request is bound to the exact action fingerprint, policy, worker, workspace, and risk. User approval authorizes only the requested policy-bound action; it never promotes a preview or artifact without deterministic evidence.
 
+### 16.2.2 Profile terminology namespaces
+
+Nirman uses multiple profile concepts. Each has an explicit namespace, ID prefix, and canonical owner to prevent field collision:
+
+| Concept | Namespace | ID prefix | Canonical owner | Purpose |
+|---|---|---|---|---|
+| Execution profile | `profile.execution` | `exec-profile` | PolicyAuthority | Approval behavior for routine actions |
+| Autonomy profile | `profile.autonomy` | `autonomy-profile` | PolicyAuthority | Unattended vs interactive execution policy |
+| Sandbox profile | `profile.sandbox` | `sandbox-profile` | Sandbox/workspace authority | Process isolation and resource limits |
+| Capability profile | `profile.capability` | `capability-profile` | EvidenceAuthority | Android technology composition identity |
+| Device profile | `profile.device` | `device-profile` | DeviceAuthority | Android device/ emulator test matrix |
+|| Packaging profile | `profile.packaging` | `packaging-profile` | ArtifactAuthority | APK output configuration; optional AAB only when packaging profile requires it |
+| Provider profile | `profile.provider` | `provider-profile` | ProviderOperationality | AI provider configuration and capabilities |
+| Environment record | `record.environment` | `env-record` | EnvironmentCapabilityPlanner | Host/target capability classification |
+
+Profiles are not interchangeable. A capability profile describes what technologies are available; an execution profile describes what actions are permitted; a sandbox profile describes how processes are isolated. Each profile type has its own schema, lifecycle, and authority.
+
 ### 16.3 Non-blocking background control
 
 The control plane should manage background tasks independently from the UI event loop. The UI subscribes to task events and may disconnect and reconnect using a task ID and event sequence number.
@@ -1737,11 +1754,26 @@ EnvironmentStateFingerprint
 
 If a candidate revision fails, the preview manager retains the last valid revision and marks the candidate as failed instead of presenting it as current. An identical emulator identity is not sufficient when any required device, application, or environment fingerprint differs.
 
-### 34.3 Progress ledger and stall detector
+### 34.3 Progress ledger, fingerprint registry, and stall detector
 
-The runtime maintains a progress ledger containing changed files, new evidence, preview movement, test transitions, worker handoffs, strategy changes, validated requirements, and artifact transitions. The stall detector identifies repeated commands, repeated patches, repeated failure fingerprints, unchanged workspaces, absent evidence, unresponsive processes, stale emulators, and heartbeats without useful progress.
+The runtime maintains a progress ledger containing changed files, new evidence, preview movement, test transitions, worker handoffs, strategy changes, validated requirements, and artifact transitions.
 
-A detected stall causes a controlled strategy transition: refresh context, repair the environment, change technology, delegate diagnosis, restore a checkpoint, reduce scope to a safe subtask, or construct an isolated alternative. The scheduler must reject identical retries that do not provide a new strategy or new evidence.
+The fingerprint registry maintains three distinct fingerprint types to prevent anti-thrashing evasion:
+
+| Fingerprint type | Purpose | Components |
+|---|---|---|
+| Failure fingerprint | Detect repeated failures | Normalized command, exit code, error class, stack-trace structure, changed-file set, environment state, provider response class, validation stage |
+| Strategy fingerprint | Detect repeated strategies | Recovery level, action type, target component, model route, patch approach |
+| Causal/root-cause fingerprint | Group related root causes | Abstracted error pattern, dependency chain, configuration state, environmental factor |
+
+Each recovery attempt records:
+- `failureFingerprint`: what went wrong
+- `strategyFingerprint`: what was tried
+- `causalFingerprint`: the underlying root cause hypothesis
+- `progressDelta`: measured improvement (passing tests, error reduction, conflict reduction, artifact validity)
+- `recoveryAttemptId`: unique identity for this attempt
+
+The stall detector identifies repeated commands, repeated patches, repeated failure fingerprints, repeated strategy fingerprints, unchanged workspaces, absent evidence, unresponsive processes, stale emulators, and heartbeats without useful progress. A detected stall causes a controlled strategy transition: refresh context, repair the environment, change technology, delegate diagnosis, restore a checkpoint, reduce scope to a safe subtask, or construct an isolated alternative. The scheduler must reject identical retries that do not provide a new strategy fingerprint, new causal fingerprint, or positive progress delta.
 
 ### 34.4 Swarm handoff and reconciliation contract
 
@@ -2093,7 +2125,9 @@ The host is divided into explicit process domains:
 | Emulator/device manager | Device lifecycle, install, capture, Logcat | Emulator/device APIs only |
 | Preview application | Runs generated Android app | Disposable app/device profile |
 | Provider transport | Model requests | Approved provider endpoints only |
-| Credential service | API keys and signing material | OS-protected secret references only |
+|| Credential service | API keys and signing material | OS-protected secret references only |
+
+The credential authority flow is: WinUI settings → typed credential command → supervisor → OS credential store. The UI must never retrieve plaintext secrets merely to display/configure them. Only keychain references are stored in ordinary records.
 
 Generated code and project processes cannot read personal browser data, SSH keys, unrelated directories, signing keys, or arbitrary credentials. Sandbox profiles are selected by the policy authority and cannot be relaxed by model output.
 
