@@ -767,7 +767,7 @@ Nirman uses multiple profile concepts. Each has an explicit namespace, ID prefix
 | Sandbox profile | `profile.sandbox` | `sandbox-profile` | Sandbox/workspace authority | Process isolation and resource limits |
 | Capability profile | `profile.capability` | `capability-profile` | EvidenceAuthority | Android technology composition identity |
 | Device profile | `profile.device` | `device-profile` | DeviceAuthority | Android device/ emulator test matrix |
-|| Packaging profile | `profile.packaging` | `packaging-profile` | ArtifactAuthority | APK output configuration; optional AAB only when packaging profile requires it |
+| Packaging profile | `profile.packaging` | `packaging-profile` | ArtifactAuthority | APK output configuration; optional AAB only when packaging profile requires it |
 | Provider profile | `profile.provider` | `provider-profile` | ProviderOperationality | AI provider configuration and capabilities |
 | Environment record | `record.environment` | `env-record` | EnvironmentCapabilityPlanner | Host/target capability classification |
 
@@ -2159,7 +2159,7 @@ The host is divided into explicit process domains:
 | Emulator/device manager | Device lifecycle, install, capture, Logcat | Emulator/device APIs only |
 | Preview application | Runs generated Android app | Disposable app/device profile |
 | Provider transport | Model requests | Approved provider endpoints only |
-|| Credential service | API keys and signing material | OS-protected secret references only |
+| Credential service | API keys and signing material | OS-protected secret references only |
 
 The credential authority flow is: WinUI settings → typed credential command → supervisor → OS credential store. The UI must never retrieve plaintext secrets merely to display/configure them. Only keychain references are stored in ordinary records.
 

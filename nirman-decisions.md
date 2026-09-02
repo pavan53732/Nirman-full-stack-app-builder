@@ -14,7 +14,7 @@ This document records significant product and engineering decisions for Nirman. 
 | Accepted | Approved direction for implementation |
 | Deferred | Intentionally postponed until a later milestone |
 | Superseded | Replaced by a newer decision |
-|| Rejected | Considered and not selected |
+| Rejected | Considered and not selected |
 
 ---
 

@@ -261,8 +261,6 @@ Declaring the ceiling honestly is required by the capability-status vocabulary o
 
 ---
 
-
-
 ### 5.5 Generated-target invariant
 
 The generated application target is Android and only Android. This is a machine-checked invariant, not a stated intention:
@@ -286,7 +284,7 @@ Every Android capability supported by product intent must belong to one of:
 | **DEGRADED** | Capability can operate with a documented reduced behavior. |
 | **USER_REQUIRED** | Required credential, device, hardware, approval, or external dependency is unavailable. |
 | **UNAVAILABLE** | The current runtime cannot safely provide the capability. |
-|| **PLANNED** | Accepted product scope but lacks an implemented runtime contract. |
+| **PLANNED** | Accepted product scope but lacks an implemented runtime contract. |
 
 `PLANNED` in the product capability registry means product certification maturity, not "no source implementation exists." A capability may have source code and partial implementation but still be `PLANNED` until its complete contract chain, validation path, recovery behavior, and fixture evidence exist.
 
@@ -2686,7 +2684,7 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 | `MODEL_ESCALATION` | Show a provider/model capability change | “Escalating to the approved reasoning-capable model because uncertainty remained above threshold.” |
 | `NO_PROGRESS` | Show why the current reasoning approach stopped | “Further reasoning produced no measurable movement; gathering new evidence.” |
 | `DELIBERATION_RESUMED` | Show continuation after compaction/failover | “Resumed deliberation with two rejected hypotheses and remaining budget intact.” |
-|| `COMPLETION` | Summarize validated output | "APK passed the required gates; optional AAB passed only when the declared packaging profile requires it." |
+| `COMPLETION` | Summarize validated output | "APK passed the required gates; optional AAB passed only when the declared packaging profile requires it." |
 
 Every event MUST contain a concise title, human-readable summary, event sequence, session/task/worker IDs, project revision, timestamp, status, provenance references, and evidence IDs when applicable.
 
@@ -5753,7 +5751,7 @@ The following are mandatory runtime-certification fixtures (test family `TEST-PL
 | A — host mismatch | host = Linux, target = Windows; task: "build and validate" | cross-build may execute; native Windows validation MUST NOT be claimed; the blocked node records `USER_REQUIRED`/`UNAVAILABLE` with the two §79.11 lists |
 | B — successful cross-build | a Windows `.exe`/installer is produced from a non-Windows host | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` are both recorded; the aggregate status is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, never `SUPPORTED` |
 | C — fake completion | a model or worker reports "Windows runtime tests passed" with no target observation | the completion claim is durably rejected by the completion evaluator and the rejection cites the missing evidence |
-|| D — stale target evidence | target-platform evidence exists, then the source revision, toolchain identity, or environment fingerprint changes | the prior target evidence is `INVALIDATED`; the certification gate re-closes until re-validation on the target platform |
+| D — stale target evidence | target-platform evidence exists, then the source revision, toolchain identity, or environment fingerprint changes | the prior target evidence is `INVALIDATED`; the certification gate re-closes until re-validation on the target platform |
 
 ### 79.14 Filesystem path-length capability
 

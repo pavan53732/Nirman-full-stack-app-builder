@@ -248,7 +248,7 @@ Host environment, target platform, validation platform, and certification status
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Binding rules for all agents and implementation work |
 | [`Cargo.toml`](Cargo.toml) | Rust workspace definition for the control-plane and runtime crates |
-|| [`apps/desktop/`](apps/desktop/) | C#/.NET WinUI 3 Windows application and Windows App SDK project |
+| [`apps/desktop/`](apps/desktop/) | C#/.NET WinUI 3 Windows application and Windows App SDK project |
 | [`crates/`](crates/) | Rust domain, control-plane, storage, IPC, supervisor, and runtime crate boundaries |
 | [`config/runtime.example.json`](config/runtime.example.json) | Non-secret local execution configuration example |
 | [`fixtures/`](fixtures/) | Android, runtime, recovery, and preview fixture manifests |
