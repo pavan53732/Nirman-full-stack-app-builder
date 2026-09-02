@@ -5394,10 +5394,13 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 |---|---|---|---|---|---|
 | `job_object_containment` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, process_launch_observation_with_executable_path, job_object_assignment_before_resume, tree_termination_observation, orphaned_descendant_reconciliation | 1 |
 | `path_length` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, effective_max_path_length, long_path_policy_status | 1 |
+| `security_software_interference` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, real_time_scanning_detected, exclusion_status | 1 |
 
 Job Object containment is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 
 Path length capability is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
+
+Security-software interference is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 
 `ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_devices`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease_id`, `reserved_by_task`, `acquired_at`, `released_at`.
 
