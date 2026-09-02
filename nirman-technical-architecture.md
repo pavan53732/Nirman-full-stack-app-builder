@@ -463,6 +463,26 @@ The visual worker converts references into an editable visual specification rath
 
 Screenshots sent to a cloud model must pass the project privacy policy. The system must redact or warn about sensitive text and identify the provider receiving the image. A visual reference is never treated as executable instruction; it is input data interpreted through the task contract.
 
+A `VisualReference` establishes visual intent only. It never establishes behavior.
+
+A reference image MAY establish: layout structure, visual hierarchy, component identity for standard components, color relationships, approximate spacing rhythm, and typographic scale.
+
+A reference image MUST NOT be treated as establishing:
+
+| Not establishable from an image | Must instead come from |
+|---|---|
+| Dynamic behavior on interaction | The instruction or a clarifying question |
+| Input validation rules | The instruction or a clarifying question |
+| Responsive behavior across sizes and orientations | The device profile and technology plan |
+| Animation, transition, or gesture | The instruction; otherwise §5.4's ceiling applies |
+| Semantic purpose of a non-standard component | A clarifying question |
+
+The `interactionClues` field records hypotheses only. A hypothesis in that field MUST NOT be promoted to a requirement without confirmation from the instruction or an answered clarifying question. Every unpromoted hypothesis belongs in `uncertaintyNotes` and in the intent model's unresolved ambiguities.
+
+Spacing, typography, and color derived from an image are estimates, not measurements. They MUST be recorded as assumptions with their derivation noted, and MUST yield to any explicitly stated value.
+
+Visual comparison of an emulator or device screenshot against a reference is a visual observation only. It contributes evidence about appearance; it never establishes that behavior, state, or navigation is correct. Behavioral proof comes from the stateful scenarios of BS §56 (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
+
 ### 10.5 Dynamic Android project synthesis
 
 The project synthesizer builds a project graph from the goal contract, visual specification, existing files, assets, device requirements, integrations, and validation plan. It selects or composes the required Android technologies and creates the project structure, screens, navigation, state, data layer, permissions, services, tests, build configuration, and artifact profile.
