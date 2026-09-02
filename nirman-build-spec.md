@@ -2419,6 +2419,54 @@ Contrast is the only row that is more than a preference: a generated screen that
 
 The resolved values MUST be recorded in `BrandManifest` (§44.2) so that a generated appearance is reproducible and auditable, whether it came from a user preference or from these defaults.
 
+### 44.5 Default application states and motion
+
+A user instruction describes what an application does when it works. It almost never describes what the application shows when it is empty, loading, failing, or launched for the first time. These states are the majority of a real user's experience, so they have defined defaults rather than being left to per-generation improvisation.
+
+These are defaults, not contract: an explicit user preference overrides any row, and conformance is never a certification criterion.
+
+| State | Default |
+|---|---|
+| Empty collection | Muted illustrative icon, one line naming what belongs here, and the primary creation action. A bare "No items" string is insufficient |
+| Loading, known content shape | Skeleton placeholders matching the eventual layout |
+| Loading, unknown shape or duration | Indeterminate progress indicator |
+| Loading under approximately 300 ms | No indicator at all; a control that flashes and disappears reads as a defect |
+| Transient operation failure | Snackbar carrying a retry action |
+| Field or input validation failure | Inline message beneath the offending field, with the field marked |
+| Blocking or destructive failure | Dialog requiring acknowledgement |
+| First launch, no data | Empty shell with its empty state; no seeded example data |
+| Irreversible action | Confirmation, plus undo where the operation permits it |
+
+Two rows carry reasoning that must not be lost if the table is ever revised.
+
+First launch MUST NOT seed fabricated example data. Example rows the user must identify and delete are a poor first impression, and they place content in the application's own data store that the user never created. Where a data strategy defines a seed-data policy under §44.3, that policy governs; the default in the absence of one is an empty store. A generated screenshot or preview showing seeded rows MUST identify them as seeded, because an observation that displays fabricated data as user data misrepresents application state.
+
+A user-facing failure message states what failed and what the user can do next. An exception type, stack frame, error code, or raw provider string is not a user-facing message. Diagnostic detail remains available in the evidence record, not in the application's own UI.
+
+Motion defaults, when the instruction says nothing about motion:
+
+| Motion | Default |
+|---|---|
+| Touch and state feedback (ripple, pressed, focused, disabled) | Always present; absence reads as an unresponsive application |
+| Standard navigation transitions | Platform defaults |
+| List insertion, removal, and reorder | Animated, so the change is legible |
+| Haptic feedback | Destructive or irreversible confirmations only |
+| Parallax, hero transitions, spring physics, custom easing, decorative loops | Never added unless requested |
+
+The distinguishing test is whether the motion communicates causality or continuity — what caused this, and where did it come from. Motion that only draws attention to itself is decoration and is not added by default. Motion beyond these defaults falls under §5.4's inference ceiling: timing and feel are not reliably inferable from prose, and a request for elaborate motion warrants a clarifying question under §69.11 rather than an invented interpretation.
+
+Dark theme, orientation change, and larger screens are not optional polish and are not deferred to a later revision:
+
+| Dimension | Default |
+|---|---|
+| Dark theme | Always generated, through Material 3 color roles. Hardcoded color literals in layouts or composables are the defect that breaks dark theme, not the theme itself |
+| Orientation change | Both orientations supported. State survives configuration change through retained state holders and saved instance state |
+| Larger screens | Layout adapts at the standard width breakpoints. Full-width single-column form fields and hardcoded single-pane assumptions are the common failure |
+
+Locking an application to portrait, or omitting a dark theme, to avoid handling configuration change is prohibited. It converts a generation defect into a permanent product limitation, and it does so invisibly to the user who never asked for either restriction.
+
+The dominant failure on orientation change is loss of state, not layout distortion. §56's configuration-change scenario class is the evidence path for this behavior; this subsection states the generation default, and does not add, alter, or duplicate any test.
+
 ---
 
 ## 45. Autonomous UX, Decision Trace, and Resource Governance
