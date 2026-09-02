@@ -48,13 +48,36 @@ The control plane should communicate with the user interface through a local aut
 
 ## 3. Process Model
 
-### 3.1 Desktop user interface
+Nirman is one user-facing Windows application implemented by two cooperating processes. This is an implementation boundary, not a product boundary.
+
+```
+                    ONE NIRMAN PRODUCT
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+        Nirman.exe              NirmanSupervisor.exe
+        visible UI                headless runtime
+              │                         │
+              └──── authenticated IPC ──┘
+```
+
+`Nirman.exe` is the visible client. `NirmanSupervisor.exe` is the durable local runtime authority.
+
+The supervisor is never a separately operated application. It has no normal user workflow, no independent configuration surface, and no requirement for manual launch. The installer packages both components as one Nirman installation and maintains compatible versions together.
+
+### 3.1 User-facing application: Nirman.exe
+
+`Nirman.exe` owns the visible WinUI 3 experience. It may close, minimize, restart, or reconnect without transferring runtime authority away from the supervisor.
 
 The desktop interface should be built with C#/.NET + WinUI 3. It displays state and sends user commands, but it should not directly execute arbitrary shell commands or mutate project files. All filesystem, process, provider, and build operations go through the control plane.
 
-### 3.2 Control-plane process
+### 3.2 Headless runtime: NirmanSupervisor.exe
 
-The control plane is a user-scoped background process. It owns the task scheduler, state database, event bus, approval manager, worker registry, policy engine, and runtime manager. It should expose a stable local API to the desktop interface.
+`NirmanSupervisor.exe` is a user-scoped background process. It owns autonomous execution, task state, workers, leases, persistence, recovery, policy enforcement, evidence, and runtime processes.
+
+It must run without a normal application window or independent taskbar workflow. Nirman automatically starts or reconnects to it when required. The user must never be required to launch, configure, monitor, or terminate the supervisor manually.
+
+When `Nirman.exe` is minimized or closed, eligible tasks continue according to their execution policy. When the UI returns, it reconnects through `SupervisorConnection` and reconstructs state from the durable ledger/event stream.
 
 The control plane should start on user login whenever an active Goal Mode task exists, unless the user explicitly opts out for that project. A lightweight per-user startup entry should launch the stable supervisor/control-plane process without running a system service by default. If no task is active, the user may configure whether the control plane starts at login. After reboot, the supervisor must scan durable task state, reconcile process leases, and resume eligible tasks automatically without requiring the desktop UI to be opened.
 

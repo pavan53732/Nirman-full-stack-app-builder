@@ -555,6 +555,28 @@ Nirman should be composed as a Windows-first desktop application with independen
 
 The desktop shell should use C#/.NET + WinUI 3. The shell is responsible for opening project folders, communicating with the local runtime, presenting native dialogs, storing secure credentials through the operating-system keychain, and managing application-level settings.
 
+### 6.1.1 Windows host process contract
+
+Nirman has exactly one user-facing product/application identity.
+
+Production deployment consists of:
+- `Nirman.exe` — visible Windows desktop client
+- `NirmanSupervisor.exe` — headless local runtime
+
+These are not separate user-facing applications.
+
+Required invariants:
+1. One installer/package installs both.
+2. One product identity is presented to the user.
+3. Supervisor has no normal user-facing window.
+4. Supervisor requires no manual launch/configuration.
+5. Nirman automatically starts/reconnects to the compatible supervisor.
+6. UI closure/minimization does not terminate eligible autonomous tasks.
+7. UI restart reconnects to durable supervisor state.
+8. Supervisor and UI versions must remain compatibility-bound.
+9. Supervisor lifecycle failures must be recoverable and visible through Nirman.
+10. The user must never need to operate the supervisor independently.
+
 ### 6.2 Frontend interface
 
 The frontend should contain the chat workspace, project selector, file tree, editor, preview frame, terminal panel, test panel, provider settings, environment diagnostics, and export controls.

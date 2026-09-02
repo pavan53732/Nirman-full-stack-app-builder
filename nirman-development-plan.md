@@ -25,13 +25,13 @@ The team should keep the master specification stable as the product contract, up
 | Milestone | Focus | Main output |
 |---|---|---|
 | M0 | Repository and engineering foundation | Source repository, conventions, local certification, fixture projects |
-| M1 | Desktop shell and local workspace | Windows application shell and project manager |
-| M2 | Control plane and persistent state | Background task daemon, SQLite state, event stream |
+| M1 | Nirman.exe WinUI shell | Windows application shell and project manager |
+| M2 | NirmanSupervisor.exe + SupervisorConnection | Background task daemon, SQLite state, event stream |
 | M3 | Provider and model runtime | Provider profiles, keychain, streaming, usage telemetry |
 | M4 | Dynamic Android synthesis and local runtime | Instruction/screenshot analysis, framework resolver, emulator/device preview, process manager, diagnostics |
 | M5 | Single-worker agent loop | Plan, inspect, edit, test, repair, checkpoint, undo |
 | M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
-| M7 | Background execution and recovery | Resume after UI close or restart, notifications, adaptive guardrails |
+| M7 | Supervisor survives UI close/restart | Resume after UI close or restart, notifications, adaptive guardrails |
 | M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
 | M9 | Android device and visual testing | Emulator/device profiles, screenshots, Logcat, phone/tablet checks |
 | M10 | Android packaging | APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` build, artifact validation, signing boundaries |
@@ -90,11 +90,13 @@ A clean checkout can install dependencies, run local static checks, execute unit
 
 ---
 
-## 4. M1: Desktop Shell and Local Workspace
+## 4. M1: Nirman.exe WinUI Shell
 
 ### Objectives
 
-Build the visible Windows application shell and the project-management experience. The shell should open local folders, display the workspace layout, and communicate with a placeholder control plane.
+Build the visible Windows application shell and the project-management experience. The shell should open local folders, display the workspace layout, and communicate with the local runtime through the authenticated SupervisorConnection protocol.
+
+M1 implements the user-facing Nirman.exe process. It is the visible desktop application the user interacts with.
 
 ### Work items
 
@@ -236,11 +238,13 @@ A restricted worker cannot read protected files, write outside its workspace, ex
 
 ---
 
-## 10. M7: Background Execution and Recovery
+## 10. M7: Supervisor Survives UI Close/Restart
 
 ### Objectives
 
-Allow tasks to continue when the UI is minimized or closed and recover safely after control-plane or operating-system restart.
+Allow tasks to continue when the Nirman.exe UI is minimized or closed and recover safely after control-plane or operating-system restart. The NirmanSupervisor.exe process must survive UI closure and continue eligible autonomous tasks.
+
+M7 implements the one-product-two-processes contract: Nirman.exe may close while NirmanSupervisor.exe continues background work.
 
 ### Work items
 

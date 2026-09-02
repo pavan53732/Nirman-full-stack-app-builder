@@ -69,6 +69,37 @@ The preview panel is not a simulated code canvas. It must represent the actual p
 
 The desktop interface is a client of the local control plane. It displays chat, task progress, plans, diffs, terminals, workers, checkpoints, approvals, preview, evidence, artifacts, and recovery state. It does not directly execute arbitrary commands, write authoritative state, grant permissions, promote artifacts, or mark a task complete.
 
+## One Nirman application, two internal processes
+
+Nirman is installed and used as one Windows desktop application. Internally, it uses two cooperating processes for reliability:
+
+- **Nirman.exe** — the visible WinUI 3 application you interact with.
+- **NirmanSupervisor.exe** — the invisible background runtime that continues autonomous work.
+
+You do not run or manage these as separate applications. The Nirman installer installs both components together, Nirman starts or reconnects to the supervisor automatically, and their versions/lifecycle are managed together.
+
+This separation exists so long-running Android development can continue when the Nirman window is minimized, closed, or restarted. The supervisor owns the durable task and recovery state; when Nirman is opened again, the UI reconnects and displays the current state.
+
+User model:
+
+```
+Install Nirman once
+       ↓
+Open Nirman
+       ↓
+Nirman.exe ↔ NirmanSupervisor.exe
+       ↓
+Minimize / close Nirman
+       ↓
+Background work continues
+       ↓
+Open Nirman again
+       ↓
+Reconnect → existing task state restored
+```
+
+The second executable is an internal runtime component, not a second Nirman application.
+
 ## Architecture overview
 
 Nirman is organized around a durable local control plane rather than a chat wrapper.

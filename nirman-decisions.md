@@ -40,6 +40,31 @@ This document records significant product and engineering decisions for Nirman. 
 
 ---
 
+## ADR-002A: One user-facing Nirman application with two internal Windows processes
+
+**Status:** Accepted
+
+**Decision:** Nirman is one user-facing Windows desktop product delivered as one installation. Its production implementation consists of two cooperating processes:
+
+| Process | User-facing role | Lifecycle |
+|---|---|---|
+| `Nirman.exe` | Visible desktop application: chat, projects, editor, preview, tasks, settings, evidence, notifications | Started and managed as the user-facing application |
+| `NirmanSupervisor.exe` | Headless autonomous runtime/control plane | Started, monitored, restarted, and stopped automatically; never independently operated by the user |
+
+`NirmanSupervisor.exe` is an implementation/runtime component, not a second user-facing application. It must not expose a normal application window, require separate configuration, create an independent taskbar workflow, or require the user to launch it manually.
+
+The Nirman installer must install and version both executables as one product installation. Starting Nirman must ensure that the compatible supervisor is running. Closing or minimizing `Nirman.exe` must not terminate an eligible autonomous task owned by the supervisor.
+
+The supervisor may continue background execution while the Nirman window is minimized or closed, subject to task policy, resource limits, Windows lifecycle state, and explicit stop conditions. When the user returns, Nirman reconnects to the existing supervisor session and replays durable state and events.
+
+User mental model: one Nirman application, not two applications.
+
+**Reasoning:** Separating presentation from autonomous execution prevents UI crashes, restarts, and closure from destroying long-running work while keeping the product experience equivalent to a single desktop application.
+
+**Trade-off:** The implementation has process/IPC complexity, but that complexity remains invisible to ordinary users. This becomes the canonical terminology all other documents reference.
+
+---
+
 ## ADR-003: Use a local transactional database for task state
 
 **Status:** Accepted  
