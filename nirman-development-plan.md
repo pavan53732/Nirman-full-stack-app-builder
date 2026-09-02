@@ -98,7 +98,7 @@ Build the visible Windows application shell and the project-management experienc
 
 ### Work items
 
-1. Implement the Tauri shell and React interface.
+1. Implement the C#/.NET + WinUI 3 shell and Windows App SDK interface.
 2. Add welcome, create-project, open-project, and recent-project screens.
 3. Add the main workspace layout with chat, file tree, editor, preview, tasks, and logs regions.
 4. Add project metadata storage without secrets.
@@ -1071,7 +1071,7 @@ The detailed milestones below are executed through four architectural stages. Ni
 
 ## Stage 1 — Foundation
 
-Build Tauri 2, React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Rust/Tokio, SQLite, Git, native Windows process controls, the provider gateway, project management, CodeMirror 6, xterm.js, Android toolchain detection, basic Android build and preview, checkpoints, and undo.
+Build C#/.NET + WinUI 3 + Windows App SDK, Rust/Tokio, SQLite, Git, native Windows process controls, the provider gateway, project management, native WinUI editor surface, native WinUI terminal surface, Android toolchain detection, basic Android build and preview, checkpoints, and undo.
 
 **Stage 1 exit gate:** a user can open or create an Android workspace, configure a provider, chat, inspect files, edit a file, run a supervised terminal, build or preview an Android project, create a checkpoint, and undo a change.
 

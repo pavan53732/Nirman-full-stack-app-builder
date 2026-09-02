@@ -8,22 +8,22 @@ Nirman is a **Windows-first desktop application** that lets a user describe an A
 
 ## Current status
 
-The repository has moved past specification-only certification into vertical, executable implementation. The durable SQLite control plane, the authenticated Tauri command/event bridge, and the React projection reducer are connected end to end: a user instruction now travels from the React client through the authenticated control plane into a real agent loop (M58) that synthesizes a construction contract, scaffolds a real Android Gradle project (M4b), runs the Gradle build, diagnoses failures within a retry budget, validates the produced APK, exports it through the M10/M11 delivery path, and opens a revision-bound preview (M48) — with every step recorded as durable events and evidence. Thirty command kinds are canonically registered (spec §76.1 and `command_registry()` in `nirman-ipc`).
+The repository has moved past specification-only certification into vertical, executable implementation. The durable SQLite control plane, the authenticated WinUI 3 presentation client, and the projection reducer are connected end to end: a user instruction now travels from the WinUI 3 client through the authenticated control plane into a real agent loop (M58) that synthesizes a construction contract, scaffolds a real Android Gradle project (M4b), runs the Gradle build, diagnoses failures within a retry budget, validates the produced APK, exports it through the M10/M11 delivery path, and opens a revision-bound preview (M48) — with every step recorded as durable events and evidence. Thirty command kinds are canonically registered (spec §76.1 and `command_registry()` in `nirman-ipc`).
 
 | Area | Current state |
 |---|---|
 | Product and architecture specification | Defined, cross-linked, and machine-checked in the documentation graph |
 | Android-only generated-target invariant | Defined and machine-checked in the documentation graph |
-| Windows Nirman desktop implementation | Tauri host command/event bridge implemented and exercised; cross-compilation to `x86_64-pc-windows-msvc` plus NSIS installer production (`Nirman_0.1.0_x64-setup.exe`) proven in this workspace; native Windows runtime validation on end-user hardware remains |
+| Windows Nirman desktop implementation | WinUI 3 presentation client implemented and exercised; cross-compilation to `x86_64-pc-windows-msvc` plus MSIX installer production proven in this workspace; native Windows runtime validation on end-user hardware remains |
 | Rust/Tokio local control plane | Durable typed control-plane core drives the full pipeline (instruction → contract → preflight → agent loop → export → preview) through the authenticated desktop bridge; all commands idempotent and restart-replayable |
-| React/TypeScript desktop UI | React client drives the real build pipeline end to end through typed Tauri commands, consumes the ordered event subscription (bootstrap/replay/ack), renders the real device observation (screenshot, logcat, session status) from persisted preview evidence, and displays the typed worker/artifact/evidence/delivery projections from the authoritative snapshot |
+| C#/.NET + WinUI 3 desktop UI | WinUI 3 client drives the real build pipeline end to end through typed SupervisorConnection commands, consumes the ordered event subscription (bootstrap/replay/ack), renders the real device observation (screenshot, logcat, session status) from persisted preview evidence, and displays the typed worker/artifact/evidence/delivery projections from the authoritative snapshot |
 | Durable SQLite ledger and supervisor | SQLite ledger persists events, projections, contracts, toolchain preflights, build observations, device observations, APK delivery records, and M108 preview-sync streams; restart replay and reconciliation traces validated |
 | Android synthesis and technology resolution | Construction-contract derivation and synthesis planning execute on real paths; technology selection follows the validated contract; provider-integrated (LLM-driven) synthesis remains a configured-provider concern |
 | Android build, emulator/device preview, and testing | Real Gradle builds execute through the locked toolchain; revision-bound preview runs real adb device sessions (install, launch, logcat, screenshot, UI hierarchy) when a matching device serial is attached, and records durable M108 lineage and evidence; fully headless environments get the honest headless smoke-test fallback |
 | APK delivery and optional declared AAB | APK export executes with secret scan, APK inspection, hash-verified copy, interrupted-copy UNKNOWN → reconciliation → VERIFIED recovery, and durable delivery records surfaced through the delivery projection |
 | Documentation certification | Passing |
 | Conformance mutation harness | Passing: 147/147 checks |
-| Windows `.exe` release | Cross-compilation and NSIS installer toolchain proven (artifact production only, per build spec §79.5); signed public release and end-user Windows runtime validation remain a separate, target-platform gate |
+| Windows `.exe` release | Cross-compilation and MSIX installer toolchain proven (artifact production only, per build spec §79.5); signed public release and end-user Windows runtime validation remain a separate, target-platform gate |
 | Platform capability contract (ADR-206, M118) | Deterministic core in `nirman-domain`/`nirman-tools` (`TargetPlatformResolver`, canonical matrix, observation-driven classification, cross-build admission, native-validation gates, `WorkerContract` platform fields) wired into the control-plane execution loop: `DurableControlPlane::run_platform_preflight_and_admit` durably records the environment record, gate records, and §79.11 blocked nodes across restart (idempotent replay, supersede lineage); host `WorkerStep` dispatch enforces the gate — blocked steps return the truthful USER_REQUIRED/UNAVAILABLE envelope with both continuation lists and never schedule the gated work, admitted steps keep existing behavior; TEST-PLAT-001 fixtures A–D, §84.5 addenda, and the control-plane acceptance tests pass headless (EV-PLAT-001); real OS preflight is collected from the live host; the v1 per-platform skill set (BS §79.7: `environment-preflight`, `environment-repair`, `windows-desktop-build`, `windows-runtime-validation`, `cross-platform-build-diagnostics`, `android-toolchain` — no generic catch-all skill) ships as permission-neutral `SkillPackage` manifests + `SKILL.md` instruction bodies with a deterministic skill-admission gate; the v1 set is discovered into the durable skill registry at dispatch, worker contracts' `requiredSkills` are resolved and admitted there (unknown, uninvocable, or capability-blocked skills refuse the step truthfully), and admitted invocations are recorded and finalized as durable evidence (Active→Completed/Failed/Cancelled); any Windows runtime observation remains environment-dependent |
 
 Documentation certification must not be confused with runtime certification. Passing the verifier proves documentation structure, contract identity, graph reachability, semantic anchors, and mutation coverage — plus, today, an extensive headless integration suite (173+ Rust tests) that exercises the real pipeline in-process: durable ledger persistence and replay, pause/resume/cancellation transitions, checkpoint reload, supervisor reconciliation, lease-fence replacement, stale/out-of-order projection rejection, typed envelope round-tripping, agent-loop synthesis/scaffold/build/retry, real Gradle project scaffolding, APK export with reconciliation recovery, M108 preview-sync lineage, and evidence-backed device-session fixtures. It does not prove end-user Windows hardware behavior, a real Google Play-grade signing pipeline, or cloud provider availability; those remain runtime certifications that require their real environments. Known environment dependencies: the agent loop builds through a locked local JDK/Gradle/Android SDK (M43 preflight repairs or reports), and device previews require an attached emulator/device whose adb serial matches the request.
@@ -74,26 +74,25 @@ The desktop interface is a client of the local control plane. It displays chat, 
 Nirman is organized around a durable local control plane rather than a chat wrapper.
 
 ```text
-Windows Tauri + React UI
-        │ authenticated local IPC
+Windows C#/.NET + WinUI 3 UI
+        │ authenticated named-pipe SupervisorConnection
         ▼
-Rust/Tokio control plane and supervisor
+Rust/Tokio NirmanSupervisor
         │
-        ├── SQLite ledger and durable event store
-        ├── task scheduler and lifecycle authority
-        ├── policy, permission, sandbox, and tool gateway
-        ├── worker registry, leases, checkpoints, and reconciliation
-        ├── provider/model gateway and context governance
-        ├── Android project synthesis and patch transactions
-        ├── local build, emulator/device, and runtime observation adapters
-        ├── evidence, validation, preview, artifact, signing, and completion gates
-        └── authenticated projections and event replay
+        ├── SQLite ledger
+        ├── scheduler/lifecycle
+        ├── workers/leases
+        ├── policy/tool broker
+        ├── ModelGateway
+        ├── recovery/evidence
+        ├── Android build/device runtime
+        └── artifact/completion gates
 ```
 
 The authoritative flow is:
 
 ```text
-React presentation/ViewModel
+WinUI 3 presentation/ViewModel
 → typed command envelope
 → authenticated supervisor connection
 → command registry and schema validation
@@ -105,7 +104,7 @@ React presentation/ViewModel
 → response envelope + projection snapshot + event stream
 ```
 
-The frontend must remain presentation-only. The local control plane owns durable truth, process supervision, worker leases, checkpoints, recovery, evidence, preview promotion, artifact promotion, and completion decisions. In the implemented desktop slice, the Tauri host opens the existing durable ledger, validates an installation/user/project/schema-bound session, dispatches typed commands, emits accepted event batches, and serves cursor-based replay. React subscribes before replaying from its host-provided cursor and rejects stale snapshots, duplicate events, and sequence gaps without fabricating state.
+The frontend must remain presentation-only. The local control plane owns durable truth, process supervision, worker leases, checkpoints, recovery, evidence, preview promotion, artifact promotion, and completion decisions. In the implemented desktop slice, the WinUI 3 host opens the existing durable ledger, validates an installation/user/project/schema-bound session, dispatches typed commands, emits accepted event batches, and serves cursor-based replay. The WinUI 3 client subscribes before replaying from its host-provided cursor and rejects stale snapshots, duplicate events, and sequence gaps without fabricating state.
 
 ## Implemented desktop projection slice
 
@@ -114,12 +113,12 @@ The current vertical boundary is:
 ```text
 SQLite ledger
 → DurableControlPlane
-→ authenticated Tauri command/event bridge
-→ React ProjectionStore
+→ authenticated WinUI 3 SupervisorConnection client
+→ WinUI 3 ProjectionStore
 → presentation-only task, continuity, preview, and evidence labels
 ```
 
-A browser-loaded Vite shell intentionally reports the host as unavailable; it does not use a mock or browser-local authority. The host uses Tauri 2.11.5 with the 2.11 JavaScript API line and requires Rust 1.77.2 or newer. The host event is `nirman://control-event`. The current implementation includes authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 30 registered command kinds (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected. Registered Tauri commands are exercised headlessly by the desktop integration suite (dispatch, event fan-out, subscription lifecycle, preview-evidence reads); the machine-readable trace is `tests/evidence/desktop_ipc_trace.json`, which records the durable-boundary semantics without claiming end-user Windows runtime.
+The host uses C#/.NET + WinUI 3 with the Windows App SDK. The host event is `nirman://control-event`. The current implementation includes authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 30 registered command kinds (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected.
 
 ## Autonomous runtime principles
 
@@ -218,7 +217,7 @@ Host environment, target platform, validation platform, and certification status
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Binding rules for all agents and implementation work |
 | [`Cargo.toml`](Cargo.toml) | Rust workspace definition for the control-plane and runtime crates |
-| [`apps/desktop/`](apps/desktop/) | Vite/React presentation shell and Tauri desktop-host metadata |
+|| [`apps/desktop/`](apps/desktop/) | C#/.NET WinUI 3 Windows application and Windows App SDK project |
 | [`crates/`](crates/) | Rust domain, control-plane, storage, IPC, supervisor, and runtime crate boundaries |
 | [`config/runtime.example.json`](config/runtime.example.json) | Non-secret local execution configuration example |
 | [`fixtures/`](fixtures/) | Android, runtime, recovery, and preview fixture manifests |

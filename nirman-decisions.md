@@ -1296,25 +1296,25 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Branding changes should be fast and should not unnecessarily regenerate unrelated application logic or assets.
 
 **Consequences:** Asset impact analysis and revision binding are required for preview and artifact promotion.
-## ADR-108: Lock Tauri 2 and React/TypeScript/Vite for the Windows application
+## ADR-108: Lock C#/.NET + WinUI 3 for the Windows application
 
 **Status:** Accepted
 
-**Decision:** Nirman uses Tauri 2 with React, TypeScript, and Vite for the Windows desktop UI. Tailwind CSS and shadcn/ui are the initial styling system.
+**Decision:** Nirman uses C#/.NET with WinUI 3 and Windows App SDK for its Windows desktop application. XAML is the presentation language and WinUI 3 Fluent Design is the UI system. The desktop UI is presentation-only and communicates with the Rust/Tokio control plane through the authenticated SupervisorConnection protocol over named pipes.
 
-**Rationale:** This provides a native Windows shell with a rich, maintainable AI workspace while keeping the authoritative runtime in Rust.
+**Rationale:** Nirman is a Windows-first native desktop application. WinUI 3 provides the native Windows application surface while Rust/Tokio remains responsible for deterministic autonomous execution, process supervision, policy, persistence, recovery, Android tooling, and evidence.
 
-**Consequences:** Electron, Next.js, and a web-wrapper generated-target architecture are not part of Nirman’s desktop stack.
+**Consequences:** Tauri, Electron, React, TypeScript, Vite, Tailwind, shadcn/ui, and WebView-based desktop-shell architecture are not part of Nirman’s implementation stack. They may exist only as dependencies of unrelated development tooling and must not become Nirman's host UI architecture.
 
 ## ADR-109: Rust and Tokio own the authoritative control plane
 
 **Status:** Accepted
 
-**Decision:** Rust with Tokio owns lifecycle, scheduling, workers, leases, filesystem and process authority, policy, terminals, provider credentials, recovery, resource governance, Android execution, evidence, and artifact promotion.
+**Decision:** Rust with Tokio owns the authoritative control plane: lifecycle, scheduling, workers, leases, filesystem and process authority, policy, terminals, provider credentials, recovery, resource governance, Android execution, evidence, and artifact promotion. C#/.NET + WinUI 3 is the presentation/client layer.
 
-**Rationale:** These responsibilities must survive UI failure and require deterministic concurrency, Windows APIs, process control, and secure local authority.
+**Rationale:** These responsibilities must survive UI failure and require deterministic concurrency, Windows APIs, process control, and secure local authority. WinUI 3 must remain a client and never become a second runtime authority.
 
-**Consequences:** React state is presentation-only. The model and UI cannot bypass Rust runtime authorities.
+**Consequences:** WinUI state is presentation-only. The C# UI and model cannot bypass Rust runtime authorities.
 
 ## ADR-110: SQLite is the execution ledger
 
@@ -1330,29 +1330,29 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** The first vertical slice may embed the control plane in the Tauri Rust backend. The production durable-autonomy architecture separates the reconnectable `Nirman.exe` UI from `NirmanSupervisor.exe`, which owns long-running execution and recovery.
+**Decision:** The first vertical slice may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. The production durable-autonomy architecture separates the reconnectable `Nirman.exe` UI from `NirmanSupervisor.exe`, which owns long-running execution and recovery.
 
 **Rationale:** Autonomous work must continue when the UI closes, crashes, or reconnects after Windows restart or sleep/resume.
 
 **Consequences:** The supervisor requires authenticated IPC, protocol handshake, health monitoring, installation/update behavior, login startup, and SQLite recovery scanning.
 
-## ADR-112: CodeMirror 6 is the first editor
+## ADR-112: Native WinUI editor surface is the first editor
 
 **Status:** Accepted
 
-**Decision:** Nirman uses CodeMirror 6 for the first editor implementation. Monaco may be evaluated later.
+**Decision:** Nirman uses a native WinUI editor surface for the first editor implementation. AvalonEdit or an equivalent native editor surface may be evaluated later.
 
-**Rationale:** The primary product is autonomous construction, preview, validation, and recovery. CodeMirror is sufficient for the first editor surface with lower integration overhead.
+**Rationale:** The primary product is autonomous construction, preview, validation, and recovery. A native WinUI editor surface is sufficient for the first editor surface with lower integration overhead and no WebView2 dependency.
 
 **Consequences:** Editor state is presentation-only; semantic intelligence remains in Rust and language-specific analyzers.
 
-## ADR-113: xterm.js renders terminals; Rust owns ConPTY
+## ADR-113: Native WinUI terminal surface; Rust owns ConPTY
 
 **Status:** Accepted
 
-**Decision:** xterm.js is the terminal renderer. Rust `TerminalSupervisor` owns Windows ConPTY, shell profiles, process groups, input policy, output capture, cancellation, quotas, and recovery.
+**Decision:** A native WinUI terminal surface is the terminal renderer. Rust `TerminalSupervisor` owns Windows ConPTY, shell profiles, process groups, input policy, output capture, cancellation, quotas, and recovery.
 
-**Rationale:** A browser renderer must not own process authority or unrestricted shell access.
+**Rationale:** A native Windows renderer must not own process authority or unrestricted shell access. The native WinUI terminal surface provides deterministic rendering with no WebView2 dependency.
 
 **Consequences:** Terminal UI reconnects to durable terminal sessions and cannot forge command results or bypass policy.
 
@@ -1380,21 +1380,21 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** React maintains only presentation state. Nirman.exe rebuilds its projection from SupervisorConnection snapshots and durable events after reconnect.
+**Decision:** The C#/.NET WinUI 3 client maintains only presentation state. Nirman.exe rebuilds its projection from SupervisorConnection snapshots and durable events after reconnect.
 
 **Rationale:** UI-owned execution state is lost during crashes, restarts, and long-running background work.
 
 **Consequences:** Client state cannot mark completion, authorize operations, alter policies, or promote artifacts.
 
-## ADR-117: No separate Node control-plane server for the first implementation
+## ADR-117: WinUI 3 communicates with Rust through SupervisorConnection
 
 **Status:** Accepted
 
-**Decision:** The initial implementation uses Tauri IPC/events directly between the React UI and Rust backend. A separate supervisor executable is introduced when durable-autonomy extraction requires it, not as an unnecessary localhost Node server.
+**Decision:** The WinUI 3 client communicates with the Rust control plane through the typed authenticated SupervisorConnection protocol. The first implementation may use in-process interop where the supervisor boundary is not yet extracted; the production architecture uses named-pipe IPC with NirmanSupervisor.exe.
 
-**Rationale:** A separate server would add process, protocol, packaging, and failure surface before the control-plane contracts are proven.
+**Rationale:** This preserves one authoritative runtime while allowing the desktop UI to evolve independently.
 
-**Consequences:** The internal interfaces must be process-boundary-ready so the extraction to NirmanSupervisor.exe does not change product behavior.
+**Consequences:** No Tauri IPC, WebView IPC, or Node control-plane server is part of Nirman's architecture.
 ## ADR-118: Make AgentExecutionKernel a first-class runtime subsystem
 
 **Status:** Accepted
@@ -2284,7 +2284,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Status:** Accepted
 
-**Decision:** The React/Tauri frontend communicates with the authoritative local control plane through authenticated, project-scoped, schema-versioned commands and durable event subscriptions. The command registry, response and error envelopes, transaction ownership, projection snapshots, replay cursor, backpressure, idempotency, and optimistic-state separation are canonical. The UI cannot authorize operations, write domain state, fill event gaps, promote artifacts, or advance evidence. Generated Android service adapters are separate from Nirman IPC and own only generated application behavior.
+**Decision:** The C#/.NET + WinUI 3 frontend communicates with the authoritative local control plane through authenticated, project-scoped, schema-versioned commands and durable event subscriptions. The command registry, response and error envelopes, transaction ownership, projection snapshots, replay cursor, backpressure, idempotency, and optimistic-state separation are canonical. The UI cannot authorize operations, write domain state, fill event gaps, promote artifacts, or advance evidence. Generated Android service adapters are separate from Nirman IPC and own only generated application behavior.
 
 **Rationale:** A frontend that directly manipulates state, assumes successful requests, or reconstructs missing events from local memory becomes a second authority and can display progress that the backend never accepted. Typed envelopes and cursor-atomic replay make the UI reconnectable, diagnosable, and safe without coupling domain persistence to React components.
 

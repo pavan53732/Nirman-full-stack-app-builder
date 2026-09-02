@@ -312,7 +312,7 @@ Adaptive resource management may compact context, reduce concurrency, switch amo
 
 ## 15. Documentation and implementation-status rules
 
-Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working Tauri UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, emulator/device execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
+Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working C#/.NET + WinUI 3 desktop UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, emulator/device execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
 
 Local certification is authoritative for repository engineering validation. Run `tools/verify.sh` on Unix-like development environments or `tools/verify.ps1` on Windows; both must execute the same local checks for documentation, M0 foundation, Rust formatting/tests, frontend installation/build, and fixture validation. Git hosting and hosted CI providers—including GitHub Actions—are optional source-control or convenience services. They are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact. GitHub independence does not imply offline certification: dependency installation may require a configured package registry or cached dependencies, but it must not require GitHub or a hosted repository for authority or execution.
 
@@ -382,7 +382,8 @@ An agent must not:
 - expose API keys, keystore material, private project data, or protected diagnostics;
 - treat ZIP/Git/source access as deployment completion;
 - remove the optional declared-AAB policy without a superseding decision;
-- silently narrow Android technology intent to a fixed template or framework; or
+- silently narrow Android technology intent to a fixed template or framework;
+- introduce Tauri, Electron, React, TypeScript, Vite, WebView-based Nirman UI, or another web-wrapper desktop shell; or
 - commit or push changes that were not requested or reviewed.
 
 ## 18. Completion standard

@@ -2763,22 +2763,28 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 
 ### 57.1 Implementation stack
 
-Nirman v1 uses Tauri 2 with React/TypeScript/Vite on the presentation side and Rust/Tokio for the authoritative local runtime. Tailwind CSS and shadcn/ui provide the initial design system. CodeMirror 6 is the initial editor and xterm.js is the terminal renderer. SQLite is the execution ledger; SQLx is the preferred asynchronous access layer, with rusqlite evaluated only if synchronous operations are isolated from Tokio scheduling.
+Nirman v1 uses C#/.NET with WinUI 3 and Windows App SDK for the Windows desktop application. XAML is the presentation language and WinUI 3 Fluent Design is the initial design system. The presentation layer uses a presentation-only MVVM or equivalent state architecture.
 
-The Windows runtime uses native APIs: ConPTY for terminals, restricted process tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, and resource quotas. Android tooling remains externally installed or managed by the toolchain authority and includes JDK, Gradle, AGP, SDK, ADB, emulator, NDK/CMake when required, and Node/Metro/Expo only when the technology plan selects them.
+Rust with Tokio owns the authoritative local runtime and control plane. SQLite is the execution ledger. SQLx is the preferred asynchronous access layer, with rusqlite permitted only when isolated safely from Tokio scheduling.
+
+The Windows runtime uses native APIs including ConPTY, restricted process tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, and resource quotas.
+
+The Android toolchain remains externally installed or managed by Nirman's toolchain authority.
 
 ### 57.2 Process topology
 
 ```text
 Nirman.exe
-└── Tauri 2 + React/TypeScript/Vite
-    ├── Chat and project navigation
-    ├── CodeMirror editor
-    ├── xterm.js terminal views
+└── C#/.NET + WinUI 3 + Windows App SDK
+    ├── Chat
+    ├── Project navigation
+    ├── Native editor surface
+    ├── Native terminal surface
     ├── Android preview presentation
-    ├── task graph and reasoning stream
-    └── typed authenticated IPC/events
-              │
+    ├── Task graph and reasoning stream
+    ├── Settings and user controls
+    └── SupervisorConnection client
+              │ authenticated named-pipe protocol
               ▼
 NirmanSupervisor.exe
 ├── LifecycleAuthority
@@ -2798,7 +2804,7 @@ NirmanSupervisor.exe
 └── SQLite execution ledger
 ```
 
-The first implementation may host these supervisor modules in the Tauri Rust backend, but all interfaces must be designed so they can move into `NirmanSupervisor.exe` without changing the UI contract.
+The first implementation may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. The production durable-autonomy architecture separates Nirman.exe from NirmanSupervisor.exe.
 
 ### 57.3 SupervisorConnection
 
@@ -2864,15 +2870,15 @@ Large logs, screenshots, diffs, patches, crash dumps, build output, and APK deli
 
 ### 57.6 UIProjectionState
 
-The React application maintains only presentation state: selected project, open tabs, expanded task nodes, filters, scroll position, optimistic form values, and the last acknowledged event sequence. It receives authoritative task, worker, preview, reasoning, evidence, and health state from the supervisor.
+The C#/.NET WinUI 3 client maintains only presentation state: selected project, open tabs, expanded task nodes, filters, scroll position, optimistic form values, and the last acknowledged event sequence. It receives authoritative task, worker, preview, reasoning, evidence, and health state from the supervisor.
 
 On reconnect, the UI discards stale projections and rebuilds them from the supervisor snapshot plus durable events. No client-side state can mark a task complete, authorize a command, promote an artifact, or change a policy.
 
 ### 57.7 Terminal architecture
 
 ```text
-React xterm.js
-      ↓ typed Tauri event/command
+WinUI terminal surface
+      ↓ SupervisorConnection (named pipes)
 Supervisor TerminalSupervisor
       ↓
 Windows ConPTY
@@ -2880,7 +2886,7 @@ Windows ConPTY
 PowerShell / cmd.exe / Git Bash / approved shell
 ```
 
-Rust owns working directory, environment snapshot, shell profile, process group, input policy, output limits, searchable rolling logs, cancellation, tree termination, heartbeat, and recovery. xterm.js renders output and sends user input through policy-checked commands; it never owns the process.
+Rust owns working directory, environment snapshot, shell profile, process group, input policy, output limits, searchable rolling logs, cancellation, tree termination, heartbeat, and recovery. The WinUI terminal surface renders output and sends user input through policy-checked commands; it never owns the process.
 
 ### 57.8 Provider authority chain
 
