@@ -394,7 +394,7 @@ PackagingProfile
 - requiredEvidenceKinds
 ```
 
-Every artifact belongs to an `ArtifactSet` with a shared source revision, asset manifest, toolchain lock, environment identity, validation policy, and evidence ledger. An optional AAB is a separate artifact record with its own signing, inspection, and promotion evidence. The runtime MUST NOT use the phrase “APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB`” as an undefined completion condition.
+Every artifact belongs to an `ArtifactSet` with a shared source revision, asset manifest, toolchain lock, environment identity, validation policy, and evidence ledger. An optional AAB is a separate artifact record with its own signing, inspection, and promotion evidence. The runtime MUST NOT use the phrase “APK” as an undefined completion condition.
 
 ### 5.7.4 Evidence dependencies and cascading invalidation
 
@@ -551,7 +551,7 @@ Nirman should be composed as a Windows-first desktop application with independen
 ├────────────────────────────────────────────────────────────┤
 │ Local Runtime: Node │ Package Manager │ Git │ Build Tools    │
 ├────────────────────────────────────────────────────────────┤
-│ Android project │ Android runtime │ Expo/React Native │ APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts │
+│ Android project │ Android runtime │ Expo/React Native │ APK artifacts │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -589,7 +589,7 @@ The interface should maintain a clear distinction between generated text and exe
 
 ### 6.3 Local runtime
 
-The local runtime manages Android project processes and development tools. It should be responsible for starting and stopping Metro or native development servers, managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts.
+The local runtime manages Android project processes and development tools. It should be responsible for starting and stopping Metro or native development servers, managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK artifacts.
 
 It should never assume that a tool exists. Before invoking a command, it should verify the required executable and display a diagnostic if the environment is incomplete.
 
@@ -1012,13 +1012,13 @@ Add task planning, acceptance criteria, grouped changes, preview startup, screen
 
 ### Phase 6: Android packaging and artifact export
 
-Add Git export, Android debug/release build artifacts, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` packaging, signing configuration boundaries, artifact metadata, checksums, and Android build diagnostics.
+Add Git export, Android debug/release build artifacts, APK packaging, signing configuration boundaries, artifact metadata, checksums, and Android build diagnostics.
 
 **Exit criteria:** A supported Android project can produce a validated APK artifact, or an AAB artifact only when the active PackagingProfile requires `APK_AND_AAB`, and the user can locate the result with its build metadata and validation report.
 
 ### Phase 7: Android generation
 
-Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, emulator or device connection information, Android logs, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` build workflows where the local environment supports them.
+Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, emulator or device connection information, Android logs, and APK build workflows where the local environment supports them.
 
 **Exit criteria:** Nirman can create and build a supported Android project and clearly identify environmental limitations.
 
@@ -1097,7 +1097,7 @@ The project should be built in vertical slices rather than by completing every s
 
 The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan, synthesize a project, apply a small file change, start an emulator or device preview, and inspect the result.
 
-The second slice should add checkpoints, diffs, tests, repair attempts, Android emulator/device preview, and cancellation. The third should add Android packaging, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifacts, signing boundaries, and device validation.
+The second slice should add checkpoints, diffs, tests, repair attempts, Android emulator/device preview, and cancellation. The third should add Android packaging, APK artifacts, signing boundaries, and device validation.
 
 The team should maintain a fixture library of representative projects and tasks. Each agent change should be evaluated against these fixtures for code correctness, preview startup, test results, changed-file scope, and safe failure behavior.
 
@@ -1131,7 +1131,7 @@ The most important strategic decision is to build the **local Android runtime, t
 7. Add checkpoints and diff review.
 8. Add local preview and runtime diagnostics.
 9. Add linting, type checking, tests, and repair loops.
-10. Add Android packaging and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact export.
+10. Add Android packaging and APK artifact export.
 11. Add full Android technology coverage, native integration, and device capabilities.
 12. Add advanced visual editing, project memory, technology-plan inspection, and screenshot comparison.
 
@@ -1676,7 +1676,7 @@ The environment record should contain executable paths, detected versions, sourc
 
 ### 26.12 Android runtime abstraction
 
-Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and device control, Logcat capture, Gradle and Metro execution, quotas, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
+Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and device control, Logcat capture, Gradle and Metro execution, quotas, and APK artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
 
 ### 26.13 Background approvals and notifications
 
@@ -1945,7 +1945,7 @@ The runtime must continue from durable events rather than waiting for another ch
 
 A failure continuation must pass the real diagnostic context—failure fingerprint, relevant stack trace or process output, changed files, environment identity, prior attempts, checkpoint, and validation results—to the next authorized diagnostic or coding worker. A retry without new evidence, a changed strategy, or a changed authority context is not a new attempt. Retry budgets are bounded and policy-configurable; reaching a budget triggers strategy change, backtracking, degradation, or a truthful blocker rather than a blind loop.
 
-Nirman uses Windows process and workspace isolation for local execution. The runtime must not imply that a Docker container, virtual machine, WSL environment, or other prohibited external sandbox was used. Nirman also has no generic web or cloud deployment target; `promotion_or_export_requested` refers to local Android preview promotion or declared APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact export.
+Nirman uses Windows process and workspace isolation for local execution. The runtime must not imply that a Docker container, virtual machine, WSL environment, or other prohibited external sandbox was used. Nirman also has no generic web or cloud deployment target; `promotion_or_export_requested` refers to local Android preview promotion or declared APK artifact export.
 
 Browser automation is never a required or authoritative completion stage for an Android-target profile. Emulator or physical-device evidence is authoritative for Android runtime behavior. The exact preview-promotion predicate is the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1.
 
@@ -2080,7 +2080,7 @@ When a stall is detected, the runtime must refresh context, change strategy, cha
 
 Parallel workers must receive explicit contracts and isolated workspaces. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
 
-### 29.6 APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` completion gates
+### 29.6 APK completion gates
 
 A task is complete only when its applicable completion conditions are proven. For Android delivery, the evidence must include a successful build, an APK artifact or an AAB artifact only when the active PackagingProfile requires `APK_AND_AAB`, a checksum, artifact scanning, installation or launch evidence, main-flow results, screenshot or visual validation, required permission behavior, and no unresolved fatal runtime errors. The final artifact must link to the project revision and evidence ledger.
 
@@ -2090,19 +2090,19 @@ Routine project-local actions may continue automatically under the configured Un
 
 ### 29.8 Full Android capability acceptance
 
-The product must validate AI-selected generation across JavaScript-driven Android projects, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` delivery. These are internal acceptance categories, not user-facing templates.
+The product must validate AI-selected generation across JavaScript-driven Android projects, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery. These are internal acceptance categories, not user-facing templates.
 
 ---
 
 ## 30. Android Completion Report
 
-The final completion screen must show the application identity, selected technology plan and reasons, final emulator or device state, build and validation results, APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
+The final completion screen must show the application identity, selected technology plan and reasons, final emulator or device state, build and validation results, APK paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
 
 ---
 
 ## 31. Final System Principle
 
-> **The user gives one Android application idea and optional screenshots once. The system works continuously in the background, dynamically chooses the Android implementation, updates the live preview, coordinates terminals and workers, heals failures, validates the result, and returns a working APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` with evidence.**
+> **The user gives one Android application idea and optional screenshots once. The system works continuously in the background, dynamically chooses the Android implementation, updates the live preview, coordinates terminals and workers, heals failures, validates the result, and returns a working APK with evidence.**
 
 The complexity belongs inside the runtime rather than inside the user’s workflow. Deterministic lifecycle, permission, sandbox, storage, evidence, recovery, promotion, rollback, and termination authorities remain in control while the configured AI proposes and executes development work within the approved policy.
 
@@ -2112,7 +2112,7 @@ The complexity belongs inside the runtime rather than inside the user’s workfl
 
 The runtime must provide specialized workers, a self-healing loop, evidence-based completion, adaptive resource management, self-development, project memory, and environment repair as core capabilities. These capabilities are mandatory parts of the end-to-end Android session rather than optional extensions.
 
-**Acceptance statement:** A representative Android task can be launched from one instruction and optional screenshots, continue through background implementation, update the live preview, recover from injected worker/process/provider/device failures, produce evidence for each completion condition, and return a validated APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` without routine approval pauses.
+**Acceptance statement:** A representative Android task can be launched from one instruction and optional screenshots, continue through background implementation, update the live preview, recover from injected worker/process/provider/device failures, produce evidence for each completion condition, and return a validated APK without routine approval pauses.
 
 
 ## 33. Production Runtime Contract
@@ -2128,7 +2128,7 @@ The implementation must define versioned, validated contracts for:
 
 | Contract | Responsibility |
 |---|---|
-| `AutonomousAndroidSession` | Owns the full task from one user request to validated APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` output |
+| `AutonomousAndroidSession` | Owns the full task from one user request to validated APK output |
 | `AndroidApplicationContract` | Captures features, screens, behavior, integrations, devices, permissions, and acceptance conditions |
 | `VisualSpecification` | Captures screenshot-derived layouts, states, components, typography, color, spacing, and comparison rules |
 | `AndroidTechnologyPlan` | Records AI-selected languages, UI systems, native modules, SDKs, libraries, device APIs, and build strategy |
@@ -2138,7 +2138,7 @@ The implementation must define versioned, validated contracts for:
 | `PreviewRevision` | Binds emulator/device state to a project revision and checkpoint |
 | `EvidenceRecord` | Stores proof from tests, builds, screenshots, Logcat, permissions, scans, and artifacts |
 | `RecoveryRecord` | Stores failure fingerprints, attempted strategies, backtracking, and outcomes |
-| `ArtifactRecord` | Stores APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` metadata, checksum, build profile, signing state, scans, and source revision |
+| `ArtifactRecord` | Stores APK metadata, checksum, build profile, signing state, scans, and source revision |
 | `ProviderProfile` | Stores endpoint, model ID, protocol, capabilities, privacy policy, and routing role |
 
 All durable contracts require explicit versioning, schema validation, atomic persistence, migration, backup, and rollback. No model output may create undocumented fields or alter authority rules.
@@ -2204,7 +2204,7 @@ Generated code must not automatically access personal files, browser cookies, SS
 - extendedClauses: none
 - nonOverriddenClauses: CLAUSE.PLATFORM.HOST_TARGET_SEPARATION, CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION, CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION, CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET
 
-Nirman must distinguish among model claims, runtime events, and evidence records. A model statement such as “the login screen is complete” is not completion evidence. Completion requires applicable proof from builds, installation, automated flows, screenshots, visual comparison, Logcat, permissions, security scans, performance checks, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` metadata.
+Nirman must distinguish among model claims, runtime events, and evidence records. A model statement such as “the login screen is complete” is not completion evidence. Completion requires applicable proof from builds, installation, automated flows, screenshots, visual comparison, Logcat, permissions, security scans, performance checks, and APK metadata.
 
 The final report must identify what passed, what failed, what was repaired, what could not be tested, the source revision, the active checkpoint, the artifact checksum, and any unresolved warnings. No model claim may mark a requirement complete without a corresponding evidence record.
 
@@ -2215,7 +2215,7 @@ The final report must identify what passed, what failed, what was repaired, what
 
 Memory must be divided into session memory, project memory, runtime-improvement memory, and credential storage. Every memory entry must include source, confidence, project scope, timestamp, revision, retention policy, and deletion support. Credentials, signing keys, raw secrets, and unclassified private content must never enter semantic memory.
 
-Users must be able to reopen a completed or failed session, inspect the task and worker timeline, compare preview revisions, rerun validation, fork a failed task into a new strategy, replay a task with an approved provider, restore a checkpoint, download APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` evidence, and inspect why the technology resolver selected a particular implementation.
+Users must be able to reopen a completed or failed session, inspect the task and worker timeline, compare preview revisions, rerun validation, fork a failed task into a new strategy, replay a task with an approved provider, restore a checkpoint, download APK evidence, and inspect why the technology resolver selected a particular implementation.
 
 ## 39. Production Windows Host Requirements
 
@@ -2225,7 +2225,7 @@ Provider unavailability must not prevent the host from opening projects, history
 
 ## 40. User-Facing Productivity Features
 
-The core workspace must provide one-click goal launch, live task tree beside the Android preview, pause/resume/cancel/fork/retry-from-checkpoint, a technology rationale panel, a changed-files timeline, device-matrix testing, visual comparison, build-health status, an APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact center, recovery explanations, an editable project-memory view, task replay, a privacy/network context panel, and an environment-repair center.
+The core workspace must provide one-click goal launch, live task tree beside the Android preview, pause/resume/cancel/fork/retry-from-checkpoint, a technology rationale panel, a changed-files timeline, device-matrix testing, visual comparison, build-health status, an APK artifact center, recovery explanations, an editable project-memory view, task replay, a privacy/network context panel, and an environment-repair center.
 
 These features expose the runtime’s state without forcing the user to understand internal worker orchestration. The user gives the goal; Nirman manages the complexity.
 
@@ -2258,7 +2258,7 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 | Android requirements | Minimum/target/compile SDK, ABI, permissions, manifest entries, background behavior, API-level constraints |
 | Device matrix | Emulator profiles, physical devices, API levels, orientations, densities, tablet/phone coverage |
 | Validation model | Unit, integration, UI, visual, accessibility, performance, security, runtime, and release checks |
-| Artifact model | APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` variants, signing policy, version code, checksums, evidence requirements, export destinations |
+| Artifact model | APK variants, signing policy, version code, checksums, evidence requirements, export destinations |
 
 The contract MUST use explicit schema versions, reject unknown fields where strict validation is required, record source references for inferred fields, and distinguish user-provided facts from model inferences. A worker MUST NOT invent a contract field absent from the canonical schema.
 
@@ -2424,7 +2424,7 @@ Internal bootstrap scaffolding is permitted only when required to create a valid
 
 ### 46.1 Product Acceptance Additions
 
-The integration is complete only when a complete AndroidConstructionContract can be created, versioned, validated, and replayed; every mutation is represented by a ConstructionTransaction with a checkpoint and project revision; the session can be reconstructed after forced process termination; a clean-machine build uses only the locked Android toolchain; provider bridge failures are handled without corrupting the session; multi-language changes pass the structured mutation broker; parallel workers reconcile through a serialized commit barrier; Android permission and requirement drift is detected before artifact promotion; preview is revision-bound; resource pressure changes scheduling without weakening safety; and a completed APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` contains checksums, environment snapshot, validation evidence, source revision, and artifact provenance.
+The integration is complete only when a complete AndroidConstructionContract can be created, versioned, validated, and replayed; every mutation is represented by a ConstructionTransaction with a checkpoint and project revision; the session can be reconstructed after forced process termination; a clean-machine build uses only the locked Android toolchain; provider bridge failures are handled without corrupting the session; multi-language changes pass the structured mutation broker; parallel workers reconcile through a serialized commit barrier; Android permission and requirement drift is detected before artifact promotion; preview is revision-bound; resource pressure changes scheduling without weakening safety; and a completed APK contains checksums, environment snapshot, validation evidence, source revision, and artifact provenance.
 
 
 ---
@@ -2474,7 +2474,7 @@ Independent quality and security review
         ↓
 Device validation
         ↓
-APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` packaging and evidence promotion
+APK packaging and evidence promotion
 ```
 
 The coordinator MUST persist each boundary as a durable event and MUST be able to resume from the last validated boundary after a supervisor, worker, provider, emulator, or host interruption.
@@ -2511,7 +2511,7 @@ The quality gate MUST be independent from the worker that produced the implement
 
 Nirman MUST maintain a proactive Android failure-mode catalogue. Every important failure mode has a trigger, prevention check, classifier, recovery strategy, scope, stop condition, and evidence requirement.
 
-Initial failure families include toolchain incompatibility, missing SDK components, dependency conflicts, lockfile drift, resource linking failures, manifest merge failures, duplicate classes, DEX/R8 errors, native-module failures, emulator and ADB failures, install failures, runtime crashes, ANRs, permission denials, offline-data corruption, visual regressions, inaccessible controls, signing failures, and invalid APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` metadata.
+Initial failure families include toolchain incompatibility, missing SDK components, dependency conflicts, lockfile drift, resource linking failures, manifest merge failures, duplicate classes, DEX/R8 errors, native-module failures, emulator and ADB failures, install failures, runtime crashes, ANRs, permission denials, offline-data corruption, visual regressions, inaccessible controls, signing failures, and invalid APK metadata.
 
 ### 47.5 Acceptance-test traceability
 
@@ -2533,7 +2533,7 @@ Drift findings are classified as blocking, repairable, warning, or informational
 
 Each managed Android workspace MUST contain a concise generated project handbook describing purpose, selected technology plan, modules, commands, toolchain lock, environment assumptions, privacy rules, permissions, build/test instructions, known limitations, current revision, and recovery notes.
 
-Each promoted APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` MUST have a release-intelligence report containing dependency inventory, permission inventory, data-handling summary, test and device results, performance summary, known warnings, artifact hashes, signing status, source revision, toolchain lock, and environment snapshot.
+Each promoted APK MUST have a release-intelligence report containing dependency inventory, permission inventory, data-handling summary, test and device results, performance summary, known warnings, artifact hashes, signing status, source revision, toolchain lock, and environment snapshot.
 
 ### 47.8 Worker quality metrics and validated repair promotion
 
@@ -2661,7 +2661,7 @@ The user cannot edit a stream event, mark an unsupported event as evidence, appr
 
 ### 50.1 Product requirement
 
-Branding and visual assets are first-class Android product requirements. When the user requests a logo, icon, splash screen, notification icon, illustration, branded color system, or visual identity, Nirman MUST generate or safely derive the requested assets, integrate them into the Android project, show them in the live preview, and validate them before the APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` can be promoted.
+Branding and visual assets are first-class Android product requirements. When the user requests a logo, icon, splash screen, notification icon, illustration, branded color system, or visual identity, Nirman MUST generate or safely derive the requested assets, integrate them into the Android project, show them in the live preview, and validate them before the APK can be promoted.
 
 The implementation must not finish at source-code generation while leaving the application with missing, generic, stale, or unintegrated branding.
 
@@ -2684,7 +2684,7 @@ Asset validation
         ↓
 Live preview verification
         ↓
-APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` asset inspection
+APK asset inspection
         ↓
 BrandAssetCompletionGate
 ```
@@ -2703,7 +2703,7 @@ Provider/model metadata and prompt hashes are retained for provenance, but raw p
 
 The final artifact MUST NOT be marked complete when a requested asset is missing, references an invalid path, is not packaged, is stale relative to the source revision, fails format/dimension/transparency/contrast checks, or has not been verified in the active preview. A temporary placeholder may be used during recovery, but it cannot silently satisfy the final gate when branded assets were requested.
 
-The gate must inspect the built APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB`, not only the workspace. It must confirm that launcher resources, splash resources, notification assets, in-app assets, theme resources, and referenced fonts or illustrations are present and reachable in the final artifact.
+The gate must inspect the built APK, not only the workspace. It must confirm that launcher resources, splash resources, notification assets, in-app assets, theme resources, and referenced fonts or illustrations are present and reachable in the final artifact.
 
 ### 50.5 Asset change behavior
 
@@ -2728,7 +2728,7 @@ Next step: “Running final APK asset inspection.”
 2. Requested launcher, adaptive, monochrome, splash, notification, in-app, and theme assets are generated or explicitly governed by a fallback record.
 3. All assets are integrated into the correct Android resource locations and referenced by the project.
 4. The active PreviewRevision displays the current asset revision.
-5. The built APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` is inspected for asset presence, reachability, and content hashes.
+5. The built APK is inspected for asset presence, reachability, and content hashes.
 6. Missing, stale, invalid, unintegrated, or placeholder-only requested assets block final completion.
 7. Branding changes regenerate only affected assets and invalidate stale evidence.
 8. Asset generation, integration, validation, fallback, and release results are visible in the structured reasoning stream and retained in replayable evidence.
@@ -2815,7 +2815,7 @@ A native WinUI terminal surface is the terminal renderer. Rust owns ConPTY sessi
 
 ### 51.5 Completion invariants
 
-The stack is considered correctly implemented only when the UI can restart without losing a session, the supervisor can continue without the UI, Android toolchains execute through supervised local processes, model proposals pass through ModelGateway, ToolBroker, and PolicyAuthority, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` promotion remains evidence-backed. No framework selector, web target, Windows generated target, or cloud execution environment is introduced.
+The stack is considered correctly implemented only when the UI can restart without losing a session, the supervisor can continue without the UI, Android toolchains execute through supervised local processes, model proposals pass through ModelGateway, ToolBroker, and PolicyAuthority, and APK promotion remains evidence-backed. No framework selector, web target, Windows generated target, or cloud execution environment is introduced.
 
 
 ---
@@ -2913,7 +2913,7 @@ Every transition must include the session, task, agent instance, project revisio
 
 After every meaningful observation, the kernel must determine whether the current goal is progressing, blocked, contradicted, unsafe, stale, or satisfied. Progress evaluation must consider requirement coverage, changed files, test results, preview revision, environment capability state, worker handoffs, unresolved uncertainty, failure fingerprints, resource pressure, and artifact readiness.
 
-Completion is permitted only when the appropriate requirement, test, preview, device, quality, branding, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` evidence gates pass. A model statement that a task is complete is never sufficient evidence.
+Completion is permitted only when the appropriate requirement, test, preview, device, quality, branding, and APK evidence gates pass. A model statement that a task is complete is never sufficient evidence.
 
 ### 52.4 SkillRuntime and skill composition
 
@@ -3055,7 +3055,7 @@ Validation run
   ↓
 Evidence
   ↓
-APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` artifact
+APK artifact
 ```
 
 The environment requirement and capability resolution edges are populated by the platform capability contract of §79 before the task graph is compiled: the declared target platform, the observed host platform, and the classified capability set (`AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, `UNAVAILABLE`) are part of the chain, and a plan that commits to a validation path whose capability is not `AVAILABLE` or `REPAIRABLE` without a durable `USER_REQUIRED`/`UNAVAILABLE` node is a planning defect.
@@ -3101,7 +3101,7 @@ Compaction must preserve semantic summaries, evidence links, revision identity, 
 
 ### 52.15 Product acceptance invariants
 
-The AgentExecutionKernel release is complete only when Nirman can run one Android goal through the loop state machine, execute a skill composition, dynamically configure a worker profile, delegate a typed task, exchange knowledge artifacts, lease a workspace, reconnect a ToolSession, plan environment capabilities, select affected validation, replay the trajectory without side effects, simulate the plan without mutation, detect a deadlock, apply backpressure, propagate cancellation, pause and resume a worker, surface a decision node, track uncertainty, recompile a plan, compact execution history, and deliver an evidence-backed APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB`.
+The AgentExecutionKernel release is complete only when Nirman can run one Android goal through the loop state machine, execute a skill composition, dynamically configure a worker profile, delegate a typed task, exchange knowledge artifacts, lease a workspace, reconnect a ToolSession, plan environment capabilities, select affected validation, replay the trajectory without side effects, simulate the plan without mutation, detect a deadlock, apply backpressure, propagate cancellation, pause and resume a worker, surface a decision node, track uncertainty, recompile a plan, compact execution history, and deliver an evidence-backed APK.
 
 The user-facing stream must show concise structured events for these transitions without exposing private chain-of-thought. The deterministic runtime remains the only authority over mutation, tools, permissions, lifecycle, evidence, recovery, and artifact promotion.
 
@@ -4637,7 +4637,7 @@ The deliberation contract is satisfied only when an agent request for a higher e
 
 **Document owner:** Nirman product team  
 **Recommended application name:** Nirman  
-**Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` export
+**Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK export
 
 
 
@@ -4810,7 +4810,7 @@ Rollback or repair MUST invalidate only the affected candidate evidence and MUST
 7. A failed candidate cannot replace the last-known-good preview.
 8. Closing or reconnecting the UI does not change preview truth or revision identity.
 9. A user can compare preview revisions and open the evidence that caused a promotion, invalidation, recovery, or rollback.
-10. The final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` release report proves that the promoted preview corresponds to the packaged source revision and current asset manifest.
+10. The final APK release report proves that the promoted preview corresponds to the packaged source revision and current asset manifest.
 
 ### 69.10 Runtime-certification and hidden-human-dependency boundary
 
