@@ -42,7 +42,7 @@ The architecture should prefer small, typed interfaces over implicit communicati
 └──────────────┘ └────────────┘ └────────┘ └─────────────────┘
 ```
 
-The control plane should communicate with the user interface through a local authenticated IPC channel. A loopback HTTP or WebSocket API may be used internally, but it must require a per-installation secret or operating-system authenticated channel. The interface must not be able to impersonate another project or bypass task policies by modifying client-side state.
+The control plane should communicate with the user interface through a local authenticated IPC channel. The production transport is named pipes. A loopback HTTP or WebSocket API may be used internally for development and debugging, but it must require a per-installation secret or operating-system authenticated channel and must not be used for the production SupervisorConnection. The interface must not be able to impersonate another project or bypass task policies by modifying client-side state.
 
 ---
 
@@ -364,6 +364,7 @@ Nirman should implement at least four profiles:
 | Trusted local | Fast, user process, workspace and command policies |
 | Restricted process | Restricted token, process-tree control, workspace paths, environment filtering |
 | High-risk restricted process | Strongest native boundary for untrusted repositories and risky dependencies |
+| Disposable/Isolated | Temporary, fully isolated environment for untrusted code execution; destroyed after use |
 
 The interface should explain when a requested operation requires a stronger profile. A worker must not be able to switch itself to a weaker profile.
 
@@ -1260,7 +1261,20 @@ The self-development loop must preserve these invariants:
 
 ### 25.2 Two-process update architecture
 
-Nirman should use a stable launcher/controller process and a replaceable application process:
+Nirman should use a stable launcher/controller process and a replaceable application process. The update protocol must handle UI-supervisor version compatibility explicitly:
+
+```text
+Download → Verify → Stage → Compatibility-check → Quiesce → Switch → Restart → Health-check → Rollback
+```
+
+Required rules:
+- UI updated, supervisor old: the new UI must detect the old supervisor version and either upgrade the supervisor or operate in a compatible degraded mode.
+- Supervisor updated, UI old: the new supervisor must support the old UI protocol version or trigger a UI update.
+- Interrupted installer: the previous version must remain runnable. The installer must use atomic file operations and validate checksums before switching.
+- Failed supervisor startup after update: automatic rollback to the previous known-good version with evidence-backed task event.
+- Database migration failure: the controller must never delete the only recoverable database copy. Forward migration and rollback/backup strategy required.
+- Rollback compatibility: the previous version must be able to read the database schema written by the new version, or a backup must be restored.
+- Evidence invalidation after controller changes: any controller update invalidates dependent evidence unless independence is proven.
 
 ```text
 Stable launcher/controller
@@ -2850,7 +2864,16 @@ The connection performs a protocol/version handshake, authenticates the UI insta
 
 The canonical `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `UIErrorEnvelope`, and `EventSubscription` schemas, command registry, transaction ownership, and replay rules are defined by technical architecture §81. `SupervisorConnection` carries the authenticated transport and cursor required by that contract.
 
-### 57.4 SupervisorLifecycle and recovery scan
+### 57.4 SupervisorLifecycle, singleton invariant, and recovery scan
+
+One user + one installation → one authoritative supervisor instance. The supervisor is a per-user singleton.
+
+Singleton enforcement:
+- Mutex/lock ownership: the supervisor acquires a named Windows mutex on startup. A second instance detects the existing mutex, refuses to start, and exits.
+- Stale supervisor detection: if the mutex exists but the owning process is dead, the new instance takes ownership after verifying no active leases or tasks are in flight.
+- Split-brain prevention: only one supervisor may hold the installation lease and write to the SQLite ledger at a time. The lease is fenced by a monotonic token.
+- Second-instance refusal: any additional supervisor process beyond the singleton must terminate immediately without acquiring leases or opening the ledger.
+- Supervisor takeover after crash: on crash recovery, the new supervisor fences abandoned leases, reconciles unknown outcomes, and resumes only eligible operations.
 
 `NirmanSupervisor.exe` starts at Windows user login when an eligible session or scheduled task exists, owns all long-running process trees, and records graceful or abnormal shutdown. On startup it validates SQLite integrity, migrations, leases, checkpoints, project fingerprints, process records, terminal sessions, preview revisions, and pending provider requests.
 
@@ -2937,9 +2960,11 @@ Provider adapters normalize configured Chat Completions, Responses-style, messag
 
 Git is a first-class subsystem for checkpoints, rollback, worker isolation, reconciliation, diffs, revision identity, recovery branches, and artifact provenance. Parallel workers use isolated worktrees or copy-on-write fallback. Reconciliation produces an integration revision only after conflict, dependency, requirement, and test-impact checks pass.
 
-### 57.10 Technical acceptance tests
+### 57.10 Architecture acceptance criteria
 
-The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; the native WinUI editor and terminal surfaces remain presentation components; Android toolchains are supervised locally; and the final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
+The architecture acceptance criteria are the conditions that must be met for the architecture to be considered correct. They are verified by runtime fixtures and evidence, not by documentation certification alone.
+
+The architecture acceptance criteria are satisfied when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; the native WinUI editor and terminal surfaces remain presentation components; Android toolchains are supervised locally; and the final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
 
 
 ---
