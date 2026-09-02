@@ -1532,23 +1532,22 @@ For every certified Android profile, the durable execution path MUST resolve:
 
 ```text
 AndroidTechnologyPlan
-  → AndroidTechnologyAdapter (adapterId, adapterVersion, technologyPlanHash)
-  → AndroidTechnologyAdapter.validatePlan | planBuild | classifyFailure
-  → AndroidTechnologyAdapter.resolveBuildAdapter (deterministic, auditable)
-  → AndroidTechnologyAdapter.resolveDeviceAdapter (deterministic, auditable)
   → AndroidToolchainLock
-  → AndroidBuildAdapter → AndroidBuildObservation
+  → AndroidTechnologyAdapter
+    → resolveBuildAdapter
+    → resolveDeviceAdapter
+  → AndroidBuildAdapter
+  → AndroidBuildObservation
   → Artifact identity
-  → AndroidDeviceAdapter → install and launch observation
+  → AndroidDeviceAdapter
   → RuntimeObservation
-  → PreviewSyncEvent (carries adapterId, adapterVersion,
-    technologyPlanHash, buildAdapterIdentity, deviceAdapterIdentity)
+  → PreviewSyncEvent
   → PreviewProjection
-  → Evidence (PreviewSyncEvidenceRecord carries the same identities)
+  → PreviewSyncEvidenceRecord
   → PreviewPromotionGate
 ```
 
-The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each.
+The dependency direction is unambiguous: the technology plan and toolchain lock MUST be resolved before the technology adapter can resolve the build and device adapters, because both `resolveBuildAdapter` and `resolveDeviceAdapter` are explicitly derived from the locked `AndroidTechnologyPlan` and `AndroidToolchainLock`. The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each.
 
 ### M108 parameterized fixture matrix
 
@@ -1563,7 +1562,7 @@ The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event
 | Expo | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
 | Native module | `MixedAndroidAdapter`; `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
 | NDK or CMake | `MixedAndroidAdapter` (composed Gradle plus NDK or CMake); `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
-| Device API | `AndroidDeviceAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` with device-permission observation recorded |
+| Device API | `MixedAndroidAdapter`; `AndroidDeviceAdapter` supplies the device and runtime execution surface; native device APIs are selected according to the `AndroidTechnologyPlan` |
 | Native + JavaScript | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
 | Insufficient impact information (any row) | `CONSERVATIVE_FULL_REINSTALL` selected by §73.11 rule 7b with `decisionReason = INSUFFICIENT_IMPACT_INFORMATION` |
 | Known unsafe-to-fast-refresh (any row) | `FULL_APK_REINSTALL` selected by §73.11 rule 7a with `decisionReason = KNOWN_UNSAFE_TO_FAST_REFRESH` |
@@ -1578,7 +1577,7 @@ Parameterized coverage: nine technology profiles specified as `AndroidCapability
 
 Runtime certification: not claimed by this milestone. Runtime certification of the nine profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, device sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on an actually attached matching device and the runtime adapter implementations; neither is asserted by this documentation milestone.
 
-**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001`; runtime execution of each row is tracked separately and is not asserted by this milestone.
+**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
 
 ## M109 — Preview projection resilience and runtime-certification evidence
 
