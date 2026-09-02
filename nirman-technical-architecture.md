@@ -1104,19 +1104,20 @@ The official API reference distinguishes a response-oriented surface for direct 
 The AI Settings page should store a provider profile with the following shape:
 
 ```text
-ProviderProfile
-- providerId
-- displayName
-- protocol: chat_completions | responses | messages | custom
-- baseUrl
-- apiKeySecretRef
-- modelId
-- visionModelId
-- embeddingModelId
-- rerankerModelId
-- organizationIdOptional
-- projectIdOptional
-- customHeadersSecretRefs
+| ProviderProfile |
+|- providerId |
+|- displayName |
+|- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE |
+|- protocol: chat_completions | responses | messages | custom |
+|- baseUrl |
+|- apiKeySecretRef |
+|- modelId |
+|- visionModelId |
+|- embeddingModelId |
+|- rerankerModelId |
+|- organizationIdOptional |
+|- projectIdOptional |
+|- customHeadersSecretRefs |
 - defaultParameters
 - capabilityOverrides
 - reasoningModelIdOptional
@@ -1149,7 +1150,7 @@ ReasoningCapabilityProfile
 
 ### 24.3 AI Settings page behavior
 
-The settings interface should allow the user to create, duplicate, test, disable, and delete provider profiles. It should support custom base URLs and model IDs, because local runtimes and compatible services may expose different model catalogs.
+The settings interface should allow the user to create, duplicate, test, disable, and delete provider profiles. It should support custom base URLs and model IDs. Save is disabled until a connection Test against the configured endpoint and model returns a successful validated response per ADR-208. Any edit to key, base URL, model ID, or compatibility mode invalidates a prior pass and re-disables Save.
 
 The connection test should discover or validate the configured endpoint, verify authentication, test the selected model, detect available features, measure a basic response, and record the provider request ID. Model discovery through a models endpoint is optional; a user must be able to enter a model ID manually when discovery is unavailable.
 
@@ -2380,7 +2381,7 @@ The handshake validates protocol version, session authentication, provider profi
 
 Every provider request includes session ID, task ID, worker ID, trace ID, provider profile ID, model ID, protocol family, context classification, tool policy, maximum context limit, cancellation token, and privacy classification. The bridge strips secrets from logs and rejects unknown or unapproved tool calls.
 
-The gateway normalizes Chat Completions, Responses-style, and message-oriented providers into one internal representation containing text blocks, image blocks, tool calls, tool results, structured output, usage, finish reason, and retryability.
+The gateway normalizes Chat Completions, Responses-style, and message-oriented providers into one internal representation containing text blocks, image blocks, tool calls, tool results, structured output, usage, finish reason, and retryability. The protocol family is resolved FROM the declared compatibility mode per ADR-208, not chosen independently by a worker or model.
 
 ### 48.3 Provider failure behavior
 

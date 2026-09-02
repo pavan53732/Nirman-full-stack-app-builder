@@ -680,6 +680,7 @@ Nirman should allow users to configure their own AI provider without changing ap
 | Configuration field | Required behavior |
 |---|---|
 | Provider label | User-defined friendly name |
+| Compatibility mode | One of `OPENAI_COMPATIBLE` or `ANTHROPIC_COMPATIBLE`, selected by the user per ADR-208 |
 | Base URL | Custom provider endpoint. MUST be a network-reachable cloud endpoint; localhost, loopback, and RFC-1918 private ranges MUST be rejected at configuration time per ADR-207. |
 | API key | Stored securely in the operating-system keychain |
 | Chat model ID | Model used for planning and code generation |
@@ -694,11 +695,13 @@ Nirman should allow users to configure their own AI provider without changing ap
 | Reasoning configuration | Provider-specific settings normalized by the ModelGateway |
 | Timeout | Maximum provider request duration, bounded by the active deliberation budget |
 | Enabled capabilities | Text, vision, structured output, tool calling, reasoning, embeddings |
-| Test connection | Sends a safe validation request before saving |
+| Test connection | Sends a safe validation request. MUST pass before Save is permitted per ADR-208; changing key, base URL, model ID, or mode invalidates the prior pass and re-disables Save. |
 
 ### 8.2 Provider adapter interface
 
 The internal provider interface must normalize differences between services. It must support text generation, structured JSON output, tool calls, vision input, streaming responses, cancellation, error normalization, capability discovery, reasoning-effort configuration, reasoning-token accounting, context-capacity discovery, and provider-specific continuation behavior.
+
+The adapter resolves the declared compatibility mode to a request family — `OPENAI_COMPATIBLE` to Chat Completions / Responses-style, `ANTHROPIC_COMPATIBLE` to message-oriented — and both normalize to the same internal result. Anthropic-compatible endpoints carry the system prompt as a top-level parameter rather than a message role, and use distinct tool-use and tool-result block shapes; the normalizer MUST account for both without exposing the difference to workers.
 
 The normalized provider capability descriptor must distinguish:
 
