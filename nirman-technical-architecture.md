@@ -50,7 +50,7 @@ The control plane should communicate with the user interface through a local aut
 
 ### 3.1 Desktop user interface
 
-The desktop interface should be built with Tauri and React/TypeScript. It displays state and sends user commands, but it should not directly execute arbitrary shell commands or mutate project files. All filesystem, process, provider, and build operations go through the control plane.
+The desktop interface should be built with C#/.NET + WinUI 3. It displays state and sends user commands, but it should not directly execute arbitrary shell commands or mutate project files. All filesystem, process, provider, and build operations go through the control plane.
 
 ### 3.2 Control-plane process
 
@@ -2132,7 +2132,7 @@ The invariant is:
 ### 44.2 Runtime module graph
 
 ```text
-Tauri React/TypeScript UI
+WinUI 3 C#/.NET UI
         │ typed commands/events only
         ▼
 Rust Control Plane Supervisor
@@ -2590,7 +2590,7 @@ Replay reconstructs the visible reasoning stream from filtered durable events. R
 
 ### 55.6 Local streaming transport
 
-The control plane exposes an authenticated local event stream over the existing Tauri event/IPC boundary or an authenticated loopback WebSocket. Every subscription is bound to the current installation, user session, project, and requested task scope.
+The control plane exposes an authenticated local event stream over the SupervisorConnection protocol (named pipes). Every subscription is bound to the current installation, user session, project, and requested task scope.
 
 ```text
 subscribe(session_id, task_id, after_sequence)
@@ -2916,7 +2916,7 @@ Git is a first-class subsystem for checkpoints, rollback, worker isolation, reco
 
 ### 57.10 Technical acceptance tests
 
-The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; CodeMirror and xterm.js remain presentation components; Android toolchains are supervised locally; and the final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
+The architecture passes when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; the native WinUI editor and terminal surfaces remain presentation components; Android toolchains are supervised locally; and the final APK delivery; AAB only when the active PackagingProfile requires `APK_AND_AAB` remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
 
 
 ---
@@ -4367,7 +4367,7 @@ The threshold is configuration, not a runtime constant. No component may hardcod
 
 ## References
 
-[1]: https://tauri.app/ "Tauri Documentation"
+[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
 
 [2]: https://sqlite.org/docs.html "SQLite Documentation"
 

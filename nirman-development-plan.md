@@ -1097,13 +1097,13 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 
 | Task | Required result |
 |---|---|
-| Desktop shell | Tauri 2 Windows shell and bundler |
-| UI | React/TypeScript/Vite with Tailwind and shadcn/ui |
-| UI state | Presentation-only Zustand or equivalent projection store |
+| Desktop shell | C#/.NET + WinUI 3 + Windows App SDK |
+| UI | C# + XAML with WinUI 3 Fluent Design |
+| UI state | Presentation-only MVVM or equivalent projection store |
 | Rust runtime | Tokio supervisor interfaces and typed commands/events |
 | Database | SQLite migrations, execution-ledger schema, SQLx evaluation |
-| Editor | CodeMirror 6 first-release integration |
-| Terminal | xterm.js renderer with Rust ConPTY supervisor |
+| Editor | Native WinUI editor surface |
+| Terminal | Native WinUI terminal surface with Rust ConPTY supervisor |
 | Provider | ModelGateway, adapters, streaming, capability detection, tool normalization |
 | Android | Toolchain manifest, JDK/Gradle/SDK/ADB/emulator health and build |
 | Windows | Restricted tokens, Job Objects, ACLs, environment filtering, process supervision |

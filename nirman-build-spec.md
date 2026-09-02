@@ -553,7 +553,7 @@ Nirman should be composed as a Windows-first desktop application with independen
 
 ### 6.1 Desktop shell
 
-The desktop shell should use Tauri with a React and TypeScript interface. The shell is responsible for opening project folders, communicating with the local runtime, presenting native dialogs, storing secure credentials through the operating-system keychain, and managing application-level settings.
+The desktop shell should use C#/.NET + WinUI 3. The shell is responsible for opening project folders, communicating with the local runtime, presenting native dialogs, storing secure credentials through the operating-system keychain, and managing application-level settings.
 
 ### 6.2 Frontend interface
 
@@ -5408,7 +5408,7 @@ A deployment export is admitted only when an immutable `PackagingProfile` is ide
 **ContractId:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.PLATFORM_CAPABILITY` (see §67.8)
 
-This contract separates the machine where work is performed from the machine the work must prove. It governs every artifact Nirman builds or validates — including Nirman's own Windows desktop host (Tauri 2, React/TypeScript/Vite, Rust, Windows installer) and the generated Android application — and every capability claim, gate, or certification derived from that work. It extends the environment prerequisite classification of §52.9 and the tool diagnostics of §9.2 with an explicit host/target dimension; it does not replace them and creates no new runtime authority.
+This contract separates the machine where work is performed from the machine the work must prove. It governs every artifact Nirman builds or validates — including Nirman's own Windows desktop host (C#/.NET + WinUI 3 + Windows App SDK + Rust/Tokio, Windows installer) and the generated Android application — and every capability claim, gate, or certification derived from that work. It extends the environment prerequisite classification of §52.9 and the tool diagnostics of §9.2 with an explicit host/target dimension; it does not replace them and creates no new runtime authority.
 
 ### 79.1 The four-state invariant
 

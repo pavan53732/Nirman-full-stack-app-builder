@@ -9,7 +9,7 @@ The canonical document set is:
 | Document | Canonical responsibility |
 |---|---|
 | `nirman-build-spec.md` | Product scope, user experience, capabilities, normative contracts, evidence, delivery policy, and product invariants |
-| `nirman-technical-architecture.md` | Rust/Tokio control plane, supervisor, storage, process execution, schemas, protocols, adapters, and implementation boundaries |
+| `nirman-technical-architecture.md` | Windows C#/.NET + WinUI 3 presentation client; Rust/Tokio authoritative control plane, supervisor, storage, process execution, schemas, protocols, adapters, and runtime boundaries |
 | `nirman-development-plan.md` | Sequencing, milestones, fixtures, acceptance gates, and implementation status |
 | `nirman-decisions.md` | Accepted architecture decisions, precedence, rationale, consequences, and supersession history |
 | `tools/verify_contract_graph.py` | Documentation contract-graph and semantic certification |
@@ -184,7 +184,7 @@ Every command must include the required schema version, installation identity, u
 The canonical wiring is:
 
 ```text
-React presentation/ViewModel
+WinUI 3 presentation/ViewModel
 → typed IPC client
 → command envelope
 → authenticated supervisor connection
