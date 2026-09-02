@@ -2391,7 +2391,7 @@ The gateway normalizes Chat Completions, Responses-style, and message-oriented p
 
 ### 49.1 Toolchain lock resolution
 
-`ToolchainAuthority` resolves the technology plan to a verified `AndroidToolchainLock`. It checks versions, file hashes, licenses, paths, compatibility constraints, and required environment variables before any build or preview command.
+`ToolchainAuthority` resolves the technology plan to a verified `AndroidToolchainLock`. It checks versions, file hashes, licenses, paths, compatibility constraints, and required environment variables before any build or preview command. The lock MUST bind to the `toolchainLock` field set defined in BS §5.7.1 (AGP, Gradle wrapper, JDK vendor + major, compileSdk, targetSdk, minSdk, Build Tools, Kotlin, Compose BOM, NDK when applicable). Incompatible combinations MUST be rejected at preflight naming the violated constraint, before any build starts.
 
 The isolated environment controls JDK, Gradle, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, Node/package manager when selected, Metro/Expo when selected, temporary directories, Gradle caches, package caches, and project-local configuration. Host PATH and unrelated user configuration are not trusted.
 
