@@ -680,7 +680,7 @@ Nirman should allow users to configure their own AI provider without changing ap
 | Configuration field | Required behavior |
 |---|---|
 | Provider label | User-defined friendly name |
-| Base URL | Custom provider endpoint, including compatible API endpoints |
+| Base URL | Custom provider endpoint. MUST be a network-reachable cloud endpoint; localhost, loopback, and RFC-1918 private ranges MUST be rejected at configuration time per ADR-207. |
 | API key | Stored securely in the operating-system keychain |
 | Chat model ID | Model used for planning and code generation |
 | Vision model ID | Optional model used for screenshot and preview analysis |
@@ -720,7 +720,7 @@ A provider adapter should return a normalized result containing the model ID, re
 
 Nirman must clearly communicate whether project content is being sent to a cloud model. The user should be able to configure context policies that exclude selected files, folders, secrets, generated binaries, or sensitive project types.
 
-For local models, Nirman should support a local compatible API endpoint. Local-model compatibility should be treated as an optional capability because local models may have different context limits, tool-calling behavior, coding quality, and visual-inspection support.
+Only cloud-hosted, network-reachable AI providers are supported. Local, offline, on-device, and self-hosted model runtimes are out of scope per ADR-207.
 
 ### 8.4 Credential rules
 
@@ -987,7 +987,7 @@ Create the Windows-first desktop application shell, project picker, basic layout
 
 Implement provider profiles with custom base URL, API key, model ID, optional vision model, connection testing, capability detection, masked display, and keychain integration.
 
-**Exit criteria:** A user can configure a compatible cloud or local provider and receive a validated response without exposing the API key in logs or project files.
+**Exit criteria:** A user can configure a compatible cloud provider and receive a validated response without exposing the API key in logs or project files.
 
 ### Phase 3: Intent-to-Android contract and dynamic project synthesis
 
@@ -1056,7 +1056,7 @@ The first usable release should satisfy the following conditions:
 | The agent enters an infinite repair loop | High | Enforce attempt, time, and token limits; classify repeated failures |
 | Local toolchains are missing | High | Provide environment diagnostics and supported-version guidance |
 | A generated command is unsafe | High | Use command policies, path restrictions, approvals, and process isolation |
-| Cloud providers receive sensitive project data | High | Provide context exclusions, privacy notices, local models, and redaction |
+| Cloud providers receive sensitive project data | High | Provide context exclusions, privacy notices, and redaction |
 | Different models support different tool protocols | Medium | Normalize providers through adapters and capability discovery |
 | The UI looks correct but behavior is broken | Medium | Combine visual screenshots with tests, type checks, and runtime inspection |
 | Universal framework support increases complexity too quickly | High | Add broader Android capability fixtures only after the core workflow is reliable |

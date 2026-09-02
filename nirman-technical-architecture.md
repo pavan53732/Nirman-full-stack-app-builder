@@ -4,7 +4,7 @@
 
 **Document status:** Living implementation specification — accepted architecture
 **Application:** Nirman  
-**Scope:** Local-first autonomous application development with configurable cloud or local AI providers  
+**Scope:** Local-first autonomous application development with configurable cloud AI providers  
 **Relationship to master specification:** This architecture document explains how to implement the behavior defined by the master product specification. It contains architecture and interfaces, not production source code.
 
 **Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries. The Development Plan owns sequencing, milestones, fixtures, and exit gates. The Decision Log owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
