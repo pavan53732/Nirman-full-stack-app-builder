@@ -1,7 +1,0 @@
-{
-  "fixtureId": "RUNTIME-SMOKE-001",
-  "sequence": ["instruction_accepted", "source_revision", "build_observed", "install_requested", "runtime_observed", "preview_verified"],
-  "truthRequirement": "OBSERVED_OR_VERIFIED",
-  "synthetic": true,
-  "purpose": "Contract-level smoke sequence; real device proof remains a runtime gate"
-}

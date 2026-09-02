@@ -1,7 +1,0 @@
-{
-  "fixtureId": "PREVIEW-ORDERING-001",
-  "requiredRules": ["durable_sequence", "compatible_identity", "duplicate_idempotency", "gap_freeze", "stale_rejection", "last_known_good_preservation"],
-  "truthLabels": ["PREDICTED", "REQUESTED", "OBSERVED", "VERIFIED", "STALE", "INVALIDATED"],
-  "synthetic": true,
-  "purpose": "Contract-level preview fixture; live emulator evidence remains a runtime gate"
-}

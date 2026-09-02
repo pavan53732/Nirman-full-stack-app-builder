@@ -1,7 +1,0 @@
-{
-  "fixtureId": "RECOVERY-RESTART-001",
-  "trigger": "supervisor_restart",
-  "requiredTransitions": ["checkpoint_reload", "lease_fence", "unknown_outcome_reconciliation", "resume_or_safe_failure"],
-  "synthetic": true,
-  "purpose": "Contract-level recovery fixture; Windows process proof remains a runtime gate"
-}

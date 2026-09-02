@@ -1,7 +1,0 @@
-{
-  "fixtureId": "ANDROID-COMPOSE-001",
-  "targetPlatforms": ["android"],
-  "technology": "kotlin-compose",
-  "purpose": "Resolve and validate a Compose-based Android project profile",
-  "requiredChecks": ["technology_plan", "source_revision", "build", "preview_truth"]
-}
