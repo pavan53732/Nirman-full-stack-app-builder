@@ -4820,6 +4820,36 @@ Runtime certification is a separate evidence class. It MUST include schema and m
 
 A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, emulator dialog, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
 
+### 69.11 Clarification gate and assumption recording
+
+Ambiguity in a user instruction is resolved by one of exactly two outcomes: a clarifying question asked before generation begins, or a recorded assumption in the intent model. Silent resolution is prohibited — an ambiguity that is neither asked nor recorded is a defect.
+
+Nirman MUST ask a clarifying question when the ambiguity affects any of:
+
+| Category | Example |
+|---|---|
+| Primary user goal | What the application is fundamentally for |
+| Critical navigation structure | Tabs, drawer, or discrete screens |
+| The application's distinguishing behavior | What "streak" means for a habit tracker |
+| Security, authentication, or personal data | Whether accounts or sensitive data are involved |
+
+Nirman MUST NOT ask, and MUST default silently while recording the assumption, for:
+
+| Category | Default |
+|---|---|
+| Secondary color shades | Derived from the resolved theme |
+| Icon selection where function is clear | Standard Material icon for the role |
+| Non-critical label phrasing | Conventional Android wording |
+| Spacing within the established grid | The grid value |
+
+Clarifying questions MUST be batched and asked once, before generation begins, with a maximum of four questions. Interrupting mid-run to ask what could have been asked at the start is a defect, because it converts an autonomous session into an attended one.
+
+Every ambiguity resolved by default MUST be written to the intent model's `assumptions` field with the alternative that was not chosen, so the user can see and revise it. Every ambiguity that is neither asked nor defaulted MUST be written to `unresolved ambiguities` and MUST NOT be treated as settled.
+
+A clarifying question is a proposal, not an authority act. The model proposes the question; it does not thereby acquire the right to decide the answer, widen scope, or treat an unanswered question as permission (CLAUSE.AUTHORITY.MODEL_PROPOSES applies unchanged).
+
+A domain term whose meaning materially changes the data model — "streak", "active user", "recent", "nearby", "archived" — is a primary-goal ambiguity, not a labeling detail, and belongs in the MUST-ask set.
+
 ## 70. Integration Boundary Contract
 
 **ContractId:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
