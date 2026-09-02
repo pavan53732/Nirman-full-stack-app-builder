@@ -2715,18 +2715,18 @@ The following stack is the implementation baseline for Nirman v1. It does not ch
 
 | Layer | Locked implementation |
 |---|---|
-| Windows desktop shell | Tauri 2 |
-| Frontend | React, TypeScript, and Vite |
-| Styling | Tailwind CSS and shadcn/ui |
-| Presentation state | Zustand or equivalent presentation-only state layer |
+| Windows desktop shell | C#/.NET + WinUI 3 |
+| Frontend | C# + XAML (WinUI 3) |
+| Styling | WinUI 3 Fluent Design System |
+| Presentation state | WinUI 3 MVVM or equivalent presentation-only state layer |
 | Core runtime | Rust with Tokio |
 | Control plane | Rust authoritative supervisor and runtime services |
 | Local database | SQLite with versioned migrations |
 | Initial database access | SQLx preferred; rusqlite remains an evaluated alternative if isolated safely |
-| Initial IPC | Typed Tauri commands and events |
-| Durable event stream | Tauri events first, authenticated reconnectable loopback transport where required |
-| Editor | CodeMirror 6 for the first implementation |
-| Terminal renderer | xterm.js |
+| UI IPC | Authenticated SupervisorConnection over named pipes |
+| Durable event stream | Supervisor-owned durable event log with cursor-based replay; UI transport is an authenticated projection channel |
+| Editor | Native WinUI editor surface (AvalonEdit or equivalent) |
+| Terminal renderer | Native WinUI terminal surface |
 | Windows terminal runtime | Native ConPTY supervised by Rust |
 | Worker execution | Rust-supervised child processes with leases and scoped capabilities |
 | Windows isolation | Restricted tokens, Job Objects, ACL workspaces, environment filtering, process supervision, quotas |
@@ -2734,35 +2734,42 @@ The following stack is the implementation baseline for Nirman v1. It does not ch
 | Version control | Git and Git worktrees |
 | Android toolchain | JDK, Gradle, AGP, Android SDK, ADB, emulator, NDK/CMake when required |
 | JavaScript Android toolchain | Node and npm/pnpm/yarn, Metro, Expo/React Native only when selected |
-| Packaging | Tauri Windows `.exe` installer, with optional MSI packaging |
+| Packaging | MSIX installer, with optional MSI packaging |
 
 Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP, Android SDK, ADB, emulator, Node, Metro, Expo, native compilers, or Git.
 
 ### 51.2 Two-executable production architecture
 
-The first vertical slice may embed the control plane in the Tauri Rust backend to reduce initial process complexity. The production durable-autonomy architecture separates presentation from the long-running supervisor:
+The first vertical slice may embed the control plane in the WinUI 3 Rust backend to reduce initial process complexity. The production durable-autonomy architecture separates presentation from the long-running supervisor:
 
 ```text
 Nirman.exe
-├── chat and project navigation
-├── files and CodeMirror editor
-├── preview presentation
-├── task graph and reasoning stream
-├── settings and user controls
-└── authenticated supervisor connection
-
+└── C#/.NET + WinUI 3
+    ├── Chat
+    ├── Project navigation
+    ├── Code/editor surface
+    ├── Preview presentation
+    ├── Task graph and reasoning stream
+    ├── Settings and user controls
+    └── SupervisorConnection client
+              │ authenticated Supervisor protocol (named pipes)
+              ▼
 NirmanSupervisor.exe
-├── lifecycle authority
-├── SQLite execution ledger
-├── task scheduler and worker registry
-├── policy and tool broker
-├── provider gateway
-├── persistent terminals and ConPTY
-├── Android toolchain and device runtime
-├── checkpoints and Git worktrees
-├── recovery and resource governance
-├── evidence and artifact authorities
-└── preview and Android workflow coordinator
+├── LifecycleAuthority
+├── TaskScheduler
+├── WorkerRegistry
+├── PolicyAuthority
+├── ToolBroker
+├── ModelGateway
+├── RecoveryAuthority
+├── EvidenceAuthority
+├── ArtifactAuthority
+├── CheckpointManager
+├── ResourceGovernor
+├── TerminalSupervisor
+├── AndroidWorkflowCoordinator
+├── PreviewCoordinator
+└── SQLite execution ledger
 ```
 
 `Nirman.exe` is a reconnectable client. It must not own authoritative task state, credentials, lifecycle, worker leases, filesystem authority, process supervision, recovery, evidence, or artifact promotion. `NirmanSupervisor.exe` starts with Windows user login when eligible work exists, survives UI closure, scans SQLite after reboot or sleep/resume, and allows the UI to reconnect later.
@@ -2773,9 +2780,9 @@ Nirman should feel like one application even when the supervisor is a separate e
 
 ### 51.4 First-release editor and terminal boundaries
 
-CodeMirror 6 is the first editor implementation because Nirman’s primary product is autonomous construction, preview, validation, recovery, and artifact delivery rather than a full standalone IDE. Monaco may be evaluated later without changing the control-plane architecture.
+A native WinUI editor surface is the first editor implementation because Nirman’s primary product is autonomous construction, preview, validation, recovery, and artifact delivery rather than a full standalone IDE. AvalonEdit or an equivalent native editor surface may be evaluated later without changing the control-plane architecture.
 
-xterm.js is only a terminal renderer. Rust owns ConPTY sessions, shell profiles, process trees, input policy, output capture, cancellation, resource limits, and recovery. Supported shells may include PowerShell, `cmd.exe`, Git Bash, or another explicitly approved profile.
+A native WinUI terminal surface is the terminal renderer. Rust owns ConPTY sessions, shell profiles, process trees, input policy, output capture, cancellation, resource limits, and recovery. Supported shells may include PowerShell, `cmd.exe`, Git Bash, or another explicitly approved profile.
 
 ### 51.5 Completion invariants
 

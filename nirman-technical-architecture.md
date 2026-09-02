@@ -4618,6 +4618,7 @@ AndroidTechnologyAdapter operations
 - validatePlan()             -> AndroidTechnologyAdapterResolution
 - initializeProject()        -> AndroidTechnologyAdapterResolution
 - planBuild()                -> AndroidTechnologyAdapterResolution
+- classifyFailure()          -> AndroidTechnologyAdapterResolution
 - resolveBuildAdapter()      -> AndroidBuildAdapter identity (deterministic,
                                 derived from the locked AndroidTechnologyPlan,
                                 AndroidToolchainLock, and AndroidDeviceCapabilities;
@@ -4625,11 +4626,9 @@ AndroidTechnologyAdapter operations
                                 PreviewRequest decision trace)
 - resolveDeviceAdapter()     -> AndroidDeviceAdapter identity (deterministic,
                                 derived from the locked AndroidTechnologyPlan,
-                                AndroidToolchainLock, and AndroidDeviceCapabilities;
-                                the active device session is an execution input
-                                after resolution, not a resolution determinant;
-                                selection is auditable and recorded in the
-                                PreviewRequest decision trace)
+                                AndroidDeviceCapabilities, and active device
+                                session; selection is auditable and recorded in
+                                the PreviewRequest decision trace)
 ```
 
 `resolveBuildAdapter()` and `resolveDeviceAdapter()` MUST resolve from the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities` state, not from mutable runtime state. The selected identities are returned as registered adapter identities; selection itself remains deterministic and auditable. A change to the locked plan, toolchain, or device capabilities invalidates prior resolution results; `PreviewCoordinator` MUST re-resolve before dispatching any concrete operation. Resolution results do not constitute a second mutable authority; the registered `AndroidBuildAdapter` and `AndroidDeviceAdapter` returned by resolution remain the sole execution authorities for their respective operations.
@@ -4640,14 +4639,14 @@ The three internal implementation families registered at M108 are execution stra
 NativeAndroidAdapter (internal implementation family)
 - composition: Kotlin or Java, Views or Compose, Gradle
 - adapterId prefix: nirman.adapter.native
-- operations: validatePlan, initializeProject, planBuild,
+- operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle native), resolveDeviceAdapter
   (AndroidDeviceAdapter for emulator or physical device)
 
 JavaScriptAndroidAdapter (internal implementation family)
 - composition: React Native or Expo, Metro or Expo runtime, native Gradle shell
 - adapterId prefix: nirman.adapter.javascript
-- operations: validatePlan, initializeProject, planBuild,
+- operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle plus Metro or Expo), resolveDeviceAdapter
   (AndroidDeviceAdapter for emulator or physical device)
 
@@ -4655,7 +4654,7 @@ MixedAndroidAdapter (internal implementation family)
 - composition: native plus JavaScript plus native modules, NDK or CMake
   when selected, device APIs
 - adapterId prefix: nirman.adapter.mixed
-- operations: validatePlan, initializeProject, planBuild,
+- operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (composed Gradle plus Metro or Expo plus NDK or
   CMake), resolveDeviceAdapter (AndroidDeviceAdapter for emulator or
   physical device)

@@ -1494,20 +1494,6 @@ Choose one canonical owner for every machine-readable schema and make every impl
 
 Milestones M100–M105 define implementation work, not completed capability. Until their exit gates pass on executable fixtures, the relevant status remains `PLANNED` or `SPECIFIED`. A documentation certification pass cannot promote a runtime capability, preview, or APK artifact to `VERIFIED` or `CERTIFIED`.
 
-Status determination per milestone MUST be justified against its complete exit gate, not merely a related test. The table below reflects evidence-based determination against existing `crates/*/tests/*` fixtures per AGENTS §15 and BS §79.1–§79.5. No milestone is promoted based on README prose, a model response, a successful documentation verifier pass, or cross-compilation alone.
-
-| Milestone | Status | Evidence |
-|---|---|---|
-| M100–M105 | `SPECIFIED` | Contracts and exit gates defined; the verifier (13/13) certifies documentation structure only; exit gates require executable fixtures not yet in place. |
-| M106 | `IMPLEMENTED` | `tools/test_verify_contract_graph.py` mutation battery (147/147) exercises the conformance harness. |
-| M107 | `SPECIFIED` | Integration boundary contract defined; no executable fixture exercises the full boundary-crossing matrix. |
-| M108 | `IMPLEMENTED` | `tests/m108_acceptance.rs` + `tests/m48_acceptance.rs` exercise the preview-sync lifecycle end to end. |
-| M115 | `IMPLEMENTED` | `crates/nirman-control-plane/tests/m115_final_acceptance.rs` exercises restart-gap recovery and timeout. |
-| M118 | `SPECIFIED` | Platform capability contract defined; `m118_environment_preflight.rs` + `m118_control_plane_acceptance.rs` exercise headless preflight and control-plane gates; Windows-runtime validation is explicitly `USER_REQUIRED`/`UNAVAILABLE` on the current host (`m118_platform_capability.json`: `"windowsRuntime": "Unverified"`). |
-| M119 | `IMPLEMENTED` | `crates/nirman-control-plane/tests/m119_skill_registry_acceptance.rs` exercises the durable skill registry persistence and fail-closed selection. |
-
-Coarse milestones M1/M2 are abstractly described; refined milestones (M39+) own the detailed work. No blanket promotion based on README prose.
-
 ## M106 — Documentation-verifier conformance
 
 Extend the documentation verifier’s test suite beyond mutation detection. Add positive and negative fixtures for false positives, valid optional extensions, duplicate references, malformed tables, Unicode and Markdown formatting variation, registry ordering changes, contract identifiers in prose and comments, fenced code blocks, duplicate rows, ambiguous headings, and repeated explanatory text. Keep the existing mutation battery non-vacuous and preserve the boundary that this verifier certifies documentation structure only, never runtime behavior.
@@ -1696,55 +1682,4 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 | Verifier conformance | contract-graph verifier checks: the twelve-edge row for `CONTRACT.RUNTIME.SKILL` and `CAP.ANDROID.SKILL_WORKFLOW` identity `M66`; the six platform capability clauses of BS §67.12 remain sealed; the `SkillPackage` schema fields appear in the registry entry |
 
 **Exit gate:** on a non-Windows host, the M118 v1 built-in skill set loads exactly 6 packages; `environment-preflight` is admitted (no capabilities required); `windows-runtime-validation` is blocked fail-closed against the `WINDOWS_NATIVE_EXECUTION` = `UNAVAILABLE` capability result; a revoked or unscanned package is `NotInvocable`; invocation records survive supervisor restart with version pinning; and a changed environment fingerprint invalidates prior invocation evidence. Documentation graph certification is reported separately from runtime certification.
-
----
-
-## M120 — Windows Host Runtime Validation and Architecture Review
-
-M120 implements the review procedure defined by ADR-207. It references `CONTRACT.RUNTIME.PLATFORM_CAPABILITY` (BS §79, TA §84, ADR-206); it does not create a new contract. It extends the existing `EnvironmentCapabilityPlanner` (M118), `ToolCapabilityGraph` (M70), and evidence dependency machinery. It must not create a second lifecycle, policy, evidence, preview, or completion authority.
-
-**Purpose:**
-- validate the existing Tauri 2 host on real Windows hardware;
-- validate the production supervisor boundary (Nirman.exe ↔ NirmanSupervisor.exe extraction per ADR-111);
-- validate installer/update/recovery/security/runtime behavior;
-- establish evidence for whether the current host remains suitable;
-- permit an alternative PoC only if documentary analysis identifies a material unresolved requirement that requires executable evidence.
-
-**Primary candidate:** `TAURI_2` (the existing ADR-108 baseline).
-
-**Alternative candidates:** `WINUI_3`, `WPF` — evaluation-only. Do not build alternatives unless documentary analysis identifies a material uncertainty that requires executable evidence. A WinUI 3 or WPF proof-of-concept is conditional, never mandatory, and must be built in an isolated candidate worktree per AGENTS §14 self-development rules. The PoC does NOT replace the current Tauri implementation.
-
-**Required proof (explicitly numbered fixture matrix):**
-
-| # | Fixture | Required evidence |
-|---|---|---|
-| 1 | Clean installation | install succeeds, app launches, version reported |
-| 2 | Upgrade | version handshake, candidate promotion, health check, state preservation |
-| 3 | Uninstall / reinstall | rollback, state/database preservation |
-| 4 | Startup without provider | app launches, provider-independent behavior correct |
-| 5 | Supervisor startup | supervisor process starts, health check passes |
-| 6 | Host/supervisor handshake | SupervisorConnection protocol over selected transport |
-| 7 | UI disconnect / reconnect | supervisor continues, UI rebuilds projection from durable events |
-| 8 | Windows login startup | app starts at login when eligible work exists |
-| 9 | Sleep / resume | recovery scan, task reconciliation, no state loss |
-| 10 | UI crash | supervisor continues, recovery stream emitted |
-| 11 | Supervisor crash | stable controller restarts/reconciles supervisor |
-| 12 | Child-process cleanup | no orphaned processes after task termination |
-| 13 | ConPTY | terminal rendering, input policy, output capture, cancellation, quotas |
-| 14 | Notifications | toast, system notification area |
-| 15 | ACL / security boundaries | restricted tokens, Job Objects, ACL-scoped workspaces |
-| 16 | Credential Manager / DPAPI | credential storage and retrieval |
-| 17 | Installer rollback | failed install rolls back cleanly |
-| 18 | State / database preservation | SQLite integrity across upgrade and rollback |
-| 19 | WebView/runtime availability | WebView2 present or cached; app shell launches |
-
-Every fixture must carry: `hostCandidate`, `sourceRevision`, `environmentFingerprint`, `fixtureId`, `observation`, `evidenceId`, `result`. No row is marked `CERTIFIED` unless the matching `EnvironmentCapabilityRecord` fingerprint, target platform, and source revision are recorded (per BS §79.1, §79.5).
-
-**Test identity:** `TEST-WINHOST-001` (parameterized fixture matrix per host candidate).
-
-**Evidence identity:** `EV-WINHOST-001` (per host candidate, per fixture row).
-
-**Exit gate:** every required proof item produces a durable `EV-WINHOST-001` evidence record on real Windows hardware. Cross-compilation, Termux execution, documentation verification, or simulated Windows behavior must NOT be represented as Windows runtime certification. A documentation-verifier pass alone cannot certify any row. The review concludes with a host suitability decision: retain Tauri 2, or file a new ADR that supersedes ADR-108 per BS §67.7 with attached evaluation evidence.
-
-**Status:** `PLANNED` (per AGENTS §15). The milestone defines the review and certification path; it does not assert runtime certification.
 
