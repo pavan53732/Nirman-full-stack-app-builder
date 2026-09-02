@@ -1188,7 +1188,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Web generation, Windows application generation, PWA output, universal web-wrapper generation, Electron as the Nirman shell, and desktop application output are not added. Android remains the sole generated target; Tauri 2 remains the desktop host architecture.
+**Decision:** Web generation, Windows application generation, PWA output, universal web-wrapper generation, Electron as the Nirman shell, and desktop application output are not added. Android remains the sole generated target; C#/.NET + WinUI 3 remains the desktop host architecture.
 
 **Rationale:** The README’s implementation stack is not compatible with Nirman’s product boundary.
 

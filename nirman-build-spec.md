@@ -4608,7 +4608,7 @@ The deliberation contract is satisfied only when an agent request for a higher e
 
 ## References
 
-[1]: https://tauri.app/ "Tauri Documentation"
+[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
 
 [2]: https://react.dev/ "React Documentation"
 
@@ -4803,7 +4803,7 @@ Rollback or repair MUST invalidate only the affected candidate evidence and MUST
 
 ### 69.10 Runtime-certification and hidden-human-dependency boundary
 
-The documentation contract and its verifier certify documentation identity, authority, traceability, and selected semantic rules only. They MUST NOT be presented as proof that the Tauri host, Rust control plane, Windows isolation, provider bridge, Android toolchain, emulator/device workflow, preview, recovery loop, or APK artifact is implemented.
+The documentation contract and its verifier certify documentation identity, authority, traceability, and selected semantic rules only. They MUST NOT be presented as proof that the WinUI 3 host, Rust control plane, Windows isolation, provider bridge, Android toolchain, emulator/device workflow, preview, recovery loop, or APK artifact is implemented.
 
 Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and emulator/device fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
 
