@@ -60,7 +60,6 @@ The team should keep the master specification stable as the product contract, up
 | M33 | Skills registry and invocation contract | Skill schema, scanning, permissions, versioning, rollback |
 | M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
 | M35 | Long-horizon scale and unified execution surface | Map sharding, checkpoint retention, affected tests, side-by-side preview |
-| M119 | Platform Skill Registry Persistence and Fail-Closed Selection | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
 | M36 | Runtime authority and autonomous recovery invariants | Deterministic authorities, model non-authority, safe recovery, evidence gates |
 | M37 | Android-only target contract | Android profiles, emulator/device validation, APK artifacts, and Android-only project resolution |
 | M38 | Certified Android profile coverage and production acceptance | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports |
@@ -1301,6 +1300,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
 | M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
+| M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-PLAT-001 | EV-PLAT-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
