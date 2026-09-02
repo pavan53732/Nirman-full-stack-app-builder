@@ -3330,6 +3330,10 @@ Each scenario run must produce step results, assertion results, screenshots at a
 
 Stateful verification is satisfied only when every functional requirement maps to at least one deterministic scenario, and when a requirement cannot be marked complete while its scenario is missing, skipped, or non-deterministic.
 
+### 56.7 Per-stack UI validation framework binding
+
+Each technology composition the resolver may select MUST declare its UI validation binding: Android Views → Espresso; Jetpack Compose → Compose UI Test; Expo/React Native → an out-of-process UI-tree driver. The binding is part of `AndroidTechnologyPlan` and MUST be resolved when the technology is resolved, not at test time. A composition with no declared binding MUST report `CAP.ANDROID.E2E_VERIFY` as `UNAVAILABLE` for that composition rather than silently downgrading to screenshot comparison. Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND; the technology adapter MUST NOT execute it. Results enter the evidence chain as an `Observation`; a passing test is evidence, never an independent completion decision. A test MUST NOT be weakened, skipped, or deleted to reach a passing state.
+
 ## 57. Advanced Verification Architecture
 
 **ContractId:** `CONTRACT.RUNTIME.VERIFICATION`  

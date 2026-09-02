@@ -3554,6 +3554,10 @@ Scenario definitions, runs, step results, and evidence references are stored in 
 
 The engine is correct only when a data-persistence scenario detects an app that loses data on process death; when a flaky scenario is quarantined rather than reported as passing; and when every requirement's scenario link resolves in the ledger.
 
+### 62.7 Adapter-side resolution
+
+Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test.
+
 ## 63. Regression Localization Service
 
 **ContractId:** `CONTRACT.RUNTIME.LOCALIZATION`  
