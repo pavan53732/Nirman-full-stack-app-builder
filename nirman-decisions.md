@@ -14,7 +14,19 @@ This document records significant product and engineering decisions for Nirman. 
 | Accepted | Approved direction for implementation |
 | Deferred | Intentionally postponed until a later milestone |
 | Superseded | Replaced by a newer decision |
-| Rejected | Considered and not selected |
+|| Rejected | Considered and not selected |
+
+---
+
+## ADR format
+
+Every ADR accepted from ADR-209 onward MUST carry a **Reversal trigger:** field in addition to Locks, Status, Decision, Rationale, and Consequences. The field states the specific observable evidence that would justify superseding the decision — a measurement, a failure mode, a capability change, or a contract conflict. It is not a statement of doubt; it is the condition under which revisiting is correct rather than churn.
+
+A reversal trigger of "none foreseeable" is permitted where a decision is structural, but it must be stated explicitly rather than omitted.
+
+Reversal triggers do not weaken a decision or make it provisional. An accepted ADR remains binding until an explicit superseding ADR is accepted per BS §67.12. The trigger records what should prompt that supersession; it never performs it.
+
+ADR-001 through ADR-208 predate this requirement and are not retrofitted. Absence of the field in those records is not a defect.
 
 ---
 
@@ -2367,6 +2379,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** Local model runtimes have materially different context limits, tool-calling fidelity, structured-output reliability, and vision support. Supporting them as a first-class path would mean every capability claim carries an unstated "depending on your local model" qualifier, which conflicts with the evidence and capability-truth model. A single cloud provider contract keeps capability claims checkable.
 **Consequences:** BS §8.3 local-endpoint allowance is removed. BS §8.1 gains base-URL validation. Privacy mitigations may no longer cite local models. AGENTS.md §2 and README provider rows become cloud-only. ADR-019's provider-neutral interface is unaffected — neutrality is across cloud vendors, not across locality. Nirman itself remains local-first and requires no account or subscription (ADR-205, unchanged). Future reversal requires a new accepted ADR superseding this one.
 
+**Reversal trigger:** local coding models reach parity with cloud providers on structured-output reliability, tool-calling fidelity, and repair quality, such that capability claims would no longer require an unstated per-model qualifier.
+
 ---
 
 ## ADR-208: Two named provider compatibility modes with test-gated save
@@ -2376,3 +2390,5 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Decision:** The AI Settings surface exposes exactly two provider compatibility modes: `OPENAI_COMPATIBLE` and `ANTHROPIC_COMPATIBLE`. Each profile declares its mode plus API key, base URL, and model ID. The `ModelGateway` maps `OPENAI_COMPATIBLE` to the Chat Completions / Responses-style request families and `ANTHROPIC_COMPATIBLE` to the message-oriented family, normalizing both into the existing single internal envelope. A profile MUST NOT be saved until a connection Test against the configured endpoint and model returns a successful validated response. Save is disabled while a profile is untested, and any edit to key, base URL, model ID, or mode invalidates a prior pass and re-disables Save.
 **Rationale:** A free-form protocol picker pushes protocol archaeology onto a single user who only wants to paste a key. Two named modes cover the overwhelming majority of cloud providers, since most third-party endpoints advertise compatibility with one of the two. Test-gated save converts a class of silent runtime failures — wrong base URL, wrong model ID, revoked key — into one deterministic setup-time failure with a visible cause.
 **Consequences:** BS §8.1 gains a Compatibility mode field and a test-gated save rule. BS §8.2 and TA §24, §38, §48 name the two modes as the user-facing surface over the existing normalization families. ADR-037 and ADR-038 are unaffected: the gateway stays provider-neutral internally and capability testing remains required. A provider matching neither mode is unsupported and must be reported as such rather than silently attempted.
+
+**Reversal trigger:** a third protocol family gains enough provider adoption that OPENAI_COMPATIBLE and ANTHROPIC_COMPATIBLE together no longer cover the providers a user is likely to configure.
