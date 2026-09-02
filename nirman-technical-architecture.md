@@ -498,6 +498,15 @@ Project synthesis must be incremental. It should first create a buildable Androi
 
 Android validation must use disposable emulator snapshots or explicitly selected physical devices. It must not reuse personal credentials, host-side secrets, or unapproved device data. Test data should be synthetic by default. Device sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
 
+### 10.7 Emulator frame transport
+
+The emulator MUST be launched headless. The preview renders INSIDE Nirman's own surface; a detached emulator window violates the BS §69.5 viewport requirement. The transport is a named, versioned interface with a required baseline and a permitted upgrade:
+
+- **Baseline** — the emulator's local gRPC control endpoint on loopback, using its screenshot-stream RPC. Low frame rate, minimal dependencies, sufficient for a truthful preview.
+- **Permitted upgrade** — a WebRTC/video-stream path for higher frame rate and input forwarding, admitted through the SAME `PreviewPromotionGate`. Not a second authority.
+
+Every delivered frame MUST bind `deviceId`, `PreviewRevision`, `artifactFingerprint`, and `deviceStateFingerprint`. An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). Frame capture is an `AndroidDeviceAdapter` operation carrying `adapterId`, `adapterVersion`, `technologyPlanHash`, and `deviceAdapterIdentity` (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND). Transport loss MUST invalidate the projection through the single canonical reducer (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER) and MUST NOT freeze the last frame while presenting it as live (CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE). Physical devices use a separate documented capture path; label semantics are identical. Loopback only. The transport MUST NOT bind to an external interface.
+
 ---
 
 ## 11. Toolchain and Environment Management
