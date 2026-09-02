@@ -2402,6 +2402,23 @@ Nirman MUST choose a data strategy from the application contract rather than enf
 
 The resolver MUST produce migration rules, corruption recovery rules, seed-data policy, offline behavior, encryption requirements, test fixtures, and an evidence plan. The selected data strategy becomes part of the technology plan and cannot be changed by a worker without a versioned plan update and reconciliation.
 
+### 44.4 Default visual system
+
+When the user states no brand direction, color, or aesthetic preference, generation starts from a defined baseline rather than an arbitrary one. These are defaults, not contract: any explicit user preference overrides them, and conformance to them is never a certification criterion.
+
+| Dimension | Default |
+|---|---|
+| Design system | Material 3 baseline, with dynamic color where the target supports it |
+| Spacing | 8dp grid for all margins, padding, and component sizing; 4dp permitted only for dense inline elements |
+| Typography | Material 3 type scale; system default font family |
+| Elevation | Applied only to express hierarchy or interactive affordance, never decoratively |
+| Contrast | WCAG AA minimum, 4.5:1 for body text and 3:1 for large text and meaningful non-text elements |
+| Component styling | Material 3 default component states before any customization |
+
+Contrast is the only row that is more than a preference: a generated screen that fails the AA minimum is a defect, because it is unreadable for a real population of users rather than merely unattractive.
+
+The resolved values MUST be recorded in `BrandManifest` (§44.2) so that a generated appearance is reproducible and auditable, whether it came from a user preference or from these defaults.
+
 ---
 
 ## 45. Autonomous UX, Decision Trace, and Resource Governance
