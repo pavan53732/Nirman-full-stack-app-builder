@@ -541,7 +541,7 @@ Project synthesis must be incremental. It should first create a buildable Androi
 
 ### 10.6 Android device and host isolation
 
-Android validation must use disposable Nirman-managed local Android emulator snapshots only. It must not reuse personal credentials, host-side secrets, or unapproved emulator data. Test data should be synthetic by default. Emulator sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
+Android validation MUST use disposable Nirman-managed local Android emulator snapshots only. Physical Android hardware is outside product scope and MUST NOT participate in preview, validation, recovery, completion, or delivery. It must not reuse personal credentials, host-side secrets, or unapproved emulator data. Test data should be synthetic by default. Emulator sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
 
 ### 10.7 Emulator frame transport
 
@@ -773,7 +773,7 @@ The engineering team must decide the following before implementing the control p
 | Event delivery | Durable event log with sequence-based replay |
 | Initial sandbox | Restricted Windows process plus workspace policy |
 | Strong sandbox | Restricted token, Windows Job Object, ACL-scoped workspace, process-tree supervision, resource quotas, and disposable emulator snapshot |
-| Android emulator testing | Disposable emulator snapshot or explicitly selected Nirman-managed local Android emulator |
+| Android runtime testing | Disposable Nirman-managed local Android emulator snapshot |
 | Preview revision tracking | Checkpoint ID plus project revision hash |
 | Secrets | OS keychain reference only |
 
@@ -4929,14 +4929,14 @@ NativeAndroidAdapter (internal implementation family)
 - adapterId prefix: nirman.adapter.native
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle native), resolveDeviceAdapter
-  (AndroidDeviceAdapter for emulator or Nirman-managed local Android emulator)
+  (AndroidDeviceAdapter for Nirman-managed local emulator session)
 
 JavaScriptAndroidAdapter (internal implementation family)
 - composition: React Native or Expo, Metro or Expo runtime, native Gradle shell
 - adapterId prefix: nirman.adapter.javascript
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle plus Metro or Expo), resolveDeviceAdapter
-  (AndroidDeviceAdapter for emulator or Nirman-managed local Android emulator)
+  (AndroidDeviceAdapter for Nirman-managed local emulator session)
 
 MixedAndroidAdapter (internal implementation family)
 - composition: native plus JavaScript plus native modules, NDK or CMake

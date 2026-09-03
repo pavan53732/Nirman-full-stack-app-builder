@@ -171,7 +171,7 @@ On first launch, Nirman should explain that it is a local desktop application an
 
 1. Configure a cloud provider with a base URL, API key, and model ID.
 
-3. Continue in planning-only mode without an AI provider.
+2. Continue in planning-only mode without an AI provider.
 
 The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
 
@@ -195,7 +195,7 @@ A request may include one or more screenshots as visual references. Nirman shoul
 
 ### 4.4 Live preview panel
 
-The live preview MUST use a Nirman-managed local Android emulator as the canonical primary preview runtime. The emulator MUST run locally on the Windows host, MUST be launched headless, and MUST render its actual Android application surface inside Nirman's Preview panel. The user MUST NOT need a physical Android phone to build, run, interact with, or visually inspect the generated application.
+The live preview MUST use a Nirman-managed local Android emulator as the sole canonical Android runtime. The emulator MUST run locally on the Windows host, MUST be launched headless, and MUST render its actual Android application surface inside Nirman's Preview panel. The user MUST NOT need physical Android hardware to build, install, launch, interact with, validate, or visually inspect the generated application.
 
 No physical Android devices are outside Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
 

@@ -346,7 +346,7 @@ Implement the internal Android capability registry and profile identity used for
 ### Work items
 
 1. Add the Android technology capability registry and project-plan schema.
-2. Add Java, Android SDK, emulator, device, and package-manager diagnostics.
+2. Add Java, Android SDK, emulator, and package-manager diagnostics.
 3. Add emulator-manager abstraction and session state.
 4. Add Android logs, install, reload, and build status.
 5. Add APK build profiles where the local environment supports them.
