@@ -56,13 +56,13 @@ A habit tracker with streaks and 8pm reminders
 | 4 | Checks the local toolchain: JDK, Gradle, Android SDK, emulator | A preflight result, and a repair if something is missing |
 | 5 | Writes the project and runs a real Gradle build | Build output, honestly reported |
 | 6 | Installs and launches on the emulator | **The running app, live in the preview panel** |
-| 7 | Drives it: creates a habit, marks it complete, checks the streak, verifies the notification is scheduled | Screenshots, Logcat, and a pass or fail per check |
+| 7 | Drives it on the running Android app: creates a habit, marks it complete, observes the streak, and verifies the notification behavior | Screenshots, Logcat, and a pass or fail per check |
 | 8 | Repairs what failed and repeats from the build step | The failure, the diagnosis, and the fix |
 | 9 | Packages and exports a signed APK | A file you can install on your phone |
 
 Close the window at any point and the work continues. Reopen it and the session is where you left it.
 
-**What makes this different from generating code:** every claim above is backed by an observation. "It builds" means Gradle exited zero. "It runs" means a real process launched on a real device. "It works" means a scripted interaction produced the expected state, and the screenshot proving it is retained. Nirman cannot report success it did not observe — that rule is a sealed clause in the build spec, not a convention.
+**What makes this different from generating code:** every claim above is backed by an observation. "It builds" means Gradle exited zero. "It runs" means a real process launched on a real device. "It works" means an executable interaction scenario produced the expected observed runtime state and assertion result, and the screenshot proving it is retained. Nirman cannot report success it did not observe — that rule is a sealed clause in the build spec, not a convention.
 
 **What it will tell you instead of guessing:** if the emulator is missing, if a permission was denied, if a test failed three times, or if your request needs something it cannot reliably infer from prose, it says so in plain language and stops. The eight-prompt battery targets six of eight completed with no human intervention beyond the original prompt.
 
