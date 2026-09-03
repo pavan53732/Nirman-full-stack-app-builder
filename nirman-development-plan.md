@@ -301,10 +301,11 @@ Add visual and Android emulator/device verification without exposing personal cr
 4. Add visual baseline storage and comparison metadata.
 5. Add accessibility and responsive-layout checks.
 6. Add screenshot references to worker handoffs and final task results.
+7. Implement the authoritative InteractionExecutor for deterministic Android scenarios, including action execution, runtime-state observation, screenshots, UI-hierarchy evidence where supported, Logcat correlation, and assertion evaluation.
 
 ### Exit gate
 
-A device worker can test an Android fixture on selected phone and tablet profiles using synthetic data and return reproducible screenshots, Logcat diagnostics, permission results, and crash traces without reading personal device data.
+A device worker can execute deterministic stateful scenarios against the installed Android application, perform real interactions, observe resulting runtime state, evaluate assertions, capture screenshots/UI-state evidence/Logcat, and return revision-bound evidence. Static source inspection or screenshot-only validation cannot satisfy a behavioral scenario.
 
 ---
 
@@ -497,6 +498,8 @@ Add an evidence ledger for command results, test reports, build artifacts, scree
 Implement the default validation loop: emulator/device preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
 
 **Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation.
+
+Every required behavioral acceptance condition must execute through `CONTRACT.RUNTIME.E2E`. A validation run that builds or launches the application but does not execute its required interaction scenarios cannot produce `COMPLETED`.
 
 ### M21: Policy-boundary approvals and termination coordinator
 
