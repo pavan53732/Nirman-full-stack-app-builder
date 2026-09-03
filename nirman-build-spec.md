@@ -195,13 +195,17 @@ A request may include one or more screenshots as visual references. Nirman shoul
 
 ### 4.4 Live preview panel
 
-The live preview should support Android emulator and connected-device preview first. It should show the selected device, build/install state, Metro or native development-server output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
+The live preview MUST use a Nirman-managed local Android emulator as the canonical primary preview runtime. The emulator MUST run locally on the Windows host, MUST be launched headless, and MUST render its actual Android application surface inside Nirman's Preview panel. The user MUST NOT need a physical Android phone to build, run, interact with, or visually inspect the generated application.
+
+Physical Android devices are an optional secondary validation target and MUST NOT be required for the primary build→run→preview workflow.
+
+The live preview MUST show the selected device, build/install state, Metro or native development-server output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
 
 The default project workspace should show the running application preview and the live execution surface together. The preview occupies the primary visual area, while a resizable execution panel shows the task graph, nested worker steps, terminal streams, checkpoints, approvals, validation evidence, and current next action. Users may collapse or expand the execution panel, but the relationship between the running application and the work producing it must remain visible without navigating to a separate screen.
 
 Nirman should optionally capture screenshots during autonomous tasks and compare them with user-provided references or generated visual baselines. The selected AI provider may receive screenshots for visual inspection if the user has enabled that capability. The user should be told when an image is being sent to a cloud provider. Screenshots, visual specifications, comparison results, and unresolved visual differences must be attached to the task evidence.
 
-The preview panel should support Android emulator and physical-device connection status, device identity, Android version, architecture, available storage, hot reload state, Logcat output, install status, screenshots, and links to generated APK artifacts; AAB artifacts are included only when the active PackagingProfile requires `APK_AND_AAB`. Multiple devices may be added later, but the first stable workflow may use one active device or emulator.
+The preview panel MUST show the canonical local emulator session, including emulator identity, Android version, API level, architecture, orientation, density, build/install state, runtime state, Logcat, screenshots, interaction state, and revision identity. Physical-device status MAY be shown when an explicitly selected physical device is being used for secondary validation.
 
 ### 4.5 Manual editing
 
@@ -4855,7 +4859,7 @@ The default preview surface MUST show the Android application beside its executi
 
 | Panel region | Required information |
 |---|---|
-| Application viewport | Actual emulator or connected-device frames; device identity; orientation; density; API level |
+| Application viewport | Actual frame stream from the Nirman-managed headless local Android emulator rendered inside the WinUI Preview surface; emulator identity; orientation; density; API level; runtime/session identity |
 | Revision header | Project revision, checkpoint, PreviewRevision, source fingerprint, artifact ID, and truth label |
 | Execution timeline | Contract stage, task, worker, skill, command, observation, and next action |
 | Build/install strip | Build variant, build status, install status, package ID, launch status, and timestamps |
@@ -4871,6 +4875,10 @@ Every preview update MUST be admitted through the canonical `PreviewSyncEvent` a
 
 A preview update follows this sequence:
 
+The canonical Preview viewport MUST be an embedded projection of the running Android application, not a screenshot simulation, HTML recreation, source-code rendering, or detached emulator window.
+
+The emulator rendering surface and its input channel MUST remain inside the Nirman Preview experience. A user must be able to see and interact with the generated Android application without opening a separate emulator window or connecting a physical phone.
+
 ```text
 Intent/contract accepted
     → plan and mutation authorized
@@ -4879,11 +4887,16 @@ Intent/contract accepted
     → Android build observed
     → install observed
     → process launch observed
+    → emulator rendering session established
+    → embedded Preview viewport observed
+    → user-like interaction channel established
     → runtime interaction observed
     → screenshot/Logcat/test evidence captured
     → revision validated
     → PreviewRevision promoted
 ```
+
+A preview cannot become `LIVE` merely because an APK launched. Nirman MUST establish that the running application's rendering surface is being projected into the Nirman Preview viewport and that the declared interaction channel targets that running application instance.
 
 Each transition MUST produce a durable event and evidence reference. A model statement such as “the app is now running” is not sufficient. `RUNNING` may be displayed only after a supervised launch or reload has been observed for the declared device and revision.
 
@@ -5098,6 +5111,15 @@ PreviewSyncEvent
                   RUNTIME_OBSERVED | EVIDENCE_BACKED | VALIDATED | CERTIFIED
 - payload
 - emittedAt
+- previewSurfaceId
+- previewSurfaceSessionId
+- renderTransportId
+- renderTransportVersion
+- inputChannelId
+- inputChannelVersion
+- viewportStateFingerprint
+
+The fields identify the actual embedded rendering and interaction projection. They do not constitute a new authority. PreviewCoordinator remains responsible for promotion and PreviewProjectionReducer remains the sole projection reducer.
 
 PreviewProjection
 - projectionRevision
