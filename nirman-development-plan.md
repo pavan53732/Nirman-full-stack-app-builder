@@ -28,12 +28,12 @@ The team should keep the master specification stable as the product contract, up
 | M1 | Nirman.exe WinUI shell | Windows application shell and project manager |
 | M2 | NirmanSupervisor.exe + SupervisorConnection | Background task daemon, SQLite state, event stream |
 | M3 | Provider and model runtime | Provider profiles, keychain, streaming, usage telemetry |
-| M4 | Dynamic Android synthesis and local runtime | Instruction/screenshot analysis, framework resolver, emulator/device preview, process manager, diagnostics |
+| M4 | Dynamic Android synthesis and local runtime | Instruction/screenshot analysis, framework resolver, Nirman-managed local emulator runtime foundation, process manager, diagnostics |
 | M5 | Single-worker agent loop | Plan, inspect, edit, test, repair, checkpoint, undo |
 | M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
 | M7 | Supervisor survives UI close/restart | Resume after UI close or restart, notifications, adaptive guardrails |
 | M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
-| M9 | Android device and visual testing | Emulator/device profiles, screenshots, Logcat, phone/tablet checks |
+| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, emulator/device profiles, screenshots, Logcat, phone/tablet checks |
 | M10 | Android packaging | APK build, artifact validation, signing boundaries |
 | M11 | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/device matrix, and representative fixture evidence |
 | M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
@@ -302,10 +302,17 @@ Add visual and Android emulator/device verification without exposing personal cr
 5. Add accessibility and responsive-layout checks.
 6. Add screenshot references to worker handoffs and final task results.
 7. Implement the authoritative InteractionExecutor for deterministic Android scenarios, including action execution, runtime-state observation, screenshots, UI-hierarchy evidence where supported, Logcat correlation, and assertion evaluation.
+8. Establish the Nirman-managed headless emulator as the canonical primary PreviewRuntime.
+9. Implement embedded WinUI PreviewHost rendering.
+10. Implement controlled preview input forwarding.
+11. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
+12. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
 
 ### Exit gate
 
-A device worker can execute deterministic stateful scenarios against the installed Android application, perform real interactions, observe resulting runtime state, evaluate assertions, capture screenshots/UI-state evidence/Logcat, and return revision-bound evidence. Static source inspection or screenshot-only validation cannot satisfy a behavioral scenario.
+A Nirman-managed local headless emulator can launch the generated Android application and render its actual live surface inside the Nirman Preview panel. The user can interact with that running application inside Nirman, observe resulting runtime state, evaluate assertions, and capture revision-bound evidence without a physical Android phone.
+
+Physical-device validation is optional secondary coverage and cannot be required to satisfy the primary PreviewRuntime gate.
 
 ---
 
@@ -1576,6 +1583,8 @@ AndroidTechnologyPlan
   → Artifact identity
   → AndroidDeviceAdapter
   → RuntimeObservation
+  → RenderTransport
+  → Embedded PreviewSurface
   → PreviewSyncEvent
   → PreviewProjection
   → PreviewSyncEvidenceRecord
