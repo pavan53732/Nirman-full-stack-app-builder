@@ -6311,6 +6311,25 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §31 | "Nirman should maintain three memory scopes" | MUST maintain exactly the three tabled scopes | Task memory until task retention expires; project memory for the project lifetime, user-deletable; runtime improvement memory for the runtime version lifetime, user-controlled |
 | TA §31 | "Memory should be written from validated events and user-confirmed decisions, not from every model statement" | MUST write only from validated events and user-confirmed decisions | A model assertion never enters memory on its own authority; the user can inspect, correct, export, and delete memory; secrets, raw credentials, protected files, and unclassified private content are excluded |
 
+| DP §1 | "Nirman should be built in vertical slices" | MUST build in vertical slices | Every milestone produces a usable and testable end-to-end part of the application; a milestone that completes isolated infrastructure with no reachable workflow does not satisfy its gate |
+| DP §1 | "The first usable slice should allow a user to" perform the nine listed actions | MUST deliver all nine in the first usable slice | Open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run a Nirman-managed local emulator preview, execute validation, and undo the task; the following slices add resilience to long-running tasks, worker failures, application closure, parallel work, Android packaging, and emulator testing |
+| DP §1 | "The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in the decision log" | MUST follow this three-document discipline | The build spec changes only by explicit contract amendment; an implementation decision that contradicts the technical architecture updates that document in the same change; a trade-off that closes an alternative is recorded as an ADR, per the §77 precedence ladder |
+| DP §M0 | "The repository should include separate packages for the desktop UI, control plane, agent runtime, policy engine, provider runtime, project runtime, and tests" | MUST create all seven packages before agent behavior is implemented | Each is a separately buildable package with declared dependencies; the code-quality baseline exists before the first agent behavior lands |
+| DP §M1 | "The shell should open local folders, display the workspace layout, and communicate with the local runtime through the authenticated SupervisorConnection protocol" | MUST do all three | The shell reaches the runtime only through authenticated `SupervisorConnection`; no direct filesystem or process access from the UI, per TA §3.1 |
+| DP §16.1 | "Unit tests should cover" the nine listed areas | MUST cover all nine | State transitions, policy evaluation, path validation, command classification, message validation, provider normalization, resource accounting, repository-map ranking, checksum generation |
+| DP §16.2 | "Integration tests should run the control plane, database, scheduler, worker mock, event bus, and process manager together" | MUST run all six components together | The six run as one system, not as isolated mocks |
+| DP §16.2 | "They should simulate approval, timeout, cancellation, restart, duplicate events, stale workers, and recovery" | MUST simulate all seven conditions | Each is an explicit test case; absence of a case is a gap in the release gate |
+| DP §16.3 | "The team should maintain fixture projects that represent" the eight listed Android app classes | MUST maintain a fixture for each of the eight | Android dashboards, authenticated utilities, offline-first apps, forms, API integrations, notification flows, device-permission workflows, and intentionally broken Android projects |
+| DP §16.3 | "Every release should run a fixed set of prompts and score" the seven listed dimensions | MUST run the fixed prompt set and score all seven per release | Changed-file scope, successful Android build, emulator behavior, test status, visual behavior, recovery, safety policy compliance; the prompt set is fixed so results are comparable across releases |
+| DP §16.4 | "Security tests should verify" the six listed properties | MUST verify all six | Protected files cannot enter model context, denied commands cannot run, external directories require approval, personal credentials and unapproved device data are never used, untrusted packages are restricted, secrets never appear in logs or artifacts |
+| DP §16.5 | "Recovery tests should forcibly" exercise the eight listed disruptions | MUST exercise all eight | Close the UI, terminate the control plane, kill a worker, fill the disk quota, cross an adaptive time or usage threshold, interrupt a database transaction, create a merge conflict, disconnect the provider |
+| DP §16.5 | "Every scenario should end in a clear resumable, escalated, or safely rolled-back state" | MUST end in exactly one of the three states | No scenario ends ambiguously or in a silently-failed state; crossing an ordinary threshold must be shown to adapt or continue rather than ending the task automatically |
+| DP §17 | "Each release should publish a short engineering report containing" the seven listed items | MUST publish the report with all seven | Completed milestones, known limitations, fixture-task results, failed tests, permission changes, schema migration notes, environment compatibility; a release without the report does not pass its gate, and failed tests are listed rather than omitted |
+| DP §28 | "They should be evaluated independently and as part of full end-to-end fixture tasks" | MUST evaluate each criterion both in isolation and end-to-end | Passing only in isolation does not satisfy the criterion; passing only inside a composite run does not either |
+| DP §M80 | "The certification fixture should include a user instruction and optional screenshots for an Android application with" the six listed characteristics | MUST include all six characteristics | Multiple screens, offline data, a device capability, branded assets, background work, and a release artifact; the fixture injects a dependency failure, provider interruption, stale worker, emulator interruption, requirements contradiction, and validation failure, and Nirman must recover, replan, validate, produce the APK, and retain an inspectable trajectory without routine human intervention |
+| AGENTS §Preview invariant | "The runtime should continue eligible work after UI closure or reconnect loss" | MUST continue eligible work; MUST NOT continue through a gate | UI closure or reconnect loss never ends eligible work; hard safety, credential, signing, destructive, external-effect, and unresolved user-decision gates always stop it; an unresolvable blocker is recorded and the task fails safely rather than inventing success |
+| AGENTS §14 | "A recovery attempt should preserve the original failure, select a bounded strategy, include the actual diagnostic context, create a checkpoint or branch, apply the smallest authorized repair, run affected validation, and record whether the hypothesis was confirmed or refuted" | MUST perform all seven steps | The original failure record is never overwritten by the repair attempt; the repair is the smallest one the policy authorizes; the confirmed-or-refuted outcome is recorded even when the repair succeeded, so a lucky fix is not logged as a confirmed hypothesis |
+
 ### 80.3 Default values for all configurable parameters
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
@@ -7105,18 +7124,22 @@ The agent-buildability contract is satisfied only when:
 
 ### 80.10 Resolution coverage status
 
-The "should" resolution table in §80.2 is incomplete. This subsection records actual coverage so that no reader or agent mistakes partial resolution for full resolution.
+The "should" resolution table in §80.2 is complete. This subsection records actual coverage so that no reader or agent mistakes partial resolution for full resolution, and so that any future "should" added to a canonical document is visibly accounted for.
 
 | Scope | Statements | Resolved | Status |
 |---|---|---|---|
 | Build spec (all sections) | 320 | 320 | Complete |
 | Technical architecture | 172 | 172 | Complete |
-| Development plan | 18 | 0 | Outstanding |
-| AGENTS.md | 2 | 0 | Outstanding |
-| **Total** | **512** | **492** | **96.1%** |
+| Development plan | 18 | 18 | Complete |
+| AGENTS.md | 2 | 2 | Complete |
+| **Total** | **512** | **512** | **100%** |
 
 An earlier revision of this table recorded BS §3–§12 as 42 of 42 resolved. The correct figure for those sections is 82 statements; the original 42 rows covered a subset. The remaining §3–§12 statements are resolved in the same batch that completed the build spec, and the table above now counts whole documents rather than partial ranges.
 
 Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table.
 
-Until coverage reaches 100 percent, an unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
+Coverage is 100 percent as of this revision. Any "should" subsequently added to a canonical document is unresolved until it appears in §80.2, and this table MUST be updated to show the shortfall in the same commit that adds it.
+
+An unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
+
+Four values in the §80.2 table were not derived from any existing section and are marked as owner-pending: the §26.6 graduated quota-response thresholds (telemetry at 70 percent, throttle at 85 percent, stop admitting workers at 95 percent) and the definition of a constrained host as under 15 percent free memory or under 10 GB free disk. They are stated so the runtime is buildable, but they are proposals awaiting owner confirmation, not derived requirements.
