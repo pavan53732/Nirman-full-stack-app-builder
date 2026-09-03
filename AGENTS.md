@@ -182,8 +182,6 @@ For Android projects, the primary development preview MUST use the Nirman-manage
 
 Agents, workers, models, skills, and UI components MUST NOT treat a screenshot, source inspection, simulated UI, HTML recreation, predicted state, or detached emulator window as the primary live preview.
 
-A physical Android device is an optional secondary validation target. It MUST NOT be required for the primary build→run→interact→observe workflow.
-
 Preview interaction MUST target the declared running Android runtime through the authorized Android device/preview pipeline. The WinUI client MUST NOT invoke ADB, Gradle, emulator APIs, or application internals directly.
 
 Host, target, validation platform, and certification status are separate states (build spec §79.1). Environment preflight must record host and target explicitly and classify the required platform capabilities as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a build or validation path. Successful compilation or cross-compilation on the host must never be represented as target-runtime validation. A missing target validation environment must produce a durable `USER_REQUIRED`/`UNAVAILABLE` node stating what can and cannot continue, never a skipped or simulated gate.
