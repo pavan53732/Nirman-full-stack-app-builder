@@ -142,7 +142,7 @@ Apply automatically under unattended policy
 Expose the selected strategy or escalate at a hard gate
 ```
 
-Under the `Unattended / Full Autonomy` profile, the runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, retry budgets, risk policy, and current evidence. The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or external-device gate is reached. A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
+Under the `Unattended / Full Autonomy` profile, the runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, retry budgets, risk policy, and current evidence. The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or emulator gate is reached. A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
 
 ---
 
@@ -506,7 +506,7 @@ The `interactionClues` field records hypotheses only. A hypothesis in that field
 
 Spacing, typography, and color derived from an image are estimates, not measurements. They MUST be recorded as assumptions with their derivation noted, and MUST yield to any explicitly stated value.
 
-Visual comparison of an emulator or device screenshot against a reference is a visual observation only. It contributes evidence about appearance; it never establishes that behavior, state, or navigation is correct. Behavioral proof comes from the stateful scenarios of BS §56 (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
+Visual comparison of a Nirman-managed local Android emulator screenshot against a reference is a visual observation only. It contributes evidence about appearance; it never establishes that behavior, state, or navigation is correct. Behavioral proof comes from the stateful scenarios of BS §56 (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
 
 ### 10.5 Dynamic Android project synthesis
 

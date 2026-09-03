@@ -766,8 +766,8 @@ Nirman should detect the presence and versions of tools required by the selected
 | Project type | Example required tools |
 |---|---|
 | Android JavaScript project | Node.js, package manager, Metro or bundler runtime |
-| Android build | Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator or device |
-| Expo Android | Node.js, package manager, Java, Android SDK, emulator or device when used |
+| Android build | Node.js, package manager, Java, Gradle, Android SDK, platform-tools, Nirman-managed local Android emulator |
+| Expo Android | Node.js, package manager, Java, Android SDK, Nirman-managed local Android emulator when used |
 | Git export | Git executable and repository permissions |
 
 The diagnostic screen should distinguish between installed, missing, outdated, misconfigured, and inaccessible tools. It should provide a command or official installation reference where appropriate.
@@ -780,7 +780,7 @@ The runtime should implement command timeouts, output truncation limits, process
 
 Commands should be categorized as safe, reviewable, or privileged. Safe commands can run automatically within the workspace. Reviewable commands require approval according to the user’s policy. Privileged commands always require explicit approval.
 
-Terminal execution must support persistent per-worker sessions with a working directory, environment snapshot, shell type, process group, and session identifier. The runtime must detect interactive prompts, provide a controlled input channel, apply an unattended prompt policy, and terminate or recover processes that wait for input beyond the configured liveness window. On Windows, the shell profile must explicitly identify PowerShell, `cmd.exe`, Git Bash, WSL, or another approved shell and record the selected shell in the task evidence. The interface should show multiple worker terminals separately, with searchable rolling logs and preserved raw artifacts for long-running processes.
+Terminal execution must support persistent per-worker sessions with a working directory, environment snapshot, shell type, process group, and session identifier. The runtime must detect interactive prompts, provide a controlled input channel, apply an unattended prompt policy, and terminate or recover processes that wait for input beyond the configured liveness window. On Windows, the shell profile must explicitly identify PowerShell, `cmd.exe`, Git Bash, or another approved native-Windows shell and record the selected shell in the task evidence. The interface should show multiple worker terminals separately, with searchable rolling logs and preserved raw artifacts for long-running processes.
 
 ### 9.4 Network behavior
 
@@ -1038,7 +1038,7 @@ Add Git export, Android debug/release build artifacts, APK packaging, signing co
 
 ### Phase 7: Android generation
 
-Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, emulator or device connection information, Android logs, and APK build workflows where the local environment supports them.
+Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, Nirman-managed local Android emulator connection information, Android logs, and APK build workflows where the local environment supports them.
 
 **Exit criteria:** Nirman can create and build a supported Android project and clearly identify environmental limitations.
 
