@@ -173,7 +173,7 @@ On first launch, Nirman should explain that it is a local desktop application an
 2. Connect to a local compatible model server.
 3. Continue in planning-only mode without an AI provider.
 
-The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and device tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
+The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and emulator tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
 
 ### 4.3 Chat interaction model
 
@@ -189,7 +189,7 @@ Validation results
 Summary and remaining issues
 ```
 
-When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, device access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the configured execution profile and must not require repeated prompts in `Unattended / Full Autonomy` mode.
+When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, emulator access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the configured execution profile and must not require repeated prompts in `Unattended / Full Autonomy` mode.
 
 A request may include one or more screenshots as visual references. Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content. It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the Nirman-managed local Android emulator.
 
@@ -325,7 +325,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.QUALITY_GATE | Prevent unverified mutations from reaching a deliverable | CONTRACT.RUNTIME.VERIFICATION, CONTRACT.RUNTIME.SPECULATION | TEST-VER-001 | EV-VER-001 | PLANNED |
 | CAP.ANDROID.REGRESSION_REPAIR | Repair a regression at its cause without broad regeneration | CONTRACT.RUNTIME.LOCALIZATION | TEST-LOC-001 | EV-LOC-001 | PLANNED |
 | CAP.ANDROID.SECURE_RELEASE | Produce a packaged artifact with verified dependencies and provenance | CONTRACT.RUNTIME.SUPPLY_CHAIN | TEST-SEC-001 | EV-SEC-001 | PLANNED |
-| CAP.ANDROID.DEVICE_COVERAGE | Report honest verification coverage across a device matrix | CONTRACT.RUNTIME.DEVICE_MATRIX | TEST-DEV-001 | EV-DEV-001 | PLANNED |
+| CAP.ANDROID.DEVICE_COVERAGE | Report honest verification coverage across a emulator profile matrix | CONTRACT.RUNTIME.DEVICE_MATRIX | TEST-DEV-001 | EV-DEV-001 | PLANNED |
 | CAP.ANDROID.LIVE_STEER | Change direction mid-run, inspect runtime state, and plan within host capacity | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER, CONTRACT.RUNTIME.PROFILING | TEST-DIR-001 | EV-DIR-001 | PLANNED |
 | CAP.ANDROID.AUTOMATED_START | Begin work from an authenticated external event | CONTRACT.RUNTIME.TRIGGER | TEST-TRG-001 | EV-TRG-001 | PLANNED |
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
@@ -424,7 +424,7 @@ Evidence is a dependency graph rather than an unqualified list. The canonical ch
 Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision
 ```
 
-Each evidence node MUST record source event, operation, session, project revision, checkpoint, artifact or preview identity when applicable, device and toolchain identity when applicable, validation-policy version, freshness interval, dependency IDs, supersession, and invalidation reason. If a source revision, asset manifest, toolchain lock, device session, dependency snapshot, validation policy, or required integration changes, every dependent evidence and completion claim MUST be invalidated unless independence is proven by the dependency graph.
+Each evidence node MUST record source event, operation, session, project revision, checkpoint, artifact or preview identity when applicable, device and toolchain identity when applicable, validation-policy version, freshness interval, dependency IDs, supersession, and invalidation reason. If a source revision, asset manifest, toolchain lock, emulator session, dependency snapshot, validation policy, or required integration changes, every dependent evidence and completion claim MUST be invalidated unless independence is proven by the dependency graph.
 
 `PreviewPromotionGate`, `ArtifactAuthority`, `AndroidQualityGate`, and the completion evaluator MUST consume the same dependency and invalidation relation. A model claim, plan record, simulated result, or isolated worker statement is never completion evidence.
 
@@ -472,7 +472,7 @@ The sole completion evaluator MUST require the declared goal conditions, current
 
 - `COMPLETED` with missing or invalid mandatory evidence;
 - `VERIFIED` based only on model, plan, or simulated records;
-- `CURRENT` preview with stale source, artifact, asset, toolchain, or device identity;
+- `CURRENT` preview with stale source, artifact, asset, toolchain, or emulator identity;
 - `SUPPORTED` capability without a matching certified profile or fixture evidence;
 - `DELIVERED` artifact without checksum and artifact inspection;
 - `FUNCTIONAL` integration without successful functional evidence;
@@ -1115,9 +1115,9 @@ The task review screen should show the original request, implementation plan, ch
 
 The project should be built in vertical slices rather than by completing every subsystem separately. Each slice should produce a usable part of the application.
 
-The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan, synthesize a project, apply a small file change, start an emulator or device preview, and inspect the result.
+The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan, synthesize a project, apply a small file change, start an emulator or emulator preview, and inspect the result.
 
-The second slice should add checkpoints, diffs, tests, repair attempts, Android emulator/device preview, and cancellation. The third should add Android packaging, APK artifacts, signing boundaries, and device validation.
+The second slice should add checkpoints, diffs, tests, repair attempts, Android Nirman-managed local Android emulator preview, and cancellation. The third should add Android packaging, APK artifacts, signing boundaries, and emulator validation.
 
 The team should maintain a fixture library of representative projects and tasks. Each agent change should be evaluated against these fixtures for code correctness, preview startup, test results, changed-file scope, and safe failure behavior.
 
@@ -1133,7 +1133,7 @@ Nirman should be a polished, minimal Windows desktop application that puts a con
 - Live preview and visual inspection.
 - Tests and automatic repair attempts.
 - Checkpoints, diffs, and recovery.
-- Android packaging, device validation, and later specialized native Android profiles.
+- Android packaging, emulator validation, and later specialized native Android profiles.
 - Clear security and privacy controls.
 
 The most important strategic decision is to build the **local Android runtime, technology resolver, visual synthesis pipeline, and agent execution system first**. The system should become broadly capable by composing Android technologies from requirements rather than by maintaining a narrow template catalog.
@@ -1529,9 +1529,9 @@ The capabilities above should be introduced in the following order.
 | P2 | Specialized workers, worker chains, isolated workspaces, reconciliation | Enables higher-quality parallel development |
 | P2 | Skills, project extensions, hooks, external tools | Adds domain-specific capability without hard-coding everything |
 | P2 | Screenshots, visual QA, AST/LSP edits | Improves quality beyond text generation |
-| P3 | Browser automation (optional, external) | Auxiliary only; never a substitute for emulator/device validation |
+| P3 | Browser automation (optional, external) | Auxiliary only; never a substitute for Nirman-managed local Android emulator validation |
 | P3 | Headless automation, scheduled local tasks, remote worker connections | Expands automation after the local core is stable |
-| P3 | Advanced native project profiles and multi-device testing | Expands beyond the initial supported stacks |
+| P3 | Advanced native project profiles and multi-emulator testing | Expands beyond the initial supported stacks |
 
 Nirman should not begin with unrestricted multi-agent parallelism. It should first prove that one worker can reliably inspect, plan, edit, test, and recover within a controlled workspace. Parallel workers should be added only after checkpoints, permissions, event logs, and reconciliation are dependable.
 
@@ -1684,9 +1684,9 @@ The preview manager should associate every running preview with a project revisi
 
 When the user reverts a checkpoint, Nirman should stop or invalidate the preview if its running revision no longer matches the restored project. It may hot-reload only when the preview runtime confirms that the restored state is safe and complete. The UI should never show a preview as current when it represents a different checkpoint.
 
-### 26.10 Responsive and multi-device preview
+### 26.10 Responsive and multi-emulator preview
 
-The Android preview should support named device profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected emulator or device profiles, compare screenshots, and record device-specific findings.
+The Android preview should support named emulator profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected emulator or emulator profiles, compare screenshots, and record device-specific findings.
 
 Android preview should use a device-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple devices later.
 
@@ -1700,7 +1700,7 @@ The environment record should contain executable paths, detected versions, sourc
 
 ### 26.12 Android runtime abstraction
 
-Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and device control, Logcat capture, Gradle and Metro execution, quotas, and APK artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
+Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and emulator control, Logcat capture, Gradle and Metro execution, quotas, and APK artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
 
 ### 26.13 Background approvals and notifications
 
@@ -2090,7 +2090,7 @@ The session owns the complete task independently of the chat interface. It remai
 
 ### 29.3 Live preview and execution synchronization
 
-The live Android Nirman-managed local Android emulator is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, device identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
+The live Android Nirman-managed local Android emulator is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, emulator identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
 
 If a candidate change breaks the application, the preview must show the last valid revision and identify the failed candidate. The execution tree and preview must share a revision identifier so the user can see exactly which work produced the running application.
 
@@ -2120,7 +2120,7 @@ The product must validate AI-selected generation across JavaScript-driven Androi
 
 ## 30. Android Completion Report
 
-The final completion screen must show the application identity, selected technology plan and reasons, final emulator or device state, build and validation results, APK paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
+The final completion screen must show the application identity, selected technology plan and reasons, final emulator or emulator state, build and validation results, APK paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
 
 ---
 
@@ -2144,7 +2144,7 @@ The runtime must provide specialized workers, a self-healing loop, evidence-base
 **ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.AUTHORITY` (see §67.8)
 
-Nirman must treat the autonomous Android build as a deterministic runtime session rather than a sequence of independent chat responses. The model proposes plans and actions; the runtime owns lifecycle, permissions, filesystem access, process execution, device access, persistence, evidence, recovery, promotion, rollback, and termination.
+Nirman must treat the autonomous Android build as a deterministic runtime session rather than a sequence of independent chat responses. The model proposes plans and actions; the runtime owns lifecycle, permissions, filesystem access, process execution, emulator access, persistence, evidence, recovery, promotion, rollback, and termination.
 
 ### 33.1 Canonical runtime contracts
 
@@ -2159,7 +2159,7 @@ The implementation must define versioned, validated contracts for:
 | `TaskGraph` | Defines phases, dependencies, workers, inputs, outputs, checkpoints, and completion conditions |
 | `WorkerContract` | Defines worker purpose, workspace, tools, permissions, inputs, outputs, and validation rules |
 | `TerminalSession` | Tracks shell, working directory, environment, process tree, PTY, input policy, output, and recovery |
-| `PreviewRevision` | Binds emulator/device state to a project revision and checkpoint |
+| `PreviewRevision` | Binds Nirman-managed local Android emulator state to a project revision and checkpoint |
 | `EvidenceRecord` | Stores proof from tests, builds, screenshots, Logcat, permissions, scans, and artifacts |
 | `RecoveryRecord` | Stores failure fingerprints, attempted strategies, backtracking, and outcomes |
 | `ArtifactRecord` | Stores APK metadata, checksum, build profile, signing state, scans, and source revision |
@@ -2187,7 +2187,7 @@ An operation capability is required for actions such as installing a risky depen
 
 ## 34. Android Project Ingestion and Integrity
 
-The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, JavaScript package manifests where selected, native-module boundaries, emulator/device configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
+The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, JavaScript package manifests where selected, native-module boundaries, Nirman-managed local Android emulator configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
 
 The layer must apply hard exclusions, canonical path normalization, project-root boundaries, scope fingerprints, content hashes, and revision checks. Before reconciliation, preview installation, packaging, or self-development promotion, it must detect external changes and revalidate the active project revision. A stale or mismatched revision must be rejected rather than silently overwritten.
 
@@ -2201,7 +2201,7 @@ Every tool call must have a typed name, version, schema-validated arguments, ses
 
 ## 36. Execution Isolation and Sandbox Boundaries
 
-The runtime must separate the Windows host, control-plane supervisor, worker processes, Android build processes, emulator/device processes, preview application, provider network access, project files, credentials, and signing material.
+The runtime must separate the Windows host, control-plane supervisor, worker processes, Android build processes, Nirman-managed local Android emulator processes, preview application, provider network access, project files, credentials, and signing material.
 
 Generated code must not automatically access personal files, browser cookies, SSH keys, API keys, signing keys, unrelated projects, or arbitrary network resources. Each process receives the minimum filesystem, network, process, and device permissions required by its contract. Sandbox policy is enforced by deterministic runtime authorities and cannot be weakened by model output.
 
@@ -2394,7 +2394,7 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
 | Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
 
-Every preview is bound to PreviewRevision, project revision, device identity, build variant, and technology plan. A stale preview MUST be visibly labeled and MUST NOT satisfy final completion gates.
+Every preview is bound to PreviewRevision, project revision, emulator identity, build variant, and technology plan. A stale preview MUST be visibly labeled and MUST NOT satisfy final completion gates.
 
 ### 44.2 Android BrandManifest
 
@@ -2501,7 +2501,7 @@ Under pressure it may compact context, reduce concurrency, prune safe caches, st
 
 ### 45.4 EnvironmentSnapshot
 
-Every substantial build, recovery cycle, and final artifact MUST include an environment snapshot recording operating-system host metadata, toolchain versions and hashes, relevant environment variables, device identity/API level, provider profile and model metadata without secrets, workspace revision, lockfile hashes, and build flags.
+Every substantial build, recovery cycle, and final artifact MUST include an environment snapshot recording operating-system host metadata, toolchain versions and hashes, relevant environment variables, emulator identity/API level, provider profile and model metadata without secrets, workspace revision, lockfile hashes, and build flags.
 
 ---
 
@@ -2570,7 +2570,7 @@ The coordinator MUST persist each boundary as a durable event and MUST be able t
 
 ### 47.2 PreflightReport and feasibility gate
 
-Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The report evaluates the selected or candidate technology plan against the local environment, project constraints, provider capabilities, privacy policy, device availability, and expected validation work.
+Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The report evaluates the selected or candidate technology plan against the local environment, project constraints, provider capabilities, privacy policy, emulator availability, and expected validation work.
 
 | Preflight area | Required checks |
 |---|---|
@@ -3109,7 +3109,7 @@ A `ToolSession` must include session ID, tool type, owner, task and project scop
 
 ### 52.9 Tool Capability Graph and environment capability planning
 
-Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a Nirman-managed local Android emulator capability, and device validation.
+Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a Nirman-managed local Android emulator capability, and emulator validation.
 
 Each required environment capability must be classified as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a validation path. The planner must surface the distinction early instead of discovering an impossible prerequisite after a long build.
 
@@ -3117,7 +3117,7 @@ Host platform, target platform, and validation platform are distinct, explicitly
 
 ### 52.10 ValidationPlanner and mutation/regression intelligence
 
-The `ValidationPlanner` must choose checks from changed files, changed symbols, call graph, route graph, dependency graph, requirements, acceptance criteria, project type, risk level, previous failures, device profiles, and available resources.
+The `ValidationPlanner` must choose checks from changed files, changed symbols, call graph, route graph, dependency graph, requirements, acceptance criteria, project type, risk level, previous failures, emulator profiles, and available resources.
 
 A change to an Android screen, repository, permission, navigation route, data model, manifest, native module, or build file must expand validation to the affected behavior. The planner may select focused checks for low-risk changes and automatically expand to instrumentation, accessibility, security, visual, device, performance, regression, and release checks for high-risk changes.
 
@@ -3433,7 +3433,7 @@ Each scenario run MUST produce:
 - UI-hierarchy or equivalent runtime-state evidence where supported;
 - Logcat for the run window;
 - persisted-state verification where applicable;
-- device identity;
+- emulator identity;
 - installed artifact identity;
 - source revision;
 - application-state fingerprint.
@@ -3553,7 +3553,7 @@ Supply-chain verification is satisfied only when a fixture containing a delibera
 - nonOverriddenClauses: CLAUSE.E2E.DETERMINISM, CLAUSE.E2E.SEED_PROVENANCE
 
 
-This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across a device matrix.
+This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across a emulator profile matrix.
 
 ### 59.1 Product requirement
 
@@ -3582,7 +3582,7 @@ Scenarios from §56 must be distributed across the matrix. The runtime must reco
 
 ### 59.4 Divergence handling
 
-When the same scenario passes on one device and fails on another, the runtime must treat the divergence as a defect, not as device noise, and must record the divergence with both device profiles before attempting repair.
+When the same scenario passes on one device and fails on another, the runtime must treat the divergence as a defect, not as device noise, and must record the divergence with both emulator profiles before attempting repair.
 
 ### 59.5 Capability status integration
 
@@ -4757,7 +4757,7 @@ The deliberation contract is satisfied only when an agent request for a higher e
 
 **Document owner:** Nirman product team  
 **Recommended application name:** Nirman  
-**Recommended first release:** Windows desktop application for local Android application generation, emulator/device preview, testing, repair, packaging, and APK export
+**Recommended first release:** Windows desktop application for local Android application generation, Nirman-managed local Android emulator preview, testing, repair, packaging, and APK export
 
 
 
@@ -4814,7 +4814,7 @@ Every plan item, command, file change, preview update, test result, and artifact
 | `REQUESTED` | An action has been authorized or queued but has not completed | No |
 | `OBSERVED` | A supervised process, device, preview, or validator produced a result | Only when the evidence kind allows observation |
 | `VERIFIED` | An independent validator confirmed the observed result against a requirement | Yes |
-| `STALE` | Evidence belongs to an older revision, checkpoint, device state, or environment | No |
+| `STALE` | Evidence belongs to an older revision, checkpoint, emulator state, or environment | No |
 | `INVALIDATED` | Previously valid evidence was invalidated by a relevant change | No |
 
 The UI MUST never render `PREDICTED`, `SIMULATED`, or `REQUESTED` as a running application, passed test, completed task, or verified artifact.
@@ -4855,7 +4855,7 @@ invalidatedReason
 evidenceIds
 ```
 
-A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, device state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. “Newest revision” is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
+A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, emulator state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. “Newest revision” is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
 
 ### 69.5 Live preview panel layout
 
@@ -4935,7 +4935,7 @@ Rollback or repair MUST invalidate only the affected candidate evidence and MUST
 3. An internal bootstrap, if used, is not exposed as a user-facing app archetype or technology requirement.
 4. Every preview state identifies project revision, checkpoint, source fingerprint, device, artifact, truth label, and evidence.
 5. Predicted, simulated, requested, stale, and invalidated states cannot satisfy completion.
-6. The live panel shows the actual observed emulator/device state beside the execution timeline and evidence.
+6. The live panel shows the actual observed Nirman-managed local Android emulator state beside the execution timeline and evidence.
 7. A failed candidate cannot replace the last-known-good preview.
 8. Closing or reconnecting the UI does not change preview truth or revision identity.
 9. A user can compare preview revisions and open the evidence that caused a promotion, invalidation, recovery, or rollback.
@@ -4943,9 +4943,9 @@ Rollback or repair MUST invalidate only the affected candidate evidence and MUST
 
 ### 69.10 Runtime-certification and hidden-human-dependency boundary
 
-The documentation contract and its verifier certify documentation identity, authority, traceability, and selected semantic rules only. They MUST NOT be presented as proof that the WinUI 3 host, Rust control plane, Windows isolation, provider bridge, Android toolchain, emulator/device workflow, preview, recovery loop, or APK artifact is implemented.
+The documentation contract and its verifier certify documentation identity, authority, traceability, and selected semantic rules only. They MUST NOT be presented as proof that the WinUI 3 host, Rust control plane, Windows isolation, provider bridge, Android toolchain, Nirman-managed local Android emulator workflow, preview, recovery loop, or APK artifact is implemented.
 
-Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and emulator/device fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
+Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and Nirman-managed local Android emulator fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
 
 A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, emulator dialog, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
 
@@ -5041,7 +5041,7 @@ SOURCE
   → DOWNSTREAM EFFECT
 ```
 
-`SOURCE`, `CONTRACT`, `ADAPTER / BRIDGE`, `AUTHORITY`, `STATE`, and `OPERATION` are references to the participating entities and their authoritative contracts. `OBSERVATION` and `EVIDENCE` MUST preserve the execution-truth distinction between `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, and `INVALIDATED`. `VALIDATION` resolves to the applicable independent validator and policy. `DOWNSTREAM EFFECT` records the resulting local commit, device state, external effect, projection update, artifact transition, or documentation-certification result.
+`SOURCE`, `CONTRACT`, `ADAPTER / BRIDGE`, `AUTHORITY`, `STATE`, and `OPERATION` are references to the participating entities and their authoritative contracts. `OBSERVATION` and `EVIDENCE` MUST preserve the execution-truth distinction between `PREDICTED`, `SIMULATED`, `REQUESTED`, `OBSERVED`, `VERIFIED`, `STALE`, and `INVALIDATED`. `VALIDATION` resolves to the applicable independent validator and policy. `DOWNSTREAM EFFECT` records the resulting local commit, emulator state, external effect, projection update, artifact transition, or documentation-certification result.
 
 An inapplicable stage MUST be represented by `applicability: not_applicable` and a reason. A read-only in-process helper need not manufacture an external-effect record, but no boundary may use inapplicability to avoid a required permission, authority, evidence, compatibility, or invalidation link. A boundary envelope references `IntegrationOperationality`, `ExternalEffectRecord`, `PreviewRevision`, `OperationCapability`, `ProviderContextEnvelope`, `ArtifactSet`, `SigningIdentityBinding`, and `DocumentationCertificationReport` when those specialized contracts apply. It does not create a second lifecycle, transaction, evidence, preview, provider, skill, artifact, signing, or completion authority.
 
@@ -5202,7 +5202,7 @@ PreviewSyncEvidenceRecord
 
 The projection MUST retain causal provenance for displayed claims. A panel field that says an application is running or validated must be traceable through its `PreviewSyncEvent`, runtime observation, evidence record, validation result, and applicable promotion or completion decision. A panel screenshot is a display artifact, not proof that this provenance exists.
 
-The `authorityClass` establishes the maximum truth level an event may advance. `DECLARATIVE` and `PLANNED` events can update intent, plan, or queued-operation fields only. `EXECUTION_OBSERVED` requires supervised process evidence. `RUNTIME_OBSERVED` requires matching emulator/device, package, process, and runtime-session observation. `EVIDENCE_BACKED` requires durable evidence references, `VALIDATED` requires an independent validator, and `CERTIFIED` requires the applicable certification authority. An event cannot advance a field beyond its authority class.
+The `authorityClass` establishes the maximum truth level an event may advance. `DECLARATIVE` and `PLANNED` events can update intent, plan, or queued-operation fields only. `EXECUTION_OBSERVED` requires supervised process evidence. `RUNTIME_OBSERVED` requires matching Nirman-managed local Android emulator, package, process, and runtime-session observation. `EVIDENCE_BACKED` requires durable evidence references, `VALIDATED` requires an independent validator, and `CERTIFIED` requires the applicable certification authority. An event cannot advance a field beyond its authority class.
 
 Every non-root event MUST identify its `causationId` and compatible identity lineage. A build, install, launch, interaction, observation, validation, or promotion event without a matching project revision, candidate, artifact, runtime session, device, and predecessor lineage is rejected or retained as non-authoritative history; it cannot update the current projection.
 
@@ -5211,7 +5211,7 @@ Every non-root event MUST identify its `causationId` and compatible identity lin
 | Event type | Fields it may update | Required authority or evidence | Panel effect |
 |---|---|---|---|
 | `INTENT_ACCEPTED` | intent reference, lifecycle stage | contract admission | Shows intent received; no running preview |
-| `CONTRACT_VALIDATED` | contract version, requirement references | schema/contract validator | Shows validated intent; no device state |
+| `CONTRACT_VALIDATED` | contract version, requirement references | schema/contract validator | Shows validated intent; no emulator state |
 | `PLAN_RECORDED` | plan reference, technology-plan version | planner record | Shows planned work only |
 | `CHECKPOINT_CREATED` | checkpoint and project revision | transaction authority | Establishes candidate baseline |
 | `SOURCE_REVISION_COMMITTED` | source fingerprint, revision, branch | commit barrier and workspace authority | Marks previous preview stale when incompatible |
@@ -5219,7 +5219,7 @@ Every non-root event MUST identify its `causationId` and compatible identity lin
 | `BUILD_OBSERVED` | build status, artifact reference, toolchain identity | supervised process evidence | Allows build-observed stage |
 | `ARTIFACT_OBSERVED` | artifact ID and fingerprint | artifact inspection evidence | Binds artifact to candidate |
 | `INSTALL_REQUESTED` | device operation reference | device operation authority | Shows install requested only |
-| `INSTALL_OBSERVED` | install status, device identity | device evidence | Allows installed stage |
+| `INSTALL_OBSERVED` | install status, emulator identity | emulator evidence | Allows installed stage |
 | `LAUNCH_OBSERVED` | launch/runtime status | supervised device/process evidence | Allows `RUNNING_OBSERVED` |
 | `INTERACTION_OBSERVED` | application state and interaction refs | device/test evidence | Allows interaction stage |
 | `OBSERVATION_CAPTURED` | screenshot, Logcat, UI-hierarchy evidence refs | observation service | Adds evidence, not promotion by itself |
@@ -5237,17 +5237,17 @@ No event may update a field outside its ownership row. A promotion event cannot 
 
 The reducer applies events by the durable per-project/task `eventSequence`. Reapplying an event with the same `eventId` and payload hash is idempotent and produces no second state transition. An event with a duplicate ID and a different payload is a protocol violation and is quarantined. An event whose sequence is greater than the next expected sequence is held in `pendingEventSequences`; the panel enters `GAP_BLOCKED` or `STALE_STREAM` and requests replay rather than applying the event out of order.
 
-An event whose sequence is older than `lastAppliedEventSequence` is accepted only as a replay match. It cannot overwrite a newer projection. An event with a project revision, checkpoint, source fingerprint, artifact fingerprint, device state fingerprint, application state fingerprint, environment state fingerprint, contract version, or branch identity incompatible with the active candidate is marked `STALE` or `INVALIDATED` and cannot update current preview fields.
+An event whose sequence is older than `lastAppliedEventSequence` is accepted only as a replay match. It cannot overwrite a newer projection. An event with a project revision, checkpoint, source fingerprint, artifact fingerprint, emulator state fingerprint, application state fingerprint, environment state fingerprint, contract version, or branch identity incompatible with the active candidate is marked `STALE` or `INVALIDATED` and cannot update current preview fields.
 
 When the UI or event stream disconnects, the panel keeps the last durable projection, sets `streamStatus: STALE_STREAM`, and cannot advance lifecycle, execution truth, evidence, or promotion locally. On reconnect, the authenticated supervisor sends a snapshot and replays the missing event range. The reducer verifies the snapshot cursor, event continuity, and projection revision before returning to `CONNECTED`.
 
 A late build, install, launch, screenshot, test, or worker event may contribute historical evidence to its matching candidate only. It cannot replace the active preview or last-known-good preview. Events received after cancellation, rollback, promotion, or worker fencing are historical or quarantined unless a new operation explicitly re-authorizes them under a new lineage.
 
-Preview truth reconciliation compares the durable projection with the current supervised runtime observation. For a compatible project revision, artifact fingerprint, device identity, and runtime session, a current process/device observation can move runtime state from a previously persisted `RUNNING` claim to `STOPPED`, `CRASHED`, `DISCONNECTED`, or `UNKNOWN`; a persisted projection cannot override a contradictory current observation. If the identities do not match, the projection becomes `STALE` or `INVALIDATED` rather than combining the records. Recovery, rollback, source edits, toolchain changes, device changes, application-state changes, environment changes, contract changes, and policy changes invalidate affected projection and evidence dependencies through the existing evidence graph.
+Preview truth reconciliation compares the durable projection with the current supervised runtime observation. For a compatible project revision, artifact fingerprint, emulator identity, and runtime session, a current process/device observation can move runtime state from a previously persisted `RUNNING` claim to `STOPPED`, `CRASHED`, `DISCONNECTED`, or `UNKNOWN`; a persisted projection cannot override a contradictory current observation. If the identities do not match, the projection becomes `STALE` or `INVALIDATED` rather than combining the records. Recovery, rollback, source edits, toolchain changes, device changes, application-state changes, environment changes, contract changes, and policy changes invalidate affected projection and evidence dependencies through the existing evidence graph.
 
 ### 71.4 Runtime-certification evidence
 
-Runtime certification must retain a `PreviewSyncEvidenceRecord` for every displayed completed stage and must prove the event sequence, reducer version, projection revision, preview revision, source revision, checkpoint, artifact fingerprint, device identity, state fingerprints, evidence references, and validation result. A panel screenshot alone is not runtime evidence of synchronization.
+Runtime certification must retain a `PreviewSyncEvidenceRecord` for every displayed completed stage and must prove the event sequence, reducer version, projection revision, preview revision, source revision, checkpoint, artifact fingerprint, emulator identity, state fingerprints, evidence references, and validation result. A panel screenshot alone is not runtime evidence of synchronization.
 
 The runtime fixture must exercise a complete path:
 
@@ -5272,7 +5272,7 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 
 1. A chat instruction creates a durable task and intent record before agent execution begins.
 2. Agent and worker events cannot update the preview panel except through `PreviewSyncEvent` and `PreviewProjectionReducer`.
-3. Every displayed completed stage has a `PreviewSyncEvidenceRecord` with event range, projection revision, preview revision, device identity, artifact fingerprint, and evidence references.
+3. Every displayed completed stage has a `PreviewSyncEvidenceRecord` with event range, projection revision, preview revision, emulator identity, artifact fingerprint, and evidence references.
 4. A successful build without install and launch observation cannot display `RUNNING_OBSERVED`.
 5. Duplicate events are idempotent; conflicting duplicate payloads are quarantined.
 6. Out-of-order or missing events freeze advancement and initiate replay rather than being applied speculatively.
@@ -5283,7 +5283,7 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 11. The complete chat-to-APK-to-device-to-evidence-to-panel fixture passes before the preview synchronization capability is reported as runtime-certified.
 12. Event authority classes prevent declarative or planned messages from advancing execution, runtime, evidence, validation, or certification dimensions.
 13. A contradictory current runtime observation reconciles a compatible persisted projection, while an incompatible observation becomes stale or invalidated instead of being merged.
-14. The panel can answer why a displayed running or validated claim is current by exposing its event range, projection revision, preview revision, runtime session, device identity, artifact fingerprint, evidence references, validation references, and promotion or completion decision references.
+14. The panel can answer why a displayed running or validated claim is current by exposing its event range, projection revision, preview revision, runtime session, emulator identity, artifact fingerprint, evidence references, validation references, and promotion or completion decision references.
 
 ## 72. Cost Governance Authority
 
@@ -5343,7 +5343,7 @@ The integrity contract does not expand Nirman into a cloud deployment system or 
 
 ### 75.1 Acceptance criteria
 
-Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, startup and crash evidence, battery-sensitive checks, Doze or background restriction behavior, permission behavior, device loss, stale observations, and honest coverage reporting.
+Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, startup and crash evidence, battery-sensitive checks, Doze or background restriction behavior, permission behavior, emulator session loss, stale observations, and honest coverage reporting.
 
 ## 76. Frontend–Control-Plane Protocol Contract
 
@@ -5472,7 +5472,7 @@ The backend authenticates the subscription, returns a `ProjectionSnapshot`, then
 
 The frontend application contains a ViewModel or presentation controller, an API/IPC client, and a projection reducer. The control plane contains command handlers, domain use cases, deterministic authorities, repositories, transaction managers, event persistence, and read-model projectors. A repository maps domain records to SQLite and never returns raw database rows as UI state.
 
-The transaction owner is the backend use-case handler. Local task, checkpoint, provider, and project changes use the local transaction domain; device installation, launch, and observation use the device transaction domain; provider or other externally visible calls use the external-effect domain with idempotency and reconciliation. The UI may show a pending command, but authoritative state advances only after a durable response or replayed event.
+The transaction owner is the backend use-case handler. Local task, checkpoint, provider, and project changes use the local transaction domain; emulator installation, launch, and observation use the device transaction domain; provider or other externally visible calls use the external-effect domain with idempotency and reconciliation. The UI may show a pending command, but authoritative state advances only after a durable response or replayed event.
 
 ### 76.5 Android service-integration adapter
 
@@ -5486,7 +5486,7 @@ The protocol is accepted only when fixtures prove authenticated command admissio
 **ContractId:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` (see §67.8)
 
-This contract makes background autonomy explicit across user-interface closure, UI restart, supervisor restart, host reboot, sleep or hibernation, shutdown, Android device loss, and provider or network outage. It centralizes continuity truth that is otherwise distributed across the supervisor, event ledger, lease, checkpoint, recovery, and reconnect contracts. `BackgroundContinuityState` is an orthogonal interruption and availability substate; it does not replace `ProductLifecycleState`, does not own `CompletionDecision`, and does not create a second recovery or completion authority. It does not make the model an authority and it does not permit progress to be inferred from elapsed time.
+This contract makes background autonomy explicit across user-interface closure, UI restart, supervisor restart, host reboot, sleep or hibernation, shutdown, Android emulator session loss, and provider or network outage. It centralizes continuity truth that is otherwise distributed across the supervisor, event ledger, lease, checkpoint, recovery, and reconnect contracts. `BackgroundContinuityState` is an orthogonal interruption and availability substate; it does not replace `ProductLifecycleState`, does not own `CompletionDecision`, and does not create a second recovery or completion authority. It does not make the model an authority and it does not permit progress to be inferred from elapsed time.
 
 The existing product lifecycle remains authoritative for `Created`, `Planning`, `Recovering`, `Packaging`, `Completed`, cancellation, and terminal failure. Continuity records whether that lifecycle can currently advance and how it must recover. `BackgroundContinuityState.COMPLETED` is permitted only as a derived mirror after the existing completion authority commits `CompletionDecision=COMPLETED`; continuity alone can never complete a task.
 
@@ -5510,7 +5510,7 @@ SAFELY_FAILED
 > RECOVERING
 > HOST_OFFLINE
 > HOST_SUSPENDED
-> DEVICE_UNAVAILABLE
+> EMULATOR_UNAVAILABLE
 > PROVIDER_UNAVAILABLE
 > UI_DISCONNECTED
 > ACTIVE_BACKGROUND
@@ -5535,7 +5535,7 @@ BackgroundContinuityRecord
 - productLifecycleStateRef
 - continuityDimensions
 - aggregateState: ACTIVE_BACKGROUND | UI_DISCONNECTED | HOST_SUSPENDED |
-                  HOST_OFFLINE | DEVICE_UNAVAILABLE | PROVIDER_UNAVAILABLE |
+                  HOST_OFFLINE | EMULATOR_UNAVAILABLE | PROVIDER_UNAVAILABLE |
                   RECOVERING | RECONCILING | USER_REQUIRED | SAFELY_FAILED |
                   COMPLETED
 - interruptionCause
@@ -5563,7 +5563,7 @@ Any aggregate state
   → dimension update
   → recompute aggregate by precedence
   → RECOVERING when resumeEligibility permits recovery
-  → RECONCILING when an effect, lease, device session, or provider response is unknown
+  → RECONCILING when an effect, lease, emulator session, or provider response is unknown
   → ACTIVE_BACKGROUND only after all required dimensions are healthy and reconciliation is resolved
   → USER_REQUIRED or SAFELY_FAILED when deterministic authorities cannot safely continue
 
@@ -5577,18 +5577,18 @@ A continuity transition cannot directly change product lifecycle, completion, ar
 `COMPLETED` is reachable only through the existing evidence, validation, artifact, signing, preview, and completion authorities. `USER_REQUIRED` is reserved for an actual policy, credential, permission, or product decision that cannot be resolved from declared authority; it is not a timer-based escalation. `SAFELY_FAILED` preserves the last checkpoint, diagnostics, leases, fencing state, and evidence gap.
 
 ### 77.2 Interruption and recovery rules
-UI closure or UI crash disconnects presentation only; it MUST NOT cancel eligible autonomous work. Reconnect reconstructs the UI from a cursor-atomic snapshot and durable event replay. Supervisor restart, host reboot, or process replacement requires lease fencing, checkpoint reload, descendant reconciliation, and duplicate-effect prevention before resuming. Sleep, hibernation, or shutdown records the last durable state and resumes only after host identity and required tools are revalidated. Device loss invalidates device-bound observations and waits for a new device session or records an honest unavailable result. Provider or network outage uses bounded retry and provider operationality rules; it never converts an unobserved model response into a successful action.
+UI closure or UI crash disconnects presentation only; it MUST NOT cancel eligible autonomous work. Reconnect reconstructs the UI from a cursor-atomic snapshot and durable event replay. Supervisor restart, host reboot, or process replacement requires lease fencing, checkpoint reload, descendant reconciliation, and duplicate-effect prevention before resuming. Sleep, hibernation, or shutdown records the last durable state and resumes only after host identity and required tools are revalidated. Device loss invalidates device-bound observations and waits for a new emulator session or records an honest unavailable result. Provider or network outage uses bounded retry and provider operationality rules; it never converts an unobserved model response into a successful action.
 
-An unknown outcome remains `RECONCILING` until the authoritative ledger, process supervisor, device session, provider operation, or external-effect record resolves it. A retry is permitted only after idempotency and fencing checks. Late events from an old supervisor, device, branch, provider session, or lease cannot advance the current continuity state.
+An unknown outcome remains `RECONCILING` until the authoritative ledger, process supervisor, emulator session, provider operation, or external-effect record resolves it. A retry is permitted only after idempotency and fencing checks. Late events from an old supervisor, device, branch, provider session, or lease cannot advance the current continuity state.
 
 ### 77.3 Authority, projection, evidence, and acceptance
 The canonical authority mapping is: the existing supervisor/process-supervision authority owns `hostState`; `WorkspaceLeaseManager` and its lease/fencing authority own `leaseState`; the existing `RecoveryAuthority` owns recovery and reconciliation transitions; the existing device-session/device-operation authority owns `deviceAvailabilityState`; and the existing integration/provider operationality authority owns `providerAvailabilityState`. `SupervisorAuthority`, `LeaseAuthority`, `DeviceAuthority`, and `ProviderOperationalityAuthority` are aliases only and are not new authorities. The frontend renders `BackgroundContinuityRecord` as a projection and cannot resume, mark complete, clear an outage, or suppress a user-required state.
 
 Every continuity transition must reference the owning canonical authority, its decision ID, the prior and next dimension values, and the resulting aggregate state. No continuity authority can override `LifecycleAuthority`, `PolicyAuthority`, `EvidenceAuthority`, `ArtifactAuthority`, `PreviewPromotionGate`, or `CompletionDecision`.
 
-Every state transition records the causation event, prior and next state, authority decision, checkpoint or reconciliation reference, recovery action, and evidence status. The preview panel may show a truthful continuity label such as disconnected, recovering, stale, unavailable, or safely failed, but it cannot show active verified progress while the underlying state is suspended, offline, unreconciled, or invalidated. `BackgroundContinuityRecord` is an explicit field of the authoritative `ProjectionSnapshot`; its transition events are replayed through the same cursor, state-version, branch, session, and fencing checks as other control-plane events. The event crosswalk is: `UI_DISCONNECTED` updates only UI connection state; host suspend/offline/restart events update host state; device loss/reattachment updates device availability and invalidates device-bound preview/evidence; provider operationality events update provider availability; checkpoint/reconciliation events update recovery and reconciliation state; and no continuity event directly writes completion, promotion, or verification truth. `task.resume` and recovery results return the resulting continuity transition reference, while `task.cancel` records the product-lifecycle decision separately.
+Every state transition records the causation event, prior and next state, authority decision, checkpoint or reconciliation reference, recovery action, and evidence status. The preview panel may show a truthful continuity label such as disconnected, recovering, stale, unavailable, or safely failed, but it cannot show active verified progress while the underlying state is suspended, offline, unreconciled, or invalidated. `BackgroundContinuityRecord` is an explicit field of the authoritative `ProjectionSnapshot`; its transition events are replayed through the same cursor, state-version, branch, session, and fencing checks as other control-plane events. The event crosswalk is: `UI_DISCONNECTED` updates only UI connection state; host suspend/offline/restart events update host state; emulator session loss/reattachment updates emulator availability and invalidates device-bound preview/evidence; provider operationality events update provider availability; checkpoint/reconciliation events update recovery and reconciliation state; and no continuity event directly writes completion, promotion, or verification truth. `task.resume` and recovery results return the resulting continuity transition reference, while `task.cancel` records the product-lifecycle decision separately.
 
-Acceptance requires executable fixtures for UI closure and reconnect, supervisor restart, host reboot, sleep or hibernation, shutdown recovery, device loss and reattachment, provider/network outage, stale-event rejection, unknown-outcome reconciliation, lease fencing, checkpoint resume, safe failure, and preservation of last-known-good evidence.
+Acceptance requires executable fixtures for UI closure and reconnect, supervisor restart, host reboot, sleep or hibernation, shutdown recovery, emulator session loss and reattachment, provider/network outage, stale-event rejection, unknown-outcome reconciliation, lease fencing, checkpoint resume, safe failure, and preservation of last-known-good evidence.
 
 ## 78. APK Export Provenance Contract
 **ContractId:** `CONTRACT.RUNTIME.APK_EXPORT`
@@ -5820,7 +5820,7 @@ Preflight MUST detect active real-time scanning over the workspace root, Gradle 
 
 ### 79.16 Hypervisor availability and arbitration
 
-Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A Nirman-managed local Android emulator is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy device validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
+Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A Nirman-managed local Android emulator is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy emulator validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
 
 ---
 
