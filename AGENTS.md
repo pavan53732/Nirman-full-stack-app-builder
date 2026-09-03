@@ -160,7 +160,7 @@ chat instruction
 → authorized worker execution
 → source revision
 → build and artifact observation
-→ emulator/device install and launch
+→ Nirman-managed local Android emulator install and launch
 → deterministic interaction execution
 → runtime-state observation
 → validation
@@ -174,7 +174,7 @@ Each stage must be durable, attributable, cancellable, replayable where applicab
 
 Behavioral validation MUST exercise the generated Android application when the requirement is executable through the Android runtime. Do not substitute source inspection, compilation, screenshots, model claims, or predicted state for executable interaction evidence.
 
-An interaction is valid only when the runtime records the action, target/device identity, observed post-state, and resulting assertion/evidence outcome.
+An interaction is valid only when the runtime records the action, target/emulator identity, observed post-state, and resulting assertion/evidence outcome.
 
 ### Primary Android preview invariant
 
@@ -212,11 +212,11 @@ WinUI 3 presentation/ViewModel
 
 Responses and errors must be typed, correlation-safe, retry-aware, and free of secrets. A duplicate idempotency key returns the prior result only when the request fingerprint matches. A conflicting duplicate is rejected. Stale commands, schema mismatches, authentication failures, permission denials, cancellations, timeouts, replay gaps, supervisor restarts, and unavailable dependencies must have distinct error and recovery behavior.
 
-The authoritative `ProjectionSnapshot` must carry typed task, worker, preview, artifact, evidence, delivery, and background-continuity projections. `backgroundContinuityProjection` carries `BackgroundContinuityRecord`, `ContinuityDimensions`, state version, aggregate state, authority decision, and last-known-good reference. `deliveryProjection` carries `ExportVerificationRecord`, export state, delivery kind, destination kind, artifact fingerprint, and post-copy verification reference. `UI_DISCONNECTED` may update only UI connection state; host events update host state; device events update device availability and invalidate device-bound preview/evidence; provider events update provider availability; and checkpoint/reconciliation events update recovery dimensions. No continuity event may directly write completion, promotion, or verification truth. Optimistic input and pending-command state may display intent, but cannot modify task, worker, preview, artifact, evidence, policy, signing, delivery, or completion truth.
+The authoritative `ProjectionSnapshot` must carry typed task, worker, preview, artifact, evidence, delivery, and background-continuity projections. `backgroundContinuityProjection` carries `BackgroundContinuityRecord`, `ContinuityDimensions`, state version, aggregate state, authority decision, and last-known-good reference. `deliveryProjection` carries `ExportVerificationRecord`, export state, delivery kind, destination kind, artifact fingerprint, and post-copy verification reference. `UI_DISCONNECTED` may update only UI connection state; host events update host state; device events update emulator availability and invalidate device-bound preview/evidence; provider events update provider availability; and checkpoint/reconciliation events update recovery dimensions. No continuity event may directly write completion, promotion, or verification truth. Optimistic input and pending-command state may display intent, but cannot modify task, worker, preview, artifact, evidence, policy, signing, delivery, or completion truth.
 
 ## 9. Preview and evidence truth
 
-Preview state must represent the real project revision, build, installation, launch, runtime observation, device identity, and evidence lineage. Preview labels must distinguish at least:
+Preview state must represent the real project revision, build, installation, launch, runtime observation, emulator identity, and evidence lineage. Preview labels must distinguish at least:
 
 ```text
 PREDICTED
@@ -250,14 +250,14 @@ Platform evidence truth: no worker, model, or skill may infer target-runtime suc
 
 `BackgroundContinuityState` is an orthogonal interruption and availability substate. It is not a replacement for the canonical `ProductLifecycleState`, recovery authority, or completion authority. `ProductLifecycleState` remains authoritative for planning, implementation, validating, recovering, packaging, completion, cancellation, and terminal failure.
 
-`ContinuityDimensions` include UI connection, host state, device availability, provider availability, lease state, and reconciliation state. They change independently. The aggregate state must be derived by the exact deterministic precedence defined in the master continuity contract and must not hide concurrent conditions. At minimum, preserve the distinction between:
+`ContinuityDimensions` include UI connection, host state, emulator availability, provider availability, lease state, and reconciliation state. They change independently. The aggregate state must be derived by the exact deterministic precedence defined in the master continuity contract and must not hide concurrent conditions. At minimum, preserve the distinction between:
 
 ```text
 ACTIVE_BACKGROUND
 UI_DISCONNECTED
 HOST_SUSPENDED
 HOST_OFFLINE
-DEVICE_UNAVAILABLE
+EMULATOR_UNAVAILABLE
 PROVIDER_UNAVAILABLE
 RECOVERING
 RECONCILING
@@ -266,7 +266,7 @@ SAFELY_FAILED
 COMPLETED (only as a derived mirror of an accepted CompletionDecision)
 ```
 
-UI closure or UI crash must not cancel eligible work. Supervisor restart, host reboot, sleep, hibernation, and shutdown require durable checkpoint reload, lease fencing, process/descendant reconciliation, host/tool revalidation, and duplicate-effect prevention. Device loss invalidates device-bound preview and evidence and waits for a valid new device session. Provider or network outage uses operationality, retry, backoff, and degradation rules and never converts an absent response into success.
+UI closure or UI crash must not cancel eligible work. Supervisor restart, host reboot, sleep, hibernation, and shutdown require durable checkpoint reload, lease fencing, process/descendant reconciliation, host/tool revalidation, and duplicate-effect prevention. Device loss invalidates device-bound preview and evidence and waits for a valid new emulator session. Provider or network outage uses operationality, retry, backoff, and degradation rules and never converts an absent response into success.
 
 Unknown outcomes remain in reconciliation until the authoritative ledger, process, device, provider, or external-effect record resolves them. Retry requires idempotency and fencing checks. A stale session, branch, device, provider operation, or worker cannot advance current state.
 
@@ -276,9 +276,9 @@ Continuity transitions must reference the canonical owner, decision, causation e
 
 The generated target is Android and only Android. The resolver may select Java, Kotlin, Android Views, Jetpack Compose, React Native/Expo, native modules, Gradle plugins, device APIs, background services, or a mixed architecture according to user intent and validation needs.
 
-The runtime must perform an environment preflight for Java, Gradle, Android SDK, platform tools, emulator/device access, package managers, required native dependencies, signing configuration, and provider connectivity. Missing or incompatible tools must be diagnosed and repaired where authorized, replaced by an approved compatible strategy, degraded explicitly, or reported as a precise blocker. Do not silently narrow the user’s intent because a predefined framework is unavailable.
+The runtime must perform an environment preflight for Java, Gradle, Android SDK, platform tools, Nirman-managed local Android emulator access, package managers, required native dependencies, signing configuration, and provider connectivity. Missing or incompatible tools must be diagnosed and repaired where authorized, replaced by an approved compatible strategy, degraded explicitly, or reported as a precise blocker. Do not silently narrow the user’s intent because a predefined framework is unavailable.
 
-Generated projects must be isolated from Nirman credentials and unrelated host data. Android device sessions, installed packages, permissions, logs, screenshots, runtime state, and cleanup state must be attached to the task and evidence lineage. The generated app’s service/API client is separate from Nirman IPC and must never write the Nirman ledger.
+Generated projects must be isolated from Nirman credentials and unrelated host data. Android emulator sessions, installed packages, permissions, logs, screenshots, runtime state, and cleanup state must be attached to the task and evidence lineage. The generated app’s service/API client is separate from Nirman IPC and must never write the Nirman ledger.
 
 ## 12. Provider, credential, and privacy regulations
 
@@ -325,7 +325,7 @@ Adaptive resource management may compact context, reduce concurrency, switch amo
 
 ## 15. Documentation and implementation-status rules
 
-Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working C#/.NET + WinUI 3 desktop UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, emulator/device execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
+Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working C#/.NET + WinUI 3 desktop UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, Nirman-managed local Android emulator execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
 
 Local certification is authoritative for repository engineering validation. Run `tools/verify.sh` on Unix-like development environments or `tools/verify.ps1` on Windows; both must execute the same local checks for documentation, M0 foundation, Rust formatting/tests, frontend installation/build, and fixture validation. Git hosting and hosted CI providers—including GitHub Actions—are optional source-control or convenience services. They are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact. GitHub independence does not imply offline certification: dependency installation may require a configured package registry or cached dependencies, but it must not require GitHub or a hosted repository for authority or execution.
 
