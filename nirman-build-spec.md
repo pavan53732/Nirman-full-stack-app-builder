@@ -5972,6 +5972,90 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.14 | "Long-running tasks should use an explicit state machine" | MUST use the §26.14 state machine | The listed states and transitions are binding. No informal loop may substitute |
 | BS §26.14 | "Every state transition should be persisted with a reason and event reference" | MUST persist both | A transition without a reason and event reference is rejected by the reducer |
 
+| BS §23.1 | "should automatically create a concise project-context file in every managed workspace" | MUST create | On workspace creation, before the first task runs |
+| BS §23.1 | "This file should contain the project purpose, supported commands, framework conventions..." | MUST contain all seven categories | Product intent, architecture, commands, conventions, constraints, known issues, validation — per the §23.1 table |
+| BS §23.1 | "It should remain short enough to load frequently" | MUST stay within budget | Hard ceiling 8,000 tokens. Content beyond it moves to linked documentation |
+| BS §23.1 | "should link to deeper documentation when more context is needed" | MUST link, not inline | References by relative path; the context file never embeds full documents |
+| BS §23.1 | "should also maintain a durable execution plan for long-running tasks" | MUST maintain | For any task exceeding one worker delegation or one build cycle |
+| BS §23.1 | "The plan should be stored as a project artifact and updated after each completed step, blocked step, or changed assumption" | MUST store durably and update at all three trigger points | Plan lives in the ledger, not in chat history |
+| BS §23.1 | "The user should be able to review and edit this context manually" | MUST allow user edit | User edits are authoritative and MUST NOT be silently overwritten by regeneration |
+| BS §23.1 | "Nirman should show when a task used project context" | MUST show usage | Recorded on the task record and visible in the activity panel |
+| BS §23.1 | "should never silently treat an outdated context file as authoritative" | MUST NOT use stale context silently | Stale when workspace content hash diverges from the hash recorded at context generation. Stale context is flagged and regenerated before use |
+| BS §23.2 | "should build a compact structural map of the project" | MUST build a map | Never send whole source trees to a model |
+| BS §23.2 | "The map should include file paths, exports, classes, functions, types, routes, components, configuration, test relationships, and dependency edges" | MUST include all ten | A map missing any element is incomplete and MUST be rebuilt |
+| BS §23.2 | "context engine should first provide the model with a small map of the relevant repository area" | MUST start with the map | Map-first is mandatory ordering, not an optimisation |
+| BS §23.2 | "It should then expand into specific files, symbols, tests, and documentation only when the task requires them" | MUST expand on demand only | Expansion requires a stated reason recorded on the task |
+| BS §23.2 | "Relevance should be ranked by dependency relationships, recent changes, user-selected files, active errors, route ownership, and acceptance criteria" | MUST rank by all six | Ranking inputs are fixed; ordering among them is implementation-defined but MUST be deterministic for a given input |
+| BS §23.2 | "This should be token-aware" | MUST enforce a token budget | Context compaction triggers at 80% of the context limit per §80.3 |
+| BS §23.2 | "Large logs should be compressed into error-focused summaries" | MUST compress logs | Retain error lines, surrounding 10 lines of context, and exit status; discard routine progress output |
+| BS §23.2 | "source code needed for an edit should remain available at full fidelity" | MUST NOT summarise code under edit | Files targeted for mutation are always provided verbatim |
+| BS §23.3 | "should make the agent's authority visible through explicit operating modes" | MUST implement all seven modes | Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release — per the §23.3 table |
+| BS §23.3 | "The user should be able to change the mode per task or per project" | MUST support both scopes | Task-level mode overrides project-level for that task only |
+| BS §23.3 | "The application should display the current mode in the toolbar and in every task record" | MUST display in both places | Mode is never implicit |
+| BS §23.3 | "Switching to a less restrictive mode should be an explicit user action" | MUST require explicit user action | Nirman, a model, or a worker MUST NOT widen mode automatically. Narrowing may be automatic |
+| BS §23.4 | "The main Nirman agent should not perform every task itself" | MUST delegate | The Primary Orchestrator holds task-graph and delegation permission only, never direct edit permission |
+| BS §23.4 | "It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and budgets" | MUST give each worker all six | A worker launched without any of the six is an illegal state |
+| BS §23.4 | "A worker should return a structured handoff rather than injecting all of its raw logs into the main chat" | MUST return a structured handoff | Raw logs go to evidence records, never to the main chat |
+| BS §23.4 | "The handoff should include a concise summary, evidence, files inspected, files changed, tests run, unresolved questions, and recommended next action" | MUST include all seven fields | A handoff missing any field is rejected |
+| BS §23.4 | "The orchestrator should choose swarm size using task complexity, dependency coupling, changed-file boundaries, target platforms, expected validation work, and available resources" | MUST consider all six inputs | Subject to the §26.3 concurrency ceilings, which are hard limits |
+| BS §23.4 | "It should prefer one worker for tightly coupled work, parallel read-only workers for exploration and review, and isolated write-capable workers only when their file and interface boundaries are clear" | MUST apply the three preferences | Overlapping write boundaries require a single worker or an interface agreement first |
+| BS §23.5 | "should support sequential worker chains" | MUST support chains | Explore → Plan → Implement → Test → Review → Repair → Re-test → Summarize |
+| BS §23.5 | "A typical feature chain should be" the eight stages | MUST use this stage vocabulary | Stage names are canonical; additional stages require a named definition |
+| BS §23.5 | "The chain should not assume that every stage must run for every task" | MAY skip stages | A skipped stage MUST be recorded with its reason. Silent omission is prohibited |
+| BS §23.5 | "Each stage should have a quality gate" | MUST gate every stage | Implementation cannot complete when the project does not compile; testing cannot complete when required tests were skipped; release cannot complete without artifact path and checksum |
+| BS §23.6 | "should support parallel tasks only when each task has an isolated project copy, Git worktree, or equivalent workspace boundary" | MUST isolate before parallelising | Parallel execution without isolation is prohibited |
+| BS §23.6 | "The parallel-task lifecycle should be" the nine stages | MUST follow all nine in order | Matches §26.4 reconciliation; the two MUST NOT diverge |
+| BS §23.6 | "The user should be able to view each worker session, inspect its logs, pause it, cancel it, or open its isolated workspace" | MUST provide all five controls | Per worker session, at any time while it is active |
+| BS §23.6 | "Nirman should show the additional disk, token, and time cost of parallel execution" | MUST show all three | Before starting parallel work and continuously during it |
+| BS §23.7 | "should implement a three-outcome policy engine: allow, ask, and deny" | MUST implement exactly three outcomes | No fourth outcome. Absence of a matching policy resolves to `ask`, never to `allow` |
+| BS §23.7 | "Policies should be evaluated against the tool, command, path, project, worker role, network destination, and current operating mode" | MUST evaluate all seven dimensions | Every dimension participates in every decision |
+| BS §23.7 | "Policies should support wildcard patterns, project-specific overrides, worker-specific restrictions, session-wide approvals, one-time approvals, and explicit deny rules" | MUST support all six | An explicit deny rule MUST NOT be overridable by any mode, profile, or approval |
+| BS §23.7 | "A repeated-action guard should detect when the same tool call, command, or failed repair is repeated without progress" | MUST detect repetition | Three identical action signatures with no change in workspace hash or error fingerprint |
+| BS §23.7 | "Nirman should pause with a 'possible loop' explanation" | MUST pause and explain | Pause is durable and requires user action or a changed strategy to resume |
+| BS §23.8 | "Long-running work should continue in the background" | MUST continue | Independent of UI state, per §77 background continuity |
+| BS §23.8 | "The activity panel should show task status, elapsed time, current worker, current step, last output, token usage, estimated cost, and required approvals" | MUST show all eight | Fields with no provider data show `unavailable`, never a fabricated value |
+| BS §23.8 | "Every task should support pause, resume, cancel, retry from checkpoint, fork into an alternative approach, and open in a focused session" | MUST support all six | Available in every non-terminal task state |
+| BS §23.8 | "Resuming a task should restore its plan, context summary, worker state, checkpoint reference, and unresolved questions" | MUST restore all five | Incomplete restoration is a recoverable failure, not a resume |
+| BS §23.8 | "Nirman should compact it into a structured summary" when context becomes too large | MUST compact at threshold | At 80% of context limit per §80.3, into the seven listed elements |
+| BS §23.8 | "The user should be able to inspect the summary before the task continues" | MUST offer inspection | Continuation does not block on inspection, but the summary MUST be retrievable before and after |
+| BS §23.9 | "The agent runtime should emit typed events rather than returning only a final text response" | MUST emit typed events | A final-text-only response is prohibited for any task that mutates state |
+| BS §23.9 | "Events should include" the seventeen listed types | MUST emit all seventeen where applicable | The list is the minimum vocabulary; each event carries task, worker, and correlation identifiers |
+| BS §23.9 | "The interface should render these events in real time and persist them in the activity log" | MUST render live and persist | Persistence is durable; UI disconnection MUST NOT lose events |
+| BS §23.9 | "The final task result should be available as both human-readable Markdown and machine-readable JSON" | MUST provide both forms | Both derive from the same record and MUST NOT diverge |
+| BS §23.10 | "should route different task types to different model profiles" | MUST route when multiple profiles are configured | With one profile configured, routing is a no-op, not an error |
+| BS §23.10 | "The routing policy should consider task type, required capabilities, context size, latency, cost, current provider health, and user preference" | MUST consider all seven | User preference outranks all other inputs when set |
+| BS §23.10 | "The user should be able to override the route for an individual task" | MUST allow per-task override | Override is recorded on the task record |
+| BS §23.10 | "Nirman should optionally fall back to an approved alternative" | MAY fall back; MUST record it | Only to a provider already approved for that project. Fallback is visible in the task record |
+| BS §23.10 | "should never silently send sensitive project context to an unapproved provider" | MUST NOT send to unapproved providers | Failure to find an approved fallback is a truthful block, never a substitution |
+| BS §23.11 | "should support reusable skills as version-controlled Markdown instruction packages" | MUST support skills | Per the `SkillPackage` contract in §23.11 |
+| BS §23.11 | "A skill should declare its name, description, compatibility, required tools, and intended use cases" | MUST declare all five | Plus every remaining `SkillPackage` field; the schema is complete, not indicative |
+| BS §23.11 | "Skills should be discoverable by description and loaded on demand rather than injected into every prompt" | MUST load on demand | Blanket injection of all skills into every prompt is prohibited |
+| BS §23.11 | "The application should also support external tools through an MCP-compatible adapter or equivalent extension interface" | MUST support external tools | Each `ExternalToolConnection` carries its own permission scope, provider status, network policy, compatibility record, lifecycle state, and audit trail |
+| BS §23.12 | "should expose pre-action and post-action hooks" | MUST expose both | Pre-action hooks run before policy admission; post-action hooks run after observation |
+| BS §23.12 | "Hooks should be deterministic where possible" | MUST be deterministic | A hook whose outcome varies for identical input MUST NOT be marked mandatory |
+| BS §23.12 | "should run outside the model's control" | MUST run outside model control | No prompt, instruction, skill, or project file may disable a mandatory hook |
+| BS §23.13 | "Nirman should use semantic operations" where a language server or parser is available | MUST use semantic operations when available | Rename symbol, find references, extract function, update imports, change interface implementation, workspace-wide type-safe transformation |
+| BS §23.13 | "The agent should prefer semantic edits for high-impact refactors and use text patches for localized changes" | MUST prefer semantic for high-impact | High-impact means the edit affects a symbol referenced outside its defining file |
+| BS §23.13 | "After a semantic edit, Nirman should run the relevant type checks and tests, then show the affected symbol and file graph" | MUST run checks and show the graph | Before the edit can be presented as complete |
+| BS §23.14 | "Visual verification should compare screenshots against the requested design requirements, known baseline screenshots, and accessibility expectations" | MUST compare against all three | Absence of a baseline is recorded as `no baseline`, never as a pass |
+| BS §23.14 | "A visual finding should include the screen or navigation state, emulator profile, screenshot, observed issue, confidence, and recommended change" | MUST include all six | A finding missing any field is incomplete evidence |
+| BS §23.15 | "Testing should be treated as part of implementation rather than as a final optional step" | MUST run within implementation | Implementation cannot be marked complete with untested changes |
+| BS §23.15 | "Nirman should infer relevant checks from the project and task" | MUST infer | Formatting, linting, type checking, unit, integration, build validation, smoke, visual — those the project actually defines |
+| BS §23.15 | "the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint" | MUST receive all four | A repair attempted without all four inputs is prohibited |
+| BS §23.15 | "It should attempt the smallest reasonable repair, rerun the failed check, and stop after the configured retry limit" | MUST do all three | Retry limit is 3 strategy changes per §26.3, not three identical retries |
+| BS §23.15 | "The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run" | MUST distinguish all five | "No test command was available" MUST NOT be reported as "tests passed" |
+| BS §23.16 | "should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage" | MUST show all seven when the provider exposes them | An unexposed metric shows `unavailable`; it is never estimated and presented as reported |
+| BS §23.16 | "Users should be able to set maximum task budgets" | MUST allow user budgets | Default 200-minute duration budget per §26.3 |
+| BS §23.16 | "Nirman should provide an approximate resource forecast" before a large task | MUST forecast | Large means more than one worker or an expected duration above 20 minutes |
+| BS §23.16 | "it should continuously report usage and adapt by reducing concurrency, compacting context, routing to an approved lower-cost model, batching work, or pausing new optional work" | MUST report continuously and adapt by the five listed means | Ordinary thresholds MUST NOT terminate a goal unless the user configured them as hard limits |
+| BS §23.17 | "should include a review-only workflow that analyzes a diff, branch, checkpoint, or pull request without modifying the project" | MUST provide review-only | Zero write permission for the duration |
+| BS §23.17 | "The review should prioritize correctness, security, performance, maintainability, test coverage, accessibility, and release risk" | MUST cover all seven dimensions | A dimension not assessed is reported as not assessed |
+| BS §23.17 | "A release workflow should run a clean validation pass, confirm that required metadata exists, verify that secrets are absent from the artifact, record dependency versions, generate checksums where appropriate, and provide a release report" | MUST perform all six | Checksums are required for every delivered artifact, not conditional |
+| BS §23.17 | "Publishing, signing, uploading, or submitting the artifact should require explicit confirmation" | MUST require explicit confirmation | Per action, never session-wide. `Unattended / Full Autonomy` does not waive this |
+| BS §23.18 | "The expanded runtime should use the following internal components" | MUST implement all twelve | Per the §23.18 component tree |
+| BS §23.18 | "The Tool Gateway should be the only component allowed to invoke filesystem, terminal, browser, external-tool, or build actions" | MUST be the sole invoker | Any other component performing these actions is an architectural violation |
+| BS §23.18 | "The Task Controller should decide what work is needed, while the Policy Engine decides whether a proposed action is permitted" | MUST separate the two decisions | One component performing both is prohibited; this separation is what prevents a model response becoming an uncontrolled system action |
+
 ### 80.3 Default values for all configurable parameters
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
@@ -6771,12 +6855,13 @@ The "should" resolution table in §80.2 is incomplete. This subsection records a
 | Scope | Statements | Resolved | Status |
 |---|---|---|---|
 | BS §3–§12 | 42 | 42 | Complete |
+| BS §23 | 85 | 85 | Complete |
 | BS §26 | 61 | 61 | Complete |
-| BS §13–§79 excluding §26 | 217 | 0 | Outstanding |
+| BS §13–§79 excluding §23 and §26 | 132 | 0 | Outstanding |
 | Technical architecture | 172 | 0 | Outstanding |
 | Development plan | 18 | 0 | Outstanding |
 | AGENTS.md | 2 | 0 | Outstanding |
-| **Total** | **512** | **103** | **20.1%** |
+| **Total** | **512** | **188** | **36.7%** |
 
 Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table.
 
