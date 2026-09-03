@@ -283,6 +283,20 @@ Certification vocabulary is explicit: `DOCUMENTATION_CERTIFIED` means the contra
 
 This order prevents the project from becoming a superficial chat interface that claims to build apps without durable execution, real runtime observation, or evidence-backed completion. The implementation and certification workflow is local-first and does not depend on GitHub Actions.
 
+## Agent orientation
+
+If you are an AI agent operating on this repository, read `AGENTS.md` in full before acting. It is the binding rulebook. In particular:
+
+1. **Scope first.** Nirman is a Windows desktop application. Its generated target is Android only. Do not add web, PWA, Windows-app, container, Docker, VM, or WSL targets. Do not narrow the Android technology choice to a fixed template — the user describes the app; the resolver selects the technology.
+2. **Authority is deterministic, not yours.** You propose. The model, worker, skill, or verifier does not grant permissions, mutate authoritative state, promote artifacts, bypass policy, or mark work complete. Consult `AGENTS.md` §3 (Core authority rule) and the canonical documents.
+3. **This repo is specification-only.** There is no C#, no Rust, no WinUI 3, no compiled binaries. All 24 registered capabilities are `PLANNED`. Do not report any capability as `SUPPORTED`, `IMPLEMENTED`, or `verified` without its full contract chain, validation path, recovery behavior, and fixture evidence. Documentation certification (the verifier in `tools/`) proves document structure and graph consistency only — not runtime behavior.
+4. **Document precedence.** Accepted ADRs → build spec (normative contracts) → technical architecture (schemas/protocols) → development plan (sequencing/exit gates) → README (explanatory only, never creates or weakens a contract) → AGENTS.md (agent rules, cannot override product contracts).
+5. **No account, no hosted platform.** Do not introduce mandatory logins, subscriptions, hosted platforms, or cloud execution dependencies for Nirman itself (build spec §1.5, ADR-205).
+6. **Commit hygiene.** Make the smallest coherent change. Run `tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py` before committing documentation changes. One work item per commit. Never commit secrets, generated credentials, or unrelated files. Push only when explicitly requested.
+7. **No private chain-of-thought.** Do not persist or display raw reasoning. Retain only structured artifacts: strategy summaries, evidence references, hypotheses, confidence, and recovery decisions.
+
+Before any change, inspect the current branch, working tree, relevant canonical sections, and existing contracts. Before completion, verify the actual diff and filesystem, run relevant checks, and state limitations honestly.
+
 ## License and project status
 
 No production license or release distribution is declared yet. This repository is an evolving internal specification and implementation workspace. Treat all capabilities as planned until the corresponding runtime source, executable tests, and evidence are present.
