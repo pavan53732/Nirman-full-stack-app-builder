@@ -287,7 +287,7 @@ Three independent workers can work on isolated tasks, return structured handoffs
 
 ---
 
-## 12. M9: Android Device Testing and Visual QA
+## 12. M9: Android Emulator Runtime, Embedded Live Preview, and Visual Testing
 
 ### Objectives
 
@@ -341,7 +341,7 @@ A supported Android project can be built into an installable APK artifact, or an
 
 ### Objectives
 
-Implement the internal Android capability registry and profile identity used for AI-driven selection and composition. Record technology composition, toolchain locks, device matrices, fixtures, known exclusions, and evidence status for representative Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native-module, device-API, and mixed-architecture profiles. This milestone establishes profile-level support evidence; it does not claim universal production coverage.
+Implement the internal Android capability registry and profile identity used for AI-driven selection and composition. Record technology composition, toolchain locks, emulator profile matrices, fixtures, known exclusions, and evidence status for representative Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native-module, device-API, and mixed-architecture profiles. This milestone establishes profile-level support evidence; it does not claim universal production coverage.
 
 ### Work items
 

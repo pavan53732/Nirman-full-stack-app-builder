@@ -112,7 +112,7 @@ chat instruction and optional screenshots/assets
 → evidence-backed completion decision
 ```
 
-The preview panel is not a simulated code canvas. It must represent the actual project revision, build/install state, selected emulator or device, runtime observations, evidence lineage, recovery status, and current preview projection. Late, stale, duplicate, fenced, or out-of-order events cannot overwrite a newer preview.
+The preview panel is not a simulated code canvas. It must represent the actual project revision, build/install state, selected Nirman-managed Android emulator profile, runtime observations, evidence lineage, recovery status, and current preview projection. Late, stale, duplicate, fenced, or out-of-order events cannot overwrite a newer preview.
 
 The desktop interface is a client of the local control plane. It displays chat, task progress, plans, diffs, terminals, workers, checkpoints, approvals, preview, evidence, artifacts, and recovery state. It does not directly execute arbitrary commands, write authoritative state, grant permissions, promote artifacts, or mark a task complete.
 

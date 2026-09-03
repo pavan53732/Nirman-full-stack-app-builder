@@ -541,13 +541,13 @@ Project synthesis must be incremental. It should first create a buildable Androi
 
 ### 10.6 Android device and host isolation
 
-Android validation must use disposable Nirman-managed disposable emulator snapshots. It must not reuse personal credentials, host-side secrets, or unapproved device data. Test data should be synthetic by default. Device sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
+Android validation must use disposable Nirman-managed local Android emulator snapshots only. It must not reuse personal credentials, host-side secrets, or unapproved emulator data. Test data should be synthetic by default. Emulator sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
 
 ### 10.7 Emulator frame transport
 
 The Nirman-managed local Android emulator is the canonical PreviewRuntime for the primary development workflow. It MUST run headless on the Windows host and its rendering surface MUST be projected into the WinUI 3 PreviewHost. A detached emulator window is not a valid primary preview.
 
-No physical Android hardware is supported and is never required for primary preview availability.
+No physical Android hardware is supported, required, or accepted as an alternative runtime. The Nirman-managed local Android emulator is the sole canonical Android preview and validation runtime.
 
 The transport is a named, versioned interface with a required baseline and a permitted upgrade:
 
