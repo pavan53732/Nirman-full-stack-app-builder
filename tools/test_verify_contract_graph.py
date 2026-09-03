@@ -518,6 +518,9 @@ CASES = {
     # ---- check 14: command payload coverage
     # The check requires ArtifactExportCommandPayload to expose the policy-
     # mandatory fields. Removing one from the Rust source must fire the check.
+    # These cases are SKIPPED when Rust source is absent (specification-only
+    # working tree); they are recorded as SKIP, not PASS, and excluded from
+    # the non-vacuous coverage count.
     "command payload field removed from artifact export": (
         "crates/nirman-ipc/src/lib.rs",
         "    pub packaging_profile_id: String,\n",
