@@ -161,7 +161,8 @@ chat instruction
 → source revision
 → build and artifact observation
 → emulator/device install and launch
-→ interaction and diagnostic observation
+→ deterministic interaction execution
+→ runtime-state observation
 → validation
 → repair or recovery when needed
 → preview synchronization
@@ -170,6 +171,10 @@ chat instruction
 ```
 
 Each stage must be durable, attributable, cancellable, replayable where applicable, and linked to the project revision, task, checkpoint, worker, operation, and evidence. A model statement such as “done,” a successful compile alone, a screenshot alone, or a predicted/simulated result is never sufficient for completion.
+
+Behavioral validation MUST exercise the generated Android application when the requirement is executable through the Android runtime. Do not substitute source inspection, compilation, screenshots, model claims, or predicted state for executable interaction evidence.
+
+An interaction is valid only when the runtime records the action, target/device identity, observed post-state, and resulting assertion/evidence outcome.
 
 Host, target, validation platform, and certification status are separate states (build spec §79.1). Environment preflight must record host and target explicitly and classify the required platform capabilities as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a build or validation path. Successful compilation or cross-compilation on the host must never be represented as target-runtime validation. A missing target validation environment must produce a durable `USER_REQUIRED`/`UNAVAILABLE` node stating what can and cannot continue, never a skipped or simulated gate.
 
