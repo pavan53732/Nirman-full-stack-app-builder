@@ -1463,13 +1463,19 @@ The agent should prefer semantic edits for high-impact refactors and use text pa
 
 ### 23.14 Android device and visual verification
 
-For Android applications, Nirman MUST use a Nirman-managed local Android emulator for runtime and visual verification. The emulator runs headlessly on the Windows host and its actual rendering surface is projected into the Nirman Preview panel.
+For Android applications, Nirman MUST use the Nirman-managed local Android
+emulator as its runtime and visual-verification environment. The emulator
+worker may install builds, launch activities, execute synthetic interactions,
+capture screenshots, inspect Logcat and runtime errors, verify permissions and
+orientation, test named emulator profiles, and collect crash traces.
 
-The device worker may install builds, launch activities, execute synthetic interactions, capture screenshots, inspect Logcat and runtime errors, verify permissions and orientation, test phone/tablet profiles, and collect crash traces.
+The emulator runner must use synthetic test data by default. It must not
+access personal accounts, submit real transactions, use personal credentials,
+or access private services without explicit user control and approval.
 
 Physical Android hardware is outside the Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
 
-The device runner must use synthetic test data by default. It must not access personal accounts, submit real transactions, use personal credentials, or access private services without explicit user control and approval.
+The emulator runner must use synthetic test data by default. It must not access personal accounts, submit real transactions, use personal credentials, or access private services without explicit user control and approval.
 
 Visual verification should compare screenshots against the requested design requirements, known baseline screenshots, and accessibility expectations. A visual finding should include the screen or navigation state, device profile, screenshot, observed issue, confidence, and recommended change.
 

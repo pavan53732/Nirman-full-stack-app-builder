@@ -380,7 +380,7 @@ The sandbox abstraction must not rely on a single Windows API. It should expose 
 
 Network access should be categorized as provider traffic, package-manager traffic, Android runtime traffic, Nirman-managed local Android emulator traffic, or external-tool traffic. Each category should have an independent policy.
 
-The default autonomous build profile should allow provider requests and approved Android dependency sources only. Emulator/device runtime traffic and Android project network access should be explicitly visible. External network access should be disabled in high-risk review profiles.
+The default autonomous build profile should allow provider requests and approved Android dependency sources only. Nirman-managed local Android emulator traffic and Android project network access should be explicitly visible. External network access should be disabled in high-risk review profiles.
 
 ### 9.4 Dependency safety
 
@@ -1844,7 +1844,7 @@ The input manager combines the user instruction, screenshots, supplied assets, e
 
 ### 34.2 Preview revision bridge
 
-The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator or emulator state records the revision, emulator identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
+The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator state records the revision, emulator identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
 
 ```text
 DeviceStateFingerprint
@@ -2243,7 +2243,7 @@ The host is divided into explicit process domains:
 | Control-plane supervisor | Lifecycle, leases, task graph, permissions, persistence | Authority services and approved worker control |
 | Worker process | Planning, coding, debugging, testing, visual QA | Isolated workspace and declared tools |
 | Build process | Gradle, SDK, package manager, compiler | Project workspace, toolchain, declared network |
-| Emulator/device manager | Device lifecycle, install, capture, Logcat | Emulator/device APIs only |
+| Emulator manager | Emulator lifecycle, install, capture, Logcat | Emulator APIs only |
 | Preview application | Runs generated Android app | Disposable app/device profile |
 | Provider transport | Model requests | Approved provider endpoints only |
 | Credential service | API keys and signing material | OS-protected secret references only |
@@ -4807,7 +4807,7 @@ Evidence is classified separately:
 |---|---|---|
 | `PLAN_EVIDENCE` | Contract/planning services | Explains intended work; cannot prove execution |
 | `PROCESS_EVIDENCE` | Process supervisor | Proves command/process observation |
-| `DEVICE_EVIDENCE` | Emulator/device manager | Proves install, launch, interaction, or emulator state |
+| `DEVICE_EVIDENCE` | Emulator manager | Proves install, launch, interaction, or emulator state |
 | `VISUAL_EVIDENCE` | Screenshot and comparison service | Proves a declared visual check |
 | `TEST_EVIDENCE` | Test runner and oracle | Proves declared assertions |
 | `ARTIFACT_EVIDENCE` | APK inspector | Proves artifact presence, hash, and contents |

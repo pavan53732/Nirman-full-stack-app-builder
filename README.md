@@ -58,7 +58,7 @@ A habit tracker with streaks and 8pm reminders
 | 6 | Installs and launches the generated APK on Nirman's headless local Android emulator | **The actual running Android app, live and interactable inside Nirman's Preview panel** |
 | 7 | Drives it on the running Android app: creates a habit, marks it complete, observes the streak, and verifies the notification behavior | Screenshots, Logcat, and a pass or fail per check |
 | 8 | Repairs what failed and repeats from the build step | The failure, the diagnosis, and the fix |
-| 9 | Packages and exports a signed APK | A file you can install on your phone |
+| 9 | Packages and exports a signed APK | A verified APK file saved to your Windows filesystem; you can install it on your phone yourself |
 
 Close the window at any point and the work continues. Reopen it and the session is where you left it.
 
