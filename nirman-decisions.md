@@ -278,7 +278,7 @@ User mental model: one Nirman application, not two applications.
 ## ADR-021: Let the configured AI select the complete Android implementation
 
 **Status:** Accepted  
-**Decision:** The product core builds Android applications end to end from user instructions, screenshots, assets, existing project files, device requirements, and integrations. The user does not select a framework or template. The technology resolver may choose and combine Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, and mixed architectures according to the requirements and validation evidence. The Windows desktop application is the development host, not a generated target.
+**Decision:** The product core builds Android applications end to end from user instructions, screenshots, assets, existing project files, emulator requirements, and integrations. The user does not select a framework or template. The technology resolver may choose and combine Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, and mixed architectures according to the requirements and validation evidence. The Windows desktop application is the development host, not a generated target.
 
 **Reasoning:** Android applications vary widely in UI technology, device integration, performance, background behavior, packaging, and native dependencies. The configured AI must select the implementation rather than forcing the user to understand the technology stack in advance.
 
@@ -697,7 +697,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 ## ADR-058: Make Android the sole generated application target
 
 **Status:** Accepted  
-**Decision:** The product core generates every supported category of Android application end to end. The user supplies the goal, behavior, visual references, assets, and device requirements; the configured AI selects or composes the required Android technologies, creates the project, runs it, validates it, repairs it, and packages it as an installable APK, or an AAB only when the active PackagingProfile requires `APK_AND_AAB`. No framework or template choice is required from the user. The Windows desktop application is the development host and is not a generated target.
+**Decision:** The product core generates every supported category of Android application end to end. The user supplies the goal, behavior, visual references, assets, and emulator requirements; the configured AI selects or composes the required Android technologies, creates the project, runs it, validates it, repairs it, and packages it as an installable APK, or an AAB only when the active PackagingProfile requires `APK_AND_AAB`. No framework or template choice is required from the user. The Windows desktop application is the development host and is not a generated target.
 
 **Scope boundary:** Every project-generation request, visual input, preview, validation flow, toolchain, artifact, and autonomous workflow resolves to a dynamically synthesized Android project. Internal bootstraps are allowed as implementation details, but they are not user-facing product limitations.
 
@@ -719,7 +719,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-059: One instruction creates one autonomous Android session
 
 **Status:** Accepted  
-**Decision:** A user instruction plus optional screenshots, assets, existing project files, device requirements, and integrations creates one durable `AutonomousAndroidSession`. The session owns the application contract, visual specification, technology plan, task graph, workers, terminals, sandbox, preview, checkpoints, validation, recovery, artifacts, and completion state independently of the chat interface.
+**Decision:** A user instruction plus optional screenshots, assets, existing project files, emulator requirements, and integrations creates one durable `AutonomousAndroidSession`. The session owns the application contract, visual specification, technology plan, task graph, workers, terminals, sandbox, preview, checkpoints, validation, recovery, artifacts, and completion state independently of the chat interface.
 
 **Reasoning:** A chat response is too temporary to own long-horizon Android development. A durable session lets the system continue, recover, and resume without routine human intervention.
 

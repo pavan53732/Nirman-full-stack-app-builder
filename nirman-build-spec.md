@@ -1475,9 +1475,7 @@ or access private services without explicit user control and approval.
 
 Physical Android hardware is outside the Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
 
-The emulator runner must use synthetic test data by default. It must not access personal accounts, submit real transactions, use personal credentials, or access private services without explicit user control and approval.
-
-Visual verification should compare screenshots against the requested design requirements, known baseline screenshots, and accessibility expectations. A visual finding should include the screen or navigation state, device profile, screenshot, observed issue, confidence, and recommended change.
+Visual verification should compare screenshots against the requested design requirements, known baseline screenshots, and accessibility expectations. A visual finding should include the screen or navigation state, emulator profile, screenshot, observed issue, confidence, and recommended change.
 
 ### 23.15 Testing and automatic repair
 
@@ -2396,7 +2394,7 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 | Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
 | React Native/Expo fast refresh | JavaScript/TypeScript-only change | Metro/Expo health, rendered screen, screenshot |
 | Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
-| Nirman-managed local Android emulator preview | User-approved connected device | Device identity, install, launch, capture, Logcat |
+|| Nirman-managed local Android emulator preview | Canonical Android live-preview runtime | Emulator identity, install, launch, interaction, capture, Logcat |
 | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
 | Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
 

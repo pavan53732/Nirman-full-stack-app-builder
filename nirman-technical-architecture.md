@@ -415,7 +415,7 @@ AndroidDeviceProfile
 - networkProfile
 ```
 
-The device worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
+The emulator worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
 
 The emulator validation subsystem MUST expose an authoritative `InteractionExecutor`.
 
@@ -442,9 +442,9 @@ The InteractionExecutor operates only against the running generated Android appl
 
 Every interaction produces an observed result that enters the normal Evidence → ValidationResult → CompletionDecision chain.
 
-### 10.3 Android device manager
+### 10.3 Android emulator manager
 
-The Android device manager should provide a normalized interface for Nirman-managed Android emulators:
+The Android emulator manager should provide a normalized interface for Nirman-managed Android emulators:
 
 ```text
 Device
@@ -498,7 +498,7 @@ A reference image MUST NOT be treated as establishing:
 |---|---|
 | Dynamic behavior on interaction | The instruction or a clarifying question |
 | Input validation rules | The instruction or a clarifying question |
-| Responsive behavior across sizes and orientations | The device profile and technology plan |
+| Responsive behavior across sizes and orientations | The emulator profile and technology plan |
 | Animation, transition, or gesture | The instruction; otherwise §5.4's ceiling applies |
 | Semantic purpose of a non-standard component | A clarifying question |
 
@@ -2244,7 +2244,7 @@ The host is divided into explicit process domains:
 | Worker process | Planning, coding, debugging, testing, visual QA | Isolated workspace and declared tools |
 | Build process | Gradle, SDK, package manager, compiler | Project workspace, toolchain, declared network |
 | Emulator manager | Emulator lifecycle, install, capture, Logcat | Emulator APIs only |
-| Preview application | Runs generated Android app | Disposable app/device profile |
+| Preview application | Runs generated Android app | Disposable app/emulator profile |
 | Provider transport | Model requests | Approved provider endpoints only |
 | Credential service | API keys and signing material | OS-protected secret references only |
 
@@ -5443,7 +5443,7 @@ The architecture implements the exact `PreviewSyncEvent`, `PreviewProjection`, `
 | Intent and contract | intent/contract services | accepted user request and schema validation | DECLARATIVE / PLANNED | intent and contract stage |
 | Plan and checkpoint | planner and transaction authority | authorized plan and durable checkpoint | PLANNED | plan/checkpoint refs |
 | Source and build | commit barrier and process supervisor | source revision and operation capability | EXECUTION_OBSERVED | source/build/artifact fields |
-| Install and runtime | device manager and supervised process | device transaction and observed result | RUNTIME_OBSERVED | install/launch/runtime fields |
+| Install and runtime | emulator manager and supervised process | emulator transaction and observed result | RUNTIME_OBSERVED | install/launch/runtime fields |
 | Observation and validation | observation services and independent validators | matching preview identity | EVIDENCE_BACKED / VALIDATED | evidence and validation refs |
 | Recovery and invalidation | RecoveryAuthority and evidence authority | typed failure or invalidation | EXECUTION_OBSERVED | recovery/stale/invalidated fields |
 | Promotion | `PreviewCoordinator` through `PreviewPromotionGate` | complete current evidence bundle | CERTIFIED | active preview reference |
@@ -5468,7 +5468,7 @@ The event store and reducer enforce these rules:
 
 ### 75.4 Runtime certification evidence and tests
 
-`PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, emulator identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → device runtime → observation → validation → promotion → event replay → panel projection path.
+`PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, emulator identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → emulator runtime → observation → validation → promotion → event replay → panel projection path.
 
 The test family must inject duplicate and conflicting events, out-of-order events, sequence gaps, stale candidate results, late device observations, UI disconnect, supervisor restart, event replay, failed candidate recovery, and a successful last-known-good promotion. The expected panel state must be identical after live application and replay, and no predicted, requested, simulated, stale, invalidated, or model-authored record may appear as current verified preview evidence.
 

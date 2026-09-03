@@ -727,7 +727,7 @@ Implement one durable session that owns the complete path from a chat instructio
 1. One instruction plus optional screenshots creates one resumable autonomous Android session.
 2. The session continues while the chat view is closed or the user opens another task.
 3. The session selects Android technologies without requiring a framework or template choice.
-4. The session creates an isolated project workspace and starts the required terminals and device runtime.
+4. The session creates an isolated project workspace and starts the required terminals and emulator runtime.
 5. The session updates the Android preview after validated changes.
 6. Every preview state is linked to a project revision and checkpoint.
 7. The session records worker handoffs, commands, tests, screenshots, recovery attempts, and evidence.
@@ -863,7 +863,7 @@ The host opens projects, settings, history, and checkpoints without a provider. 
 
 ## 44. Device Matrix and Productivity Surface
 
-Implement device-matrix testing across phone, tablet, Android API levels, densities, orientations, and connected devices. Add one-click goal launch, technology rationale, changed-files timeline, build-health view, artifact center, recovery explanation, project-memory editor, privacy/network panel, and environment-repair center.
+Implement emulator-profile testing across phone, tablet, Android API levels, densities, orientations, and Nirman-managed emulator profiles. Add one-click goal launch, technology rationale, changed-files timeline, build-health view, artifact center, recovery explanation, project-memory editor, privacy/network panel, and environment-repair center.
 
 ### Acceptance criteria
 
