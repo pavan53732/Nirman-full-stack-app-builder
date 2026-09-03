@@ -5907,6 +5907,71 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §12.6 | "should be able to export" | MUST support export | User MUST be able to export source/APK |
 | BS §12.7 | "should be able to inspect" | MUST support diagnostics | User MUST be able to inspect diagnostics |
 
+| BS §26.1 | "should separate the desktop user interface from a local control plane" | MUST separate | `Nirman.exe` (WinUI 3 presentation) and `NirmanSupervisor.exe` (Rust/Tokio control plane) are distinct processes per ADR-111. UI holds presentation state only |
+| BS §26.1 | "A local task daemon should own task execution, worker processes, approvals, checkpoints, logs, and recovery" | MUST own | The supervisor is sole owner of all six. No UI, model, or worker may write authoritative state for any of them |
+| BS §26.1 | "control plane should start when Nirman launches" | MUST start | Supervisor starts on `Nirman.exe` launch, or reconnects if already running. UI never proceeds past connect without an authenticated SupervisorConnection |
+| BS §26.1 | "should be able to continue as a user-scoped background process" | MUST continue | Supervisor survives UI close, minimise, and crash. Exits only on explicit user stop or OS shutdown |
+| BS §26.1 | "should not run as a system service by default" | MUST NOT run as a system service | Runs under the invoking user account only. A system-service install requires explicit user action and is not the default installer path |
+| BS §26.1 | "daemon should persist task state in the authoritative local SQLite execution ledger" | MUST persist to SQLite | Per ADR-110. An equivalent transactional store requires a new accepted ADR superseding ADR-110 |
+| BS §26.1 | "Large logs and binary artifacts should be stored in task-specific directories" | MUST store outside the database | Blobs live in per-task directories; the ledger stores metadata, path, size, and content hash only |
+| BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
+| BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
+| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All eleven `WorkerMessage` fields are mandatory. A message missing any field is rejected by the reducer and never applied |
+| BS §26.2 | "Supported message types should include" the eleven listed | MUST support all eleven | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
+| BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
+| BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
+| BS §26.2 | "its process should be inspected" | MUST inspect | On stale: confirm process liveness, capture exit code if dead, capture last output, record a durable failure record before any requeue |
+| BS §26.2 | "its task should be requeued or escalated" | MUST requeue or escalate | Requeue when the failure fingerprint is new and attempts remain under the §26.3 repair limit of 3; otherwise escalate to `ESCALATED` |
+| BS §26.2 | "Messages should be idempotent" | MUST be idempotent | Keyed on `messageId`. Replaying a delivered `messageId` after restart is a no-op and MUST NOT produce a duplicate mutation |
+| BS §26.3 | "Nirman should not permit unlimited background workers" | MUST enforce limits | The §26.3 table is binding: 3 write-capable per task, 5 read-only per task, 8 total active |
+| BS §26.3 | "The scheduler should enforce global and per-task limits" | MUST enforce | Both scopes checked before launch. Either limit reached blocks launch; the request queues rather than failing |
+| BS §26.3 | "scheduler should reserve resources before launching a worker" | MUST reserve first | Reserve CPU, memory, and disk before process creation. Launch without a successful reservation is prohibited |
+| BS §26.3 | "release them after completion" | MUST release | On any terminal worker state including crash and timeout. Release is driven by supervisor observation, never by worker self-report |
+| BS §26.3 | "reduce parallelism when the system becomes constrained" | MUST reduce | Stop admitting new workers when free memory is below 15% or free disk below the 10 GB per-task quota (§26.3). Active workers continue; nothing is killed to reclaim capacity |
+| BS §26.3 | "A user should be able to pause new workers" | MUST provide pause | Pause admission while active workers run to completion. Distinct from cancel, which stops active work |
+| BS §26.4 | "Each write-capable worker should operate in a dedicated worktree or copy-on-write workspace" | MUST use an isolated workspace | Every write-capable worker gets its own worktree from a named parent checkpoint. Direct writes to the main workspace are prohibited |
+| BS §26.4 | "The reconciliation process should follow these stages" | MUST follow all nine stages in order | The stage list is a required sequence. Skipping a stage is prohibited; a stage may be a no-op only when it has no applicable input |
+| BS §26.4 | "Tie-breaking should prefer the change that..." | MUST apply the four criteria in the stated order | 1 satisfies acceptance criteria · 2 preserves existing public behaviour · 3 passes more validation · 4 changes fewer unrelated files. First discriminating criterion decides |
+| BS §26.4 | "the system should preserve both alternatives in isolated branches and ask the user" | MUST preserve both and ask | When all four criteria tie or evidence is insufficient. Discarding either alternative is prohibited |
+| BS §26.4 | "Partial integration should be transactional" | MUST be transactional | Integration either fully applies or fully rolls back. A partially merged main workspace is an illegal state |
+| BS §26.4 | "Nirman should roll back to the parent checkpoint or keep the result isolated" | MUST roll back or isolate | Roll back when the parent checkpoint is intact; isolate when rollback would lose validated work. Never leave main half-merged |
+| BS §26.5 | "Nirman should implement multiple execution profiles" | MUST implement all four | Trusted local, Restricted process, High-risk restricted process, Review-only. Restricted process is the default for autonomous execution |
+| BS §26.6 | "runtime should monitor CPU, memory, disk, process-count, output-size, elapsed time, and network usage" | MUST monitor all seven | Sampled at the §80.3 telemetry interval of 30 seconds |
+| BS §26.6 | "Ordinary usage thresholds should trigger telemetry, throttling, concurrency reduction, context compaction, or an approval request" | MUST trigger the graduated response | Context compaction at 80% of context limit (§80.3). Other dimensions: telemetry at 70% of quota, throttle at 85%, stop admitting new workers at 95%. Approval request only when the user configured one |
+| BS §26.6 | "Windows Job Objects should be used where appropriate" | MUST use Job Objects | For every supervised process tree, for accounting and termination. "Where appropriate" means wherever a child process is created |
+| BS §26.6 | "A quota event should pause the worker, capture diagnostics, and explain whether the task can resume" | MUST pause, capture, and explain | All three, in that order, before any other action |
+| BS §26.6 | "It should not kill the process without preserving the latest checkpoint and event log" | MUST NOT kill before preserving | Checkpoint and event log flushed to the ledger before termination. Exception: OS-level hard safety limits, which are recorded as such |
+| BS §26.7 | "Nirman should record the package name, version, source, lockfile change, and requested network access" | MUST record all five | Before execution of any newly downloaded dependency or build script |
+| BS §26.7 | "The runtime should run available malware, secret, license, and vulnerability checks" | MUST run every available check | "Available" means present in the environment. An unavailable scanner is recorded as unavailable, never treated as a pass |
+| BS §26.7 | "A package that cannot be scanned should be labeled unverified" | MUST label unverified | Explicit `unverified` status recorded and surfaced to the user |
+| BS §26.7 | "it should not silently run with full local privileges" | MUST NOT run unverified at full privilege | An unverified package runs only in Restricted or High-risk restricted profile, and only after explicit user approval bound to that package version |
+| BS §26.7 | "Generated artifacts should be scanned for embedded secrets, unexpected executables, suspicious network destinations, and files outside the expected output directory" | MUST scan for all four | Before artifact promotion. A finding blocks promotion until resolved or explicitly waived by policy |
+| BS §26.7 | "Release reports should record scan results and unresolved warnings" | MUST record both | Including checks that could not run and why |
+| BS §26.8 | "browser automation should use a dedicated Nirman-managed browser profile" | MUST use a dedicated profile | Separate profile directory. MUST NOT access the user's cookies, extensions, saved passwords, or downloads |
+| BS §26.8 | "Test sessions should use synthetic data and disposable storage by default" | MUST default to synthetic and disposable | Real credentials require explicit per-session user approval |
+| BS §26.8 | "The browser worker should expose only approved routes and local development origins" | MUST restrict to approved origins | Default-deny. Any origin not explicitly approved is blocked |
+| BS §26.8 | "External navigation should be controlled by the network policy" | MUST enforce network policy | The active profile's network policy governs. No browser-specific bypass exists |
+| BS §26.8 | "Screenshots, console logs, network failures, accessibility findings, and interaction traces should be attached to the task record" | MUST attach all five | As evidence records. Browser evidence MUST NOT be cited as Android behavioural evidence (§26.8 opening paragraph) |
+| BS §26.9 | "preview manager should associate every running preview with a project revision and checkpoint ID" | MUST bind both | An unbound preview is labelled `STALE` and cannot satisfy completion |
+| BS §26.9 | "it should report whether the preview hot-reloaded, partially reloaded, or required a full restart" | MUST report which of the three | Recorded on the preview revision and shown in the panel |
+| BS §26.9 | "Nirman should stop or invalidate the preview if its running revision no longer matches" | MUST stop or invalidate | On checkpoint revert where preview revision ≠ restored revision |
+| BS §26.9 | "It may hot-reload only when the preview runtime confirms that the restored state is safe and complete" | MAY hot-reload, only on positive confirmation | Default is invalidate. Absence of confirmation is not confirmation |
+| BS §26.9 | "The UI should never show a preview as current when it represents a different checkpoint" | MUST NOT show stale as current | Revision mismatch forces the `STALE` label. This is a display invariant, not a preference |
+| BS §26.10 | "Android preview should support named emulator profiles" | MUST support named profiles | Covering phone, tablet, portrait, landscape, Android version, architecture, screen density, API level |
+| BS §26.10 | "A visual test should launch the same flow across selected emulator profiles, compare screenshots, and record profile-specific findings" | MUST do all three | Per selected profile. A profile that fails to launch is recorded as a failure, never skipped silently |
+| BS §26.10 | "Android preview should use a emulator-manager abstraction" | MUST use the abstraction | Reporting emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status |
+| BS §26.10 | "the protocol should allow multiple emulator sessions later" | MUST design for multiple; MAY implement one initially | Protocol and schemas carry an emulator session identifier from the outset so multi-session needs no breaking change |
+| BS §26.11 | "Nirman should not rely on one globally installed toolchain" | MUST NOT rely on a global toolchain | Per-project resolution is mandatory |
+| BS §26.11 | "Each Android project should declare required versions or compatible ranges" | MUST declare | For Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator images, Expo/React Native tooling, and native build dependencies. Recorded in `toolchainLock` (§369) |
+| BS §26.11 | "The runtime should resolve a project toolchain through a version manager, portable installation, or explicitly configured local path" | MUST resolve by one of the three | In that precedence order. Unresolvable toolchain fails the build with a diagnostic; it never falls back to a global install |
+| BS §26.11 | "The environment record should contain executable paths, detected versions, source of installation, compatibility result, and reproducibility status" | MUST contain all five | Bound to the environment fingerprint used for evidence |
+| BS §26.12 | "Runtime operations should use an Android-focused interface" | MUST use the Android interface | Defining process launch, termination, filesystem policy, environment discovery, port management, emulator control, Logcat capture, Gradle and Metro execution, quotas, and APK handling |
+| BS §26.13 | "the control plane should create a durable approval request with an expiry policy" | MUST create durable with expiry | Default expiry 24 hours per §80.3, range 1-168 hours. Survives UI restart |
+| BS §26.13 | "The desktop application should display it on return" | MUST display on reconnect | Pending approvals shown immediately on UI reconnect, before any other task interaction |
+| BS §26.13 | "The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task" | MUST offer all five options | Session-scoped approval binds to the exact action signature and expires with the session |
+| BS §26.14 | "Long-running tasks should use an explicit state machine" | MUST use the §26.14 state machine | The listed states and transitions are binding. No informal loop may substitute |
+| BS §26.14 | "Every state transition should be persisted with a reason and event reference" | MUST persist both | A transition without a reason and event reference is rejected by the reducer |
+
 ### 80.3 Default values for all configurable parameters
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
@@ -6686,7 +6751,9 @@ Output the summary in this format:
 
 The agent-buildability contract is satisfied only when:
 
-1. Every "should" in the specification has explicit criteria
+1. Every "should" in the specification has explicit criteria in the §80.2
+   resolution table. Current coverage is recorded in §80.10; this criterion
+   is NOT yet satisfied.
 2. Every "configurable" parameter has a default value
 3. Every vague procedure has a concrete step-by-step replacement
 4. Every referenced schema has a complete field definition
@@ -6696,3 +6763,21 @@ The agent-buildability contract is satisfied only when:
 8. Every test fixture has a concrete definition
 9. Every milestone has explicit implementation sequencing
 10. An AI agent can build Nirman from these docs without hallucination
+
+### 80.10 Resolution coverage status
+
+The "should" resolution table in §80.2 is incomplete. This subsection records actual coverage so that no reader or agent mistakes partial resolution for full resolution.
+
+| Scope | Statements | Resolved | Status |
+|---|---|---|---|
+| BS §3–§12 | 42 | 42 | Complete |
+| BS §26 | 61 | 61 | Complete |
+| BS §13–§79 excluding §26 | 217 | 0 | Outstanding |
+| Technical architecture | 172 | 0 | Outstanding |
+| Development plan | 18 | 0 | Outstanding |
+| AGENTS.md | 2 | 0 | Outstanding |
+| **Total** | **512** | **103** | **20.1%** |
+
+Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table.
+
+Until coverage reaches 100 percent, an unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
