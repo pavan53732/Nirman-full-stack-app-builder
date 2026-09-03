@@ -2419,12 +2419,12 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Decision:** Nirman's primary Android development preview MUST execute on a Nirman-managed local Android emulator running on the Windows host. The emulator MUST run headless and its actual rendering surface MUST be projected into Nirman's WinUI 3 Preview panel. The user MUST be able to inspect and interact with the running Android application inside Nirman without a physical Android phone.
 
-Physical Android devices remain supported as optional secondary validation targets and MUST NOT be required for primary preview availability or the core build→run→interact→observe workflow.
+Physical Android hardware is outside Nirman's product scope and MUST NOT be used as a preview, validation, recovery, completion, fallback, or delivery dependency.
 
 The embedded preview is a projection of the actual running Android runtime, not a screenshot simulation, source-code visualization, HTML recreation, or detached emulator window.
 
 **Rationale:** The defining Nirman workflow is local Android construction with an immediately inspectable live application inside the Nirman desktop experience. Requiring a physical phone would make the core development loop dependent on external hardware and would violate the intended integrated preview experience.
 
-**Consequences:** PreviewCoordinator, AndroidDeviceAdapter, RenderTransport, PreviewSurface, PreviewHost, interaction forwarding, revision binding, recovery, and evidence must treat the local emulator as the canonical primary runtime. Physical-emulator validation remains a separate optional validation path.
+**Consequences:** PreviewCoordinator, AndroidDeviceAdapter, RenderTransport, PreviewSurface, PreviewHost, interaction forwarding, revision binding, recovery, validation, and evidence MUST treat the Nirman-managed local Android emulator as the sole Android runtime surface. All Android preview, runtime validation, recovery, evidence, and completion paths MUST use the Nirman-managed local Android emulator.
 
 **Reversal trigger:** A Windows-hosted local Android runtime can no longer provide sufficiently reliable rendering, interaction, or validation for the supported Android capability classes, and a superior local embedded runtime is proven with equivalent evidence, interaction, recovery, and revision-binding guarantees.
