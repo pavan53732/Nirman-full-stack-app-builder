@@ -30,7 +30,7 @@ The product should consistently be described as a **desktop application for buil
 
 ### 1.3 Product vision
 
-Nirman should make Android development feel closer to describing a product than manually assembling every implementation detail. A user should be able to explain an Android idea, answer a small number of important questions, watch the application appear in an emulator or connected-device preview, request changes through chat, and export the resulting Android source code or installable build.
+Nirman should make Android development feel closer to describing a product than manually assembling every implementation detail. A user should be able to explain an Android idea, answer a small number of important questions, watch the application appear in the Nirman-managed local Android emulator preview, request changes through chat, and export the resulting Android source code or installable build.
 
 The application should combine the most useful characteristics of conversational builders and traditional development environments:
 
@@ -191,13 +191,13 @@ Summary and remaining issues
 
 When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, device access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the configured execution profile and must not require repeated prompts in `Unattended / Full Autonomy` mode.
 
-A request may include one or more screenshots as visual references. Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content. It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the emulator or connected device.
+A request may include one or more screenshots as visual references. Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content. It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the Nirman-managed local Android emulator.
 
 ### 4.4 Live preview panel
 
 The live preview MUST use a Nirman-managed local Android emulator as the canonical primary preview runtime. The emulator MUST run locally on the Windows host, MUST be launched headless, and MUST render its actual Android application surface inside Nirman's Preview panel. The user MUST NOT need a physical Android phone to build, run, interact with, or visually inspect the generated application.
 
-Physical Android devices are an optional secondary validation target and MUST NOT be required for the primary build→run→preview workflow.
+No physical Android devices are outside Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
 
 The live preview MUST show the selected device, build/install state, Metro or native development-server output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
 
@@ -205,7 +205,7 @@ The default project workspace should show the running application preview and th
 
 Nirman should optionally capture screenshots during autonomous tasks and compare them with user-provided references or generated visual baselines. The selected AI provider may receive screenshots for visual inspection if the user has enabled that capability. The user should be told when an image is being sent to a cloud provider. Screenshots, visual specifications, comparison results, and unresolved visual differences must be attached to the task evidence.
 
-The preview panel MUST show the canonical local emulator session, including emulator identity, Android version, API level, architecture, orientation, density, build/install state, runtime state, Logcat, screenshots, interaction state, and revision identity. Physical-device status MAY be shown when an explicitly selected physical device is being used for secondary validation.
+The preview panel MUST show the canonical local emulator session, including emulator identity, Android version, API level, architecture, orientation, density, build/install state, runtime state, Logcat, screenshots, interaction state, and revision identity.
 
 ### 4.5 Manual editing
 
@@ -924,7 +924,7 @@ The user must be able to inspect generated files, review diffs, accept or reject
 
 ### 12.4 Preview and validation
 
-Nirman must start a local preview for supported Android projects, show the emulator or connected-device preview inside the application, display runtime errors, run linting and type checks, capture screenshots, and present validation results in a readable form.
+Nirman must start a local preview for supported Android projects, show the Nirman-managed local Android emulator preview inside the application, display runtime errors, run linting and type checks, capture screenshots, and present validation results in a readable form.
 
 ### 12.5 Provider settings
 
@@ -1463,7 +1463,11 @@ The agent should prefer semantic edits for high-impact refactors and use text pa
 
 ### 23.14 Android device and visual verification
 
-For Android applications, Nirman should optionally connect to a controlled emulator or physical-device runner. The device worker may install builds, launch activities, tap and fill synthetic data, capture screenshots, inspect Logcat and runtime errors, verify permissions and orientation, test phone and tablet layouts, and collect crash traces.
+For Android applications, Nirman MUST use a Nirman-managed local Android emulator for runtime and visual verification. The emulator runs headlessly on the Windows host and its actual rendering surface is projected into the Nirman Preview panel.
+
+The device worker may install builds, launch activities, execute synthetic interactions, capture screenshots, inspect Logcat and runtime errors, verify permissions and orientation, test phone/tablet profiles, and collect crash traces.
+
+Physical Android hardware is outside the Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
 
 The device runner must use synthetic test data by default. It must not access personal accounts, submit real transactions, use personal credentials, or access private services without explicit user control and approval.
 
@@ -1668,7 +1672,7 @@ Generated artifacts should be scanned for embedded secrets, unexpected executabl
 
 ### 26.8 Browser isolation and visual testing
 
-Browser automation is optional and external to the Android validation path. It may assist auxiliary work such as reading documentation or inspecting a web service the generated application consumes. It is never a validation surface for the generated Android application: emulator and physical-device execution per §59 is the only core validation path, and a browser observation must never be cited as evidence that Android behavior is correct.
+Browser automation is optional and external to the Android validation path. It may assist auxiliary work such as reading documentation or inspecting a web service the generated application consumes. It is never a validation surface for the generated Android application: Nirman-managed local Android emulator execution per §59 is the only core validation path, and a browser observation must never be cited as evidence that Android behavior is correct.
 
 When enabled, browser automation should use a dedicated Nirman-managed browser profile, separate from the user’s personal browser profile, cookies, extensions, saved passwords, and downloads. Test sessions should use synthetic data and disposable storage by default.
 
@@ -1684,7 +1688,7 @@ When the user reverts a checkpoint, Nirman should stop or invalidate the preview
 
 The Android preview should support named device profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected emulator or device profiles, compare screenshots, and record device-specific findings.
 
-Android preview should use a device-manager abstraction that reports emulator or physical-device identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one connected device or emulator at a time, but the protocol should allow multiple devices later.
+Android preview should use a device-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple devices later.
 
 ### 26.11 Toolchain version management
 
@@ -1929,7 +1933,7 @@ Status claims must be evidence-backed. A phase may be marked `completed` only wh
 For an Android-target profile, the default autonomous validation loop should be:
 
 ```text
-Launch the Android emulator or selected physical device
+Launch the Nirman-managed local Android emulator
     ↓
 Run focused Android tests and checks
     ↓
@@ -1967,7 +1971,7 @@ A failure continuation must pass the real diagnostic context—failure fingerpri
 
 Nirman uses Windows process and workspace isolation for local execution. The runtime must not imply that a Docker container, virtual machine, WSL environment, or other prohibited external sandbox was used. Nirman also has no generic web or cloud deployment target; `promotion_or_export_requested` refers to local Android preview promotion or declared APK artifact export.
 
-Browser automation is never a required or authoritative completion stage for an Android-target profile. Emulator or physical-device evidence is authoritative for Android runtime behavior. The exact preview-promotion predicate is the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1.
+Browser automation is never a required or authoritative completion stage for an Android-target profile. Nirman-managed local Android emulator evidence is authoritative for Android runtime behavior. The exact preview-promotion predicate is the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1.
 
 Nirman should not ask for approval for every small, reversible operation inside an approved workspace. It should request a decision only at defined policy boundaries, including protected-file access, risky dependency installation, external-service access, credential use, destructive operations, publishing, release signing, or any action outside the current workspace and policy scope. The approval request must identify the exact action, reason, worker, workspace, policy, risk, and available choices.
 
@@ -2086,7 +2090,7 @@ The session owns the complete task independently of the chat interface. It remai
 
 ### 29.3 Live preview and execution synchronization
 
-The live Android emulator or connected device is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, device identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
+The live Android Nirman-managed local Android emulator is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, device identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
 
 If a candidate change breaks the application, the preview must show the last valid revision and identify the failed candidate. The execution tree and preview must share a revision identifier so the user can see exactly which work produced the running application.
 
@@ -2276,7 +2280,7 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 | Integration model | APIs, authentication, notifications, storage, camera, media, sensors, maps, biometrics, payments, and native services |
 | Technology plan | Selected languages, UI systems, libraries, native modules, build systems, runtime versions, and rationale |
 | Android requirements | Minimum/target/compile SDK, ABI, permissions, manifest entries, background behavior, API-level constraints |
-| Device matrix | Emulator profiles, physical devices, API levels, orientations, densities, tablet/phone coverage |
+| Device matrix | Nirman-managed local Android emulator profiles, API levels, orientations, densities, tablet/phone coverage |
 | Validation model | Unit, integration, UI, visual, accessibility, performance, security, runtime, and release checks |
 | Artifact model | APK variants, signing policy, version code, checksums, evidence requirements, export destinations |
 
@@ -2386,7 +2390,7 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 | Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
 | React Native/Expo fast refresh | JavaScript/TypeScript-only change | Metro/Expo health, rendered screen, screenshot |
 | Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
-| Physical device preview | User-approved connected device | Device identity, install, launch, capture, Logcat |
+| Nirman-managed local Android emulator preview | User-approved connected device | Device identity, install, launch, capture, Logcat |
 | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
 | Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
 
@@ -2573,7 +2577,7 @@ Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The
 | Provider | Authentication, protocol, model capabilities, context limit, vision/tool support, privacy policy |
 | Toolchain | JDK, Gradle, Android Gradle Plugin, Kotlin, SDK, build tools, platform tools, NDK/CMake, Node/Metro/Expo when needed |
 | Workspace | Writable scope, disk space, project fingerprint, lockfiles, credentials exclusion, checkpoint capacity |
-| Device | Emulator/physical device, API level, ABI, storage, ADB health, orientation, required hardware capabilities |
+| Device | Nirman-managed local Android emulator, API level, ABI, storage, ADB health, orientation, required hardware capabilities |
 | Dependencies | Availability, compatibility, vulnerability/license policy, lockfile status, native build requirements |
 | Requirements | Permissions, manifest entries, background rules, accessibility, localization, offline behavior, signing prerequisites |
 | Resource forecast | CPU, memory, disk, emulator memory, worker count, provider concurrency, expected validation stages |
@@ -2680,7 +2684,7 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 | `RECOVERY` | Explain a repair or strategy change | “Repairing the SDK, then retrying the affected build.” |
 | `EVIDENCE` | Report proof collected | “Reminder instrumentation test passed on the API 35 emulator.” |
 | `NEXT_STEP` | State the immediate planned continuation | “Running accessibility and visual validation next.” |
-| `WAITING` | Explain a blocked or waiting condition | “Waiting for the approved physical device to reconnect.” |
+| `WAITING` | Explain a blocked or waiting condition | “Waiting for the Nirman-managed local Android emulator to reconnect.” |
 | `DELIBERATION` | Show that the runtime entered bounded additional reasoning | “Deep deliberation started because two competing hypotheses remain unresolved.” |
 | `EFFORT` | Show requested versus granted effort | “Requested DEEP; granted DEEP within the task policy and remaining budget.” |
 | `HYPOTHESIS` | Show competing diagnostic candidates | “Three plausible causes remain.” |
@@ -3105,7 +3109,7 @@ A `ToolSession` must include session ID, tool type, owner, task and project scop
 
 ### 52.9 Tool Capability Graph and environment capability planning
 
-Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a physical device or emulator capability, and device validation.
+Nirman must map goals to required capabilities, then capabilities to skills, workers, tools, and environment prerequisites. For example, an Android BLE application may require BLE APIs, a compatible Android SDK, native modules, Bluetooth permissions, ADB, a Nirman-managed local Android emulator capability, and device validation.
 
 Each required environment capability must be classified as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE` before the task commits to a validation path. The planner must surface the distinction early instead of discovering an impossible prerequisite after a long build.
 
@@ -3155,7 +3159,7 @@ Nirman must also provide a clearly labeled **Simulation/Dry-Run Mode**. It may p
 
 The runtime must detect dependency cycles across tasks, workers, resource reservations, approvals, workspace leases, and ToolSessions. A detected deadlock must produce a typed finding and trigger safe recovery, reordering, worker replacement, or a structured decision node.
 
-Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, physical devices, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
+Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, emulator slots, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
 
 Cancellation must propagate from goal to task graph, workers, skills, ToolSessions, processes, PTY sessions, emulator operations, and pending provider requests. Each layer must support graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
 
@@ -3560,7 +3564,7 @@ An Android application that works on one emulator is not verified. Behavior vari
 ```text
 DeviceMatrixEntry
 - deviceId
-- kind: emulator | physical
+- kind: emulator
 - apiLevel
 - formFactor: phone | tablet | foldable
 - density
@@ -5659,7 +5663,7 @@ Host and target are explicit fields of the record. No worker, skill, or model ma
 
 The runtime maintains a canonical platform capability matrix (`PlatformCapabilityEntry` in TA §84.1) mapping (host platform, capability) to an expected result class. The matrix is a prior for preflight, not a truth source: the environment preflight observes the actual environment, and the observed classification wins. Cells that depend on the concrete environment MUST be recorded as `environment_dependent` and MUST be classified from observation at preflight time. The matrix MUST NOT hard-code a tool or capability as universally unavailable on a host platform when an authorized toolchain can make it available — for example, Windows cross-compilation from Linux with a proven Rust target, linker, and Windows SDK is `environment_dependent`, not a fixed `unavailable_by_platform`.
 
-At minimum the matrix covers, for each host platform: source compilation; dependency installation; static analysis; host-native test execution; cross-compilation to each declared target; target installer generation; artifact inspection; target native execution; target-specific runtime facilities (for the Windows host target: ConPTY, Job Objects, restricted tokens, ACL workspaces, Credential Manager/DPAPI, native IPC); process supervision and recovery validation; and device-dependent validation (Android emulator or physical device, per TA §49 and §50).
+At minimum the matrix covers, for each host platform: source compilation; dependency installation; static analysis; host-native test execution; cross-compilation to each declared target; target installer generation; artifact inspection; target native execution; target-specific runtime facilities (for the Windows host target: ConPTY, Job Objects, restricted tokens, ACL workspaces, Credential Manager/DPAPI, native IPC); process supervision and recovery validation; and emulator-dependent validation (Android Nirman-managed local Android emulator, per TA §49 and §50).
 
 ### 79.4 Environment Capability Resolution
 
@@ -5733,7 +5737,7 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `windows-desktop-build` | C#/.NET / WinUI 3 / Windows App SDK / XAML + Rust control-plane integration; Nirman.exe packaging, NirmanSupervisor.exe packaging, named-pipe SupervisorConnection, native Windows runtime integration | cross-compilation capability or Windows host; **never claims runtime validation** |
 | `windows-runtime-validation` | Nirman.exe and NirmanSupervisor startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior | `target_platform = windows` AND `native_execution = AVAILABLE`; otherwise `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
 | `cross-platform-build-diagnostics` | Determine what can be cross-built, which artifacts can be produced, and which validation evidence necessarily remains missing for a host→target pair | host toolchain observation |
-| `android-toolchain` | Node, package manager, Java, Gradle, Android SDK, platform tools, emulator, physical device, native dependencies, signing | Android toolchain authority (TA §49); independent of host-target build capability |
+| `android-toolchain` | Node, package manager, Java, Gradle, Android SDK, platform tools, emulator, native dependencies, signing | Android toolchain authority (TA §49); independent of host-target build capability |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
@@ -5816,7 +5820,7 @@ Preflight MUST detect active real-time scanning over the workspace root, Gradle 
 
 ### 79.16 Hypervisor availability and arbitration
 
-Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A physical device is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy device validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
+Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A Nirman-managed local Android emulator is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy device validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
 
 ---
 
