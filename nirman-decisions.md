@@ -212,7 +212,7 @@ User mental model: one Nirman application, not two applications.
 ## ADR-015: Use a dedicated browser profile for automated testing
 
 **Status:** Accepted  
-**Decision:** Browser testing is an optional, external, auxiliary capability and never a validation path for the generated Android application. Android emulator and physical-device execution remain the only core validation surface. When enabled, browser testing will use a Nirman-managed disposable profile with no personal cookies, passwords, extensions, or downloads.
+**Decision:** Browser testing is an optional, external, auxiliary capability and never a validation path for the generated Android application. Nirman-managed local Android emulator execution remain the only core validation surface. When enabled, browser testing will use a Nirman-managed disposable profile with no personal cookies, passwords, extensions, or downloads.
 
 **Reasoning:** Automated browser work must not accidentally access or modify the user’s personal browser session.
 
@@ -427,7 +427,7 @@ The following decisions remain intentionally open:
 ## ADR-034: Use a standard autonomous validation pipeline
 
 **Status:** Accepted  
-**Decision:** For Android-target profiles, Nirman will validate through Android emulator or selected physical-device launch, focused Android checks, build or package validation, security/dependency/reliability checks, Android device/accessibility/visual QA, repair or backtracking, regression checks, and final goal evaluation. Browser validation is optional external auxiliary tooling for a declared non-Android surface and is never required or authoritative for generated Android application completion.
+**Decision:** For Android-target profiles, Nirman will validate through Nirman-managed local Android emulator launch, focused Android checks, build or package validation, security/dependency/reliability checks, Android device/accessibility/visual QA, repair or backtracking, regression checks, and final goal evaluation. Browser validation is optional external auxiliary tooling for a declared non-Android surface and is never required or authoritative for generated Android application completion.
 
 **Reasoning:** Compilation alone does not prove that an application works or that existing behavior was preserved. Android runtime behavior requires supervised emulator/device evidence, while auxiliary browser evidence must not be mistaken for Android execution evidence.
 
@@ -660,7 +660,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 ## ADR-055: Scale long-horizon state incrementally
 
 **Status:** Accepted  
-**Decision:** Repository maps use shards and dependency fingerprints; validation computes affected tests and uses cached results plus regression sharding; checkpoints use retention, content-addressed compaction, and reference-aware pruning; Android tasks use profile-based quotas for JavaScript, native, emulator, physical-device, and combined build workflows; validation includes architectural-drift checks.
+**Decision:** Repository maps use shards and dependency fingerprints; validation computes affected tests and uses cached results plus regression sharding; checkpoints use retention, content-addressed compaction, and reference-aware pruning; Android tasks use profile-based quotas for JavaScript, native, emulator and combined build workflows; validation includes architectural-drift checks.
 
 **Reasoning:** Large Android projects with JavaScript, native, emulator, device, and build artifacts can make full repository rebuilds, full-suite validation, and unbounded checkpoint storage impractical.
 
@@ -730,7 +730,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-060: Preview revision is authoritative for live Android state
 
 **Status:** Accepted  
-**Decision:** The emulator or connected-device preview and the execution tree share a `projectRevisionId` and `checkpointId`. A failed candidate cannot replace the last valid preview revision. Screenshots, Logcat, installation state, visual comparisons, and runtime errors belong to the revision that produced them.
+**Decision:** The Nirman-managed local Android emulator preview and the execution tree share a `projectRevisionId` and `checkpointId`. A failed candidate cannot replace the last valid preview revision. Screenshots, Logcat, installation state, visual comparisons, and runtime errors belong to the revision that produced them.
 
 **Reasoning:** A live preview is useful only when the user can trust which source state is running and can distinguish a broken candidate from the last known-good app.
 
@@ -1021,7 +1021,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** PreviewCoordinator selects incremental emulator install, Compose reload, React Native/Expo refresh, APK reinstall, physical device execution, headless smoke test, or diagnostic preview according to the change and selected technology.
+**Decision:** PreviewCoordinator selects incremental emulator install, Compose reload, React Native/Expo refresh, APK reinstall, Nirman-managed local Android emulator execution, headless smoke test, or diagnostic preview according to the change and selected technology.
 
 **Rationale:** No single preview mechanism works for every Android technology or change type.
 
@@ -1182,7 +1182,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Decision:** Nirman relies exclusively on native Windows isolation as its required execution model, using restricted tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, resource quotas, toolchain isolation, and disposable Android emulator snapshots. No additional isolation runtime is required.
 
-**Rationale:** Nirman needs reliable Windows host integration with Android emulators, GPU acceleration, physical devices, and local toolchains without introducing an additional isolation-runtime dependency.
+**Rationale:** Nirman needs reliable Windows host integration with Android emulators, GPU acceleration, Nirman-managed local Android emulators, and local toolchains without introducing an additional isolation-runtime dependency.
 
 **Consequences:** Workspace, process, toolchain, policy, and emulator-snapshot authorities are the complete isolation foundation. External sandbox setup, image management, virtual networking, volume management, and related maintenance are outside Nirman.
 
