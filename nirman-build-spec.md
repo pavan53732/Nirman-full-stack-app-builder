@@ -3379,13 +3379,21 @@ E2EScenario
 - requirementIds
 - preconditions
 - seedData
-- steps: ordered UI and system actions
+- steps: ordered UI, system, and user-like interaction actions
 - assertions
+- interactionMethod
+- observedState
 - expectedPersistedState
 - teardown
 - devices
 - deterministic: true | false
 ```
+
+`steps` MUST execute against the installed/launchable Android application on the declared device. An interaction step is an action performed against the running application, not a source-code inspection or model prediction.
+
+`interactionMethod` MUST identify the mechanism used to drive the application, such as Espresso, Compose UI Test, an out-of-process UI-tree driver, accessibility/input injection, or another approved Android device adapter.
+
+`observedState` MUST identify the runtime state observed after the action. An action without an observed postcondition is not behavioral evidence.
 
 A scenario must be deterministic. Non-deterministic scenarios must be marked and must not be used as completion evidence.
 
@@ -3408,11 +3416,27 @@ Seed data must be created through the application's own data layer or an explici
 
 ### 56.5 Evidence requirements
 
-Each scenario run must produce step results, assertion results, screenshots at asserted steps, Logcat for the run window, persisted-state verification, device identity, and the source revision. A scenario without assertion results is not evidence.
+Each scenario run MUST produce:
+- step execution results;
+- action identity and interaction method;
+- observed pre-state and post-state where applicable;
+- assertion results;
+- screenshots at asserted steps;
+- UI-hierarchy or equivalent runtime-state evidence where supported;
+- Logcat for the run window;
+- persisted-state verification where applicable;
+- device identity;
+- installed artifact identity;
+- source revision;
+- application-state fingerprint.
+
+A scenario without executable interaction results and assertion results is not behavioral evidence.
 
 ### 56.6 Acceptance criteria
 
 Stateful verification is satisfied only when every functional requirement maps to at least one deterministic scenario, and when a requirement cannot be marked complete while its scenario is missing, skipped, or non-deterministic.
+
+A model claim, source inspection, successful compilation, static screenshot, or predicted UI state MUST NOT satisfy a behavioral acceptance condition when that condition is executable on the Android runtime.
 
 ### 56.7 Per-stack UI validation framework binding
 
