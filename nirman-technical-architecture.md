@@ -378,7 +378,7 @@ The sandbox abstraction must not rely on a single Windows API. It should expose 
 
 ### 9.3 Network policy
 
-Network access should be categorized as provider traffic, package-manager traffic, Android runtime traffic, emulator/device traffic, or external-tool traffic. Each category should have an independent policy.
+Network access should be categorized as provider traffic, package-manager traffic, Android runtime traffic, Nirman-managed local Android emulator traffic, or external-tool traffic. Each category should have an independent policy.
 
 The default autonomous build profile should allow provider requests and approved Android dependency sources only. Emulator/device runtime traffic and Android project network access should be explicitly visible. External network access should be disabled in high-risk review profiles.
 
@@ -392,13 +392,13 @@ Before executing an unfamiliar dependency or install script, Nirman should recor
 
 ### 10.1 Android development preview manager
 
-The preview manager starts the Android development server or native build process, assigns or discovers required ports, tracks the process tree, checks emulator/device readiness, installs or reloads the application, captures Logcat and runtime errors, and exposes the current device state to the desktop interface.
+The preview manager starts the Android development server or native build process, assigns or discovers required ports, tracks the process tree, checks Nirman-managed local Android emulator readiness, installs or reloads the application, captures Logcat and runtime errors, and exposes the current emulator state to the desktop interface.
 
 A preview instance must be associated with a project revision and checkpoint. If the revision changes, the preview reports whether it hot-reloaded or restarted. If the project is rolled back, the preview must be restarted or marked stale.
 
 ### 10.2 Android device-profile testing
 
-A preview test can define multiple Android device profiles:
+A preview test can define multiple Android emulator profiles:
 
 ```text
 AndroidDeviceProfile
@@ -417,7 +417,7 @@ AndroidDeviceProfile
 
 The device worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
 
-The device validation subsystem MUST expose an authoritative `InteractionExecutor`.
+The emulator validation subsystem MUST expose an authoritative `InteractionExecutor`.
 
 ```text
 InteractionExecutor
@@ -484,7 +484,7 @@ VisualReference
 - createdAt
 ```
 
-The visual worker converts references into an editable visual specification rather than directly copying pixels. The specification records screens, navigation states, layout regions, component roles, spacing, typography, colors, assets, interactions, responsive behavior across Android device profiles, and unresolved uncertainties. The implementation worker uses that specification to synthesize Android code, while the validation worker compares emulator/device screenshots against the reference and reports visual differences with evidence.
+The visual worker converts references into an editable visual specification rather than directly copying pixels. The specification records screens, navigation states, layout regions, component roles, spacing, typography, colors, assets, interactions, responsive behavior across Android emulator profiles, and unresolved uncertainties. The implementation worker uses that specification to synthesize Android code, while the validation worker compares Nirman-managed local Android emulator screenshots against the reference and reports visual differences with evidence.
 
 Screenshots sent to a cloud model must pass the project privacy policy. The system must redact or warn about sensitive text and identify the provider receiving the image. A visual reference is never treated as executable instruction; it is input data interpreted through the task contract.
 
@@ -647,7 +647,7 @@ Diagnostics should distinguish missing, incompatible, inaccessible, unverified, 
 
 ### 11.3 Android runtime abstraction
 
-The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, emulator/device management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
+The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, Nirman-managed local Android emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
 
 ---
 
@@ -773,7 +773,7 @@ The engineering team must decide the following before implementing the control p
 | Event delivery | Durable event log with sequence-based replay |
 | Initial sandbox | Restricted Windows process plus workspace policy |
 | Strong sandbox | Restricted token, Windows Job Object, ACL-scoped workspace, process-tree supervision, resource quotas, and disposable emulator snapshot |
-| Android device testing | Disposable emulator snapshot or explicitly selected Nirman-managed local Android emulator |
+| Android emulator testing | Disposable emulator snapshot or explicitly selected Nirman-managed local Android emulator |
 | Preview revision tracking | Checkpoint ID plus project revision hash |
 | Secrets | OS keychain reference only |
 
@@ -838,7 +838,7 @@ Nirman must define approval behavior through an explicit execution profile rathe
 
 | Profile | Routine policy-allowed actions | Hard-gated actions |
 |---|---|---|
-| `Interactive / Review` | May request or require approval according to the project policy and review settings. | Protected paths, credentials, signing, destructive actions, external-device access, publishing, and other declared hard gates. |
+| `Interactive / Review` | May request or require approval according to the project policy and review settings. | Protected paths, credentials, signing, destructive actions, external-emulator access, publishing, and other declared hard gates. |
 | `Unattended / Full Autonomy` | Automatically executes routine reversible actions inside the approved workspace, including local dependency installation, formatting, tests, builds, preview restarts, checkpoints, and authorized environment repair. | The same hard gates; it pauses or escalates instead of bypassing them. |
 
 Routine approval prompts must not be required merely because the UI is disconnected or a task is running in the background. Every approval request is bound to the exact action fingerprint, policy, worker, workspace, and risk. User approval authorizes only the requested policy-bound action; it never promotes a preview or artifact without deterministic evidence.
@@ -1844,7 +1844,7 @@ The input manager combines the user instruction, screenshots, supplied assets, e
 
 ### 34.2 Preview revision bridge
 
-The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator or device state records the revision, device identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
+The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator or emulator state records the revision, emulator identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
 
 ```text
 DeviceStateFingerprint
@@ -2056,7 +2056,7 @@ ExternalEffectRecord
 - localTransactionId
 - reconciliationState: KNOWN_SUCCESS | KNOWN_FAILURE | UNKNOWN | RECONCILING | RESOLVED
 
-`ExternalEffectRecord.reconciliationState` generalizes the export-only `UNKNOWN → RECONCILING` pattern (ADR-203) to every external side effect. Every adapter that performs an external effect—ADB install, emulator/device launch, provider/model request, signing operation, filesystem copy, package installation, process creation, and remote API—MUST record an `ExternalEffectRecord` and implement reconciliation against the canonical `reconciliationState` lifecycle:
+`ExternalEffectRecord.reconciliationState` generalizes the export-only `UNKNOWN → RECONCILING` pattern (ADR-203) to every external side effect. Every adapter that performs an external effect—ADB install, Nirman-managed local Android emulator launch, provider/model request, signing operation, filesystem copy, package installation, process creation, and remote API—MUST record an `ExternalEffectRecord` and implement reconciliation against the canonical `reconciliationState` lifecycle:
 - `KNOWN_SUCCESS` / `KNOWN_FAILURE`: observed and verified terminal state.
 - `UNKNOWN`: the effect was issued but its outcome could not be confirmed (timeout, partial response, device/provider drop, interrupted copy, process disappearance).
 - `RECONCILING`: an `UNKNOWN` outcome is being resolved by destination/identity/hash inspection or provider/device status re-check; no retry of the effect is permitted until resolution.
@@ -2087,7 +2087,7 @@ The canonical evidence chain is:
 Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision
 ```
 
-A source revision, asset manifest, toolchain lock, device session, dependency snapshot, validation policy, or required integration change invalidates dependent evidence and completion claims unless the dependency graph proves independence. `EvidenceAuthority`, `PreviewPromotionGate`, `ArtifactAuthority`, `AndroidQualityGate`, and the completion evaluator consume the same dependency relation.
+A source revision, asset manifest, toolchain lock, emulator session, dependency snapshot, validation policy, or required integration change invalidates dependent evidence and completion claims unless the dependency graph proves independence. `EvidenceAuthority`, `PreviewPromotionGate`, `ArtifactAuthority`, `AndroidQualityGate`, and the completion evaluator consume the same dependency relation.
 
 The canonical preview-current predicate is:
 
@@ -2274,7 +2274,7 @@ Large projects use virtualized trees, repository-map shards, dependency fingerpr
 
 ### 41.1 Documentation and runtime certification boundary
 
-The contract-graph verifier certifies document structure, contract addressing, authority references, and selected semantic rules only. It is not the runtime certification authority. Runtime certification requires separate executable jobs for schema compilation, reducer transitions, transaction and lease behavior, Windows process and IPC isolation, provider fixtures, Android build and emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, self-development rollback, and platform capability and cross-compilation fixtures (§84.5).
+The contract-graph verifier certifies document structure, contract addressing, authority references, and selected semantic rules only. It is not the runtime certification authority. Runtime certification requires separate executable jobs for schema compilation, reducer transitions, transaction and lease behavior, Windows process and IPC isolation, provider fixtures, Android build and Nirman-managed local Android emulator execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, self-development rollback, and platform capability and cross-compilation fixtures (§84.5).
 
 ## 42. Runtime Architecture Acceptance Tests
 
@@ -2314,7 +2314,7 @@ This section translates the accepted Sync-AI-derived principles into Nirman’s 
 | Transaction manager | Snapshots, revision checks, conflict detection, commit/rollback | Unvalidated model output |
 | Toolchain authority | Android toolchain resolution, lock verification, environment construction | User project semantics |
 | Evidence authority | Validation gates, evidence completeness, artifact eligibility | Claiming success without proof |
-| Preview coordinator | Revision-bound emulator/device deployment and preview fallback | Promoting stale preview state |
+| Preview coordinator | Revision-bound Nirman-managed local Android emulator deployment and preview fallback | Promoting stale preview state |
 | Artifact authority | APK packaging and optional AAB packaging, checksums, signing workflow, promotion | Modifying source without a transaction |
 
 The invariant is:
@@ -2424,7 +2424,7 @@ Sensitive operations use a single-use `OperationCapability` bound to session and
 
 The capability is consumed before network I/O or external side effects. It is never persisted in plaintext. A capability is invalid if the project fingerprint, revision, worker lease, or policy context changes.
 
-Examples include dependency installation, device access, external network requests, signing, keystore use, writing outside generated source scope, and self-development promotion.
+Examples include dependency installation, emulator access, external network requests, signing, keystore use, writing outside generated source scope, and self-development promotion.
 
 ---
 
@@ -2486,7 +2486,7 @@ Adapters are selected by file type and technology plan. No single parser is mand
 
 ### 47.4 Impact analysis
 
-The graph service calculates affected files, modules, resources, permissions, tests, device profiles, preview surfaces, and artifact outputs. The affected-test set is persisted with each transaction and evidence record, so long-horizon sessions can validate changed behavior without rebuilding unrelated areas unnecessarily.
+The graph service calculates affected files, modules, resources, permissions, tests, emulator profiles, preview surfaces, and artifact outputs. The affected-test set is persisted with each transaction and evidence record, so long-horizon sessions can validate changed behavior without rebuilding unrelated areas unnecessarily.
 
 ---
 
@@ -2537,7 +2537,7 @@ Hypervisor preflight MUST be a precondition of emulator readiness. The isolated 
 
 ### 49.2 EnvironmentSnapshot
 
-The environment snapshot includes toolchain lock hash, tool versions and hashes, selected device identity, API level and ABI, build variant, relevant environment variables, Gradle and package lock hashes, provider metadata without secrets, project fingerprint, and command policy. It is attached to build, recovery, preview, and artifact evidence.
+The environment snapshot includes toolchain lock hash, tool versions and hashes, selected emulator identity, API level and ABI, build variant, relevant environment variables, Gradle and package lock hashes, provider metadata without secrets, project fingerprint, and command policy. It is attached to build, recovery, preview, and artifact evidence.
 
 ### 49.3 Toolchain repair
 
@@ -3370,7 +3370,7 @@ A skill composition is a directed acyclic graph with bounded depth, explicit inp
 
 ### 58.5 SwarmPlanner and delegation
 
-`SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, device availability, provider concurrency, and resource pressure. It emits a `SwarmPlan` containing parallel groups, serialized dependencies, worker profiles, interfaces, leases, capacity reservations, and integration checkpoints.
+`SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, emulator availability, provider concurrency, and resource pressure. It emits a `SwarmPlan` containing parallel groups, serialized dependencies, worker profiles, interfaces, leases, capacity reservations, and integration checkpoints.
 
 `DelegationProtocol` supports:
 
@@ -3462,7 +3462,7 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 
 ### 58.9 ValidationPlanner and mutation regression analysis
 
-`ValidationPlanner` chooses validation from changed files, symbols, call graph, route graph, dependency graph, requirement traceability, project type, risk, previous failures, device profiles, and resource availability. `MutationRegressionAnalyzer` predicts affected behavior and expands validation when a change touches a manifest, permission, navigation route, data model, native module, build file, authentication boundary, or shared UI component.
+`ValidationPlanner` chooses validation from changed files, symbols, call graph, route graph, dependency graph, requirement traceability, project type, risk, previous failures, emulator profiles, and resource availability. `MutationRegressionAnalyzer` predicts affected behavior and expands validation when a change touches a manifest, permission, navigation route, data model, native module, build file, authentication boundary, or shared UI component.
 
 ```text
 ValidationPlan
@@ -3698,7 +3698,7 @@ Reconciliation is correct only when a user edit during an active run survives to
 **Authoritative build-spec section:** §56  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §56. Extends §35 (Complete Android Capability Fixture Contract) and §50 (Preview Coordinator and Android Runtime Validation), which remain the authority on device sessions and fixtures.
+Implements build spec §56. Extends §35 (Complete Android Capability Fixture Contract) and §50 (Preview Coordinator and Android Runtime Validation), which remain the authority on emulator sessions and fixtures.
 
 ### 62.1 Components
 
@@ -3707,7 +3707,7 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | ScenarioRegistry | Stores scenario definitions and requirement links |
 | ScenarioCompiler | Translates a scenario into instrumentation and ADB steps |
 | SeedDataProvisioner | Establishes preconditions through the app's own data layer |
-| ScenarioExecutor | Runs steps against a device session and records results |
+| ScenarioExecutor | Runs steps against a emulator session and records results |
 | StateProbe | Verifies persisted state after process death or restart |
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
 
@@ -4807,7 +4807,7 @@ Evidence is classified separately:
 |---|---|---|
 | `PLAN_EVIDENCE` | Contract/planning services | Explains intended work; cannot prove execution |
 | `PROCESS_EVIDENCE` | Process supervisor | Proves command/process observation |
-| `DEVICE_EVIDENCE` | Emulator/device manager | Proves install, launch, interaction, or device state |
+| `DEVICE_EVIDENCE` | Emulator/device manager | Proves install, launch, interaction, or emulator state |
 | `VISUAL_EVIDENCE` | Screenshot and comparison service | Proves a declared visual check |
 | `TEST_EVIDENCE` | Test runner and oracle | Proves declared assertions |
 | `ARTIFACT_EVIDENCE` | APK inspector | Proves artifact presence, hash, and contents |
@@ -4817,9 +4817,9 @@ Evidence is classified separately:
 
 All preview promotion decisions must evaluate one canonical gate. Individual workers, the UI, model output, and presentation reducers may report evidence, but none may promote a candidate independently.
 
-A candidate `PreviewRevision` may become `OBSERVED` only when the exact candidate source revision, generated asset and branding fingerprint, selected toolchain lock, checkpoint, artifact fingerprint, device or emulator identity, and active device session are recorded, and the artifact has been installed and launched with supervised observation. Required interaction, screenshot, accessibility, visual, Logcat, crash, and runtime evidence must be current for the declared Android profile.
+A candidate `PreviewRevision` may become `OBSERVED` only when the exact candidate source revision, generated asset and branding fingerprint, selected toolchain lock, checkpoint, artifact fingerprint, device or emulator identity, and active emulator session are recorded, and the artifact has been installed and launched with supervised observation. Required interaction, screenshot, accessibility, visual, Logcat, crash, and runtime evidence must be current for the declared Android profile.
 
-A candidate may become `VERIFIED` and replace the active last-known-good preview only when `PreviewPromotionGate` confirms all required evidence for the profile: source and asset identity match the checkpoint; the build and artifact hash are valid; installation and launch succeeded on the identified device session; required synthetic interactions and declared tests passed; required visual/accessibility and diagnostic checks passed; no invalidation, stale identity, crash, or policy condition is present; and the evidence set is durably recorded by the EvidenceAuthority. Missing, stale, mismatched, simulated, or model-authored evidence fails the gate.
+A candidate may become `VERIFIED` and replace the active last-known-good preview only when `PreviewPromotionGate` confirms all required evidence for the profile: source and asset identity match the checkpoint; the build and artifact hash are valid; installation and launch succeeded on the identified emulator session; required synthetic interactions and declared tests passed; required visual/accessibility and diagnostic checks passed; no invalidation, stale identity, crash, or policy condition is present; and the evidence set is durably recorded by the EvidenceAuthority. Missing, stale, mismatched, simulated, or model-authored evidence fails the gate.
 
 The gate must return a typed result such as `PASS`, `MISSING_EVIDENCE`, `STALE_IDENTITY`, `FAILED_VALIDATION`, `POLICY_BLOCKED`, or `ENVIRONMENT_UNAVAILABLE`. A failed or incomplete candidate remains `FAILED_CANDIDATE`, `RECOVERING`, `STALE`, or `INVALIDATED`; it cannot replace last-known-good. The gate is the sole normative promotion predicate and must be used by the control plane, artifact authority, preview reducer, and release completion checks.
 
@@ -4845,7 +4845,7 @@ A stage is marked complete only when its declared evidence exists and is current
 
 ### 73.7 Last-known-good protection
 
-Before a candidate preview is installed or promoted, the coordinator stores the active last-known-good `PreviewRevision`, checkpoint, artifact fingerprint, device identity, and evidence set. A candidate failure cannot overwrite or delete this record. Repair and rollback invalidate candidate evidence by reason and preserve the known-good evidence.
+Before a candidate preview is installed or promoted, the coordinator stores the active last-known-good `PreviewRevision`, checkpoint, artifact fingerprint, emulator identity, and evidence set. A candidate failure cannot overwrite or delete this record. Repair and rollback invalidate candidate evidence by reason and preserve the known-good evidence.
 
 When the active project revision changes, the coordinator calculates compatibility. If source, asset, toolchain, device, contract, or artifact identity no longer matches, the previous preview becomes `STALE` rather than silently representing the new source. The preview panel must show both the stale/failed candidate and the available last-known-good revision until a new candidate is observed and promoted.
 
@@ -5147,7 +5147,7 @@ AndroidDeviceAdapter operations
   - errors: DeviceReleaseError
 ```
 
-Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, device identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
+Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, emulator identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
 
 ### 73.13 Android build adapter contract
 
@@ -5315,7 +5315,7 @@ BoundaryOperationProjection
 - invalidationRefs
 ```
 
-The projection is valid only when `specializedStateRef` resolves to the state machine owned by the applicable service. Lease loss fences the operation by revoking capabilities and rejecting new writes. A timeout or cancellation produces a durable lifecycle event. A retry after an unknown device or external outcome requires the relevant transaction reconciliation, idempotency read-back, or compensation evidence before a new effect is authorized. A stale source revision, contract version, adapter version, toolchain, device state, application state, environment state, artifact, credential, or policy invalidates dependent observations and downstream effects.
+The projection is valid only when `specializedStateRef` resolves to the state machine owned by the applicable service. Lease loss fences the operation by revoking capabilities and rejecting new writes. A timeout or cancellation produces a durable lifecycle event. A retry after an unknown device or external outcome requires the relevant transaction reconciliation, idempotency read-back, or compensation evidence before a new effect is authorized. A stale source revision, contract version, adapter version, toolchain, emulator state, application state, environment state, artifact, credential, or policy invalidates dependent observations and downstream effects.
 
 ### 74.1 Android service integration
 
@@ -5361,7 +5361,7 @@ UiHierarchyObservation
 - evidenceId
 ```
 
-UI-hierarchy evidence may support accessibility, navigation, state, and visual checks. It cannot replace supervised emulator/device execution and cannot satisfy validation while requested, predicted, simulated, stale, or invalidated.
+UI-hierarchy evidence may support accessibility, navigation, state, and visual checks. It cannot replace supervised Nirman-managed local Android emulator execution and cannot satisfy validation while requested, predicted, simulated, stale, or invalidated.
 
 ### 74.3 Signing and export verification
 
@@ -5468,7 +5468,7 @@ The event store and reducer enforce these rules:
 
 ### 75.4 Runtime certification evidence and tests
 
-`PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, device identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → device runtime → observation → validation → promotion → event replay → panel projection path.
+`PreviewSyncEvidenceRecord` is persisted with the event sequence range, reducer version, projection revision, preview revision, source revision, checkpoint, branch identity, artifact fingerprint, emulator identity, runtime-session identity, state fingerprints, event IDs, observation references, evidence references, validation references, invalidated evidence, recovery events, promotion record, certification decision, and completion decision. Runtime certification must execute the complete chat instruction → agent proposal → authorized mutation → source revision → build → APK → install → device runtime → observation → validation → promotion → event replay → panel projection path.
 
 The test family must inject duplicate and conflicting events, out-of-order events, sequence gaps, stale candidate results, late device observations, UI disconnect, supervisor restart, event replay, failed candidate recovery, and a successful last-known-good promotion. The expected panel state must be identical after live application and replay, and no predicted, requested, simulated, stale, invalidated, or model-authored record may appear as current verified preview evidence.
 
@@ -5513,7 +5513,7 @@ Specialist workers are independent roles selected by the orchestrator; they do n
 | Consistency worker | Compare schemas, types, UI/control-plane messages, Android service contracts, and persisted records for drift | Schema compatibility and contract-parity result |
 | Diff-aware patch worker | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
 | Diagnostics worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
-| Validation worker | Run focused and regression checks, Android build/device validation, and visual/accessibility checks | Independent validation and current evidence |
+| Validation worker | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
 | Memory/index worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
 | Release worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
 
@@ -5579,7 +5579,7 @@ The lifecycle is `REQUESTED → COLLECTING → OBSERVED → VALIDATED | NOT_APPL
 
 ### 80.3 Failure and recovery
 
-ANR, device loss, unavailable Play Integrity, battery or Doze uncertainty, permission denial, stale runtime sessions, and collector errors produce typed evidence gaps. Recovery may restart collection, reconnect the device, change the declared profile, or report an honest coverage limitation; it cannot convert absence into a pass.
+ANR, emulator session loss, unavailable Play Integrity, battery or Doze uncertainty, permission denial, stale runtime sessions, and collector errors produce typed evidence gaps. Recovery may restart collection, reconnect the device, change the declared profile, or report an honest coverage limitation; it cannot convert absence into a pass.
 
 ## 81. Frontend–Control-Plane Protocol Implementation Contract
 
@@ -5637,7 +5637,7 @@ The implementation persists `BackgroundContinuityRecord` with a monotonic `state
 UI disconnect is presentation-only. Supervisor restart and host restart reload the last checkpoint, fence abandoned leases, reconcile descendants and unknown outcomes, and resume only eligible operations. Sleep, hibernation, and shutdown use the same recovery path after host and toolchain revalidation. Device loss invalidates device-bound evidence and preview state while retaining the project checkpoint. Provider or network outage records provider operationality and applies declared retry/backoff/degradation rules. No recovery path may fabricate an observation, validation pass, artifact, or completion result.
 
 ### 82.3 Projection, crosswalk, and runtime acceptance
-The projection maps continuity dimensions and the derived aggregate to truthful UI labels and preserves last-known-good preview and evidence references. `IntegrationOperationality.UNAVAILABLE` or `DEGRADED` maps to `providerAvailabilityState=UNAVAILABLE` or `DEGRADED`; an unavailable or reattaching device session maps to `deviceAvailabilityState=UNAVAILABLE` or `REATTACHING`; and device-bound preview/evidence is invalidated through the existing evidence dependency graph. These mappings do not rewrite the source operationality or runtime-integrity records. Stale events are rejected by state version, session identity, branch identity, and fencing token. Acceptance fixtures must cover UI closure/reconnect, supervisor restart, reboot, sleep/hibernate, shutdown, device reattachment, provider/network outage, unknown-outcome reconciliation, stale-event rejection, and safe failure. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
+The projection maps continuity dimensions and the derived aggregate to truthful UI labels and preserves last-known-good preview and evidence references. `IntegrationOperationality.UNAVAILABLE` or `DEGRADED` maps to `providerAvailabilityState=UNAVAILABLE` or `DEGRADED`; an unavailable or reattaching emulator session maps to `deviceAvailabilityState=UNAVAILABLE` or `REATTACHING`; and device-bound preview/evidence is invalidated through the existing evidence dependency graph. These mappings do not rewrite the source operationality or runtime-integrity records. Stale events are rejected by state version, session identity, branch identity, and fencing token. Acceptance fixtures must cover UI closure/reconnect, supervisor restart, reboot, sleep/hibernate, shutdown, device reattachment, provider/network outage, unknown-outcome reconciliation, stale-event rejection, and safe failure. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
 
 ## 83. APK Export Provenance Implementation Contract
 **Implements:** build spec §78 and `CONTRACT.RUNTIME.APK_EXPORT`
