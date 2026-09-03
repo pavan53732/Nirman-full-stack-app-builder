@@ -446,6 +446,8 @@ Every interaction produces an observed result that enters the normal Evidence �
 
 The Android emulator manager should provide a normalized interface for Nirman-managed Android emulators:
 
+In Nirman's Android runtime contracts, a Device represents a Nirman-managed Android emulator session or emulator profile. Physical Android hardware is not an admissible Device implementation.
+
 ```text
 Device
 - id
@@ -510,7 +512,7 @@ Visual comparison of a Nirman-managed local Android emulator screenshot against 
 
 ### 10.5 Dynamic Android project synthesis
 
-The project synthesizer builds a project graph from the goal contract, visual specification, existing files, assets, device requirements, integrations, and validation plan. It selects or composes the required Android technologies and creates the project structure, screens, navigation, state, data layer, permissions, services, tests, build configuration, and artifact profile.
+The project synthesizer builds a project graph from the goal contract, visual specification, existing files, assets, emulator requirements, integrations, and validation plan. It selects or composes the required Android technologies and creates the project structure, screens, navigation, state, data layer, permissions, services, tests, build configuration, and artifact profile.
 
 The technology resolver must treat all Android implementation styles as available capabilities. It may select Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, or a mixed architecture. Its decision must be based on the requested behavior, screenshot evidence, performance needs, device APIs, offline requirements, build constraints, dependency compatibility, and validation evidence—not on a fixed user-facing template list.
 
@@ -554,7 +556,7 @@ The transport is a named, versioned interface with a required baseline and a per
 - **Baseline** — the emulator's local gRPC control endpoint on loopback, using its screenshot-stream RPC. Low frame rate, minimal dependencies, sufficient for a truthful preview.
 - **Permitted upgrade** — a WebRTC/video-stream path for higher frame rate and input forwarding, admitted through the SAME `PreviewPromotionGate`. Not a second authority.
 
-Every delivered frame MUST bind `deviceId`, `PreviewRevision`, `artifactFingerprint`, and `deviceStateFingerprint`. An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). Frame capture is an `AndroidDeviceAdapter` operation carrying `adapterId`, `adapterVersion`, `technologyPlanHash`, and `deviceAdapterIdentity` (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND). Transport loss MUST invalidate the projection through the single canonical reducer (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER) and MUST NOT freeze the last frame while presenting it as live (CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE). Physical devices use a separate documented capture path; label semantics are identical. Loopback only. The transport MUST NOT bind to an external interface.
+Every delivered frame MUST bind `deviceId`, `PreviewRevision`, `artifactFingerprint`, and `deviceStateFingerprint`. An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). Frame capture is an `AndroidDeviceAdapter` operation carrying `adapterId`, `adapterVersion`, `technologyPlanHash`, and `deviceAdapterIdentity` (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND). Transport loss MUST invalidate the projection through the single canonical reducer (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER) and MUST NOT freeze the last frame while presenting it as live (CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE). Loopback only. The transport MUST NOT bind to an external interface. Physical Android hardware has no supported capture, transport, validation, or preview path.
 
 ### 10.8 Embedded PreviewHost
 
@@ -1840,7 +1842,7 @@ AutonomousAndroidSession
 
 ### 34.1 Input-fusion pipeline
 
-The input manager combines the user instruction, screenshots, supplied assets, existing project files, device requirements, integrations, and delivery requirements into an application contract, editable visual specification, and technology plan. Screenshots are interpreted as visual evidence and never as executable permission. The technology resolver selects or composes the required Android implementation without requiring a user-facing framework or template choice.
+The input manager combines the user instruction, screenshots, supplied assets, existing project files, emulator requirements, integrations, and delivery requirements into an application contract, editable visual specification, and technology plan. Screenshots are interpreted as visual evidence and never as executable permission. The technology resolver selects or composes the required Android implementation without requiring a user-facing framework or template choice.
 
 ### 34.2 Preview revision bridge
 
@@ -3883,7 +3885,7 @@ Implements build spec §59. Extends §49 (Android Toolchain Authority and Enviro
 | DevicePool | Allocates and recycles Nirman-managed local Android emulator sessions |
 | ScenarioDistributor | Assigns scenarios to devices and orders execution |
 | DivergenceAnalyzer | Compares per-device outcomes for the same scenario |
-| CoverageReporter | Reports per-device scenario coverage and declared gaps |
+| CoverageReporter | Reports per-emulator-profile scenario coverage and declared gaps |
 
 ### 65.2 Resolution and admission
 

@@ -169,7 +169,7 @@ Create the Android construction foundation needed to turn a validated goal and v
 
 ### Work items
 
-1. Define and validate an `AndroidConstructionContract` from the user goal, visual references, assets, device requirements, and technology plan.
+1. Define and validate an `AndroidConstructionContract` from the user goal, visual references, assets, emulator requirements, and technology plan.
 2. Enforce `targetPlatforms == ["android"]` at project construction.
 3. Implement the first Android technology-plan resolver without exposing a fixed template or framework picker as the primary creation path.
 4. Implement environment diagnostics for Java, Gradle, Android SDK, platform-tools, Nirman-managed local Android emulator tooling, package managers, and required project dependencies.

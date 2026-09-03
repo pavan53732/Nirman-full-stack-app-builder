@@ -29,7 +29,7 @@ Nirman has one host application target and one generated project target.
 | Layer | Target | Role |
 |---|---|---|
 | Nirman host | Windows desktop `.exe` | Chat, settings, control plane, workers, local execution, preview panel, evidence, recovery, and delivery UI |
-| Generated user project | Android only | Application synthesized from the user’s intent, screenshots, assets, integrations, and device requirements |
+| Generated user project | Android only | Application synthesized from the user’s intent, screenshots, assets, integrations, and emulator requirements |
 | AI services | Cloud providers selected by the user | Planning, reasoning, coding, vision, embeddings, and interpretation |
 | Execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifacts |
 

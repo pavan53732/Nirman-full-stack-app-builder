@@ -1780,7 +1780,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Decision:** Scenarios will be distributed across a declared emulator profile matrix. A run requires the primary device; unavailable secondary devices produce declared coverage gaps rather than implicit passes. A scenario that passes on one device and fails on another is classified as a defect unless cited evidence shows the failure originates in the device or vendor.
 
-**Rationale:** Verification on a single emulator overstates confidence, and attributing device-specific failures to "device noise" is the standard way real Android defects are dismissed.
+**Rationale:** Verification on a single emulator overstates confidence, and attributing emulator-profile-specific failures to "device noise" is the standard way real Android defects are dismissed.
 
 **Consequences:** Coverage reporting becomes more complex and often reports partial coverage, which is the honest result. Emulator capacity becomes a planning constraint.
 

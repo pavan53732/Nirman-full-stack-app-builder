@@ -2065,7 +2065,7 @@ The primary product promise is that one user instruction and optional screenshot
 
 ### 29.1 Input fusion
 
-The session combines the user’s chat instruction, screenshots, supplied assets, existing project files, device requirements, integrations, and delivery requirements into three authoritative inputs: an `AndroidApplicationContract`, a `VisualSpecification`, and an `AndroidTechnologyPlan`. The user does not select a framework or template. The configured AI resolves the implementation from these inputs.
+The session combines the user’s chat instruction, screenshots, supplied assets, existing project files, emulator requirements, integrations, and delivery requirements into three authoritative inputs: an `AndroidApplicationContract`, a `VisualSpecification`, and an `AndroidTechnologyPlan`. The user does not select a framework or template. The configured AI resolves the implementation from these inputs.
 
 ### 29.2 Autonomous Android session
 
@@ -2253,7 +2253,7 @@ Provider unavailability must not prevent the host from opening projects, history
 
 ## 40. User-Facing Productivity Features
 
-The core workspace must provide one-click goal launch, live task tree beside the Android preview, pause/resume/cancel/fork/retry-from-checkpoint, a technology rationale panel, a changed-files timeline, device-matrix testing, visual comparison, build-health status, an APK artifact center, recovery explanations, an editable project-memory view, task replay, a privacy/network context panel, and an environment-repair center.
+The core workspace must provide one-click goal launch, live task tree beside the Android preview, pause/resume/cancel/fork/retry-from-checkpoint, a technology rationale panel, a changed-files timeline, emulator-profile testing, visual comparison, build-health status, an APK artifact center, recovery explanations, an editable project-memory view, task replay, a privacy/network context panel, and an environment-repair center.
 
 These features expose the runtime’s state without forcing the user to understand internal worker orchestration. The user gives the goal; Nirman manages the complexity.
 
@@ -3578,23 +3578,23 @@ DeviceMatrixEntry
 - role: primary | secondary | optional
 ```
 
-The primary device must be available for a run to proceed. Unavailable secondary devices produce a declared coverage gap, not a silent pass.
+The primary emulator profile must be available for a run to proceed. Unavailable secondary emulator profiles produce a declared coverage gap, not a silent pass.
 
 ### 59.3 Scenario distribution
 
-Scenarios from §56 must be distributed across the matrix. The runtime must record, per scenario and per device, whether the scenario ran, passed, failed, or was skipped with a reason. A pass on the primary device with skips elsewhere must be reported as partial coverage.
+Scenarios from §56 must be distributed across the matrix. The runtime must record, per scenario and per emulator profile, whether the scenario ran, passed, failed, or was skipped with a reason. A pass on the primary emulator profile with skips elsewhere must be reported as partial coverage.
 
 ### 59.4 Divergence handling
 
-When the same scenario passes on one device and fails on another, the runtime must treat the divergence as a defect, not as device noise, and must record the divergence with both emulator profiles before attempting repair.
+When the same scenario passes on one emulator profile and fails on another, the runtime must treat the divergence as a defect, not as emulator noise, and must record the divergence with both emulator profiles before attempting repair.
 
 ### 59.5 Capability status integration
 
-Multi-device coverage must be reported through the capability status vocabulary of §5.6. A capability verified only on the primary device is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`.
+Multi-emulator-profile coverage must be reported through the capability status vocabulary of §5.6. A capability verified only on the primary emulator profile is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`.
 
 ### 59.6 Acceptance criteria
 
-Multi-device coordination is satisfied only when the final report states per-device scenario outcomes, when device unavailability produces a declared gap rather than an implicit pass, and when a device-specific failure is recorded as a defect.
+Multi-emulator-profile coordination is satisfied only when the final report states per-emulator-profile scenario outcomes, when emulator-profile unavailability produces a declared gap rather than an implicit pass, and when an emulator-profile-specific failure is recorded as a defect.
 
 ## 60. External Event Trigger Gateway
 
@@ -5824,7 +5824,7 @@ Preflight MUST detect active real-time scanning over the workspace root, Gradle 
 
 ### 79.16 Hypervisor availability and arbitration
 
-Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A Nirman-managed local Android emulator is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy emulator validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
+Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. No physical Android device is an alternative path. If emulator-backed validation is unavailable, the completion evaluator MUST report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a physical device, container, VM, WSL environment, or successful build for required runtime validation. A Nirman-managed local Android emulator is the sole documented runtime path. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy emulator validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
 
 ---
 
