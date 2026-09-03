@@ -6056,6 +6056,102 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.18 | "The Tool Gateway should be the only component allowed to invoke filesystem, terminal, browser, external-tool, or build actions" | MUST be the sole invoker | Any other component performing these actions is an architectural violation |
 | BS §23.18 | "The Task Controller should decide what work is needed, while the Policy Engine decides whether a proposed action is permitted" | MUST separate the two decisions | One component performing both is prohibited; this separation is what prevents a model response becoming an uncontrolled system action |
 
+| BS §1.1 | "should consistently be described as a desktop application for building other applications" | MUST describe consistently | Never as a platform, service, or website. Applies to UI copy, installer text, and documentation |
+| BS §1.3 | "should make Android development feel closer to describing a product" | MUST prioritise description over assembly | The primary control is the prompt; template or framework selection is never the first user action |
+| BS §1.3 | "A user should be able to explain an Android idea, answer a small number of important questions" | MUST bound the questions | At most four, batched, before generation begins, per §69.11 |
+| BS §1.3 | "should combine the most useful characteristics of conversational builders and traditional development environments" | MUST combine both | Conversational entry with durable evidence and real toolchain execution; neither alone satisfies this |
+| BS §1.4 | "It should be capable of planning, implementing, running, testing, inspecting, and repairing" | MUST be capable of all six | Within a permissioned local workspace |
+| BS §1.4 | "It should not silently access arbitrary files, publish software, spend money, sign release builds, or transmit private information" | MUST NOT do any of the five without approval | Each requires explicit user approval bound to the specific action |
+| BS §2.1 | "should support both technical and semi-technical users" | MUST support both | Guided setup and explanations are always available; they are never a mandatory gate |
+| BS §2.2 | "A user should be able to create an Android application by describing its goal, screens, navigation, data, visual style, device behavior, permissions, and required integrations" | MUST accept all eight described dimensions | Absence of any dimension in the prompt resolves under §69.11, never by refusal |
+| BS §2.2 | "They should be able to continue modifying it through natural language without losing manual editing control" | MUST preserve manual edits | User edits are reconciled per §26.4, never silently overwritten |
+| BS §2.2 | "A user should also be able to open an existing Android project" | MUST support opening existing projects | Ingestion per §34 with a repository map before any mutation |
+| BS §2.2 | "The application should create a checkpoint before significant work and show a summary of changed files" | MUST checkpoint and summarise | Significant means multi-file or any mutation outside a single targeted patch |
+| BS §2.2 | "The framework resolver should choose or compose the appropriate Android implementation" | MUST resolve from requirements | Never from a fixed template catalog offered to the user |
+| BS §6 | "should be composed as a Windows-first desktop application with independent internal modules" | MUST use independent modules | Per the §51 locked stack and §23.18 component boundaries |
+| BS §6 | "The architecture should allow the project runtime and agent system to evolve without coupling the interface to one particular design" | MUST decouple UI from runtime | UI holds presentation state only per ADR-116; runtime evolution MUST NOT require UI change |
+| BS §7 | "The AI model should interact with Nirman through structured tools" | MUST use the tool protocol | Every model-initiated action passes the Tool Gateway per §23.18 |
+| BS §7 | "The model should not directly receive an unrestricted terminal or filesystem interface" | MUST NOT expose raw interfaces | No shell handle, no unrestricted path access, ever |
+| BS §11 | "should maintain local metadata separate from generated application source files" | MUST separate | Ledger metadata never written into the user's project tree |
+| BS §11.2 | "The actual API key should not be stored in this record" | MUST NOT store the key | Windows Credential Manager reference only |
+| BS §11.2 | "The record should contain only a secure keychain reference" | MUST store a reference only | Reference resolves at call time; the key never enters the ledger, logs, or events |
+| BS §13 | "Failed tasks should stop safely and preserve the last valid checkpoint" | MUST stop safely with checkpoint intact | A failure that loses the checkpoint is a defect, not a failure mode |
+| BS §13 | "The interface should remain usable while builds and model requests run" | MUST stay responsive | UI never blocks on build, model, or device work; all long operations are supervisor-owned |
+| BS §13 | "New Android technology adapters and AI providers should be addable independently" | MUST support independent addition | Adding either MUST NOT require changing the other or the UI |
+| BS §13 | "Agent tools, provider adapters, internal Android bootstraps, and UI should have separate boundaries" | MUST keep the four boundaries separate | Cross-boundary calls go through declared interfaces only |
+| BS §14 | "the boundaries should remain clear" | MUST keep boundaries clear | Layout may change; the four boundaries above may not merge |
+| BS §14 | "The desktop interface should not contain the complete agent implementation" | MUST NOT embed the agent in the UI | Agent execution is supervisor-side without exception |
+| BS §14 | "provider-specific behavior should not be scattered through the user interface" | MUST confine provider logic to the adapter layer | UI shows provider state; it never implements provider behaviour |
+| BS §16 | "The first usable release should satisfy the following conditions" | MUST satisfy all listed conditions | The §16 list is the binding definition of first usable release |
+| BS §18 | "The welcome screen should explain Nirman in one sentence, offer Create project and Open project, and show whether an AI provider is configured" | MUST show all three elements | No login, no account, no onboarding gate per §1.5 |
+| BS §18 | "The project workspace should contain the chat, file tree, editor or preview, activity stream, and bottom logs panel" | MUST contain all five regions | Preview is the primary surface; the others are secondary |
+| BS §18 | "The most important toolbar actions should be Run, Stop, Checkpoint, Undo, Build, and Export" | MUST provide all six | Stop is always enabled while any task is active |
+| BS §18 | "The provider settings screen should allow users to add profiles, enter a base URL, API key, and model ID, test the connection, select model capabilities, and remove credentials" | MUST provide all six operations | Test connection performs a real provider call, never a simulated success |
+| BS §18 | "The diagnostics screen should show required tools, detected versions, missing tools, project health, provider status, active processes, port usage, and recent errors" | MUST show all eight | Values come from observed preflight, never from cached assumptions |
+| BS §18 | "The task review screen should show the original request, implementation plan, changed files, commands, test results, warnings, and buttons" | MUST show all seven | Every item links to its underlying evidence record |
+| BS §19 | "The project should be built in vertical slices" | MUST build vertically | Never by completing subsystems horizontally |
+| BS §19 | "Each slice should produce a usable part of the application" | MUST be user-visible | A slice with no user-observable outcome is not a slice |
+| BS §19 | "The first vertical slice should allow the user to open Nirman, configure a provider, describe an Android application, receive a technology plan, and see a build" | MUST deliver that path end to end | This is the M0-M4 scope |
+| BS §19 | "The second slice should add checkpoints, diffs, tests, repair attempts, emulator preview, and cancellation" | MUST add all six | Cancellation must actually interrupt running work, not merely mark intent |
+| BS §19 | "The third should add Android packaging, APK artifacts, signing boundaries, and emulator validation" | MUST add all four | Per §78 export provenance |
+| BS §19 | "The team should maintain a fixture library of representative projects and tasks" | MUST maintain fixtures | FIX-PROG-01..08 per the development plan, plus per-milestone fixtures |
+| BS §19 | "Each agent change should be evaluated against these fixtures" | MUST evaluate every agent change | For code correctness, preview startup, test results, and changed-file scope |
+| BS §20 | "Nirman should be a polished, minimal Windows desktop application" | MUST stay minimal | No file explorer as primary surface, no code editor as primary surface, no IDE furniture |
+| BS §20 | "Its differentiator should not be the existence of a chat box" | MUST NOT rely on chat as the differentiator | The differentiator is the evidence-bound autonomous loop with live preview |
+| BS §20 | "The system should become broadly capable by composing Android technologies from requirements" | MUST compose from requirements | Never by maintaining a template catalog |
+| BS §22.1 | "should support a Parallel Swarm Orchestrator" | MUST support parallel orchestration | Subject to §26.3 concurrency limits and §23.6 isolation requirements |
+| BS §22.2 | "should support continuous background execution for large-scale development tasks" | MUST support continuous execution | Per §77 background continuity |
+| BS §22.2 | "Ordinary thresholds should warn, throttle, optimize, or change model routing without terminating the goal" | MUST adapt, MUST NOT terminate | Only explicit hard safety limits terminate. Per CLAUSE.COST.EXHAUSTION_EXPLICIT |
+| BS §24 | "The capabilities above should be introduced in the following order" | MUST follow the §24 order | Ordering is a dependency constraint, not a preference |
+| BS §24 | "Nirman should not begin with unrestricted multi-agent parallelism" | MUST NOT start parallel | Single-worker reliability is a precondition |
+| BS §24 | "It should first prove that one worker can reliably inspect, plan, edit, test, and recover" | MUST prove single-worker reliability first | Demonstrated by fixture evidence, not by assertion |
+| BS §24 | "Parallel workers should be added only after checkpoints, permissions, event logs, and reconciliation are dependable" | MUST gate parallelism on all four | Each proven by its own fixture family |
+| BS §25 | "The task should be considered complete only when the requested acceptance criteria are satisfied" | MUST gate completion on acceptance criteria | Or an explicit truthful stop classification per §27.10 |
+| BS §25 | "Nirman should optimize for verified progress, not maximum autonomous activity" | MUST optimise for verified progress | Activity without evidence is not progress and MUST NOT be reported as such |
+| BS §27.1 | "Goal Mode should support a user instruction such as 'continue until the application builds...'" | MUST support goal-until-done instructions | Across multiple agent turns and worker handoffs |
+| BS §27.1 | "The mode should continue working across multiple agent turns and worker handoffs" | MUST continue across turns | A turn boundary is never a stop condition |
+| BS §27.1 | "Ordinary resource signals should trigger adaptation rather than termination" | MUST adapt, not terminate | Only explicit hard caps, safety stops, provider policy, or OS protection may end a goal |
+| BS §27.1 | "the user should be able to select the named Unattended / Full Autonomy profile" | MUST provide the named profile | Visible, auditable, project-scoped, easy to disable, per §23.7 |
+| BS §27.2 | "The user should be able to start a background task, continue editing another project or task, inspect progress without taking over" | MUST support all three concurrently | Inspection never suspends the task |
+| BS §27.2 | "the application should use an in-app notification and an optional operating-system notification" | MUST notify in-app; MAY notify at OS level | OS notification requires user enablement; in-app is unconditional |
+| BS §27.2 | "The task should also appear in a tray badge, durable task queue, and startup summary after reboot" | MUST appear in all three | Durable across reboot per §77 |
+| BS §27.4 | "Hook failures should pause the affected action when the hook is marked blocking" | MUST pause on blocking-hook failure | Non-blocking hook failures are recorded as warnings and do not pause |
+| BS §27.5 | "Supported trigger types should include a fixed interval, a local calendar schedule, project-file change, failed validation, new checkpoint, and user-defined manual trigger" | MUST support all six trigger types | External event triggers are governed separately by §60 |
+| BS §27.5 | "Scheduled tasks should initially be limited to safe local activities" | MUST limit to safe local activities | Running tests, checking dependencies, refreshing diagnostics. No mutation, no network publish |
+| BS §27.6 | "File-level checkpoints should be created before targeted patches or manual edits" | MUST checkpoint before file-level change | Before the edit, never after |
+| BS §27.6 | "Task-level checkpoints should be created before multi-file autonomous work, worker integration, packaging, or release preparation" | MUST checkpoint before all four | A task-level checkpoint is a precondition of each |
+| BS §27.7 | "Nirman should be able to return to the last known-good file-level or task-level checkpoint" | MUST support backtracking | Backtracking is distinct from retry and MUST be available whenever a checkpoint exists |
+| BS §27.7 | "A recovery cycle should follow this pattern" | MUST follow the §27.7 cycle | The stage sequence is binding |
+| BS §27.7 | "The recovery record should explain what changed between attempts" | MUST record the delta | An attempt with no recorded change is a repeat, not a new strategy |
+| BS §27.7 | "A task should continue through additional strategies and adaptive resource management" | MUST continue while safe strategies remain | Per §26.3, three distinct strategies, not three identical retries |
+| BS §27.7 | "It should stop only when it reaches an explicit hard safety or policy limit, an unresolvable requirement, a required user decision, or no safe recovery path" | MUST stop only on those four conditions | Each stop is classified per §27.10 |
+| BS §27.8 | "The context planner should select a mode based on provider capability, project size, task type, token budget, privacy policy, and user preference" | MUST consider all six | User preference and privacy policy are overriding, not advisory |
+| BS §27.10 | "Nirman should continue working until the goal is complete or until a defined stop condition is reached" | MUST continue to goal or defined stop | No implicit stop exists |
+| BS §27.10 | "Reaching an ordinary time, token, cost, or usage threshold should trigger adaptation or a visible warning" | MUST adapt or warn, MUST NOT auto-end | Consistent with §22.2 and CLAUSE.COST.EXHAUSTION_EXPLICIT |
+| BS §27.10 | "It should present a completion classification" | MUST classify every ending | Never claim "worked until complete" when a limit or error caused the stop |
+| BS §27.11 | "The tree should show the parent goal, phases, sub-tasks, worker handoffs, commands, previews, tests, builds, security checks, and evidence" | MUST show all ten node types | Each expandable to its evidence record |
+| BS §27.11 | "the default autonomous validation loop should be" the §27.11 sequence | MUST follow the default loop | Deviation requires a recorded reason on the task |
+| BS §27.11 | "Nirman should not ask for approval for every small, reversible operation inside an approved workspace" | MUST NOT over-prompt | Reversible in-workspace operations proceed under the active profile |
+| BS §27.11 | "It should request a decision only at defined policy boundaries" | MUST request only at policy boundaries | Protected-file access, risky dependency, external directory, destructive command, network publish, signing |
+| BS §27.11 | "Ordinary time, token, cost, process, disk, and retry thresholds should cause adaptation, throttling, warning, or optional approval" | MUST adapt rather than lock completion | Not a fixed completion lock |
+| BS §27.11 | "The user should be able to reopen each evidence item from the result" | MUST make evidence reopenable | Every claim in a result links to its durable evidence record |
+| BS §28.2 | "The runtime should continue automatically whenever a safe new strategy is available" | MUST continue while safe strategies remain | Repeating the same command, patch, prompt, or model route is not a new attempt |
+| BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recoveries, and outcome" | MUST record all nine | For every completed, failed, recovered, cancelled, or escalated task |
+| BS §28.3 | "The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, reliability, provider reliability, self-update safety, and human intervention rate" | MUST measure all nine | Visible for diagnosis |
+| BS §28.3 | "These metrics should not be optimized at the expense of correctness or safety" | MUST NOT optimise metrics over correctness | A metric improvement that weakens a gate is a regression |
+| BS §28.4 | "Nirman should identify recurring failure patterns, provider incompatibilities, repeated user corrections, regression clusters, tool failures, and evaluation degradation" | MUST identify all six pattern classes | From episode records |
+| BS §28.4 | "It should convert sufficiently repeated patterns into scoped improvement proposals" | MUST propose, never self-apply | Sufficiently repeated means three or more occurrences with a common fingerprint. Proposals carry evidence and hypothesis |
+| BS §28.6 | "Promotion should support observe-only, candidate-only, canary, trusted auto-promotion, and manual-promotion modes" | MUST support all five modes | Manual promotion is the default |
+| BS §28.7 | "Nirman should maintain separate task memory, project memory, and runtime-improvement memory" | MUST keep the three separate | Memory is generated from durable records, never from raw chain-of-thought |
+| BS §28.9 | "The runtime should continue automatically through these capabilities whenever a safe next action exists" | MUST continue automatically | Unless explicitly classified unnecessary, unavailable, or blocked with evidence |
+| BS §47.8 | "Nirman SHOULD measure worker and strategy quality using success rate, regression rate, time-to-evidence, false-positive rate" | MUST measure all four | Quality metrics gate validated-pattern promotion per §53.10 |
+| BS §48 | "One instruction plus optional screenshots should produce a complete, validated Android application" | MUST achieve this from one instruction | Through a durable, recoverable, inspectable, evidence-bound loop. This is the product promise |
+| BS §50.5 | "Unaffected source code and assets should remain unchanged where impact analysis proves they are independent" | MUST NOT touch independent files | Independence must be proven by impact analysis, not assumed |
+| BS §50.6 | "The reasoning stream should show safe events" | MUST show only safe structured events | Never raw private chain-of-thought, per §49 |
+| BS §51.3 | "Nirman should feel like one application even when the supervisor is a separate executable" | MUST present as one application | Installed together, versioned together, started and reconnected automatically |
+| BS §68.3 | "Competing strategies are comparable and should be tried per §65" | MUST route to §65 speculative branching | When the deliberation runtime returns BRANCH |
+| BS §69.7 | "Nirman SHOULD expose meaningful validated stages rather than streaming every token" | MUST expose validated stages only | Never stream unverified file predictions or raw token output as progress |
+
 ### 80.3 Default values for all configurable parameters
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
@@ -6854,14 +6950,13 @@ The "should" resolution table in §80.2 is incomplete. This subsection records a
 
 | Scope | Statements | Resolved | Status |
 |---|---|---|---|
-| BS §3–§12 | 42 | 42 | Complete |
-| BS §23 | 85 | 85 | Complete |
-| BS §26 | 61 | 61 | Complete |
-| BS §13–§79 excluding §23 and §26 | 132 | 0 | Outstanding |
+| Build spec (all sections) | 320 | 320 | Complete |
 | Technical architecture | 172 | 0 | Outstanding |
 | Development plan | 18 | 0 | Outstanding |
 | AGENTS.md | 2 | 0 | Outstanding |
-| **Total** | **512** | **188** | **36.7%** |
+| **Total** | **512** | **320** | **62.5%** |
+
+An earlier revision of this table recorded BS §3–§12 as 42 of 42 resolved. The correct figure for those sections is 82 statements; the original 42 rows covered a subset. The remaining §3–§12 statements are resolved in the same batch that completed the build spec, and the table above now counts whole documents rather than partial ranges.
 
 Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table.
 
