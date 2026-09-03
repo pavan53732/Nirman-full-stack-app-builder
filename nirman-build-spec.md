@@ -327,7 +327,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
 | CAP.ANDROID.AUTONOMOUS_REASONING | Decide what to do next from evidence, and delegate within bounded authority | CONTRACT.RUNTIME.REASONING | TEST-RSN-001 | EV-RSN-001 | PLANNED |
 | CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
-| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold and platform capability states (host, target, validation, certification) are truthful and evidence-bound | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-INV-001 | EV-INV-001 | PLANNED |
+| CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold and platform capability states (host, target, validation, certification) are truthful and evidence-bound | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PLATFORM_CAPABILITY, CONTRACT.RUNTIME.AGENT_BUILDABILITY | TEST-INV-001 | EV-INV-001 | PLANNED |
 | CAP.PLATFORM.CAPABILITY_TRUTH | Classify and report build, cross-build, and target-runtime capability states truthfully, with host, target, validation, and certification kept distinct and evidence-bound | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-PLAT-001 | EV-PLAT-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
@@ -4184,7 +4184,8 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | — | — | — | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.COST_GOVERNANCE | BS §72 | — | TA §77 | ADR-197 | M111 | CROSS_CUTTING |
@@ -4195,6 +4196,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | BS §77 | — | TA §82 | ADR-202 | M116 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.APK_EXPORT | BS §78 | — | TA §83 | ADR-203 | M117 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | BS §79 | BS §37, BS §52 | TA §84 | ADR-206 | M118 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | — | — | — | INTERNAL |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -4346,6 +4348,10 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | platform runtime evidence is valid only when bound to the matching EnvironmentCapabilityRecord fingerprint, target platform, and source revision; a mismatch invalidates it | SEALED |
 | CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | native target-validation tasks execute only after reserving a matching ValidationEnvironment under a durable lease; without the lease there is no validation or certification claim | SEALED |
 | CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | §79 | containers, VMs, WSL, simulated, or remote environments never substitute for the declared target platform's native runtime validation, and are never generated product targets | SEALED |
+| CLAUSE.BUILDABILITY.NO_AGENT_HALLUCINATION | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | every schema, procedure, default value, decision criteria, prompt template, test fixture, and implementation sequence MUST be explicitly defined; an agent MUST NEVER have to invent, guess, or infer any of these | SEALED |
+| CLAUSE.BUILDABILITY.COMPLETE_PROCEDURES | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | every process described as "the runtime handles it" or "the system should" MUST have a concrete step-by-step procedure defined in §80 | SEALED |
+| CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | every "configurable" parameter MUST have a default value defined in §80.3 | SEALED |
+| CLAUSE.BUILDABILITY.DETERMINISTIC_DECISIONS | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | when the runtime has multiple options, it MUST choose using the explicit decision criteria defined in §80.4 | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -4422,6 +4428,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | all | all | BS §80 | all | BS §80 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -5764,3 +5771,874 @@ Preflight MUST detect active real-time scanning over the workspace root, Gradle 
 ### 79.16 Hypervisor availability and arbitration
 
 Preflight MUST classify firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers, recording each in `EnvironmentCapabilityRecord`. Without acceleration, emulator-backed validation is `UNAVAILABLE`. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE the completion evaluator MUST then report at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` and MUST NOT substitute a successful build for runtime validation. A physical device is the documented alternative path and MUST be offered before the work is blocked, consistent with BS §79.4 work splitting. Hypervisor-contention start failure MUST be its own classification with a plain-language remedy naming the conflicting software. A container, VM, or WSL Android environment does NOT satisfy device validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
+
+---
+
+## 80. Agent-Buildability Contract
+
+**ContractId:** `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.AGENT_BUILDABILITY` (see BS §67.8)
+
+**ContractId:** `CONTRACT.RUNTIME.INVARIANTS`
+**ExtensionDeclaration:**
+- authorityContractId: CONTRACT.RUNTIME.INVARIANTS
+- authoritySection: §67
+- extendingSection: §80
+- extensionType: adds_clauses
+- extendedClauses: CLAUSE.BUILDABILITY.NO_AGENT_HALLUCINATION, CLAUSE.BUILDABILITY.COMPLETE_PROCEDURES, CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS, CLAUSE.BUILDABILITY.DETERMINISTIC_DECISIONS
+- nonOverriddenClauses: CLAUSE.INVARIANT.LEDGER_VERIFIABLE
+
+This section defines the contract that every canonical document MUST be complete enough for an AI agent to build Nirman without hallucination, inference, or guessing. It resolves all ambiguities in the existing specification by providing concrete procedures, default values, decision criteria, and complete schemas.
+
+### 80.1 The agent-buildability invariant
+
+An AI agent building Nirman from these docs MUST NEVER have to:
+1. Invent a schema field that is not defined
+2. Guess a default value that is not specified
+3. Choose between options without explicit decision criteria
+4. Infer a procedure that is described only in vague terms
+5. Create a prompt template that is not provided
+6. Determine implementation sequencing without explicit ordering
+7. Define a test fixture without a concrete fixture specification
+8. Resolve a "should" without explicit criteria for when it applies
+
+If any of these conditions occurs, the docs are incomplete and MUST be corrected.
+
+### 80.2 "Should" resolution table
+
+Every "should" in the canonical documents is resolved here with explicit criteria:
+
+| Section | "Should" statement | Resolution | Criteria |
+|---|---|---|---|
+| BS §3.1 | "should run locally whenever possible" | MUST run locally; cloud AI is the only exception | When cloud AI is configured, model calls go to cloud; all build/test/preview runs local |
+| BS §3.2 | "should always be able to access" | MUST provide access | User can always access project dir, source, Git, config, artifacts |
+| BS §3.3 | "should be able to see" | MUST display | Current task, plan, files changed, commands, test results, failure reasons |
+| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |
+| BS §3.5 | "should start with reliable synthesis" | MUST start with synthesis | First vertical slice MUST be synthesis loop |
+| BS §4.1 | "should use minimal focused layout" | MUST use minimal layout | Layout MUST have: left nav, chat, file tree, workspace, bottom panel, toolbar |
+| BS §4.2 | "should explain it is local" | MUST explain on first launch | First-run screen MUST explain local-first nature |
+| BS §4.3 | "should produce structured response" | MUST produce structured response | Every response MUST have: Understanding, Plan, Files to change, Commands, Progress, Validation, Summary |
+| BS §4.4 | "should support emulator preview first" | MUST support emulator first | Emulator is the primary preview path |
+| BS §4.5 | "should include full code editor" | MUST include editor | Editor MUST have: syntax highlighting, search, tabs, formatting, diagnostics |
+| BS §5.1 | "should focus exclusively on Android" | MUST focus on Android | Generated target is Android only |
+| BS §5.2 | "should be designed to build all categories" | MUST build all categories | Technology resolver MUST support all listed categories |
+| BS §6.1 | "should use C#/.NET + WinUI 3" | MUST use C#/.NET + WinUI 3 | Desktop shell is C#/.NET + WinUI 3 |
+| BS §6.2 | "should contain chat workspace" | MUST contain all listed areas | Frontend MUST have all listed areas |
+| BS §6.3 | "should never assume tool exists" | MUST verify before invoke | Runtime MUST verify executable before invoking |
+| BS §6.4 | "should be stateful task engine" | MUST be stateful | Orchestrator MUST maintain all listed state categories |
+| BS §6.5 | "should not send entire project" | MUST use index | Context selector MUST use project index |
+| BS §6.6 | "should create checkpoint" | MUST create checkpoint | Before multi-file changes |
+| BS §7.1 | "should interact through structured tools" | MUST use structured tools | Model MUST use only defined tools |
+| BS §7.2 | "should classify failures" | MUST classify | Agent MUST classify every failure |
+| BS §7.3 | "should stop and explain" | MUST stop and explain | After repeated failure, MUST stop and explain |
+| BS §8.1 | "should allow users to configure" | MUST allow configuration | Users MUST be able to configure all listed fields |
+| BS §8.2 | "should return normalized result" | MUST return normalized result | Adapter MUST return normalized result |
+| BS §8.3 | "should clearly communicate" | MUST communicate | MUST tell user when content is sent to cloud |
+| BS §8.4 | "should mask keys" | MUST mask keys | Keys MUST be masked in all output |
+| BS §9.1 | "should execute locally" | MUST execute locally | Generated apps run locally |
+| BS §9.2 | "should detect presence and versions" | MUST detect | Runtime MUST detect all listed tools |
+| BS §9.3 | "should implement command timeouts" | MUST implement | Runtime MUST implement all listed controls |
+| BS §9.4 | "should be visible" | MUST be visible | Network access MUST be visible |
+| BS §10.1 | "should read/write only inside workspace" | MUST stay inside workspace | Default: workspace-only access |
+| BS §10.2 | "should validate executable" | MUST validate | Command runner MUST validate before execution |
+| BS §10.3 | "should show which dependencies" | MUST show | MUST show dependencies before install |
+| BS §10.4 | "should detect likely secrets" | MUST detect | MUST detect and protect secrets |
+| BS §10.5 | "should require explicit confirmation" | MUST require confirmation | Release/signing/publishing requires confirmation |
+| BS §10.6 | "should record task ID" | MUST record | Activity log MUST record all listed fields |
+| BS §12.1 | "should be able to create" | MUST support creation | User MUST be able to create by describing |
+| BS §12.2 | "should be able to describe" | MUST support description | User MUST be able to describe new app |
+| BS §12.3 | "should be able to inspect" | MUST support inspection | User MUST be able to inspect files |
+| BS §12.4 | "should start local preview" | MUST start preview | MUST start preview for supported projects |
+| BS §12.5 | "should be able to create/edit" | MUST support provider CRUD | User MUST manage provider profiles |
+| BS §12.6 | "should be able to export" | MUST support export | User MUST be able to export source/APK |
+| BS §12.7 | "should be able to inspect" | MUST support diagnostics | User MUST be able to inspect diagnostics |
+
+### 80.3 Default values for all configurable parameters
+
+Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
+
+| Parameter | Default | Range | Override |
+|---|---|---|---|
+| Worker stale threshold | 60 seconds | 30-300 seconds | Per project |
+| Worker heartbeat interval | 10 seconds | 5-30 seconds | Per project |
+| Concurrent write-capable workers per task | 3 | 1-5 | Per project |
+| Concurrent read-only workers per task | 5 | 1-10 | Per project |
+| Total active workers | 8 | 4-16 | Per project |
+| Default task wall-clock budget | 200 minutes | 30-1440 minutes | Per task |
+| Default repair attempts per failure | 3 | 1-10 | Per task |
+| Default task context budget | Provider-dependent | 16K-200K tokens | Per task |
+| Default disk quota per task | 10 GB | 1-100 GB | Per project |
+| Default token budget | Provider-dependent | 100K-10M tokens | Per task |
+| Default request budget | 1000 requests | 100-10000 | Per task |
+| Default duration budget | 200 minutes | 30-1440 minutes | Per task |
+| Default cost cap | None (unlimited) | $0.01-$1000 | Per task |
+| Checkpoint retention (recent) | 10 | 3-50 | Per project |
+| Checkpoint retention (initial) | Always keep | N/A | Never deleted |
+| Checkpoint retention (last known-good) | Always keep | N/A | Never deleted |
+| Context compaction threshold | 80% of context limit | 60-95% | Per project |
+| Context compaction minimum retention | 20% of context limit | 10-40% | Per project |
+| Telemetry sampling interval | 30 seconds | 5-300 seconds | Per project |
+| Retry budget (transient failures) | 3 | 1-10 | Per task |
+| Retry backoff initial | 1 second | 0.1-10 seconds | Per project |
+| Retry backoff max | 60 seconds | 10-300 seconds | Per project |
+| Retry backoff multiplier | 2.0 | 1.1-3.0 | Per project |
+| Deliberation diminishing return threshold | 3 passes | 2-10 passes | Per task |
+| Deliberation max passes (NORMAL) | 1 | 1-3 | Per task |
+| Deliberation max passes (EXTENDED) | 3 | 2-5 | Per task |
+| Deliberation max passes (DEEP) | 5 | 3-10 | Per task |
+| Deliberation max passes (EXHAUSTIVE) | 10 | 5-20 | Per task |
+| Screenshot comparison threshold | 0.95 similarity | 0.80-0.99 | Per project |
+| Visual diff threshold | 5% pixel diff | 1-20% | Per project |
+| Uncertainty threshold (high risk) | 0.1 | 0.05-0.3 | Per task |
+| Uncertainty threshold (medium risk) | 0.2 | 0.1-0.5 | Per task |
+| Uncertainty threshold (low risk) | 0.4 | 0.2-0.7 | Per task |
+| Stall detection window | 300 seconds | 60-1800 seconds | Per project |
+| Stall detection min progress | 1 event | 0-5 events | Per project |
+| Approval expiry | 24 hours | 1-168 hours | Per project |
+| Notification cooldown | 60 seconds | 5-600 seconds | Per project |
+| Log retention | 30 days | 7-365 days | Per project |
+| Artifact retention | 90 days | 7-365 days | Per project |
+| Session memory retention | Project lifetime | N/A | Until project deleted |
+| Project memory retention | Project lifetime | N/A | Until project deleted |
+| Runtime-improvement memory retention | 365 days | 30-3650 days | Per project |
+
+### 80.4 Decision criteria for runtime choices
+
+When the runtime has multiple options, it MUST choose using these explicit criteria:
+
+#### 80.4.1 Recovery strategy selection
+
+When a failure occurs, the runtime MUST select a recovery strategy using this ordered priority:
+
+1. **Transient retry** — If the failure is transient (network timeout, rate limit, temporary lock), retry with exponential backoff
+2. **Focused diagnostic** — If the failure is localized, spawn a diagnostic worker to isolate the cause
+3. **Context refresh** — If the failure may be due to stale context, compact and refresh context
+4. **Strategy change** — If the current strategy has failed twice, switch to a different strategy
+5. **Worker role change** — If the current worker role is inappropriate, delegate to a different role
+6. **Checkpoint restore** — If the failure is structural, restore last known-good checkpoint
+7. **Model change** — If the model is incapable, route to a different model
+8. **Specialist delegation** — If the failure is domain-specific, delegate to a specialist
+9. **Isolated alternative** — If the current approach is fundamentally flawed, create an isolated alternative
+10. **User escalation** — If all automated strategies are exhausted, escalate to user
+
+The runtime MUST attempt each strategy in order. It MAY skip a strategy if the failure class is clearly incompatible with that strategy. The runtime MUST record which strategies were attempted and why each was selected or skipped.
+
+#### 80.4.2 Worker selection
+
+When selecting a worker for a task, the runtime MUST use this ordered criteria:
+
+1. **Role match** — The worker's role MUST match the task type
+2. **Availability** — The worker MUST be available (not at capacity)
+3. **Capability** — The worker MUST have the required capabilities
+4. **Model suitability** — The worker's model MUST be suitable for the task type
+5. **Resource fit** — The worker MUST fit within the task's resource budget
+6. **Historical performance** — Prefer workers with higher success rates for this task type
+7. **Workspace isolation** — The worker MUST have an isolated workspace
+
+#### 80.4.3 Model routing
+
+When selecting a model for a task, the runtime MUST use this ordered criteria:
+
+1. **Capability requirement** — The model MUST have the required capabilities (vision, reasoning, tool calling)
+2. **Task type suitability** — The model MUST be suitable for the task type (planning, coding, visual)
+3. **Context capacity** — The model MUST have sufficient context capacity for the task
+4. **Cost efficiency** — Prefer lower-cost models when capability is equivalent
+5. **Latency** — Prefer lower-latency models when capability is equivalent
+6. **Historical performance** — Prefer models with higher success rates for this task type
+7. **Provider health** — Prefer providers with better current health metrics
+
+#### 80.4.4 Context compaction
+
+When compacting context, the runtime MUST use this ordered priority for what to retain:
+
+1. **Active constraints** — MUST never be evicted
+2. **Locked decisions** — MUST never be evicted
+3. **Current goal** — MUST never be evicted
+4. **Current plan** — MUST never be evicted
+5. **Active errors** — MUST never be evicted
+6. **Recent evidence** — Retain from last 5 turns
+7. **Recent file changes** — Retain from last 5 turns
+8. **Recent commands** — Retain from last 3 turns
+9. **Earlier context** — Summarize into structured summary
+10. **Historical context** — Archive to cold storage
+
+#### 80.4.5 Checkpoint selection
+
+When selecting a checkpoint to restore, the runtime MUST use this ordered criteria:
+
+1. **Last known-good** — The most recent checkpoint that passed all validation
+2. **Task boundary** — The checkpoint at the start of the current task
+3. **Pre-mutation** — The checkpoint immediately before the failing mutation
+4. **Initial** — The initial project checkpoint (last resort)
+
+### 80.5 Complete schema definitions
+
+All schemas referenced in the specification are fully defined here. An agent MUST use these exact field definitions.
+
+#### 80.5.1 AndroidTechnologyPlan
+
+```text
+AndroidTechnologyPlan
+- planId: string (uuid)
+- projectId: string (uuid)
+- revision: string (hash)
+- selectedLanguages: ("kotlin" | "java" | "typescript" | "javascript" | "cpp" | "c")[]
+- uiSystem: ("jetpack_compose" | "android_views" | "react_native" | "expo" | "mixed")?
+- nativeModules: string[] (Maven coordinates or npm package names)
+- buildSystem: ("gradle_kotlin" | "gradle_groovy")?
+- gradleVersion: string (semver)?
+- agpVersion: string (semver)?
+- kotlinVersion: string (semver)?
+- compileSdk: integer?
+- targetSdk: integer?
+- minSdk: integer?
+- ndkVersion: string (semver)?
+- cmakeVersion: string (semver)?
+- packageId: string (reverse-domain)?
+- versionCode: integer?
+- versionName: string (semver)?
+- permissions: string[] (Android permission names)
+- features: string[] (Android feature names)
+- services: string[] (service class names)
+- dependencies: string[] (Maven coordinates or npm package names)
+- testFrameworks: string[] (e.g., "junit", "espresso", "compose_ui_test")
+- rationale: string (human-readable explanation of technology choices)
+- confidence: float (0.0-1.0)
+- alternativesConsidered: { technology: string, rejectionReason: string }[]
+- lockedAt: timestamp
+- lockedBy: string (worker or authority ID)
+```
+
+#### 80.5.2 VisualSpecification
+
+```text
+VisualSpecification
+- specId: string (uuid)
+- projectId: string (uuid)
+- revision: string (hash)
+- sourceScreenshotRefs: string[] (screenshot IDs)
+- screens: ScreenSpec[]
+- colorSystem: ColorSystem?
+- typography: TypographySpec?
+- spacing: SpacingSpec?
+- componentLibrary: string?
+- interactionPatterns: string[]
+- accessibilityRequirements: string[]
+- uncertainty: { area: string, confidence: float, question: string }[]
+- lockedAt: timestamp
+- lockedBy: string (worker or authority ID)
+
+ScreenSpec
+- screenId: string (uuid)
+- name: string
+- route: string?
+- components: ComponentSpec[]
+- layout: LayoutSpec?
+- interactions: InteractionSpec[]
+- states: ScreenState[]
+
+ComponentSpec
+- componentId: string (uuid)
+- type: string (e.g., "button", "text", "image", "list")
+- label: string?
+- position: { x: float, y: float, width: float, height: float }
+- style: string (style reference)
+- behavior: string?
+- accessibilityLabel: string?
+
+InteractionSpec
+- interactionId: string (uuid)
+- trigger: string (e.g., "tap", "swipe", "long_press")
+- action: string (e.g., "navigate", "toggle", "submit")
+- target: string (screen or component ID)
+
+ScreenState
+- stateId: string (uuid)
+- name: string (e.g., "loading", "empty", "error", "loaded")
+- conditions: string[]
+- components: ComponentSpec[] (overrides for this state)
+```
+
+#### 80.5.3 AndroidApplicationContract
+
+```text
+AndroidApplicationContract
+- contractId: string (uuid)
+- projectId: string (uuid)
+- revision: string (hash)
+- displayName: string
+- packageId: string (reverse-domain)
+- namespace: string
+- versionCode: integer
+- versionName: string (semver)
+- description: string
+- brandingIntent: string?
+- privacyClassification: ("public" | "internal" | "confidential" | "restricted")
+- originalRequest: string
+- screenshotRefs: string[]
+- explicitConstraints: string[]
+- inferredRequirements: string[]
+- assumptions: string[]
+- unresolvedAmbiguities: string[]
+- features: FeatureModel[]
+- screens: ScreenSpec[]
+- dataModel: DataModel?
+- integrations: IntegrationSpec[]
+- technologyPlanRef: string (planId)
+- validationModel: ValidationModel?
+- artifactModel: ArtifactModel?
+- lockedAt: timestamp
+- lockedBy: string (worker or authority ID)
+
+FeatureModel
+- featureId: string (uuid)
+- name: string
+- description: string
+- userStory: string
+- dependencies: string[] (feature IDs)
+- mandatory: boolean
+- acceptanceTests: string[]
+- affectedScreens: string[] (screen IDs)
+
+DataModel
+- entities: EntitySpec[]
+- relationships: RelationshipSpec[]
+- persistenceStrategy: ("room" | "sqlite" | "datastore" | "encrypted" | "network_cache" | "composed")
+- migrationRules: string[]
+- corruptionRecovery: string?
+- seedDataPolicy: ("empty" | "fixture" | "none")
+- encryptionRequirements: string?
+
+IntegrationSpec
+- integrationId: string (uuid)
+- name: string
+- kind: ("api" | "auth" | "notification" | "storage" | "camera" | "location" | "bluetooth" | "nfc" | "payment" | "maps" | "biometric")
+- endpointIdentity: string?
+- authState: ("not_required" | "configured" | "authenticated")
+- credentialReference: string? (keychain ref)
+- requestSchemaRef: string?
+- responseSchemaRef: string?
+- errorSchemaRef: string?
+- offlinePolicy: string?
+- retryPolicy: string?
+- timeoutPolicy: string?
+- idempotencyPolicy: string?
+- privacyPolicy: string?
+- networkPolicy: string?
+- functionalScenarioIds: string[]
+```
+
+#### 80.5.4 TaskGraph
+
+```text
+TaskGraph
+- graphId: string (uuid)
+- projectId: string (uuid)
+- sessionId: string (uuid)
+- revision: string (hash)
+- phases: TaskPhase[]
+- dependencies: { fromPhase: string, toPhase: string }[]
+- workers: WorkerAssignment[]
+- completionConditions: string[]
+- createdAt: timestamp
+- updatedAt: timestamp
+- lockedAt: timestamp
+- lockedBy: string (worker or authority ID)
+
+TaskPhase
+- phaseId: string (uuid)
+- name: string
+- description: string
+- order: integer
+- status: ("pending" | "active" | "completed" | "failed" | "blocked")
+- tasks: TaskNode[]
+- entryCriteria: string[]
+- exitCriteria: string[]
+
+TaskNode
+- taskId: string (uuid)
+- phaseId: string (uuid)
+- name: string
+- description: string
+- role: string (worker role)
+- status: ("pending" | "active" | "completed" | "failed" | "blocked" | "waiting_approval")
+- dependencies: string[] (task IDs)
+- inputRefs: string[]
+- outputRefs: string[]
+- validationPlan: string?
+- attemptCount: integer
+- maxAttempts: integer
+- failureFingerprint: string?
+- assignedWorker: string? (worker ID)
+- startedAt: timestamp?
+- completedAt: timestamp?
+
+WorkerAssignment
+- assignmentId: string (uuid)
+- workerId: string (uuid)
+- taskId: string (uuid)
+- role: string
+- workspaceLease: string (lease ID)
+- modelProfile: string (profile ID)
+- status: ("assigned" | "active" | "completed" | "failed" | "released")
+```
+
+#### 80.5.5 ProviderProfile
+
+```text
+ProviderProfile
+- id: string (uuid)
+- label: string
+- baseUrl: string (URL)
+- keychainReference: string (credential ref, NOT the actual key)
+- chatModelId: string
+- visionModelId: string?
+- embeddingModelId: string?
+- capabilities: ("text" | "vision" | "structured_output" | "tool_calling" | "reasoning" | "embeddings")[]
+- requestSettings: RequestSettings
+- compatibilityMode: ("openai_compatible" | "anthropic_compatible")
+- reasoningSupport: boolean
+- reasoningEffortLevels: ("normal" | "extended" | "deep" | "exhaustive")[]
+- maxReasoningTokens: integer?
+- reasoningUsageReporting: ("reported" | "estimated" | "unavailable")
+- contextCapacity: integer (tokens)
+- status: ("configured" | "reachable" | "authenticated" | "degraded" | "unavailable")
+- createdAt: timestamp
+- updatedAt: timestamp
+
+RequestSettings
+- temperature: float (0.0-2.0, default 0.7)
+- maxTokens: integer?
+- timeoutSeconds: integer (default 120)
+- retryPolicy: RetryPolicy?
+
+RetryPolicy
+- maxRetries: integer (default 3)
+- initialBackoffSeconds: float (default 1.0)
+- maxBackoffSeconds: float (default 60.0)
+- backoffMultiplier: float (default 2.0)
+```
+
+### 80.6 Concrete test fixtures
+
+Every test fixture referenced in the specification is defined here. An agent MUST implement these exact fixtures.
+
+#### 80.6.1 FIX-PROG-01: Tip Calculator
+
+```text
+Fixture: FIX-PROG-01
+Name: Tip Calculator
+Prompt: "A tip calculator"
+Primary stress: Pure UI and state
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can enter a bill amount
+  3. User can select a tip percentage
+  4. App calculates and displays the tip amount
+  5. App calculates and displays the total amount
+  6. All calculations are correct within 0.01 tolerance
+  7. UI adapts to different screen sizes
+  8. Dark theme is supported
+  9. State survives configuration change (rotation)
+  10. No hardcoded secrets in the generated code
+```
+
+#### 80.6.2 FIX-PROG-02: Todo List with Local Persistence
+
+```text
+Fixture: FIX-PROG-02
+Name: Todo List with Local Persistence
+Prompt: "A todo list with local persistence"
+Primary stress: Local storage
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can add a todo item
+  3. User can mark a todo item as complete
+  4. User can delete a todo item
+  5. Todo items persist across app restart
+  6. Todo items survive process death
+  7. Data is stored using Room or DataStore
+  8. UI shows empty state when no todos exist
+  9. UI adapts to different screen sizes
+  10. Dark theme is supported
+```
+
+#### 80.6.3 FIX-PROG-03: Habit Tracker with Streaks and 8pm Reminders
+
+```text
+Fixture: FIX-PROG-03
+Name: Habit Tracker with Streaks and 8pm Reminders
+Prompt: "A habit tracker with streaks and 8pm reminders"
+Primary stress: Scheduling and notifications
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can create a habit with a name
+  3. User can mark a habit as complete for the day
+  4. App calculates and displays the current streak
+  5. App schedules a daily reminder at 8pm
+  6. Notification is delivered at the scheduled time
+  7. User can view habit history
+  8. Streaks persist across app restart
+  9. UI adapts to different screen sizes
+  10. Dark theme is supported
+```
+
+#### 80.6.4 FIX-PROG-04: Weather App Using a Public REST API
+
+```text
+Fixture: FIX-PROG-04
+Name: Weather App Using a Public REST API
+Prompt: "A weather app using a public REST API"
+Primary stress: Network and error states
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. App fetches weather data from a public API
+  3. App displays current weather conditions
+  4. App handles network errors gracefully
+  5. App shows loading state while fetching
+  6. App shows error state with retry action
+  7. App caches data for offline viewing
+  8. UI adapts to different screen sizes
+  9. Dark theme is supported
+  10. No hardcoded API keys in the generated code
+```
+
+#### 80.6.5 FIX-PROG-05: Note-Taking App with Search
+
+```text
+Fixture: FIX-PROG-05
+Name: Note-Taking App with Search
+Prompt: "A note-taking app with search"
+Primary stress: Query and list state
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can create a note with title and body
+  3. User can edit a note
+  4. User can delete a note
+  5. User can search notes by title or body content
+  6. Search results update as the user types
+  7. Notes persist across app restart
+  8. UI shows empty state when no notes exist
+  9. UI adapts to different screen sizes
+  10. Dark theme is supported
+```
+
+#### 80.6.6 FIX-PROG-06: Photo Gallery Reading Device Storage
+
+```text
+Fixture: FIX-PROG-06
+Name: Photo Gallery Reading Device Storage
+Prompt: "A photo gallery reading device storage"
+Primary stress: Runtime permissions
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. App requests storage permission
+  3. App handles permission denial gracefully
+  4. App displays photos from device storage
+  5. User can view photos in full screen
+  6. App handles empty gallery gracefully
+  7. UI adapts to different screen sizes
+  8. Dark theme is supported
+  9. No photos are uploaded to any external service
+  10. Permission rationale is clearly explained
+```
+
+#### 80.6.7 FIX-PROG-07: Pomodoro Timer with a Foreground Service
+
+```text
+Fixture: FIX-PROG-07
+Name: Pomodoro Timer with a Foreground Service
+Prompt: "A pomodoro timer with a foreground service"
+Primary stress: Background execution
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can start a pomodoro timer
+  3. Timer continues when app is in background
+  4. Foreground service notification is displayed
+  5. User is notified when the timer completes
+  6. User can pause and reset the timer
+  7. App tracks completed pomodoros
+  8. UI adapts to different screen sizes
+  9. Dark theme is supported
+  10. Foreground service is properly declared in manifest
+```
+
+#### 80.6.8 FIX-PROG-08: Expense Tracker with a Chart and CSV Export
+
+```text
+Fixture: FIX-PROG-08
+Name: Expense Tracker with a Chart and CSV Export
+Prompt: "An expense tracker with a chart and CSV export"
+Primary stress: Data visualization and file output
+Acceptance criteria:
+  1. App launches without runtime errors
+  2. User can add an expense with amount, category, and date
+  3. User can view expenses in a list
+  4. App displays a chart of expenses by category
+  5. User can export expenses as CSV
+  6. CSV file is saved to device storage
+  7. App handles empty state gracefully
+  8. UI adapts to different screen sizes
+  9. Dark theme is supported
+  10. No expenses are uploaded to any external service
+```
+
+### 80.7 Implementation sequencing within milestones
+
+Each milestone's work items MUST be implemented in the order listed. Dependencies between work items are specified.
+
+#### 80.7.1 M0 sequencing
+
+1. Repository layout (must exist before any code)
+2. TypeScript and Rust conventions (must exist before any code)
+3. Configuration model (needed by all subsequent work)
+4. Logging standard (needed by all subsequent work)
+5. Test fixtures (needed for exit gate)
+6. Security baseline (needed for exit gate)
+7. Local certification pipeline (needed for exit gate)
+
+#### 80.7.2 M1 sequencing
+
+1. C#/.NET + WinUI 3 shell (foundation for all UI)
+2. Welcome, create-project, open-project screens (user entry points)
+3. Main workspace layout (core UI structure)
+4. Project metadata storage (needed by all project operations)
+5. Application-level error handling (needed for reliability)
+6. Keyboard navigation and accessibility (needed for acceptance)
+
+#### 80.7.3 M2 sequencing
+
+1. IPC API (foundation for UI-supervisor communication)
+2. SQLite store (foundation for all persistence)
+3. Event bus (foundation for all event-driven behavior)
+4. Task scheduler (needed for all task operations)
+5. Process registry (needed for all process management)
+6. Recovery scanner (needed for restart resilience)
+7. Notification adapter (needed for user notifications)
+
+#### 80.7.4 M3 sequencing
+
+1. ProviderProfile definition (foundation for provider runtime)
+2. Secure credential storage (needed before any provider calls)
+3. Authenticated provider request (core provider functionality)
+4. Normalized response (needed by all provider consumers)
+5. Timeout and cancellation (needed for reliability)
+6. Failure classification (needed for error handling)
+7. Durable usage record (needed for telemetry)
+
+#### 80.7.5 M4 sequencing
+
+1. AndroidConstructionContract definition (foundation for synthesis)
+2. targetPlatforms enforcement (invariant check)
+3. Technology-plan resolver (needed for project creation)
+4. Environment diagnostics (needed for preflight)
+5. Project workspace creation (core synthesis output)
+6. Preflight record (needed for capability classification)
+7. Durable checkpoint (needed for recovery)
+
+#### 80.7.6 M5 sequencing
+
+1. Authorized tools (foundation for agent loop)
+2. Plan production (needed before any work)
+3. Checkpoint creation (needed before any mutation)
+4. File mutation (core agent capability)
+5. Build execution (needed for validation)
+6. Install/launch (needed for preview)
+7. Observation (needed for evidence)
+8. Validation (needed for completion)
+9. Repair (needed for recovery)
+10. Diff reporting (needed for user visibility)
+
+### 80.8 Prompt templates
+
+Every system prompt used by the runtime is defined here. An agent MUST use these exact templates.
+
+#### 80.8.1 System prompt for planning
+
+```
+You are an autonomous Android development agent. Your goal is to plan and execute the following task:
+
+Task: {task_description}
+
+Project context:
+- Framework: {framework}
+- Package: {package_id}
+- Current revision: {revision}
+
+Constraints:
+{constraints}
+
+Locked decisions:
+{locked_decisions}
+
+Available capabilities:
+{capabilities}
+
+You MUST:
+1. Produce a plan with discrete, ordered steps
+2. Identify files to change and commands to run
+3. Specify acceptance criteria for each step
+4. Cite evidence for every claim
+5. Stop and escalate if blocked
+
+You MUST NOT:
+1. Execute any action without authorization
+2. Claim completion without evidence
+3. Access files outside the approved workspace
+4. Send project content to unapproved providers
+5. Bypass policy gates
+
+Output your plan in this format:
+## Understanding
+## Plan
+## Files to change
+## Commands that may run
+## Acceptance criteria
+## Risks and mitigations
+```
+
+#### 80.8.2 System prompt for code generation
+
+```
+You are an autonomous Android development agent. Your goal is to implement the following change:
+
+Task: {task_description}
+Plan step: {step_description}
+
+File: {file_path}
+Current content:
+{file_content}
+
+Constraints:
+{constraints}
+
+You MUST:
+1. Produce a minimal, targeted change
+2. Preserve all existing functionality
+3. Follow project conventions
+4. Include necessary imports
+5. Handle errors appropriately
+
+You MUST NOT:
+1. Add unrelated changes
+2. Remove existing functionality
+3. Introduce security vulnerabilities
+4. Hardcode secrets
+5. Add dependencies not in the approved plan
+
+Output your change as a unified diff or complete file replacement.
+```
+
+#### 80.8.3 System prompt for validation
+
+```
+You are an autonomous Android development agent. Your goal is to validate the following change:
+
+Task: {task_description}
+Change: {change_summary}
+
+Validation plan:
+{validation_plan}
+
+You MUST:
+1. Run all specified checks
+2. Report pass/fail for each check
+3. Include evidence for each result
+4. Stop and report if a check fails
+5. NOT claim success without evidence
+
+You MUST NOT:
+1. Skip any specified check
+2. Weaken a check to make it pass
+3. Report predicted results as observed
+4. Claim completion without passing checks
+
+Output your validation in this format:
+## Checks performed
+## Results
+## Evidence
+## Remaining issues
+```
+
+#### 80.8.4 System prompt for repair
+
+```
+You are an autonomous Android development agent. Your goal is to repair the following failure:
+
+Task: {task_description}
+Failure: {failure_description}
+Error output: {error_output}
+Changed files: {changed_files}
+
+Previous attempts:
+{previous_attempts}
+
+You MUST:
+1. Identify the root cause from evidence
+2. Propose a minimal repair
+3. Explain why the repair addresses the cause
+4. NOT repeat a failed strategy
+5. Escalate if the cause is unclear
+
+You MUST NOT:
+1. Regenerate the entire file without cause
+2. Apply the same fix that already failed
+3. Ignore the error output
+4. Claim success without revalidation
+
+Output your repair in this format:
+## Root cause analysis
+## Proposed repair
+## Why this addresses the cause
+## Validation plan
+```
+
+#### 80.8.5 Context compaction prompt
+
+```
+The following context has exceeded the compaction threshold. Produce a structured summary that retains:
+
+MUST RETAIN:
+- Active constraints: {constraints}
+- Locked decisions: {decisions}
+- Current goal: {goal}
+- Current plan: {plan}
+- Active errors: {errors}
+- Recent evidence (last 5 turns): {recent_evidence}
+- Recent file changes (last 5 turns): {recent_changes}
+
+SUMMARIZE:
+- Earlier context into a structured summary
+- Historical commands and results
+- Superseded plans
+
+ARCHIVE:
+- Full traces to cold storage
+- Old screenshots
+- Completed handoffs
+
+Output the summary in this format:
+## Goal
+## Active constraints
+## Locked decisions
+## Current plan
+## Active errors
+## Recent evidence summary
+## Historical summary
+## Archived references
+```
+
+### 80.9 Acceptance criteria
+
+The agent-buildability contract is satisfied only when:
+
+1. Every "should" in the specification has explicit criteria
+2. Every "configurable" parameter has a default value
+3. Every vague procedure has a concrete step-by-step replacement
+4. Every referenced schema has a complete field definition
+5. Every system prompt has a defined template
+6. Every runtime decision has explicit criteria
+7. Every adapter has a complete method signature
+8. Every test fixture has a concrete definition
+9. Every milestone has explicit implementation sequencing
+10. An AI agent can build Nirman from these docs without hallucination
