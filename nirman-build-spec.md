@@ -170,10 +170,10 @@ Nirman should use a minimal, focused desktop layout inspired by modern AI coding
 On first launch, Nirman should explain that it is a local desktop application and ask the user to choose an AI provider. The setup flow should offer three paths:
 
 1. Configure a cloud provider with a base URL, API key, and model ID.
-2. Connect to a local compatible model server.
+
 3. Continue in planning-only mode without an AI provider.
 
-The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and emulator tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
+The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
 
 ### 4.3 Chat interaction model
 
@@ -1686,9 +1686,9 @@ When the user reverts a checkpoint, Nirman should stop or invalidate the preview
 
 ### 26.10 Responsive and multi-emulator preview
 
-The Android preview should support named emulator profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected emulator or emulator profiles, compare screenshots, and record device-specific findings.
+The Android preview should support named emulator profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected Nirman-managed emulator profiles, compare screenshots, and record profile-specific findings.
 
-Android preview should use a device-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple devices later.
+Android preview should use a emulator-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple emulator sessions later.
 
 ### 26.11 Toolchain version management
 

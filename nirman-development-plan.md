@@ -295,7 +295,7 @@ Add visual and Android Nirman-managed local Android emulator verification withou
 
 ### Work items
 
-1. Launch a disposable Android Nirman-managed Android emulator snapshot.
+1. Launch a disposable Nirman-managed local Android emulator snapshot.
 2. Add screen and flow navigation, synthetic form interaction, Logcat capture, and screenshot capture.
 3. Add named Android emulator profiles, orientation profiles, and custom emulator testing.
 4. Add visual baseline storage and comparison metadata.

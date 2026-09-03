@@ -678,7 +678,7 @@ A worker can reuse a terminal session for commands that depend on working direct
 
 The terminal manager must detect interactive prompts through known prompt signatures, stdin readiness, process activity, and configurable prompt classifiers. In unattended mode, it should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision. Dev servers and emulators must be registered as long-running processes rather than mistaken for hung commands.
 
-Shell selection must be explicit on Windows. Supported profiles may include PowerShell, `cmd.exe`, Git Bash, WSL, or a configured project shell. The selected profile, executable path, version, encoding, and environment fingerprint belong in task evidence.
+Shell selection must be explicit on Windows. Supported profiles may include PowerShell, `cmd.exe`, Git Bash, or another approved native-Windows shell. The selected profile, executable path, version, encoding, and environment fingerprint belong in task evidence.
 
 Each worker gets a separate terminal view in the UI. Output uses rolling files with size- and time-based rotation, searchable indexes, compressed historical segments, and preserved error excerpts. Rotation must never discard the final evidence needed to diagnose a failure.
 
@@ -5062,7 +5062,7 @@ AndroidDeviceAdapter
 - adapterVersion
 - supportedAbiFamilies
 - supportedAndroidApiLevels
-- supportedDeviceKinds: EMULATOR | PHYSICAL
+- supportedDeviceKinds: [EMULATOR]
 
 AndroidDeviceAdapter operations
 - enumerate() -> DeviceEnumerationResult
