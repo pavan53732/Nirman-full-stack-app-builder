@@ -3538,7 +3538,7 @@ A security finding must either block packaging or be explicitly recorded as an a
 
 Supply-chain verification is satisfied only when a fixture containing a deliberately hardcoded secret and an unpinned dependency is blocked before packaging, and when every promoted artifact has a reproducible SBOM.
 
-## 59. Multi-Device Android Scenario Coordination
+## 59. Android Emulator Scenario Coordination
 
 **ContractId:** `CONTRACT.RUNTIME.DEVICE_MATRIX`  
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.DEVICE_MATRIX` (see §67.8)
@@ -5539,7 +5539,7 @@ BackgroundContinuityRecord
                   RECOVERING | RECONCILING | USER_REQUIRED | SAFELY_FAILED |
                   COMPLETED
 - interruptionCause
-- resumeEligibility: ELIGIBLE | WAIT_FOR_HOST | WAIT_FOR_DEVICE |
+- resumeEligibility: ELIGIBLE | WAIT_FOR_HOST | WAIT_FOR_EMULATOR |
                      WAIT_FOR_PROVIDER | RECONCILE_REQUIRED | USER_REQUIRED |
                      NOT_ELIGIBLE
 - requiredRecoveryActions

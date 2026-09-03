@@ -3867,7 +3867,7 @@ VerificationRun
 
 Orchestration is correct only when a mutation introducing a compile error cannot advance; when an assertion authored after implementation is flagged `post_hoc`; when a vacuous assertion set for a critical requirement is rejected; and when every promoted artifact contains only verified mutations.
 
-## 65. Multi-Device Scenario Coordinator
+## 65. Android Emulator Scenario Coordinator
 
 **ContractId:** `CONTRACT.RUNTIME.DEVICE_MATRIX`  
 **Authoritative build-spec section:** §59  
@@ -3899,8 +3899,8 @@ DevicePool must respect the resource reservations of the backpressure controller
 ScenarioDivergence
 - divergenceId
 - scenarioId
-- passingDevices
-- failingDevices
+- passingEmulatorProfiles
+- failingEmulatorProfiles
 - differingAttributes: apiLevel | density | formFactor | abi | vendor
 - classification: defect | environment_limitation
 - evidenceRefs

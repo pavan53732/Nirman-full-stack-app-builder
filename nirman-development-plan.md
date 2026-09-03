@@ -1223,7 +1223,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 | M85 | Advanced Verification | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection |
 | M86 | Regression Localization | Impact-graph localization, signature matching, checkpoint bisection, cause-scoped repair enforcement, escalation on unlocalized regression |
 | M87 | Adversarial Security and Supply Chain | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline |
-| M88 | Multi-Device E2E | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping |
+| M88 | Android Emulator E2E | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping |
 | M89 | Runtime Directives and Agent Debugger | DirectiveIntake with validation and decision-boundary application, PlanReconciler effect accounting, read-only RuntimeSnapshot, SurfaceTracer, DecisionTracer |
 | M90 | Historical Resource Profiling | Supervisor-level measurement, project/host-keyed profiles, PlanCostEstimate with honest confidence, capacity gating, DegradationDetector |
 | M91 | External Event Gateway | TriggerRegistry, authentication, AdmissionController with ceiling capping, default-disabled webhook surface, complete firing audit |
