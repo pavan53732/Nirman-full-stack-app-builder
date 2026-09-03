@@ -444,7 +444,7 @@ Every interaction produces an observed result that enters the normal Evidence �
 
 ### 10.3 Android device manager
 
-The Android device manager should provide a normalized interface for emulators and physical devices:
+The Android device manager should provide a normalized interface for Nirman-managed Android emulators:
 
 ```text
 Device
@@ -541,13 +541,13 @@ Project synthesis must be incremental. It should first create a buildable Androi
 
 ### 10.6 Android device and host isolation
 
-Android validation must use disposable emulator snapshots or explicitly selected physical devices. It must not reuse personal credentials, host-side secrets, or unapproved device data. Test data should be synthetic by default. Device sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
+Android validation must use disposable Nirman-managed disposable emulator snapshots. It must not reuse personal credentials, host-side secrets, or unapproved device data. Test data should be synthetic by default. Device sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
 
 ### 10.7 Emulator frame transport
 
 The Nirman-managed local Android emulator is the canonical PreviewRuntime for the primary development workflow. It MUST run headless on the Windows host and its rendering surface MUST be projected into the WinUI 3 PreviewHost. A detached emulator window is not a valid primary preview.
 
-Physical devices are secondary validation targets and are never required for primary preview availability.
+No physical Android hardware is supported and is never required for primary preview availability.
 
 The transport is a named, versioned interface with a required baseline and a permitted upgrade:
 
@@ -773,7 +773,7 @@ The engineering team must decide the following before implementing the control p
 | Event delivery | Durable event log with sequence-based replay |
 | Initial sandbox | Restricted Windows process plus workspace policy |
 | Strong sandbox | Restricted token, Windows Job Object, ACL-scoped workspace, process-tree supervision, resource quotas, and disposable emulator snapshot |
-| Android device testing | Disposable emulator snapshot or explicitly selected physical device |
+| Android device testing | Disposable emulator snapshot or explicitly selected Nirman-managed local Android emulator |
 | Preview revision tracking | Checkpoint ID plus project revision hash |
 | Secrets | OS keychain reference only |
 
@@ -933,7 +933,7 @@ TaskCheckpoint
 
 Checkpoint storage must use a retention policy for long-running sessions. Every task retains the initial source checkpoint, the last known-good checkpoint, all checkpoints referenced by an active recovery strategy, and a configurable number of recent task checkpoints. Older intermediate checkpoints should be compacted into content-addressed snapshots or pruned only when no active branch, preview, recovery attempt, or evidence record references them. Before deletion, the system must verify that a full restore path remains available.
 
-Android tasks should use profile-based quotas for JavaScript, native, emulator, physical-device, and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
+Android tasks should use profile-based quotas for JavaScript, native, emulator and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
 
 Backtracking should restore a known-good checkpoint before trying a materially different strategy. The recovery manager should keep a strategy history:
 
@@ -2252,7 +2252,7 @@ The credential authority flow is: WinUI settings → typed credential command �
 
 Generated code and project processes cannot read personal browser data, SSH keys, unrelated directories, signing keys, or arbitrary credentials. Sandbox profiles are selected by the policy authority and cannot be relaxed by model output.
 
-Browser validation, when enabled, is an external auxiliary surface only. The capability registry MUST mark it as non-authoritative for Android-core validation. Browser observations cannot satisfy Android build, install, launch, device, accessibility, visual, or completion requirements unless a separate non-Android surface was explicitly declared. The Android emulator or physical device remains the authoritative generated-app validation surface.
+Browser validation, when enabled, is an external auxiliary surface only. The capability registry MUST mark it as non-authoritative for Android-core validation. Browser observations cannot satisfy Android build, install, launch, device, accessibility, visual, or completion requirements unless a separate non-Android surface was explicitly declared. The Nirman-managed local Android emulator remains the authoritative generated-app validation surface.
 
 ## 40. Event, Evidence, Memory, and Replay Stores
 
@@ -2555,7 +2555,7 @@ Change classification → preview mode selection → build/install/reload
 → PreviewRevision commit or stale/failure event
 ```
 
-The coordinator supports incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, physical device execution, headless smoke tests, and diagnostic-only source preview. Diagnostic preview can support recovery but can never satisfy final completion.
+The coordinator supports incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, Nirman-managed local Android emulator execution, headless smoke tests, and diagnostic-only source preview. Diagnostic preview can support recovery but can never satisfy final completion.
 
 A `PreviewRevision` includes source revision, artifact hash, device serial/profile, API level, build variant, technology-plan hash, preview mode, launch timestamp, health status, screenshot IDs, and Logcat evidence.
 
@@ -2709,7 +2709,7 @@ The release report must include source revision, technology plan, toolchain lock
 
 ## 54. Native Isolation and External Side-Effect Boundaries
 
-Nirman uses native Windows isolation as its required execution model: restricted tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, resource quotas, toolchain isolation, and disposable Android emulator snapshots. This model is self-contained and must preserve Android emulator, GPU, and physical-device workflows.
+Nirman uses native Windows isolation as its required execution model: restricted tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, resource quotas, toolchain isolation, and disposable Android emulator snapshots. This model is self-contained and must preserve Android emulator, GPU, and Nirman-managed local Android emulator workflows.
 
 Remote Git pushes, pull requests, publishing, store submission, credential use, release signing, and external repository writes remain explicit operation-capability requests. The autonomous session may continue local implementation and validation while waiting for required confirmation, but it must not simulate completion of the external side effect.
 
@@ -3454,7 +3454,7 @@ A tool session may be reattached after worker replacement or UI restart, but rea
 
 ### 58.8 Tool Capability Graph and environment planning
 
-`ToolCapabilityGraph` maps an outcome to capability requirements, skills, worker profiles, tools, and environment prerequisites. For example, Android BLE validation may require Android APIs, a compatible SDK, a native module, Bluetooth permissions, ADB, an emulator or selected physical device, and device-test capability.
+`ToolCapabilityGraph` maps an outcome to capability requirements, skills, worker profiles, tools, and environment prerequisites. For example, Android BLE validation may require Android APIs, a compatible SDK, a native module, Bluetooth permissions, ADB, an emulator or selected Nirman-managed local Android emulator, and device-test capability.
 
 `EnvironmentCapabilityPlanner` evaluates each prerequisite before expensive execution and classifies it as `AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, or `UNAVAILABLE`. It records the toolchain lock, environment fingerprint, repair attempt, and evidence used for the classification.
 
@@ -3490,7 +3490,7 @@ ValidationPlan
 
 `DeadlockDetector` analyzes cycles across task dependencies, worker waits, resource reservations, approvals, workspace leases, and ToolSessions. A detected cycle produces a typed finding and may trigger reorder, replacement, lease recovery, cancellation, replanning, or a `DecisionNode`.
 
-`BackpressureController` reserves and queues Gradle processes, emulator slots, physical devices, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
+`BackpressureController` reserves and queues Gradle processes, emulator slots, Nirman-managed local Android emulators, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
 
 `CancellationPropagationManager` propagates cancellation from goal to task graph, workers, skills, ToolSessions, child processes, PTY, emulator actions, and pending provider requests. Each node supports graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
 
@@ -3880,7 +3880,7 @@ Implements build spec §59. Extends §49 (Android Toolchain Authority and Enviro
 | Component | Responsibility |
 |---|---|
 | DeviceMatrixResolver | Resolves the declared matrix against actually available devices |
-| DevicePool | Allocates and recycles emulator and physical device sessions |
+| DevicePool | Allocates and recycles Nirman-managed local Android emulator sessions |
 | ScenarioDistributor | Assigns scenarios to devices and orders execution |
 | DivergenceAnalyzer | Compares per-device outcomes for the same scenario |
 | CoverageReporter | Reports per-device scenario coverage and declared gaps |
@@ -4929,14 +4929,14 @@ NativeAndroidAdapter (internal implementation family)
 - adapterId prefix: nirman.adapter.native
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle native), resolveDeviceAdapter
-  (AndroidDeviceAdapter for emulator or physical device)
+  (AndroidDeviceAdapter for emulator or Nirman-managed local Android emulator)
 
 JavaScriptAndroidAdapter (internal implementation family)
 - composition: React Native or Expo, Metro or Expo runtime, native Gradle shell
 - adapterId prefix: nirman.adapter.javascript
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (Gradle plus Metro or Expo), resolveDeviceAdapter
-  (AndroidDeviceAdapter for emulator or physical device)
+  (AndroidDeviceAdapter for emulator or Nirman-managed local Android emulator)
 
 MixedAndroidAdapter (internal implementation family)
 - composition: native plus JavaScript plus native modules, NDK or CMake
@@ -4945,7 +4945,7 @@ MixedAndroidAdapter (internal implementation family)
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (composed Gradle plus Metro or Expo plus NDK or
   CMake), resolveDeviceAdapter (AndroidDeviceAdapter for emulator or
-  physical device)
+  Nirman-managed local Android emulator)
 ```
 
 The `AndroidTechnologyAdapter` registry is part of the toolchain lock surface. A revision, toolchain update, environment fingerprint change, or compatibility-rule change invalidates dependent resolution results and completion claims; the adapter registry entry, `adapterVersion`, and `technologyPlanHash` together identify a reproducible selection context. The `PreviewSyncEvent` payload defined in build spec §71.1 carries `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` and `deviceAdapterIdentity` as required event fields when the event is emitted by an adapter-mediated operation; the §71 `PreviewSyncEvidenceRecord` carries the same fields per observation. This extends §71.1; it does not redefine the `PreviewSyncEvent` schema.
@@ -5054,7 +5054,7 @@ A resolver output is recorded as part of the `PreviewRequest` decision trace. Th
 
 ### 73.12 Android device adapter contract
 
-The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Emulator and physical-device implementations MUST satisfy this interface; the interface is an execution contract, not an authority.
+The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Emulator and Nirman-managed local Android emulator implementations MUST satisfy this interface; the interface is an execution contract, not an authority.
 
 ```text
 AndroidDeviceAdapter
@@ -5067,7 +5067,7 @@ AndroidDeviceAdapter
 AndroidDeviceAdapter operations
 - enumerate() -> DeviceEnumerationResult
   - params: none
-  - returns: list of DeviceDescriptor (emulator and physical)
+  - returns: list of DeviceDescriptor (Nirman-managed local Android emulator)
   - errors: DeviceEnumerationError
 - acquire(deviceDescriptor: DeviceDescriptor) -> DeviceAcquisitionResult
   - params: deviceDescriptor: DeviceDescriptor
@@ -5213,7 +5213,7 @@ Android source
   → resolved AndroidDeviceAdapter (via resolveDeviceAdapter)
   → native build or runtime toolchain (AndroidBuildAdapter)
   → APK or runtime process (AndroidDeviceAdapter)
-  → emulator or physical Android device (AndroidDeviceAdapter)
+  → Nirman-managed local Android emulator (AndroidDeviceAdapter)
   → AndroidBuildObservation and device observation
   → PreviewSyncEvent (carries adapterId, adapterVersion,
     technologyPlanHash, buildAdapterIdentity, deviceAdapterIdentity)
