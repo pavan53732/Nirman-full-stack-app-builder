@@ -417,6 +417,31 @@ AndroidDeviceProfile
 
 The device worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
 
+The device validation subsystem MUST expose an authoritative `InteractionExecutor`.
+
+```text
+InteractionExecutor
+- interactionId
+- scenarioId
+- deviceId
+- artifactFingerprint
+- applicationStateFingerprintBefore
+- action
+- interactionMethod
+- targetIdentity
+- inputDataClass
+- observedResult
+- applicationStateFingerprintAfter
+- screenshotEvidenceId
+- uiHierarchyEvidenceId
+- logEvidenceId
+- createdAt
+```
+
+The InteractionExecutor operates only against the running generated Android application through an admitted Android device adapter. It MUST NOT satisfy an interaction requirement by modifying source, invoking application internals outside the declared test interface, or asserting an expected state without observing it.
+
+Every interaction produces an observed result that enters the normal Evidence → ValidationResult → CompletionDecision chain.
+
 ### 10.3 Android device manager
 
 The Android device manager should provide a normalized interface for emulators and physical devices:
