@@ -2365,13 +2365,34 @@ TOCTOU protection rejects an operation when files changed outside the transactio
 
 ```text
 AndroidLanguageAdapter
-├── detect(path)
-├── parse(path, content)
-├── index_symbols(parsed_unit)
-├── resolve_references(index)
-├── calculate_affected_nodes(change)
-├── validate_structured_patch(patch)
-└── format_or_serialize(updated_unit)
+- detect(path: str) -> LanguageDetectionResult
+  - params: path: str (file path to detect language for)
+  - returns: languageId, confidence, fileExtensions
+  - errors: LanguageDetectionError
+- parse(path: str, content: str) -> ParsedUnit
+  - params: path: str, content: str (file content)
+  - returns: languageId, ast, symbols, references, imports, metadata
+  - errors: ParseError, UnsupportedLanguageError
+- index_symbols(parsed_unit: ParsedUnit) -> SymbolIndex
+  - params: parsed_unit: ParsedUnit
+  - returns: symbols: list of SymbolEntry, references: list of ReferenceEntry
+  - errors: IndexingError
+- resolve_references(index: SymbolIndex) -> ResolvedIndex
+  - params: index: SymbolIndex
+  - returns: resolved: list of ResolvedReference, unresolved: list of UnresolvedReference
+  - errors: ResolutionError
+- calculate_affected_nodes(change: StructuredPatch) -> AffectedNodeSet
+  - params: change: StructuredPatch
+  - returns: affectedFiles: list, affectedSymbols: list, affectedModules: list
+  - errors: ImpactAnalysisError
+- validate_structured_patch(patch: StructuredPatch) -> PatchValidationResult
+  - params: patch: StructuredPatch
+  - returns: valid: bool, violations: list, affectedNodes: list
+  - errors: PatchValidationError
+- format_or_serialize(updated_unit: ParsedUnit) -> SerializedUnit
+  - params: updated_unit: ParsedUnit
+  - returns: content: str, format: str, encoding: str
+  - errors: SerializationError
 ```
 
 Adapters are selected by file type and technology plan. No single parser is mandatory for every Android project.
@@ -3025,6 +3046,58 @@ Filesystem / terminal / emulator / build / artifact
 ```
 
 Provider adapters normalize configured Chat Completions, Responses-style, message-oriented, local-compatible, vision, tool-call, structured-output, cancellation, streaming, capability, and retry behavior. Partial provider output never executes. Complete structured proposals still require scope, schema, policy, revision, capability, and transaction validation.
+
+### 57.8.1 ProviderAdapter interface
+
+```text
+ProviderAdapter
+- adapterId
+- adapterVersion
+- providerId
+- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE
+- protocol: chat_completions | responses | messages | custom
+- supportedInputModalities: text | image | audio | tool_call | structured_output
+- supportedOutputModalities: text | tool_call | structured_output | reasoning
+- streamingSupported: bool
+- capabilityProfile: ProviderCapabilityProfile
+
+ProviderAdapter operations
+- initialize(profile: ProviderProfile) -> AdapterInitializationResult
+  - params: profile: ProviderProfile
+  - returns: adapterId, adapterVersion, protocol, capabilities, healthCheck
+  - errors: AdapterInitializationError, UnsupportedProtocolError
+- healthCheck() -> AdapterHealthResult
+  - params: none
+  - returns: healthy: bool, latencyMs, modelReachable, capabilitiesValid, checkedAt
+  - errors: HealthCheckError
+- buildRequest(request: ModelRequest) -> ProviderRequest
+  - params: request: ModelRequest (messages, tools, schema, context, cancellation)
+  - returns: providerRequest: dict, requestHash, estimatedTokens
+  - errors: RequestBuildError, UnsupportedFeatureError
+- sendRequest(providerRequest: ProviderRequest) -> ProviderResponse
+  - params: providerRequest: ProviderRequest
+  - returns: rawResponse: dict, responseId, modelId, finishReason, usage, latencyMs
+  - errors: ProviderRequestError, TimeoutError, RateLimitError, AuthenticationError
+- normalizeResponse(rawResponse: dict) -> NormalizedResponse
+  - params: rawResponse: dict (raw provider response envelope)
+  - returns: textBlocks, imageBlocks, toolCalls, structuredOutput, usage, finishReason, reasoningMetadata
+  - errors: NormalizationError, MalformedResponseError
+- streamRequest(providerRequest: ProviderRequest) -> StreamEvent
+  - params: providerRequest: ProviderRequest
+  - returns: StreamEvent (token, tool_call_delta, structured_output_delta, done, error)
+  - errors: StreamError, TimeoutError
+- cancelRequest(requestId: str) -> CancelResult
+  - params: requestId: str
+  - returns: cancelled: bool, cancelTimestamp
+  - errors: CancelError
+- detectCapability(modelId: str) -> CapabilityDetectionResult
+  - params: modelId: str
+  - returns: modelId, capabilities: list, confidence, detectedAt
+  - errors: CapabilityDetectionError
+- validateResponse(rawResponse: dict) -> ResponseValidationResult
+  - params: rawResponse: dict
+  - returns: valid: bool, violations: list, toolCallIds: list, schemaCompliant: bool
+  - errors: ResponseValidationError
 
 ### 57.9 Git and worktree subsystem
 
@@ -4905,26 +4978,86 @@ AndroidDeviceAdapter
 - supportedDeviceKinds: EMULATOR | PHYSICAL
 
 AndroidDeviceAdapter operations
-- enumerate()
-- acquire()
-- prepare()
-- boot()
-- waitReady()
-- install()
-- uninstall()
-- launch()
-- forceStop()
-- reload()
-- interact()
-- captureScreenshot()
-- captureUiHierarchy()
-- collectLogcat()
-- collectCrash()
-- collectPermissionState()
-- reset()
-- snapshot()
-- restore()
-- release()
+- enumerate() -> DeviceEnumerationResult
+  - params: none
+  - returns: list of DeviceDescriptor (emulator and physical)
+  - errors: DeviceEnumerationError
+- acquire(deviceDescriptor: DeviceDescriptor) -> DeviceAcquisitionResult
+  - params: deviceDescriptor: DeviceDescriptor
+  - returns: deviceSessionId, runtimeSessionId, environmentFingerprint
+  - errors: DeviceAcquisitionError, DeviceUnavailableError
+- prepare() -> DevicePreparationResult
+  - params: none
+  - returns: prepared: bool, deviceStateFingerprint, toolchainLockId
+  - errors: DevicePreparationError
+- boot() -> DeviceBootResult
+  - params: none
+  - returns: booted: bool, bootTimestamp, apiLevel, abiFamily
+  - errors: DeviceBootError, BootTimeoutError
+- waitReady(timeoutMs: int = 30000) -> DeviceReadyResult
+  - params: timeoutMs: int (default 30000)
+  - returns: ready: bool, readyTimestamp, healthObservation
+  - errors: DeviceBootError, BootTimeoutError
+- install(apkPath: str) -> DeviceInstallResult
+  - params: apkPath: str (absolute path to APK)
+  - returns: installed: bool, installTimestamp, packageId
+  - errors: DeviceInstallError, InstallTimeoutError
+- uninstall(packageId: str) -> DeviceUninstallResult
+  - params: packageId: str
+  - returns: uninstalled: bool, uninstallTimestamp
+  - errors: DeviceUninstallError
+- launch(packageId: str, activity: str) -> DeviceLaunchResult
+  - params: packageId: str, activity: str
+  - returns: launched: bool, launchTimestamp, processId
+  - errors: DeviceLaunchError, LaunchTimeoutError
+- forceStop(packageId: str) -> DeviceForceStopResult
+  - params: packageId: str
+  - returns: stopped: bool, stopTimestamp
+  - errors: DeviceForceStopError
+- reload() -> DeviceReloadResult
+  - params: none
+  - returns: reloaded: bool, reloadTimestamp
+  - errors: DeviceReloadError
+- interact(input: InteractionInput) -> DeviceInteractionResult
+  - params: input: InteractionInput (tap, swipe, text, key)
+  - returns: interactionId, result: bool, screenshotRef, uiHierarchyRef
+  - errors: DeviceInteractionError, InteractionTimeoutError
+- captureScreenshot() -> ScreenshotResult
+  - params: none
+  - returns: screenshotId, screenshotRef, capturedAt, deviceStateFingerprint
+  - errors: ScreenshotCaptureError
+- captureUiHierarchy() -> UiHierarchyResult
+  - params: none
+  - returns: uiHierarchyId, uiHierarchyRef, capturedAt
+  - errors: UiHierarchyCaptureError
+- collectLogcat(filter: str = "", since: str = "") -> LogcatResult
+  - params: filter: str (default ""), since: str (default "")
+  - returns: logcatId, logcatRef, lineCount, capturedAt
+  - errors: LogcatCollectionError
+- collectCrash() -> CrashResult
+  - params: none
+  - returns: crashId, crashRef, crashType, stackTrace, capturedAt
+  - errors: CrashCollectionError
+- collectPermissionState() -> PermissionStateResult
+  - params: none
+  - returns: permissionStateId, permissions: list, capturedAt
+  - errors: PermissionStateCollectionError
+- reset() -> DeviceResetResult
+  - params: none
+  - returns: reset: bool, resetTimestamp
+  - errors: DeviceResetError
+- snapshot() -> DeviceSnapshotResult
+  - params: none
+  - returns: snapshotId, snapshotRef, deviceStateFingerprint
+  - errors: DeviceSnapshotError
+- restore(snapshotId: str) -> DeviceRestoreResult
+  - params: snapshotId: str
+  - returns: restored: bool, restoreTimestamp
+  - errors: DeviceRestoreError
+- release() -> DeviceReleaseResult
+  - params: none
+  - returns: released: bool, releaseTimestamp
+  - errors: DeviceReleaseError
 ```
 
 Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, device identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
@@ -4959,6 +5092,24 @@ AndroidBuildObservation
 - logs
 - reproducibilityStatus
 - capturedAt
+
+AndroidBuildAdapter operations
+- build() -> AndroidBuildObservation
+  - params: none (uses locked adapter state: technologyPlanHash, toolchainLockId, buildVariant)
+  - returns: buildId, exitCode, artifactIds, artifactFingerprints, diagnostics, logs, reproducibilityStatus
+  - errors: BuildError, ToolchainError, BuildTimeoutError
+- inspectArtifact(artifactId: str) -> ArtifactInspectionResult
+  - params: artifactId: str
+  - returns: artifactId, fingerprint, sizeBytes, signingState, manifestSummary
+  - errors: ArtifactInspectionError, ArtifactNotFoundError
+- sign(packageId: str, signingConfig: SigningConfig) -> SigningResult
+  - params: packageId: str, signingConfig: SigningConfig
+  - returns: signingId, certificateFingerprint, signingScheme, artifactFingerprint
+  - errors: SigningError, SigningPolicyViolationError
+- export(artifactId: str, destination: ExportDestination) -> ExportResult
+  - params: artifactId: str, destination: ExportDestination
+  - returns: exportId, destinationPath, byteCount, contentHash, reconciliationReference
+  - errors: ExportError, ExportTimeoutError, DestinationUnavailableError
 ```
 
 The same interface MUST cover: Gradle native; Gradle plus Metro or Expo; React Native; NDK or CMake; and mixed native plus JavaScript. `AndroidBuildAdapter` is invoked by `PreviewCoordinator` through the `AndroidTechnologyAdapter` selected for the `AndroidTechnologyPlan`; it does not create a separate build authority, and it does not bypass `ToolchainAuthority` or `ArtifactAuthority`. A revision, toolchain update, environment fingerprint change, or adapter version change invalidates dependent observations and completion claims.
