@@ -14,7 +14,7 @@
 
 Nirman should be built in vertical slices. Every milestone must produce a usable and testable part of the application instead of completing isolated infrastructure with no end-to-end workflow.
 
-The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run an emulator or device preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
+The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run an Nirman-managed local Android emulator preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and device testing.
 
 The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in the decision log.
 
@@ -33,7 +33,7 @@ The team should keep the master specification stable as the product contract, up
 | M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
 | M7 | Supervisor survives UI close/restart | Resume after UI close or restart, notifications, adaptive guardrails |
 | M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
-| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, emulator/device profiles, screenshots, Logcat, phone/tablet checks |
+| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, Nirman-managed local Android emulator profiles, screenshots, Logcat, phone/tablet checks |
 | M10 | Android packaging | APK build, artifact validation, signing boundaries |
 | M11 | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/device matrix, and representative fixture evidence |
 | M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
@@ -61,7 +61,7 @@ The team should keep the master specification stable as the product contract, up
 | M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
 | M35 | Long-horizon scale and unified execution surface | Map sharding, checkpoint retention, affected tests, side-by-side preview |
 | M36 | Runtime authority and autonomous recovery invariants | Deterministic authorities, model non-authority, safe recovery, evidence gates |
-| M37 | Android-only target contract | Android profiles, emulator/device validation, APK artifacts, and Android-only project resolution |
+| M37 | Android-only target contract | Android profiles, Nirman-managed local Android emulator validation, APK artifacts, and Android-only project resolution |
 | M38 | Certified Android profile coverage and production acceptance | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports |
 
 ---
@@ -172,7 +172,7 @@ Create the Android construction foundation needed to turn a validated goal and v
 1. Define and validate an `AndroidConstructionContract` from the user goal, visual references, assets, device requirements, and technology plan.
 2. Enforce `targetPlatforms == ["android"]` at project construction.
 3. Implement the first Android technology-plan resolver without exposing a fixed template or framework picker as the primary creation path.
-4. Implement environment diagnostics for Java, Gradle, Android SDK, platform-tools, emulator/device tooling, package managers, and required project dependencies.
+4. Implement environment diagnostics for Java, Gradle, Android SDK, platform-tools, Nirman-managed local Android emulator tooling, package managers, and required project dependencies.
 5. Create the Android project workspace, record its source identity, and persist a preflight record describing available, repairable, user-required, and unavailable prerequisites.
 6. Create a durable checkpoint before subsequent mutation or runtime work.
 
@@ -291,11 +291,11 @@ Three independent workers can work on isolated tasks, return structured handoffs
 
 ### Objectives
 
-Add visual and Android emulator/device verification without exposing personal credentials or unapproved device state.
+Add visual and Android Nirman-managed local Android emulator verification without exposing personal credentials or unapproved device state.
 
 ### Work items
 
-1. Launch a disposable Android emulator snapshot or connect an explicitly selected physical device.
+1. Launch a disposable Android Nirman-managed Android emulator snapshot.
 2. Add screen and flow navigation, synthetic form interaction, Logcat capture, and screenshot capture.
 3. Add named Android device profiles, orientation profiles, and custom device testing.
 4. Add visual baseline storage and comparison metadata.
@@ -329,7 +329,7 @@ Package supported Android projects as installable APK artifacts; produce an AAB 
 3. Add APK generation and installation workflows.
 4. Add build logs, checksums, and artifact scanning.
 5. Add release review and explicit publish/signing approval.
-6. Add emulator and device installation validation.
+6. Add Nirman-managed local Android emulator installation validation.
 
 ### Exit gate
 
@@ -354,7 +354,7 @@ Implement the internal Android capability registry and profile identity used for
 
 ### Exit gate
 
-A supported mobile fixture can be generated, launched on one emulator or device, tested with synthetic data, and built into a local artifact with clear environment diagnostics.
+A supported mobile fixture can be generated, launched on one Nirman-managed local Android emulator, tested with synthetic data, and built into a local artifact with clear environment diagnostics.
 
 ---
 
@@ -393,7 +393,7 @@ Integration tests should run the control plane, database, scheduler, worker mock
 
 ### 16.3 Fixture-task evaluations
 
-The team should maintain fixture projects that represent Android dashboards, authenticated utilities, offline-first apps, forms, API integrations, notification flows, device-permission workflows, and intentionally broken Android projects. Every release should run a fixed set of prompts and score changed-file scope, successful Android build, emulator/device behavior, test status, visual behavior, recovery, and safety policy compliance.
+The team should maintain fixture projects that represent Android dashboards, authenticated utilities, offline-first apps, forms, API integrations, notification flows, device-permission workflows, and intentionally broken Android projects. Every release should run a fixed set of prompts and score changed-file scope, successful Android build, Nirman-managed local Android emulator behavior, test status, visual behavior, recovery, and safety policy compliance.
 
 ### 16.4 Security tests
 
@@ -502,7 +502,7 @@ Add an evidence ledger for command results, test reports, build artifacts, scree
 
 ### M20: Autonomous validation coordinator
 
-Implement the default validation loop: emulator/device preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
+Implement the default validation loop: Nirman-managed local Android emulator preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
 
 **Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation.
 
@@ -678,7 +678,7 @@ Implement active-task login startup, boot/resume/suspend/hibernate event handlin
 
 Implement incremental repository-map shards, dependency fingerprints, checkpoint retention and content-addressed compaction, Android-profile disk quotas, affected-test computation, cached results, regression sharding, architectural-drift checks, and the side-by-side Android preview plus execution-surface layout.
 
-**Exit gate:** A large Android fixture updates only affected map shards, retains a valid restore path while pruning safe intermediates, runs affected tests before sharded regressions, detects architectural drift, and shows the correct emulator/device preview revision beside the live task tree.
+**Exit gate:** A large Android fixture updates only affected map shards, retains a valid restore path while pruning safe intermediates, runs affected tests before sharded regressions, detects architectural drift, and shows the correct Nirman-managed local Android emulator preview revision beside the live task tree.
 
 ## 30. Audit Closure Evaluation Matrix
 
@@ -701,9 +701,9 @@ Implement and test the rule that models propose work but deterministic lifecycle
 
 ### M37: Android-only target contract
 
-Make Android project profiles, emulator/device validation, Logcat, Gradle, APK artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
+Make Android project profiles, Nirman-managed local Android emulator validation, Logcat, Gradle, APK artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
 
-**Exit gate:** A scope test accepts supported Android project requests, resolves the correct Android profile, launches emulator/device validation, produces Android artifact evidence, and confirms that every project-generation path resolves only to an Android profile.
+**Exit gate:** A scope test accepts supported Android project requests, resolves the correct Android profile, launches Nirman-managed local Android emulator validation, produces Android artifact evidence, and confirms that every project-generation path resolves only to an Android profile.
 
 ### M38: Complete Android technology coverage
 
@@ -747,7 +747,7 @@ Implement a progress ledger and stall detector that measure changed files, new e
 
 ## 34. Live Preview and APK Completion Gate
 
-Make the Android emulator or connected device a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
+Make the Android Nirman-managed local Android emulator a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
 
 ### Acceptance criteria
 
@@ -839,7 +839,7 @@ Every tool call is schema-validated, permission-checked, session-bound, worker-b
 
 ## 41. Sandbox and Process Separation
 
-Implement separate authority and process domains for the desktop shell, control-plane supervisor, workers, Android build processes, emulator/device manager, preview application, provider transport, and credential service.
+Implement separate authority and process domains for the desktop shell, control-plane supervisor, workers, Android build processes, Nirman-managed local Android emulator manager, preview application, provider transport, and credential service.
 
 ### Acceptance criteria
 
@@ -940,7 +940,7 @@ Implement Android capability/requirement inference, missing and over-permission 
 
 ## M48 — Preview fallback matrix and revision binding
 
-Implement incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, physical-device preview, headless smoke tests, diagnostic preview, stale-preview detection, screenshot capture, interaction evidence, and Logcat binding.
+Implement incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, Nirman-managed local Android emulator preview, headless smoke tests, diagnostic preview, stale-preview detection, screenshot capture, interaction evidence, and Logcat binding.
 
 **Exit gate:** stale previews cannot satisfy completion; every promoted PreviewRevision identifies source revision, artifact, device, API level, mode, and evidence.
 
@@ -952,7 +952,7 @@ Implement concise decision traces without hidden chain-of-thought, Calm/Inspect/
 
 ## M50 — End-to-end production acceptance
 
-Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, screenshots, API integrations, emulator/device validation, dependency repair, provider outage, bridge restart, worker crash, reboot, sleep, disk pressure, stale revision, conflict reconciliation, APK packaging, signing, and artifact export.
+Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, screenshots, API integrations, Nirman-managed local Android emulator validation, dependency repair, provider outage, bridge restart, worker crash, reboot, sleep, disk pressure, stale revision, conflict reconciliation, APK packaging, signing, and artifact export.
 
 **Exit gate:** a single instruction plus optional screenshots can produce a validated Android APK with source revision, checksum, environment snapshot, preview evidence, validation evidence, and replayable session history without routine human intervention.
 
@@ -970,7 +970,7 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 | Mutation broker | Structured-only mutation and scope enforcement |
 | Android requirements | Permission/manifest/resource drift detection |
 | Repair registry | Classified fixtures with evidence-backed fixes |
-| Preview | Revision-bound emulator/device evidence |
+| Preview | Revision-bound Nirman-managed local Android emulator evidence |
 | Resource governance | Pressure tests without gate weakening |
 | Artifact completion | APK checksum, signing, environment, and validation proof |
 # M51–M58: Integrated Workflow and Quality Intelligence Milestones
@@ -1021,7 +1021,7 @@ Implement generated project handbooks, release-intelligence reports, Logcat/ANR/
 
 ## M58 — Validated repair promotion and final integration
 
-Implement independent-fixture validation for learned repair patterns, bounded alternative strategy branches, and end-to-end regression testing across native, Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, emulators, physical devices, provider failures, toolchain failures, and artifact gates.
+Implement independent-fixture validation for learned repair patterns, bounded alternative strategy branches, and end-to-end regression testing across native, Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, emulators, Nirman-managed local Android emulators, provider failures, toolchain failures, and artifact gates.
 
 **Exit gate:** capability support is reported from passing fixtures and retained evidence, not module counts or unsupported percentages.
 
@@ -1460,7 +1460,7 @@ Implement the side-by-side Android preview and execution/evidence surface with `
 
 ## M99 — End-to-end synthesis and preview certification
 
-Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the emulator/device preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK whose source, assets, preview, tests, and evidence identities match.
+Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the Nirman-managed local Android emulator preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK whose source, assets, preview, tests, and evidence identities match.
 
 **Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK.
 
@@ -1506,7 +1506,7 @@ Extend each Android capability profile with stable profile identity, technology 
 
 ## M104 — Hidden-human-dependency and runtime-proof fixtures
 
-Add adversarial fixtures for interactive terminal prompts, provider login, expired credentials, device unlock, emulator dialogs, package-manager confirmation, signing selection, missing environment variables, GUI-only installers, external-service approval, and suppressed notifications. Add separate runtime-certification jobs for schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, and self-development rollback.
+Add adversarial fixtures for interactive terminal prompts, provider login, expired credentials, device unlock, emulator dialogs, package-manager confirmation, signing selection, missing environment variables, GUI-only installers, external-service approval, and suppressed notifications. Add separate runtime-certification jobs for schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, Nirman-managed local Android emulator execution, preview truth, APK inspection, failure injection, restart recovery, and self-development rollback.
 
 **Exit gate:** an unattended task either completes through an explicitly authorized automatic path, creates a durable `USER_REQUIRED` decision, or reaches a truthful blocked state. It must never remain silently running. Documentation graph certification is reported separately from runtime and artifact certification.
 
@@ -1548,7 +1548,7 @@ M107 implements build spec §70 and technical architecture §74. It follows the 
 
 Implement the versioned `IntegrationBoundaryContract` reference envelope and `BoundaryOperationProjection`. Add schema parity and compatibility records for payloads, responses, protocols, adapters/bridges, authorities, specialized state references, transaction domains, permissions, credentials, timeouts, cancellation, retries, observations, evidence, validation, downstream effects, and invalidation. Complete UI command/projection correlation, Android service-integration records, provider/context binding, UI-hierarchy observations, skill/external-tool lifecycle vocabulary, signing and certificate inspection, post-copy artifact export verification, and documentation certification reporting.
 
-The fixture matrix must cover UI reconnect and stale-command rejection; provider and context correlation; skill-to-capability-to-tool mediation; worker lease-loss fencing; patch/revision freshness; Android service functional evidence and independent operationality dimensions; emulator/device installation and UI-hierarchy evidence; signing certificate inspection; source/destination export hash equality; unknown external-effect reconciliation; timeout and cancellation propagation; adapter/protocol incompatibility; invalidation of downstream evidence; and separation of documentation certification from runtime certification.
+The fixture matrix must cover UI reconnect and stale-command rejection; provider and context correlation; skill-to-capability-to-tool mediation; worker lease-loss fencing; patch/revision freshness; Android service functional evidence and independent operationality dimensions; Nirman-managed local Android emulator installation and UI-hierarchy evidence; signing certificate inspection; source/destination export hash equality; unknown external-effect reconciliation; timeout and cancellation propagation; adapter/protocol incompatibility; invalidation of downstream evidence; and separation of documentation certification from runtime certification.
 
 **Exit gate:** every applicable boundary-crossing operation resolves one registered `IntegrationBoundaryContract`, all universal-chain references are resolvable, specialized authorities remain singular, unknown outcomes cannot be retried unsafely, stale identities cannot produce current effects, and all M107 fixtures produce durable evidence. A documentation verifier pass alone cannot promote runtime capability or artifact status.
 
@@ -1556,7 +1556,7 @@ The fixture matrix must cover UI reconnect and stale-command rejection; provider
 
 M108 implements build spec §71 and technical architecture §75. It must follow the chat, control-plane, worker, workspace, build, device, evidence, and preview authorities already defined by the earlier milestones. It does not permit an agent, worker, UI, or model to mutate preview state directly.
 
-Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` with canonical schema registry entries, version compatibility, durable event sequences, idempotent replay, projection revisions, preview identity checks, causal lineage, authority classes, and evidence lineage. Record acceptance using `TEST-PSYNC-001` and `EV-PSYNC-001`. Connect the user chat request to intent acceptance, contract validation, agent authorization, source revision, checkpoint, Android build, APK artifact, emulator/device installation, launch, interaction, observation, validation, promotion, and panel projection.
+Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` with canonical schema registry entries, version compatibility, durable event sequences, idempotent replay, projection revisions, preview identity checks, causal lineage, authority classes, and evidence lineage. Record acceptance using `TEST-PSYNC-001` and `EV-PSYNC-001`. Connect the user chat request to intent acceptance, contract validation, agent authorization, source revision, checkpoint, Android build, APK artifact, Nirman-managed local Android emulator installation, launch, interaction, observation, validation, promotion, and panel projection.
 
 ### M108 work items
 
@@ -1564,7 +1564,7 @@ Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, a
 |---|---|---|
 | Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered as strategy and composition adapters; only `validatePlan`, `initializeProject`, `planBuild`, `classifyFailure`, `resolveBuildAdapter`, `resolveDeviceAdapter` exposed; no concrete execution operation on the technology adapter; `resolveBuildAdapter` and `resolveDeviceAdapter` are deterministic over the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities`; emitted `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` |
 | Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly |
-| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by both emulator and physical-device implementations; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
+| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by both Nirman-managed local Android emulator implementations; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
 | Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
 | Preview Panel Pipeline | TA §73.14 | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry and by the contract-graph verifier |
 
@@ -1621,13 +1621,13 @@ Parameterized coverage: nine technology profiles specified as `AndroidCapability
 
 Runtime certification: not claimed by this milestone. Runtime certification of the nine profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, device sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on an actually attached matching device and the runtime adapter implementations; neither is asserted by this documentation milestone.
 
-**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, emulator/device runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
+**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, Nirman-managed local Android emulator runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
 
 ## M109 — Preview projection resilience and runtime-certification evidence
 
 M109 implements the resilience and certification portion of build spec §71.4–§71.5 and technical architecture §75.3–§75.4. Add UI and supervisor fixtures for duplicate events, conflicting duplicate payloads, out-of-order delivery, missing sequence ranges, stale revisions, late device observations, stream loss, UI reconnect, supervisor restart, failed candidates, last-known-good preservation, rollback, recovery, and deterministic replay.
 
-Persist `PreviewSyncEvidenceRecord` for each displayed completed stage and verify event range, reducer version, projection revision, preview revision, branch/candidate identity, device identity, runtime session, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, invalidated evidence, recovery events, and promotion or completion decisions. Documentation certification remains separate from runtime certification. Include fixtures for worker stalls, watchdog fencing, replacement-worker resume, emulator/device restart and reconnect, cancellation, rollback, late events, and wrong-revision or wrong-device evidence.
+Persist `PreviewSyncEvidenceRecord` for each displayed completed stage and verify event range, reducer version, projection revision, preview revision, branch/candidate identity, device identity, runtime session, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, invalidated evidence, recovery events, and promotion or completion decisions. Documentation certification remains separate from runtime certification. Include fixtures for worker stalls, watchdog fencing, replacement-worker resume, Nirman-managed local Android emulator restart and reconnect, cancellation, rollback, late events, and wrong-revision or wrong-device evidence.
 
 **Exit gate:** live application and replay produce identical projections; disconnected UI cannot advance truth; stale or late events cannot overwrite current state; failed candidates cannot replace last-known-good; current runtime observations reconcile compatible persisted state; incompatible observations become stale or invalidated; and the complete fixture evidence proves chat-to-preview synchronization rather than only documentation presence.
 
@@ -1661,7 +1661,7 @@ Implement `ContextCachePolicy`, protected-context classes, compaction triggers, 
 
 ## M114 — Android runtime integrity and honest coverage
 
-Implement independent collection and validation for applicable Play Integrity, ANRs, startup/crash behavior, battery-sensitive behavior, Doze/background restrictions, permissions, device availability, and runtime-session identity.
+Implement independent collection and validation for applicable Play Integrity, ANRs, startup/crash behavior, battery-sensitive behavior, Doze/background restrictions, permissions, emulator availability, and runtime-session identity.
 
 **Exit gate:** applicable, unavailable, unsupported, stale, and failed signal fixtures are distinguished; no missing signal becomes a pass; and the Android completion report shows the exact coverage and evidence for each declared integrity requirement.
 
