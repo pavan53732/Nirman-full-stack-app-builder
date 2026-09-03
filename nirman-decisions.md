@@ -2392,3 +2392,19 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Consequences:** BS §8.1 gains a Compatibility mode field and a test-gated save rule. BS §8.2 and TA §24, §38, §48 name the two modes as the user-facing surface over the existing normalization families. ADR-037 and ADR-038 are unaffected: the gateway stays provider-neutral internally and capability testing remains required. A provider matching neither mode is unsupported and must be reported as such rather than silently attempted.
 
 **Reversal trigger:** a third protocol family gains enough provider adoption that OPENAI_COMPATIBLE and ANTHROPIC_COMPATIBLE together no longer cover the providers a user is likely to configure.
+
+---
+
+## ADR-209: Runtime interaction is mandatory behavioral evidence
+
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** When an Android acceptance condition is behaviorally executable, Nirman MUST validate it by driving the installed application through an admitted Android interaction mechanism and observing the resulting runtime state. Source inspection, compilation, static screenshots, model assertions, or predicted state cannot substitute for executable behavioral evidence.
+
+**Rationale:** An autonomous Android builder must prove what the generated application does, not merely prove that its source appears plausible or that it renders an expected image.
+
+**Consequences:** Stateful scenario execution, interaction evidence, runtime-state observation, and assertion results become mandatory parts of behavioral completion. Validation cost increases, but false-positive completion is materially reduced.
+
+**Reversal trigger:** Evidence demonstrates that a declared Android behavior cannot be deterministically exercised through the available device/test adapters and an equivalent authoritative runtime observation contract is proven.
