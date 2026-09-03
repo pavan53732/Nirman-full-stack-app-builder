@@ -103,7 +103,7 @@ chat instruction and optional screenshots/assets
 → authorized worker execution
 → Android source revision
 → local build and artifact observation
-→ emulator/device installation and launch
+→ Nirman-managed local Android emulator installation and launch
 → interaction, Logcat, UI hierarchy, and screenshot evidence
 → validation and visual comparison
 → repair/recovery when required
