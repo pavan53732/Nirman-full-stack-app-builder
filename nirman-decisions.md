@@ -295,7 +295,7 @@ The following decisions remain intentionally open:
 | Native Windows isolation | Required foundation | Restricted tokens, ACLs, Job Objects, process supervision, resource quotas, and emulator snapshots |
 | High-risk restricted-process profile | Future hardening profile | Untrusted dependency and malware workflow requirements |
 | Cloud worker execution | Not required for core app | Demand for remote execution without violating local-first principles |
-| Multi-device Android preview | Future capability | Stable single-device workflow and resource telemetry |
+| Multi-device Android preview | Future capability | Stable single-emulator workflow and resource telemetry |
 | Automatic commits | Optional and policy-controlled | Reliable checkpoint and review behavior |
 | External tool protocol | MCP-compatible adapter or equivalent | First design, issue, documentation, and test integrations |
 | Long-term memory | Bounded project memory | Evaluation of retrieval quality and privacy controls |
@@ -429,7 +429,7 @@ The following decisions remain intentionally open:
 **Status:** Accepted  
 **Decision:** For Android-target profiles, Nirman will validate through Nirman-managed local Android emulator launch, focused Android checks, build or package validation, security/dependency/reliability checks, Android device/accessibility/visual QA, repair or backtracking, regression checks, and final goal evaluation. Browser validation is optional external auxiliary tooling for a declared non-Android surface and is never required or authoritative for generated Android application completion.
 
-**Reasoning:** Compilation alone does not prove that an application works or that existing behavior was preserved. Android runtime behavior requires supervised emulator/device evidence, while auxiliary browser evidence must not be mistaken for Android execution evidence.
+**Reasoning:** Compilation alone does not prove that an application works or that existing behavior was preserved. Android runtime behavior requires supervised Nirman-managed local Android emulator evidence, while auxiliary browser evidence must not be mistaken for Android execution evidence.
 
 **Trade-off:** Validation increases runtime and resource consumption. Project profiles must distinguish required, optional, and unavailable checks.
 
@@ -701,9 +701,9 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 **Scope boundary:** Every project-generation request, visual input, preview, validation flow, toolchain, artifact, and autonomous workflow resolves to a dynamically synthesized Android project. Internal bootstraps are allowed as implementation details, but they are not user-facing product limitations.
 
-**Reasoning:** Focusing on one target lets the runtime deeply support Android screens, navigation, permissions, offline behavior, notifications, emulator/device testing, Logcat, Gradle, signing boundaries, and device-specific validation rather than spreading reliability across unrelated platforms.
+**Reasoning:** Focusing on one target lets the runtime deeply support Android screens, navigation, permissions, offline behavior, notifications, Nirman-managed local Android emulator testing, Logcat, Gradle, signing boundaries, and emulator-specific validation rather than spreading reliability across unrelated platforms.
 
-**Trade-off:** The application deliberately concentrates on Android development quality, emulator/device validation, native build tooling, artifact generation, and autonomous runtime depth instead of spreading implementation effort across unrelated target profiles.
+**Trade-off:** The application deliberately concentrates on Android development quality, Nirman-managed local Android emulator validation, native build tooling, artifact generation, and autonomous runtime depth instead of spreading implementation effort across unrelated target profiles.
 
 ---
 
@@ -778,7 +778,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Reasoning:** Source generation or compilation alone does not prove that an Android application works on a device.
 
-**Trade-off:** Completion takes longer and requires emulator/device validation, but results are materially more trustworthy.
+**Trade-off:** Completion takes longer and requires Nirman-managed local Android emulator validation, but results are materially more trustworthy.
 
 
 ---
@@ -825,7 +825,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Status:** Accepted  
 **Decision:** Project ingestion understands Android and Gradle structures, resources, manifests, native modules, devices, generated outputs, secrets, signing material, and repository state. Reconciliation, preview installation, packaging, and promotion require current project and scope fingerprints.
 
-**Reasoning:** Android projects contain generated files, device configuration, credentials, and build outputs that generic file discovery cannot safely treat as ordinary source.
+**Reasoning:** Android projects contain generated files, emulator configuration, credentials, and build outputs that generic file discovery cannot safely treat as ordinary source.
 
 **Trade-off:** Ingestion and fingerprinting are more expensive, but stale or external changes cannot be silently overwritten.
 
@@ -845,7 +845,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-070: Separate sandbox and process domains
 
 **Status:** Accepted  
-**Decision:** Keep the desktop shell, supervisor, workers, build processes, emulator/device manager, preview application, provider transport, and credential service in distinct permission domains.
+**Decision:** Keep the desktop shell, supervisor, workers, build processes, Nirman-managed local Android emulator manager, preview application, provider transport, and credential service in distinct permission domains.
 
 **Reasoning:** Generated Android code and build tools must not inherit the user’s personal host privileges.
 
@@ -1399,7 +1399,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Decision:** Nirman resolves, validates, isolates, and supervises JDK, Gradle, AGP, Kotlin, Java, Android SDK, ADB, emulator, NDK/CMake, and selected Node/Metro/Expo tooling. It does not replace these ecosystems.
 
-**Rationale:** Android build and device tooling must remain compatible with the Android ecosystem while Nirman supplies orchestration, evidence, and recovery.
+**Rationale:** Android build and emulator tooling must remain compatible with the Android ecosystem while Nirman supplies orchestration, evidence, and recovery.
 
 **Consequences:** Toolchain manifests, locks, health checks, environment snapshots, and authorized repair are required.
 
@@ -1530,13 +1530,13 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Early capability planning prevents late discovery of impossible Android validation paths.
 
-**Consequences:** Physical-device access, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
+**Consequences:** Physical-emulator access, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
 
 ## ADR-128: Make ValidationPlanner and mutation/regression analysis authoritative for test selection
 
 **Status:** Accepted
 
-**Decision:** ValidationPlanner and MutationRegressionAnalyzer will select focused or expanded Android checks using files, symbols, call/route/dependency graphs, requirements, risk, prior failures, project type, and device profiles.
+**Decision:** ValidationPlanner and MutationRegressionAnalyzer will select focused or expanded Android checks using files, symbols, call/route/dependency graphs, requirements, risk, prior failures, project type, and emulator profiles.
 
 **Rationale:** Running the same fixed test set after every change is inefficient and can miss affected behavior.
 
@@ -1646,7 +1646,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, device validation, APK packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
+**Decision:** Expanded swarm and self-development runtime capabilities may be promoted only after a long-running Android fixture passes dynamic allocation, skill composition, tool sessions, failure recovery, replanning, emulator validation, APK packaging, traceability, replay, dry-run, cancellation, deadlock, and history-compaction tests.
 
 **Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
 
@@ -1778,7 +1778,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Scenarios will be distributed across a declared device matrix. A run requires the primary device; unavailable secondary devices produce declared coverage gaps rather than implicit passes. A scenario that passes on one device and fails on another is classified as a defect unless cited evidence shows the failure originates in the device or vendor.
+**Decision:** Scenarios will be distributed across a declared emulator profile matrix. A run requires the primary device; unavailable secondary devices produce declared coverage gaps rather than implicit passes. A scenario that passes on one device and fails on another is classified as a defect unless cited evidence shows the failure originates in the device or vendor.
 
 **Rationale:** Verification on a single emulator overstates confidence, and attributing device-specific failures to "device noise" is the standard way real Android defects are dismissed.
 
@@ -2055,7 +2055,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. Every `PreviewRevision` binds project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact identity, device identity, execution truth, runtime state, validation state, and evidence IDs. Every promotion decision must pass the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1; no worker, model, UI projection, successful build, or isolated evidence item may promote a candidate independently.
+**Decision:** `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. Every `PreviewRevision` binds project revision, checkpoint, source fingerprint, contract version, technology-plan version, asset manifest, build variant, artifact identity, emulator identity, execution truth, runtime state, validation state, and evidence IDs. Every promotion decision must pass the canonical `PreviewPromotionGate` defined in technical architecture §73.5.1; no worker, model, UI projection, successful build, or isolated evidence item may promote a candidate independently.
 
 **Rationale:** A preview is trustworthy only when the user can identify exactly which source and checkpoint produced it and which observations prove that it is running. A build result or model statement alone cannot prove device behavior.
 
@@ -2140,7 +2140,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Status:** Accepted
 
-**Decision:** Contract-graph and Markdown checks certify documentation structure and addressing only. Separate runtime certification must prove schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, emulator/device execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, and self-development rollback.
+**Decision:** Contract-graph and Markdown checks certify documentation structure and addressing only. Separate runtime certification must prove schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, Nirman-managed local Android emulator execution, preview truth, APK inspection, failure injection, restart recovery, hidden-human-dependency handling, and self-development rollback.
 
 **Reasoning:** A clean documentation graph cannot prove that the runtime starts, builds an Android application, survives failure, or exports a valid artifact.
 
@@ -2185,7 +2185,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Decision:** A current preview is bound to active branch, project revision, promotion lineage, source, asset, toolchain, device, application, and environment-state fingerprints. The newest revision is never authoritative by number alone.
 
-**Rationale:** Identical device identity and APK identity can still produce different behavior when permissions, databases, locale, network state, account state, or system settings differ.
+**Rationale:** Identical emulator identity and APK identity can still produce different behavior when permissions, databases, locale, network state, account state, or system settings differ.
 
 **Consequences:** Preview promotion and stale invalidation require state-fingerprint capture and comparison, and the last-known-good preview remains available when any required identity is uncertain.
 
@@ -2199,7 +2199,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Decision:** Local source/artifact mutations, device operations, and external side effects use separate transaction records and rollback semantics. A consumed mutation capability cannot be reused for a new side effect after an unknown response. Reconciliation uses an explicitly scoped reconciliation authority, idempotency key, read-back, or compensation evidence.
 
-**Rationale:** Filesystem rollback can restore local state, but it cannot automatically undo a device installation or a remote request.
+**Rationale:** Filesystem rollback can restore local state, but it cannot automatically undo a emulator installation or a remote request.
 
 **Consequences:** Unknown outcomes are durable states, duplicate external effects are rejected, and local commit never implies remote or device success.
 
@@ -2239,9 +2239,9 @@ The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE 
 
 **Status:** Accepted
 
-**Decision:** Nirman will synchronize chat instructions, autonomous agent activity, source revisions, Android builds, artifacts, emulator/device observations, evidence, validation, promotion, and the live preview panel through one durable `PreviewSyncEvent` sequence and one deterministic `PreviewProjectionReducer`. Agents, workers, models, build processes, device callbacks, evidence producers, and UI components may emit requests or normalized observations but cannot mutate preview projection state directly.
+**Decision:** Nirman will synchronize chat instructions, autonomous agent activity, source revisions, Android builds, artifacts, Nirman-managed local Android emulator observations, evidence, validation, promotion, and the live preview panel through one durable `PreviewSyncEvent` sequence and one deterministic `PreviewProjectionReducer`. Agents, workers, models, build processes, device callbacks, evidence producers, and UI components may emit requests or normalized observations but cannot mutate preview projection state directly.
 
-Events are applied by durable sequence and compatible identity, not arrival time. Same-ID same-payload replay is idempotent; conflicting duplicate IDs are quarantined; sequence gaps block advancement and request replay; old, late, stale, or incompatible events cannot overwrite a newer projection; stream loss freezes the panel at the last durable state; reconnect replays and verifies continuity before resuming; and every displayed completed stage carries `PreviewSyncEvidenceRecord` linking event range, reducer version, projection revision, preview revision, branch/candidate identity, runtime session, device identity, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, recovery events, and promotion or completion decisions.
+Events are applied by durable sequence and compatible identity, not arrival time. Same-ID same-payload replay is idempotent; conflicting duplicate IDs are quarantined; sequence gaps block advancement and request replay; old, late, stale, or incompatible events cannot overwrite a newer projection; stream loss freezes the panel at the last durable state; reconnect replays and verifies continuity before resuming; and every displayed completed stage carries `PreviewSyncEvidenceRecord` linking event range, reducer version, projection revision, preview revision, branch/candidate identity, runtime session, emulator identity, artifact fingerprint, state fingerprints, observation references, evidence references, validation references, recovery events, and promotion or completion decisions.
 
 The event authority class limits the projection dimensions that an event may advance: declarative or planned events cannot advance execution, runtime, evidence, validation, or certification state. Every non-root event must retain causal parentage and compatible project, revision, candidate, artifact, runtime-session, and device lineage. For a compatible identity, a current supervised runtime observation reconciles contradictory persisted runtime state; for an incompatible identity, the event becomes stale or invalidated rather than being merged. Events after cancellation, rollback, promotion, or worker fencing remain historical or quarantined unless a new authorized lineage admits them.
 
@@ -2425,6 +2425,6 @@ The embedded preview is a projection of the actual running Android runtime, not 
 
 **Rationale:** The defining Nirman workflow is local Android construction with an immediately inspectable live application inside the Nirman desktop experience. Requiring a physical phone would make the core development loop dependent on external hardware and would violate the intended integrated preview experience.
 
-**Consequences:** PreviewCoordinator, AndroidDeviceAdapter, RenderTransport, PreviewSurface, PreviewHost, interaction forwarding, revision binding, recovery, and evidence must treat the local emulator as the canonical primary runtime. Physical-device validation remains a separate optional validation path.
+**Consequences:** PreviewCoordinator, AndroidDeviceAdapter, RenderTransport, PreviewSurface, PreviewHost, interaction forwarding, revision binding, recovery, and evidence must treat the local emulator as the canonical primary runtime. Physical-emulator validation remains a separate optional validation path.
 
 **Reversal trigger:** A Windows-hosted local Android runtime can no longer provide sufficiently reliable rendering, interaction, or validation for the supported Android capability classes, and a superior local embedded runtime is proven with equivalent evidence, interaction, recovery, and revision-binding guarantees.
