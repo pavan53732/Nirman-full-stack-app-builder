@@ -452,7 +452,7 @@ In Nirman's Android runtime contracts, a Device represents a Nirman-managed Andr
 Device
 - id
 - name
-- kind
+- kind: emulator
 - platformVersion
 - architecture
 - connectionState
@@ -3881,10 +3881,10 @@ Implements build spec §59. Extends §49 (Android Toolchain Authority and Enviro
 
 | Component | Responsibility |
 |---|---|
-| DeviceMatrixResolver | Resolves the declared matrix against actually available devices |
+|| DeviceMatrixResolver | Resolves the declared emulator-profile matrix against available Nirman-managed emulator sessions |
 | DevicePool | Allocates and recycles Nirman-managed local Android emulator sessions |
-| ScenarioDistributor | Assigns scenarios to devices and orders execution |
-| DivergenceAnalyzer | Compares per-device outcomes for the same scenario |
+| ScenarioDistributor | Assigns scenarios to emulator profiles and orders execution |
+| DivergenceAnalyzer | Compares per-emulator-profile outcomes for the same scenario |
 | CoverageReporter | Reports per-emulator-profile scenario coverage and declared gaps |
 
 ### 65.2 Resolution and admission
@@ -3903,7 +3903,7 @@ ScenarioDivergence
 - scenarioId
 - passingEmulatorProfiles
 - failingEmulatorProfiles
-- differingAttributes: apiLevel | density | formFactor | abi | vendor
+- differingAttributes: apiLevel | density | formFactor | abi | orientation | permissions | networkProfile
 - classification: defect | environment_limitation
 - evidenceRefs
 ```

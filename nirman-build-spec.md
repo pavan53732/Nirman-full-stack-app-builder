@@ -3561,7 +3561,7 @@ This section extends §11 (Local Execution and Environment Management) and §51 
 
 ### 59.1 Product requirement
 
-An Android application that works on one emulator is not verified. Behavior varies by API level, screen size, density, form factor, and vendor behavior. Verification must state which devices were covered and which were not.
+An Android application that works on one emulator profile is not fully verified. Behavior can vary by API level, screen size, density, form factor, ABI, orientation, permissions, and emulator configuration. Verification must state which emulator profiles were covered and which were not.
 
 ### 59.2 Device matrix declaration
 
@@ -5757,7 +5757,7 @@ ValidationEnvironment
 - toolchain
 - runtime
 - available_tools
-- available_devices
+- available_emulator_profiles
 - isolation_profile
 - network_policy
 - fingerprint
@@ -5776,7 +5776,7 @@ target validation task
   → bound evidence
 ```
 
-No native-validation or certification claim exists without the lease and the observation set it produced. A lease, fingerprint, toolchain, device, or policy change invalidates the evidence produced under it (CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION).
+No native-validation or certification claim exists without the lease and the observation set it produced. A lease, fingerprint, toolchain, emulator profile/session, or policy change invalidates the evidence produced under it (CLAUSE.PLATFORM.VALIDATION_ENV_RESERVATION).
 
 ### 79.9 No Substitute Execution Targets
 
