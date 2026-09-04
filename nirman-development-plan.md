@@ -291,7 +291,7 @@ Three independent workers can work on isolated tasks, return structured handoffs
 
 ### Objectives
 
-Add visual and Android Nirman-managed local Android emulator verification without exposing personal credentials or unapproved emulator state.
+Add visual and Nirman-managed local Android emulator verification without exposing personal credentials or unapproved emulator state.
 
 ### Work items
 
