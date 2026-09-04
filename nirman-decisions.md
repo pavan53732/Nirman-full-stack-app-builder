@@ -2436,11 +2436,11 @@ The embedded preview is a projection of the actual running Android runtime, not 
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`
 
-**Decision:** Product content is first-class development state and must participate in the unified revision, transaction, validation, evidence, invalidation, preview, and completion lifecycle.
+**Decision:** Product content is first-class development state and must participate in the unified revision, transaction, validation, evidence, invalidation, preview, and completion lifecycle. Content dependencies are modeled as explicit edges into the project `ImpactGraph` (`ContentRevision -> ContentDependency* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence`), enabling generalized cascading invalidation rather than closed lists.
 
 **Rationale:** UI and product correctness depends on content, accessibility, localization, terminology, and brand voice, not source code alone.
 
-**Consequences:** Content requires durable schemas, validation, propagation, and evidence.
+**Consequences:** Content requires durable schemas, validation, propagation, and evidence. Upstream dependency changes traverse the `ImpactGraph` to invalidate dependent content revisions, string resources, preview surfaces, and evidence.
 
 **Reversal trigger:** Evidence that a separate content lifecycle creates materially worse correctness or provenance than the unified revision lifecycle.
 
@@ -2449,9 +2449,9 @@ The embedded preview is a projection of the actual running Android runtime, not 
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.CONTEXT`
 
-**Decision:** Conversation is a durable product aggregate connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage. Continue resolves this aggregate rather than treating continuation as a new prompt.
+**Decision:** Conversation is a durable product aggregate connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage. Continue resolves this aggregate rather than treating continuation as a new prompt. Conversation consistency is governed by the triple revision invariant `ConversationRevision ↕ ProjectRevision ↕ TaskRevision` with strict state transitions (`MATCH -> CONTINUE`, `MISMATCH -> RECONCILE / REBASE`, `UNRESOLVABLE -> USER_REQUIRED`). Attachment transmission delegates to `ContextGovernance`. Conversation continuation integrates with `BackgroundContinuity` to form unified resume semantics (`Conversation continuation + Background continuity = resume semantics`).
 
-**Rationale:** Long-horizon development requires durable conversational state in addition to task and memory state.
+**Rationale:** Long-horizon development requires durable conversational state in addition to task and memory state without resurrecting stale intent on revision divergence.
 
 **Consequences:** Conversation persistence and continuation resolution become explicit runtime contracts. Conversation owns conversational lineage only. Conversation is NOT a second Memory, Context, or Task authority. Memory remains authoritative for durable semantic memory records. Context remains authoritative for context assembly/reconstruction policy. Task and project state remain authoritative for execution state. ConversationStore MUST NOT become a second memory, task, or project authority.
 
@@ -2462,7 +2462,7 @@ The embedded preview is a projection of the actual running Android runtime, not 
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.PREVIEW_SYNC`
 
-**Decision:** Every completed mutation exposes a canonical ChangeImpactReport derived from authoritative transaction, impact, validation, preview, and evidence state.
+**Decision:** Every committed ConstructionTransaction produces a canonical ChangeReportRecord and ChangeImpactReport derived from authoritative transaction, impact, validation, preview, and evidence state. The canonical reporting unit is strictly defined as `MutationReportUnit = committed ConstructionTransaction`. Projector failure does not fail or roll back the committed parent transaction; failed reports record `ChangeReportRecord.status = INCOMPLETE` in `ChangeIntelligenceStore` and are reconstructed asynchronously by `ChangeIntelligenceRecoveryJob` under `RecoveryAuthority`. The report projects into WinUI 3 across Calm, Inspect, and Developer modes without inferring mutation facts from model prose.
 
 **Rationale:** Autonomous development requires users and subsequent workers to understand exactly what changed, why, what was affected, what became stale, and what remains to verify.
 

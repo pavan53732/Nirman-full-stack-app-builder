@@ -8,6 +8,7 @@ A case that passes proves the corresponding §67.11 check is not vacuous.
 
 Run: python3 tools/test_verify_contract_graph.py
 """
+import json
 import os
 import re
 import shutil
@@ -236,6 +237,31 @@ CASES = {
         DEC, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
+    "duplicate contract registry identity": (
+        BS,
+        "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |\n| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |",
+        "structure"),
+    "duplicate capability registry identity": (
+        BS,
+        "| CAP.ANDROID.GENERATE | Generate a working Android application",
+        "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE | TEST-GEN-001 | EV-GEN-001 | PLANNED |\n| CAP.ANDROID.GENERATE | Generate a working Android application",
+        "structure"),
+    "duplicate clause registry identity": (
+        BS,
+        "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE |",
+        "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE | §5 | desc | SEALED |\n| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE |",
+        "structure"),
+    "duplicate twelve-edge registry identity": (
+        BS,
+        "| CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE |",
+        "| CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE | BS §5 | BS §5 | TA §47 | TA §47.1 | BS §5 | TA §47.2 | TA §47.3 | ADR-180 | M11 | TEST-GEN-001 | EV-GEN-001 |\n| CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE |",
+        "structure"),
+    "duplicate milestone registry identity": (
+        DEV,
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |",
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |",
+        "structure"),
 
     # ---- semantic documentation lint
     "semantic goal template identifier": (
@@ -942,6 +968,39 @@ def main():
         results.append(("positive: content, conversation, and change anchors certify",
                         present and rc == 0 and "CERTIFICATION: PASS" in out,
                         f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE: invoke verify_contract_graph.py as CLI and verify M120-M122 in dumped registries
+    cli_proc = subprocess.run(
+        [sys.executable, os.path.join(REPO, "tools/verify_contract_graph.py"), "--dump-registries", REPO],
+        capture_output=True, text=True, encoding="utf-8"
+    )
+    cli_rc = cli_proc.returncode
+    cli_out = cli_proc.stdout
+    has_begin = "REGISTRIES_JSON_BEGIN\n" in cli_out
+    has_end = "\nREGISTRIES_JSON_END" in cli_out
+    parsed_ok = False
+    m120_cli_ok = False
+    m121_cli_ok = False
+    m122_cli_ok = False
+    if has_begin and has_end:
+        s_idx = cli_out.index("REGISTRIES_JSON_BEGIN\n") + len("REGISTRIES_JSON_BEGIN\n")
+        e_idx = cli_out.index("\nREGISTRIES_JSON_END")
+        try:
+            reg_data = json.loads(cli_out[s_idx:e_idx])
+            parsed_ok = True
+            m_dict = reg_data.get("milestones", {})
+            m120_cli_ok = ("120" in m_dict and "CONTRACT.RUNTIME.CONTENT_INTELLIGENCE" in m_dict["120"].get("contracts", []))
+            m121_cli_ok = ("121" in m_dict and "CONTRACT.RUNTIME.CONVERSATION_CONTEXT" in m_dict["121"].get("contracts", []))
+            m122_cli_ok = ("122" in m_dict and "CONTRACT.RUNTIME.CHANGE_INTELLIGENCE" in m_dict["122"].get("contracts", []))
+        except Exception:
+            parsed_ok = False
+    results.append(("positive: verifier CLI execution certifies with code 0",
+                    cli_rc == 0 and "CERTIFICATION: PASS" in cli_out,
+                    f"exit={cli_rc}"))
+    results.append(("positive: verifier CLI dumps M120-M122 milestone registrations",
+                    parsed_ok and m120_cli_ok and m121_cli_ok and m122_cli_ok,
+                    f"m120={m120_cli_ok} m121={m121_cli_ok} m122={m122_cli_ok}"))
+
     expected_checks = {
         "duplicate authority", "unregistered contract", "undeclared extension",
         "authority cycle", "clause contradiction", "unversioned override",

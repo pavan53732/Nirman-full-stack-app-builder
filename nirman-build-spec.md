@@ -335,7 +335,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.PLATFORM.CAPABILITY_TRUTH | Classify and report build, cross-build, and target-runtime capability states truthfully, with host, target, validation, and certification kept distinct and evidence-bound | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-PLAT-001 | EV-PLAT-001 | PLANNED |
 | CAP.ANDROID.CONTENT_INTELLIGENCE | First-class product-content generation, revision, consistency, localization, accessibility, and content validation | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | TEST-CONTENT-001 | EV-CONTENT-001 | PLANNED |
 | CAP.ANDROID.CONVERSATION_CONTEXT | Durable conversation state connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | TEST-CONV-001 | EV-CONV-001 | PLANNED |
-| CAP.ANDROID.CHANGE_INTELLIGENCE | Explain every completed mutation through a revision-bound change-impact report | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TEST-CHANGE-001 | EV-CHANGE-001 | PLANNED |
+| CAP.ANDROID.CHANGE_INTELLIGENCE | Explain every committed ConstructionTransaction through a revision-bound change-impact report | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TEST-CHANGE-001 | EV-CHANGE-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
@@ -4237,7 +4237,6 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | BS §77 | — | TA §82 | ADR-202 | M116 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.APK_EXPORT | BS §78 | — | TA §83 | ADR-203 | M117 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | BS §79 | BS §37, BS §52 | TA §84 | ADR-206 | M118 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | — | — | — | INTERNAL |
 
 Contract classes are defined as: `FOUNDATIONAL` — required by the runtime regardless of product capability; `CROSS_CUTTING` — serves multiple product capabilities; `INTERNAL` — serves runtime operation rather than a user-facing capability; `DEPRECATED` — superseded by a versioned successor and retained for provenance.
 
@@ -7215,9 +7214,25 @@ Validation MUST cover terminology consistency, locale completeness, accessibilit
 
 ### 81.3 Content dependencies and invalidation
 
-Content dependencies MUST track product requirements, design/visual specification, permissions, navigation, accessibility semantics, backend/API terminology, feature flags, legal/compliance constraints, provider policy, resource structure, locale resources, and affected UI surfaces.
+Content dependencies are modeled as explicit edges into the project `ImpactGraph`:
 
-Changing any dependency MUST invalidate dependent content evidence and require revalidation before completion.
+```text
+ContentRevision
+      ↓
+ContentDependency*
+      ↓
+ImpactGraph
+      ↓
+affected UI / locale / accessibility / preview / tests / evidence
+```
+
+`ContentDependency` links each `ContentRevision` to upstream nodes in the `ImpactGraph`, spanning product requirements, design/brand assets, permissions, navigation topology, accessibility semantics, backend/API terminology, feature flags, legal/compliance constraints, provider policy, resource models, locale catalogs, and UI component bindings.
+
+Changing any upstream node traverses the `ImpactGraph` to identify all dependent `ContentRevision`s. Traversal propagates cascading invalidation:
+1. Dependent `ContentRevision` records are marked `invalidatedBy` with the causing transaction reference.
+2. Dependent UI layouts, string resources, and preview surfaces transition to `STALE`/`INVALIDATED`.
+3. Dependent `ValidationResult` and `EvidenceArtifact` records are invalidated by `EvidenceAuthority`.
+4. Revalidation across all traversed surfaces is required before task completion.
 
 ### 81.4 Boundary with LOCALIZATION
 
@@ -7244,8 +7259,8 @@ Conversation
 - projectId
 - messages
 - attachments
-- requirements
-- decisions
+- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/RequirementStore
+- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical DecisionStore/MemoryStore
 - acceptedSuggestions
 - rejectedSuggestions
 - activeGoal
@@ -7293,17 +7308,58 @@ ConversationAttachment
 
 Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages and evidence. Accepted and rejected suggestions MUST remain distinguishable.
 
+Attachment `providerTransmissionPolicy` MUST delegate to the existing `ContextGovernance` and `ProviderContextDecision` machinery (see §74) and minimum-context transmission rules rather than creating an independent transmission authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
+
 Conversation owns conversational lineage only. MEMORY owns semantic memory; CONTEXT owns reconstruction policy; BACKGROUND_CONTINUITY owns interruption/resume state; Task/Project state owns execution state.
 
-Continue MUST resolve the current Conversation state, active goal, latest valid project revision, unresolved requirements, accepted/rejected suggestions, decisions, task lineage, and valid evidence before creating continuation work. Continue MUST compare `expectedProjectRevision` with the current project revision and reconcile/rebase or enter `USER_REQUIRED`; it must never silently resurrect stale intent.
+Storage authority separation:
+- Conversation: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
+- MemoryStore / ContextStore / RequirementStore: canonical semantic, context, and requirement authorities.
+Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); it does NOT duplicate or maintain competing copies of their canonical storage.
+
+### 82.1 Revision consistency and Continue state machine
+
+Conversation consistency is governed by the triple revision invariant:
+
+```text
+ConversationRevision
+        ↕
+ProjectRevision
+        ↕
+TaskRevision
+```
+
+When a continuation operation (`Continue`) is invoked (via user request, supervisor restart, or background resumption):
+1. `ConversationResolver` reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
+2. State transitions follow:
+   - `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
+     Transition to `CONTINUE`. Task planner synthesizes next tasks from durable requirements and decisions.
+   - `MISMATCH` (`Conversation.expectedProjectRevision != Project.currentRevision`):
+     Transition to `RECONCILE / REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (e.g. orthogonal worker patches, independent asset generation, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, increments `ConversationRevision`, records a durable `ConversationRebaseRecord`, and transitions to `CONTINUE`.
+   - `UNRESOLVABLE`:
+     If intervening changes conflict with settled conversation requirements or modify locked decisions, transition to `USER_REQUIRED`. Autonomous execution halts, exposing a structured diff of the revision conflict to the user. Continuing work without explicit user resolution or silently resurrecting stale intent is strictly forbidden.
+
+### 82.2 Integration with Background Continuity
+
+Conversation continuation integrates directly with `BackgroundContinuity` (§77, ADR-202):
+
+```text
+Conversation continuation
++
+Background continuity
+=
+resume semantics
+```
+
+When the desktop UI reconnects or the host wakes from suspension, `BackgroundContinuity` restores process execution and supervisor health, while `ConversationResolver` resolves conversational intent against the current project revision. The two combine to determine whether execution continues autonomously (`MATCH` or non-conflicting `MISMATCH`) or halts safely for user guidance (`UNRESOLVABLE`).
 
 A continuation MUST NOT reconstruct state solely by replaying the chat transcript or issuing another free-form prompt.
 
 Context compaction MAY summarize ordinary messages but MUST preserve requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage.
 
-### 82.1 Acceptance
+### 82.3 Acceptance
 
-Restarting the UI or supervisor and selecting Continue MUST reconstruct the same durable development state without re-asking settled requirements or losing accepted/rejected suggestions.
+Restarting the UI or supervisor and selecting Continue MUST reconstruct the same durable development state without re-asking settled requirements, dropping attachments, or losing accepted/rejected suggestions.
 
 ---
 
@@ -7312,12 +7368,31 @@ Restarting the UI or supervisor and selecting Continue MUST reconstruct the same
 **ContractId:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` (see §67.8)
 
-Every completed mutation MUST produce one revision-bound ChangeImpactReport.
+### 83.1 Atomic mutation reporting unit
+
+The canonical atomic reporting unit is:
 
 ```text
+MutationReportUnit = committed ConstructionTransaction
+```
+
+Every committed `ConstructionTransaction` MUST produce one revision-bound `ChangeImpactReport` record. The `ConstructionTransaction` is the canonical `MutationReportUnit`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
+
+```text
+ChangeReportRecord
+- recordId
+- transactionId
+- projectRevision
+- status: INCOMPLETE | COMPLETE | UNRESOLVED
+- report: ChangeImpactReport | null
+- failureDiagnostics: string | null
+- createdAt
+- updatedAt
+
 ChangeImpactReport
 - reportId
 - transactionId
+- reportStatus: COMPLETE
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
@@ -7347,8 +7422,47 @@ ChangeImpactReport
 
 Every field in `ChangeImpactReport` is derived from an authoritative source. `recommendedNextStep` is advisory only. The projector MUST NOT invent facts or fabricate missing values.
 
-The report MUST be generated from authoritative transaction, impact, preview, validation, and evidence state. Model-generated explanations cannot become authoritative change records.
+### 83.2 Failure and reconstruction semantics
 
-### 83.1 Acceptance
+Projector failure MUST NOT fail or roll back the committed parent `ConstructionTransaction`.
 
-Every completed mutation exposes the complete report. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.
+When report projection fails:
+```text
+Mutation committed (ConstructionTransaction committed)
+        ↓
+Change report generation failed
+        ↓
+ChangeReportRecord created with status: INCOMPLETE (report: null)
+        ↓
+Recovery job reconstructs report
+        ↓
+ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
+```
+
+1. The parent `ConstructionTransaction` remains durably committed in SQLite.
+2. A `ChangeReportRecord` is written to `ChangeIntelligenceStore` with `status: INCOMPLETE`, `report: null`, and failure diagnostics.
+3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
+4. The projector MUST NOT fabricate missing values. Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED`.
+5. A report cannot claim completion or support goal completion while its `ChangeReportRecord` is in `INCOMPLETE` or `UNRESOLVED` state.
+
+### 83.3 Presentation contract
+
+The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (see §28 and TA §55):
+
+```text
+Change summary
+Why
+Files
+Runtime impact
+Tests
+Preview
+Evidence invalidated
+Verified
+Next action
+```
+
+The presentation client displays these structured dimensions with clickable file diffs, preview surface status, and evidence links. The client MUST NOT infer mutation facts from model prose.
+
+### 83.4 Acceptance
+
+Every committed `ConstructionTransaction` exposes a complete, valid report. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.

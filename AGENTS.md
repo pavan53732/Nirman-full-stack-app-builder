@@ -25,7 +25,7 @@ Agents MUST treat product content as revisioned development state, not disposabl
 
 Agents MUST use the durable Conversation model for continuation and MUST NOT reconstruct continuation solely from a chat transcript.
 
-Agents MUST consume the authoritative ChangeImpactReport after every completed mutation. They MUST treat it as a read-only projection of transaction, impact, validation, preview, and evidence authorities and MUST NOT infer authoritative mutation facts from model prose.
+Agents MUST consume the authoritative ChangeImpactReport after every completed mutation. The atomic mutation reporting unit is strictly the committed ConstructionTransaction (MutationReportUnit = committed ConstructionTransaction). Agents MUST NOT generate, consume, or present partial reports for individual file edits or uncommitted intermediate workspace mutations. They MUST treat it as a read-only projection of transaction, impact, validation, preview, and evidence authorities and MUST NOT infer authoritative mutation facts from model prose.
 
 Any implementation of these capabilities MUST update all required canonical surfaces before implementation proceeds.
 

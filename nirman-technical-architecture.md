@@ -5752,10 +5752,13 @@ ContentRevision
 
 ```text
 ContentDependency
-- contentDependencyId
-- sourceContentId
+- dependencyId
+- contentId
 - dependencyType
-- targetId
+- dependencyIdentity
+- dependencyRevision
+- invalidationPolicy
+// Internal implementation mapping: sourceContentId maps to contentId; targetId maps to dependencyIdentity
 ```
 
 ### 85.2 Runtime authorities and roles
@@ -5775,9 +5778,22 @@ No content worker may directly mark content complete. `ContentWorker` proposes m
 
 `ContentStore` MUST participate in the existing checkpoint/recovery protocol. Content mutations MUST be atomic with respect to the parent `ConstructionTransaction`.
 
-### 85.4 Failure and recovery
+### 85.4 Failure, dependency graph, and recovery
 
-Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation. Changing any content dependency invalidates dependent content evidence and requires revalidation before completion.
+Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation.
+
+Content dependencies are modeled as typed edges into the project `ImpactGraph`:
+```text
+ContentRevision
+      ↓
+ContentDependency*
+      ↓
+ImpactGraph
+      ↓
+affected UI / locale / accessibility / preview / tests / evidence
+```
+
+When any upstream dependency in the `ImpactGraph` mutates (requirements, brand assets, accessibility semantics, navigation, API terminology, feature flags, permissions, legal rules, locale catalogs), the `ImpactGraph` propagates invalidation to all dependent `ContentRevision`s, compiled resources, preview surfaces, and dependent evidence artifacts. Dependent evidence is invalidated by `EvidenceAuthority`, and the completion evaluator forbids completion until all traversed dependents pass revalidation.
 
 ### 85.5 Boundary with LOCALIZATION
 
@@ -5807,8 +5823,8 @@ Conversation
 - projectId
 - messages
 - attachments
-- requirements
-- decisions
+- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/RequirementStore
+- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical DecisionStore/MemoryStore
 - acceptedSuggestions
 - rejectedSuggestions
 - activeGoal
@@ -5865,7 +5881,7 @@ The resolver MUST consume project revision, goal, requirements, decisions, sugge
 
 `ConversationStore` MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
 
-Attachment provenance and security: `ConversationAttachment` enforces `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project and validated against provider transmission policy before exposure to external providers.
+Attachment provenance and security: `ConversationAttachment` enforces `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. `providerTransmissionPolicy` delegates directly to `ContextGovernance` and `ProviderContextDecision` (TA §79, ADR-199) and minimum-context transmission rules rather than creating an independent transmission policy. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
 ### 86.3 Failure and recovery
 
@@ -5877,13 +5893,44 @@ Conversation does NOT create a second memory, task, or project authority. Conver
 
 `CONTRACT.RUNTIME.MEMORY` remains authoritative for retained semantic memory records. `CONTRACT.RUNTIME.CONTEXT` remains authoritative for reconstruction policy and context budget governance. `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` remains authoritative for background execution and interruption/resume state. Task and project state remain authoritative for execution state.
 
-`ConversationStore` reads from `MemoryStore` and `ContextStore`; it does not duplicate their canonical data or override their decisions.
+Storage authority separation:
+- `Conversation`: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
+- `MemoryStore` / `ContextStore` / `RequirementStore`: canonical semantic, context, and requirement authorities.
+Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); `ConversationStore` reads from `MemoryStore` and `ContextStore` and does not duplicate their canonical data or override their decisions.
 
-### 86.5 Concurrency/rebase semantics
+### 86.5 Concurrency and revision consistency state machine
 
-Continue resolves the conversation at `expectedProjectRevision`. If current project revision != expectedProjectRevision, the resolver MUST reconcile: rebase conversation decisions/requirements onto current revision, surface conflicts as unresolved issues, or reject continuation with a `USER_REQUIRED` node. Continue MUST NOT silently resurrect stale intent.
+Conversation consistency is governed by the triple revision invariant:
 
-### 86.6 Continue protocol
+```text
+ConversationRevision
+        ↕
+ProjectRevision
+        ↕
+TaskRevision
+```
+
+When `Continue` is invoked, the `ConversationContinuationResolver` evaluates `Conversation.expectedProjectRevision` against `Project.currentRevision`:
+1. `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
+   State transitions to `CONTINUE`. Next task graph is synthesized from current conversation state.
+2. `MISMATCH` (`Conversation.expectedProjectRevision != Project.currentRevision`):
+   State transitions to `RECONCILE / REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (orthogonal worker patches, independent asset build, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, records `ConversationRebaseRecord`, increments `ConversationRevision`, and transitions to `CONTINUE`.
+3. `UNRESOLVABLE`:
+   If intervening mutations conflict with conversation requirements or modify user-locked decisions, state transitions to `USER_REQUIRED`. Autonomous execution halts, exposing a structured diff of the revision discrepancy to the user. Continuing work without explicit user resolution or silently resurrecting stale intent is strictly forbidden.
+
+### 86.6 Integration with Background Continuity
+
+Conversation continuation integrates directly with `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` (§82, ADR-202):
+
+```text
+Conversation continuation
++
+Background continuity
+=
+resume semantics
+```
+
+When the WinUI presentation client reconnects or the host wakes from suspension, `BackgroundContinuity` restores process supervision and watchdog health, while `ConversationContinuationResolver` resolves conversational intent against the current project revision. The two combine to determine whether background work continues seamlessly (`MATCH` or non-conflicting `MISMATCH`) or halts safely for user guidance (`UNRESOLVABLE`).
 
 `Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required.
 
@@ -5897,14 +5944,35 @@ Continue resolves the conversation at `expectedProjectRevision`. If current proj
 
 **Implements:** build spec §83 and `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`
 
-### 87.1 Schema
+### 87.1 Schema and atomic reporting unit
 
-Canonical schema: `ChangeImpactReport`.
+The canonical atomic reporting unit is:
+
+```text
+MutationReportUnit = committed ConstructionTransaction
+```
+
+Exactly one `ChangeReportRecord` is produced per committed `ConstructionTransaction`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
+
+Canonical schemas: `ChangeReportRecord`, `ChangeImpactReport`.
+
+```text
+ChangeReportRecord
+- recordId
+- transactionId
+- projectRevision
+- status: INCOMPLETE | COMPLETE | UNRESOLVED
+- report: ChangeImpactReport | null
+- failureDiagnostics: string | null
+- createdAt
+- updatedAt
+```
 
 ```text
 ChangeImpactReport
 - reportId
 - transactionId
+- reportStatus: COMPLETE
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
@@ -5931,6 +5999,7 @@ ChangeImpactReport
 Field provenance:
 - `reportId`: assigned by ChangeIntelligenceProjector
 - `transactionId`: from ConstructionTransaction (authoritative)
+- `reportStatus`: COMPLETE when projection succeeds
 - `projectRevisionBefore` / `projectRevisionAfter`: from ConstructionTransaction (authoritative)
 - `requirementIds`: from the requirement/goal/directive that caused the mutation (authoritative)
 - `changed`: from ConstructionTransaction mutation record (authoritative)
@@ -5972,17 +6041,51 @@ The projector MUST expose source, asset, toolchain, preview, test, integration, 
 
 ### 87.5 Persistence and retention
 
-ChangeImpactReport is immutable after transaction completion, persisted durably by `ChangeIntelligenceStore` in SQLite by reportId + transactionId + project revision, survives restart, and is revision-addressable.
+A `ChangeReportRecord` and its associated `ChangeImpactReport` (when `status == COMPLETE`) are persisted durably by `ChangeIntelligenceStore` in SQLite by `recordId` + `transactionId` + project revision, survive restart, and are revision-addressable.
 
-`ChangeIntelligenceStore` persists reports in the durable SQLite task/project ledger, keyed by `reportId` and `transactionId`. Regeneration creates a new projection version linked to the same transaction and source revision. Reports survive UI and supervisor restart and remain addressable through the project revision history.
+`ChangeIntelligenceStore` persists report records in the durable SQLite task/project ledger, keyed by `recordId` and `transactionId`. Regeneration creates a new projection version linked to the same transaction and source revision. Reports survive UI and supervisor restart and remain addressable through the project revision history.
 
-### 87.6 Failure and recovery
+### 87.6 Failure and reconstruction semantics
 
-Projector failure MUST NOT fail or roll back the parent mutation. Missing/inconsistent authoritative inputs produce an incomplete/stale report; the projector MUST NOT fabricate values. Recovery re-reads authoritative sources.
+Projector failure MUST NOT fail or roll back the committed parent `ConstructionTransaction`.
 
-Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement MUST produce a typed incomplete/stale report. If authoritative state cannot be reconciled, the report is marked `UNRESOLVED` and cannot support completion.
+When report projection encounters an error, missing input, or timeout:
+```text
+Mutation committed (ConstructionTransaction committed)
+        ↓
+Change report generation failed
+        ↓
+ChangeReportRecord created with status: INCOMPLETE (report: null)
+        ↓
+Recovery job reconstructs report
+        ↓
+ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
+```
 
-### 87.7 Acceptance
+1. The parent `ConstructionTransaction` remains durably committed in SQLite.
+2. A `ChangeReportRecord` is written to `ChangeIntelligenceStore` with `status: INCOMPLETE`, `report: null`, and failure diagnostics.
+3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
+4. The projector MUST NOT fabricate missing values. Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED` and cannot support completion.
+
+### 87.7 Presentation contract
+
+The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (TA §55, build spec §28):
+
+```text
+Change summary
+Why
+Files
+Runtime impact
+Tests
+Preview
+Evidence invalidated
+Verified
+Next action
+```
+
+The presentation client displays these structured dimensions with clickable file diffs, preview surface status, and evidence links. The client MUST NOT infer mutation facts from model prose.
+
+### 87.8 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
 

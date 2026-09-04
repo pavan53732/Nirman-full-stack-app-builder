@@ -194,8 +194,12 @@ def parse_registries(docs, D):
         if len(c) < 7:
             D.add("structure", c[0] if c else "?", "§67.8 row has too few cells")
             continue
-        reg[c[0]] = dict(authority=c[1], ext=c[2], arch=c[3],
-                         adr=c[4], mile=c[5], cls=c[6])
+        cid = c[0]
+        if cid in reg:
+            D.add("structure", cid, f"duplicate contract registry identity: {cid}")
+            continue
+        reg[cid] = dict(authority=c[1], ext=c[2], arch=c[3],
+                        adr=c[4], mile=c[5], cls=c[6])
     R["contracts"] = reg
 
     # Capability registry — located by heading text, because its section number
@@ -212,7 +216,11 @@ def parse_registries(docs, D):
         if len(c) < 6:
             D.add("structure", c[0] if c else "?", "§5.6 row has too few cells")
             continue
-        caps[c[0]] = dict(requirement=c[1],
+        capid = c[0]
+        if capid in caps:
+            D.add("structure", capid, f"duplicate capability registry identity: {capid}")
+            continue
+        caps[capid] = dict(requirement=c[1],
                           contracts=[x for x in re.findall(CIDRE, c[2])],
                           test=c[3], evidence=c[4], status=c[5])
     R["capabilities"] = caps
@@ -229,7 +237,11 @@ def parse_registries(docs, D):
         if len(c) < 5:
             D.add("structure", c[0] if c else "?", "§67.12 row has too few cells")
             continue
-        clauses[c[0]] = dict(contract=c[1], authority=c[2],
+        clid = c[0]
+        if clid in clauses:
+            D.add("structure", clid, f"duplicate clause registry identity: {clid}")
+            continue
+        clauses[clid] = dict(contract=c[1], authority=c[2],
                              value=c[3], sealed=c[4].upper() == "SEALED")
     R["clauses"] = clauses
 
@@ -246,39 +258,48 @@ def parse_registries(docs, D):
             D.add("forward break", c[0] if c else "?",
                   f"twelve-edge row has {len(c) - 1} edges, expected 12")
             continue
-        chain[c[0]] = dict(zip(EDGES, c[1:]))
+        cid = c[0]
+        if cid in chain:
+            D.add("structure", cid, f"duplicate twelve-edge registry identity: {cid}")
+            continue
+        chain[cid] = dict(zip(EDGES, c[1:]))
     R["chain"] = chain
 
     # milestone mappings from the development plan
+    # Generic, position-independent parsing of milestone contract mapping tables:
+    # A milestone contract mapping table is identified by a header row with
+    # 'Milestone' in column 0, 'contract' in column 1, and 'adr' in column 2.
     miles = {}
-    heading_pattern = r"^##+\s+.*(?:contract|milestone)\s+mapping.*$"
-    mapping_sections = list(re.finditer(heading_pattern, dev, re.M | re.I))
-    for s in mapping_sections:
-        start = s.end()
-        next_h = re.search(r"\n#{1,2}\s+", dev[start:])
-        end = start + next_h.start() if next_h else len(dev)
-        table_text = dev[start:end]
-        for line in table_text.splitlines():
-            line = line.strip()
-            if not line.startswith("|") or not line.endswith("|"):
-                continue
-            cells = [c.strip() for c in line.split("|")[1:-1]]
-            if not cells:
-                continue
+    in_mapping_table = False
+    for line in dev.splitlines():
+        line = line.strip()
+        if not line.startswith("|") or not line.endswith("|"):
+            in_mapping_table = False
+            continue
+        cells = [c.strip() for c in line.split("|")[1:-1]]
+        if not cells:
+            in_mapping_table = False
+            continue
+        lower_cells = [c.lower() for c in cells]
+        if len(cells) >= 3 and lower_cells[0] == "milestone" and "contract" in lower_cells[1] and "adr" in lower_cells[2]:
+            in_mapping_table = True
+            continue
+        if in_mapping_table and all(re.match(r"^:?-+:?$", c) for c in cells):
+            continue
+        if in_mapping_table:
             m = re.match(r"^M(\d+)$", cells[0])
             if not m:
-                continue
-            if len(cells) < 3:
+                in_mapping_table = False
                 continue
             m_num = int(m.group(1))
             if m_num in miles:
-                D.add("structure", f"M{m_num}", f"duplicate milestone mapping for M{m_num}")
-            else:
-                miles[m_num] = dict(
-                    contracts=re.findall(CIDRE, cells[1]),
-                    adrs=[int(x) for x in re.findall(r"ADR-(\d+)", cells[2])],
-                    test=cells[3] if len(cells) > 3 else "",
-                    evidence=cells[4] if len(cells) > 4 else "")
+                D.add("structure", f"M{m_num}", f"duplicate milestone registry identity: M{m_num}")
+                continue
+            miles[m_num] = dict(
+                contracts=re.findall(CIDRE, cells[1]),
+                adrs=[int(x) for x in re.findall(r"ADR-(\d+)", cells[2])] if len(cells) > 2 else [],
+                test=cells[3] if len(cells) > 3 else "",
+                evidence=cells[4] if len(cells) > 4 else "")
     R["milestones"] = miles
 
     # ExtensionDeclaration blocks, parsed from fence-stripped section bodies
@@ -303,7 +324,12 @@ def parse_registries(docs, D):
                 extended=re.findall(CLRE, get("extendedClauses")),
                 non_overridden=re.findall(CLRE, get("nonOverriddenClauses")),
                 raw_extended=get("extendedClauses"))
-            decls[(num, decl["authority_contract"])] = decl
+            decl_key = (num, decl["authority_contract"])
+            if decl_key in decls:
+                D.add("structure", f"§{num}/{decl['authority_contract']}",
+                      f"duplicate extension declaration identity: §{num} -> {decl['authority_contract']}")
+                continue
+            decls[decl_key] = decl
     R["declarations"] = decls
 
     # authoritative-role markers
@@ -1444,7 +1470,7 @@ def check_semantic_documentation(docs, R, D):
         ("dozeObservationIds", bs + ta, "Doze observation"),
         ("CostAuthority", ta, "cost authority implementation"),
         ("Scanners run in a restricted local process", ta, "trust scanner implementation"),
-        ("ContextGovernance", ta, "context governance implementation"),
+        ("`ContextGovernance` records selected content", ta, "context governance implementation"),
         ("Runtime collectors observe;", ta, "runtime integrity authority implementation"),
         ("Autonomy-level capability ladder", bs, "autonomy ladder"),
     )
@@ -1655,8 +1681,23 @@ def verify(root):
 
 
 def main():
-    root = sys.argv[1] if len(sys.argv) > 1 else "."
+    dump_registries = "--dump-registries" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--dump-registries"]
+    root = args[0] if args else "."
     R, adj, D = verify(root)
+
+    if dump_registries:
+        import json
+        serializable_R = {
+            "contracts": R.get("contracts", {}),
+            "capabilities": R.get("capabilities", {}),
+            "clauses": R.get("clauses", {}),
+            "chain": R.get("chain", {}),
+            "milestones": {str(k): v for k, v in R.get("milestones", {}).items()},
+        }
+        print("REGISTRIES_JSON_BEGIN")
+        print(json.dumps(serializable_R))
+        print("REGISTRIES_JSON_END")
 
     edges = sum(len(v) for v in adj.values())
     print("Nirman contract-graph verifier — build spec §67.11")

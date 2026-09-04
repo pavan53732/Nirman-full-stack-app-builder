@@ -306,14 +306,25 @@ Host environment, target platform, validation platform, and certification status
 | [`nirman-development-plan.md`](nirman-development-plan.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
 | [`nirman-decisions.md`](nirman-decisions.md) | Accepted ADRs, precedence, rationale, consequences, and supersession history |
 | [`crates/nirman-skills/skills/`](crates/nirman-skills/skills/) | Six v1 skill instruction bodies (`SKILL.md`); the skill runtime itself is not implemented |
+| [`tools/verify_contract_graph.py`](tools/verify_contract_graph.py) | Documentation contract-graph and semantic certification tool |
+| [`tools/test_verify_contract_graph.py`](tools/test_verify_contract_graph.py) | Mutation and conformance test harness for the documentation verifier |
 
 ### Paths referenced by the specification but not yet present
 
-The canonical documents describe a repository layout that implementation will create. None of it exists yet: `Cargo.toml`, `crates/` beyond the skill instruction bodies, `apps/desktop/`, `tools/`, `tests/`, `fixtures/`, and `config/`. Those paths are design targets, not current contents.
+The canonical documents describe a repository layout that implementation will create. The runtime code does not exist yet: `Cargo.toml`, `crates/` beyond the skill instruction bodies, `apps/desktop/`, `tests/`, `fixtures/`, and `config/`. The documentation verifier and test harness are present in `tools/` (`verify_contract_graph.py` and `test_verify_contract_graph.py`). Other runtime paths are design targets, not current contents.
 
 ## Verification
 
 The documentation verifier (`tools/verify_contract_graph.py`) and its mutation and conformance harness (`tools/test_verify_contract_graph.py`) are present in `tools/` and actively executed.
+
+The certification chain is established directly from the actual working-tree files:
+```text
+actual files
+→ actual verifier implementation
+→ actual mutation tests
+→ actual clean run
+→ documented result
+```
 
 The verifier executes all 13 §67.11 graph and structure checks in both traversal directions along with semantic documentation linting. Certification claims require actual, clean execution of `python tools/verify_contract_graph.py .` and `python tools/test_verify_contract_graph.py`. A verifier that is absent or that silently no-ops produces no evidence; certification requires full automated verification with zero defects.
 

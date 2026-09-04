@@ -878,7 +878,7 @@ Nirman is not production-ready until a complete Android fixture passes the follo
 
 ### Milestone refinement rule
 
-M39–M117 refine and operationalize the earlier M0–M38 roadmap. They do not create a second execution order or supersede earlier milestone ownership. When a coarse milestone and refined milestone overlap, the refined milestone defines the implementation gate while the coarse milestone remains the product-level grouping.
+M39–M122 refine and operationalize the earlier M0–M38 roadmap. They do not create a second execution order or supersede earlier milestone ownership. When a coarse milestone and refined milestone overlap, the refined milestone defines the implementation gate while the coarse milestone remains the product-level grouping.
 
 # M39–M50: Integrated Android Construction Runtime Milestones
 
@@ -1308,7 +1308,7 @@ Refinement rule: when a coarse milestone and a refined milestone appear to overl
 | M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
 | M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
 
-## M81–M96 contract mapping
+## M81–M122 contract mapping
 
 Each milestone may implement one or more registered contracts, but each contract must have one canonical owning milestone. This mapping is the addressing source for the reverse traversal required by §67.9; shared implementation milestones must list every contract they own and its acceptance evidence.
 
@@ -1356,10 +1356,6 @@ Any missing edge, duplicate authority, unregistered contract, undeclared extensi
 # M94: Agent Reasoning Runtime and Bounded Delegation
 
 Implements build spec §66 and technical architecture §71. This milestone follows M81–M93 and must not begin before the AgentExecutionKernel milestones M65–M80 and the certification milestone M93 have passed their gates. It adds the reasoning cycle that drives the existing kernel loop; it does not introduce a second execution loop.
-
-| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
-|---|---|---|---|---|---|
-| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
 
 **Required results:** AgentReasoningEngine driving the cycle state machine; ReasoningArtifact persistence with mandatory cited selectionBasis; HypothesisManager with the full CREATED/TESTED/SUPPORTED/REJECTED/SUPERSEDED lifecycle and evidence-bound rejection; ReflectionEngine producing expected-versus-observed records; CapabilityRegistry with runtime discovery; CapabilityBroker routing every invocation through the policy authorities; DelegationManager enforcing both ceiling invariants with cascading revocation; SwarmGraphManager applying agent-proposed graph revisions through the standard authority path; ExecutionModeSelector proposing modes within policy.
 
@@ -1741,21 +1737,21 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 
 Deliver:
-- ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState)
-- ContentDependency schema
+- ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState, invalidatedBy)
+- ContentDependency schema and ImpactGraph edge integration
 - ContentWorker, ContentTransactionCoordinator, ContentValidator, ContentAuthority
 - ContentStore (persistence, retention, atomic transactions)
 - terminology/tone/brand profiles
 - localization propagation (consuming existing LOCALIZATION contract)
 - accessibility content validation
 - transaction integration
-- evidence and invalidation integration
+- generalized dependency graph invalidation (ContentRevision -> ContentDependency* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence)
 - boundary clause with LOCALIZATION
 - `TEST-CONTENT-001`
 - `EV-CONTENT-001`
 
 Exit gate:
-A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence.
+A content mutation must create a revision-bound transaction, update affected surfaces via ImpactGraph traversal, validate content, invalidate stale evidence, and produce authoritative evidence.
 
 TEST-CONTENT-001 MUST prove:
 A. UX copy mutation
@@ -1763,7 +1759,7 @@ B. terminology propagation
 C. localization propagation
 D. accessibility-label validation
 E. placeholder/interpolation preservation
-F. dependency invalidation
+F. generalized dependency graph invalidation across UI, locale, accessibility, preview, and evidence
 G. rollback
 H. restart recovery
 I. ContentWorker cannot directly mark content complete.
@@ -1777,6 +1773,7 @@ Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
 Deliver:
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
+- providerTransmissionPolicy delegation to ContextGovernance / ProviderContextDecision
 - requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
 - active-goal binding
 - project-revision binding
@@ -1784,24 +1781,26 @@ Deliver:
 - ConversationContinuationResolver
 - ConversationStore (persistence, checkpoint/recovery)
 - restart/compaction recovery
-- concurrency/rebase semantics (expectedProjectRevision vs current revision)
+- revision consistency state machine (ConversationRevision ↕ ProjectRevision ↕ TaskRevision: MATCH -> CONTINUE, MISMATCH -> RECONCILE / REBASE, UNRESOLVABLE -> USER_REQUIRED)
+- integration with BackgroundContinuity (Conversation continuation + Background continuity = resume semantics)
 - boundary clause with MEMORY + CONTEXT + BACKGROUND_CONTINUITY
 - `TEST-CONV-001`
 - `EV-CONV-001`
 
 Exit gate:
-Continue reconstructs durable development state without re-asking settled requirements.
+Continue reconstructs durable development state without re-asking settled requirements, safely reconciling revision discrepancies or halting for user input when unresolvable.
 
 TEST-CONV-001 MUST prove:
 A. UI restart
 B. supervisor restart
 C. context compaction
 D. accepted/rejected suggestions
-E. attachment provenance and project isolation
+E. attachment provenance, project isolation, and ContextGovernance delegation
 F. active-goal recovery
-G. project-revision conflict and rebase
+G. project-revision conflict and rebase (MATCH, MISMATCH, UNRESOLVABLE transitions)
 H. task-lineage continuity
 I. no re-asking settled requirements (Continue MUST reject stale or contradictory state and trigger reconciliation)
+J. BackgroundContinuity resume synthesis
 
 ---
 
@@ -1810,6 +1809,7 @@ I. no re-asking settled requirements (Continue MUST reject stale or contradictor
 Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
+- atomic reporting unit definition: MutationReportUnit = committed ConstructionTransaction
 - ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
 - field provenance for every field
 - deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
@@ -1819,15 +1819,16 @@ Deliver:
 - verification summary
 - recommended next-step projection (advisory, with recommendationSource, recommendationBasis, requiredAuthority)
 - ChangeIntelligenceStore (persistence, immutability, revision-addressability)
-- failure/recovery semantics (projector failure does not fail parent transaction)
+- failure and reconstruction semantics (projector failure records ChangeReportStatus = INCOMPLETE without failing parent transaction; async ChangeIntelligenceRecoveryJob under RecoveryAuthority)
+- WinUI 3 presentation contract (Calm, Inspect, Developer views)
 - `TEST-CHANGE-001`
 - `EV-CHANGE-001`
 
 Exit gate:
-Every completed mutation produces a complete revision-bound change report.
+Every committed ConstructionTransaction produces a complete revision-bound change report; projector failures produce typed INCOMPLETE records reconstructed asynchronously.
 
 TEST-CHANGE-001 MUST prove:
-A. complete report produced for every completed mutation
+A. complete report produced for every committed ConstructionTransaction (MutationReportUnit)
 B. actual changed files
 C. causal requirement and goal provenance
 D. runtime impact
@@ -1838,6 +1839,7 @@ H. authoritative verification
 I. stale-source and inconsistent-source rejection
 J. restart persistence
 K. recommended next step remains advisory (no field in ChangeImpactReport may be independently invented by the projector)
+L. projector failure isolation (ConstructionTransaction remains committed; ChangeReportStatus = INCOMPLETE; recovery reconstruction succeeds)
 
 
 ---
