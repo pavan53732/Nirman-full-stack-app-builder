@@ -5719,13 +5719,49 @@ Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation 
 
 ### 85.1 Schemas
 
-Canonical schemas: `ContentRevision`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, and `ContentEvidence`.
+Canonical schemas: `ContentRevision`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency`.
+
+```text
+ContentRevision
+- contentRevisionId
+- contentId
+- projectRevisionId
+- requirementId
+- contentType
+- locale
+- key
+- previousValue
+- proposedValue
+- placeholderSchema
+- pluralizationModel
+- localeFallback
+- sourceLocale
+- translationStatus
+- terminologyReferences
+- toneProfile
+- brandVoiceProfile
+- accessibilityContext
+- sourceEvidenceIds
+- transactionId
+- validationStatus
+- invalidatedBy
+- contentProvenance
+- approvalState
+```
+
+```text
+ContentDependency
+- contentDependencyId
+- sourceContentId
+- dependencyType
+- targetId
+```
 
 ### 85.2 Runtime
 
-`ContentWorker` proposes content changes. `ContentTransactionCoordinator` applies them through the existing transaction path. `ContentValidator` validates them. `EvidenceAuthority` owns evidence validity.
+`ContentWorker` proposes content changes. `ContentTransactionCoordinator` applies them through the existing transaction path. `ContentValidator` validates them. `EvidenceAuthority` owns evidence validity. `ContentAuthority` owns content state and revision identity.
 
-No content worker may directly mark content complete.
+No content worker may directly mark content complete. ContentWorker reads requirements/context, proposes ContentMutation, cannot directly write canonical state, coordinator validates/admits mutation, transaction commits, evidence generated.
 
 ### 85.3 Persistence and retention
 
@@ -5757,7 +5793,63 @@ Fixture `TEST-CONTENT-001` proves content creation, propagation, terminology con
 
 ### 86.1 Schemas
 
-Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, and `ConversationTaskLink`.
+Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`.
+
+```text
+Conversation
+- conversationId
+- projectId
+- messages
+- attachments
+- requirements
+- decisions
+- acceptedSuggestions
+- rejectedSuggestions
+- activeGoal
+- projectRevisionId
+- expectedProjectRevision
+- conversationRevision
+- taskLineage
+- createdAt
+- updatedAt
+```
+
+```text
+ConversationRequirement
+- requirementId
+- status
+- sourceMessageId
+- supersedes
+- supersededBy
+
+ConversationDecision
+- decisionId
+- status
+- sourceMessageId
+- supersedes
+- locked
+
+ConversationSuggestion
+- suggestionId
+- status
+- proposedBy
+- acceptedAt
+- rejectedAt
+- resultingTaskIds
+
+ConversationAttachment
+- attachmentId
+- contentHash
+- mimeType
+- sizeBytes
+- storageOwner
+- privacyClassification
+- deletionStatus
+- projectIsolation
+- providerTransmissionPolicy
+- revisionBinding
+- createdAt
+```
 
 ### 86.2 Persistence and resolver
 
@@ -5777,11 +5869,15 @@ Conversation owns conversational lineage (messages, attachments, decisions, sugg
 
 Conversation does NOT replace MEMORY, CONTEXT, or BACKGROUND_CONTINUITY. Conversation is an aggregate/index over those authorities. ConversationStore reads from MemoryStore and ContextStore; it does not duplicate their canonical data.
 
-### 86.5 Continue protocol
+### 86.5 Concurrency/rebase semantics
+
+Continue resolves the conversation at `expectedProjectRevision`. If current project revision != expectedProjectRevision, the resolver MUST reconcile: rebase conversation decisions/requirements onto current revision, surface conflicts as unresolved issues, or reject continuation with a `USER_REQUIRED` node. Continue MUST NOT silently resurrect stale intent.
+
+### 86.6 Continue protocol
 
 `Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required.
 
-### 86.6 Acceptance
+### 86.7 Acceptance
 
 `TEST-CONV-001` proves UI restart, supervisor restart, compaction, accepted/rejected suggestions, attachment continuity, goal continuity, revision continuity, and task lineage.
 
@@ -5815,6 +5911,9 @@ ChangeImpactReport
 - unresolvedIssues
 - recoveryActions
 - recommendedNextStep
+- recommendationSource
+- recommendationBasis
+- requiredAuthority
 - generatedAt
 ```
 
@@ -5833,7 +5932,10 @@ Field provenance:
 - `verified`: from authoritative verification results only (authoritative)
 - `unresolvedIssues`: from validation/preview/evidence reconciliation
 - `recoveryActions`: from RecoveryAuthority (authoritative)
-- `recommendedNextStep`: derived from impact + validation + recovery analysis
+- `recommendedNextStep`: advisory projection from impact + validation + recovery analysis
+- `recommendationSource`: the analysis component that generated the recommendation
+- `recommendationBasis`: the evidence basis for the recommendation
+- `requiredAuthority`: the authority that must approve/act on the recommendation
 - `generatedAt`: timestamp from projector
 
 ### 87.2 Generation
@@ -5859,4 +5961,12 @@ The projector MUST expose source, asset, toolchain, preview, test, integration, 
 ### 87.4 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
+
+### 87.5 Persistence
+
+`ChangeIntelligenceStore` persists reports durably. Reports are immutable once generated for a given transaction. Reports survive UI restart, supervisor restart, and context compaction. Reports are retained for the lifetime of the project revision they belong to. Reports are revision-addressable: a report can be retrieved by `reportId` or by `transactionId`.
+
+### 87.6 Failure and recovery
+
+ChangeIntelligenceProjector failure does NOT fail the parent mutation transaction. Projector failure is recorded as an unresolved issue in the report. Projector recovery regenerates the report from authoritative sources. Report recovery MUST NOT produce stale or inconsistent report state.
 

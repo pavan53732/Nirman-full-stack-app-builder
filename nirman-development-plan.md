@@ -1738,18 +1738,21 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 
 Deliver:
-- ContentRevision schema
-- ContentWorker
+- ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState)
+- ContentDependency schema
+- ContentWorker, ContentTransactionCoordinator, ContentValidator, ContentAuthority
+- ContentStore (persistence, retention, atomic transactions)
 - terminology/tone/brand profiles
-- localization propagation
+- localization propagation (consuming existing LOCALIZATION contract)
 - accessibility content validation
 - transaction integration
 - evidence and invalidation integration
+- boundary clause with LOCALIZATION
 - `TEST-CONTENT-001`
 - `EV-CONTENT-001`
 
 Exit gate:
-A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence.
+A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence. ContentWorker cannot directly mark content complete.
 
 ---
 
@@ -1758,19 +1761,22 @@ A content mutation must create a revision-bound transaction, update affected sur
 Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
 
 Deliver:
-- Conversation aggregate
-- message/attachment persistence
-- requirement/decision/suggestion records
+- Conversation aggregate (with expectedProjectRevision, conversationRevision)
+- message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
+- requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
 - active-goal binding
 - project-revision binding
 - task lineage
 - ConversationContinuationResolver
+- ConversationStore (persistence, checkpoint/recovery)
 - restart/compaction recovery
+- concurrency/rebase semantics (expectedProjectRevision vs current revision)
+- boundary clause with MEMORY + CONTEXT + BACKGROUND_CONTINUITY
 - `TEST-CONV-001`
 - `EV-CONV-001`
 
 Exit gate:
-Continue reconstructs durable development state without re-asking settled requirements.
+Continue reconstructs durable development state without re-asking settled requirements. Continue MUST reject stale or contradictory state and trigger reconciliation.
 
 ---
 
@@ -1779,14 +1785,22 @@ Continue reconstructs durable development state without re-asking settled requir
 Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
-- ChangeImpactReport
+- ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt)
+- field provenance for every field
+- deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
 - mutation projection
 - runtime/test/preview impact calculation
 - evidence invalidation projection
 - verification summary
-- recommended next-step projection
+- recommended next-step projection (advisory, with recommendationSource, recommendationBasis, requiredAuthority)
+- ChangeIntelligenceStore (persistence, immutability, revision-addressability)
+- failure/recovery semantics (projector failure does not fail parent transaction)
 - `TEST-CHANGE-001`
 - `EV-CHANGE-001`
 
 Exit gate:
-Every completed mutation produces a complete revision-bound change report.
+Every completed mutation produces a complete revision-bound change report. No field in ChangeImpactReport may be independently invented by the projector.
+
+
+---
+
