@@ -957,18 +957,22 @@ The recovery planner must reject a new attempt when it is substantially identica
 
 ## 19. Context Scaling Architecture
 
-The context engine should expose two provider-independent modes:
+The context engine exposes an **Adaptive Context Architecture** operating across six provider-independent strategies:
 
-| Mode | Pipeline |
-|---|---|
-| Retrieval | Repository map → relevance ranking → selected files and symbols → task context |
-| Large context | Secret filtering → generated-file filtering → repository packing → token-budget check → task context |
+| Mode | Operational Scope | Pipeline |
+|---|---|---|
+| `EXACT` | Pinned symbols, active file targets, locked decisions, and mandatory constraints | Direct deterministic lookup via URI, symbol identifier, or constraint key |
+| `SEMANTIC` | Structural repository neighborhood, related interfaces, callers/callees, schema dependencies | Repository Semantic Graph traversal over symbol, type, and module dependency edges |
+| `TEMPORAL` | Recent action sequences, recent test outputs, recent runtime events, recent mutations | Sliding chronological window indexed by transaction and event sequence |
+| `STRUCTURED_MEMORY` | Causal execution records, verified project facts, failure signatures, architectural invariants | Query against classified memory store with mandatory source event provenance |
+| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to provider token budget with prefix and structured cache alignment |
+| `COMPACTED` | Long-horizon continuity, multi-session continuation, checkpoint re-grounding | Non-destructive semantic compaction preserving causal chains and invariant proofs |
 
-The provider capability registry should report context capacity, vision support, tool support, structured-output support, and streaming support. The context planner selects a mode based on the provider capability, project size, privacy policy, task type, and user preference.
+Dynamic selection is governed by the twelve criteria established in BS §19.1: task phase, model context capacity, token budget, dependency distance, symbol relationships, temporal recency, evidence freshness, failure relevance, unresolved uncertainty, current project revision, plan revision, and context-cache availability.
 
-The context package should record included paths, excluded paths, summaries, token estimates, redactions, and the reason for selecting the mode. If the large-context estimate exceeds the configured budget, the planner must fall back to retrieval mode rather than silently truncating critical files.
+The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode. If a large-context estimate exceeds the configured budget, the orchestrator falls back to semantic/exact retrieval rather than silently truncating critical files.
 
-The repository map must scale incrementally. It should update changed files and affected dependency regions instead of rebuilding the entire map after every action. Large projects should use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction. The map manager should expose freshness, shard size, rebuild progress, and stale-region warnings to the task runtime.
+The repository map scales incrementally via the Repository Semantic Graph (§59.2). It updates changed files and affected dependency regions instead of rebuilding the entire map after every action. Large projects use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction. The map manager exposes freshness, shard size, rebuild progress, and stale-region warnings to the task runtime.
 
 ### 19.1 Skill Package Registry and Invocation
 
@@ -1001,6 +1005,23 @@ A skill is selected by the orchestrator from a task requirement, explicit user r
 User or shared skills must be scanned for prompt injection, unsafe commands, secret access, hidden network behavior, and dependency changes before activation. Updates must be versioned, health-checked, and reversible. Built-in runtime capabilities take precedence over skills when both provide the same function, while skills may add domain-specific workflow instructions around those capabilities.
 
 Skills should be testable through fixture tasks and should declare the minimum tools, worker roles, and project profiles they require.
+
+### 19.2 Provider Attention Capabilities and Neural Architecture Adaptation
+
+Nirman does not implement hybrid sparse/linear attention itself. The model provider owns neural attention architecture (sparse, linear, recurrent, cached, or hybrid attention). Nirman exposes provider attention capabilities through `attentionCapabilities`:
+
+```text
+attentionCapabilities
+- maxContextTokens: usize
+- supportsLongContext: bool
+- supportsPrefixCaching: bool
+- supportsStructuredCache: bool
+- supportsReasoning: bool
+- supportsToolCalling: bool
+- supportsVision: bool
+```
+
+Nirman intelligently adapts around the model by aligning prompt boundaries with cache checkpoints, utilizing prefix caching, budgeting tokens according to capacity, and routing queries through exact/sparse/summary memory without coupling to any proprietary model architecture.
 
 ## 20. External Tool Protocol Adapter
 
@@ -1229,6 +1250,7 @@ ProviderProfile
 - customHeadersSecretRefs
 - defaultParameters
 - capabilityOverrides
+- attentionCapabilities
 - reasoningModelIdOptional
 - reasoningCapabilityProfile
 - defaultReasoningEffort
@@ -3509,18 +3531,35 @@ Independent worker or skill pause must preserve context references, leases, Tool
 
 ### 58.13 ExecutionHistoryManager
 
-`ExecutionHistoryManager` separates active state from retained history:
+`ExecutionHistoryManager` separates active state from retained history using semantic indexing inside each tier rather than relying on unstructured text summaries:
 
-| Tier | Content | Access |
+| Tier | Semantic Indexing and Content | Access |
 |---|---|---|
-| Hot | Current graph, active workers, current plan, latest evidence, blockers | Kernel context |
-| Warm | Recent events, terminal summaries, checkpoints, preview/test results | Task request |
-| Cold | Older events, handoffs, failures, superseded plans, screenshots | Indexed retrieval or replay |
-| Archived | Full traces, old artifacts, crash dumps, retired sessions | Explicit audit restore |
+| Hot | Current WorkingState, active edit set, active graph frontier, current evidence frontier, active failures, current plan | Kernel context |
+| Warm | Recent causal chains, recent observations, recent successful/rejected strategies, checkpoints, preview/test results | Task request |
+| Cold | Historical causal graph, superseded plans, older failures, architectural decisions, screenshots | Indexed retrieval or replay |
+| Archived | Replayable raw history, full traces, old artifacts, crash dumps, retired sessions | Explicit audit restore |
 
-Compaction must preserve semantic summaries, evidence links, revision identity, artifact provenance, and replay references. Garbage collection cannot delete active checkpoint parents, mandatory completion evidence, unresolved failure evidence, or artifact provenance.
+Compaction must preserve semantic summaries, evidence links, revision identity, artifact provenance, and replay references. Model-generated summary text is never the canonical memory; memory records require validated provenance from the execution ledger. Never make a summary the sole surviving representation of authoritative state. Garbage collection cannot delete active checkpoint parents, mandatory completion evidence, unresolved failure evidence, or artifact provenance. Tiering controls retrieval priority and representation, not authority. Archived data remains authoritative evidence when explicitly restored.
 
-### 58.14 Runtime invariants
+### 58.14 Causal Execution Memory
+
+The runtime models autonomous problem solving as a durable causal sequence across thousands of actions. Every meaningful action is structured as:
+
+```text
+Observation
+ → Interpretation
+ → Hypothesis
+ → Decision
+ → Action
+ → Result
+ → Evidence
+ → Consequence
+```
+
+Deliberation checkpoints, rejected strategies, and alternative hypotheses are integrated directly into the `MemoryStore` and `ContextOrchestrator` rather than operating as an isolated parallel subsystem. Each causal node records its input observation, explanatory hypothesis, policy decision, executed action, observable result, resulting evidence item, and downstream project consequences.
+
+### 58.15 Runtime invariants
 
 1. Only the reducer commits lifecycle state.
 2. Only the ToolBroker executes tools.
@@ -3541,20 +3580,134 @@ Compaction must preserve semantic summaries, evidence links, revision identity, 
 **Authoritative build-spec section:** §38 / §53  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §53. Extends §19 (Context Scaling Architecture) and §31 (Runtime Memory and Learning Boundaries), which remain the authority on retrieval modes and memory scopes. This section adds the assembly and re-grounding components.
+Implements build spec §53. Extends §19 (Context Scaling Architecture) and §31 (Runtime Memory and Learning Boundaries), which remain the authority on retrieval modes and memory scopes. This section adds the assembly, orchestration, and re-grounding components.
 
 ### 59.1 Components
+
+The primary context architecture is coordinated by the `ContextOrchestrator` and its specialized subcomponents:
 
 | Component | Responsibility |
 |---|---|
 | MemoryWriter | Writes classified memory records from validated events only |
 | MemoryStore | Persists records with scope, provenance, and retention |
 | ConstraintRegistry | Holds active constraints and locked decisions for a session |
-| ContextAssembler | Builds a ContextPackage for every model call |
-| RegroundingService | Re-reads goal, constraints, decisions, and evidence at checkpoints |
-| RedactionFilter | Removes secrets and unclassified private content before assembly |
+| ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, budget allocation, and integrity verification |
+| WorkingSetPlanner | Partitions context into required, active, supporting, historical, and excluded sets |
+| ContextFidelityManager | Enforces context fidelity levels across exact, structural, semantic, summary, and historical tiers |
+| SemanticRetriever | Traverses the hierarchical Repository Semantic Graph over bidirectional dependency edges |
+| TemporalRetriever | Retrieves recent causal action sequences and events from the Warm history tier |
+| MemoryRetriever | Queries structured memory records, locked decisions, and failure fingerprints |
+| EvidenceRetriever | Queries the active EvidenceFrontier to prioritize unvalidated or contradicted claims |
+| DependencyExpander | Computes graph neighborhoods and affected compilation units from the ImpactGraph |
+| ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity without imposing a Nirman usage budget |
+| ResourceIntegrityAuthority | Evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure without artificial usage caps |
+| CacheManager | Manages prefix-cache checkpoints, structured KV caches, and cache hit optimization |
+| CompactionPlanner | Executes non-destructive semantic compaction of historical context |
+| RetrievalCompletenessChecker | Executes pre-model COVERAGE_CHECK verifying dependency, interface, and evidence completeness |
+| ContextIntegrityVerifier | Validates revision bindings (goal, project, plan, evidence) as an authoritative hard gate |
 
-### 59.2 Memory record schema
+The architecture retains three dedicated implementation collaborators:
+- `ContextAssembler`: internal assembly operation invoked by `ContextOrchestrator` to serialize the final `ContextPackage` payload.
+- `RegroundingService`: invoked by `ContextOrchestrator` at checkpoints, on contradiction detection, or upon context integrity invalidation.
+- `RedactionFilter`: mandatory finalization stage executed before model gateway dispatch to strip secrets and credentials.
+
+### 59.2 Repository Semantic Graph
+
+The workspace maintains a typed, queryable `RepositorySemanticGraph` updated incrementally on every workspace mutation. It structures code into a strict physical-to-semantic containment hierarchy:
+
+```text
+Repository
+ → Module
+   → File
+     → Symbol
+       → Region
+         → Exact source
+```
+
+Nodes and bidirectional edges are defined as:
+
+```text
+RepositorySemanticGraph
+Nodes:
+- file
+- symbol
+- type
+- method
+- interface
+- module
+- dependency
+- test
+- resource
+- route
+- schema
+- configuration
+- generated_artifact
+
+Bidirectional Edges:
+- calls / called_by
+- implements / implemented_by
+- references / referenced_by
+- tests / tested_by
+- configures / configured_by
+- generates / generated_by
+- depends_on / depended_on_by
+- changed_by / changes
+- validated_by / validates
+```
+
+The `SemanticRetriever` and `DependencyExpander` traverse this graph in both directions to compute complete dependency neighborhoods without lexical search blindspots:
+
+```text
+Task
+ → target symbols
+ → incoming dependencies
+ → outgoing dependencies
+ → affected tests
+ → interfaces
+ → configuration
+ → runtime/evidence dependencies
+```
+
+### 59.3 Context Fidelity
+
+Context items are ingested into the `ContextPackage` with an explicit fidelity level mapped in `fidelityMap`:
+
+| Fidelity Level | Representation | Operational Scope |
+|---|---|---|
+| `EXACT` | Verbatim source text, byte-for-byte fidelity | Active mutation targets, active interface definitions, and edited regions |
+| `STRUCTURAL` | Complete symbol signatures, type declarations, method headers | Direct dependency neighborhood and imported/implemented symbols |
+| `SEMANTIC` | Condensed schema contracts, route tables, and behavioral invariants | Related distant modules and cross-cutting dependencies |
+| `SUMMARY` | High-level architectural, module, or package summaries | Distant project components and non-target packages |
+| `HISTORICAL` | Structured causal lineage, decision rationales, failure fingerprints | Prior session events, completed plan steps, and superseded checkpoints |
+
+Normative fidelity rules:
+1. **Edited regions**: MUST be provided at `EXACT` fidelity; summaries cannot replace exact lines for code mutation.
+2. **Active interfaces**: Types and interfaces directly invoked by edited code MUST be provided at `EXACT` fidelity.
+3. **Direct dependency neighborhood**: Direct callers, callees, and imports MUST be provided at `STRUCTURAL` fidelity minimum.
+4. **Related distant code**: Transitive dependencies and distant consumers are provided at `SEMANTIC` fidelity.
+5. **Historical material**: Historical transactions and old deliberation are provided at `SUMMARY` or `HISTORICAL` fidelity.
+
+Hard fidelity invariants:
+- A context item may be transformed to lower fidelity only when its current task role permits that transformation.
+- `EXACT → STRUCTURAL` is permitted only when line-level semantics are not required.
+- `EXACT → SUMMARY` is prohibited for active mutation targets, active interfaces, required acceptance evidence, and unresolved failure locations.
+
+### 59.4 Context Confidence
+
+`ContextOrchestrator` evaluates context sufficiency across six dimensions before model invocation:
+- `coverage`: proportion of target symbols and files included in the working set.
+- `freshness`: proportion of context items verified against the latest `projectRevision` and `evidenceRevision`.
+- `fidelity`: adherence to mandatory fidelity rules (e.g. 100% of mutation targets at `EXACT`).
+- `dependencyCompleteness`: completeness of the direct bidirectional dependency neighborhood.
+- `evidenceCompleteness`: proportion of claims on the `EvidenceFrontier` with valid observations.
+- `uncertainty`: absence of unclassified or conflicting assumptions in `UncertaintyRegistry`.
+
+The aggregate evaluation determines task eligibility:
+- `HIGH`: Context is fully sufficient; eligible for immediate model invocation and autonomous mutation.
+- `MEDIUM`: Context coverage is partial; model invocation prohibited until `SemanticRetriever` expands retrieval.
+- `LOW`: Context is stale, contradictory, or severely incomplete; model invocation prohibited; invokes `RegroundingService`.
+
+### 59.5 Memory record schema
 
 ```text
 MemoryRecord
@@ -3574,23 +3727,90 @@ MemoryRecord
 
 `sourceEventIds` must be non-empty. MemoryWriter must reject a record with no source event, which structurally prevents model claims from becoming memory.
 
-### 59.3 ContextAssembler algorithm
+### 59.6 ContextOrchestrator algorithm and recovery
 
-The assembler must, in order: load active constraints and locked decisions from ConstraintRegistry; reserve their token cost first; select the retrieval or large-context mode per §19; rank candidate files by impact-graph relevance to the current surface; apply RedactionFilter; fill remaining budget; and emit the ContextPackage manifest defined in build spec §53.3 to the event ledger.
+The orchestrator executes the following deterministic sequence:
+1. **Integrity Preflight**: `ContextIntegrityVerifier` verifies that `goalRevision`, `projectRevision`, `planRevision`, and `evidenceRevision` match current authoritative ledger state.
+2. **Constraint & Decision Reservation**: Load active constraints and locked decisions from `ConstraintRegistry`. Required context can never be evicted.
+3. **Working-Set Planning**: `WorkingSetPlanner` queries the `EvidenceFrontier` to identify unvalidated/contradicted claims, sets semantic and temporal anchors, and identifies the active working set.
+4. **Multi-Modal Retrieval**:
+   - `ExactRetriever`: Pinned symbols and target files.
+   - `SemanticRetriever`: Bidirectional traversal over `RepositorySemanticGraph`.
+   - `TemporalRetriever`: Recent causal execution chains from Warm memory.
+   - `MemoryRetriever`: Failure fingerprints and historical invariants.
+5. **Fidelity Mapping**: `ContextFidelityManager` assigns fidelity levels (`EXACT`, `STRUCTURAL`, `SEMANTIC`, `SUMMARY`, `HISTORICAL`) ensuring edited regions and interfaces remain `EXACT`.
+6. **Sufficiency & Completeness Gate**:
+   ```text
+   CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
+   ```
+   `RetrievalCompletenessChecker` evaluates context confidence. If confidence is `MEDIUM` or `LOW`, model invocation is prohibited and retrieval expands or re-grounds.
+7. **Context Fusion**:
+   Combine:
+   - exact source
+   - structural graph context
+   - semantic context
+   - temporal context
+   - causal memory
+   - evidence frontier
+   - active decisions and constraints
+8. **Capacity Adaptation**: If the selected representation exceeds the provider's actual context capacity, `ContextCapacityPlanner` progressively transforms items:
+   ```text
+   EXACT → STRUCTURAL → SEMANTIC → SUMMARY
+   ```
+   only for items whose fidelity rules permit transformation. Required `EXACT` items MUST remain `EXACT`. If non-essential items cannot fit within provider capacity, omissions are recorded in `omittedForCapacity`.
+9. **Privacy Filtering**: `RedactionFilter` removes secrets, credentials, and private content.
+10. **Payload Assembly & Ledger Emission**: `ContextAssembler` serializes the manifest defined in BS §53.3 and emits the cryptographically hashed package to the event ledger.
 
-Constraint content is never evicted for budget. When file content must be reduced, the assembler records each omission in `omittedForBudget`.
+Recovery behavior:
+When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly.
 
-### 59.4 Re-grounding trigger conditions
+### 59.7 Hybrid Cognitive Context
+
+Nirman uses two complementary context paths:
+
+DENSE PATH:
+- exact edited regions
+- active interfaces
+- locked decisions
+- active constraints
+- current diagnostics
+- current evidence
+- active task state
+
+SPARSE PATH:
+- repository semantic graph
+- dependency neighborhoods
+- historical execution
+- causal memory
+- distant consumers
+- prior failures
+- architectural relationships
+
+`ContextOrchestrator` fuses both paths into one revision-bound `ContextPackage`.
+
+The dense path provides precision. The sparse path provides breadth. Neither path is authoritative independently; authoritative state remains in the durable project, execution, memory, and evidence stores.
+
+### 59.8 Cache Architecture
+
+`CacheManager` optimizes prefix caching and structured KV reuse across provider requests. Cache is strictly an optimization, never memory authority:
+- Cache hit ≠ observation
+- Cache hit ≠ evidence
+- Cache hit ≠ authoritative state
+- Cache invalidation ≠ task failure
+
+If a cache is invalid, cold, or unavailable, Nirman deterministically reconstructs the context from durable state and continues without degradation.
+
+### 59.9 Re-grounding trigger conditions
 
 RegroundingService must run at checkpoint creation, before plan recompilation, after a runtime directive is accepted, after user-edit reconciliation, on resume from pause or restart, and after a candidate branch selection.
 
-### 59.5 Persistence and isolation
+### 59.10 Persistence and isolation
 
 Memory records are stored in the SQLite execution ledger keyed by project. Cross-project reads are prevented at query level by mandatory project scoping. Runtime-improvement records are stored in a separate table with no path, identifier, or content columns.
 
-### 59.6 Architecture tests
+### 59.11 Architecture tests
 
-Assembly is correct only when a locked decision remains present in every subsequent ContextPackage until superseded; when a memory write with no source event is rejected; when a project-scoped query cannot return another project's records; and when a historical ContextPackage is reproducible from the ledger.
+Assembly is correct only when a locked decision remains present in every subsequent ContextPackage until superseded; when a memory write with no source event is rejected; when a project-scoped query cannot return another project's records; when an invalidated or stale ContextPackage is rejected before action authorization; and when a historical ContextPackage is reproducible from the ledger.
 
 ## 60. Peer Coordination and Semantic Reservations
 
@@ -4529,7 +4749,7 @@ enter deliberation (from HYPOTHESIZE or STRATEGIZE)
        DeliberationBudgetManager.reservePass()
          reservation unavailable -> terminate BUDGET_EXHAUSTED
 
-       ContextAssembler.assembleDeliberationContext()
+       ContextOrchestrator.assembleDeliberationContext()
          -> preserve objective, active hypotheses, rejected strategies,
             constraints, evidence, remaining budget
 
@@ -5536,11 +5756,11 @@ Nirman remains a Windows-first local host for Android generation. The isolation 
 
 ### 77.2 Lifecycle and authority
 
-The lifecycle is `UNSET → DECLARED → RESERVED → RUNNING → SETTLED`, with `RECONCILIATION_REQUIRED`, `DEGRADED`, `PAUSED_FOR_APPROVAL`, and `SAFE_FAILED` side states. Cost authority may deny, downgrade, pause, or request approval, but cannot grant an operation capability or promote evidence.
+The lifecycle is `UNSET → DECLARED → RESERVED → RUNNING → SETTLED`, with `RECONCILIATION_REQUIRED`, `DEGRADED`, `PAUSED_FOR_APPROVAL`, and `SAFE_FAILED` side states. Cost authority may deny, downgrade, pause, or request approval, but cannot grant an operation capability or promote evidence. Under Nirman's resource integrity model, tasks are not terminated or degraded by artificial token or request caps; resource constraints apply to physical host, process, and emulator stability.
 
 ### 77.3 Failure and recovery
 
-Unknown provider usage, missing settlement, telemetry loss, cap exhaustion, and disagreement between estimated and reported usage produce durable diagnostics. Recovery may reduce context, concurrency, or model profile, or pause for policy; it must never retry an unknown external charge blindly.
+Unknown provider usage, missing settlement, telemetry loss, cap exhaustion, and disagreement between estimated and reported usage produce durable diagnostics. Recovery may reduce context, concurrency, or model profile, or pause for policy; it must never retry an unknown external charge blindly. Physical host resource pressure prefers queueing, concurrency reduction, worker scheduling, checkpointing, and resource reclamation before declaring safe failure.
 
 ## 78. Agent Trust Boundary Implementation Contract
 

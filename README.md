@@ -8,7 +8,7 @@ Nirman is a **Windows-first desktop application** that lets a user describe an A
 
 ## Read this first if you are an agent
 
-This repository is a specification. There is no implementation — no C#, no Rust, no WinUI 3, no binaries. Nothing here compiles, because there is nothing yet to compile.
+This repository is currently a specification and documentation test suite. There is no product implementation — no C#, no Rust, no WinUI 3, no binaries. Nothing here compiles, because there is nothing yet to compile. The documentation verifier and test harness are present in `tools/` and actively executed.
 
 If you are an AI agent operating on this repository, read `AGENTS.md` in full before acting. It is the binding rulebook. In particular:
 
@@ -212,6 +212,25 @@ Nirman treats writing, conversation history, and mutation explanations as struct
 - **Durable conversation continuation**: Conversation history, attachments, accepted suggestions, and settled requirements are preserved across restarts and compactions, allowing seamless continuation without re-asking questions or losing context.
 - **First-class product writing/content**: UX copy, error messages, localization, and accessibility labels are versioned, validated, and linked to project revisions and UI semantics rather than treated as disposable model text.
 - **Post-mutation change intelligence**: Every completed modification generates an immutable, revision-bound change report detailing what changed, why, affected tests, preview impact, and evidence status, with recommendations remaining strictly advisory.
+
+### Long-horizon cognition substrate and Cognitive Context Kernel
+
+Nirman unifies memory, context assembly, deliberation, speculation, cost governance, impact analysis, and continuation into a deterministic cognition substrate:
+
+```text
+authoritative world state
+→ ContextOrchestrator
+→ hierarchical working set
+→ adaptive context projection
+→ ModelGateway
+```
+
+- **Authoritative world state vs derived context**: `Authoritative world state != model ContextPackage`. Context packages are strictly derived, revision-bound projections of durable ledger state; conversational history and model prose cannot mutate authoritative state directly.
+- **ContextOrchestrator**: Coordinates WorkingSet planning, multi-modal retrieval across six strategies (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`), token budgeting, and the pre-model coverage/integrity sufficiency gate.
+- **Hierarchical context fidelity**: Enforces `EXACT` verbatim source for edited regions and active interfaces, preventing lossy summaries from replacing code needed for line-level mutation.
+- **Repository Semantic Graph**: Hierarchical containment (`Repository → Module → File → Symbol → Region → Exact source`) and bidirectional dependency traversal (`calls/called_by`, `implements/implemented_by`, `references/referenced_by`, `tests/tested_by`).
+- **Temporal and causal memory**: Semantic indexing across Hot, Warm, Cold, and Archived tiers. Actions are modeled as structured causal chains (`Observation → Interpretation → Hypothesis → Decision → Action → Result → Evidence → Consequence`).
+- **Context integrity hard gate**: Every `ContextPackage` is cryptographically and revision-bound; any concurrent change to project, plan, or evidence invalidates stale context and triggers re-grounding before consequential mutations can execute.
 
 ## Authority model
 

@@ -314,7 +314,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.FRONTEND_CONTROL_PLANE | Operate the desktop UI through authenticated commands, durable projections, replay, and typed errors | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 | EV-FCP-001 | PLANNED |
 | CAP.ANDROID.APK_DELIVERY | Deliver a locally verified Android artifact with complete signing, validation, promotion, copy, and post-copy provenance | CONTRACT.RUNTIME.APK_EXPORT | TEST-APK-001 | EV-APK-001 | PLANNED |
 | CAP.ANDROID.BACKGROUND_CONTINUITY | Continue, recover, reconcile, or safely stop autonomous work across UI, host, device, and provider interruptions | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 | EV-BG-001 | PLANNED |
-| CAP.ANDROID.BUDGETED_AUTONOMY | Continue autonomous Android work under explicit token, duration, cost, and resource governance | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
+| CAP.ANDROID.BUDGETED_AUTONOMY | Run autonomous Android work within declared cost caps and resource budgets | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
 | CAP.ANDROID.TRUSTED_EXTENSIONS | Use skills, MCP-compatible tools, and plugins only after trust, provenance, permission, and revocation checks | CONTRACT.RUNTIME.AGENT_TRUST | TEST-TRUST-001 | EV-TRUST-001 | PLANNED |
 | CAP.ANDROID.CONTEXT_GOVERNANCE | Compact and cache context without evicting constraints, corrupting lineage, or hiding provider telemetry | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | TEST-CONTEXT-001 | EV-CONTEXT-001 | PLANNED |
 | CAP.ANDROID.RUNTIME_INTEGRITY | Report applicable Android runtime integrity, ANR, battery, Doze, and device signals with honest coverage | CONTRACT.RUNTIME.ANDROID_INTEGRITY | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | PLANNED |
@@ -1123,6 +1123,41 @@ The second slice should add checkpoints, diffs, tests, repair attempts, Android 
 
 The team should maintain a fixture library of representative projects and tasks. Each agent change should be evaluated against these fixtures for code correctness, preview startup, test results, changed-file scope, and safe failure behavior.
 
+### 19.1 Adaptive Context Architecture and Normative Selection Contract
+
+This subsection is the **single normative context-selection contract** governing all context assembly across the runtime.
+
+The fundamental invariant of the context engine is:
+
+> **Authoritative world state != model ContextPackage.**
+>
+> `ContextPackage` is a derived, revision-bound projection of authoritative project, task, evidence, and memory state. It is never the state authority itself.
+
+The cognitive context engine operates across exactly six normative retrieval modes:
+
+| Mode | Operational Scope | Trigger and Selection Pipeline |
+|---|---|---|
+| `EXACT` | Pinned symbols, active file targets, locked decisions, and mandatory constraints | Direct deterministic lookup via URI, symbol identifier, or constraint key |
+| `SEMANTIC` | Structural repository neighborhood, related interfaces, callers/callees, schema dependencies | Semantic graph traversal over symbol, type, and module dependency edges |
+| `TEMPORAL` | Recent action sequences, recent test outputs, recent runtime events, recent mutations | Sliding chronological window indexed by transaction and event sequence |
+| `STRUCTURED_MEMORY` | Causal execution records, verified project facts, failure signatures, architectural invariants | Query against classified memory store with mandatory source event provenance |
+| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to provider token budget with prefix and structured cache alignment |
+| `COMPACTED` | Long-horizon continuity, multi-session continuation, checkpoint re-grounding | Non-destructive semantic compaction preserving causal chains and invariant proofs |
+
+Dynamic mode selection and token budget allocation are governed by twelve mandatory selection dimensions:
+1. `task_phase`: specification, synthesis, build, test, repair, or packaging.
+2. `goal_relevance`: direct topical and functional relationship to active user intent and acceptance contract.
+3. `dependency_proximity`: graph distance from active mutation targets in the Repository Semantic Graph.
+4. `symbol_relationship`: callers, callees, implementations, routes, and schemas connected to the target surface.
+5. `temporal_recency`: elapsed wall time, event count, and transaction distance in execution history.
+6. `evidence_freshness`: state of claims on the `EvidenceFrontier` (`VERIFIED`, `STALE`, `UNRESOLVED`, `CONTRADICTED`, `PREDICTED`, `REQUIRED_VALIDATION`).
+7. `failure_relevance`: similarity score against known failure fingerprints in the current session.
+8. `uncertainty`: unresolved nodes in `UncertaintyRegistry` requiring clarification or empirical testing.
+9. `projectRevision`: workspace transaction identity and git commit boundary.
+10. `planRevision`: active plan node lineage and step dependency requirements.
+11. `token_budget`: configured operation, task, and provider token ceiling.
+12. `provider_capabilities`: provider context capacity, prefix caching, and reasoning effort reported by `attentionCapabilities`.
+
 ---
 
 ## 20. Final Product Direction
@@ -1612,7 +1647,7 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 | Total active workers | Minimum of 8 or available-resource policy |
 | Worker heartbeat interval | 10 seconds |
 | Worker stale threshold | 60 seconds, configurable |
-| Default task wall-clock policy | Default 200-minute duration budget, user-configurable per task or project. Exhaustion resolved per CLAUSE.COST.EXHAUSTION_EXPLICIT — reduce context, reduce concurrency, change model, pause for approval, continue under renewed policy, safely fail, or degrade classification. NOT a termination trigger and NOT a completion claim. The "no fixed completion lock" principle is preserved: the budget triggers an explicit outcome, it does not lock completion. |
+| Default task wall-clock policy | No artificial completion limit. Nirman does not terminate, degrade, or block a valid task because of elapsed task duration, token consumption, request count, or monetary expenditure. Execution is constrained only by actual host, workspace, process, emulator, storage, concurrency, and liveness resource integrity. |
 | Default repair attempts per failure | 3 strategy changes, not three identical retries |
 | Default task context budget | Provider-dependent with a visible cap |
 | Default disk quota per task | 10 GB unless project policy overrides |
@@ -3241,32 +3276,106 @@ Before any model call, the runtime must assemble a context package that declares
 
 ```text
 ContextPackage
-- taskId
-- assembledAt
-- mode: retrieval | large_context
-- includedPaths
-- excludedPaths
-- includedMemoryRecords
-- activeConstraints
-- lockedDecisions
-- tokenEstimate
-- tokenBudget
-- redactions
-- selectionReason
-- omittedForBudget
+- contextId
+- contextRevision
+- goalRevision
+- planRevision
+- projectRevision
+- evidenceRevision
+- workingSetId
+- requiredItems
+- activeItems
+- supportingItems
+- historicalItems
+- excludedItems
+- fidelityMap
+- semanticAnchors
+- temporalAnchors
+- evidenceFrontier
+- uncertainties
+- failureFingerprints
+- budgetAllocation
+- selectionReasons
+- omittedForCapacity
+- cacheReferences
+- integrityHash
 ```
 
-Active constraints and locked decisions must never be dropped for budget reasons. If they cannot fit, the runtime must reduce file content, not constraint content, and must record the reduction in `omittedForBudget`.
+`requiredItems` MUST NOT be evicted. `EXACT` items MUST NOT be replaced by summaries when required for mutation or line-level reasoning. Active constraints and locked decisions must never be dropped for capacity reasons. If they cannot fit, the runtime must reduce supporting or historical context, not constraint content, and must record the reduction in `omittedForCapacity`.
 
-### 53.4 Re-grounding requirement
+### 53.4 Context sufficiency and coverage gate
+
+Before dispatching a `ContextPackage` to the `ModelGateway`, the runtime executes a deterministic two-stage preflight gate:
+
+```text
+CONTEXT_ASSEMBLE
+→ COVERAGE_CHECK
+→ INTEGRITY_CHECK
+→ MODEL
+```
+
+1. **COVERAGE_CHECK**: The `RetrievalCompletenessChecker` validates that all direct dependencies, mutated file targets, active interface definitions, and required validation assertions on the `EvidenceFrontier` are present at the required fidelity level.
+2. **INTEGRITY_CHECK**: The `ContextIntegrityVerifier` validates that `contextRevision`, `goalRevision`, `projectRevision`, `planRevision`, and `evidenceRevision` match current authoritative ledger state.
+
+If required dependency, interface, or evidence coverage is insufficient:
+
+```text
+MODEL invocation prohibited
+→ expand retrieval OR re-ground
+```
+
+The model invocation is strictly prohibited. The runtime automatically expands retrieval over the Repository Semantic Graph or triggers `RegroundingService` to resolve missing context.
+
+### 53.5 Cognitive Working Set
+
+The runtime partitions session context into an authoritative `WorkingSet`:
+
+```text
+WorkingSet
+- required context
+- active context
+- supporting context
+- historical context
+- excluded context
+- semantic anchors
+- temporal anchors
+- evidence anchors
+```
+
+`required context` contains locked decisions, active constraints, target-platform invariants, and mandatory evidence contracts. **Required context can never be evicted.** When total context exceeds the provider's token budget, the `WorkingSetPlanner` evicts or compacts historical and supporting context in accordance with `ContextCachePolicy`, never required context.
+
+### 53.6 Evidence Frontier
+
+The runtime maintains an explicit `EvidenceFrontier` tracking the empirical state of every project claim:
+- `VERIFIED`: Confirmed by passing runtime observation, test execution, or emulator assertion.
+- `STALE`: Previously verified but invalidated by an upstream file mutation, dependency edit, or schema shift.
+- `UNRESOLVED`: Claimed or required by the active plan but lacking empirical observation.
+- `CONTRADICTED`: Runtime observation directly conflicts with expected state or requirement.
+- `PREDICTED`: Model or heuristic projection not yet validated by the execution engine.
+- `REQUIRED_VALIDATION`: A mandatory gate item that must be executed and observed before task completion.
+
+Context retrieval prioritizes unresolved, contradicted, and required validation items over settled background facts, directing model attention to empirical gaps.
+
+### 53.7 Context Integrity Hard Gate
+
+A `ContextPackage` is cryptographically and revision-bound to the exact execution state under which it was generated. It carries `contextRevision`, `goalRevision`, `projectRevision`, `planRevision`, `evidenceRevision`, and an `integrityHash`.
+
+A `ContextPackage` becomes immediately invalid if any referenced revision changes prior to model invocation or during action proposal evaluation:
+- If `projectRevision` advances (e.g. concurrent mutation or user edit), the context package is stale.
+- If `goalRevision` or `planRevision` updates (e.g. user directive or plan recompilation), the context package is stale.
+- If `evidenceRevision` advances (e.g. test completion or emulator event), the context package is stale.
+
+Context integrity is an authoritative **hard execution gate**. No consequential action (file write, build invocation, device interaction, or transaction commit) may be authorized or executed against an invalid or stale `ContextPackage`. When an integrity violation is detected, the runtime rejects the action, halts execution, and invokes `RegroundingService`.
+
+### 53.8 Re-grounding requirement
 
 At every long-horizon checkpoint the runtime must re-ground the working context by re-reading the original goal, the active constraints, the locked decisions, and the current evidence state. Re-grounding must be an explicit recorded step, not an implicit prompt behavior, and must occur before plan recompilation.
 
-### 53.5 Cross-project isolation
+### 53.9 Cross-project isolation
 
 Project memory must never be read across project boundaries. Runtime-improvement memory may cross projects only in anonymized form with no file paths, identifiers, source content, or credentials.
 
-### 53.6 Acceptance criteria
+### 53.10 Acceptance criteria
 
 The memory and context contract is satisfied only when a session can be interrupted, resumed after a runtime restart, and continue without re-asking a settled question; when a locked decision is never contradicted by a later action; when every memory record cites its source evidence; and when a context package can be reproduced from the event ledger for any historical model call.
 
@@ -3671,7 +3780,7 @@ RuntimeDirective
 
 ### 61.3 Application semantics
 
-A directive takes effect at the next kernel decision point, not mid-mutation. The runtime must acknowledge the directive, record it as an active constraint per §53.2, re-ground context per §53.4, and recompile the plan when the directive invalidates it.
+A directive takes effect at the next kernel decision point, not mid-mutation. The runtime must acknowledge the directive, record it as an active constraint per §53.2, re-ground context per §53.8, and recompile the plan when the directive invalidates it.
 
 ### 61.4 Directive precedence
 
@@ -3918,7 +4027,7 @@ The cycle is a state machine driven by, and subordinate to, the kernel loop of �
 
 ```text
 OBSERVE      -> read current state, evidence, and constraints
-UNDERSTAND   -> re-ground against goal, constraints, locked decisions (§53.4)
+UNDERSTAND   -> re-ground against goal, constraints, locked decisions (§53.8)
 HYPOTHESIZE  -> generate candidate explanations or approaches
 STRATEGIZE   -> generate and compare alternatives
 SELECT       -> choose a strategy and emit a ReasoningArtifact
@@ -4201,10 +4310,10 @@ The following `ContractId` values are the registered normative contracts of this
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141 | M81 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RECONCILIATION | BS §55 | — | TA §61 | ADR-144 | M83 | CROSS_CUTTING |
@@ -4364,8 +4473,7 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | an event may update only a compatible preview identity and revision | SEALED |
 | CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | every preview operation that performs build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work has exactly one execution surface: `AndroidBuildAdapter` for build and artifact operations or `AndroidDeviceAdapter` for device and runtime operations; the `AndroidTechnologyAdapter` resolves those authorities and MUST NOT execute their concrete operations itself; every emitted `PreviewSyncEvent` and corresponding `PreviewSyncEvidenceRecord` MUST carry the `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` | SEALED |
 | CLAUSE.PREVIEW_SYNC.MODE_RESOLVER | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | the `PreviewRevision.previewMode` is selected only by the deterministic resolver defined in technical architecture §73.11; a model, worker, UI, or prompt MUST NOT select the preview mode directly | SEALED |
-| CLAUSE.COST.NO_UNTRACKED_USAGE | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | every billable or budget-relevant operation records reserved, settled, or rejected usage | SEALED |
-| CLAUSE.COST.EXHAUSTION_EXPLICIT | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | budget exhaustion causes a recorded downgrade, pause, approval request, or safe failure and never silent continuation | SEALED |
+| CLAUSE.COST.EXHAUSTION_EXPLICIT | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | cost budget exhaustion produces explicit degradation, safe failure, or approval, never false completion | SEALED |
 | CLAUSE.TRUST.SCAN_BEFORE_EXECUTION | CONTRACT.RUNTIME.AGENT_TRUST | §73 | untrusted skill, MCP, plugin, or instruction content cannot execute before trust assessment and policy admission | SEALED |
 | CLAUSE.TRUST.REVOCATION_WINS | CONTRACT.RUNTIME.AGENT_TRUST | §73 | revocation or policy denial invalidates future invocation even when a prior scan passed | SEALED |
 | CLAUSE.CONTEXT.POLICY_VISIBLE | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | compaction, cache use, exclusion, redaction, and telemetry policy are recorded and visible to runtime governance | SEALED |
@@ -4565,10 +4673,10 @@ DeliberationRecord
     modelRequests,
     wallClockMs
   }
-- outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED
+- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED
 ```
 
-A record whose `passCount` exceeds one must contain one `continuationReasons` entry for each additional pass. Continuation without a stated reason is not admissible. Each continuation reason must identify the condition that justified another pass and must be associated with the pass that consumed the additional deliberation budget. This prevents unbounded thinking presented as diligence.
+A record whose `passCount` exceeds one must contain one `continuationReasons` entry for each additional pass. Continuation without a stated reason is not admissible. Each continuation reason must identify the condition that justified another pass. This prevents unbounded thinking presented as diligence.
 
 The runtime must never fabricate provider-reported reasoning usage. If the provider does not expose reasoning-token usage, the record must state `estimated` or `unavailable` in `accountingStatus`. Estimates are telemetry only and cannot satisfy a sufficiency or certification requirement.
 
@@ -4587,42 +4695,32 @@ At the `HYPOTHESIZE` and `STRATEGIZE` states of the §66.3 cycle, the runtime mu
 | BRANCH | Competing strategies are comparable and should be tried per §65 |
 | ESCALATE | The question requires a human decision |
 
-Inputs to the decision are goal and requirement uncertainty, hypothesis confidence spread, strategy disagreement, assessed risk, failure history for the surface, available validation evidence, architectural impact, change-surface size, remaining budget, model capability, and task criticality.
+Inputs to the decision are goal and requirement uncertainty, hypothesis confidence spread, strategy disagreement, assessed risk, failure history for the surface, available validation evidence, architectural impact, change-surface size, current evidence state, execution progress, resource availability, provider capability, and task criticality.
 
-### 68.4 Deliberation budget
+### 68.4 Deliberation continuity
 
-Deliberation cost is a distinct resource from host and provider resources. A task may have CPU, provider, and wall-clock capacity available and still be required to stop deliberating, and may have tight host capacity and still be required to deliberate further on a high-risk change.
+Deliberation has no artificial token, request, monetary, pass-count, or wall-clock completion budget.
 
-```text
-DeliberationBudget
-- maxReasoningTime
-- maxReasoningPasses
-- maxModelRequests
-- maxReasoningTokens
-- maxToollessPasses
-- maxEvidenceAcquisitionPasses
-- maxHypotheses
-- maxStrategyCandidates
-- maxSpecialistConsultations
-- maxCandidateBranches
-- maxReasoningTokensPerPass
-- maxReasoningTimePerPass
-- maxProviderRequestsPerPass
-- escalationThreshold
-- diminishingReturnThreshold
-```
+The runtime continues deliberation while additional reasoning can materially improve the task state.
 
-`maxToollessPasses` is required: consecutive reasoning passes without new observation are the dominant failure mode of extended thinking, and the runtime must force evidence acquisition rather than permit indefinite unlit reasoning.
+Continuation MUST be governed by state change rather than expenditure.
 
-Before each provider request, the deterministic runtime must reserve the maximum permitted reasoning expenditure for that request from the remaining deliberation budget. The provider request cannot begin until the reservation succeeds.
+A continuation is justified when at least one of:
+- uncertainty remains materially unresolved;
+- competing hypotheses remain unresolved;
+- required evidence is missing;
+- a discriminating observation is available;
+- a strategy requires further analysis;
+- new evidence invalidated the current interpretation;
+- architectural impact remains unresolved.
 
-When the request completes, the runtime settles the reservation against observed usage when available, or against the configured maximum when usage is unavailable, and returns unused capacity to the deliberation budget when safe to do so.
+Repeated reasoning without state progress MUST trigger evidence acquisition, hypothesis change, strategy change, delegation, or escalation.
 
-Budget reservation and settlement are transactional. Two concurrent deliberation requests must never be able to consume the same remaining reasoning budget.
+This is a progress/liveness rule, not a usage budget.
 
-### 68.5 The runtime grants the budget
+### 68.5 The runtime grants the effort level
 
-The agent may request an effort level. It may never grant its own. The deterministic runtime decides the granted level from the request, the remaining budget, policy, host resources, provider capability, and task risk, and records the decision.
+The agent may request an effort level. It may never grant its own. The deterministic runtime decides the granted level from the request, policy, host resource integrity, provider capability, and task risk, and records the decision.
 
 A request exceeding what policy or capacity permits is downgraded to the highest permitted level and recorded, never denied silently and never satisfied beyond the ceiling. This is the §33 authority principle applied to reasoning effort: the model proposes how hard to think; the runtime decides.
 
@@ -4630,9 +4728,7 @@ Every grant above the task's baseline level must record the observed condition t
 
 Native provider reasoning and runtime deliberation are separate resources.
 
-Provider-native reasoning increases computation within one model request. Runtime deliberation increases the number of bounded reasoning/evidence iterations across requests. Either may be used independently or together.
-
-A DEEP deliberation may therefore use a single provider request with high native reasoning effort, multiple provider requests at a lower native effort, or multiple requests whose native effort is itself escalated, provided the total deliberation budget and provider capability constraints are respected.
+Provider-native reasoning increases computation within one model request. Runtime deliberation increases the number of bounded reasoning/evidence iterations across requests. Either may be used independently or together. Provider capability is an available capability, not an intelligence ceiling.
 
 The runtime must never treat a provider's native reasoning effort as proof that runtime deliberation occurred.
 
@@ -4710,7 +4806,7 @@ A stronger or specialist model receives exactly the same permission ceiling, the
 
 A provider request is not the unit of deliberation. A `DeliberationSession` spans multiple model requests, tool observations, and context reconstructions, and must survive context compaction, provider failover, and runtime restart.
 
-Continuation state comprises the deliberation revision, the reasoning objective, active hypotheses with their states, evidence acquired so far, strategies already rejected with reasons, the current effort level, and the remaining budget. Compaction must preserve this state, per the constraint-priority rule of §53.3: a compaction that discards active hypotheses or rejected-strategy records has reset the agent's thinking and is a defect.
+Continuation state comprises the deliberation revision, the reasoning objective, active hypotheses with their states, evidence acquired so far, strategies already rejected with reasons, the current effort level, current evidence state, and execution progress. Compaction must preserve this state, per the constraint-priority rule of §53.3: a compaction that discards active hypotheses or rejected-strategy records has reset the agent's thinking and is a defect.
 
 ### 68.13 Diminishing-return detection
 
@@ -4722,9 +4818,9 @@ On `NO_PROGRESS` the runtime must acquire evidence, escalate the model, branch c
 
 ### 68.14 Termination
 
-Every deliberation terminates in exactly one recorded outcome: `SUFFICIENT`, `BUDGET_EXHAUSTED`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`.
+Every deliberation terminates in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`.
 
-`BUDGET_EXHAUSTED` and `NO_PROGRESS` must never be reported as sufficiency, and must never silently permit execution of the leading strategy as though it had been validated. Terminating without sufficiency yields a cycle termination state of `WAITING`, `SAFELY_FAILED`, or `ESCALATED` per §66.4.
+`NO_PROGRESS` must never be reported as sufficiency, and must never silently permit execution of the leading strategy as though it had been validated. Terminating without sufficiency yields a cycle termination state of `WAITING`, `SAFELY_FAILED`, or `ESCALATED` per §66.4.
 
 ### 68.15 Skill reasoning requirements
 
@@ -5301,15 +5397,15 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 **ContractId:** `CONTRACT.RUNTIME.COST_GOVERNANCE`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.COST_GOVERNANCE`
 
-Cost governance is a deterministic policy authority placed beside permission and resource policy. It governs token budgets, provider request budgets, duration, CPU, memory, disk, emulator, and estimated monetary cost without turning ordinary budget thresholds into false completion.
+Cost governance is a deterministic policy authority placed beside permission and resource policy. In Nirman, cost governance operates as runtime resource integrity: it governs token budgets, provider request budgets, duration, CPU, memory, disk, emulator, and estimated monetary cost without turning ordinary budget thresholds into false completion, and without terminating, degrading, or blocking valid engineering tasks based on cumulative token or request usage.
 
-The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. The `durationBudget` defaults to 200 minutes and is user-configurable per task or project; exhaustion follows CLAUSE.COST.EXHAUSTION_EXPLICIT. `costCap` remains optional with no default value. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
+Nirman protects host, workspace, process, and emulator stability. The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. The `durationBudget` defaults to no artificial completion limit; exhaustion follows CLAUSE.COST.EXHAUSTION_EXPLICIT. `costCap` remains optional with no default value. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
 
-Budget exhaustion must produce one explicit outcome: reduce context, reduce concurrency, change an approved model or provider, pause for approval, continue under a renewed policy, safely fail, or degrade the task classification. Exhaustion cannot silently authorize a broader permission, discard required evidence, or mark a goal complete. The authority hierarchy is policy authority, then cost governance for resource admission, then operation capability and lifecycle authority; cost governance cannot override safety, privacy, signing, evidence, or completion authority.
+Budget exhaustion must produce one explicit outcome: reduce context, reduce concurrency, change an approved model or provider, pause for approval, continue under a renewed policy, safely fail, or degrade the task classification. Exhaustion cannot silently authorize a broader permission, discard required evidence, or mark a goal complete. Under resource pressure, the authority prefers queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, and resource reclamation before safe failure. The authority hierarchy is policy authority, then cost governance for resource admission, then operation capability and lifecycle authority; cost governance cannot override safety, privacy, signing, evidence, or completion authority.
 
 ### 72.1 Acceptance criteria
 
-A fixture must prove reservation, settlement, provider-reported or estimated usage, cap exhaustion, adaptive degradation, renewal approval, cancellation, unknown-outcome reconciliation, and truthful completion classification.
+A fixture (`TEST-COST-001` yielding `EV-COST-001`) must prove reservation, settlement, provider-reported or estimated usage, cap exhaustion, adaptive degradation, renewal approval, cancellation, unknown-outcome reconciliation, and truthful completion classification.
 
 ## 73. Agent Trust Boundary Authority
 
@@ -6348,14 +6444,14 @@ Every "configurable" parameter in the specification has a default value defined 
 | Concurrent write-capable workers per task | 3 | 1-5 | Per project |
 | Concurrent read-only workers per task | 5 | 1-10 | Per project |
 | Total active workers | 8 | 4-16 | Per project |
-| Default task wall-clock budget | 200 minutes | 30-1440 minutes | Per task |
+| Default task wall-clock policy | No artificial completion limit | N/A | Per task |
+| Default token usage policy | Unlimited by Nirman | N/A | Per task |
+| Default provider request policy | Unlimited by Nirman | N/A | Per task |
+| Default monetary usage policy | Unlimited by Nirman | N/A | Per task |
+| Runtime resource policy | Host/resource-integrity controlled | N/A | Per project |
+| Context capacity | Determined by active context representation and provider capability | Provider-dependent | Per task |
 | Default repair attempts per failure | 3 | 1-10 | Per task |
-| Default task context budget | Provider-dependent | 16K-200K tokens | Per task |
 | Default disk quota per task | 10 GB | 1-100 GB | Per project |
-| Default token budget | Provider-dependent | 100K-10M tokens | Per task |
-| Default request budget | 1000 requests | 100-10000 | Per task |
-| Default duration budget | 200 minutes | 30-1440 minutes | Per task |
-| Default cost cap | None (unlimited) | $0.01-$1000 | Per task |
 | Checkpoint retention (recent) | 10 | 3-50 | Per project |
 | Checkpoint retention (initial) | Always keep | N/A | Never deleted |
 | Checkpoint retention (last known-good) | Always keep | N/A | Never deleted |

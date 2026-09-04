@@ -1216,7 +1216,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 
 | Milestone | Focus | Required result |
 |---|---|---|
-| M81 | Memory and Context Runtime | Classified memory records with mandatory source events, ConstraintRegistry, ContextAssembler with constraint-priority budgeting, RegroundingService at all six trigger points, project-scoped isolation |
+| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextBudgetAllocator, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService |
 | M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks |
 | M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
 | M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all eight required scenario classes, determinism quarantine |
@@ -1234,7 +1234,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 
 ### Memory and context gate
 
-A session is interrupted by a runtime restart and resumes without re-asking a settled question. A locked decision remains present in every subsequent context package until superseded. A memory write attempted without a source event is rejected. A project-scoped query cannot return another project's records. A historical context package is reproduced from the ledger.
+A session is interrupted by a runtime restart and resumes without re-asking a settled question; a locked decision remains present in every subsequent context package until superseded; a memory write attempted without a source event is rejected; a project-scoped query cannot return another project's records; and a historical context package is reproduced from the ledger. Fixtures prove that: (1) required context cannot be evicted; (2) a stale ContextPackage is rejected before action authorization; (3) dependency neighborhoods are reconstructed via bidirectional dependency retrieval; (4) EXACT source is preserved for edited regions and active interfaces, and semantic summaries cannot replace exact source; (5) contradicted evidence triggers expanded retrieval or re-grounding; (6) runtime restart reconstructs an identical working set; (7) forced compaction preserves authoritative state and invariant proofs; (8) provider context-capacity changes cause deterministic repacking; and (9) a 10k-action fixture retains causal continuity across the entire execution sequence.
 
 ### Coordination gate
 
@@ -1304,7 +1304,7 @@ Refinement rule: when a coarse milestone and a refined milestone appear to overl
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id |
 |---|---|---|---|---|
 | M11 | CONTRACT.RUNTIME.SCOPE | ADR-180 | TEST-GEN-001 | EV-GEN-001 |
-| M65 | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071 | TEST-GEN-001 | EV-GEN-001 |
+| M65 | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071, ADR-216 | TEST-GEN-001 | EV-GEN-001 |
 | M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
 | M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
 
@@ -1314,7 +1314,7 @@ Each milestone may implement one or more registered contracts, but each contract
 
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
 |---|---|---|---|---|---|
-| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
+| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155, ADR-214, ADR-215, ADR-216 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
 | M82 | CONTRACT.RUNTIME.RESERVATION | ADR-142, ADR-143 | TEST-RES-001 | EV-RES-001 | Coordination gate |
 | M83 | CONTRACT.RUNTIME.RECONCILIATION | ADR-144 | TEST-RCN-001 | EV-RCN-001 | Reconciliation gate |
 | M84 | CONTRACT.RUNTIME.E2E | ADR-146 | TEST-E2E-001 | EV-E2E-001 | Verification gate |
@@ -1645,9 +1645,9 @@ Add specialist-worker fixtures for security scanning, schema/type consistency, d
 
 ## M111 — Cost governance and adaptive resource control
 
-Implement reservation, settlement, reconciliation, cost caps, token and request budgets, provider-reported or estimated usage, resource telemetry, explicit exhaustion outcomes, and cost-based degradation.
+Implement reservation, settlement, reconciliation, cost caps, token and request budgets, provider-reported or estimated usage, resource telemetry, explicit exhaustion outcomes, and cost-based degradation. Under Nirman's resource integrity model, valid engineering tasks are not terminated or degraded due to cumulative token, request, or duration expenditure; resource controls protect physical host, process, and emulator stability.
 
-**Exit gate:** an executable fixture proves that usage is recorded, caps are enforced, unknown usage is reconciled, context or concurrency can be reduced safely, and budget exhaustion never becomes false completion or silent permission expansion.
+**Exit gate:** an executable fixture (`TEST-COST-001` producing `EV-COST-001`) proves that usage is recorded, caps are enforced, unknown usage is reconciled, context or concurrency can be reduced safely, and budget exhaustion never becomes false completion or silent permission expansion.
 
 ## M112 — Agent-layer trust boundary and extension security
 
@@ -1657,9 +1657,23 @@ Implement pre-admission scanning for skills, MCP-compatible tools, plugins, work
 
 ## M113 — Context compaction and cache governance
 
-Implement `ContextCachePolicy`, protected-context classes, compaction triggers, cache key compatibility, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
+Implement `ContextCachePolicy`, protected-context classes, provider attention adaptation (`attentionCapabilities`), provider context capacity fitting (`ContextCapacityPlanner`), compaction triggers, cache key compatibility, prefix caching, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
 
-**Exit gate:** fixtures prove that compaction preserves constraints, cache reuse requires compatible identity, invalidation follows source or policy changes, cache hits are visible, and context overflow does not cause secret leakage or evidence loss.
+`TEST-CONTEXT-001` validates long-horizon cognition and governance under adversarial conditions, exercising:
+- 1k-action long-horizon autonomous task
+- 10k-action extended autonomous task
+- Runtime restart and resume without decision loss
+- Forced non-destructive compaction preserving constraints
+- Dynamic provider switch across differing context ceilings
+- Context-window adaptation under provider capacity limits
+- Stale-context injection rejection via the Context Integrity hard gate
+- Contradictory evidence detection and EvidenceFrontier prioritization
+- Dependency mutation propagation through the Repository Semantic Graph
+- Repeated failure handling with causal fingerprint matching
+- Cache invalidation on upstream schema or file mutation
+- Recovery from checkpoint with authoritative context re-grounding
+
+**Exit gate:** fixtures prove that compaction preserves constraints, required context is never evicted, cache reuse requires compatible identity, invalidation follows source or policy changes, cache hits are visible, stale context packages are rejected before action authorization, and context overflow does not cause secret leakage or evidence loss.
 
 ## M114 — Android runtime integrity and honest coverage
 

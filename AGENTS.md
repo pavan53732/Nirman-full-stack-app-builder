@@ -19,7 +19,17 @@ Document precedence is explicit: (1) accepted ADRs define locked architectural a
 
 ## 1.1 Mandatory canonical-document compliance
 
-Content, conversation context, and change intelligence are canonical cross-cutting contracts.
+Content, conversation context, change intelligence, and long-horizon cognitive context are canonical cross-cutting contracts.
+
+ContextPackage is a derived projection and MUST NOT become authoritative state. Agents MUST treat ContextPackage as revision-bound execution state.
+
+Agents MUST NOT infer authoritative state from conversational history when durable state exists.
+
+Model-generated summaries MUST NOT become authoritative memory without validated provenance.
+
+Before consequential action, the runtime-provided working set and context-integrity status MUST be honored. A model request MUST NOT execute consequential work when the runtime reports insufficient context coverage or stale context integrity.
+
+Nirman NEVER terminates, degrades, downgrades, or blocks a valid task because of token consumption, provider request count, monetary expenditure, or elapsed task duration. Only physical host, workspace, process, emulator, storage, concurrency, and operating-system resource integrity constraints apply. Context is fit to the active provider via `ContextCapacityPlanner` and hierarchical fidelity transformation (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`), never by arbitrary truncation or budget eviction of active mutation targets and interfaces.
 
 Agents MUST treat product content as revisioned development state, not disposable generated text.
 
@@ -27,7 +37,7 @@ Agents MUST use the durable Conversation model for continuation and MUST NOT rec
 
 Agents MUST consume the authoritative ChangeImpactReport after every completed mutation. The atomic mutation reporting unit is strictly the committed ConstructionTransaction (MutationReportUnit = committed ConstructionTransaction). Agents MUST NOT generate, consume, or present partial reports for individual file edits or uncommitted intermediate workspace mutations. They MUST treat it as a read-only projection of transaction, impact, validation, preview, and evidence authorities and MUST NOT infer authoritative mutation facts from model prose.
 
-When editing a canonical schema, agents MUST update every duplicate representation of that schema in BS, TA, development plan, ADRs, tests, and verifier fixtures in the same coherent change. No implementation-facing schema may diverge from the normative Build Spec schema.
+When editing a canonical schema, agents MUST update every duplicate representation of that schema in BS, TA, development plan, ADRs, tests, and verifier fixtures in the same coherent change. Any implementation-facing ContextPackage or schema modification MUST update BS, TA, development plan, ADR, tests, and verifier fixtures atomically. No implementation-facing schema may diverge from the normative Build Spec schema.
 
 Any implementation of these capabilities MUST update all required canonical surfaces before implementation proceeds.
 

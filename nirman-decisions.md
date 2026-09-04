@@ -2477,3 +2477,69 @@ Projector → read-only projection
 The projector cannot invent authoritative facts.
 
 **Reversal trigger:** Evidence that the canonical report cannot accurately represent mutation impact without introducing conflicting authority.
+
+---
+
+## ADR-214: Authoritative World State / Derived Context
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONTEXT`
+
+**Decision:** The runtime establishes an absolute separation between authoritative world state and model context packages: `Authoritative world state != model ContextPackage`. A `ContextPackage` is strictly a derived, revision-bound projection of authoritative project, task, evidence, and memory state; it is never authoritative state itself. Context assembly is orchestrated dynamically across six normative retrieval modes (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`) and twelve selection dimensions. This extends ADR-141 by establishing that `requiredItems` (active constraints, locked decisions, target-platform invariants) can never be evicted.
+
+**Rationale:** Treating conversational context or model prompts as state authorities leads to state drift, hallucinated diffs, and catastrophic forgetting over long horizons. Binding context packages as immutable projections of ledger state ensures deterministic replay, verifiable provenance, and safe continuation.
+
+**Consequences:** `ContextOrchestrator` generates cryptographically hashed, revision-bound `ContextPackage` projections. No model response or conversational history may mutate authoritative state outside a deterministic control-plane transaction.
+
+**Reversal trigger:** Evidence that treating model context as direct mutable execution state provides equivalent determinism and safety without ledger drift.
+
+---
+
+## ADR-215: Hierarchical Context Fidelity
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONTEXT`
+
+**Decision:** Context items within a `ContextPackage` are governed by explicit hierarchical fidelity levels (`EXACT`, `STRUCTURAL`, `SEMANTIC`, `SUMMARY`, `HISTORICAL`) mapped via `fidelityMap`. Edited regions and active interface definitions must always be provided at `EXACT` fidelity (verbatim byte-for-byte source); direct dependencies at `STRUCTURAL` fidelity (complete symbol signatures and type declarations); related distant code at `SEMANTIC` fidelity; and historical transactions at `SUMMARY` or `HISTORICAL` fidelity. Under context capacity constraints, semantic summaries cannot replace exact source code required for mutation or line-level reasoning.
+
+**Rationale:** Code synthesis, line-level editing, and type checking require byte-exact source text. Replacing active mutation targets or referenced interfaces with lossy summaries causes syntax errors, type mismatches, and incorrect diff applications.
+
+**Consequences:** `ContextFidelityManager` enforces fidelity rules during working-set assembly. Capacity adaptation omits or compacts distant/historical context before downgrading active fidelity.
+
+**Reversal trigger:** Evidence that code generation against semantic summaries produces identical patch precision and compile pass rates as exact source code.
+
+---
+
+## ADR-216: Retrieval Completeness Before Consequential Mutation
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.AUTHORITY`
+
+**Decision:** Before any model invocation proposing code mutations, tool executions, or state transactions, the runtime enforces a mandatory two-stage sufficiency gate:
+```text
+CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
+```
+The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `freshness`, `fidelity`, `dependencyCompleteness`, `evidenceCompleteness`, `uncertainty`). If context confidence is `MEDIUM` or `LOW`, model invocation is strictly prohibited; the runtime automatically expands bidirectional graph retrieval or triggers `RegroundingService`. Furthermore, if any referenced revision (`goalRevision`, `projectRevision`, `planRevision`, `evidenceRevision`) changes, the package is stale and execution halts.
+
+**Rationale:** Allowing models to propose destructive modifications or tool executions when dependency neighborhoods are incomplete or evidence is contradictory causes widespread regressions and repeated failures.
+
+**Consequences:** Retrieval completeness is an authoritative hard gate owned jointly by `PolicyAuthority` and `EvidenceAuthority`. Models cannot bypass coverage checks or execute mutations against partial or stale context.
+
+**Reversal trigger:** Evidence that optimistic model execution with post-hoc reconciliation resolves dependencies faster without increasing regression rates.
+
+---
+
+## ADR-217: Runtime Resource Integrity and Adaptive Execution Continuity
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.COST_GOVERNANCE`, `CONTRACT.RUNTIME.DELIBERATION`
+
+**Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` and `CostAuthority` evaluate physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
+
+**Rationale:** Artificial token or request caps artificially truncate long-horizon autonomous problem-solving and violate Nirman's core promise of autonomous engineering. Hardware stability and process integrity are valid physical constraints, but accounting-driven usage ceilings are not.
+
+**Consequences:** Clarifies `CONTRACT.RUNTIME.COST_GOVERNANCE` and `CONTRACT.RUNTIME.DELIBERATION`. Deliberation continues based on state progress and diminishing-return detection rather than pass counts or artificial token budgets. `CostGovernanceRecord` tracks usage and physical host stability signals.
+
+**Reversal trigger:** Physical demonstration that unlimited autonomous execution causes unrecoverable host instability that cannot be mitigated by queueing, serialization, or checkpointing.
+
+
