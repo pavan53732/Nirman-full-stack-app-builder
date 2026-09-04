@@ -2453,7 +2453,7 @@ The embedded preview is a projection of the actual running Android runtime, not 
 
 **Rationale:** Long-horizon development requires durable conversational state in addition to task and memory state.
 
-**Consequences:** Conversation persistence and continuation resolution become explicit runtime contracts.
+**Consequences:** Conversation persistence and continuation resolution become explicit runtime contracts. Conversation owns conversational lineage only. Memory remains authoritative for durable semantic memory records. Context remains authoritative for context assembly/reconstruction policy. Task and project state remain authoritative for execution state. ConversationStore MUST NOT become a second memory, task, or project authority.
 
 **Reversal trigger:** Evidence that another durable state model provides equivalent continuation semantics without loss of conversation lineage.
 
@@ -2466,6 +2466,6 @@ The embedded preview is a projection of the actual running Android runtime, not 
 
 **Rationale:** Autonomous development requires users and subsequent workers to understand exactly what changed, why, what was affected, what became stale, and what remains to verify.
 
-**Consequences:** Change intelligence is a projection, not a new authority.
+**Consequences:** Change intelligence is a projection, not a new authority. Every ChangeImpactReport field must have an authoritative source. ConstructionTransaction → mutation identity/files/revisions. Impact analysis → affected surfaces. Validation authority → tests/verification. Preview authority → preview impact/currentness. Evidence authority → invalidation/retention. ChangeIntelligenceProjector → read-only projection. The projector cannot invent authoritative facts.
 
 **Reversal trigger:** Evidence that the canonical report cannot accurately represent mutation impact without introducing conflicting authority.

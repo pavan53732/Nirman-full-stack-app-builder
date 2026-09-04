@@ -5915,6 +5915,7 @@ ChangeImpactReport
 - recommendationBasis
 - requiredAuthority
 - generatedAt
+- projectionVersion
 ```
 
 Field provenance:
@@ -5958,15 +5959,25 @@ No field in `ChangeImpactReport` may be independently invented by the projector.
 
 The projector MUST expose source, asset, toolchain, preview, test, integration, and evidence invalidation resulting from the mutation.
 
-### 87.4 Acceptance
+### 87.4 Persistence
+
+`ChangeImpactReport` is persisted in the durable SQLite task/project ledger, keyed by `changeReportId` and `transactionId`.
+
+A report is immutable after transaction completion. Regeneration creates a new projection version linked to the same transaction and source revision.
+
+Reports survive UI and supervisor restart and remain addressable through the project revision history.
+
+### 87.5 Failure and recovery
+
+Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement MUST produce a typed incomplete/stale report.
+
+The projector MUST NOT fabricate missing fields.
+
+Recovery re-reads authoritative transaction, impact, validation, preview, and evidence state. If authoritative state cannot be reconciled, the report is marked `UNRESOLVED` and cannot support completion.
+
+`ChangeIntelligenceProjector` never mutates project state, grants permissions, approves evidence, or marks completion.
+
+### 87.6 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
-
-### 87.5 Persistence
-
-`ChangeIntelligenceStore` persists reports durably. Reports are immutable once generated for a given transaction. Reports survive UI restart, supervisor restart, and context compaction. Reports are retained for the lifetime of the project revision they belong to. Reports are revision-addressable: a report can be retrieved by `reportId` or by `transactionId`.
-
-### 87.6 Failure and recovery
-
-ChangeIntelligenceProjector failure does NOT fail the parent mutation transaction. Projector failure is recorded as an unresolved issue in the report. Projector recovery regenerates the report from authoritative sources. Report recovery MUST NOT produce stale or inconsistent report state.
 

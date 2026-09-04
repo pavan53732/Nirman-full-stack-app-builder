@@ -1752,7 +1752,18 @@ Deliver:
 - `EV-CONTENT-001`
 
 Exit gate:
-A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence. ContentWorker cannot directly mark content complete.
+A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence.
+
+TEST-CONTENT-001 MUST prove:
+A. UX copy mutation
+B. terminology propagation
+C. localization propagation
+D. accessibility-label validation
+E. placeholder/interpolation preservation
+F. stale-content evidence invalidation
+G. rollback
+H. restart recovery
+I. ContentWorker cannot mark completion ContentWorker cannot directly mark content complete.
 
 ---
 
@@ -1776,7 +1787,19 @@ Deliver:
 - `EV-CONV-001`
 
 Exit gate:
-Continue reconstructs durable development state without re-asking settled requirements. Continue MUST reject stale or contradictory state and trigger reconciliation.
+Continue reconstructs durable development state without re-asking settled requirements.
+
+TEST-CONV-001 MUST prove:
+A. UI restart
+B. supervisor restart
+C. context compaction
+D. accepted suggestion persistence
+E. rejected suggestion persistence
+F. attachment persistence and project isolation
+G. active-goal recovery
+H. project-revision conflict/reconciliation
+I. task-lineage continuity
+J. Continue does not re-ask settled requirements Continue MUST reject stale or contradictory state and trigger reconciliation.
 
 ---
 
@@ -1799,7 +1822,21 @@ Deliver:
 - `EV-CHANGE-001`
 
 Exit gate:
-Every completed mutation produces a complete revision-bound change report. No field in ChangeImpactReport may be independently invented by the projector.
+Every completed mutation produces a complete revision-bound change report.
+
+TEST-CHANGE-001 MUST prove:
+A. every completed mutation produces exactly one report
+B. actual changed files
+C. requirement/goal provenance
+D. runtime impact
+E. affected tests
+F. preview impact
+G. evidence invalidation
+H. retained evidence
+I. authoritative verification
+J. stale/inconsistent source rejection
+K. restart persistence
+L. recommended next step remains advisory No field in ChangeImpactReport may be independently invented by the projector.
 
 
 ---

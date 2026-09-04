@@ -7171,32 +7171,57 @@ Content consistency MUST be checked across affected screens and resources. Local
 ### 81.1 ContentRevision
 
 ```text
+Content
+- contentId
+- canonicalKey
+- contentType
+- sourceLocale
+- supportedLocales
+- currentRevisionId
+
 ContentRevision
 - contentRevisionId
+- contentId
 - projectRevisionId
-- requirementId
-- contentType
+- requirementIds
 - locale
-- key
-- previousValue
-- proposedValue
+- value
+- placeholderSchema
+- pluralizationModel
+- localeFallback
+- translationStatus
 - terminologyReferences
 - toneProfile
 - brandVoiceProfile
 - accessibilityContext
+- contentProvenance
+- approvalState
 - sourceEvidenceIds
 - transactionId
 - validationStatus
-- invalidatedBy
+
+ContentDependency
+- dependencyId
+- contentId
+- dependencyType
+- dependencyIdentity
+- dependencyRevision
+- invalidationPolicy
 ```
 
 ### 81.2 Content validation
 
 Validation MUST cover terminology consistency, locale completeness, accessibility suitability, prohibited/unsafe text where applicable, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure.
 
-Content evidence becomes stale when the referenced UI, requirement, locale, terminology policy, brand voice, or project revision changes.
+Content evidence becomes stale when the referenced UI, requirement, locale, terminology policy, brand voice, or project revision changes. Content dependencies MUST also track: product requirements, design/visual spec, permissions, navigation, accessibility semantics, backend/API terminology, feature flags, legal/compliance constraints, provider policy, and resource structure.
 
-### 81.3 Acceptance
+### 81.4 Boundary with LOCALIZATION
+
+CONTENT_INTELLIGENCE owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, and localization orchestration.
+
+CONTRACT.RUNTIME.LOCALIZATION remains authoritative for locale/resource execution and localization runtime behavior. Content Intelligence consumes that contract and must not replace it.
+
+### 81.5 Acceptance
 
 A content task is complete only when requested content is present in the project, referenced correctly, validated, revision-bound, and represented in evidence.
 
