@@ -333,6 +333,9 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
 | CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold and platform capability states (host, target, validation, certification) are truthful and evidence-bound | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PLATFORM_CAPABILITY, CONTRACT.RUNTIME.AGENT_BUILDABILITY | TEST-INV-001 | EV-INV-001 | PLANNED |
 | CAP.PLATFORM.CAPABILITY_TRUTH | Classify and report build, cross-build, and target-runtime capability states truthfully, with host, target, validation, and certification kept distinct and evidence-bound | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-PLAT-001 | EV-PLAT-001 | PLANNED |
+| CAP.ANDROID.CONTENT_INTELLIGENCE | First-class product-content generation, revision, consistency, localization, accessibility, and content validation | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | TEST-CONTENT-001 | EV-CONTENT-001 | PLANNED |
+| CAP.ANDROID.CONVERSATION_CONTEXT | Durable conversation state connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | TEST-CONV-001 | EV-CONV-001 | PLANNED |
+| CAP.ANDROID.CHANGE_INTELLIGENCE | Explain every completed mutation through a revision-bound change-impact report | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TEST-CHANGE-001 | EV-CHANGE-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
@@ -2394,7 +2397,7 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 | Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
 | React Native/Expo fast refresh | JavaScript/TypeScript-only change | Metro/Expo health, rendered screen, screenshot |
 | Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
-|| Nirman-managed local Android emulator preview | Canonical Android live-preview runtime | Emulator identity, install, launch, interaction, capture, Logcat |
+| Nirman-managed local Android emulator preview | Canonical Android live-preview runtime | Emulator identity, install, launch, interaction, capture, Logcat |
 | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
 | Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
 
@@ -4227,6 +4230,9 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.COST_GOVERNANCE | BS §72 | — | TA §77 | ADR-197 | M111 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M122 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212 | M123 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | BS §83 | — | TA §87 | ADR-213 | M124 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | BS §75 | — | TA §80 | ADR-200 | M114 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76 | — | TA §81 | ADR-201 | M115 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | BS §77 | — | TA §82 | ADR-202 | M116 | CROSS_CUTTING |
@@ -4454,6 +4460,9 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
 | CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.2 | TA §85.4 | ADR-211 | M119 | TEST-CONTENT-001 | EV-CONTENT-001 |
+| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.4 | ADR-212 | M120 | TEST-CONV-001 | EV-CONV-001 |
+| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.2 | TA §87.4 | ADR-213 | M121 | TEST-CHANGE-001 | EV-CHANGE-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
 | CONTRACT.RUNTIME.COST_GOVERNANCE | CAP.ANDROID.BUDGETED_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-197 | M111 | TEST-COST-001 | EV-COST-001 |
@@ -4465,6 +4474,9 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | all | all | BS §80 | all | BS §80 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.2 | TA §85.4 | ADR-211 | M122 | TEST-CONTENT-001 | EV-CONTENT-001 |
+| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.4 | ADR-212 | M123 | TEST-CONV-001 | EV-CONV-001 |
+| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.2 | TA §87.4 | ADR-213 | M124 | TEST-CHANGE-001 | EV-CHANGE-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
 
@@ -7143,3 +7155,128 @@ Coverage is 100 percent as of this revision. Any "should" subsequently added to 
 An unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
 
 Four values in the §80.2 table were not derived from any existing section and are marked as owner-pending: the §26.6 graduated quota-response thresholds (telemetry at 70 percent, throttle at 85 percent, stop admitting workers at 95 percent) and the definition of a constrained host as under 15 percent free memory or under 10 GB free disk. They are stated so the runtime is buildable, but they are proposals awaiting owner confirmation, not derived requirements.
+
+---
+
+## 81. Content and Writing Intelligence Contract
+
+**ContractId:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` (see §67.8)
+
+Content is a first-class product surface. Nirman MUST be able to create, revise, validate, and propagate product content including UX copy, onboarding, empty states, errors, notifications, permission explanations, marketing copy, app-store descriptions, accessibility labels, localization, terminology, tone, and brand voice.
+
+Every content mutation MUST produce a ContentRevision bound to project revision, requirement, source evidence, and ConstructionTransaction.
+
+Content changes MUST participate in the same checkpoint, diff, validation, evidence, freshness, invalidation, rollback, and completion systems as source mutations.
+
+Content consistency MUST be checked across affected screens and resources. Localization changes MUST identify affected locales and unresolved translations. Accessibility labels MUST be validated against the corresponding UI semantics.
+
+### 81.1 ContentRevision
+
+```text
+ContentRevision
+- contentRevisionId
+- projectRevisionId
+- requirementId
+- contentType
+- locale
+- key
+- previousValue
+- proposedValue
+- terminologyReferences
+- toneProfile
+- brandVoiceProfile
+- accessibilityContext
+- sourceEvidenceIds
+- transactionId
+- validationStatus
+- invalidatedBy
+```
+
+### 81.2 Content validation
+
+Validation MUST cover terminology consistency, locale completeness, accessibility suitability, prohibited/unsafe text where applicable, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure.
+
+Content evidence becomes stale when the referenced UI, requirement, locale, terminology policy, brand voice, or project revision changes.
+
+### 81.3 Acceptance
+
+A content task is complete only when requested content is present in the project, referenced correctly, validated, revision-bound, and represented in evidence.
+
+---
+
+## 82. Durable Conversation Context Contract
+
+**ContractId:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` (see §67.8)
+
+A Conversation is a durable product object representing the continuing development interaction. It MUST survive UI restart, supervisor restart, context compaction, provider changes, and task handoff.
+
+```text
+Conversation
+- conversationId
+- projectId
+- messages
+- attachments
+- requirements
+- decisions
+- acceptedSuggestions
+- rejectedSuggestions
+- activeGoal
+- projectRevisionId
+- taskLineage
+- createdAt
+- updatedAt
+```
+
+Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages and evidence. Accepted and rejected suggestions MUST remain distinguishable.
+
+Continue MUST resolve the current Conversation state, active goal, latest valid project revision, unresolved requirements, accepted/rejected suggestions, decisions, task lineage, and valid evidence before creating continuation work.
+
+A continuation MUST NOT reconstruct state solely by replaying the chat transcript or issuing another free-form prompt.
+
+Context compaction MAY summarize ordinary messages but MUST preserve requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage.
+
+### 82.1 Acceptance
+
+Restarting the UI or supervisor and selecting Continue MUST reconstruct the same durable development state without re-asking settled requirements or losing accepted/rejected suggestions.
+
+---
+
+## 83. Change Intelligence Contract
+
+**ContractId:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` (see §67.8)
+
+Every completed mutation MUST produce one revision-bound ChangeImpactReport.
+
+```text
+ChangeImpactReport
+- changeReportId
+- transactionId
+- projectRevisionBefore
+- projectRevisionAfter
+- changed
+- why
+- files
+- runtimeEffect
+- testsAffected
+- testsRun
+- previewAffected
+- evidenceInvalidated
+- evidenceRetained
+- verified
+- unresolvedIssues
+- recoveryActions
+- recommendedNextStep
+```
+
+`changed` MUST identify the actual mutation. `why` MUST reference the requirement, goal, directive, repair cause, or approved action that caused it.
+
+`files` MUST contain actual changed paths. `runtimeEffect` MUST identify affected runtime behavior. `testsAffected` MUST identify impacted validation. `previewAffected` MUST identify affected preview surfaces. `evidenceInvalidated` MUST contain dependency-invalidated evidence. `verified` MUST contain only authoritative verification results.
+
+The report MUST be generated from authoritative transaction, impact, preview, validation, and evidence state. Model-generated explanations cannot become authoritative change records.
+
+### 83.1 Acceptance
+
+Every completed mutation exposes the complete report. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.

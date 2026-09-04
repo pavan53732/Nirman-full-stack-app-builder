@@ -1338,6 +1338,9 @@ Each milestone may implement one or more registered contracts, but each contract
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
 | M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
 | M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-PLAT-001 | EV-PLAT-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
+| M122 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
+| M123 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
+| M124 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1727,3 +1730,63 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 
 **Exit gate:** on a non-Windows host, the M118 v1 built-in skill set loads exactly 6 packages; `environment-preflight` is admitted (no capabilities required); `windows-runtime-validation` is blocked fail-closed against the `WINDOWS_NATIVE_EXECUTION` = `UNAVAILABLE` capability result; a revoked or unscanned package is `NotInvocable`; invocation records survive supervisor restart with version pinning; and a changed environment fingerprint invalidates prior invocation evidence. Documentation graph certification is reported separately from runtime certification.
 
+
+---
+
+## M122 — Content and Writing Intelligence
+
+Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
+
+Deliver:
+- ContentRevision schema
+- ContentWorker
+- terminology/tone/brand profiles
+- localization propagation
+- accessibility content validation
+- transaction integration
+- evidence and invalidation integration
+- `TEST-CONTENT-001`
+- `EV-CONTENT-001`
+
+Exit gate:
+A content mutation must create a revision-bound transaction, update affected surfaces, validate content, invalidate stale evidence, and produce authoritative evidence.
+
+---
+
+## M123 — Durable Conversation Context
+
+Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
+
+Deliver:
+- Conversation aggregate
+- message/attachment persistence
+- requirement/decision/suggestion records
+- active-goal binding
+- project-revision binding
+- task lineage
+- ConversationContinuationResolver
+- restart/compaction recovery
+- `TEST-CONV-001`
+- `EV-CONV-001`
+
+Exit gate:
+Continue reconstructs durable development state without re-asking settled requirements.
+
+---
+
+## M124 — Change Intelligence
+
+Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
+
+Deliver:
+- ChangeImpactReport
+- mutation projection
+- runtime/test/preview impact calculation
+- evidence invalidation projection
+- verification summary
+- recommended next-step projection
+- `TEST-CHANGE-001`
+- `EV-CHANGE-001`
+
+Exit gate:
+Every completed mutation produces a complete revision-bound change report.

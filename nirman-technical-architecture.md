@@ -5710,3 +5710,75 @@ Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation 
 ### 84.5 Runtime acceptance
 
 `TEST-PLAT-001` (evidence `EV-PLAT-001`) implements the BS §79.13 fixtures A–D and MUST additionally prove: the planner emits the extended traceability chain with the environment-requirement and capability-resolution edges populated; the target-mismatch guard rejects a runtime-validation claim from a non-matching host before execution; worker scheduling honors the `WorkerContract` platform fields; lease loss fences in-flight validation; and a matrix version change re-runs preflight without invalidating unrelated observed records. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
+
+---
+
+## 85. Content Intelligence Implementation Contract
+
+**Implements:** build spec §81 and `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`
+
+### 85.1 Schemas
+
+Canonical schemas: `ContentRevision`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, and `ContentEvidence`.
+
+### 85.2 Runtime
+
+`ContentWorker` proposes content changes. `ContentTransactionCoordinator` applies them through the existing transaction path. `ContentValidator` validates them. `EvidenceAuthority` owns evidence validity.
+
+No content worker may directly mark content complete.
+
+### 85.3 Propagation
+
+Content impact analysis MUST identify affected UI surfaces, locales, accessibility labels, resources, preview surfaces, tests, and artifacts.
+
+### 85.4 Acceptance
+
+Fixture `TEST-CONTENT-001` proves content creation, propagation, terminology consistency, localization, accessibility, rollback, and evidence invalidation.
+
+---
+
+## 86. Conversation Context Implementation Contract
+
+**Implements:** build spec §82 and `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`
+
+### 86.1 Schemas
+
+Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, and `ConversationTaskLink`.
+
+### 86.2 Persistence and resolver
+
+`ConversationStore` persists the aggregate. `ConversationContinuationResolver` reconstructs continuation state from durable records.
+
+The resolver MUST consume project revision, goal, requirements, decisions, suggestion outcomes, attachments, task lineage, and valid evidence.
+
+### 86.3 Continue protocol
+
+`Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required.
+
+### 86.4 Acceptance
+
+`TEST-CONV-001` proves UI restart, supervisor restart, compaction, accepted/rejected suggestions, attachment continuity, goal continuity, revision continuity, and task lineage.
+
+---
+
+## 87. Change Intelligence Implementation Contract
+
+**Implements:** build spec §83 and `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`
+
+### 87.1 Schema
+
+Canonical schema: `ChangeImpactReport`.
+
+### 87.2 Generation
+
+`ChangeIntelligenceProjector` derives the report from `ConstructionTransaction`, impact analysis, validation results, `PreviewRevision`, and `EvidenceAuthority` state.
+
+It is a projection component and MUST NOT become mutation, permission, completion, or evidence authority.
+
+### 87.3 Invalidation
+
+The projector MUST expose source, asset, toolchain, preview, test, integration, and evidence invalidation resulting from the mutation.
+
+### 87.4 Acceptance
+
+`TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.

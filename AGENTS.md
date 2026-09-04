@@ -19,6 +19,18 @@ Document precedence is explicit: (1) accepted ADRs define locked architectural a
 
 ## 1.1 Mandatory canonical-document compliance
 
+Content, conversation context, and change intelligence are canonical cross-cutting contracts.
+
+Agents MUST treat product content as revisioned development state, not disposable generated text.
+
+Agents MUST use the durable Conversation model for continuation and MUST NOT reconstruct continuation solely from a chat transcript.
+
+Agents MUST inspect the canonical ChangeImpactReport after every completed mutation and MUST NOT infer changed files, runtime impact, affected tests, preview impact, evidence invalidation, or verification from model prose.
+
+Any implementation of these capabilities MUST update all required canonical surfaces before implementation proceeds.
+
+This directly extends the existing rule that cross-cutting changes must update every canonical surface.
+
 Every agent must follow the four canonical Markdown documents exactly. They are binding engineering contracts, not background reading or optional recommendations. Before planning, coding, editing documentation, installing dependencies, changing configuration, or running a potentially destructive command, the agent must read the relevant sections and inspect the current repository state. For a cross-cutting change, the agent must inspect all four canonical documents and the related registry, verifier, and milestone entries.
 
 The required document order is:

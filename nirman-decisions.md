@@ -2428,3 +2428,44 @@ The embedded preview is a projection of the actual running Android runtime, not 
 **Consequences:** PreviewCoordinator, AndroidDeviceAdapter, RenderTransport, PreviewSurface, PreviewHost, interaction forwarding, revision binding, recovery, validation, and evidence MUST treat the Nirman-managed local Android emulator as the sole Android runtime surface. All Android preview, runtime validation, recovery, evidence, and completion paths MUST use the Nirman-managed local Android emulator.
 
 **Reversal trigger:** A Windows-hosted local Android runtime can no longer provide sufficiently reliable rendering, interaction, or validation for the supported Android capability classes, and a superior local embedded runtime is proven with equivalent evidence, interaction, recovery, and revision-binding guarantees.
+
+---
+
+## ADR-211: Make product content a first-class autonomous capability
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Decision:** Product content is first-class development state and must participate in revision, transaction, validation, evidence, invalidation, preview, and completion workflows.
+
+**Rationale:** UI and product correctness depends on content, accessibility, localization, terminology, and brand voice, not source code alone.
+
+**Consequences:** Content requires durable schemas, validation, propagation, and evidence.
+
+**Reversal trigger:** Evidence that a separate content lifecycle creates materially worse correctness or provenance than the unified revision lifecycle.
+
+## ADR-212: Make Conversation a durable development aggregate
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.CONTEXT`
+
+**Decision:** Conversation is a durable product aggregate connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage. Continue resolves this aggregate rather than treating continuation as a new prompt.
+
+**Rationale:** Long-horizon development requires durable conversational state in addition to task and memory state.
+
+**Consequences:** Conversation persistence and continuation resolution become explicit runtime contracts.
+
+**Reversal trigger:** Evidence that another durable state model provides equivalent continuation semantics without loss of conversation lineage.
+
+## ADR-213: Standardize post-mutation change intelligence
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.PREVIEW_SYNC`
+
+**Decision:** Every completed mutation exposes a canonical ChangeImpactReport derived from authoritative transaction, impact, validation, preview, and evidence state.
+
+**Rationale:** Autonomous development requires users and subsequent workers to understand exactly what changed, why, what was affected, what became stale, and what remains to verify.
+
+**Consequences:** Change intelligence is a projection, not a new authority.
+
+**Reversal trigger:** Evidence that the canonical report cannot accurately represent mutation impact without introducing conflicting authority.
