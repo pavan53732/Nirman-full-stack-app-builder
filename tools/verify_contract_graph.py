@@ -1567,6 +1567,22 @@ def check_semantic_documentation(docs, R, D):
         if token not in text:
             D.add("semantic documentation", subject, f"ChangeImpactReport provenance or requirement is missing: {token}")
 
+    schema_parity_tokens = (
+        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", bs, "BS ContentDependency schema"),
+        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", ta, "TA ContentDependency schema"),
+        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", bs, "BS ContentRevision requirementIds"),
+        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", ta, "TA ContentRevision requirementIds"),
+        ("MATCH → CONTINUE", bs, "BS Continue state transition"),
+        ("ChangeReportRecord\n- recordId", bs, "BS ChangeReportRecord schema"),
+        ("ChangeReportRecord\n- recordId", ta, "TA ChangeReportRecord schema"),
+        ("COMPLETE → INCOMPLETE", ta, "TA invalid status transition text"),
+        ("MutationReportUnit = committed ConstructionTransaction", bs, "BS MutationReportUnit"),
+        ("MutationReportUnit = committed ConstructionTransaction", ta, "TA MutationReportUnit"),
+    )
+    for token, text, subject in schema_parity_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"schema parity requirement is missing: {token}")
+
     if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
         D.add("semantic documentation", "runtime certification boundary",
               "documentation certification is not separated from runtime certification")

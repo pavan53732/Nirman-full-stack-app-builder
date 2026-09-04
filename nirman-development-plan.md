@@ -1760,9 +1760,9 @@ C. localization propagation
 D. accessibility-label validation
 E. placeholder/interpolation preservation
 F. generalized dependency graph invalidation across UI, locale, accessibility, preview, and evidence
-G. rollback
-H. restart recovery
-I. ContentWorker cannot directly mark content complete.
+G. rollback and restart recovery
+H. negative cases and authority-boundary violations (ContentWorker cannot directly mark content complete; ContentAuthority owns admission/lifecycle, not storage)
+I. stale revision handling (content mutations referencing stale project revisions are rejected)
 
 ---
 
@@ -1791,16 +1791,17 @@ Exit gate:
 Continue reconstructs durable development state without re-asking settled requirements, safely reconciling revision discrepancies or halting for user input when unresolvable.
 
 TEST-CONV-001 MUST prove:
-A. UI restart
-B. supervisor restart
-C. context compaction
-D. accepted/rejected suggestions
-E. attachment provenance, project isolation, and ContextGovernance delegation
-F. active-goal recovery
-G. project-revision conflict and rebase (MATCH, MISMATCH, UNRESOLVABLE transitions)
-H. task-lineage continuity
-I. no re-asking settled requirements (Continue MUST reject stale or contradictory state and trigger reconciliation)
-J. BackgroundContinuity resume synthesis
+A. UI restart and supervisor restart recovery
+B. context compaction
+C. accepted/rejected suggestions
+D. attachment provenance, project isolation, and ContextGovernance delegation (ACTIVE → DELETED lifecycle)
+E. active-goal recovery
+F. project-revision conflict and rebase (MATCH, MISMATCH, UNRESOLVABLE transitions)
+G. task-lineage continuity
+H. no re-asking settled requirements (Continue MUST reject stale or contradictory state and trigger reconciliation)
+I. negative cases and authority-boundary violations (Conversation cannot act as Memory, Context, or Task authority)
+J. stale revision handling (no Continue path may execute against a stale project revision)
+K. BackgroundContinuity resume synthesis
 
 ---
 
@@ -1810,6 +1811,7 @@ Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
 - atomic reporting unit definition: MutationReportUnit = committed ConstructionTransaction
+- ChangeReportRecord schema (with recordId, transactionId, projectRevision, status, report, failureDiagnostics, createdAt, updatedAt)
 - ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
 - field provenance for every field
 - deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
@@ -1825,21 +1827,26 @@ Deliver:
 - `EV-CHANGE-001`
 
 Exit gate:
-Every committed ConstructionTransaction produces a complete revision-bound change report; projector failures produce typed INCOMPLETE records reconstructed asynchronously.
+Every committed ConstructionTransaction produces exactly one ChangeReportRecord. A complete report is required before the owning task may claim completion.
 
 TEST-CHANGE-001 MUST prove:
-A. complete report produced for every committed ConstructionTransaction (MutationReportUnit)
-B. actual changed files
-C. causal requirement and goal provenance
-D. runtime impact
-E. affected tests
-F. preview impact
-G. evidence invalidation and retention
-H. authoritative verification
-I. stale-source and inconsistent-source rejection
-J. restart persistence
-K. recommended next step remains advisory (no field in ChangeImpactReport may be independently invented by the projector)
-L. projector failure isolation (ConstructionTransaction remains committed; ChangeReportStatus = INCOMPLETE; recovery reconstruction succeeds)
+A. complete report produced for every committed ConstructionTransaction (MutationReportUnit = committed ConstructionTransaction)
+B. actual changed files and causal requirement/goal provenance
+C. runtime impact, affected tests, and preview impact
+D. evidence invalidation and retention
+E. authoritative verification summary
+F. negative cases and authority-boundary violations (projector is read-only; RecoveryAuthority is sole source of recovery actions; projector cannot fabricate fields or mutate state)
+G. stale revision and inconsistent-source rejection
+H. restart persistence
+I. recommended next step remains advisory
+J. projector failure and recovery lifecycle:
+   1. commit succeeds
+   2. report projection fails
+   3. INCOMPLETE record exists
+   4. parent transaction remains committed
+   5. recovery reconstructs report
+   6. COMPLETE report becomes immutable
+K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
 
 
 ---

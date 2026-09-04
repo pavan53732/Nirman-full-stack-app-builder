@@ -15,7 +15,7 @@ The canonical document set is:
 | `tools/verify_contract_graph.py` | Documentation contract-graph and semantic certification |
 | `tools/test_verify_contract_graph.py` | Mutation and conformance coverage for the documentation verifier |
 
-Document precedence is explicit: (1) accepted ADRs define locked architectural and product decisions; (2) `nirman-build-spec.md` defines normative product contracts and invariants; (3) `nirman-technical-architecture.md` defines implementation schemas and protocols; (4) `nirman-development-plan.md` defines sequencing, fixtures, and exit gates; (5) `README.md` is explanatory only and cannot create or weaken a contract; and (6) `AGENTS.md` defines agent operating rules and cannot override accepted product contracts or ADRs. When a rule appears to conflict with another rule, do not resolve the conflict by interpretation. Stop, identify the conflicting canonical sections, and propose a versioned contract or decision update. An agent must never silently weaken a sealed clause, reinterpret a product boundary, or introduce a second authority.
+Document precedence is explicit: (1) accepted ADRs define locked architectural and product decisions; (2) `nirman-build-spec.md` defines normative product contracts and invariants; (3) `nirman-technical-architecture.md` defines implementation schemas and protocols; (4) `nirman-development-plan.md` defines sequencing, fixtures, and exit gates; (5) `README.md` is explanatory only and cannot create or weaken a contract; and (6) `AGENTS.md` defines agent operating rules and cannot override accepted product contracts or ADRs. Agents are strictly prohibited from treating `README.md` prose as an authority, citing it to override canonical specifications, or deriving normative product behavior from it. When a rule appears to conflict with another rule, do not resolve the conflict by interpretation. Stop, identify the conflicting canonical sections, and propose a versioned contract or decision update. An agent must never silently weaken a sealed clause, reinterpret a product boundary, or introduce a second authority.
 
 ## 1.1 Mandatory canonical-document compliance
 
@@ -26,6 +26,8 @@ Agents MUST treat product content as revisioned development state, not disposabl
 Agents MUST use the durable Conversation model for continuation and MUST NOT reconstruct continuation solely from a chat transcript.
 
 Agents MUST consume the authoritative ChangeImpactReport after every completed mutation. The atomic mutation reporting unit is strictly the committed ConstructionTransaction (MutationReportUnit = committed ConstructionTransaction). Agents MUST NOT generate, consume, or present partial reports for individual file edits or uncommitted intermediate workspace mutations. They MUST treat it as a read-only projection of transaction, impact, validation, preview, and evidence authorities and MUST NOT infer authoritative mutation facts from model prose.
+
+When editing a canonical schema, agents MUST update every duplicate representation of that schema in BS, TA, development plan, ADRs, tests, and verifier fixtures in the same coherent change. No implementation-facing schema may diverge from the normative Build Spec schema.
 
 Any implementation of these capabilities MUST update all required canonical surfaces before implementation proceeds.
 

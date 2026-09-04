@@ -7312,6 +7312,15 @@ Attachment `providerTransmissionPolicy` MUST delegate to the existing `ContextGo
 
 Conversation owns conversational lineage only. MEMORY owns semantic memory; CONTEXT owns reconstruction policy; BACKGROUND_CONTINUITY owns interruption/resume state; Task/Project state owns execution state.
 
+The aggregate is explicitly defined as:
+```text
+Conversation = conversation-owned lineage + indexes/references
+Memory = semantic memory authority
+Context = context reconstruction authority
+BackgroundContinuity = interruption/resume authority
+Task/Project = execution authority
+```
+
 Storage authority separation:
 - Conversation: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
 - MemoryStore / ContextStore / RequirementStore: canonical semantic, context, and requirement authorities.
@@ -7329,14 +7338,23 @@ ProjectRevision
 TaskRevision
 ```
 
+The Continue state machine is defined exactly as:
+```text
+MATCH → CONTINUE
+MISMATCH + safely reconcilable → RECONCILE/REBASE
+MISMATCH + unresolved contradiction → USER_REQUIRED
+```
+
+No Continue path may execute against stale project revision.
+
 When a continuation operation (`Continue`) is invoked (via user request, supervisor restart, or background resumption):
 1. `ConversationResolver` reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
 2. State transitions follow:
    - `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
      Transition to `CONTINUE`. Task planner synthesizes next tasks from durable requirements and decisions.
-   - `MISMATCH` (`Conversation.expectedProjectRevision != Project.currentRevision`):
-     Transition to `RECONCILE / REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (e.g. orthogonal worker patches, independent asset generation, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, increments `ConversationRevision`, records a durable `ConversationRebaseRecord`, and transitions to `CONTINUE`.
-   - `UNRESOLVABLE`:
+   - `MISMATCH + safely reconcilable` (`Conversation.expectedProjectRevision != Project.currentRevision`):
+     Transition to `RECONCILE/REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (e.g. orthogonal worker patches, independent asset generation, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, increments `ConversationRevision`, records a durable `ConversationRebaseRecord`, and transitions to `CONTINUE`.
+   - `MISMATCH + unresolved contradiction` (`UNRESOLVABLE`):
      If intervening changes conflict with settled conversation requirements or modify locked decisions, transition to `USER_REQUIRED`. Autonomous execution halts, exposing a structured diff of the revision conflict to the user. Continuing work without explicit user resolution or silently resurrecting stale intent is strictly forbidden.
 
 ### 82.2 Integration with Background Continuity
@@ -7376,19 +7394,33 @@ The canonical atomic reporting unit is:
 MutationReportUnit = committed ConstructionTransaction
 ```
 
-Every committed `ConstructionTransaction` MUST produce one revision-bound `ChangeImpactReport` record. The `ConstructionTransaction` is the canonical `MutationReportUnit`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
+One canonical object model governs change intelligence:
 
 ```text
 ChangeReportRecord
 - recordId
 - transactionId
 - projectRevision
-- status: INCOMPLETE | COMPLETE | UNRESOLVED
-- report: ChangeImpactReport | null
-- failureDiagnostics: string | null
+- status
+- report
+- failureDiagnostics
 - createdAt
 - updatedAt
+```
 
+`ChangeImpactReport` is the COMPLETE immutable projection.
+
+Clarification of commit and projection lifecycle:
+```text
+ConstructionTransaction commits first.
+ChangeReportRecord may temporarily be INCOMPLETE.
+Recovery reconstructs the report.
+Projector failure never rolls back the committed transaction.
+```
+
+Every committed `ConstructionTransaction` MUST produce one revision-bound `ChangeReportRecord` and associated `ChangeImpactReport`. The `ConstructionTransaction` is the canonical `MutationReportUnit`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
+
+```text
 ChangeImpactReport
 - reportId
 - transactionId

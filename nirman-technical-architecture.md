@@ -5727,7 +5727,7 @@ ContentRevision
 - contentRevisionId
 - contentId
 - projectRevisionId
-- requirementId
+- requirementIds
 - contentType
 - locale
 - key
@@ -5758,16 +5758,15 @@ ContentDependency
 - dependencyIdentity
 - dependencyRevision
 - invalidationPolicy
-// Internal implementation mapping: sourceContentId maps to contentId; targetId maps to dependencyIdentity
 ```
 
 ### 85.2 Runtime authorities and roles
 
 The Content Intelligence runtime comprises deterministic authorities, coordinators, and proposal workers:
-- `ContentAuthority`: authoritative owner of content state, revision identity, content admission, and lifecycle transitions.
+- `ContentAuthority`: authoritative owner of content state, revision identity, content admission, and lifecycle transitions. ContentAuthority owns admission and lifecycle, not storage.
 - `ContentWorker`: proposal only; reads requirements and context, generates `ContentMutation` proposals, cannot directly write canonical state, and cannot mark content complete.
 - `ContentTransactionCoordinator`: coordinates content mutations and applies them through the existing `ConstructionTransaction` path.
-- `ContentStore`: durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
+- `ContentStore`: authoritative persistence implementation of the BS content records; durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
 - `ContentValidator`: validation only; verifies terminology consistency, locale completeness, accessibility suitability, placeholder preservation, and interpolation correctness.
 
 No content worker may directly mark content complete. `ContentWorker` proposes mutations; `ContentTransactionCoordinator` validates and admits the mutation through `ContentValidator` and `ContentAuthority`; the transaction commits; and `EvidenceAuthority` generates authoritative evidence.
@@ -5881,7 +5880,7 @@ The resolver MUST consume project revision, goal, requirements, decisions, sugge
 
 `ConversationStore` MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
 
-Attachment provenance and security: `ConversationAttachment` enforces `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. `providerTransmissionPolicy` delegates directly to `ContextGovernance` and `ProviderContextDecision` (TA §79, ADR-199) and minimum-context transmission rules rather than creating an independent transmission policy. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
+Attachment lifecycle and security: `ConversationAttachment` lifecycle transitions from `ACTIVE` to `DELETED` (`ACTIVE → DELETED`). Attachments enforce `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. Provider transmission MUST delegate to existing `ContextGovernance` and `ProviderContextDecision` (TA §79, ADR-199); Conversation must not create a second policy authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
 ### 86.3 Failure and recovery
 
@@ -5951,6 +5950,19 @@ The canonical atomic reporting unit is:
 ```text
 MutationReportUnit = committed ConstructionTransaction
 ```
+
+Explicit lifecycle invariant:
+```text
+Exactly one ChangeReportRecord exists per committed ConstructionTransaction.
+Its status may transition:
+INCOMPLETE → COMPLETE
+INCOMPLETE → UNRESOLVED
+
+A COMPLETE ChangeImpactReport is immutable.
+```
+
+Status transitions and rejected modifications:
+Permitted transitions are strictly `INCOMPLETE → COMPLETE` (upon successful projection or recovery) and `INCOMPLETE → UNRESOLVED` (when authoritative inputs cannot be reconciled). Any attempt to transition `COMPLETE → INCOMPLETE` or mutate a complete report (`COMPLETE → modified`) MUST be rejected.
 
 Exactly one `ChangeReportRecord` is produced per committed `ConstructionTransaction`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
 
@@ -6037,7 +6049,7 @@ The projector MUST expose source, asset, toolchain, preview, test, integration, 
 
 ### 87.4 Read-only projector boundary
 
-`ChangeIntelligenceProjector` is a read-only projection component. It MUST NOT mutate project state, grant permissions, approve evidence, or mark completion. No field in `ChangeImpactReport` may be independently invented by the projector. `recommendedNextStep` is strictly advisory.
+`ChangeIntelligenceProjector` is a read-only projection component. It MUST NOT mutate project state, grant permissions, approve evidence, or mark completion. `RecoveryAuthority` is the authoritative source of recovery actions; the projector cannot manufacture them. No field in `ChangeImpactReport` may be independently invented by the projector. `recommendedNextStep` is strictly advisory.
 
 ### 87.5 Persistence and retention
 

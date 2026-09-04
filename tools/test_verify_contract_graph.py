@@ -747,6 +747,36 @@ CASES = {
         "1. ConstructionTransaction (authoritative for mutation identity, files, revision)",
         "1. ConstructionTransaction (mutation identity, files, revision)",
         "semantic documentation"),
+    "BS/TA ContentDependency mismatch": (
+        TA,
+        "ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy",
+        "ContentDependency\n- contentDependencyId\n- sourceContentId\n- dependencyType\n- targetId\n- dependencyRevision\n- invalidationPolicy",
+        "semantic documentation"),
+    "BS/TA ContentRevision requirementIds mismatch": (
+        TA,
+        "ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds",
+        "ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementId",
+        "semantic documentation"),
+    "missing Continue state transition": (
+        BS,
+        "MATCH → CONTINUE",
+        "MATCH → PROCEED",
+        "semantic documentation"),
+    "missing ChangeReportRecord": (
+        BS,
+        "ChangeReportRecord\n- recordId",
+        "ChangeReportEntry\n- recordId",
+        "semantic documentation"),
+    "illegal COMPLETE → INCOMPLETE transition text": (
+        TA,
+        "COMPLETE → INCOMPLETE",
+        "COMPLETE → PARTIAL",
+        "semantic documentation"),
+    "missing MutationReportUnit": (
+        BS,
+        "MutationReportUnit = committed ConstructionTransaction",
+        "MutationReportUnit = file edit",
+        "semantic documentation"),
 }
 
 
