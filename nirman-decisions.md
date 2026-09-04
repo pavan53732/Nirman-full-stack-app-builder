@@ -1025,7 +1025,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** No single preview mechanism works for every Android technology or change type.
 
-**Consequences:** Every PreviewRevision is bound to source revision, artifact, device, API level, build variant, technology plan, and evidence. Stale preview cannot satisfy completion.
+**Consequences:** Every PreviewRevision is bound to source revision, artifact, emulator session/profile, API level, build variant, technology plan, and evidence. Stale preview cannot satisfy completion.
 
 ## ADR-077: Decision trace without hidden chain-of-thought
 
@@ -1090,11 +1090,11 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Every substantial session runs a deterministic preflight before expensive generation. It evaluates provider, toolchain, workspace, dependencies, devices, permissions, signing, storage, and validation capacity.
+**Decision:** Every substantial session runs a deterministic preflight before expensive generation. It evaluates provider, toolchain, workspace, dependencies, emulator profiles, permissions, signing, storage, and validation capacity.
 
 **Rationale:** Early blocker detection reduces wasted work and makes autonomous recovery more effective.
 
-**Consequences:** Repairable issues may be handled automatically under policy; credentials, policy blocks, and unavailable required devices remain explicit states.
+**Consequences:** Repairable issues may be handled automatically under policy; credentials, policy blocks, and unavailable required emulator profiles remain explicit states.
 
 ## ADR-084: Independent Android quality gate
 
@@ -1110,7 +1110,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Nirman will maintain a `FailureModeRegistry` with preventive checks and recovery strategies for Android toolchain, dependency, source, runtime, device, visual, accessibility, packaging, and signing failures.
+**Decision:** Nirman will maintain a `FailureModeRegistry` with preventive checks and recovery strategies for Android toolchain, dependency, source, runtime, device, visual, accessibility, packaging, and signing failures. Android device failures in this registry refer only to Nirman-managed local Android emulator sessions; physical Android hardware is out of scope.
 
 **Rationale:** Known failure classes should be detected and repaired consistently before open-ended diagnosis.
 
