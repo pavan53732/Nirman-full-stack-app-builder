@@ -5727,11 +5727,25 @@ Canonical schemas: `ContentRevision`, `ContentValidationResult`, `ContentPropaga
 
 No content worker may directly mark content complete.
 
-### 85.3 Propagation
+### 85.3 Persistence and retention
+
+`ContentStore` persists content revisions durably. Content records survive UI restart, supervisor restart, and context compaction. Content is retained for the lifetime of the project revision it belongs to, and is garbage-collected only when the referenced project revision is garbage-collected.
+
+ContentStore MUST participate in the existing checkpoint/recovery protocol. Content mutations MUST be atomic with respect to the parent `ConstructionTransaction`.
+
+### 85.4 Failure and recovery
+
+Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation.
+
+### 85.5 Boundary with LOCALIZATION
+
+Content Intelligence consumes the existing `CONTRACT.RUNTIME.LOCALIZATION` for locale-aware content resolution and translation execution. Content Intelligence owns content authoring, terminology, tone, UX copy, accessibility copy, content consistency, and orchestration of localized content. LOCALIZATION owns the runtime localization mechanism, locale resources, and translation execution. Content Intelligence does not replace LOCALIZATION.
+
+### 85.6 Propagation
 
 Content impact analysis MUST identify affected UI surfaces, locales, accessibility labels, resources, preview surfaces, tests, and artifacts.
 
-### 85.4 Acceptance
+### 85.7 Acceptance
 
 Fixture `TEST-CONTENT-001` proves content creation, propagation, terminology consistency, localization, accessibility, rollback, and evidence invalidation.
 
@@ -5751,11 +5765,23 @@ Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachmen
 
 The resolver MUST consume project revision, goal, requirements, decisions, suggestion outcomes, attachments, task lineage, and valid evidence.
 
-### 86.3 Continue protocol
+ConversationStore MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
+
+### 86.3 Failure and recovery
+
+ConversationStore failure triggers reconciliation. Conversation continuation MUST reject stale or contradictory state and trigger reconciliation. Attachment recovery MUST preserve identity and provenance. Compaction failure MUST surface a `USER_REQUIRED` node rather than silently dropping requirements or decisions.
+
+### 86.4 Boundary with MEMORY + CONTEXT + BACKGROUND_CONTINUITY
+
+Conversation owns conversational lineage (messages, attachments, decisions, suggestions, active goal, task lineage). Memory owns retained semantic records. Context owns reconstruction policy. Background Continuity owns interruption/resume state. Task/Project state remains authoritative for execution state.
+
+Conversation does NOT replace MEMORY, CONTEXT, or BACKGROUND_CONTINUITY. Conversation is an aggregate/index over those authorities. ConversationStore reads from MemoryStore and ContextStore; it does not duplicate their canonical data.
+
+### 86.5 Continue protocol
 
 `Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required.
 
-### 86.4 Acceptance
+### 86.6 Acceptance
 
 `TEST-CONV-001` proves UI restart, supervisor restart, compaction, accepted/rejected suggestions, attachment continuity, goal continuity, revision continuity, and task lineage.
 
@@ -5769,11 +5795,62 @@ The resolver MUST consume project revision, goal, requirements, decisions, sugge
 
 Canonical schema: `ChangeImpactReport`.
 
+```text
+ChangeImpactReport
+- reportId
+- transactionId
+- projectRevisionBefore
+- projectRevisionAfter
+- requirementIds
+- changed
+- why
+- files
+- runtimeEffects
+- testsAffected
+- testsRun
+- previewAffected
+- evidenceInvalidated
+- evidenceRetained
+- verified
+- unresolvedIssues
+- recoveryActions
+- recommendedNextStep
+- generatedAt
+```
+
+Field provenance:
+- `reportId`: assigned by ChangeIntelligenceProjector
+- `transactionId`: from ConstructionTransaction (authoritative)
+- `projectRevisionBefore` / `projectRevisionAfter`: from ConstructionTransaction (authoritative)
+- `requirementIds`: from the requirement/goal/directive that caused the mutation (authoritative)
+- `changed`: from ConstructionTransaction mutation record (authoritative)
+- `why`: from the requirement/goal/directive/repair cause (authoritative)
+- `files`: from ConstructionTransaction changed paths (authoritative)
+- `runtimeEffects`: from impact analysis against affected surface graph (authoritative)
+- `testsAffected` / `testsRun`: from ValidationResult (authoritative)
+- `previewAffected`: from PreviewRevision currentness check (authoritative)
+- `evidenceInvalidated` / `evidenceRetained`: from EvidenceAuthority (authoritative)
+- `verified`: from authoritative verification results only (authoritative)
+- `unresolvedIssues`: from validation/preview/evidence reconciliation
+- `recoveryActions`: from RecoveryAuthority (authoritative)
+- `recommendedNextStep`: derived from impact + validation + recovery analysis
+- `generatedAt`: timestamp from projector
+
 ### 87.2 Generation
 
 `ChangeIntelligenceProjector` derives the report from `ConstructionTransaction`, impact analysis, validation results, `PreviewRevision`, and `EvidenceAuthority` state.
 
 It is a projection component and MUST NOT become mutation, permission, completion, or evidence authority.
+
+Deterministic precedence when sources disagree:
+1. ConstructionTransaction (authoritative for mutation identity, files, revision)
+2. Impact analysis (authoritative for affected surface graph)
+3. ValidationResult (authoritative for verification/test results)
+4. PreviewRevision (authoritative for preview impact/currentness)
+5. EvidenceAuthority (authoritative for evidence validity/invalidation)
+6. RecoveryAuthority (authoritative for recovery actions)
+
+No field in `ChangeImpactReport` may be independently invented by the projector.
 
 ### 87.3 Invalidation
 
@@ -5782,3 +5859,4 @@ The projector MUST expose source, asset, toolchain, preview, test, integration, 
 ### 87.4 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
+

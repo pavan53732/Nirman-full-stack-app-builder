@@ -1338,9 +1338,9 @@ Each milestone may implement one or more registered contracts, but each contract
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
 | M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
 | M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-PLAT-001 | EV-PLAT-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
-| M122 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
-| M123 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
-| M124 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
+| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
+| M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
+| M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
 
@@ -1733,7 +1733,7 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 
 ---
 
-## M122 — Content and Writing Intelligence
+## M120 — Content and Writing Intelligence
 
 Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 
@@ -1753,7 +1753,7 @@ A content mutation must create a revision-bound transaction, update affected sur
 
 ---
 
-## M123 — Durable Conversation Context
+## M121 — Durable Conversation Context
 
 Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
 
@@ -1774,7 +1774,7 @@ Continue reconstructs durable development state without re-asking settled requir
 
 ---
 
-## M124 — Change Intelligence
+## M122 — Change Intelligence
 
 Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
