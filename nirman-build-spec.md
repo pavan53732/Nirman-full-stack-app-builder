@@ -130,7 +130,7 @@ problem, run the appropriate checks, fix it, and explain the cause.
 
 The generated source code, project files, previews, tests, and builds should run locally whenever possible. Nirman may call cloud AI services when the user configures a cloud provider, but application execution should not depend on a hosted execution environment.
 
-Local-first does not automatically mean that all data remains local. If a user chooses a cloud AI model, relevant prompts and project context may be sent to that provider. Nirman must clearly explain this distinction and provide local-model support as an alternative.
+Local-first does not automatically mean that all data remains local. Nirman supports only cloud-hosted, network-reachable AI providers; relevant prompts and project context may be sent to that provider. Nirman must clearly explain this distinction. Local, offline, on-device, and self-hosted model runtimes are not supported in any form (ADR-207), and no privacy mitigation may cite local models as an alternative.
 
 ### 3.2 User-owned output
 
@@ -648,7 +648,7 @@ The user should be able to undo the whole task, restore a previous checkpoint, o
 
 The AI model should interact with Nirman through structured tools. The model should not directly receive an unrestricted terminal or filesystem interface.
 
-### 7.1 Required tools for Version 1
+### 7.1 Required tools
 
 | Tool | Function |
 |---|---|
@@ -983,7 +983,6 @@ Nirman/
 ├── providers/
 │   ├── provider-interface/
 │   ├── compatible-provider/
-│   ├── local-models/
 │   └── capability-detection/
 ├── android_bootstraps/
 │   ├── expo-react-native/
@@ -1070,7 +1069,7 @@ The first usable release should satisfy the following conditions:
 11. API keys do not appear in source files, logs, prompts, or exported projects.
 12. The user can export the resulting source code independently of Nirman.
 13. The application never requires cloud code execution for the supported Android workflow.
-14. The application clearly distinguishes cloud AI processing from local AI processing.
+14. The application clearly communicates when project content is sent to the user's configured cloud AI provider, and never claims local AI processing because no local model runtime exists (ADR-207).
 
 ---
 
@@ -1131,7 +1130,7 @@ The team should maintain a fixture library of representative projects and tasks.
 Nirman should be a polished, minimal Windows desktop application that puts a controlled autonomous software-development loop inside one workspace. Its differentiator should not be the existence of a chat box. Its differentiator should be the combination of:
 
 - Local project execution.
-- User-configurable cloud and local AI providers.
+- User-configurable cloud AI providers (cloud-only per ADR-207; no local model runtimes).
 - Reliable structured code changes.
 - Live preview and visual inspection.
 - Tests and automatic repair attempts.
@@ -2836,7 +2835,7 @@ Next step: “Running final APK asset inspection.”
 
 ### 51.1 Stack decision
 
-The following stack is the implementation baseline for Nirman v1. It does not change the Android-only generated target.
+The following stack is the implementation baseline for Nirman. It does not change the Android-only generated target.
 
 | Layer | Locked implementation |
 |---|---|
@@ -7199,6 +7198,7 @@ ContentRevision
 - sourceEvidenceIds
 - transactionId
 - validationStatus
+- invalidatedBy
 
 ContentDependency
 - dependencyId
@@ -7213,7 +7213,11 @@ ContentDependency
 
 Validation MUST cover terminology consistency, locale completeness, accessibility suitability, prohibited/unsafe text where applicable, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure.
 
-Content evidence becomes stale when the referenced UI, requirement, locale, terminology policy, brand voice, or project revision changes. Content dependencies MUST also track: product requirements, design/visual spec, permissions, navigation, accessibility semantics, backend/API terminology, feature flags, legal/compliance constraints, provider policy, and resource structure.
+### 81.3 Content dependencies and invalidation
+
+Content dependencies MUST track product requirements, design/visual specification, permissions, navigation, accessibility semantics, backend/API terminology, feature flags, legal/compliance constraints, provider policy, resource structure, locale resources, and affected UI surfaces.
+
+Changing any dependency MUST invalidate dependent content evidence and require revalidation before completion.
 
 ### 81.4 Boundary with LOCALIZATION
 
@@ -7246,14 +7250,52 @@ Conversation
 - rejectedSuggestions
 - activeGoal
 - projectRevisionId
+- expectedProjectRevision
+- conversationRevision
 - taskLineage
 - createdAt
 - updatedAt
+
+ConversationRequirement
+- requirementId
+- status
+- sourceMessageId
+- supersedes
+- supersededBy
+
+ConversationDecision
+- decisionId
+- status
+- sourceMessageId
+- supersedes
+- locked
+
+ConversationSuggestion
+- suggestionId
+- status
+- proposedBy
+- acceptedAt
+- rejectedAt
+- resultingTaskIds
+
+ConversationAttachment
+- attachmentId
+- contentHash
+- mimeType
+- sizeBytes
+- storageOwner
+- privacyClassification
+- deletionStatus
+- projectIsolation
+- providerTransmissionPolicy
+- revisionBinding
 ```
 
 Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages and evidence. Accepted and rejected suggestions MUST remain distinguishable.
 
-Continue MUST resolve the current Conversation state, active goal, latest valid project revision, unresolved requirements, accepted/rejected suggestions, decisions, task lineage, and valid evidence before creating continuation work.
+Conversation owns conversational lineage only. MEMORY owns semantic memory; CONTEXT owns reconstruction policy; BACKGROUND_CONTINUITY owns interruption/resume state; Task/Project state owns execution state.
+
+Continue MUST resolve the current Conversation state, active goal, latest valid project revision, unresolved requirements, accepted/rejected suggestions, decisions, task lineage, and valid evidence before creating continuation work. Continue MUST compare `expectedProjectRevision` with the current project revision and reconcile/rebase or enter `USER_REQUIRED`; it must never silently resurrect stale intent.
 
 A continuation MUST NOT reconstruct state solely by replaying the chat transcript or issuing another free-form prompt.
 
@@ -7274,14 +7316,15 @@ Every completed mutation MUST produce one revision-bound ChangeImpactReport.
 
 ```text
 ChangeImpactReport
-- changeReportId
+- reportId
 - transactionId
 - projectRevisionBefore
 - projectRevisionAfter
+- requirementIds
 - changed
 - why
 - files
-- runtimeEffect
+- runtimeEffects
 - testsAffected
 - testsRun
 - previewAffected
@@ -7291,11 +7334,18 @@ ChangeImpactReport
 - unresolvedIssues
 - recoveryActions
 - recommendedNextStep
+- recommendationSource
+- recommendationBasis
+- requiredAuthority
+- generatedAt
+- projectionVersion
 ```
 
 `changed` MUST identify the actual mutation. `why` MUST reference the requirement, goal, directive, repair cause, or approved action that caused it.
 
-`files` MUST contain actual changed paths. `runtimeEffect` MUST identify affected runtime behavior. `testsAffected` MUST identify impacted validation. `previewAffected` MUST identify affected preview surfaces. `evidenceInvalidated` MUST contain dependency-invalidated evidence. `verified` MUST contain only authoritative verification results.
+`files` MUST contain actual changed paths. `runtimeEffects` MUST identify affected runtime behavior. `testsAffected` MUST identify impacted validation. `previewAffected` MUST identify affected preview surfaces. `evidenceInvalidated` MUST contain dependency-invalidated evidence. `verified` MUST contain only authoritative verification results.
+
+Every field in `ChangeImpactReport` is derived from an authoritative source. `recommendedNextStep` is advisory only. The projector MUST NOT invent facts or fabricate missing values.
 
 The report MUST be generated from authoritative transaction, impact, preview, validation, and evidence state. Model-generated explanations cannot become authoritative change records.
 

@@ -711,9 +711,9 @@ Implement the capability registry, technology planner, framework resolver, mixed
 
 **Exit gate:** A capability fixture suite covering JavaScript, Java, Kotlin, Views, Compose, native modules, background services, device APIs, offline behavior, notifications, media, location, sensors, and mixed projects can be generated from instructions and optional screenshots, built, installed or launched, tested, visually validated, repaired, and packaged as APK artifacts.
 
-## 31. Definition of Done for Nirman v1
+## 31. Definition of Done for Nirman
 
-Nirman v1 is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASSED under the no-human-intervention definition.
+Nirman is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASSED under the no-human-intervention definition.
 
 The product is not considered autonomous-ready unless the runtime, rather than the model, remains the authority over lifecycle, permissions, sandboxing, storage, evidence, recovery, promotion, rollback, and termination.
 
@@ -1282,9 +1282,9 @@ These earlier milestones are referenced by the twelve-edge table of build spec �
 
 ### Coarse-to-refined milestone ownership map
 
-To prevent duplicate implementation of the same capability across coarse (M0–M38) and refined (M39–M117) milestones, every canonical capability carries exactly one owning refined milestone. Coarse milestones establish scope and interfaces; refined milestones own the executable contract, test identity, and evidence identity. An agent must not open a second implementation path for a capability already owned by a refined milestone. The mapping is:
+To prevent duplicate implementation of the same capability across coarse (M0–M38) and refined (M39–M122) milestones, every canonical capability carries exactly one owning refined milestone. Coarse milestones establish scope and interfaces; refined milestones own the executable contract, test identity, and evidence identity. An agent must not open a second implementation path for a capability already owned by a refined milestone. The mapping is:
 
-| Capability area | Coarse scope (M0–M38) | Refined owner (M39–M117) | Canonical contract | Test / Evidence |
+| Capability area | Coarse scope (M0–M38) | Refined owner (M39–M122) | Canonical contract | Test / Evidence |
 |---|---|---|---|---|
 | Toolchain / clean build | M4 local runtime, M5 build→install | M43 AndroidToolchainManifest (ADR-049 toolchain authority) | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-TC-001 / EV-TC-001 |
 | Provider gateway | M3 foundation, M22 settings | M22 ModelGateway (full), M44 bridge | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.SCOPE | TEST-PRV-001 / EV-PRV-001 |
@@ -1295,6 +1295,9 @@ To prevent duplicate implementation of the same capability across coarse (M0–M
 | Evidence graph | M38 evidence foundations | M93 twelve-edge coverage; M108/114 evidence linkage | CONTRACT.RUNTIME.EVIDENCE (ADR-071) | TEST-INV-001 / EV-INV-001 |
 | Continuity | M116 background continuity | M116 (orthogonal to lifecycle, ADR-202) | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 / EV-BG-001 |
 | Frontend boundary | M115 protocol | M115 (ADR-201) split gates A–F | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 / EV-FCP-001 |
+| Content / writing intelligence | M3 foundation, M28 localization | M120 Content and Writing Intelligence | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE (ADR-211) | TEST-CONTENT-001 / EV-CONTENT-001 |
+| Conversation context | M1/M3 chat/session, M116 continuity | M121 Durable Conversation Context | CONTRACT.RUNTIME.CONVERSATION_CONTEXT (ADR-212) | TEST-CONV-001 / EV-CONV-001 |
+| Change intelligence | M38 evidence, M114 integrity | M122 Change Intelligence | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE (ADR-213) | TEST-CHANGE-001 / EV-CHANGE-001 |
 
 Refinement rule: when a coarse milestone and a refined milestone appear to overlap, the refined milestone's contract is authoritative. Coarse acceptance semantics are overridden by the refined milestone's exit gate. No capability may be implemented twice; the owning refined milestone is the single source of the executable contract.
 
@@ -1337,7 +1340,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
 | M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
-| M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-PLAT-001 | EV-PLAT-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
+| M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
 | M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
 | M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
 | M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
@@ -1760,10 +1763,10 @@ B. terminology propagation
 C. localization propagation
 D. accessibility-label validation
 E. placeholder/interpolation preservation
-F. stale-content evidence invalidation
+F. dependency invalidation
 G. rollback
 H. restart recovery
-I. ContentWorker cannot mark completion ContentWorker cannot directly mark content complete.
+I. ContentWorker cannot directly mark content complete.
 
 ---
 
@@ -1793,13 +1796,12 @@ TEST-CONV-001 MUST prove:
 A. UI restart
 B. supervisor restart
 C. context compaction
-D. accepted suggestion persistence
-E. rejected suggestion persistence
-F. attachment persistence and project isolation
-G. active-goal recovery
-H. project-revision conflict/reconciliation
-I. task-lineage continuity
-J. Continue does not re-ask settled requirements Continue MUST reject stale or contradictory state and trigger reconciliation.
+D. accepted/rejected suggestions
+E. attachment provenance and project isolation
+F. active-goal recovery
+G. project-revision conflict and rebase
+H. task-lineage continuity
+I. no re-asking settled requirements (Continue MUST reject stale or contradictory state and trigger reconciliation)
 
 ---
 
@@ -1808,7 +1810,7 @@ J. Continue does not re-ask settled requirements Continue MUST reject stale or c
 Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
-- ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt)
+- ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
 - field provenance for every field
 - deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
 - mutation projection
@@ -1825,18 +1827,17 @@ Exit gate:
 Every completed mutation produces a complete revision-bound change report.
 
 TEST-CHANGE-001 MUST prove:
-A. every completed mutation produces exactly one report
+A. complete report produced for every completed mutation
 B. actual changed files
-C. requirement/goal provenance
+C. causal requirement and goal provenance
 D. runtime impact
 E. affected tests
 F. preview impact
-G. evidence invalidation
-H. retained evidence
-I. authoritative verification
-J. stale/inconsistent source rejection
-K. restart persistence
-L. recommended next step remains advisory No field in ChangeImpactReport may be independently invented by the projector.
+G. evidence invalidation and retention
+H. authoritative verification
+I. stale-source and inconsistent-source rejection
+J. restart persistence
+K. recommended next step remains advisory (no field in ChangeImpactReport may be independently invented by the projector)
 
 
 ---

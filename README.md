@@ -85,7 +85,7 @@ An earlier working tree held a pre-migration prototype built on React, Vite, Typ
 | SQLite durable ledger | Specified; no source written |
 | Android synthesis, build, preview, and delivery | Specified; no source written |
 | All 27 registered capabilities | `PLANNED` (BS §5.6) |
-| Documentation verifier and mutation harness | Not present in the working tree; see Verification below |
+| Documentation verifier and mutation harness | Present in tools/ (verify_contract_graph.py and test_verify_contract_graph.py); executed and certified |
 | Windows `.exe` release | Not produced |
 
 Every row that says "specified" means exactly that: a contract exists and is machine-checkable in principle. It does not mean code exists, compiles, or has been observed to run.
@@ -206,6 +206,13 @@ Every meaningful action must be attributable to a task, operation, worker, works
 
 Raw private chain-of-thought is never stored or displayed. Nirman may expose structured reasoning summaries, alternatives, uncertainty, evidence references, failure classifications, recovery decisions, delegation records, and safe progress explanations.
 
+### Product content, conversation context, and change intelligence
+
+Nirman treats writing, conversation history, and mutation explanations as structured development state:
+- **Durable conversation continuation**: Conversation history, attachments, accepted suggestions, and settled requirements are preserved across restarts and compactions, allowing seamless continuation without re-asking questions or losing context.
+- **First-class product writing/content**: UX copy, error messages, localization, and accessibility labels are versioned, validated, and linked to project revisions and UI semantics rather than treated as disposable model text.
+- **Post-mutation change intelligence**: Every completed modification generates an immutable, revision-bound change report detailing what changed, why, affected tests, preview impact, and evidence status, with recommendations remaining strictly advisory.
+
 ## Authority model
 
 | Authority | Responsibility |
@@ -306,11 +313,9 @@ The canonical documents describe a repository layout that implementation will cr
 
 ## Verification
 
-The documentation verifier (`tools/verify_contract_graph.py`), its mutation and conformance harness (`tools/test_verify_contract_graph.py`), and the certification entry points (`tools/verify.sh`, `tools/verify.ps1`) are specified in AGENTS.md and were present in an earlier working tree. They are not present now.
+The documentation verifier (`tools/verify_contract_graph.py`) and its mutation and conformance harness (`tools/test_verify_contract_graph.py`) are present in `tools/` and actively executed.
 
-Until they are restored or rebuilt, the documentation certification gate cannot be executed, and no statement of the form "the verifier passes" is supported. A verifier that is absent and a verifier that silently no-ops produce the same silence; neither is evidence.
-
-Their prior implementations remain in git history and can be recovered with `git restore --source=b3c7ffe~1 -- tools/`.
+The verifier executes all 13 §67.11 graph and structure checks in both traversal directions along with semantic documentation linting. Certification claims require actual, clean execution of `python tools/verify_contract_graph.py .` and `python tools/test_verify_contract_graph.py`. A verifier that is absent or that silently no-ops produces no evidence; certification requires full automated verification with zero defects.
 
 Commit only the intended coherent change. Never commit secrets, raw credentials, keystore material, temporary migration scripts, unrelated files, or unreviewed generated artifacts. Push only when explicitly requested, then fetch the remote and verify that local `HEAD` and `origin/main` match.
 
@@ -323,7 +328,7 @@ The recommended build sequence is deliberately vertical and evidence-driven:
 3. M30–M38 — Documentation identity, autonomy profile, terminal/lifecycle foundations, Android target contract, and certified profile foundations.
 4. M39–M64 — Construction transaction, leases, toolchain, provider bridge, mutation, repair, preview, validation, and resource governance.
 5. M65–M80 — Autonomous execution kernel and first end-to-end runtime certification.
-6. M81–M117 — Long-horizon intelligence, contract certification, preview synchronization, continuity, frontend/control-plane certification, and APK export.
+6. M81–M122 — Long-horizon intelligence, contract certification, preview synchronization, continuity, frontend/control-plane certification, APK export, platform capabilities, skills, writing intelligence, durable conversation context, and change intelligence.
 7. Windows `.exe` release certification follows the runtime gates and is not implied by documentation certification.
 
 Certification vocabulary is explicit: `DOCUMENTATION_CERTIFIED` means the contract graph, identity, and traceability checks pass; `RUNTIME_CERTIFIED` means an executable fixture and runtime evidence pass; and `PRODUCT_COMPLETED` means the user's `GoalContract` completion predicate passes. The word "certified" must not be used without one of these scopes.

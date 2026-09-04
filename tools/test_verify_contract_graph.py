@@ -16,6 +16,9 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import verify_contract_graph
 REPO = os.path.dirname(HERE)
 TOOL = os.path.join(HERE, "verify_contract_graph.py")
 DOCS = ("nirman-build-spec.md", "nirman-technical-architecture.md",
@@ -138,8 +141,8 @@ CASES = {
 
     # ---- check 10: orphan contract (the false-negative case)
     "orphan contract with a VALID class": (
-        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |",
-        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | — | all | ADR-157 | M93 | FOUNDATIONAL |\n"
+        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |\n"
         "| CONTRACT.RUNTIME.DEAD_TEST | BS §64 | — | TA §69 | ADR-153 | M90 | INTERNAL |",
         "orphan contract"),
     "cross-cutting contract unreachable from any capability": (
@@ -638,6 +641,86 @@ CASES = {
         "command payload coverage",
         (("crates/nirman-domain/src/lib.rs",
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
+
+    # ---- Step 6: Content, Conversation, and Change Intelligence contracts
+    "remove Content capability row": (
+        BS,
+        "| CAP.ANDROID.CONTENT_INTELLIGENCE | First-class product-content generation, revision, consistency, localization, accessibility, and content validation | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | TEST-CONTENT-001 | EV-CONTENT-001 | PLANNED |\n",
+        "", "dangling reference"),
+    "remove Conversation contract row": (
+        BS,
+        "| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212 | M121 | CROSS_CUTTING |\n",
+        "", "unregistered contract"),
+    "remove Change contract row": (
+        BS,
+        "| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | BS §83 | — | TA §87 | ADR-213 | M122 | CROSS_CUTTING |\n",
+        "", "unregistered contract"),
+    "remove TA section 85 reference": (
+        BS,
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M120 | CROSS_CUTTING |",
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §9985 | ADR-211 | M120 | CROSS_CUTTING |",
+        "dangling reference"),
+    "remove ADR-211 locks": (
+        DEC,
+        "**Locks:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`\n\n",
+        "", "reverse break"),
+    "remove M120 mapping": (
+        DEV,
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n",
+        "", "dangling reference"),
+    "remove M121 mapping": (
+        DEV,
+        "| M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |\n",
+        "", "dangling reference"),
+    "remove M122 mapping": (
+        DEV,
+        "| M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |\n",
+        "", "dangling reference"),
+    "wrong ADR in M120 contract": (
+        BS,
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M120 | CROSS_CUTTING |",
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-999 | M120 | CROSS_CUTTING |",
+        "dangling reference"),
+    "wrong test in Content twelve-edge": (
+        BS,
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-001 |",
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-999 | EV-CONTENT-001 |",
+        "dangling reference"),
+    "wrong evidence in Content twelve-edge": (
+        BS,
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-001 |",
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-999 |",
+        "dangling reference"),
+    "wrong TA failure section in Change twelve-edge": (
+        BS,
+        "| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.6 |",
+        "| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.99 |",
+        "dangling reference"),
+    "corrupt section 87 persistence reference": (
+        BS,
+        "| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.6 |",
+        "| CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | BS §87.5 | TA §87.6 |",
+        "dangling reference"),
+    "duplicate content authoritative section": (
+        BS,
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 |",
+        "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81, BS §82 |",
+        "duplicate authority"),
+    "remove M120 test id": (
+        DEV,
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 |",
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |  | EV-CONTENT-001 |",
+        "reverse break"),
+    "duplicate milestone mapping rejected": (
+        DEV,
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |",
+        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |",
+        "structure"),
+    "missing ChangeImpactReport provenance": (
+        TA,
+        "1. ConstructionTransaction (authoritative for mutation identity, files, revision)",
+        "1. ConstructionTransaction (mutation identity, files, revision)",
+        "semantic documentation"),
 }
 
 
@@ -813,6 +896,50 @@ def main():
                       for doc, token in required)
         rc, out = run(tmp)
         results.append(("positive: continuity and APK export anchors certify",
+                        present and rc == 0 and "CERTIFICATION: PASS" in out,
+                        f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE: M120, M121, M122 resolve their respective contracts
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-m120-122-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        docs = verify_contract_graph.load(tmp)
+        D = verify_contract_graph.Defects()
+        R = verify_contract_graph.parse_registries(docs, D)
+        m120_ok = (120 in R["milestones"] and
+                   "CONTRACT.RUNTIME.CONTENT_INTELLIGENCE" in R["milestones"][120]["contracts"])
+        m121_ok = (121 in R["milestones"] and
+                   "CONTRACT.RUNTIME.CONVERSATION_CONTEXT" in R["milestones"][121]["contracts"])
+        m122_ok = (122 in R["milestones"] and
+                   "CONTRACT.RUNTIME.CHANGE_INTELLIGENCE" in R["milestones"][122]["contracts"])
+        results.append(("positive: M120 resolves CONTENT_INTELLIGENCE", m120_ok,
+                        f"contracts={R['milestones'].get(120, {}).get('contracts')}"))
+        results.append(("positive: M121 resolves CONVERSATION_CONTEXT", m121_ok,
+                        f"contracts={R['milestones'].get(121, {}).get('contracts')}"))
+        results.append(("positive: M122 resolves CHANGE_INTELLIGENCE", m122_ok,
+                        f"contracts={R['milestones'].get(122, {}).get('contracts')}"))
+
+    # POSITIVE CONFORMANCE: Content, Conversation, and Change anchors certify
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-cross-cutting-anchors-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        required = (
+            (BS, "## 81. Content and Writing Intelligence Contract"),
+            (BS, "### 81.3 Content dependencies and invalidation"),
+            (TA, "## 85. Content Intelligence Implementation Contract"),
+            (DEV, "## M120 — Content and Writing Intelligence"),
+            (DEC, "## ADR-211: Make product content a first-class autonomous capability"),
+            (BS, "## 82. Durable Conversation Context Contract"),
+            (TA, "## 86. Conversation Context Implementation Contract"),
+            (DEV, "## M121 — Durable Conversation Context"),
+            (DEC, "## ADR-212: Make Conversation a durable development aggregate"),
+            (BS, "## 83. Change Intelligence Contract"),
+            (TA, "## 87. Change Intelligence Implementation Contract"),
+            (DEV, "## M122 — Change Intelligence"),
+            (DEC, "## ADR-213: Standardize post-mutation change intelligence"),
+        )
+        present = all(token in open(os.path.join(tmp, doc), encoding="utf-8").read()
+                      for doc, token in required)
+        rc, out = run(tmp)
+        results.append(("positive: content, conversation, and change anchors certify",
                         present and rc == 0 and "CERTIFICATION: PASS" in out,
                         f"exit={rc}"))
     expected_checks = {

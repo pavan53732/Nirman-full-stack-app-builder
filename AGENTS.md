@@ -29,8 +29,6 @@ Agents MUST consume the authoritative ChangeImpactReport after every completed m
 
 Any implementation of these capabilities MUST update all required canonical surfaces before implementation proceeds.
 
-This directly extends the existing rule that cross-cutting changes must update every canonical surface.
-
 Every agent must follow the four canonical Markdown documents exactly. They are binding engineering contracts, not background reading or optional recommendations. Before planning, coding, editing documentation, installing dependencies, changing configuration, or running a potentially destructive command, the agent must read the relevant sections and inspect the current repository state. For a cross-cutting change, the agent must inspect all four canonical documents and the related registry, verifier, and milestone entries.
 
 The required document order is:

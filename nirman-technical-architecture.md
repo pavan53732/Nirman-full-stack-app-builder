@@ -37,7 +37,7 @@ The architecture should prefer small, typed interfaces over implicit communicati
       Workers      Tool Gateway  Runtime   Provider Router
             │          │          │          │
 ┌───────────▼──┐ ┌─────▼──────┐ ┌─▼──────┐ ┌─▼───────────────┐
-│ Workspaces   │ │ Policies   │ │ Builds │ │ Cloud/Local AI  │
+│ Workspaces   │ │ Policies   │ │ Builds │ │ Cloud AI        │
 │ Worktrees    │ │ Sandboxes  │ │ Preview│ │ Models          │
 └──────────────┘ └────────────┘ └────────┘ └─────────────────┘
 ```
@@ -2980,7 +2980,7 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 
 ### 57.1 Implementation stack
 
-Nirman v1 uses C#/.NET with WinUI 3 and Windows App SDK for the Windows desktop application. XAML is the presentation language and WinUI 3 Fluent Design is the initial design system. The presentation layer uses a presentation-only MVVM or equivalent state architecture.
+Nirman uses C#/.NET with WinUI 3 and Windows App SDK for the Windows desktop application. XAML is the presentation language and WinUI 3 Fluent Design is the initial design system. The presentation layer uses a presentation-only MVVM or equivalent state architecture.
 
 Rust with Tokio owns the authoritative local runtime and control plane. SQLite is the execution ledger. SQLx is the preferred asynchronous access layer, with rusqlite permitted only when isolated safely from Tokio scheduling.
 
@@ -3187,6 +3187,7 @@ ProviderAdapter operations
   - params: rawResponse: dict
   - returns: valid: bool, violations: list, toolCallIds: list, schemaCompliant: bool
   - errors: ResponseValidationError
+```
 
 ### 57.9 Git and worktree subsystem
 
@@ -5757,25 +5758,30 @@ ContentDependency
 - targetId
 ```
 
-### 85.2 Runtime
+### 85.2 Runtime authorities and roles
 
-`ContentWorker` proposes content changes. `ContentTransactionCoordinator` applies them through the existing transaction path. `ContentValidator` validates them. `EvidenceAuthority` owns evidence validity. `ContentAuthority` owns content state and revision identity.
+The Content Intelligence runtime comprises deterministic authorities, coordinators, and proposal workers:
+- `ContentAuthority`: authoritative owner of content state, revision identity, content admission, and lifecycle transitions.
+- `ContentWorker`: proposal only; reads requirements and context, generates `ContentMutation` proposals, cannot directly write canonical state, and cannot mark content complete.
+- `ContentTransactionCoordinator`: coordinates content mutations and applies them through the existing `ConstructionTransaction` path.
+- `ContentStore`: durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
+- `ContentValidator`: validation only; verifies terminology consistency, locale completeness, accessibility suitability, placeholder preservation, and interpolation correctness.
 
-No content worker may directly mark content complete. ContentWorker reads requirements/context, proposes ContentMutation, cannot directly write canonical state, coordinator validates/admits mutation, transaction commits, evidence generated.
+No content worker may directly mark content complete. `ContentWorker` proposes mutations; `ContentTransactionCoordinator` validates and admits the mutation through `ContentValidator` and `ContentAuthority`; the transaction commits; and `EvidenceAuthority` generates authoritative evidence.
 
 ### 85.3 Persistence and retention
 
-`ContentStore` persists content revisions durably. Content records survive UI restart, supervisor restart, and context compaction. Content is retained for the lifetime of the project revision it belongs to, and is garbage-collected only when the referenced project revision is garbage-collected.
+`ContentStore` persists content revisions durably in SQLite. Content records survive UI restart, supervisor restart, and context compaction. Content is retained for the lifetime of the project revision it belongs to, and is garbage-collected only when the referenced project revision is garbage-collected.
 
-ContentStore MUST participate in the existing checkpoint/recovery protocol. Content mutations MUST be atomic with respect to the parent `ConstructionTransaction`.
+`ContentStore` MUST participate in the existing checkpoint/recovery protocol. Content mutations MUST be atomic with respect to the parent `ConstructionTransaction`.
 
 ### 85.4 Failure and recovery
 
-Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation.
+Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation. Changing any content dependency invalidates dependent content evidence and requires revalidation before completion.
 
 ### 85.5 Boundary with LOCALIZATION
 
-Content Intelligence consumes the existing `CONTRACT.RUNTIME.LOCALIZATION` for locale-aware content resolution and translation execution. Content Intelligence owns content authoring, terminology, tone, UX copy, accessibility copy, content consistency, and orchestration of localized content. LOCALIZATION owns the runtime localization mechanism, locale resources, and translation execution. Content Intelligence does not replace LOCALIZATION.
+Content Intelligence consumes the existing `CONTRACT.RUNTIME.LOCALIZATION` for locale-aware content resolution and translation execution. Content Intelligence owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, content consistency, and orchestration of localized content. LOCALIZATION owns the runtime localization mechanism, locale resources, and translation execution. Content Intelligence does not replace LOCALIZATION.
 
 ### 85.6 Propagation
 
@@ -5853,11 +5859,13 @@ ConversationAttachment
 
 ### 86.2 Persistence and resolver
 
-`ConversationStore` persists the aggregate. `ConversationContinuationResolver` reconstructs continuation state from durable records.
+`ConversationStore` persists the aggregate durably in SQLite. `ConversationContinuationResolver` reconstructs continuation state from durable records.
 
 The resolver MUST consume project revision, goal, requirements, decisions, suggestion outcomes, attachments, task lineage, and valid evidence.
 
-ConversationStore MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
+`ConversationStore` MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
+
+Attachment provenance and security: `ConversationAttachment` enforces `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project and validated against provider transmission policy before exposure to external providers.
 
 ### 86.3 Failure and recovery
 
@@ -5865,9 +5873,11 @@ ConversationStore failure triggers reconciliation. Conversation continuation MUS
 
 ### 86.4 Boundary with MEMORY + CONTEXT + BACKGROUND_CONTINUITY
 
-Conversation owns conversational lineage (messages, attachments, decisions, suggestions, active goal, task lineage). Memory owns retained semantic records. Context owns reconstruction policy. Background Continuity owns interruption/resume state. Task/Project state remains authoritative for execution state.
+Conversation does NOT create a second memory, task, or project authority. Conversation owns conversational lineage only (messages, attachments, decisions, suggestions, active goal, task lineage).
 
-Conversation does NOT replace MEMORY, CONTEXT, or BACKGROUND_CONTINUITY. Conversation is an aggregate/index over those authorities. ConversationStore reads from MemoryStore and ContextStore; it does not duplicate their canonical data.
+`CONTRACT.RUNTIME.MEMORY` remains authoritative for retained semantic memory records. `CONTRACT.RUNTIME.CONTEXT` remains authoritative for reconstruction policy and context budget governance. `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` remains authoritative for background execution and interruption/resume state. Task and project state remain authoritative for execution state.
+
+`ConversationStore` reads from `MemoryStore` and `ContextStore`; it does not duplicate their canonical data or override their decisions.
 
 ### 86.5 Concurrency/rebase semantics
 
@@ -5938,46 +5948,41 @@ Field provenance:
 - `recommendationBasis`: the evidence basis for the recommendation
 - `requiredAuthority`: the authority that must approve/act on the recommendation
 - `generatedAt`: timestamp from projector
+- `projectionVersion`: projection schema version from projector
 
-### 87.2 Generation
+### 87.2 Generation and deterministic precedence
 
 `ChangeIntelligenceProjector` derives the report from `ConstructionTransaction`, impact analysis, validation results, `PreviewRevision`, and `EvidenceAuthority` state.
 
-It is a projection component and MUST NOT become mutation, permission, completion, or evidence authority.
-
 Deterministic precedence when sources disagree:
 1. ConstructionTransaction (authoritative for mutation identity, files, revision)
-2. Impact analysis (authoritative for affected surface graph)
+2. ImpactAnalysis (authoritative for affected surface graph)
 3. ValidationResult (authoritative for verification/test results)
 4. PreviewRevision (authoritative for preview impact/currentness)
 5. EvidenceAuthority (authoritative for evidence validity/invalidation)
 6. RecoveryAuthority (authoritative for recovery actions)
 
-No field in `ChangeImpactReport` may be independently invented by the projector.
-
 ### 87.3 Invalidation
 
 The projector MUST expose source, asset, toolchain, preview, test, integration, and evidence invalidation resulting from the mutation.
 
-### 87.4 Persistence
+### 87.4 Read-only projector boundary
 
-`ChangeImpactReport` is persisted in the durable SQLite task/project ledger, keyed by `changeReportId` and `transactionId`.
+`ChangeIntelligenceProjector` is a read-only projection component. It MUST NOT mutate project state, grant permissions, approve evidence, or mark completion. No field in `ChangeImpactReport` may be independently invented by the projector. `recommendedNextStep` is strictly advisory.
 
-A report is immutable after transaction completion. Regeneration creates a new projection version linked to the same transaction and source revision.
+### 87.5 Persistence and retention
 
-Reports survive UI and supervisor restart and remain addressable through the project revision history.
+ChangeImpactReport is immutable after transaction completion, persisted durably by `ChangeIntelligenceStore` in SQLite by reportId + transactionId + project revision, survives restart, and is revision-addressable.
 
-### 87.5 Failure and recovery
+`ChangeIntelligenceStore` persists reports in the durable SQLite task/project ledger, keyed by `reportId` and `transactionId`. Regeneration creates a new projection version linked to the same transaction and source revision. Reports survive UI and supervisor restart and remain addressable through the project revision history.
 
-Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement MUST produce a typed incomplete/stale report.
+### 87.6 Failure and recovery
 
-The projector MUST NOT fabricate missing fields.
+Projector failure MUST NOT fail or roll back the parent mutation. Missing/inconsistent authoritative inputs produce an incomplete/stale report; the projector MUST NOT fabricate values. Recovery re-reads authoritative sources.
 
-Recovery re-reads authoritative transaction, impact, validation, preview, and evidence state. If authoritative state cannot be reconciled, the report is marked `UNRESOLVED` and cannot support completion.
+Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement MUST produce a typed incomplete/stale report. If authoritative state cannot be reconciled, the report is marked `UNRESOLVED` and cannot support completion.
 
-`ChangeIntelligenceProjector` never mutates project state, grants permissions, approves evidence, or marks completion.
-
-### 87.6 Acceptance
+### 87.7 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
 

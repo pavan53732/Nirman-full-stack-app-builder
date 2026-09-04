@@ -21,6 +21,11 @@ import os
 import re
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 CIDRE = r"\bCONTRACT\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
 CAPRE = r"\bCAP\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
 CLRE = r"\bCLAUSE\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
@@ -246,18 +251,34 @@ def parse_registries(docs, D):
 
     # milestone mappings from the development plan
     miles = {}
-    for marker, end in (("## Foundational milestone contract mapping", "## M81"),
-                        ("## M81\u2013M96 contract mapping", "### M93")):
-        rows = table_rows(dev, marker, end, "M")
-        for c in (rows or []):
-            m = re.match(r"M(\d+)$", c[0])
+    heading_pattern = r"^##+\s+.*(?:contract|milestone)\s+mapping.*$"
+    mapping_sections = list(re.finditer(heading_pattern, dev, re.M | re.I))
+    for s in mapping_sections:
+        start = s.end()
+        next_h = re.search(r"\n#{1,2}\s+", dev[start:])
+        end = start + next_h.start() if next_h else len(dev)
+        table_text = dev[start:end]
+        for line in table_text.splitlines():
+            line = line.strip()
+            if not line.startswith("|") or not line.endswith("|"):
+                continue
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if not cells:
+                continue
+            m = re.match(r"^M(\d+)$", cells[0])
             if not m:
                 continue
-            miles[int(m.group(1))] = dict(
-                contracts=re.findall(CIDRE, c[1]),
-                adrs=[int(x) for x in re.findall(r"ADR-(\d+)", c[2])],
-                test=c[3] if len(c) > 3 else "",
-                evidence=c[4] if len(c) > 4 else "")
+            if len(cells) < 3:
+                continue
+            m_num = int(m.group(1))
+            if m_num in miles:
+                D.add("structure", f"M{m_num}", f"duplicate milestone mapping for M{m_num}")
+            else:
+                miles[m_num] = dict(
+                    contracts=re.findall(CIDRE, cells[1]),
+                    adrs=[int(x) for x in re.findall(r"ADR-(\d+)", cells[2])],
+                    test=cells[3] if len(cells) > 3 else "",
+                    evidence=cells[4] if len(cells) > 4 else "")
     R["milestones"] = miles
 
     # ExtensionDeclaration blocks, parsed from fence-stripped section bodies
@@ -1503,6 +1524,22 @@ def check_semantic_documentation(docs, R, D):
     for token, text, subject in export_tokens:
         if token not in text:
             D.add("semantic documentation", subject, f"APK-export requirement is missing: {token}")
+
+    change_tokens = (
+        ("ChangeImpactReport\n- reportId", bs + ta, "change impact report schema"),
+        ("ChangeIntelligenceStore", ta, "change intelligence store implementation"),
+        ("recommendationBasis", bs + ta, "change recommendation basis"),
+        ("recommendationSource", bs + ta, "change recommendation source"),
+        ("1. ConstructionTransaction (authoritative for mutation identity, files, revision)", ta, "change impact transaction provenance"),
+        ("2. ImpactAnalysis (authoritative for affected surface graph)", ta, "change impact analysis provenance"),
+        ("3. ValidationResult (authoritative for verification/test results)", ta, "change impact validation provenance"),
+        ("4. PreviewRevision (authoritative for preview impact/currentness)", ta, "change impact preview provenance"),
+        ("5. EvidenceAuthority (authoritative for evidence validity/invalidation)", ta, "change impact evidence provenance"),
+        ("6. RecoveryAuthority (authoritative for recovery actions)", ta, "change impact recovery provenance"),
+    )
+    for token, text, subject in change_tokens:
+        if token not in text:
+            D.add("semantic documentation", subject, f"ChangeImpactReport provenance or requirement is missing: {token}")
 
     if "### 69.10 Runtime-certification and hidden-human-dependency boundary" not in bs:
         D.add("semantic documentation", "runtime certification boundary",
