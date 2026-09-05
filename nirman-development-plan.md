@@ -253,7 +253,7 @@ M7 implements the one-product-two-processes contract: Nirman.exe may close while
 3. Add heartbeats and stale-worker detection.
 4. Add pause, resume, cancel, retry-from-checkpoint, and fork behavior.
 5. Add operating-system notifications for approval and failure events.
-6. Add adaptive telemetry and guardrails for time, turns, tokens, cost, disk, and processes; do not impose a fixed completion deadline unless the user explicitly configures a hard safety cap.
+6. Add live usage telemetry for time, turns, tokens, and cost (observability only) and adaptive runtime management for CPU, memory, disk, processes, emulator slots, concurrency, and liveness; impose no completion deadline and no AI-usage budget.
 7. Add a startup recovery scan and repairable-interruption state.
 8. Add optional local interval and schedule support for safe tasks.
 
@@ -276,7 +276,7 @@ Add specialized workers and isolated parallel execution only after the single-wo
 3. Implement a shared task ledger with atomic task claims.
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
-6. Add worker heartbeats, crash recovery, and per-worker budgets.
+6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements.
 7. Implement review, test, debug, and reconciliation worker chains.
 8. Implement changed-file and changed-symbol conflict detection.
 9. Add transactional integration checkpoints.
@@ -444,7 +444,7 @@ This sequence reduces the risk of building a visually impressive chat interface 
 
 ### M13: Goal Mode and non-blocking background work
 
-Implement durable goal contracts, completion-condition evaluation, resource budgets, stop conditions, progress tracking, reconnectable task streams, background UI behavior, and operating-system notifications. The task must continue without stealing user focus and must survive a controlled UI restart.
+Implement durable goal contracts, completion-condition evaluation, physical resource requirements, stop conditions, progress tracking, reconnectable task streams, background UI behavior, and operating-system notifications. The task must continue without stealing user focus and must survive a controlled UI restart.
 
 **Exit gate:** A user can define a goal once, continue working elsewhere, close and reopen the desktop interface, and inspect objective completion results rather than relying on a final model message.
 
@@ -456,7 +456,7 @@ Implement the named hook-event table defined in the master specification. Add bl
 
 ### M15: Scheduled automations
 
-Implement local recurring task definitions with interval, calendar, project-change, failed-validation, and manual triggers. Add schedule persistence, duplicate-run prevention, budgets, inherited permissions, pause/disable controls, run history, and notifications.
+Implement local recurring task definitions with interval, calendar, project-change, failed-validation, and manual triggers. Add schedule persistence, duplicate-run prevention, resource requirements, inherited permissions, pause/disable controls, run history, and notifications.
 
 **Exit gate:** A safe local test or documentation task can run on a schedule, recover correctly after a control-plane restart, and never publish or use personal credentials without per-run approval.
 
@@ -468,7 +468,7 @@ Implement file-level checkpoints alongside task-level checkpoints. Add last-know
 
 ### M17: Context scaling and external-tool compatibility
 
-Implement retrieval-based and large-context modes, context-package reports, secret filtering, token-budget fallback, external-tool capability discovery, scoped connections, health checks, and policy mediation.
+Implement retrieval-based and large-context modes, context-package reports, secret filtering, provider-context-capacity fallback, external-tool capability discovery, scoped connections, health checks, and policy mediation.
 
 **Exit gate:** A small-context provider uses repository retrieval, a large-context provider can use a filtered near-full repository, and an external tool cannot bypass Nirman path, network, or approval rules.
 
@@ -482,7 +482,7 @@ Implement retrieval-based and large-context modes, context-package reports, secr
 | Scheduled run | A recurring task runs once per trigger and survives daemon restart |
 | File checkpoint | One file restores without changing unrelated files |
 | Backtracking | Failed strategy returns to a known-good state before trying a different strategy |
-| Context scaling | Mode selection is visible and falls back safely when budget is insufficient |
+| Context scaling | Mode selection is visible and falls back safely when the provider's context capacity is insufficient |
 | External tool | Tool is scoped, audited, and cannot bypass the policy engine |
 | Subagent isolation | Parallel workers cannot mutate the main workspace before reconciliation |
 
@@ -549,11 +549,11 @@ Implement the stable launcher/controller, isolated self-development worktree, so
 
 ### M24: Adaptive long-horizon provider execution
 
-Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, reasoning-effort routing, reasoning-budget reservation and settlement, provider-native reasoning normalization, provider capability gaps, and task-state persistence.
+Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, reasoning-effort routing, reasoning-usage telemetry, provider-native reasoning normalization, provider capability gaps, and task-state persistence.
 
-Native provider reasoning and runtime deliberation must remain separate resources. The runtime must be able to combine higher provider-native reasoning effort with multiple bounded deliberation passes while preserving the total deliberation budget, evidence requirements, and authority boundaries.
+Native provider reasoning and runtime deliberation must remain separate resources. The runtime must be able to combine higher provider-native reasoning effort with multiple progress-governed deliberation passes while preserving evidence requirements and authority boundaries.
 
-User-configured hard caps remain available but are opt-in.
+AI usage is telemetry only; no token, request, monetary, reasoning, or duration budget exists. An explicit user-declared policy stop condition remains a user decision under policy authority, off by default.
 
 **Exit gate:** A long-running fixture task can continue through multiple provider requests and context compactions, adapt its model or worker strategy, recover from a transient provider failure, and complete without being stopped by an ordinary usage threshold.
 
@@ -569,7 +569,7 @@ User-configured hard caps remain available but are opt-in.
 | Reasoning capability | Provider reports whether native reasoning is supported and which normalized effort levels it can satisfy |
 | Reasoning normalization | NORMAL/EXTENDED/DEEP/EXHAUSTIVE requests map deterministically to provider-specific parameters |
 | Reasoning accounting | Reported reasoning usage is distinguished from estimated or unavailable usage |
-| Reasoning budget | Concurrent provider requests cannot consume the same remaining deliberation budget |
+| Reasoning effort grant | Concurrent provider requests are attributed to distinct effort grants and their reported reasoning usage is recorded as telemetry without double counting |
 | Reasoning capability gap | A provider unable to satisfy the required minimum effort produces a typed capability gap or approved failover |
 | Self-update isolation | Current installation is unchanged until candidate validation succeeds |
 | Candidate health | Candidate launches in a temporary profile and passes IPC, database, provider, preview, and smoke checks |
@@ -1216,7 +1216,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 
 | Milestone | Focus | Required result |
 |---|---|---|
-| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextBudgetAllocator, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService |
+| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService |
 | M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks |
 | M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
 | M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all eight required scenario classes, determinism quarantine |
@@ -1327,12 +1327,12 @@ Each milestone may implement one or more registered contracts, but each contract
 | M91 | CONTRACT.RUNTIME.TRIGGER | ADR-151 | TEST-TRG-001 | EV-TRG-001 | Trigger gate |
 | M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-VER-001 | EV-VER-001 | Speculation gate |
 | M93 | CONTRACT.RUNTIME.INVARIANTS | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
-| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
-| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
+| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
+| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
 | M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
 | M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
 | M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-PSYNC-001 | EV-PSYNC-001 | Preview synchronization protocol and first Android vertical slice |
-| M111 | CONTRACT.RUNTIME.COST_GOVERNANCE | ADR-197 | TEST-COST-001 | EV-COST-001 | Cost reservation, settlement, exhaustion, and degradation gate |
+| M111 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | ADR-218 | TEST-RESOURCE-001 | EV-RESOURCE-001 | Runtime resource-integrity, adaptive scheduling, backpressure, physical resource protection, and liveness gate |
 | M112 | CONTRACT.RUNTIME.AGENT_TRUST | ADR-198 | TEST-TRUST-001 | EV-TRUST-001 | Agent-layer trust scanning and revocation gate |
 | M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
 | M114 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | ADR-200 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate |
@@ -1361,17 +1361,17 @@ Implements build spec §66 and technical architecture §71. This milestone follo
 
 ### Reasoning and delegation gate
 
-A goal produces a recorded ReasoningArtifact with a cited selectionBasis before any mutation occurs. An artifact submitted with an empty selectionBasis is rejected at write and the cycle returns to strategy selection. No persisted record in any reasoning table contains verbatim model reasoning. Every executed action produces a ReflectionRecord classifying the outcome as SUCCESS, PARTIAL, FAILURE, or UNKNOWN with evidence references. A hypothesis rejected with refuting evidence is retained and is not retested against unchanged evidence. An untargeted repair is not attempted while an untested discriminating test remains available. A capability invocation denied by policy returns the cycle to strategy selection with the denial present as an active constraint in the next artifact. A delegation request whose child capability ceiling exceeds its parent's, or whose resource budget exceeds the parent's remaining budget after outstanding sibling grants, is denied with a typed reason. Revoking a parent grant terminates every descendant. A newly registered capability becomes discoverable without a code change to the reasoning engine. A mode request exceeding policy is downgraded to the highest permitted mode and recorded. Every cycle terminates in exactly one of COMPLETED, BLOCKED, WAITING, RECOVERED, SAFELY_FAILED, or ESCALATED, and SAFELY_FAILED is never reported as completion.
+A goal produces a recorded ReasoningArtifact with a cited selectionBasis before any mutation occurs. An artifact submitted with an empty selectionBasis is rejected at write and the cycle returns to strategy selection. No persisted record in any reasoning table contains verbatim model reasoning. Every executed action produces a ReflectionRecord classifying the outcome as SUCCESS, PARTIAL, FAILURE, or UNKNOWN with evidence references. A hypothesis rejected with refuting evidence is retained and is not retested against unchanged evidence. An untargeted repair is not attempted while an untested discriminating test remains available. A capability invocation denied by policy returns the cycle to strategy selection with the denial present as an active constraint in the next artifact. A delegation request whose child capability ceiling exceeds its parent's, or whose resource requirements exceed currently admissible parent resource capacity after outstanding sibling reservations, is denied with a typed reason. Revoking a parent grant terminates every descendant. A newly registered capability becomes discoverable without a code change to the reasoning engine. A mode request exceeding policy is downgraded to the highest permitted mode and recorded. Every cycle terminates in exactly one of COMPLETED, BLOCKED, WAITING, RECOVERED, SAFELY_FAILED, or ESCALATED, and SAFELY_FAILED is never reported as completion.
 
 # M95: Deep Deliberation Runtime
 
 Implements build spec §68 and technical architecture §72. Prerequisite: M94 must pass its reasoning and delegation gate. This milestone adds the deliberation runtime that decides how much reasoning to perform inside the existing cycle; it introduces no third execution loop.
 
-**Required results:** DeliberationController driving bounded passes; DeliberationBudgetManager enforcing every ceiling including maxToollessPasses; ReasoningEffortSelector granting the minimum of request, policy ceiling, fundable level, and provider capability with the binding constraint recorded; SufficiencyEvaluator implementing the §68.7 conjunction rather than reading stated confidence; HypothesisEvaluator competing candidates by decisiveness over cost and reporting refutation-versus-confirmation; CounterexampleEngine emitting findings and evidence requests with no mutation capability; EvidenceAcquisitionPlanner restricted to non-mutating observations and costed from the resource profiler; DeliberationModelRouter escalating under an unchanged permission ceiling; DeliberationContinuationManager checkpointing session state at every pass boundary; DeliberationProgressEvaluator and DiminishingReturnDetector forcing an approach change on NO_PROGRESS; DeliberationRecordStore rejecting inadmissible records.
+**Required results:** DeliberationController driving progress-governed passes; ReasoningEffortSelector selecting the granted level from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity with the binding constraint recorded and no AI-usage input; SufficiencyEvaluator implementing the §68.7 conjunction rather than reading stated confidence; HypothesisEvaluator competing candidates by decisiveness over cost and reporting refutation-versus-confirmation; StrategyCritic emitting counterexample findings and evidence requests with no mutation capability; EvidenceAcquisitionPlanner restricted to non-mutating observations, costed from the resource profiler, and run on every EvidenceAcquisitionTrigger; DeliberationModelRouter escalating under an unchanged permission ceiling; DeliberationContinuationManager checkpointing session state at every pass boundary; DeliberationProgressEvaluator, DiminishingReturnDetector, and RepeatedFailureDetector forcing an approach change on NO_PROGRESS or StrategyChangeRequired; DeliberationRecordStore rejecting inadmissible records; no budget manager, no fixed pass ceiling, and no AI-usage-based termination path.
 
 ### Deep deliberation gate
 
-An agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the binding constraint recorded, and never self-granted. A deliberation exceeding its pass budget terminates BUDGET_EXHAUSTED and the cycle does not execute the leading strategy. Consecutive observation-free passes are refused at the maxToollessPasses bound until evidence is acquired. A change classified high-risk is refused sufficiency at a stated confidence of 0.95 while its regression plan is missing. A discriminating test refutes the leading hypothesis and the selected strategy changes as a result. A counterexample finding returns the cycle to strategy selection with no project mutation. An escalated model executes under the identical permission ceiling. A forced context compaction preserves active hypotheses and rejected strategies, and the session resumes without re-deriving them. Deliberation reaching the fixture's configured `diminishingReturnThreshold` across consecutive passes of flat uncertainty produces NO_PROGRESS and an approach change rather than a further plain pass. No deliberation record contains verbatim model reasoning.
+An agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the binding constraint recorded, and never self-granted. A deliberation that has consumed arbitrarily many tokens, provider requests, reasoning passes, and hours continues while progress remains possible, and no usage-based outcome exists in the ledger. An observation-free pass raises an EvidenceAcquisitionTrigger and the following pass acquires evidence or changes approach rather than reasoning again over the same observations. A strategy retried against unchanged evidence, uncertainty, and constraints raises StrategyChangeRequired. Physical memory pressure injected mid-deliberation checkpoints the pass and resumes it rather than terminating it. A change classified high-risk is refused sufficiency at a stated confidence of 0.95 while its regression plan is missing. A discriminating test refutes the leading hypothesis and the selected strategy changes as a result. A counterexample finding returns the cycle to strategy selection with no project mutation. An escalated model executes under the identical permission ceiling. A forced context compaction preserves active hypotheses and rejected strategies, and the session resumes without re-deriving them. Deliberation reaching the fixture's configured `diminishingReturnThreshold` across consecutive passes of flat uncertainty produces NO_PROGRESS and an approach change rather than a further plain pass. No deliberation record contains verbatim model reasoning.
 
 **Causal escalation.** An escalation event is not sufficient. The gate requires that the recorded condition is the causal trigger for the escalation, evidenced as an ordered chain in the event ledger:
 
@@ -1405,16 +1405,17 @@ Any mutation event carrying a deliberation pass as its originating context is a 
 The gate above states required behavior. These seven fixtures inject the specific
 fault each rule exists to prevent, so the rule is proven rather than asserted.
 Each runs against a real Android fixture project with a configured
-`DeliberationBudget`, and each must produce the stated observable outcome.
+`diminishingReturnThreshold` and no AI-usage budget of any kind, and each must
+produce the stated observable outcome.
 
 | Fixture | Injected condition | Required observable outcome |
 |---|---|---|
-| FIX-DEL-01 no-evidence loop | A question the model cannot resolve from the current observation set | Passes proceed until `maxToollessPasses`, then the runtime refuses a further plain pass and either acquires evidence or terminates; it never loops indefinitely |
-| FIX-DEL-02 budget exhaustion | A budget too small to reach sufficiency | Terminates `BUDGET_EXHAUSTED`; the leading strategy is not executed; the cycle yields `WAITING`, `SAFELY_FAILED`, or `ESCALATED` |
+| FIX-DEL-01 no-evidence loop | A question the model cannot resolve from the current observation set | The first observation-free pass raises an `EvidenceAcquisitionTrigger`; the next pass acquires evidence or changes approach; if evidence cannot be obtained, DiminishingReturnDetector or RepeatedFailureDetector forces delegation, branching, or escalation; the runtime never loops indefinitely and no fixed pass ceiling is involved |
+| FIX-DEL-02 no usage termination | A deliberation driven to consume many times the token, request, reasoning-pass, and wall-clock volume of any ordinary run while progress continues | Deliberation continues to `SUFFICIENT`; the ledger contains no usage-based outcome, refusal, throttle, or downgrade; `reasoningUsage` and `resourceUsage` are recorded as telemetry only |
 | FIX-DEL-03 forced compaction | Context compaction triggered mid-deliberation with several hypotheses rejected | Session resumes with active hypotheses and rejected strategies intact; no rejected hypothesis is re-derived or retested against unchanged evidence |
-| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes from the last deliberation checkpoint with the same remaining runtime budget and required effort level. The replacement provider's reasoning capability is revalidated before continuation. If it supports the required level, continuation occurs at that level; otherwise the runtime selects another approved provider/model or terminates with a typed capability gap. Continuation state is never reset silently |
-| FIX-DEL-05 native reasoning normalization | Provider exposes native reasoning with a provider-specific effort parameter | NORMAL/EXTENDED/DEEP/EXHAUSTIVE runtime requests are translated into the provider's declared parameter space; the normalized request and granted capability are recorded; no provider-specific setting bypasses the runtime budget |
-| FIX-DEL-06 reasoning usage accounting | Provider reports reasoning usage for one pass | Reported reasoning usage is recorded and settled against the reserved budget; the ledger distinguishes reported usage from runtime wall-clock and model-request counts |
+| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes from the last deliberation checkpoint with the same effort grant, evidence state, and required effort level. The replacement provider's reasoning capability is revalidated before continuation. If it supports the required level, continuation occurs at that level; otherwise the runtime selects another approved provider/model or terminates with a typed capability gap. Continuation state is never reset silently |
+| FIX-DEL-05 native reasoning normalization | Provider exposes native reasoning with a provider-specific effort parameter | NORMAL/EXTENDED/DEEP/EXHAUSTIVE runtime requests are translated into the provider's declared parameter space; the normalized request and granted capability are recorded; no provider-specific setting bypasses the runtime effort grant or authority |
+| FIX-DEL-06 reasoning usage accounting | Provider reports reasoning usage for one pass | Reported reasoning usage is recorded as telemetry attributed to the effort grant; the ledger distinguishes reported usage from runtime wall-clock and model-request counts; no execution decision reads it |
 | FIX-DEL-07 reasoning capability gap | Provider does not support the requested minimum reasoning effort | The runtime records the capability gap and either selects an approved compatible provider/model or terminates safely; it never claims the requested effort was performed |
 
 Each fixture must also assert the two invariants that hold across all of them:
@@ -1427,7 +1428,7 @@ than one before its outcome is evaluated.
 
 ### M95 certification fixture
 
-Certification requires a deliberately difficult Android fixture exercising the full loop end to end: the initial strategy fails; the agent enumerates multiple competing hypotheses; it acquires discriminating evidence; at least one hypothesis is refuted and recorded with its refuting evidence; additional deliberation budget is consumed with a stated reason per pass; reasoning effort escalates on a recorded condition; an alternative strategy is selected on evidence rather than preference; implementation proceeds through the ordinary authority path; validation discovers a second issue; deliberation resumes with prior rejections intact; the cause is localized and repaired within its cause scope; stateful end-to-end scenarios pass on the primary device; and the final report proves completion with evidence of an applicable kind for every requirement.
+Certification requires a deliberately difficult Android fixture exercising the full loop end to end: the initial strategy fails; the agent enumerates multiple competing hypotheses; it acquires discriminating evidence; at least one hypothesis is refuted and recorded with its refuting evidence; additional deliberation passes are taken with a stated reason per pass; reasoning effort escalates on a recorded condition; the provider's capability is adapted to without lowering the required effort silently; an alternative strategy is selected on evidence rather than preference; implementation proceeds through the ordinary authority path; validation discovers a second issue; deliberation resumes with prior rejections intact; the cause is localized and repaired within its cause scope; stateful end-to-end scenarios pass on the primary device; and the final report proves completion with evidence of an applicable kind for every requirement.
 
 Passing this fixture requires the deliberation runtime to demonstrably change the outcome. Because the milestone exists to demonstrate the complete mechanism, all three of the following are mandatory and each must be causally connected to the subsequent outcome:
 
@@ -1437,7 +1438,7 @@ Passing this fixture requires the deliberation runtime to demonstrably change th
 | Causal effort escalation | An observed condition triggers the escalation per the causal-escalation chain, and the additional deliberation at the granted level changes the outcome |
 | Evidence-backed strategy revision | A change in evidence or constraints causes the revision, cited on the rejected strategy |
 
-A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
+The M95 acceptance is progress-driven deliberation, evidence acquisition, hypothesis competition, counterexample search, diminishing-return detection, strategy revision, provider capability adaptation, durable continuation, and the absence of AI-usage-based termination. A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
 
 This is the anti-vacuity rule of §57.5 applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.
 
@@ -1643,11 +1644,11 @@ Add specialist-worker fixtures for security scanning, schema/type consistency, d
 
 **Exit gate:** file-save, build-completion, failure, dependency, promotion/export, and reconnect events continue the task without another chat click; every continuation is durable and replayable; specialist handoffs reconcile against one shared contract; real failure context reaches repair; failed gates preserve last-known-good; and no model, worker, or UI message can substitute for security, validation, runtime, signing, or export evidence.
 
-## M111 — Cost governance and adaptive resource control
+## M111 — Runtime resource integrity and adaptive execution
 
-Implement reservation, settlement, reconciliation, cost caps, token and request budgets, provider-reported or estimated usage, resource telemetry, explicit exhaustion outcomes, and cost-based degradation. Under Nirman's resource integrity model, valid engineering tasks are not terminated or degraded due to cumulative token, request, or duration expenditure; resource controls protect physical host, process, and emulator stability.
+Implement `ResourceIntegrityAuthority` and `ResourceIntegrityRecord` (BS §72, TA §77): physical admission against declared `resourceRequirements`, adaptive concurrency, backpressure and queueing, scheduling, checkpointing, work serialization, cache and resource reclamation, process and emulator protection, liveness containment of hung operations, recovery when capacity returns, and provider-usage telemetry recorded for observability only. No token, request-count, monetary, reasoning, or autonomous-goal-duration budget is implemented anywhere; provider context window is handled as technical capacity by `ContextCapacityPlanner`.
 
-**Exit gate:** an executable fixture (`TEST-COST-001` producing `EV-COST-001`) proves that usage is recorded, caps are enforced, unknown usage is reconciled, context or concurrency can be reduced safely, and budget exhaustion never becomes false completion or silent permission expansion.
+**Exit gate:** an executable fixture (`TEST-RESOURCE-001` producing `EV-RESOURCE-001`) proves physical admission, adaptive concurrency under CPU and memory pressure, backpressure when workers exceed admissible capacity, reclamation before any blocking outcome, process and emulator protection, liveness containment that does not terminate the healthy goal, checkpoint preservation across `BLOCKED_NO_SAFE_PATH`, recovery and resumption when capacity returns, and the absence of AI-usage authority: a task consuming arbitrarily many tokens, requests, reasoning passes, and hours continues unaffected while physical capacity and progress remain, and a blocking outcome never becomes false completion or silent permission expansion.
 
 ## M112 — Agent-layer trust boundary and extension security
 
