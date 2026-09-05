@@ -314,7 +314,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.FRONTEND_CONTROL_PLANE | Operate the desktop UI through authenticated commands, durable projections, replay, and typed errors | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 | EV-FCP-001 | PLANNED |
 | CAP.ANDROID.APK_DELIVERY | Deliver a locally verified Android artifact with complete signing, validation, promotion, copy, and post-copy provenance | CONTRACT.RUNTIME.APK_EXPORT | TEST-APK-001 | EV-APK-001 | PLANNED |
 | CAP.ANDROID.BACKGROUND_CONTINUITY | Continue, recover, reconcile, or safely stop autonomous work across UI, host, device, and provider interruptions | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 | EV-BG-001 | PLANNED |
-| CAP.ANDROID.BUDGETED_AUTONOMY | Run autonomous Android work within declared cost caps and resource budgets | CONTRACT.RUNTIME.COST_GOVERNANCE | TEST-COST-001 | EV-COST-001 | PLANNED |
+| CAP.ANDROID.RESOURCE_AWARE_AUTONOMY | Run autonomous Android work under physical resource integrity, adaptive scheduling, and backpressure, with AI usage recorded as telemetry only | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | TEST-RESOURCE-001 | EV-RESOURCE-001 | PLANNED |
 | CAP.ANDROID.TRUSTED_EXTENSIONS | Use skills, MCP-compatible tools, and plugins only after trust, provenance, permission, and revocation checks | CONTRACT.RUNTIME.AGENT_TRUST | TEST-TRUST-001 | EV-TRUST-001 | PLANNED |
 | CAP.ANDROID.CONTEXT_GOVERNANCE | Compact and cache context without evicting constraints, corrupting lineage, or hiding provider telemetry | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | TEST-CONTEXT-001 | EV-CONTEXT-001 | PLANNED |
 | CAP.ANDROID.RUNTIME_INTEGRITY | Report applicable Android runtime integrity, ANR, battery, Doze, and device signals with honest coverage | CONTRACT.RUNTIME.ANDROID_INTEGRITY | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | PLANNED |
@@ -330,7 +330,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.AUTOMATED_START | Begin work from an authenticated external event | CONTRACT.RUNTIME.TRIGGER | TEST-TRG-001 | EV-TRG-001 | PLANNED |
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
 | CAP.ANDROID.AUTONOMOUS_REASONING | Decide what to do next from evidence, and delegate within bounded authority | CONTRACT.RUNTIME.REASONING | TEST-RSN-001 | EV-RSN-001 | PLANNED |
-| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
+| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional progress-governed reasoning to solve a hard defect instead of guessing | CONTRACT.RUNTIME.DELIBERATION | TEST-DEL-001 | EV-DEL-001 | PLANNED |
 | CAP.ANDROID.CERTIFIED_RELEASE | Promote a release only when runtime invariants hold and platform capability states (host, target, validation, certification) are truthful and evidence-bound | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.PLATFORM_CAPABILITY, CONTRACT.RUNTIME.AGENT_BUILDABILITY | TEST-INV-001 | EV-INV-001 | PLANNED |
 | CAP.PLATFORM.CAPABILITY_TRUTH | Classify and report build, cross-build, and target-runtime capability states truthfully, with host, target, validation, and certification kept distinct and evidence-bound | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | TEST-PLAT-001 | EV-PLAT-001 | PLANNED |
 | CAP.ANDROID.CONTENT_INTELLIGENCE | First-class product-content generation, revision, consistency, localization, accessibility, and content validation | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | TEST-CONTENT-001 | EV-CONTENT-001 | PLANNED |
@@ -628,7 +628,7 @@ The agent orchestrator should be a stateful task engine rather than a single pro
 | Execution history | Commands, outputs, errors, screenshots, test results |
 | Change history | Checkpoints, diffs, restored versions |
 | Provider state | Selected model, capabilities, token limits, failures |
-| Safety state | Approved paths, commands, network permissions, budgets |
+| Safety state | Approved paths, commands, network permissions, resource requirements |
 
 ### 6.5 Project context and indexing
 
@@ -716,7 +716,7 @@ Nirman should allow users to configure their own AI provider without changing ap
 | Maximum reasoning tokens | Provider-reported or configured upper bound when supported |
 | Reasoning usage reporting | Whether reasoning-token or equivalent effort usage is reported, estimated, or unavailable |
 | Reasoning configuration | Provider-specific settings normalized by the ModelGateway |
-| Timeout | Maximum provider request duration, bounded by the active deliberation budget |
+| Timeout | Maximum duration of one provider request; a liveness bound for a hung request, never an AI-usage or goal-duration budget |
 | Enabled capabilities | Text, vision, structured output, tool calling, reasoning, embeddings |
 | Test connection | Sends a safe validation request. MUST pass before Save is permitted per ADR-208; changing key, base URL, model ID, or mode invalidates the prior pass and re-disables Save. |
 
@@ -1141,10 +1141,10 @@ The cognitive context engine operates across exactly six normative retrieval mod
 | `SEMANTIC` | Structural repository neighborhood, related interfaces, callers/callees, schema dependencies | Semantic graph traversal over symbol, type, and module dependency edges |
 | `TEMPORAL` | Recent action sequences, recent test outputs, recent runtime events, recent mutations | Sliding chronological window indexed by transaction and event sequence |
 | `STRUCTURED_MEMORY` | Causal execution records, verified project facts, failure signatures, architectural invariants | Query against classified memory store with mandatory source event provenance |
-| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to provider token budget with prefix and structured cache alignment |
+| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to the provider's actual context capacity with prefix and structured cache alignment |
 | `COMPACTED` | Long-horizon continuity, multi-session continuation, checkpoint re-grounding | Non-destructive semantic compaction preserving causal chains and invariant proofs |
 
-Dynamic mode selection and token budget allocation are governed by twelve mandatory selection dimensions:
+Dynamic mode selection and context capacity allocation are governed by twelve mandatory selection dimensions:
 1. `task_phase`: specification, synthesis, build, test, repair, or packaging.
 2. `goal_relevance`: direct topical and functional relationship to active user intent and acceptance contract.
 3. `dependency_proximity`: graph distance from active mutation targets in the Repository Semantic Graph.
@@ -1155,7 +1155,7 @@ Dynamic mode selection and token budget allocation are governed by twelve mandat
 8. `uncertainty`: unresolved nodes in `UncertaintyRegistry` requiring clarification or empirical testing.
 9. `projectRevision`: workspace transaction identity and git commit boundary.
 10. `planRevision`: active plan node lineage and step dependency requirements.
-11. `token_budget`: configured operation, task, and provider token ceiling.
+11. `context_capacity`: the selected provider's actual context capacity and the admissible context share for the operation; a technical capacity, not a usage budget.
 12. `provider_capabilities`: provider context capacity, prefix caching, and reasoning effort reported by `attentionCapabilities`.
 
 ---
@@ -1230,7 +1230,7 @@ Nirman should support continuous background execution for large-scale developmen
 
 - **Progressive Context Compaction**: Automatically summarizing historical tool outputs and resolved steps while preserving exact file diffs, active errors, and acceptance criteria in the active context window.
 - **Durable Checkpoint State**: Storing task progress, intermediate test results, and file revisions in local metadata storage so that tasks can survive application restarts or system reboots.
-- **Live Telemetry & Adaptive Guardrails**: Real-time tracking of token expenditure, API cost, turn counts, elapsed time, and local resources. Ordinary thresholds should warn, throttle, optimize, or change model routing without terminating the goal. Only explicit hard safety, policy, environment, or user-configured stop conditions may end execution.
+- **Live Telemetry & Adaptive Runtime Management**: Real-time tracking of token usage, provider requests, estimated cost, turn counts, elapsed time, and local resources for observability only. Runtime adaptation — queueing, concurrency reduction, scheduling, checkpointing, serialization, and resource reclamation — responds only to CPU, memory, disk, process, emulator, concurrency, provider-capacity, and liveness signals. Token, request, cost, and elapsed-time telemetry never warns into throttling, degrades, pauses, or terminates the goal. Only explicit hard safety, policy, environment, or user-declared policy stop conditions may end execution.
 
 ### 22.3 Persistent Problem-Solving and Anti-Thrashing Loops
 
@@ -1287,7 +1287,7 @@ Nirman should build a compact structural map of the project rather than sending 
 
 The context engine should first provide the model with a small map of the relevant repository area. It should then expand into specific files, symbols, tests, and documentation only when the task requires them. Relevance should be ranked by dependency relationships, recent changes, user-selected files, active errors, route ownership, and acceptance criteria.
 
-This should be token-aware. The context engine must have a defined budget, track what was included, and explain when content was summarized or excluded. Large logs should be compressed into error-focused summaries, while source code needed for an edit should remain available at full fidelity.
+This should be capacity-aware. The context engine must fit the selected provider's actual context capacity, track what was included, and explain when content was summarized or excluded for capacity. Large logs should be compressed into error-focused summaries, while source code needed for an edit should remain available at full fidelity.
 
 ### 23.3 Explicit operating modes
 
@@ -1307,7 +1307,7 @@ The application should display the current mode in the toolbar and in every task
 
 ### 23.4 Specialized worker architecture
 
-The main Nirman agent should not perform every task itself. It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and budgets.
+The main Nirman agent should not perform every task itself. It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and physical resource requirements.
 
 Recommended built-in workers are shown below.
 
@@ -1524,9 +1524,9 @@ The final result should distinguish between passed checks, skipped checks, faile
 
 ### 23.16 Cost, token, and resource telemetry
 
-The application should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage for each task when the provider exposes the relevant data. Users should be able to set maximum task budgets.
+The application should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage for each task when the provider exposes the relevant data. This usage telemetry is informational and has no execution-authority semantics; Nirman imposes no task budget. A user MAY declare an explicit policy stop condition, which is a user decision under permission authority, off by default, and never a runtime budget.
 
-Before starting a large task, Nirman should provide an approximate resource forecast based on the number of workers, expected context size, selected models, and validation stages. During execution, it should continuously report usage and adapt by reducing concurrency, compacting context, routing to an approved lower-cost model, batching work, or pausing new optional work. Ordinary token, cost, time, or process thresholds must not terminate an end-to-end goal unless the user explicitly configured them as hard limits. Hard safety limits, destructive-process watchdogs, provider policy limits, and operating-system protection limits may still stop a task when necessary.
+Before starting a large task, Nirman should provide an approximate resource forecast based on the number of workers, expected context size, selected models, and validation stages. During execution, it should continuously report usage. Adaptation — reducing concurrency, compacting context, batching work, or pausing new optional work — responds to physical resource pressure and provider context capacity, never to token, request, cost, or elapsed-time usage. Token, cost, time, and request telemetry never terminates, throttles, or degrades an end-to-end goal. Hard safety limits, destructive-process watchdogs, provider policy limits, operating-system protection limits, and an explicit user-declared policy stop condition may still stop a task when necessary.
 
 ### 23.17 Review-only and release workflows
 
@@ -1566,7 +1566,7 @@ The capabilities above should be introduced in the following order.
 |---|---|---|
 | P0 | Project context, repository map, structured events, checkpoints, permissions | Foundational reliability and safety |
 | P1 | Plan/build/review modes, background tasks, session resume, testing and repair | Makes the core app genuinely autonomous |
-| P1 | Cost budgets, loop detection, provider routing, fallback, provenance | Controls operational risk and user trust |
+| P1 | Usage telemetry, resource integrity, loop detection, provider routing, fallback, provenance | Controls operational risk and user trust |
 | P2 | Specialized workers, worker chains, isolated workspaces, reconciliation | Enables higher-quality parallel development |
 | P2 | Skills, project extensions, hooks, external tools | Adds domain-specific capability without hard-coding everything |
 | P2 | Screenshots, visual QA, AST/LSP edits | Improves quality beyond text generation |
@@ -1600,7 +1600,7 @@ The daemon should persist task state in the authoritative local SQLite execution
 
 | Persistent object | Required information |
 |---|---|
-| Task | Goal, status, plan, current step, owner, budgets, timestamps |
+| Task | Goal, status, plan, current step, owner, resource requirements, timestamps |
 | Worker | Role, process ID, workspace, model, permissions, heartbeat, status |
 | Event | Sequence number, type, payload, timestamp, task and worker IDs |
 | Approval | Requested action, policy reason, decision, user, expiry |
@@ -1649,7 +1649,7 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 | Worker stale threshold | 60 seconds, configurable |
 | Default task wall-clock policy | No artificial completion limit. Nirman does not terminate, degrade, or block a valid task because of elapsed task duration, token consumption, request count, or monetary expenditure. Execution is constrained only by actual host, workspace, process, emulator, storage, concurrency, and liveness resource integrity. |
 | Default repair attempts per failure | 3 strategy changes, not three identical retries |
-| Default task context budget | Provider-dependent with a visible cap |
+| Default task context capacity | The selected provider's actual context capacity, fit by `ContextCapacityPlanner`; visible, and a technical capacity rather than a usage budget |
 | Default disk quota per task | 10 GB unless project policy overrides |
 
 The scheduler should reserve resources before launching a worker, release them after completion, and reduce parallelism when the system becomes constrained. A user should be able to pause new workers while allowing active workers to finish.
@@ -1814,9 +1814,9 @@ A Goal Mode task must contain:
 | Goal statement | Natural-language description of the desired result |
 | Completion conditions | Testable conditions that determine whether the goal is complete |
 | Scope | Project, folders, files, routes, modules, or platform targets included |
-| Resource policy | Adaptive time, turns, tokens, estimated cost, disk, and process monitoring; optional user-configured hard caps |
+| Resource policy | Live telemetry of time, turns, tokens, and estimated cost for observability; adaptive runtime management of CPU, memory, disk, process, emulator, concurrency, and liveness signals only |
 | Autonomy profile | Named allow/ask/deny policy such as Unattended / Full Autonomy |
-| Resource budget | Optional user-configured hard limits rather than a default completion lock |
+| Resource requirements | Physical resources the goal needs (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency), evaluated by runtime resource integrity (§72); AI usage is telemetry only and there is no completion lock |
 | Allowed autonomy | Permitted operating mode, tools, network, workers, and schedules |
 | Stop conditions | Conditions that require pause or escalation |
 | Progress state | Completed work, active work, blocked work, and next strategy |
@@ -1824,13 +1824,13 @@ A Goal Mode task must contain:
 
 The completion condition must be stored as a durable task contract and evaluated after every validation cycle. Nirman must not report success merely because the model stopped generating text. It must show which completion conditions passed, failed, were skipped, or remain unverified.
 
-Goal Mode should support a user instruction such as “continue until the application builds, the required tests pass, the preview has no runtime errors, and all acceptance criteria are satisfied.” The mode should continue working across multiple agent turns and worker handoffs. Ordinary resource signals should trigger adaptation rather than termination; only explicit hard caps, safety stop conditions, provider or environment unavailability, cancellation, or unrecoverable failure may end execution.
+Goal Mode should support a user instruction such as “continue until the application builds, the required tests pass, the preview has no runtime errors, and all acceptance criteria are satisfied.” The mode should continue working across multiple agent turns and worker handoffs. Physical resource signals trigger adaptation rather than termination, and AI usage is telemetry only; only an explicit user-declared policy stop condition, safety stop conditions, provider or environment unavailability, cancellation, or unrecoverable failure may end execution.
 
 For unattended background work, the user should be able to select the named `Unattended / Full Autonomy` profile. It allows routine reversible operations inside the approved workspace without repeated prompts while keeping deployment, signing, credential access, remote pushes, destructive commands, protected paths, and unapproved sensitive-data transmission hard-gated.
 
 ### 27.2 Non-blocking background tasks
 
-Nirman must support background tasks that do not block the user from working in the same application or using the rest of the computer. A background task must have its own task panel, workspace state, worker processes, event stream, resource budget, and notification behavior.
+Nirman must support background tasks that do not block the user from working in the same application or using the rest of the computer. A background task must have its own task panel, workspace state, worker processes, event stream, resource requirements, and notification behavior.
 
 The user should be able to start a background task, continue editing another project or task, inspect progress without taking focus, pause or cancel it, approve a pending action, and open the task’s isolated workspace. A background task must never steal keyboard or mouse focus from the user’s active application.
 
@@ -1858,7 +1858,7 @@ Nirman must define a named lifecycle-hook system so that policy, validation, aut
 | Permission | `approval_requested`, `approval_granted`, `approval_denied`, `approval_expired` |
 | Worker | `worker_created`, `worker_started`, `worker_waiting`, `worker_failed`, `worker_completed`, `worker_requeued` |
 | Workspace | `workspace_created`, `checkpoint_created`, `checkpoint_restored`, `merge_started`, `merge_completed`, `merge_conflict` |
-| Context | `context_loaded`, `context_compacted`, `context_excluded`, `context_budget_reached` |
+| Context | `context_loaded`, `context_compacted`, `context_excluded`, `context_capacity_reached` |
 | Runtime | `process_started`, `process_failed`, `process_terminated`, `quota_reached`, `preview_started`, `preview_stale` |
 | Configuration | `provider_changed`, `policy_changed`, `skill_loaded`, `external_tool_connected` |
 
@@ -1866,7 +1866,7 @@ Every hook invocation must have a timeout, permission scope, correlation ID, and
 
 ### 27.5 Scheduled automations
 
-Nirman must support recurring local automations independently of chat sessions. A scheduled automation must define a trigger, project, goal, operating mode, resource budget, workspace policy, approval behavior, notification policy, and retention policy.
+Nirman must support recurring local automations independently of chat sessions. A scheduled automation must define a trigger, project, goal, operating mode, resource requirements, workspace policy, approval behavior, notification policy, and retention policy.
 
 Supported trigger types should include a fixed interval, a local calendar schedule, project-file change, failed validation, new checkpoint, and user-defined manual trigger. Scheduled tasks should initially be limited to safe local activities such as running tests, checking dependencies, refreshing documentation, generating reports, and preparing review summaries.
 
@@ -1920,7 +1920,7 @@ Nirman must support two context strategies because configured providers may have
 | Indexed retrieval mode | Provide repository map and retrieve relevant files, symbols, tests, and documentation | Small or medium context providers and very large repositories |
 | Large-context mode | Provide a near-full repository representation after filtering secrets, binaries, and irrelevant generated files | Providers with large context capacity and repository-scale refactors |
 
-The context planner should select a mode based on provider capability, project size, task type, token budget, privacy policy, and user preference. The task record must show which mode was used, what content was included, what was summarized, and what was excluded.
+The context planner should select a mode based on provider capability, project size, task type, provider context capacity, privacy policy, and user preference. The task record must show which mode was used, what content was included, what was summarized, and what was excluded.
 
 Large-context mode must not mean sending secrets or unbounded generated files. The exclusion and redaction policy remains active regardless of provider capacity.
 
@@ -1934,7 +1934,7 @@ MCP-compatible tools must not bypass Nirman’s permission engine. A tool reques
 
 ### 27.10 Completion and continuous-work contract
 
-Nirman should continue working until the goal is complete **or until a defined stop condition is reached**. Defined stop conditions include completed acceptance criteria, an explicit hard safety or policy limit, unrecoverable repeated strategy failure, missing environment capability, required human decision, safety policy denial, provider failure, user cancellation, or no safe recovery path. Reaching an ordinary time, token, cost, or usage threshold should trigger adaptation or a visible warning rather than automatically ending the goal.
+Nirman should continue working until the goal is complete **or until a defined stop condition is reached**. Defined stop conditions include completed acceptance criteria, an explicit hard safety or policy limit, unrecoverable repeated strategy failure, missing environment capability, required human decision, safety policy denial, provider failure, user cancellation, or no safe recovery path. Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal; physical resource pressure triggers adaptation per §72, and the runtime may show an informational notice.
 
 The application must never claim that it “worked until complete” if it stopped because of a limit or error. It should present a completion classification:
 
@@ -1949,7 +1949,7 @@ The application must never claim that it “worked until complete” if it stopp
 
 ### 27.11 Execution surface, evidence, and continuous validation
 
-The chat interface is the **task launcher**, not the execution engine. After a user starts a task, Nirman must continue independently in the background under the task’s stored goal contract, permissions, budgets, and stop conditions. The user must be able to close or minimize the interface and later reconnect to the same persisted task state.
+The chat interface is the **task launcher**, not the execution engine. After a user starts a task, Nirman must continue independently in the background under the task’s stored goal contract, permissions, resource requirements, runtime integrity conditions, and stop conditions. The user must be able to close or minimize the interface and later reconnect to the same persisted task state.
 
 Every autonomous task must expose a visible execution plan with phases, dependencies, progress, checkpoints, active workers, blocked work, and completion state. The plan must be durable and must update as new evidence changes the implementation strategy. The application must not replace a plan with a generic spinner or imply that a task is complete only because a model response ended.
 
@@ -1968,6 +1968,8 @@ The task view must expose runtime telemetry sufficient to understand what is hap
 | Current blocker | Show the dependency, failure, approval, or environment issue blocking progress |
 | Next action | Show the next planned action or recovery strategy |
 | Completion state | Show passed, failed, skipped, unverified, and remaining conditions |
+
+Usage telemetry is informational and has no execution-authority semantics.
 
 Status claims must be evidence-backed. A phase may be marked `completed` only when its declared evidence requirements pass. Evidence may include a successful command result, test report, build artifact, screenshot, device result, security scan, review record, or user-approved exception. Model-generated statements must be displayed as explanations, not treated as proof.
 
@@ -2016,7 +2018,7 @@ Browser automation is never a required or authoritative completion stage for an 
 
 Nirman should not ask for approval for every small, reversible operation inside an approved workspace. It should request a decision only at defined policy boundaries, including protected-file access, risky dependency installation, external-service access, credential use, destructive operations, publishing, release signing, or any action outside the current workspace and policy scope. The approval request must identify the exact action, reason, worker, workspace, policy, risk, and available choices.
 
-A task must terminate only when one of the following conditions is true: all required completion conditions pass; a required user decision is reached; an explicit hard safety or policy limit is reached; the environment or provider is unavailable; the user cancels the task; an unresponsive or dangerous process must be stopped to protect the computer; or an unrecoverable failure occurs. A routine event such as a saved file, completed build, captured error, dependency change, or successful worker response must not end the task; it must advance the applicable continuation trigger and validation path. Ordinary time, token, cost, process, disk, and retry thresholds should cause adaptation, throttling, warning, or optional approval—not a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
+A task must terminate only when one of the following conditions is true: all required completion conditions pass; a required user decision is reached; an explicit hard safety or policy limit is reached; the environment or provider is unavailable; the user cancels the task; an unresponsive or dangerous process must be stopped to protect the computer; or an unrecoverable failure occurs. A routine event such as a saved file, completed build, captured error, dependency change, or successful worker response must not end the task; it must advance the applicable continuation trigger and validation path. Physical process, memory, disk, and concurrency pressure causes adaptation, throttling, or checkpointing per §72; token, cost, request, and elapsed-time telemetry is informational and causes no execution change; retry thresholds are policy—none is a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
 
 The final task result must expose the requested goal, changed files, checkpoints, worker activity, commands, validation evidence, tests, builds, screenshots or device results where relevant, warnings, blockers, unresolved conditions, resource usage, and the final completion classification. The user should be able to reopen each evidence item from the result.
 
@@ -2054,7 +2056,7 @@ Autonomy is a capability ladder, not a model personality claim. Each level is ac
 |---|---|---|
 | `ASSISTED` | The system proposes plans and changes while the user initiates each meaningful action | Intent, authority, workspace, and validation records |
 | `SUPERVISED` | The system executes approved local work continuously while policy boundaries remain visible | Background execution, worker, trigger, and evidence records |
-| `UNATTENDED_LOCAL` | The system continues routine Android work without per-step clicks under an explicit policy profile | Budgeted autonomy, trusted extensions, context governance, and recovery evidence |
+| `UNATTENDED_LOCAL` | The system continues routine Android work without per-step clicks under an explicit policy profile | Resource-aware autonomy, trusted extensions, context governance, and recovery evidence |
 | `ADAPTIVE_RECOVERY` | The system diagnoses failures, changes strategy, repairs, and revalidates without blind retries | Failure fingerprints, specialist gates, reconciliation, and runtime evidence |
 | `CERTIFIED_AUTONOMY` | The system satisfies the declared Android goal and delivery conditions with complete provenance | Runtime integrity, preview, validation, signing, artifact, and completion decisions |
 
@@ -2726,13 +2728,13 @@ Nirman MUST provide a separate live `ReasoningStream` so the user can see what t
 | `EVIDENCE` | Report proof collected | “Reminder instrumentation test passed on the API 35 emulator.” |
 | `NEXT_STEP` | State the immediate planned continuation | “Running accessibility and visual validation next.” |
 | `WAITING` | Explain a blocked or waiting condition | “Waiting for the Nirman-managed local Android emulator to reconnect.” |
-| `DELIBERATION` | Show that the runtime entered bounded additional reasoning | “Deep deliberation started because two competing hypotheses remain unresolved.” |
-| `EFFORT` | Show requested versus granted effort | “Requested DEEP; granted DEEP within the task policy and remaining budget.” |
+| `DELIBERATION` | Show that the runtime entered additional progress-governed reasoning | “Deep deliberation started because two competing hypotheses remain unresolved.” |
+| `EFFORT` | Show requested versus granted effort | “Requested DEEP; granted DEEP within the task policy and available execution capacity.” |
 | `HYPOTHESIS` | Show competing diagnostic candidates | “Three plausible causes remain.” |
 | `REFUTATION` | Show evidence that eliminated a hypothesis | “The discriminating test ruled out the dependency-initialization hypothesis.” |
 | `MODEL_ESCALATION` | Show a provider/model capability change | “Escalating to the approved reasoning-capable model because uncertainty remained above threshold.” |
 | `NO_PROGRESS` | Show why the current reasoning approach stopped | “Further reasoning produced no measurable movement; gathering new evidence.” |
-| `DELIBERATION_RESUMED` | Show continuation after compaction/failover | “Resumed deliberation with two rejected hypotheses and remaining budget intact.” |
+| `DELIBERATION_RESUMED` | Show continuation after compaction/failover | “Resumed deliberation with two rejected hypotheses and evidence state intact.” |
 | `COMPLETION` | Summarize validated output | "APK passed the required gates; optional AAB passed only when the declared packaging profile requires it." |
 
 Every event MUST contain a concise title, human-readable summary, event sequence, session/task/worker IDs, project revision, timestamp, status, provenance references, and evidence IDs when applicable.
@@ -3294,7 +3296,7 @@ ContextPackage
 - evidenceFrontier
 - uncertainties
 - failureFingerprints
-- budgetAllocation
+- capacityAllocation
 - selectionReasons
 - omittedForCapacity
 - cacheReferences
@@ -3342,7 +3344,7 @@ WorkingSet
 - evidence anchors
 ```
 
-`required context` contains locked decisions, active constraints, target-platform invariants, and mandatory evidence contracts. **Required context can never be evicted.** When total context exceeds the provider's token budget, the `WorkingSetPlanner` evicts or compacts historical and supporting context in accordance with `ContextCachePolicy`, never required context.
+`required context` contains locked decisions, active constraints, target-platform invariants, and mandatory evidence contracts. **Required context can never be evicted.** When total context exceeds the provider's context capacity, the `WorkingSetPlanner` evicts or compacts historical and supporting context in accordance with `ContextCachePolicy`, never required context.
 
 ### 53.6 Evidence Frontier
 
@@ -3942,7 +3944,7 @@ CandidateBranch
 - parentRevision
 - approach
 - isolatedWorkspace
-- resourceBudget
+- resourceRequirements
 - validationPlan
 - outcome: pending | validated | failed | abandoned
 - comparableMetrics
@@ -4137,8 +4139,8 @@ DelegationGrant
 - depth
 - maxDepth
 - capabilityCeiling
-- resourceBudget
-- timeBudget
+- resourceRequirements
+- executionTimeout
 - workspaceScope
 - terminationPolicy
 ```
@@ -4146,11 +4148,11 @@ DelegationGrant
 Two invariants bind every grant:
 
 ```text
-ChildCapabilityCeiling  ⊆  ParentCapabilityCeiling
-ChildResourceBudget     ≤  ParentRemainingResourceBudget
+ChildCapabilityCeiling     ⊆  ParentCapabilityCeiling
+ChildResourceRequirements  ⊆  ParentAdmissibleResourceCapacity
 ```
 
-These are restrictions on delegation, not grants of permission. A child may hold strictly less than its parent and never more, and the sum of outstanding child budgets may never exceed the parent's remaining budget. A delegation request violating either invariant is denied and recorded.
+These are restrictions on delegation, not grants of permission. A child may hold strictly less than its parent and never more, and the aggregate outstanding child resource reservations may never exceed the parent's admissible resource capacity. `resourceRequirements` are physical (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency) and are evaluated by runtime resource integrity (§72); `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. A delegation request violating either invariant is denied and recorded.
 
 Depth and fan-out are bounded. A grant exceeding `maxDepth`, exceeding the configured child limit, or requesting a workspace outside the parent's scope is denied.
 
@@ -4329,13 +4331,13 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.SPECULATION | BS §65 | — | TA §51, TA §65 | ADR-156 | M92 | INTERNAL |
 | CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | — | — | — | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.COST_GOVERNANCE | BS §72 | — | TA §77 | ADR-197 | M111 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M120 | CROSS_CUTTING |
@@ -4395,8 +4397,9 @@ M93 must verify the contract graph programmatically rather than by inspection. T
 | Reverse break | Evidence, test, milestone, or ADR resolves to no capability or class |
 | Orphan contract | A contract is neither capability-reachable nor classified |
 | Canonical identity | A cross-document reference resolves to the wrong semantic object (INVARIANT.DOCUMENTATION.CANONICAL_IDENTITY) |
+| Section ownership | The deliberation section (§68) has other than exactly one authoritative owner (`CONTRACT.RUNTIME.DELIBERATION`) or other than exactly one declared extension (of `CONTRACT.RUNTIME.REASONING`) |
 
-The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all eleven checks in both traversal directions.
+The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve checks in both traversal directions.
 
 
 ### 67.12 Clause Registry
@@ -4408,7 +4411,7 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.MEMORY.SCOPES | CONTRACT.RUNTIME.MEMORY | §38 | session, project, runtime_improvement, credential | SEALED |
 | CLAUSE.MEMORY.RETENTION_AUTHORITY | CONTRACT.RUNTIME.MEMORY | §38 | retention and deletion are user-controlled per entry | SEALED |
 | CLAUSE.MEMORY.SECRET_EXCLUSION | CONTRACT.RUNTIME.MEMORY | §38 | credentials, signing keys, raw secrets never enter semantic memory | SEALED |
-| CLAUSE.CONTEXT.CONSTRAINT_PRIORITY | CONTRACT.RUNTIME.CONTEXT | §53 | active constraints and locked decisions are never evicted for budget | SEALED |
+| CLAUSE.CONTEXT.CONSTRAINT_PRIORITY | CONTRACT.RUNTIME.CONTEXT | §53 | active constraints and locked decisions are never evicted for capacity | SEALED |
 | CLAUSE.CONTEXT.SOURCE_REQUIRED | CONTRACT.RUNTIME.CONTEXT | §53 | a memory record requires a non-empty source event set | SEALED |
 | CLAUSE.WORKSPACE.SINGLE_WRITER | CONTRACT.RUNTIME.WORKSPACE | §22 | one worker holds write ownership of a workspace path at a time | SEALED |
 | CLAUSE.RESERVATION.GRANT_AUTHORITY | CONTRACT.RUNTIME.RESERVATION | §54 | only the deterministic runtime grants, revokes, or invalidates a reservation | SEALED |
@@ -4445,15 +4448,15 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.REASONING.NO_AUTHORITY | CONTRACT.RUNTIME.REASONING | §66 | reasoning proposes and never decides mutation, permission, evidence, or promotion | SEALED |
 | CLAUSE.REASONING.AGENT_INVOCATION | CONTRACT.RUNTIME.REASONING | §66 | every autonomous capability is agent-invocable and the interface owns none | SEALED |
 | CLAUSE.REASONING.CHILD_CAPABILITY_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child capability ceiling is a subset of its parent ceiling | SEALED |
-| CLAUSE.REASONING.CHILD_RESOURCE_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child resource budget never exceeds the parent remaining budget | SEALED |
+| CLAUSE.REASONING.CHILD_RESOURCE_CEILING | CONTRACT.RUNTIME.REASONING | §66 | child resource requirements never exceed the parent's currently admissible resource capacity | SEALED |
 | CLAUSE.REASONING.HYPOTHESIS_EVIDENCE | CONTRACT.RUNTIME.REASONING | §66 | a rejected hypothesis is retained with its refuting evidence | SEALED |
 | CLAUSE.REASONING.MODE_WITHIN_POLICY | CONTRACT.RUNTIME.REASONING | §66 | execution mode is agent-selected and never raises a permission ceiling | SEALED |
 | CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | no app archetype, framework, or template is presented as a required user-facing choice; the resolver infers the Android implementation from evidence | SEALED |
 | CLAUSE.PROMPT_CONTRACT.NO_FAKE_EXECUTION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | prompt and UI layers never label PREDICTED, SIMULATED, REQUESTED, STALE, or INVALIDATED states as VERIFIED, OBSERVED, running, passed, completed, or verified | SEALED |
 | CLAUSE.PROMPT_CONTRACT.VERIFIED_ONLY_COMPLETION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | only an independent validator or a supervised observation may produce completion evidence; model statements, predictions, and simulations are proposals | SEALED |
-| CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET | CONTRACT.RUNTIME.DELIBERATION | §68 | the agent requests reasoning effort; only the runtime grants it | SEALED |
+| CLAUSE.DELIBERATE.RUNTIME_GRANTS_EFFORT | CONTRACT.RUNTIME.DELIBERATION | §68 | the agent requests reasoning effort; only the runtime grants it, from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity, and AI usage is not an authorization budget | SEALED |
 | CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE | CONTRACT.RUNTIME.DELIBERATION | §68 | stated model confidence is never sufficient grounds to proceed | SEALED |
-| CLAUSE.DELIBERATE.EVIDENCE_PRODUCING | CONTRACT.RUNTIME.DELIBERATION | §68 | consecutive observation-free passes are bounded and force evidence acquisition | SEALED |
+| CLAUSE.DELIBERATE.EVIDENCE_PRODUCING | CONTRACT.RUNTIME.DELIBERATION | §68 | an observation-free pass is an evidence-acquisition trigger that forces evidence acquisition or an approach change, never a termination condition or a fixed pass ceiling | SEALED |
 | CLAUSE.DELIBERATE.CRITIC_NO_MUTATION | CONTRACT.RUNTIME.DELIBERATION | §68 | the adversarial critic produces findings and never mutates the project | SEALED |
 | CLAUSE.DELIBERATE.ESCALATION_NOT_AUTHORITY | CONTRACT.RUNTIME.DELIBERATION | §68 | model escalation never widens the permission ceiling | SEALED |
 | CLAUSE.DELIBERATE.CONTINUATION_DURABLE | CONTRACT.RUNTIME.DELIBERATION | §68 | compaction preserves active hypotheses and rejected strategies | SEALED |
@@ -4473,11 +4476,12 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | an event may update only a compatible preview identity and revision | SEALED |
 | CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | every preview operation that performs build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work has exactly one execution surface: `AndroidBuildAdapter` for build and artifact operations or `AndroidDeviceAdapter` for device and runtime operations; the `AndroidTechnologyAdapter` resolves those authorities and MUST NOT execute their concrete operations itself; every emitted `PreviewSyncEvent` and corresponding `PreviewSyncEvidenceRecord` MUST carry the `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` | SEALED |
 | CLAUSE.PREVIEW_SYNC.MODE_RESOLVER | CONTRACT.RUNTIME.PREVIEW_SYNC | §71 | the `PreviewRevision.previewMode` is selected only by the deterministic resolver defined in technical architecture §73.11; a model, worker, UI, or prompt MUST NOT select the preview mode directly | SEALED |
-| CLAUSE.COST.EXHAUSTION_EXPLICIT | CONTRACT.RUNTIME.COST_GOVERNANCE | §72 | cost budget exhaustion produces explicit degradation, safe failure, or approval, never false completion | SEALED |
+| CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | §72 | AI usage telemetry never authorizes, denies, throttles, degrades, terminates, pauses, or completes work | SEALED |
+| CLAUSE.RESOURCE.ADAPT_BEFORE_BLOCK | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | §72 | physical pressure is answered by queueing, concurrency reduction, scheduling, checkpointing, serialization, reclamation, and recovery before any blocking outcome, and blocking never becomes completion | SEALED |
 | CLAUSE.TRUST.SCAN_BEFORE_EXECUTION | CONTRACT.RUNTIME.AGENT_TRUST | §73 | untrusted skill, MCP, plugin, or instruction content cannot execute before trust assessment and policy admission | SEALED |
 | CLAUSE.TRUST.REVOCATION_WINS | CONTRACT.RUNTIME.AGENT_TRUST | §73 | revocation or policy denial invalidates future invocation even when a prior scan passed | SEALED |
 | CLAUSE.CONTEXT.POLICY_VISIBLE | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | compaction, cache use, exclusion, redaction, and telemetry policy are recorded and visible to runtime governance | SEALED |
-| CLAUSE.CONTEXT.CONSTRAINT_PRESERVED | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | active constraints, locked decisions, evidence lineage, and required source context are never evicted for budget | SEALED |
+| CLAUSE.CONTEXT.CONSTRAINT_PRESERVED | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | §74 | active constraints, locked decisions, evidence lineage, and required source context are never evicted for capacity | SEALED |
 | CLAUSE.INTEGRITY.APPLICABILITY_EXPLICIT | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | unsupported or unconfigured integrity signals are recorded as not applicable or unavailable, never as passes | SEALED |
 | CLAUSE.INTEGRITY.RUNTIME_SIGNALS_SEPARATE | CONTRACT.RUNTIME.ANDROID_INTEGRITY | §75 | ANR, battery, Doze, Play Integrity, and device signals remain separate observations with independent evidence | SEALED |
 | CLAUSE.FCP.AUTHORIZED_COMMANDS | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | §76 | every UI command is authenticated, project-scoped, capability-checked, and admitted by the control plane before execution | SEALED |
@@ -4564,11 +4568,11 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.SPECULATION | CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §51 | TA §65.4 | BS §65 | TA §51.1 | TA §65.6 | ADR-156 | M92 | TEST-VER-001 | EV-VER-001 |
 | CONTRACT.RUNTIME.SKILL | CAP.ANDROID.SKILL_WORKFLOW | BS §23 | BS §23 | TA §19 | TA §19.1 | BS §23 | TA §19.1 | TA §19.1 | ADR-154 | M66 | TEST-SKL-001 | EV-SKL-001 |
 | CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
-| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184 | M95 | TEST-DEL-001 | EV-DEL-001 |
+| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | TEST-DEL-001 | EV-DEL-001 |
 | CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
-| CONTRACT.RUNTIME.COST_GOVERNANCE | CAP.ANDROID.BUDGETED_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-197 | M111 | TEST-COST-001 | EV-COST-001 |
+| CONTRACT.RUNTIME.RESOURCE_INTEGRITY | CAP.ANDROID.RESOURCE_AWARE_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-218 | M111 | TEST-RESOURCE-001 | EV-RESOURCE-001 |
 | CONTRACT.RUNTIME.AGENT_TRUST | CAP.ANDROID.TRUSTED_EXTENSIONS | BS §73 | BS §73 | TA §78 | TA §78.1 | BS §73 | TA §78.2 | TA §78.3 | ADR-198 | M112 | TEST-TRUST-001 | EV-TRUST-001 |
 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
@@ -4616,7 +4620,7 @@ A row with an empty cell is a forward break. A referenced section, subsection, A
 - authoritySection: §66
 - extendingSection: §68
 - extensionType: adds_clauses
-- extendedClauses: CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET, CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE, CLAUSE.DELIBERATE.EVIDENCE_PRODUCING, CLAUSE.DELIBERATE.CRITIC_NO_MUTATION, CLAUSE.DELIBERATE.ESCALATION_NOT_AUTHORITY, CLAUSE.DELIBERATE.CONTINUATION_DURABLE, CLAUSE.DELIBERATE.DIMINISHING_RETURN, CLAUSE.DELIBERATE.CAUSAL_ESCALATION, CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS
+- extendedClauses: CLAUSE.DELIBERATE.RUNTIME_GRANTS_EFFORT, CLAUSE.DELIBERATE.SUFFICIENCY_NOT_CONFIDENCE, CLAUSE.DELIBERATE.EVIDENCE_PRODUCING, CLAUSE.DELIBERATE.CRITIC_NO_MUTATION, CLAUSE.DELIBERATE.ESCALATION_NOT_AUTHORITY, CLAUSE.DELIBERATE.CONTINUATION_DURABLE, CLAUSE.DELIBERATE.DIMINISHING_RETURN, CLAUSE.DELIBERATE.CAUSAL_ESCALATION, CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS
 - nonOverriddenClauses: CLAUSE.REASONING.ARTIFACT_ONLY, CLAUSE.REASONING.NO_AUTHORITY, CLAUSE.REASONING.AGENT_INVOCATION, CLAUSE.REASONING.MODE_WITHIN_POLICY, CLAUSE.REASONING.CHILD_CAPABILITY_CEILING, CLAUSE.REASONING.CHILD_RESOURCE_CEILING, CLAUSE.REASONING.HYPOTHESIS_EVIDENCE
 
 This section extends §66 (the reasoning cycle) and §52 (the kernel loop). §66 remains the authority on what the reasoning cycle is and on the private-reasoning boundary. §52 remains the authority on the loop and on progress evaluation. This section adds how much reasoning the runtime performs before selecting an action. It defines no third loop and no new authority.
@@ -4627,7 +4631,7 @@ This section extends §66 (the reasoning cycle) and §52 (the kernel loop). §66
 
 Without that contract, a single model response becomes the unit of intelligence. The agent produces a plausible strategy, executes it, and discovers the problem was misdiagnosed — repeatedly, because nothing required it to test a competing explanation first. Difficult Android defects are lost this way: a blank screen has four plausible causes, and guessing costs more than discriminating.
 
-This section makes deliberation effort an explicit, budgeted, evidence-producing runtime activity.
+This section makes deliberation effort an explicit, runtime-granted, progress-governed, evidence-producing runtime activity. It carries no AI-usage budget: tokens, provider requests, monetary cost, reasoning tokens, pass counts, and elapsed duration are telemetry and never decide whether deliberation continues.
 
 ### 68.2 Deliberation boundary
 
@@ -4646,6 +4650,7 @@ DeliberationRecord
 - question: text
 - passCount: int
 - toollessPassCount: int
+- evidenceAcquisitionTriggers: { pass, trigger }[]
 - hypothesesConsidered: hypothesisId[]
 - hypothesesRejected: hypothesisId[]
 - evidenceAcquired: evidenceRef[]
@@ -4678,7 +4683,7 @@ DeliberationRecord
 
 A record whose `passCount` exceeds one must contain one `continuationReasons` entry for each additional pass. Continuation without a stated reason is not admissible. Each continuation reason must identify the condition that justified another pass. This prevents unbounded thinking presented as diligence.
 
-The runtime must never fabricate provider-reported reasoning usage. If the provider does not expose reasoning-token usage, the record must state `estimated` or `unavailable` in `accountingStatus`. Estimates are telemetry only and cannot satisfy a sufficiency or certification requirement.
+The runtime must never fabricate provider-reported reasoning usage. If the provider does not expose reasoning-token usage, the record must state `estimated` or `unavailable` in `accountingStatus`. Estimates are telemetry only and cannot satisfy a sufficiency or certification requirement. `reasoningUsage`, `resourceUsage`, `passCount`, and `toollessPassCount` are observational: no component may read them to authorize, deny, throttle, pause, or terminate a pass. `evidenceAcquisitionTriggers` records each observation-free pass that raised an `EvidenceAcquisitionTrigger` and what the following pass did about it.
 
 This schema is the single canonical `DeliberationRecord` representation; the technical architecture (TA §72.3) implements this exact field set and must not invent alternative representations of any field.
 
@@ -4695,7 +4700,7 @@ At the `HYPOTHESIZE` and `STRATEGIZE` states of the §66.3 cycle, the runtime mu
 | BRANCH | Competing strategies are comparable and should be tried per §65 |
 | ESCALATE | The question requires a human decision |
 
-Inputs to the decision are goal and requirement uncertainty, hypothesis confidence spread, strategy disagreement, assessed risk, failure history for the surface, available validation evidence, architectural impact, change-surface size, current evidence state, execution progress, resource availability, provider capability, and task criticality.
+Inputs to the decision are goal and requirement uncertainty, hypothesis confidence spread, strategy disagreement, assessed risk, failure history for the surface, available validation evidence, architectural impact, change-surface size, current evidence state, execution progress, available execution capacity, provider capability, and task criticality. AI usage is not an input.
 
 ### 68.4 Deliberation continuity
 
@@ -4720,7 +4725,7 @@ This is a progress/liveness rule, not a usage budget.
 
 ### 68.5 The runtime grants the effort level
 
-The agent may request an effort level. It may never grant its own. The deterministic runtime decides the granted level from the request, policy, host resource integrity, provider capability, and task risk, and records the decision.
+The agent may request an effort level. It may never grant its own. The deterministic runtime selects the granted level from the task requirements, uncertainty, assessed risk, provider capability, policy, and available execution capacity (physical resource integrity, §72), and records the decision. AI usage — tokens, requests, monetary cost, reasoning tokens — is telemetry and is never an input to the grant; there is no remaining-budget input and no authorization budget.
 
 A request exceeding what policy or capacity permits is downgraded to the highest permitted level and recorded, never denied silently and never satisfied beyond the ceiling. This is the §33 authority principle applied to reasoning effort: the model proposes how hard to think; the runtime decides.
 
@@ -4728,7 +4733,7 @@ Every grant above the task's baseline level must record the observed condition t
 
 Native provider reasoning and runtime deliberation are separate resources.
 
-Provider-native reasoning increases computation within one model request. Runtime deliberation increases the number of bounded reasoning/evidence iterations across requests. Either may be used independently or together. Provider capability is an available capability, not an intelligence ceiling.
+Provider-native reasoning increases computation within one model request. Runtime deliberation increases the number of progress-governed reasoning/evidence iterations across requests. Either may be used independently or together. Provider capability is an available capability, not an intelligence ceiling.
 
 The runtime must never treat a provider's native reasoning effort as proof that runtime deliberation occurred.
 
@@ -4737,7 +4742,7 @@ The runtime must never treat a provider's native reasoning effort as proof that 
 | Level | Applies when | Bound |
 |---|---|---|
 | NORMAL | Routine change on a familiar surface | Single pass, no escalation |
-| EXTENDED | Uncertainty remains after the first pass | Bounded additional passes with evidence acquisition |
+| EXTENDED | Uncertainty remains after the first pass | Additional passes while progress continues, with evidence acquisition on every observation-free signal |
 | DEEP | Competing hypotheses persist, or the change is high-risk | Hypothesis competition and adversarial critique required |
 | EXHAUSTIVE | High-risk architectural or destructive change unresolved at DEEP | Candidate branching or escalation required at termination |
 
@@ -4747,11 +4752,11 @@ The levels are behavioral contracts, not model-name aliases:
 
 ```text
 NORMAL
-    one bounded reasoning pass.
+    one reasoning pass.
 
 EXTENDED
-    additional bounded passes are permitted when uncertainty remains,
-    with evidence acquisition required at the configured observation-free bound.
+    additional passes are permitted while uncertainty remains and progress
+    continues; an observation-free pass raises EvidenceAcquisitionTrigger.
 
 DEEP
     competing hypotheses, discriminating tests, refutation attempts, and
@@ -4782,7 +4787,7 @@ For a high-risk architectural change the required evidence set must include arch
 
 Deliberation is interleaved with observation rather than separated from it. A pass may read code, search symbols, inspect the impact graph, run a diagnostic, query the environment, or execute a discriminating test, then reason over what it observed.
 
-Consecutive passes that acquire no new observation must be counted against `maxToollessPasses`, and reaching that bound forces `GATHER_EVIDENCE` or termination. Evidence acquisition during deliberation is read-only or explicitly non-mutating: deliberation must not mutate project source, and a diagnostic that would mutate requires the ordinary authorization path of §66.7.
+A pass that acquires no new observation raises an `EvidenceAcquisitionTrigger`: the next pass MUST acquire evidence, change hypothesis or strategy, delegate, branch, or escalate rather than reason again over the same observation set, and the trigger and its resolution are recorded in `evidenceAcquisitionTriggers`. The trigger is a signal to obtain evidence, never a termination condition; no fixed observation-free pass ceiling exists, and no component may hardcode one. Anti-thrash protection comes from `DiminishingReturnDetector`, `RepeatedFailureDetector`, and `StrategyChangeRequired` (§68.13), not from a pass count. Evidence acquisition during deliberation is read-only or explicitly non-mutating: deliberation must not mutate project source, and a diagnostic that would mutate requires the ordinary authorization path of §66.7.
 
 ### 68.9 Hypothesis competition
 
@@ -4814,11 +4819,11 @@ Each pass must record measurable movement: uncertainty change, evidence added, h
 
 `diminishingReturnThreshold` is configuration. No component may hardcode a pass count for `NO_PROGRESS`; the classification is a function of the configured threshold, the measured movement, and consecutive-pass semantics. A runtime whose behavior does not change with the configured value has not implemented detection.
 
-On `NO_PROGRESS` the runtime must acquire evidence, escalate the model, branch candidates, delegate, or escalate to a human decision. Continuing to reason without one of those changes is prohibited. This connects to the stall detection of §29.4 and the progress evaluation of §52.3, which remain the authorities on task-level stall; this section governs stall within a single deliberation.
+On `NO_PROGRESS` the runtime must acquire evidence, escalate the model, branch candidates, delegate, or escalate to a human decision. Continuing to reason without one of those changes is prohibited. `RepeatedFailureDetector` classifies a strategy retried against unchanged evidence, uncertainty, and constraints as `StrategyChangeRequired`; the runtime must then change strategy, acquire evidence, delegate, branch, or escalate. These detectors, not a pass count or usage figure, are the only anti-thrash mechanisms. This connects to the stall detection of §29.4 and the progress evaluation of §52.3, which remain the authorities on task-level stall; this section governs stall within a single deliberation.
 
 ### 68.14 Termination
 
-Every deliberation terminates in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`.
+Every deliberation terminates in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`. No outcome exists for AI-usage exhaustion: tokens, requests, monetary cost, reasoning tokens, pass counts, and elapsed autonomous-goal duration are never termination conditions. Deliberation ends by checkpointing its session and returning control to the kernel.
 
 `NO_PROGRESS` must never be reported as sufficiency, and must never silently permit execution of the leading strategy as though it had been validated. Terminating without sufficiency yields a cycle termination state of `WAITING`, `SAFELY_FAILED`, or `ESCALATED` per §66.4.
 
@@ -4833,7 +4838,7 @@ SkillDeliberationProfile
 - requiredEvidenceKinds
 - requiredCritique: true | false
 - preferredModelCapabilities
-- maxDeliberationCost
+- requiredExecutionCapacity
 - allowedDelegation
 - failureStrategies
 ```
@@ -4842,7 +4847,7 @@ A skill for a data-layer migration may require DEEP effort with schema analysis,
 
 ### 68.16 Acceptance criteria
 
-The deliberation contract is satisfied only when an agent request for a higher effort level is granted, downgraded, or denied by the runtime and never self-granted; when each additional pass records a reason for continuation; when consecutive observation-free passes are bounded and force evidence acquisition; when a high-risk change cannot proceed on stated confidence while a required evidence element is missing; when competing hypotheses are refuted by discriminating tests rather than confirmed by preference; when an adversarial critique produces findings without mutating the project; when no project mutation occurs anywhere between deliberation entry and the authorization grant; when every escalation records the observed condition that caused it; when a stronger model inherits the identical permission ceiling; when a deliberation session survives context compaction with its hypotheses and rejected strategies intact; when diminishing returns force a change of approach rather than further reasoning; and when a deliberation that ends without sufficiency never presents its leading strategy as validated.
+The deliberation contract is satisfied only when an agent request for a higher effort level is granted, downgraded, or denied by the runtime and never self-granted; when each additional pass records a reason for continuation; when an observation-free pass raises an evidence-acquisition trigger and the following pass acquires evidence or changes approach rather than reasoning again over the same observations; when no deliberation is terminated, paused, throttled, or downgraded because of token, request, monetary, reasoning-token, pass-count, or elapsed-duration usage while progress remains possible; when a high-risk change cannot proceed on stated confidence while a required evidence element is missing; when competing hypotheses are refuted by discriminating tests rather than confirmed by preference; when an adversarial critique produces findings without mutating the project; when no project mutation occurs anywhere between deliberation entry and the authorization grant; when every escalation records the observed condition that caused it; when a stronger model inherits the identical permission ceiling; when a deliberation session survives context compaction with its hypotheses and rejected strategies intact; when diminishing returns force a change of approach rather than further reasoning; and when a deliberation that ends without sufficiency never presents its leading strategy as validated.
 
 ## References
 
@@ -5392,20 +5397,34 @@ The fixture must also inject duplicate events, out-of-order events, missing even
 13. A contradictory current runtime observation reconciles a compatible persisted projection, while an incompatible observation becomes stale or invalidated instead of being merged.
 14. The panel can answer why a displayed running or validated claim is current by exposing its event range, projection revision, preview revision, runtime session, emulator identity, artifact fingerprint, evidence references, validation references, and promotion or completion decision references.
 
-## 72. Cost Governance Authority
+## 72. Runtime Resource Integrity Authority
 
-**ContractId:** `CONTRACT.RUNTIME.COST_GOVERNANCE`
-**Registry role:** authoritative definition of `CONTRACT.RUNTIME.COST_GOVERNANCE`
+**ContractId:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
+**Registry role:** authoritative definition of `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
 
-Cost governance is a deterministic policy authority placed beside permission and resource policy. In Nirman, cost governance operates as runtime resource integrity: it governs token budgets, provider request budgets, duration, CPU, memory, disk, emulator, and estimated monetary cost without turning ordinary budget thresholds into false completion, and without terminating, degrading, or blocking valid engineering tasks based on cumulative token or request usage.
+Runtime resource integrity is the deterministic adaptive runtime authority over the physical resources that autonomous Android work consumes: CPU, memory, disk and storage, process count and process health, emulator slots, workspace I/O, concurrency, network availability, and process liveness. It sits beside permission policy and below safety, privacy, signing, evidence, and completion authority, none of which it can override.
 
-Nirman protects host, workspace, process, and emulator stability. The canonical `CostGovernanceRecord` contains `budgetId`, `taskId`, `sessionId`, `policyVersion`, `tokenBudget`, `requestBudget`, `durationBudget`, `resourceBudgets`, `costCap`, `reservedUsage`, `settledUsage`, `usageEventIds`, `remainingBudget`, `exhaustionOutcome`, `degradationPolicy`, `approvalPolicy`, and `evidenceIds`. The `durationBudget` defaults to no artificial completion limit; exhaustion follows CLAUSE.COST.EXHAUSTION_EXPLICIT. `costCap` remains optional with no default value. Every operation reserves usage before execution and settles actual or provider-reported usage afterward; unknown usage remains unreconciled until resolved.
+Five kinds of signal are distinguished and must never be conflated:
 
-Budget exhaustion must produce one explicit outcome: reduce context, reduce concurrency, change an approved model or provider, pause for approval, continue under a renewed policy, safely fail, or degrade the task classification. Exhaustion cannot silently authorize a broader permission, discard required evidence, or mark a goal complete. Under resource pressure, the authority prefers queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, and resource reclamation before safe failure. The authority hierarchy is policy authority, then cost governance for resource admission, then operation capability and lifecycle authority; cost governance cannot override safety, privacy, signing, evidence, or completion authority.
+| Signal | Classification | Authority |
+|---|---|---|
+| AI usage — tokens, provider requests, monetary cost, reasoning tokens, reasoning passes, elapsed autonomous-goal duration | Telemetry only | None. Recorded, displayed, and attributed; never an execution control |
+| Physical runtime resources — CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency, network, liveness | Adaptive runtime authority | This contract |
+| Provider context window | Technical capacity | `ContextCapacityPlanner` (TA §59) fits context to it; it is capacity, not cost |
+| Policy — permissions, user decisions, safety and privacy boundaries | Permission authority | §33 and the policy engine |
+| Evidence | Truth and completion authority | §37 |
+
+AI usage telemetry MUST NOT authorize, deny, throttle, degrade, terminate, pause, or complete work. No component may hold a token, request-count, monetary, reasoning-token, reasoning-pass, or autonomous-goal-duration budget with execution-authority semantics, and no canonical record carries one. A user MAY declare an explicit policy stop condition (§27.10); it is evaluated by policy authority as a user decision, is never created by the runtime, is off by default, and does not make usage an execution authority.
+
+The canonical `ResourceIntegrityRecord` contains `integrityRecordId`, `taskId`, `sessionId`, `policyVersion`, `resourceRequirements`, `admittedCapacity`, `observedPressure`, `providerContextCapacity`, `livenessState`, `pressureResponse`, `usageTelemetryRefs`, `recoveryRefs`, and `evidenceIds`. `resourceRequirements` declares the physical resources the work needs (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency, network); `admittedCapacity` records what the authority admitted against; `observedPressure` carries the measured physical pressure per dimension; `providerContextCapacity` records the selected provider's actual context window; `livenessState` is `LIVE | SLOW | HUNG | CONTAINED`; `pressureResponse` is `NONE | QUEUED | CONCURRENCY_REDUCED | RESCHEDULED | CHECKPOINTED | SERIALIZED | RECLAIMED | RECOVERED | BLOCKED_NO_SAFE_PATH`; `usageTelemetryRefs` reference `UsageRecord`s and are observational. No field carries an AI-usage ceiling, reservation, remaining budget, or exhaustion outcome.
+
+Admission is physical: work is admitted when its `resourceRequirements` fit currently admissible capacity, and it waits, is rescheduled, or runs at reduced concurrency when they do not. Under physical pressure the authority MUST apply responses in this order before any blocking outcome: queueing → concurrency reduction → scheduling → checkpointing → work serialization → cache and resource reclamation → recovery. Physical exhaustion blocks work only when no safe path remains, and `BLOCKED_NO_SAFE_PATH` is recorded with the exhausted dimension, the responses attempted, and the preserved checkpoint. A blocked task retains its last checkpoint and event log and resumes when capacity returns; blocking is never reported as completion, never widens permission, and never discards required evidence.
+
+Liveness protection is part of resource integrity. A hung provider request, tool, build, or emulator operation MAY be contained or restarted by a liveness timeout scoped to that operation; a liveness timeout MUST NOT terminate a healthy goal for elapsed time. Provider concurrency limits are external technical capacity and are handled as capacity, not as an AI-usage quota.
 
 ### 72.1 Acceptance criteria
 
-A fixture (`TEST-COST-001` yielding `EV-COST-001`) must prove reservation, settlement, provider-reported or estimated usage, cap exhaustion, adaptive degradation, renewal approval, cancellation, unknown-outcome reconciliation, and truthful completion classification.
+A fixture (`TEST-RESOURCE-001` yielding `EV-RESOURCE-001`) must prove physical admission against declared `resourceRequirements`, adaptive concurrency under CPU and memory pressure, backpressure and queueing when workers exceed admissible capacity, cache and resource reclamation before any blocking outcome, process and emulator protection, liveness containment of a hung operation without terminating the healthy goal, checkpoint preservation across a `BLOCKED_NO_SAFE_PATH` outcome, recovery and resumption when capacity returns, and the absence of AI-usage authority: a fixture task consuming arbitrarily many tokens, provider requests, reasoning passes, and hours continues unaffected while physical capacity and progress remain.
 
 ## 73. Agent Trust Boundary Authority
 
@@ -5923,7 +5942,7 @@ Workspace roots MUST be allocated under a short deterministic prefix (pattern `C
 
 ### 79.15 Host security-software interference
 
-Preflight MUST detect active real-time scanning over the workspace root, Gradle home, and toolchain directory, and record it in `EnvironmentCapabilityRecord`. Requesting exclusions is `USER_REQUIRED` and MUST be an explicit consented action displaying the exact paths. Nirman MUST NOT modify host security policy autonomously — this is a privileged command per BS §9.3. Absent exclusions the classification is `DEGRADED` with a stated performance consequence: not a failure, and not silence. Scanner file-lock contention MUST be distinguishable from a compilation error and separately retryable, since retrying the wrong class wastes budget.
+Preflight MUST detect active real-time scanning over the workspace root, Gradle home, and toolchain directory, and record it in `EnvironmentCapabilityRecord`. Requesting exclusions is `USER_REQUIRED` and MUST be an explicit consented action displaying the exact paths. Nirman MUST NOT modify host security policy autonomously — this is a privileged command per BS §9.3. Absent exclusions the classification is `DEGRADED` with a stated performance consequence: not a failure, and not silence. Scanner file-lock contention MUST be distinguishable from a compilation error and separately retryable, since retrying the wrong class wastes time and physical resources.
 
 ### 79.16 Hypervisor availability and arbitration
 
@@ -6089,7 +6108,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.2 | "context engine should first provide the model with a small map of the relevant repository area" | MUST start with the map | Map-first is mandatory ordering, not an optimisation |
 | BS §23.2 | "It should then expand into specific files, symbols, tests, and documentation only when the task requires them" | MUST expand on demand only | Expansion requires a stated reason recorded on the task |
 | BS §23.2 | "Relevance should be ranked by dependency relationships, recent changes, user-selected files, active errors, route ownership, and acceptance criteria" | MUST rank by all six | Ranking inputs are fixed; ordering among them is implementation-defined but MUST be deterministic for a given input |
-| BS §23.2 | "This should be token-aware" | MUST enforce a token budget | Context compaction triggers at 80% of the context limit per §80.3 |
+| BS §23.2 | "This should be capacity-aware" | MUST fit the provider's actual context capacity | Context compaction triggers at 80% of the provider context limit per §80.3; capacity is technical, never a usage budget |
 | BS §23.2 | "Large logs should be compressed into error-focused summaries" | MUST compress logs | Retain error lines, surrounding 10 lines of context, and exit status; discard routine progress output |
 | BS §23.2 | "source code needed for an edit should remain available at full fidelity" | MUST NOT summarise code under edit | Files targeted for mutation are always provided verbatim |
 | BS §23.3 | "should make the agent's authority visible through explicit operating modes" | MUST implement all seven modes | Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release — per the §23.3 table |
@@ -6097,7 +6116,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.3 | "The application should display the current mode in the toolbar and in every task record" | MUST display in both places | Mode is never implicit |
 | BS §23.3 | "Switching to a less restrictive mode should be an explicit user action" | MUST require explicit user action | Nirman, a model, or a worker MUST NOT widen mode automatically. Narrowing may be automatic |
 | BS §23.4 | "The main Nirman agent should not perform every task itself" | MUST delegate | The Primary Orchestrator holds task-graph and delegation permission only, never direct edit permission |
-| BS §23.4 | "It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and budgets" | MUST give each worker all six | A worker launched without any of the six is an illegal state |
+| BS §23.4 | "It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and physical resource requirements" | MUST give each worker all six | A worker launched without any of the six is an illegal state |
 | BS §23.4 | "A worker should return a structured handoff rather than injecting all of its raw logs into the main chat" | MUST return a structured handoff | Raw logs go to evidence records, never to the main chat |
 | BS §23.4 | "The handoff should include a concise summary, evidence, files inspected, files changed, tests run, unresolved questions, and recommended next action" | MUST include all seven fields | A handoff missing any field is rejected |
 | BS §23.4 | "The orchestrator should choose swarm size using task complexity, dependency coupling, changed-file boundaries, target platforms, expected validation work, and available resources" | MUST consider all six inputs | Subject to the §26.3 concurrency ceilings, which are hard limits |
@@ -6148,9 +6167,9 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.15 | "It should attempt the smallest reasonable repair, rerun the failed check, and stop after the configured retry limit" | MUST do all three | Retry limit is 3 strategy changes per §26.3, not three identical retries |
 | BS §23.15 | "The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run" | MUST distinguish all five | "No test command was available" MUST NOT be reported as "tests passed" |
 | BS §23.16 | "should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage" | MUST show all seven when the provider exposes them | An unexposed metric shows `unavailable`; it is never estimated and presented as reported |
-| BS §23.16 | "Users should be able to set maximum task budgets" | MUST allow user budgets | Default 200-minute duration budget per §26.3 |
+| BS §23.16 | "Nirman imposes no task budget" | MUST NOT impose any token, request, monetary, or duration budget; MAY accept an explicit user-declared policy stop condition | No default budget of any kind exists; per §26.3 the only constraints are physical resource integrity, and usage telemetry has no execution-authority semantics per §72 |
 | BS §23.16 | "Nirman should provide an approximate resource forecast" before a large task | MUST forecast | Large means more than one worker or an expected duration above 20 minutes |
-| BS §23.16 | "it should continuously report usage and adapt by reducing concurrency, compacting context, routing to an approved lower-cost model, batching work, or pausing new optional work" | MUST report continuously and adapt by the five listed means | Ordinary thresholds MUST NOT terminate a goal unless the user configured them as hard limits |
+| BS §23.16 | "Adaptation — reducing concurrency, compacting context, batching work, or pausing new optional work — responds to physical resource pressure and provider context capacity, never to token, request, cost, or elapsed-time usage" | MUST report usage continuously; MUST adapt only to physical and provider-capacity signals | Token, cost, time, and request telemetry never terminates, throttles, or degrades a goal; an explicit user-declared policy stop condition is a user decision, not a runtime budget |
 | BS §23.17 | "should include a review-only workflow that analyzes a diff, branch, checkpoint, or pull request without modifying the project" | MUST provide review-only | Zero write permission for the duration |
 | BS §23.17 | "The review should prioritize correctness, security, performance, maintainability, test coverage, accessibility, and release risk" | MUST cover all seven dimensions | A dimension not assessed is reported as not assessed |
 | BS §23.17 | "A release workflow should run a clean validation pass, confirm that required metadata exists, verify that secrets are absent from the artifact, record dependency versions, generate checksums where appropriate, and provide a release report" | MUST perform all six | Checksums are required for every delivered artifact, not conditional |
@@ -6204,7 +6223,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §20 | "The system should become broadly capable by composing Android technologies from requirements" | MUST compose from requirements | Never by maintaining a template catalog |
 | BS §22.1 | "should support a Parallel Swarm Orchestrator" | MUST support parallel orchestration | Subject to §26.3 concurrency limits and §23.6 isolation requirements |
 | BS §22.2 | "should support continuous background execution for large-scale development tasks" | MUST support continuous execution | Per §77 background continuity |
-| BS §22.2 | "Ordinary thresholds should warn, throttle, optimize, or change model routing without terminating the goal" | MUST adapt, MUST NOT terminate | Only explicit hard safety limits terminate. Per CLAUSE.COST.EXHAUSTION_EXPLICIT |
+| BS §22.2 | "Runtime adaptation ... responds only to CPU, memory, disk, process, emulator, concurrency, provider-capacity, and liveness signals" | MUST adapt to physical and provider-capacity signals only; MUST NOT throttle, degrade, pause, or terminate on AI usage | Only explicit hard safety limits terminate. Per CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY |
 | BS §24 | "The capabilities above should be introduced in the following order" | MUST follow the §24 order | Ordering is a dependency constraint, not a preference |
 | BS §24 | "Nirman should not begin with unrestricted multi-agent parallelism" | MUST NOT start parallel | Single-worker reliability is a precondition |
 | BS §24 | "It should first prove that one worker can reliably inspect, plan, edit, test, and recover" | MUST prove single-worker reliability first | Demonstrated by fixture evidence, not by assertion |
@@ -6213,7 +6232,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §25 | "Nirman should optimize for verified progress, not maximum autonomous activity" | MUST optimise for verified progress | Activity without evidence is not progress and MUST NOT be reported as such |
 | BS §27.1 | "Goal Mode should support a user instruction such as 'continue until the application builds...'" | MUST support goal-until-done instructions | Across multiple agent turns and worker handoffs |
 | BS §27.1 | "The mode should continue working across multiple agent turns and worker handoffs" | MUST continue across turns | A turn boundary is never a stop condition |
-| BS §27.1 | "Ordinary resource signals should trigger adaptation rather than termination" | MUST adapt, not terminate | Only explicit hard caps, safety stops, provider policy, or OS protection may end a goal |
+| BS §27.1 | "Physical resource signals trigger adaptation rather than termination, and AI usage is telemetry only" | MUST adapt to physical pressure, MUST NOT terminate on usage | Only an explicit user-declared policy stop condition, safety stops, provider policy, or OS protection may end a goal |
 | BS §27.1 | "the user should be able to select the named Unattended / Full Autonomy profile" | MUST provide the named profile | Visible, auditable, project-scoped, easy to disable, per §23.7 |
 | BS §27.2 | "The user should be able to start a background task, continue editing another project or task, inspect progress without taking over" | MUST support all three concurrently | Inspection never suspends the task |
 | BS §27.2 | "the application should use an in-app notification and an optional operating-system notification" | MUST notify in-app; MAY notify at OS level | OS notification requires user enablement; in-app is unconditional |
@@ -6228,15 +6247,15 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §27.7 | "The recovery record should explain what changed between attempts" | MUST record the delta | An attempt with no recorded change is a repeat, not a new strategy |
 | BS §27.7 | "A task should continue through additional strategies and adaptive resource management" | MUST continue while safe strategies remain | Per §26.3, three distinct strategies, not three identical retries |
 | BS §27.7 | "It should stop only when it reaches an explicit hard safety or policy limit, an unresolvable requirement, a required user decision, or no safe recovery path" | MUST stop only on those four conditions | Each stop is classified per §27.10 |
-| BS §27.8 | "The context planner should select a mode based on provider capability, project size, task type, token budget, privacy policy, and user preference" | MUST consider all six | User preference and privacy policy are overriding, not advisory |
+| BS §27.8 | "The context planner should select a mode based on provider capability, project size, task type, provider context capacity, privacy policy, and user preference" | MUST consider all six | User preference and privacy policy are overriding, not advisory |
 | BS §27.10 | "Nirman should continue working until the goal is complete or until a defined stop condition is reached" | MUST continue to goal or defined stop | No implicit stop exists |
-| BS §27.10 | "Reaching an ordinary time, token, cost, or usage threshold should trigger adaptation or a visible warning" | MUST adapt or warn, MUST NOT auto-end | Consistent with §22.2 and CLAUSE.COST.EXHAUSTION_EXPLICIT |
+| BS §27.10 | "Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal" | MUST treat usage as telemetry; MUST NOT auto-end, pause, throttle, or degrade on it | Consistent with §22.2 and CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY; physical pressure adapts per §72 |
 | BS §27.10 | "It should present a completion classification" | MUST classify every ending | Never claim "worked until complete" when a limit or error caused the stop |
 | BS §27.11 | "The tree should show the parent goal, phases, sub-tasks, worker handoffs, commands, previews, tests, builds, security checks, and evidence" | MUST show all ten node types | Each expandable to its evidence record |
 | BS §27.11 | "the default autonomous validation loop should be" the §27.11 sequence | MUST follow the default loop | Deviation requires a recorded reason on the task |
 | BS §27.11 | "Nirman should not ask for approval for every small, reversible operation inside an approved workspace" | MUST NOT over-prompt | Reversible in-workspace operations proceed under the active profile |
 | BS §27.11 | "It should request a decision only at defined policy boundaries" | MUST request only at policy boundaries | Protected-file access, risky dependency, external directory, destructive command, network publish, signing |
-| BS §27.11 | "Ordinary time, token, cost, process, disk, and retry thresholds should cause adaptation, throttling, warning, or optional approval" | MUST adapt rather than lock completion | Not a fixed completion lock |
+| BS §27.11 | "Physical process, memory, disk, and concurrency pressure causes adaptation, throttling, or checkpointing per §72; token, cost, request, and elapsed-time telemetry is informational and causes no execution change" | MUST adapt to physical pressure; MUST NOT act on usage telemetry | Not a fixed completion lock; usage telemetry has no execution-authority semantics |
 | BS §27.11 | "The user should be able to reopen each evidence item from the result" | MUST make evidence reopenable | Every claim in a result links to its durable evidence record |
 | BS §28.2 | "The runtime should continue automatically whenever a safe new strategy is available" | MUST continue while safe strategies remain | Repeating the same command, patch, prompt, or model route is not a new attempt |
 | BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recoveries, and outcome" | MUST record all nine | For every completed, failed, recovered, cancelled, or escalated task |
@@ -6263,7 +6282,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §7.3 | "An approval request should be durable" | MUST be durable | The request survives application close, process crash, and reboot; it is re-presented on next launch; an approval request is never lost by any path other than the user deciding it or the owning task being cancelled |
 | TA §7.3 | "If the application is closed, the request should appear when Nirman reopens" | MUST re-present on reopen | The pending-approval queue is rendered before the user can start new work, and the startup summary names the count of pending decisions |
 | TA §7.4 | "Scheduled tasks should be implemented only after reliable background execution exists" | MUST NOT ship before background execution is proven | Scheduled tasks are gated behind the background-execution acceptance evidence; until that evidence exists the feature is absent from the UI rather than present and disabled |
-| TA §7.4 | "A schedule record should contain a local cron-like expression or interval, project ID, task prompt, allowed mode, maximum budget, notification policy, and whether approval is required" | MUST contain all eight fields | A schedule record missing any of the eight is rejected at creation; there is no default that fills a missing field silently |
+| TA §7.4 | "A schedule record should contain a local cron-like expression or interval, project ID, task prompt, allowed mode, resource requirements, notification policy, and whether approval is required" | MUST contain all eight fields | A schedule record missing any of the eight is rejected at creation; there is no default that fills a missing field silently |
 | TA §7.4 | "Scheduled tasks should never automatically publish, push, spend money, or use personal credentials" | MUST NOT publish, push, spend, or use personal credentials | A scheduled task's policy context denies the four categories unconditionally; the deny is unoverridable by mode, profile, or stored approval, consistent with the BS §23 rule that an explicit deny cannot be widened |
 | TA §7.5 | "The stable supervisor should register a per-user startup entry for projects with active unattended tasks" | MUST register the entry when at least one unattended task is active; MUST remove it when none remain | The entry is per-user, never machine-wide; its presence is derived from live task state rather than a one-time install action |
 | TA §7.5 | "the runtime should request an operating-system execution power policy where supported" | MUST request it during active Goal Mode work where the OS supports it; the user MAY disable it (default enabled) | The request is made only while a build, test, emulator, or provider operation is active and released when the last one ends; the setting is visible in the UI; where the OS does not support it the runtime records `unsupported` rather than claiming it was applied |
@@ -6313,7 +6332,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §24.6 | "Cancellation should be cooperative first, then terminate the local request process" | MUST attempt cooperative cancellation before termination | Termination follows only after the cooperative attempt has been issued and the client has not stopped; a cancelled request is recorded as cancelled and not as a failure unless the task cannot continue safely |
 | TA §24.6 | "Provider retries should classify authentication errors, invalid requests, rate limits, transient network failures, provider overload, context overflow, unsupported capabilities, and content-policy responses separately" | MUST classify into exactly these eight classes | Each class has its own retry decision; authentication errors, invalid requests, unsupported capabilities, and content-policy responses are not retried blindly; an unclassifiable error is surfaced rather than retried |
 | TA §24.6 | "the context planner should compact or retrieve less context instead of silently dropping required instructions" | MUST compact or narrow retrieval; MUST NOT drop required instructions | System instructions, the active task contract, and the tool schemas are never removed to fit a context window; if the request still does not fit after compaction the request fails visibly |
-| TA §24.7 | "Nirman should record token usage when the provider reports it" | MUST record reported usage; MUST mark unreported usage as unavailable | An estimate is never stored in a field that means reported; token budget is not a default completion lock, and hard caps apply only when the user sets them |
+| TA §24.7 | "Nirman should record token usage when the provider reports it" | MUST record reported usage; MUST mark unreported usage as unavailable | An estimate is never stored in a field that means reported; token usage is telemetry with no execution-authority semantics, and only an explicit user-declared policy stop condition may act on it |
 | TA §24.8 | "The provider test suite should use protocol fixtures for" the twelve listed cases | MUST include all twelve fixtures | Simple text, multi-turn messages, multimodal input, structured JSON, tool calls and results, streaming deltas, cancellation, rate-limit and network recovery, context overflow, refusal handling, request-ID and usage capture, and capability mismatch; an adapter is not production-ready until it passes those relevant to its declared capabilities |
 | TA §25.2 | "Nirman should use a stable launcher/controller process and a replaceable application process" | MUST use the two-process model | The controller owns the update lock and active-version pointer; the application process is the only replaceable half; the nine-stage update protocol (download, verify, stage, compatibility-check, quiesce, switch, restart, health-check, rollback) is followed in order |
 | TA §25.2 | "The controller should not be replaced during an ordinary self-update" | MUST NOT replace the controller in an ordinary self-update | A controller change is a distinct, explicitly-flagged update path that invalidates dependent evidence unless independence is proven |
@@ -6342,7 +6361,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §5.1 | "Every transition should include a reason, actor, timestamp, task revision, and event ID" | MUST include all five | A transition missing any of the five is rejected by the transition function, alongside structurally invalid transitions such as cancelled → completed without a new retry decision |
 | TA §5.2 | "Workers should emit heartbeats while active" | MUST emit heartbeats on the TA §7.2 interval while active | Absence of a heartbeat past the stale threshold marks the worker stale; heartbeats are persisted independently of model output so a slow provider response is never mistaken for a dead worker |
 | TA §5.2 | "The scheduler should distinguish a model request that is still processing from a dead worker process" | MUST check both process liveness and heartbeat freshness before declaring a worker dead | A live process with a fresh heartbeat and a pending provider request is `Working`, never `Stale`; both signals are required and neither alone is sufficient |
-| TA §6.1 | "The orchestrator should assign each worker a task contract containing" the tabled fields | MUST assign all sixteen `TaskContract` fields | `contractId`, `parentTaskId`, `workerRole`, `objective`, `acceptanceCriteria`, `allowedPaths`, `forbiddenPaths`, `allowedTools`, `deniedTools`, `modelProfile`, `resourceBudget`, `inputReferences`, `dependencyContracts`, `expectedOutputSchema`, `deadline`; a worker started without a complete contract is a defect, and the orchestrator never parses free-form commentary to determine success |
+| TA §6.1 | "The orchestrator should assign each worker a task contract containing" the tabled fields | MUST assign all sixteen `TaskContract` fields | `contractId`, `parentTaskId`, `workerRole`, `objective`, `acceptanceCriteria`, `allowedPaths`, `forbiddenPaths`, `allowedTools`, `deniedTools`, `modelProfile`, `resourceRequirements`, `inputReferences`, `dependencyContracts`, `expectedOutputSchema`, `deadline`; a worker started without a complete contract is a defect, and the orchestrator never parses free-form commentary to determine success |
 | TA §6.2 | "Messages should be stored in the database before being delivered" | MUST persist before delivery | Delivery is retryable from persisted state; a message that was delivered but not persisted is a defect; history survives restart |
 | TA §6.3 | "Claims should be atomic" | MUST be atomic | Two workers can never hold the same task; the claim is a single transaction against task state |
 | TA §6.3 | "A worker that crashes after claiming a task should not permanently block the task; the scheduler should return it to the queue after the stale threshold and record the previous owner" | MUST requeue after the 60 s stale threshold and MUST record the previous owner | The requeued task carries the prior attempt's owner and interruption record; a crashed claim never becomes permanent |
@@ -6369,11 +6388,11 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §12.2 | "Nirman should expose health checks for" the nine listed subsystems | MUST expose all nine health checks | Control plane, database, provider connection, worker registry, process manager, workspace storage, toolchain, preview manager, notification service; each reports healthy, degraded, or failed, never a bare boolean |
 | TA §12.3 | "The engineering test suite should include" the ten listed test kinds | MUST include all ten | Database recovery, event replay, duplicate-message, worker heartbeat, quota, path-boundary, process-tree cancellation, reconciliation conflict, preview rollback, and toolchain isolation tests; an absent kind blocks the architecture completion criteria of TA §15 |
 | TA §15 | "A system that can generate code but cannot reconstruct what happened after a crash should not be considered autonomous-ready" | MUST NOT declare autonomous-readiness without proven crash reconstruction | Readiness requires the TA §12.3 database-recovery and event-replay tests passing; code generation capability alone never satisfies the criterion |
-| TA §16.1 | "Goal Mode should be represented by a durable `GoalContract` attached to a task" | MUST attach a durable `GoalContract` with all twelve fields | `goalId`, `taskId`, `statement`, `completionConditions`, `validationPlan`, `scope`, `autonomyPolicy`, `resourceBudget`, `stopConditions`, `progressSummary`, `lastEvaluatedAt`, `status`; the contract survives restart |
+| TA §16.1 | "Goal Mode should be represented by a durable `GoalContract` attached to a task" | MUST attach a durable `GoalContract` with all twelve fields | `goalId`, `taskId`, `statement`, `completionConditions`, `validationPlan`, `scope`, `autonomyPolicy`, `resourceRequirements`, `stopConditions`, `progressSummary`, `lastEvaluatedAt`, `status`; the contract survives restart |
 | TA §16.1 | "Completion conditions should be evaluable by the validation engine, not only by the model" | MUST be machine-evaluable | Each condition is expressible as a successful build, a test expression returning success, a route responding without runtime errors, a screenshot meeting a visual threshold, or an artifact existing with a recorded checksum; a condition only a model can judge is rejected at goal creation |
 | TA §16.2 | "The goal evaluator must record each condition result and should not rely on a final model statement" | MUST record every condition result; MUST NOT accept a model completion claim as proof | A task continues after a worker reports completion whenever objective validation is incomplete; this is the TA-layer statement of the BS §23 rule that a claim is not evidence |
 | TA §16.3 | "The control plane should manage background tasks independently from the UI event loop" | MUST run background tasks independently of the UI | Task progress is unaffected by UI disconnection; the UI resubscribes with a task ID and event sequence number and receives only the missing events |
-| TA §16.4 | "A schedule record should contain" the tabled fields | MUST contain all thirteen fields | `scheduleId`, `projectId`, `goalDefinition`, `triggerType`, `triggerExpression`, `enabled`, `allowedMode`, `approvalPolicy`, `resourceBudget`, `notificationPolicy`, `lastRunId`, `nextRunAt`, `failureCount`; this is the same record the TA §7.4 eight-field rule constrains, and the union of both lists applies |
+| TA §16.4 | "A schedule record should contain" the tabled fields | MUST contain all thirteen fields | `scheduleId`, `projectId`, `goalDefinition`, `triggerType`, `triggerExpression`, `enabled`, `allowedMode`, `approvalPolicy`, `resourceRequirements`, `notificationPolicy`, `lastRunId`, `nextRunAt`, `failureCount`; this is the same record the TA §7.4 eight-field rule constrains, and the union of both lists applies |
 | TA §16.4 | "The scheduler should calculate the next run transactionally, create a new task from the goal definition, and prevent duplicate runs after a control-plane restart" | MUST do all three | Next-run calculation and task creation occur in one transaction; a restart mid-schedule never produces two runs of the same occurrence; a scheduled task inherits the project permission policy and cannot upgrade its own autonomy |
 | TA §17 | "The hook dispatcher should subscribe to typed control-plane events and execute configured hook handlers in a deterministic order" | MUST subscribe to typed events only; MUST execute in a deterministic, declared order | Ordering is stable across runs; a hook never observes an untyped or raw event |
 | TA §17 | "Hooks should be classified as blocking or non-blocking" | MUST classify every hook as exactly one | A blocking hook's failure halts the triggering operation; a non-blocking hook's failure is recorded and the operation proceeds; an unclassified hook is treated as blocking |
@@ -6382,9 +6401,9 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §18 | "Android tasks should use profile-based quotas for JavaScript, native, emulator and combined build workflows" | MUST apply a profile-based quota per workflow kind | The quota accounts for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints together, per the TA §7.2 combined-storage default |
 | TA §18 | "It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints" | MUST exhaust rebuildable-cache cleanup before deleting any checkpoint | Gradle caches, dependency stores, and emulator images are reclaimed first; a checkpoint is deleted only when cache reclamation cannot satisfy the quota |
 | TA §18 | "Backtracking should restore a known-good checkpoint before trying a materially different strategy" | MUST restore before switching strategy | A strategy change applied on top of a failed working tree is prohibited; the `RecoveryAttempt` record's ten fields capture what changed, and the planner rejects an attempt substantially identical to a previous failed one |
-| TA §19 | "The context engine should expose two provider-independent modes" | MUST expose exactly the two tabled modes | Retrieval (repository map → relevance ranking → selected files and symbols → task context) and Large context (secret filtering → generated-file filtering → repository packing → token-budget check → task context); both work against any provider |
+| TA §19 | "The context engine should expose two provider-independent modes" | MUST expose exactly the two tabled modes | Retrieval (repository map → relevance ranking → selected files and symbols → task context) and Large context (secret filtering → generated-file filtering → repository packing → context-capacity check → task context); both work against any provider |
 | TA §19 | "The provider capability registry should report context capacity, vision support, tool support, structured-output support, and streaming support" | MUST report all five | Mode selection derives from provider capability, project size, privacy policy, task type, and user preference — never from provider name |
-| TA §19 | "The context package should record included paths, excluded paths, summaries, token estimates, redactions, and the reason for selecting the mode" | MUST record all six | An untraceable context package is a defect; when the large-context estimate exceeds budget the planner falls back to retrieval mode and never silently truncates critical files |
+| TA §19 | "The context package should record included paths, excluded paths, summaries, token estimates, redactions, and the reason for selecting the mode" | MUST record all six | An untraceable context package is a defect; when the large-context estimate exceeds the provider's context capacity the planner falls back to retrieval mode and never silently truncates critical files |
 | TA §19 | "It should update changed files and affected dependency regions instead of rebuilding the entire map after every action" | MUST update incrementally | A full rebuild after every action is prohibited; correctness of the incremental path is proven by comparing an incrementally-updated map against a full rebuild on the same revision |
 | TA §19 | "Large projects should use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction" | MUST apply all five above the configured large-project threshold | Below the threshold the simple path is permitted; the threshold is a §80.3 configurable default |
 | TA §19 | "The map manager should expose freshness, shard size, rebuild progress, and stale-region warnings to the task runtime" | MUST expose all four | A planner reading a stale region receives the warning with the content; silently serving stale map data is a defect |
@@ -6511,7 +6530,7 @@ When selecting a worker for a task, the runtime MUST use this ordered criteria:
 2. **Availability** — The worker MUST be available (not at capacity)
 3. **Capability** — The worker MUST have the required capabilities
 4. **Model suitability** — The worker's model MUST be suitable for the task type
-5. **Resource fit** — The worker MUST fit within the task's resource budget
+5. **Resource fit** — The worker's physical resource requirements MUST fit within the task's admissible resource capacity
 6. **Historical performance** — Prefer workers with higher success rates for this task type
 7. **Workspace isolation** — The worker MUST have an isolated workspace
 
