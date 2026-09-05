@@ -306,7 +306,7 @@ The following decisions remain intentionally open:
 ## ADR-023: Add Goal Mode as a first-class execution contract
 
 **Status:** Accepted  
-**Decision:** Nirman will support a Goal Mode with a durable completion condition, validation plan, resource budget, autonomy policy, progress state, and explicit stop conditions.
+**Decision:** Goal Mode contains a durable completion condition, validation plan, physical resource requirements, autonomy policy, progress state, and explicit stop conditions.
 
 **Reasoning:** Long-horizon tasks should be evaluated against objective completion conditions rather than ending because a model response ended. A goal contract also allows recovery after restarts and worker handoffs.
 
@@ -339,7 +339,7 @@ The following decisions remain intentionally open:
 ## ADR-026: Scheduled automations are a first-class capability
 
 **Status:** Accepted  
-**Decision:** Nirman will support recurring local automations with persisted schedules, inherited policies, budgets, duplicate-run prevention, run history, and notifications.
+**Decision:** Nirman will support recurring local automations with persisted schedules, inherited policies, resource requirements and runtime-integrity constraints, duplicate-run prevention, run history, and notifications.
 
 **Reasoning:** Safe recurring tests, documentation refreshes, dependency checks, and reports should not require a new chat request every time.
 
@@ -1045,7 +1045,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Long-horizon autonomy requires adaptation, but resource pressure must not turn into unsafe execution or false completion.
 
-**Consequences:** CPU, memory, disk, emulator, Gradle, provider, context, log, duration, and device budgets are monitored and recorded in environment evidence.
+**Consequences:** CPU, memory, disk, emulator, Gradle, provider, context, log, duration, and device telemetry/capacity signals are monitored and recorded in environment evidence. Provider and context capacity are technical constraints; CPU, memory, disk, process, emulator, and device pressure are runtime-integrity constraints; token, request, cost, and duration usage is telemetry only and never an execution control.
 
 ## ADR-079: Android data-layer resolution instead of fixed ORM
 
@@ -1910,11 +1910,11 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** An agent may instantiate child agents, subject to two invariants enforced at grant time: a child capability ceiling is a subset of its parent's ceiling, and a child resource budget never exceeds the parent's remaining budget after outstanding sibling grants. Depth, fan-out, time budget, and workspace scope are also bounded, and revoking a parent grant cascades to every descendant.
+**Decision:** An agent may instantiate child agents, subject to two invariants enforced at grant time: a child capability ceiling is a subset of its parent's ceiling, and child resource requirements never exceed the parent's currently admissible resource capacity after outstanding sibling reservations. Depth, fan-out, execution timeout (a liveness bound), and workspace scope are also bounded, and revoking a parent grant cascades to every descendant.
 
 **Rationale:** Recursive delegation is how a swarm scales, and it is also how authority leaks and how a host is exhausted. Expressing the bounds as set containment and arithmetic inequality makes them mechanically checkable rather than matters of judgment.
 
-**Consequences:** Delegation requests are denied rather than degraded when a ceiling is exceeded, and the outstanding-budget sum must be recomputed at each issue because sibling grants change it.
+**Consequences:** Delegation requests are denied rather than degraded when a ceiling is exceeded, and the admissible parent capacity must be recomputed at each issue because sibling reservations and host pressure change it.
 
 ## ADR-171: Let the agent select execution mode within policy bounds
 
@@ -1952,6 +1952,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Every deliberation carries budget accounting, and a downgrade is visible to the user rather than silent — which is how they learn the runtime wanted more latitude than policy allowed.
 
+**Amended by ADR-218:** the DeliberationBudget ceilings named above no longer exist. The surviving decision is that the agent requests effort and only the deterministic runtime grants it; the grant is selected from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity, and reasoning usage is telemetry.
+
 ## ADR-173: Escalate reasoning effort through declared levels on recorded conditions
 
 **Locks:** `CONTRACT.RUNTIME.DELIBERATION`
@@ -1970,7 +1972,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** Deliberation will interleave reasoning with read-only observation — code and symbol reads, impact-graph queries, log reads, non-mutating diagnostics. Consecutive passes acquiring no new observation count against a maxToollessPasses ceiling, and reaching it forces evidence acquisition or termination. Deliberation must not mutate project source; an observation that would mutate requires the ordinary authorization path.
+**Decision:** Deliberation will interleave reasoning with read-only observation — code and symbol reads, impact-graph queries, log reads, non-mutating diagnostics. Consecutive passes acquiring no new observation count against a maxToollessPasses ceiling, and reaching it forces evidence acquisition or termination. *(Amended by ADR-218: the ceiling is removed; an observation-free pass raises an EvidenceAcquisitionTrigger that forces evidence acquisition or an approach change, never termination.)* Deliberation must not mutate project source; an observation that would mutate requires the ordinary authorization path.
 
 **Rationale:** Repeated reasoning over an unchanged observation set is the dominant failure mode of extended thinking: it produces increasingly confident conclusions from the same evidence. Forcing observation is what converts thinking time into information.
 
@@ -1994,7 +1996,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** A DeliberationSession spans multiple model requests, tool observations, and context reconstructions, and will survive compaction, provider failover, and runtime restart. Continuation state — deliberation revision, objective, active hypotheses, evidence acquired, rejected strategies with reasons, granted effort level, remaining budget, provider continuation state — is checkpointed at every pass boundary and treated as constraint-class content ineligible for eviction during compaction.
+**Decision:** A DeliberationSession spans multiple model requests, tool observations, and context reconstructions, and will survive compaction, provider failover, and runtime restart. Continuation state — deliberation revision, objective, active hypotheses, evidence acquired, rejected strategies with reasons, granted effort level, effort grant, pending evidence-acquisition trigger, provider continuation state — is checkpointed at every pass boundary and treated as constraint-class content ineligible for eviction during compaction.
 
 **Rationale:** A provider request is not the unit of intelligence. If compaction discards active hypotheses or rejected strategies, the agent re-derives conclusions it already refuted and can loop indefinitely on a solved question.
 
@@ -2010,7 +2012,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Without a stall detector, "think longer" degenerates into thinking without converging. Flat uncertainty across passes means the current approach has extracted what it can, and the correct response is a different approach rather than more of the same.
 
-**Consequences:** Every pass must be measurable, and BUDGET_EXHAUSTED and NO_PROGRESS must never be reported as sufficiency or permit the leading strategy to execute as though validated.
+**Consequences:** Every pass must be measurable, and NO_PROGRESS must never be reported as sufficiency or permit the leading strategy to execute as though validated. *(Amended by ADR-218: the BUDGET_EXHAUSTED outcome is removed; deliberation has no usage-based termination.)*
 
 ## ADR-178: Escalate the model without escalating authority
 
@@ -2087,7 +2089,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Rationale:** A hard-problem-solving runtime needs to use models that support deeper inference when available, but provider-specific reasoning controls cannot become a second authority system. Separating native reasoning from runtime deliberation also prevents the system from treating one expensive model request as equivalent to evidence-producing iterative problem solving.
 
-**Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, deliberation budgets must reserve and settle reasoning expenditure transactionally, and provider failover must revalidate reasoning capability before continuation.
+**Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, reasoning usage must be recorded as telemetry attributed to the runtime effort grant, and provider failover must revalidate reasoning capability before continuation.
 
 
 ---
@@ -2269,9 +2271,10 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-197: Make cost governance a deterministic resource authority
 
-**Locks:** `CONTRACT.RUNTIME.COST_GOVERNANCE`
+**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** ADR-218
 
 **Decision:** Token, request, duration, process, emulator, disk, and estimated monetary budgets are governed by durable reservations and settlements. Cost exhaustion may cause adaptive degradation, an approved policy change, pause, or safe failure, but never false completion, silent permission expansion, or evidence weakening. Cost governance sits beside policy and resource authority and cannot override safety, privacy, signing, validation, or completion authority.
 
@@ -2532,14 +2535,27 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-217: Runtime Resource Integrity and Adaptive Execution Continuity
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.COST_GOVERNANCE`, `CONTRACT.RUNTIME.DELIBERATION`
+**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`
 
 **Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` and `CostAuthority` evaluate physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
 
 **Rationale:** Artificial token or request caps artificially truncate long-horizon autonomous problem-solving and violate Nirman's core promise of autonomous engineering. Hardware stability and process integrity are valid physical constraints, but accounting-driven usage ceilings are not.
 
-**Consequences:** Clarifies `CONTRACT.RUNTIME.COST_GOVERNANCE` and `CONTRACT.RUNTIME.DELIBERATION`. Deliberation continues based on state progress and diminishing-return detection rather than pass counts or artificial token budgets. `CostGovernanceRecord` tracks usage and physical host stability signals.
+**Consequences:** Clarifies `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` (formerly `COST_GOVERNANCE`) and `CONTRACT.RUNTIME.DELIBERATION`. Deliberation continues based on state progress and diminishing-return detection rather than pass counts or artificial token budgets. `ResourceIntegrityRecord` tracks physical host stability signals and links usage telemetry. ADR-218 completes this clarification by removing the budget vocabulary entirely.
 
 **Reversal trigger:** Physical demonstration that unlimited autonomous execution causes unrecoverable host instability that cannot be mitigated by queueing, serialization, or checkpointing.
 
+## ADR-218: AI usage telemetry is observational and has no execution-authority semantics
 
+**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`, `CONTRACT.RUNTIME.REASONING`
+
+**Status:** Accepted
+**Supersedes:** ADR-197
+
+**Decision:** AI usage telemetry is observational and has no execution-authority semantics. Nirman does not enforce token, request-count, monetary, reasoning-token, reasoning-pass, or autonomous-goal-duration budgets. Physical runtime resource limits and provider technical capacity remain valid. The canonical model is: AI usage → telemetry only; physical resources (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency, network, liveness) → adaptive runtime authority under `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` (BS §72); provider context window → technical capacity fitted by `ContextCapacityPlanner`; policy → permission authority; evidence → truth and completion authority. The former `COST_GOVERNANCE` contract identifier is renamed `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`; `CostGovernanceRecord`, `DeliberationBudget`, `DeliberationBudgetManager`, `maxToollessPasses`, `BUDGET_EXHAUSTED`, `remainingBudget`, `budgetReservationId`, and every `resourceBudget`/`timeBudget` schema field are removed in favour of `ResourceIntegrityRecord`, `EvidenceAcquisitionTrigger`, `effortGrantId`, `resourceRequirements`, and `executionTimeout`. Deliberation continues while progress is possible; observation-free passes trigger evidence acquisition rather than termination; anti-thrash protection is `DiminishingReturnDetector`, `RepeatedFailureDetector`, and `StrategyChangeRequired`, with no fixed pass ceiling. A user MAY declare an explicit policy stop condition; it is a user decision under permission authority, off by default, and never a runtime budget.
+
+**Rationale:** ADR-012, ADR-036, and ADR-041 already established that Nirman continues end to end without a default token or time completion lock, and ADR-217 clarified that cost governance meant physical resource integrity. What remained was a vocabulary — budgets, reservations, settlements, exhaustion outcomes, pass ceilings — that kept AI usage available as an execution control and invited implementations to throttle, degrade, or stop valid engineering work on an accounting figure. Removing the vocabulary removes the loophole. Physical exhaustion is a real constraint and is handled by adaptive scheduling, backpressure, checkpointing, reclamation, and recovery, blocking only when no safe path remains; provider context capacity is a real constraint and is handled as capacity. Real autonomy, in the ADR-036 sense, is preserved: termination stays explicit, bounded by evidence and progress, and truthful.
+
+**Consequences:** BS §72 becomes the Runtime Resource Integrity Authority with `TEST-RESOURCE-001`/`EV-RESOURCE-001`; TA §77 becomes its implementation contract; M111 is the resource-integrity gate and no milestone exists for AI-cost governance; BS §68 and TA §72 lose every budget path, the former `RUNTIME_GRANTS_BUDGET` clause becomes `CLAUSE.DELIBERATE.RUNTIME_GRANTS_EFFORT`, and the former `COST.EXHAUSTION_EXPLICIT` clause is replaced by `CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY` and `CLAUSE.RESOURCE.ADAPT_BEFORE_BLOCK`; ADR-197 is superseded and retained for history; ADR-170, ADR-172, ADR-174, ADR-176, ADR-177, and ADR-184 are amended where they named budgets; the verifier proves that BS §68 has exactly one authoritative owner (`CONTRACT.RUNTIME.DELIBERATION`) and exactly one declared extension (of `CONTRACT.RUNTIME.REASONING`). Agents MUST NOT introduce AI token, provider-request, monetary, reasoning, or autonomous-goal-duration budgets as execution controls; they MAY implement physical resource limits, provider technical-capacity handling, process liveness protection, and concurrency/backpressure.
+
+**Reversal trigger:** Physical demonstration that autonomous execution without AI-usage controls causes harm that physical resource integrity, provider capacity handling, policy stop conditions, and evidence authority cannot prevent.
