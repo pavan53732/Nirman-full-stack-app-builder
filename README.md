@@ -215,7 +215,7 @@ Nirman treats writing, conversation history, and mutation explanations as struct
 
 ### Long-horizon cognition substrate and Cognitive Context Kernel
 
-Nirman unifies memory, context assembly, deliberation, speculation, cost governance, impact analysis, and continuation into a deterministic cognition substrate:
+Nirman unifies memory, context assembly, deliberation, speculation, resource integrity, impact analysis, and continuation into a deterministic cognition substrate:
 
 ```text
 authoritative world state
@@ -226,7 +226,7 @@ authoritative world state
 ```
 
 - **Authoritative world state vs derived context**: `Authoritative world state != model ContextPackage`. Context packages are strictly derived, revision-bound projections of durable ledger state; conversational history and model prose cannot mutate authoritative state directly.
-- **ContextOrchestrator**: Coordinates WorkingSet planning, multi-modal retrieval across six strategies (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`), token budgeting, and the pre-model coverage/integrity sufficiency gate.
+- **ContextOrchestrator**: Coordinates WorkingSet planning, multi-modal retrieval across six strategies (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`), provider-context-capacity adaptation, and the pre-model coverage/integrity sufficiency gate.
 - **Hierarchical context fidelity**: Enforces `EXACT` verbatim source for edited regions and active interfaces, preventing lossy summaries from replacing code needed for line-level mutation.
 - **Repository Semantic Graph**: Hierarchical containment (`Repository → Module → File → Symbol → Region → Exact source`) and bidirectional dependency traversal (`calls/called_by`, `implements/implemented_by`, `references/referenced_by`, `tests/tested_by`).
 - **Temporal and causal memory**: Semantic indexing across Hot, Warm, Cold, and Archived tiers. Actions are modeled as structured causal chains (`Observation → Interpretation → Hypothesis → Decision → Action → Result → Evidence → Consequence`).
@@ -251,7 +251,7 @@ No worker, model, skill, plugin, MCP tool, adapter, bridge, UI component, or ver
 
 ## Agent and worker model
 
-Every worker must receive a declared task contract containing its role, objective, acceptance criteria, allowed and forbidden paths, allowed tools, model profile, resource budget, dependencies, expected output schema, timeout, cancellation policy, and evidence requirements.
+Every worker must receive a declared task contract containing its role, objective, acceptance criteria, allowed and forbidden paths, allowed tools, model profile, resource requirements, dependencies, expected output schema, timeout, cancellation policy, and evidence requirements.
 
 The primary orchestrator owns task decomposition and reconciliation. Specialist workers may handle requirements, architecture, Android implementation, UI, data/integrations, debugging, testing, security, visual QA, performance, documentation, release preparation, and reconciliation. Parallel work requires isolated workspaces or clearly separated file/interface boundaries and a reconciliation step before integration.
 

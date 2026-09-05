@@ -29,7 +29,7 @@ Model-generated summaries MUST NOT become authoritative memory without validated
 
 Before consequential action, the runtime-provided working set and context-integrity status MUST be honored. A model request MUST NOT execute consequential work when the runtime reports insufficient context coverage or stale context integrity.
 
-Nirman NEVER terminates, degrades, downgrades, or blocks a valid task because of token consumption, provider request count, monetary expenditure, or elapsed task duration. Only physical host, workspace, process, emulator, storage, concurrency, and operating-system resource integrity constraints apply. Context is fit to the active provider via `ContextCapacityPlanner` and hierarchical fidelity transformation (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`), never by arbitrary truncation or budget eviction of active mutation targets and interfaces.
+Nirman NEVER terminates, degrades, downgrades, or blocks a valid task because of token consumption, provider request count, monetary expenditure, or elapsed task duration. Only physical host, workspace, process, emulator, storage, concurrency, and operating-system resource integrity constraints apply. Agents MUST NOT introduce AI token, provider-request, monetary, reasoning (token or pass), or autonomous-goal-duration budgets as execution controls; AI usage is telemetry with no execution-authority semantics (ADR-218, BS §72). Agents MAY implement physical resource limits, provider technical-capacity handling, process liveness protection, and concurrency/backpressure. Context is fit to the active provider via `ContextCapacityPlanner` and hierarchical fidelity transformation (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`), never by arbitrary truncation or budget eviction of active mutation targets and interfaces.
 
 Agents MUST treat product content as revisioned development state, not disposable generated text.
 
@@ -139,7 +139,7 @@ Streaming reasoning is presentation of approved structured progress, not a chann
 
 ## 5. Agent, worker, skill, and tool regulations
 
-Every agent or worker must have a declared role, task contract, model profile, workspace, capability ceiling, permission profile, resource budget, allowed paths, denied paths, expected output schema, dependencies, timeout policy, cancellation policy, and evidence requirements.
+Every agent or worker must have a declared role, task contract, model profile, workspace, capability ceiling, permission profile, physical resource requirements, allowed paths, denied paths, expected output schema, dependencies, timeout policy, cancellation policy, and evidence requirements.
 
 The primary orchestrator decomposes goals, routes work, reconciles outputs, and owns the task graph. Specialist workers may handle requirements, architecture, UI, Android data and integrations, coding, testing, debugging, security, visual QA, performance, documentation, release preparation, and reconciliation. A worker may propose results but cannot directly promote a capability, artifact, preview, evidence result, or completion decision.
 
@@ -418,6 +418,7 @@ An agent must not:
 - treat ZIP/Git/source access as deployment completion;
 - remove the optional declared-AAB policy without a superseding decision;
 - silently narrow Android technology intent to a fixed template or framework;
+- introduce an AI token, provider-request, monetary, reasoning, or autonomous-goal-duration budget as an execution control, or terminate, throttle, degrade, or pause valid work on usage telemetry;
 - introduce Tauri, Electron, React, TypeScript, Vite, WebView-based Nirman UI, or another web-wrapper desktop shell; or
 - commit or push changes that were not requested or reviewed.
 
