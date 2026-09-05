@@ -2,7 +2,7 @@
 """
 Nirman contract-graph verifier — implements build spec §67.11.
 
-Runs all eleven §67.11 contract-graph checks over the four canonical
+Runs all twelve §67.11 contract-graph checks over the four canonical
 documents in both traversal directions (§67.9), plus the document-structure
 check required by the verifier harness and a semantic-documentation lint layer.
 Exits 1 on any defect.
@@ -1322,16 +1322,16 @@ def check_semantic_documentation(docs, R, D):
         "promotion_or_export_requested": bs + ta + dev,
         "M110": dev,
         "ADR-196": dec,
-        "CostGovernanceRecord": bs + ta,
+        "ResourceIntegrityRecord": bs + ta,
         "AgentTrustAssessment": bs + ta,
         "ContextCachePolicy": bs + ta,
         "AndroidRuntimeIntegrityObservation": bs + ta,
-        "CAP.ANDROID.BUDGETED_AUTONOMY": bs,
+        "CAP.ANDROID.RESOURCE_AWARE_AUTONOMY": bs,
         "CAP.ANDROID.TRUSTED_EXTENSIONS": bs,
         "CAP.ANDROID.CONTEXT_GOVERNANCE": bs,
         "CAP.ANDROID.RUNTIME_INTEGRITY": bs,
-        "TEST-COST-001": bs + dev,
-        "EV-COST-001": bs + dev,
+        "TEST-RESOURCE-001": bs + dev,
+        "EV-RESOURCE-001": bs + dev,
         "TEST-TRUST-001": bs + dev,
         "EV-TRUST-001": bs + dev,
         "TEST-CONTEXT-001": bs + dev,
@@ -1343,6 +1343,7 @@ def check_semantic_documentation(docs, R, D):
         "M113": dev,
         "M114": dev,
         "ADR-197": dec,
+        "ADR-218": dec,
         "ADR-198": dec,
         "ADR-199": dec,
         "ADR-200": dec,
@@ -1437,19 +1438,20 @@ def check_semantic_documentation(docs, R, D):
         D.add("semantic documentation", "autonomous rollback preservation",
               "decision log lacks last-known-good preservation for failed gates")
     governance_sections = (
-        ("## 72. Cost Governance Authority", bs, "cost governance authority"),
+        ("## 72. Runtime Resource Integrity Authority", bs, "resource integrity authority"),
         ("## 73. Agent Trust Boundary Authority", bs, "agent trust authority"),
         ("## 74. Context and Cache Governance", bs, "context and cache authority"),
         ("## 75. Android Runtime Integrity Contract", bs, "Android runtime integrity authority"),
-        ("## 77. Cost Governance Implementation Contract", ta, "cost governance architecture"),
+        ("## 77. Runtime Resource Integrity Implementation Contract", ta, "resource integrity architecture"),
         ("## 78. Agent Trust Boundary Implementation Contract", ta, "agent trust architecture"),
         ("## 79. Context and Cache Governance Implementation Contract", ta, "context and cache architecture"),
         ("## 80. Android Runtime Integrity Implementation Contract", ta, "Android runtime integrity architecture"),
-        ("## M111 — Cost governance and adaptive resource control", dev, "cost governance milestone"),
+        ("## M111 — Runtime resource integrity and adaptive execution", dev, "resource integrity milestone"),
         ("## M112 — Agent-layer trust boundary and extension security", dev, "agent trust milestone"),
         ("## M113 — Context compaction and cache governance", dev, "context governance milestone"),
         ("## M114 — Android runtime integrity and honest coverage", dev, "Android integrity milestone"),
-        ("## ADR-197: Make cost governance a deterministic resource authority", dec, "cost governance decision"),
+        ("## ADR-197: Make cost governance a deterministic resource authority", dec, "superseded cost governance decision (retained for history)"),
+        ("## ADR-218: AI usage telemetry is observational and has no execution-authority semantics", dec, "resource integrity decision"),
         ("## ADR-198: Scan and revoke agent-layer extension content", dec, "agent trust decision"),
         ("## ADR-199: Govern context compaction and provider cache reuse", dec, "context governance decision"),
         ("## ADR-200: Report Android runtime integrity as independent applicable signals", dec, "Android integrity decision"),
@@ -1458,8 +1460,13 @@ def check_semantic_documentation(docs, R, D):
         if anchor not in text:
             D.add("semantic documentation", subject, f"canonical governance anchor is missing: {anchor}")
     governance_tokens = (
-        ("costCap", bs + ta, "cost cap schema"),
-        ("exhaustionOutcome", bs + ta, "cost exhaustion outcome"),
+        ("resourceRequirements", bs + ta, "physical resource requirements schema"),
+        ("pressureResponse", bs + ta, "resource pressure response"),
+        ("BLOCKED_NO_SAFE_PATH", bs + ta, "physical exhaustion blocks only without a safe path"),
+        ("EvidenceAcquisitionTrigger", bs + ta, "observation-free pass as evidence trigger"),
+        ("RepeatedFailureDetector", bs + ta, "anti-thrash repeated-failure detector"),
+        ("StrategyChangeRequired", bs + ta, "anti-thrash strategy-change signal"),
+        ("ContextCapacityPlanner", ta, "provider context capacity planner"),
         ("staticFindings", bs + ta, "agent trust scan findings"),
         ("revocationState", bs + ta, "agent trust revocation"),
         ("cacheBreakpointPolicy", bs + ta, "cache breakpoint policy"),
@@ -1468,7 +1475,7 @@ def check_semantic_documentation(docs, R, D):
         ("anrEvidenceIds", bs + ta, "ANR evidence"),
         ("batteryObservationIds", bs + ta, "battery observation"),
         ("dozeObservationIds", bs + ta, "Doze observation"),
-        ("CostAuthority", ta, "cost authority implementation"),
+        ("`ResourceIntegrityAuthority` (§59) evaluates `resourceRequirements` against currently admissible physical capacity before admission", ta, "resource integrity authority implementation"),
         ("Scanners run in a restricted local process", ta, "trust scanner implementation"),
         ("`ContextGovernance` records selected content", ta, "context governance implementation"),
         ("Runtime collectors observe;", ta, "runtime integrity authority implementation"),
@@ -1602,6 +1609,86 @@ def check_semantic_documentation(docs, R, D):
         D.add("semantic documentation", "resource attribution",
               "resource usage lacks explicit parent/child/shared attribution")
 
+    # ADR-218: AI usage is telemetry only. No canonical document may carry an
+    # AI-usage budget, reservation, exhaustion outcome, or fixed pass ceiling
+    # with execution-authority semantics. The decision log is exempt because it
+    # retains superseded/amended historical text by design.
+    banned_execution_controls = (
+        "BUDGET_EXHAUSTED", "maxToollessPasses", "DeliberationBudget",
+        "DeliberationBudgetManager", "CostGovernanceRecord", "CostAuthority",
+        "budgetReservationId", "remainingBudget", "tokenBudget", "requestBudget",
+        "durationBudget", "costCap", "exhaustionOutcome", "resourceBudget",
+        "timeBudget", "CONTRACT.RUNTIME.COST_GOVERNANCE",
+        "CLAUSE.COST.EXHAUSTION_EXPLICIT", "CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET",
+        "CAP.ANDROID.BUDGETED_AUTONOMY", "TEST-COST-001", "EV-COST-001",
+    )
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        for token in banned_execution_controls:
+            if token in text:
+                D.add("semantic documentation", f"AI-usage budget vocabulary in {label}",
+                      f"{token!r} reintroduces an AI-usage budget as an execution control (ADR-218, BS §72)")
+    for token in ("AI usage telemetry MUST NOT authorize, deny, throttle, degrade, terminate, pause, or complete work",
+                  "Usage telemetry is informational and has no execution-authority semantics.",
+                  "CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY",
+                  "CLAUSE.DELIBERATE.RUNTIME_GRANTS_EFFORT"):
+        if token not in bs:
+            D.add("semantic documentation", "AI usage telemetry rule",
+                  f"build spec lacks the ADR-218 telemetry-only requirement: {token}")
+    if "No autonomous-goal completion deadline" not in ta:
+        D.add("semantic documentation", "task time policy",
+              "architecture lacks the no-autonomous-goal-deadline default (TA §7.2)")
+    if "**Status:** Superseded\n**Superseded by:** ADR-218" not in dec:
+        D.add("semantic documentation", "ADR-197 supersession",
+              "ADR-197 must be marked Superseded by ADR-218 while retaining its text")
+
+
+def check_section_ownership(R, D):
+    """Check 12: SECTION_OWNERSHIP — BS §68 has exactly one authoritative owner
+    (`CONTRACT.RUNTIME.DELIBERATION`) and exactly one declared extension
+    (of `CONTRACT.RUNTIME.REASONING`).
+
+    §68 is the one section that is simultaneously an authority and an
+    extension. That dual role is where a budget authority could be smuggled
+    back in as a second owner or a second extension, so the shape is pinned
+    explicitly rather than left to the generic checks.
+    """
+    SEC = 68
+    OWNER = "CONTRACT.RUNTIME.DELIBERATION"
+    EXTENDS = "CONTRACT.RUNTIME.REASONING"
+
+    # authoritative owners: §67.8 rows whose authority cell is §68, and
+    # line-initial "Registry role: authoritative definition of" markers in §68
+    registry_owners = sorted(cid for cid, r in R["contracts"].items()
+                             if secrefs(r["authority"]) == [SEC])
+    marker_owners = sorted(R["authored"].get(SEC, []))
+    if registry_owners != [OWNER]:
+        D.add("section ownership", f"§{SEC}",
+              f"§67.8 assigns authority over §{SEC} to {registry_owners or 'no contract'}; "
+              f"expected exactly [{OWNER}]")
+    if marker_owners != [OWNER]:
+        D.add("section ownership", f"§{SEC}",
+              f"§{SEC} carries authoritative markers for {marker_owners or 'no contract'}; "
+              f"expected exactly one, for {OWNER}")
+
+    # declared extensions: ExtensionDeclaration blocks in §68, and §67.8 rows
+    # listing §68 in their extension column
+    declared = sorted(cid for (sec, cid) in R["declarations"] if sec == SEC)
+    listed = sorted(cid for cid, r in R["contracts"].items()
+                    if SEC in secrefs(r["ext"]))
+    if declared != [EXTENDS]:
+        D.add("section ownership", f"§{SEC}",
+              f"§{SEC} declares extensions of {declared or 'nothing'}; "
+              f"expected exactly one, of {EXTENDS}")
+    if listed != [EXTENDS]:
+        D.add("section ownership", f"§{SEC}",
+              f"§67.8 lists §{SEC} as an extension of {listed or 'nothing'}; "
+              f"expected exactly one, {EXTENDS}")
+    d = R["declarations"].get((SEC, EXTENDS))
+    if d and d["authority_contract"] != EXTENDS:
+        D.add("section ownership", f"§{SEC}",
+              f"extension declaration names authorityContractId {d['authority_contract']!r}, "
+              f"expected {EXTENDS}")
+
 
 def check_structure(docs, R, D):
     """Document-level integrity that the contract graph presupposes."""
@@ -1669,8 +1756,8 @@ CHECK_ORDER = (
     "duplicate authority", "unregistered contract", "undeclared extension",
     "authority cycle", "clause contradiction", "unversioned override",
     "dangling reference", "forward break", "reverse break", "orphan contract",
-    "canonical identity", "structure", "semantic documentation",
-    "command payload coverage",
+    "canonical identity", "section ownership", "structure",
+    "semantic documentation", "command payload coverage",
 )
 
 
@@ -1690,6 +1777,7 @@ def verify(root):
     check_reverse(R, docs, D)
     check_orphan(R, adj, D)
     check_canonical_identity(docs, R, D)
+    check_section_ownership(R, D)
     check_semantic_documentation(docs, R, D)
     check_structure(docs, R, D)
     check_command_payload_field_coverage(docs, R, D, root)
@@ -1750,7 +1838,7 @@ def main():
         return 1
 
     total_skips = sum(len(v) for v in skips.values())
-    print("\nall 13 §67.11 graph/structure checks pass in both traversal directions")
+    print("\nall 14 §67.11 graph/structure checks pass in both traversal directions")
     print("semantic documentation lint: PASS")
     for check in CHECK_ORDER:
         if check in skips:

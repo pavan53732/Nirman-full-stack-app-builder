@@ -157,8 +157,8 @@ CASES = {
         "- nonOverriddenClauses: CLAUSE.AUTHORITY.NO_SELF_ELEVATION\n\nThis section extends §33",
         "undeclared extension"),
     "reasoning contract loses its milestone": (
-        BS, "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M94 |",
-        "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171 | M999 |",
+        BS, "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 |",
+        "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M999 |",
         "dangling reference"),
     "reasoning architecture points at BS": (
         BS, "| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 |",
@@ -187,8 +187,48 @@ CASES = {
         DEC, "**Locks:** `CONTRACT.RUNTIME.DELIBERATION`\n\n**Status:** Accepted\n\n**Decision:** Reasoning effort will be budgeted",
         "**Status:** Accepted\n\n**Decision:** Reasoning effort will be budgeted", "reverse break"),
     "deliberation capability unregistered": (
-        BS, "| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional bounded reasoning",
-        "| CAP.ANDROID.DEEP_THINKING | Spend additional bounded reasoning", "unregistered contract"),
+        BS, "| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional progress-governed reasoning",
+        "| CAP.ANDROID.DEEP_THINKING | Spend additional progress-governed reasoning", "unregistered contract"),
+
+    # ---- check 12: section ownership (§68 = one owner, one extension)
+    "section 68 gains a second authoritative owner": (
+        BS, "| CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |",
+        "| CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §68 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |",
+        "section ownership"),
+    "section 68 loses its authoritative owner": (
+        BS, "| CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 |",
+        "| CONTRACT.RUNTIME.DELIBERATION | BS §72 | — | TA §72 |",
+        "section ownership"),
+    "section 68 loses its authoritative marker": (
+        BS, "**Registry role:** authoritative definition of `CONTRACT.RUNTIME.DELIBERATION` (see §67.8)",
+        "**Registry role:** implementation note for `CONTRACT.RUNTIME.DELIBERATION` (see §67.8)",
+        "section ownership"),
+    "section 68 gains a second declared extension": (
+        BS, "**ContractId:** `CONTRACT.RUNTIME.REASONING`  \n**ExtensionDeclaration:**\n- authorityContractId: CONTRACT.RUNTIME.REASONING\n- authoritySection: §66\n- extendingSection: §68",
+        "**ContractId:** `CONTRACT.RUNTIME.REASONING`  \n**ExtensionDeclaration:**\n- authorityContractId: CONTRACT.RUNTIME.REASONING\n- authoritySection: §66\n- extendingSection: §68\n- extensionType: adds_clauses\n- extendedClauses: CLAUSE.DELIBERATE.CAUSAL_ESCALATION\n- nonOverriddenClauses: CLAUSE.AUTHORITY.MODEL_PROPOSES, CLAUSE.AUTHORITY.NO_SELF_ELEVATION\n\n**ContractId:** `CONTRACT.RUNTIME.AUTHORITY`  \n**ExtensionDeclaration:**\n- authorityContractId: CONTRACT.RUNTIME.AUTHORITY\n- authoritySection: §33\n- extendingSection: §68",
+        "section ownership"),
+    "section 68 extension retargeted away from REASONING": (
+        BS, "- authorityContractId: CONTRACT.RUNTIME.REASONING\n- authoritySection: §66\n- extendingSection: §68",
+        "- authorityContractId: CONTRACT.RUNTIME.DELIBERATION\n- authoritySection: §66\n- extendingSection: §68",
+        "section ownership"),
+
+    # ---- ADR-218: AI-usage budget vocabulary must not return
+    "budget exhaustion outcome reintroduced": (
+        TA, "- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED",
+        "- outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED",
+        "semantic documentation"),
+    "fixed toolless pass ceiling reintroduced": (
+        BS, "no fixed observation-free pass ceiling exists, and no component may hardcode one.",
+        "consecutive observation-free passes are counted against `maxToollessPasses`.",
+        "semantic documentation"),
+    "telemetry-only rule removed": (
+        BS, "AI usage telemetry MUST NOT authorize, deny, throttle, degrade, terminate, pause, or complete work.",
+        "AI usage telemetry MAY throttle work.",
+        "semantic documentation"),
+    "ADR-197 supersession removed": (
+        DEC, "**Status:** Superseded\n**Superseded by:** ADR-218",
+        "**Status:** Accepted",
+        "semantic documentation"),
     "M95 mapping loses its contract": (
         DEV, "| M95 | CONTRACT.RUNTIME.DELIBERATION |", "| M95 | |", "reverse break"),
 
@@ -455,8 +495,8 @@ CASES = {
         BS, "TEST-PSYNC-001 | EV-PSYNC-001",
         "TEST-GEN-001 | EV-GEN-001",
         "reverse break"),
-    "semantic cost authority removed": (
-        BS, "## 72. Cost Governance Authority",
+    "semantic resource integrity authority removed": (
+        BS, "## 72. Runtime Resource Integrity Authority",
         "## 72. Resource Notes",
         "semantic documentation"),
     "semantic trust authority removed": (
@@ -471,9 +511,9 @@ CASES = {
         BS, "## 75. Android Runtime Integrity Contract",
         "## 75. Android Notes",
         "semantic documentation"),
-    "semantic cost schema removed": (
-        TA, "`CostAuthority` evaluates reservations before admission",
-        "`ResourceAuthority` evaluates reservations before admission",
+    "semantic resource integrity schema removed": (
+        TA, "`ResourceIntegrityAuthority` (§59) evaluates `resourceRequirements` against currently admissible physical capacity before admission",
+        "`ResourceIntegrityAuthority` (§59) evaluates reservations before admission",
         "semantic documentation"),
     "semantic trust schema removed": (
         TA, "Scanners run in a restricted local process",
@@ -491,9 +531,13 @@ CASES = {
         BS, "### 28.5 Autonomy-level capability ladder",
         "### 28.5 Autonomy levels",
         "semantic documentation"),
-    "semantic cost milestone removed": (
-        DEV, "## M111 — Cost governance and adaptive resource control",
+    "semantic resource integrity milestone removed": (
+        DEV, "## M111 — Runtime resource integrity and adaptive execution",
         "## M111 — Resource notes",
+        "semantic documentation"),
+    "semantic resource integrity decision removed": (
+        DEC, "## ADR-218: AI usage telemetry is observational and has no execution-authority semantics",
+        "## ADR-218: Resource notes",
         "semantic documentation"),
     "semantic trust decision removed": (
         DEC, "## ADR-198: Scan and revoke agent-layer extension content",
@@ -955,6 +999,35 @@ def main():
                         present and rc == 0 and "CERTIFICATION: PASS" in out,
                         f"exit={rc}"))
 
+    # POSITIVE CONFORMANCE (ADR-218): §68 has exactly one authoritative owner
+    # (CONTRACT.RUNTIME.DELIBERATION) and exactly one declared extension
+    # (of CONTRACT.RUNTIME.REASONING), and M111 resolves RESOURCE_INTEGRITY.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-s68-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        docs = verify_contract_graph.load(tmp)
+        D = verify_contract_graph.Defects()
+        R = verify_contract_graph.parse_registries(docs, D)
+        owners = sorted(cid for cid, r in R["contracts"].items()
+                        if verify_contract_graph.secrefs(r["authority"]) == [68])
+        markers = sorted(R["authored"].get(68, []))
+        declared = sorted(cid for (sec, cid) in R["declarations"] if sec == 68)
+        listed = sorted(cid for cid, r in R["contracts"].items()
+                        if 68 in verify_contract_graph.secrefs(r["ext"]))
+        results.append(("positive: §68 has exactly one authoritative owner (DELIBERATION)",
+                        owners == ["CONTRACT.RUNTIME.DELIBERATION"] and markers == ["CONTRACT.RUNTIME.DELIBERATION"],
+                        f"registry={owners} markers={markers}"))
+        results.append(("positive: §68 has exactly one declared extension (of REASONING)",
+                        declared == ["CONTRACT.RUNTIME.REASONING"] and listed == ["CONTRACT.RUNTIME.REASONING"],
+                        f"declared={declared} listed={listed}"))
+        m111_ok = (111 in R["milestones"] and
+                   R["milestones"][111]["contracts"] == ["CONTRACT.RUNTIME.RESOURCE_INTEGRITY"] and
+                   R["milestones"][111]["test"] == "TEST-RESOURCE-001" and
+                   R["milestones"][111]["evidence"] == "EV-RESOURCE-001")
+        results.append(("positive: M111 resolves RESOURCE_INTEGRITY with TEST/EV-RESOURCE-001", m111_ok,
+                        f"m111={R['milestones'].get(111)}"))
+        no_cost_milestone = not any("COST" in c for m in R["milestones"].values() for c in m["contracts"])
+        results.append(("positive: no milestone maps an AI-cost governance contract", no_cost_milestone, ""))
+
     # POSITIVE CONFORMANCE: M120, M121, M122 resolve their respective contracts
     with tempfile.TemporaryDirectory(prefix="hermes-cg-m120-122-") as tmp:
         _copy_fixture(tmp, RUST_SOURCES)
@@ -1035,7 +1108,8 @@ def main():
         "duplicate authority", "unregistered contract", "undeclared extension",
         "authority cycle", "clause contradiction", "unversioned override",
         "dangling reference", "forward break", "reverse break", "orphan contract",
-        "canonical identity", "structure", "command payload coverage",
+        "canonical identity", "section ownership", "structure",
+        "command payload coverage",
     }
     # FATAL is a harness-synthesised class, not a §67.11 check; exclude it from
     # coverage accounting so the ratio cannot exceed the number of real checks.
