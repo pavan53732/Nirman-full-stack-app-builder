@@ -202,7 +202,7 @@ TaskContract
 - allowedTools
 - deniedTools
 - modelProfile
-- resourceBudget
+- resourceRequirements
 - inputReferences
 - dependencyContracts
 - expectedOutputSchema
@@ -281,7 +281,7 @@ A scheduler tick should be deterministic and idempotent. Running the same schedu
 
 ### 7.2 Resource-aware scheduling
 
-The scheduler should calculate available CPU, memory, disk, provider concurrency, and workspace capacity before launching a worker. It should reduce concurrency under resource pressure and preserve resources for validation and recovery.
+The scheduler should calculate available CPU, memory, disk, provider concurrency, and workspace capacity before launching a worker. It should reduce concurrency under resource pressure and preserve resources for validation and recovery. Provider concurrency is an external technical capacity of the selected provider, not an AI-usage quota; token, request, cost, and elapsed-time telemetry never influences scheduling.
 
 Across multiple projects, the scheduler must use fair-share scheduling. Each active project receives a minimum service opportunity, while explicit project priority, task urgency, validation deadlines, and resource eligibility influence the next choice. A single project or swarm must not starve other active projects. The scheduler should use weighted round-robin with aging so waiting tasks gradually gain priority and a task that repeatedly yields resources is not permanently penalized.
 
@@ -294,7 +294,7 @@ Initial defaults should be configurable and conservative:
 | Global active workers | 8 or available-resource policy |
 | Worker heartbeat | 10 seconds |
 | Worker stale threshold | 60 seconds |
-| Default task time policy | No fixed completion lock; adaptive monitoring and optional hard safety cap |
+| Default task time policy | No autonomous-goal completion deadline. Liveness timeouts MAY exist for hung operations and process containment but MUST NOT terminate a healthy goal for elapsed time |
 | Default task disk quota | Android-profile-based; emulator, device, build, cache, and checkpoint storage are computed together |
 | Default repair strategy changes | 3 |
 
@@ -306,7 +306,7 @@ Approval requests must expire. The user can approve once, approve a matching rul
 
 ### 7.4 Scheduled tasks
 
-Scheduled tasks should be implemented only after reliable background execution exists. A schedule record should contain a local cron-like expression or interval, project ID, task prompt, allowed mode, maximum budget, notification policy, and whether approval is required.
+Scheduled tasks should be implemented only after reliable background execution exists. A schedule record should contain a local cron-like expression or interval, project ID, task prompt, allowed mode, resource requirements, notification policy, and whether approval is required.
 
 Scheduled tasks should never automatically publish, push, spend money, or use personal credentials. They may run local checks, update documentation, refresh dependencies in a restricted workspace, or generate reports according to user policy.
 
@@ -804,12 +804,14 @@ GoalContract
 - validationPlan
 - scope
 - autonomyPolicy
-- resourceBudget
+- resourceRequirements
 - stopConditions
 - progressSummary
 - lastEvaluatedAt
 - status
 ```
+
+`resourceRequirements` declares the physical resources the goal needs and is evaluated by runtime resource integrity (BS §72); AI usage is telemetry and no field of the GoalContract carries an AI-usage budget.
 
 Completion conditions should be evaluable by the validation engine, not only by the model. Examples include a successful build, a test expression returning success, a route responding without runtime errors, a screenshot meeting a visual threshold, or an artifact existing with a recorded checksum.
 
@@ -827,7 +829,7 @@ Run validation plan
 Evaluate completion conditions
     ├── All pass → complete
     ├── Some fail → plan next strategy
-    ├── Budget reached → pause and escalate
+    ├── Physical resource unavailable → wait, reschedule, reduce concurrency, reclaim resources, checkpoint, or recover
     ├── Safety stop → pause and request approval
     └── Repeated failure → backtrack or escalate
 ```
@@ -882,7 +884,7 @@ Schedule
 - enabled
 - allowedMode
 - approvalPolicy
-- resourceBudget
+- resourceRequirements
 - notificationPolicy
 - lastRunId
 - nextRunAt
@@ -903,7 +905,7 @@ The hook dispatcher should subscribe to typed control-plane events and execute c
 | Permissions | `approval_requested` | Notify user or record audit entry |
 | Worker | `worker_failed` | Requeue, escalate, or start a debugger |
 | Workspace | `checkpoint_restored` | Invalidate stale preview |
-| Context | `context_budget_reached` | Compact or switch retrieval strategy |
+| Context | `context_capacity_reached` | Compact or switch retrieval strategy |
 | Runtime | `process_failed` | Capture diagnostic and classify error |
 | Configuration | `external_tool_connected` | Register tool capabilities and policies |
 
@@ -965,12 +967,12 @@ The context engine exposes an **Adaptive Context Architecture** operating across
 | `SEMANTIC` | Structural repository neighborhood, related interfaces, callers/callees, schema dependencies | Repository Semantic Graph traversal over symbol, type, and module dependency edges |
 | `TEMPORAL` | Recent action sequences, recent test outputs, recent runtime events, recent mutations | Sliding chronological window indexed by transaction and event sequence |
 | `STRUCTURED_MEMORY` | Causal execution records, verified project facts, failure signatures, architectural invariants | Query against classified memory store with mandatory source event provenance |
-| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to provider token budget with prefix and structured cache alignment |
+| `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to the provider's actual context capacity with prefix and structured cache alignment |
 | `COMPACTED` | Long-horizon continuity, multi-session continuation, checkpoint re-grounding | Non-destructive semantic compaction preserving causal chains and invariant proofs |
 
-Dynamic selection is governed by the twelve criteria established in BS §19.1: task phase, model context capacity, token budget, dependency distance, symbol relationships, temporal recency, evidence freshness, failure relevance, unresolved uncertainty, current project revision, plan revision, and context-cache availability.
+Dynamic selection is governed by the twelve criteria established in BS §19.1: task phase, model context capacity, admissible context share, dependency distance, symbol relationships, temporal recency, evidence freshness, failure relevance, unresolved uncertainty, current project revision, plan revision, and context-cache availability.
 
-The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode. If a large-context estimate exceeds the configured budget, the orchestrator falls back to semantic/exact retrieval rather than silently truncating critical files.
+The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode. If a large-context estimate exceeds the provider's actual context capacity, the orchestrator falls back to semantic/exact retrieval rather than silently truncating critical files, and records the capacity-driven omissions.
 
 The repository map scales incrementally via the Repository Semantic Graph (§59.2). It updates changed files and affected dependency regions instead of rebuilding the entire map after every action. Large projects use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction. The map manager exposes freshness, shard size, rebuild progress, and stale-region warnings to the task runtime.
 
@@ -1021,7 +1023,7 @@ attentionCapabilities
 - supportsVision: bool
 ```
 
-Nirman intelligently adapts around the model by aligning prompt boundaries with cache checkpoints, utilizing prefix caching, budgeting tokens according to capacity, and routing queries through exact/sparse/summary memory without coupling to any proprietary model architecture.
+Nirman intelligently adapts around the model by aligning prompt boundaries with cache checkpoints, utilizing prefix caching, fitting tokens to provider context capacity, and routing queries through exact/sparse/summary memory without coupling to any proprietary model architecture.
 
 ## 20. External Tool Protocol Adapter
 
@@ -1072,7 +1074,7 @@ The architecture test suite must add the following cases:
 5. A file-level restore leaves unrelated files unchanged.
 6. A task-level restore invalidates a preview running from a newer revision.
 7. A repeated failed strategy triggers backtracking and a materially different recovery plan.
-8. A large-context request falls back to retrieval when the token budget is insufficient.
+8. A large-context request adapts retrieval and representation when the selected provider's actual context capacity is insufficient, while preserving required EXACT context and recording capacity-driven omissions.
 9. An external tool cannot bypass path, network, or approval policies.
 10. A skill cannot grant itself permissions or execute undeclared tools.
 11. The repository map updates only affected shards after a small file change.
@@ -1194,7 +1196,7 @@ An approval request must include the exact action, worker, workspace, path or de
 
 ### 23.7 Termination coordinator
 
-The termination coordinator evaluates whether a task may continue after every validation, recovery, budget, approval, and environment event. It must recognize these terminal classifications:
+The termination coordinator evaluates whether a task may continue after every validation, recovery, resource-integrity, approval, and environment event. It must recognize these terminal classifications:
 
 | Classification | Condition |
 |---|---|
@@ -1277,7 +1279,7 @@ ReasoningCapabilityProfile
 - supportsContinuation: true | false | unknown
 ```
 
-`effortParameterMapping` is configuration metadata, not authority: it records how normalized effort levels translate into provider-specific parameters, but it can never alter budgets, permission ceilings, or authority state.
+`effortParameterMapping` is configuration metadata, not authority: it records how normalized effort levels translate into provider-specific parameters, but it can never alter granted effort, resource-integrity decisions, permission ceilings, or authority state.
 
 ### 24.3 AI Settings page behavior
 
@@ -1323,12 +1325,12 @@ ReasoningSettings
 - providerNativeParameters
 - deliberationId
 - passNumber
-- budgetReservationId
+- effortGrantId
 ```
 
-`providerNativeParameters` may contain provider-specific reasoning controls, but those values are generated by ModelGateway from the normalized runtime request. A model response or provider cannot modify the runtime's budget, permission ceiling, or authority state.
+`providerNativeParameters` may contain provider-specific reasoning controls, but those values are generated by ModelGateway from the normalized runtime request. A model response or provider cannot modify the runtime's granted effort, permission ceiling, or authority state.
 
-`budgetReservationId` must refer to a runtime-owned reservation covering the maximum reasoning expenditure permitted for the request.
+`effortGrantId` must refer to the runtime-owned effort grant (§72.5) under which the request is issued. It carries the granted effort level and the provider capability constraint; it is not a usage reservation, and reasoning usage reported against it is telemetry only.
 
 The canonical response should be event-oriented:
 
@@ -1379,7 +1381,7 @@ The provider may offer its own background-request mode, but Nirman’s local con
 
 ### 24.7 Context and token policy
 
-Nirman should record token usage when the provider reports it, but token budget must not be a default end-to-end completion lock. The user may configure hard caps, but the normal policy is adaptive context compaction, retrieval, model routing, concurrency reduction, and continuation.
+Nirman should record token usage when the provider reports it; token usage is telemetry with no execution-authority semantics and never a completion lock. Context is fit to the provider's actual context capacity by compaction and retrieval; concurrency reduction responds to physical resource pressure; continuation is governed by progress and evidence. A user MAY declare an explicit policy stop condition, which is a user decision evaluated by policy authority, not a runtime budget.
 
 A provider profile may declare a context capacity or allow Nirman to learn it from probe results. If the selected request exceeds a provider’s actual hard context limit, the gateway must return a structured context-overflow result so the context planner can reduce or reassemble the request.
 
@@ -1973,7 +1975,7 @@ ProjectionSnapshot
 UIResponseEnvelope
 UIErrorEnvelope
 EventSubscription
-CostGovernanceRecord
+ResourceIntegrityRecord
 AgentTrustAssessment
 ContextCachePolicy
 AndroidRuntimeIntegrityObservation
@@ -2334,7 +2336,7 @@ This section translates the accepted Sync-AI-derived principles into Nirman’s 
 | ModelGateway and AI workers | Interpretation, planning, technology proposals, repair proposals, visual analysis, decision summaries | Lifecycle, permissions, direct file writes, arbitrary process authority, completion, artifact promotion |
 | Control-plane supervisor | Scheduling, leases, retries, recovery, worker lifecycle, health, event emission | Model reasoning or unvalidated mutation |
 | Lifecycle reducer | Durable state transitions and replay | Side effects |
-| Policy authority | Permissions, sandbox profiles, resource budgets, network and device policy | AI strategy |
+| Policy authority | Permissions, sandbox profiles, physical resource requirements, network and device policy | AI strategy |
 | Transaction manager | Snapshots, revision checks, conflict detection, commit/rollback | Unvalidated model output |
 | Toolchain authority | Android toolchain resolution, lock verification, environment construction | User project semantics |
 | Evidence authority | Validation gates, evidence completeness, artifact eligibility | Claiming success without proof |
@@ -3591,7 +3593,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | MemoryWriter | Writes classified memory records from validated events only |
 | MemoryStore | Persists records with scope, provenance, and retention |
 | ConstraintRegistry | Holds active constraints and locked decisions for a session |
-| ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, budget allocation, and integrity verification |
+| ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, capacity planning against provider context capacity, and integrity verification |
 | WorkingSetPlanner | Partitions context into required, active, supporting, historical, and excluded sets |
 | ContextFidelityManager | Enforces context fidelity levels across exact, structural, semantic, summary, and historical tiers |
 | SemanticRetriever | Traverses the hierarchical Repository Semantic Graph over bidirectional dependency edges |
@@ -3599,8 +3601,8 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | MemoryRetriever | Queries structured memory records, locked decisions, and failure fingerprints |
 | EvidenceRetriever | Queries the active EvidenceFrontier to prioritize unvalidated or contradicted claims |
 | DependencyExpander | Computes graph neighborhoods and affected compilation units from the ImpactGraph |
-| ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity without imposing a Nirman usage budget |
-| ResourceIntegrityAuthority | Evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure without artificial usage caps |
+| ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity and tracks remaining admissible context capacity per request, without imposing a Nirman usage budget |
+| ResourceIntegrityAuthority | Implements BS §72: evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure and admits work against physical capacity; holds no AI-usage cap |
 | CacheManager | Manages prefix-cache checkpoints, structured KV caches, and cache hit optimization |
 | CompactionPlanner | Executes non-destructive semantic compaction of historical context |
 | RetrievalCompletenessChecker | Executes pre-model COVERAGE_CHECK verifying dependency, interface, and evidence completeness |
@@ -4580,8 +4582,8 @@ DelegationGrant
 - depth
 - maxDepth
 - capabilityCeiling: capabilityId[]
-- resourceBudget
-- timeBudget
+- resourceRequirements
+- executionTimeout
 - workspaceScope
 - terminationPolicy
 - issuedAtEventId
@@ -4595,13 +4597,13 @@ Artifacts, reflections, hypotheses, invocations, and grants are stored in the SQ
 Before issuing a grant the manager computes:
 
 ```text
-child.capabilityCeiling ⊆ parent.capabilityCeiling
-child.resourceBudget    ≤ parent.resourceBudget − Σ(outstanding child budgets)
-child.depth             = parent.depth + 1  ≤  maxDepth
-child.workspaceScope    ⊆ parent.workspaceScope
+child.capabilityCeiling     ⊆ parent.capabilityCeiling
+child.resourceRequirements  ⊆ parent.admissibleResourceCapacity
+child.depth                 = parent.depth + 1  ≤  maxDepth
+child.workspaceScope        ⊆ parent.workspaceScope
 ```
 
-Any violation denies the grant with a typed reason. The manager must recompute the outstanding-budget sum at issue time rather than trusting a cached value, since sibling grants change it. Revoking a parent grant must cascade to every descendant, reusing the cancellation propagation of §58.
+Any violation denies the grant with a typed reason. `parent.admissibleResourceCapacity` is the parent's currently admissible physical capacity as evaluated by ResourceIntegrityAuthority (§59, BS §72) net of aggregate outstanding child resource reservations; the manager must recompute it at issue time rather than trusting a cached value, since sibling grants and host pressure change it. `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. Revoking a parent grant must cascade to every descendant, reusing the cancellation propagation of §58.
 
 ### 71.9 Failure modes and recovery
 
@@ -4612,10 +4614,10 @@ Any violation denies the grant with a typed reason. The manager must recompute t
 | Hypothesis rejected with no evidence | Write rejected; hypothesis remains TESTED |
 | All hypotheses rejected | Cycle terminates SAFELY_FAILED or ESCALATED |
 | Delegation ceiling violation | Grant denied; parent continues without the child |
-| Child exhausts its budget | Child terminates; parent observes and replans |
+| Child's physical resource requirements can no longer be admitted | Child is queued, rescheduled, or checkpointed per BS §72; parent observes and replans |
 | Swarm revision denied by policy | Graph unchanged; denial recorded |
 | Mode selection exceeds policy | Mode downgraded to the highest permitted mode |
-| Cycle exceeds iteration bound | Checkpoint, then ESCALATED rather than silent continuation |
+| Cycle repeats a strategy against unchanged evidence | RepeatedFailureDetector raises StrategyChangeRequired; checkpoint, then strategy change, evidence acquisition, delegation, or ESCALATED rather than silent continuation |
 
 No failure mode above permits proceeding on an assumption. Each either records a constraint and retries within authority, or terminates in a declared state.
 
@@ -4643,7 +4645,7 @@ AgentReasoningEngine (§71)
       v  at HYPOTHESIZE / STRATEGIZE
 DeepDeliberationRuntime (§72)
       |
-      +-- deliberate            (bounded passes)
+      +-- deliberate            (progress-governed passes)
       +-- acquire evidence      (read-only tool observation)
       +-- compete hypotheses    (discriminating tests)
       +-- critique strategy     (counterexample search)
@@ -4664,18 +4666,19 @@ Deliberation returns control to the reasoning engine. It never reaches the capab
 | Component | Responsibility |
 |---|---|
 | DeliberationController | Drives passes and records the deliberation decision per §68.3 |
-| DeliberationBudgetManager | Owns budget accounting and refuses passes beyond ceiling |
-| ReasoningEffortSelector | Converts an agent request plus policy into a granted level |
+| DeliberationProgressEvaluator | Measures per-pass movement: evidence delta, uncertainty delta, hypotheses eliminated, strategy stability |
+| DiminishingReturnDetector | Classifies NO_PROGRESS against the configured threshold and forces an approach change |
+| RepeatedFailureDetector | Detects a strategy retried against unchanged evidence, uncertainty, and constraints and raises StrategyChangeRequired |
+| EvidenceAcquisitionPlanner | Selects the cheapest decisive read-only observation; runs on every EvidenceAcquisitionTrigger |
+| ReasoningEffortSelector | Selects the granted level from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity |
 | SufficiencyEvaluator | Evaluates the §68.7 conjunction, not stated confidence |
 | HypothesisEvaluator | Runs competition, ranks by decisiveness, records refutation |
-| StrategyComparator | Compares candidates under an identical evaluation basis |
-| CounterexampleEngine | Adversarial critique; emits findings and evidence requests only |
-| EvidenceAcquisitionPlanner | Selects the cheapest decisive read-only observation |
+| StrategyCritic | Adversarial critique and counterexample search; emits findings and evidence requests only |
 | DeliberationModelRouter | Escalates model within an unchanged permission ceiling |
 | DeliberationContinuationManager | Persists session state across requests and compaction |
-| DeliberationProgressEvaluator | Measures per-pass movement |
-| DiminishingReturnDetector | Classifies NO_PROGRESS and forces an approach change |
 | DeliberationRecordStore | Persists records; rejects inadmissible ones |
+
+There is no budget manager. No component owns an AI-usage ceiling, reserves or settles reasoning expenditure, or refuses a pass on a count; `reasoningUsage` and `resourceUsage` are written as telemetry after the fact.
 
 ### 72.3 DeliberationRecord and session schema
 
@@ -4692,6 +4695,7 @@ DeliberationRecord
 - question: text
 - passCount: int
 - toollessPassCount: int
+- evidenceAcquisitionTriggers: { pass, trigger }[]
 - hypothesesConsidered: hypothesisId[]
 - hypothesesRejected: hypothesisId[]
 - evidenceAcquired: evidenceRef[]
@@ -4719,7 +4723,7 @@ DeliberationRecord
     modelRequests,
     wallClockMs
   }
-- outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED
+- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED
 
 DeliberationSession
 - sessionId
@@ -4729,39 +4733,43 @@ DeliberationSession
 - rejectedStrategies: { strategy, refutingEvidenceRef }[]
 - evidenceAcquired: evidenceRef[]
 - effortLevelGranted
-- remainingBudget: DeliberationBudget
+- effortGrantId
+- pendingEvidenceAcquisitionTrigger: trigger | null
 - providerContinuationState
 - lastCheckpointEventId
 ```
 
 DeliberationRecordStore must reject a record whose `passCount` exceeds one while `continuationReasons` has fewer entries than the additional passes, and must reject any record containing verbatim model reasoning in a text field. No field of either schema is a reasoning transcript.
 
-`reasoningUsage.accountingStatus` distinguishes provider-`reported` usage, runtime-`estimated` usage, and `unavailable` usage. The runtime never fabricates provider-reported reasoning usage: when the provider does not expose reasoning-token accounting, the record states `estimated` or `unavailable`, and estimates remain telemetry that can never satisfy a sufficiency or certification requirement.
+`reasoningUsage.accountingStatus` distinguishes provider-`reported` usage, runtime-`estimated` usage, and `unavailable` usage. The runtime never fabricates provider-reported reasoning usage: when the provider does not expose reasoning-token accounting, the record states `estimated` or `unavailable`, and estimates remain telemetry that can never satisfy a sufficiency or certification requirement. `reasoningUsage`, `resourceUsage`, `passCount`, and `toollessPassCount` are observational fields: no component reads them to authorize, refuse, pause, or terminate a pass.
 
 ### 72.4 Pass loop
 
 ```text
 enter deliberation (from HYPOTHESIZE or STRATEGIZE)
   -> ReasoningEffortSelector
-       request + policy + capacity + provider capability
-       -> granted effort level
+       task requirements + uncertainty + risk + provider capability
+       + policy + available execution capacity
+       -> granted effort level, effortGrantId
   -> loop:
-       DeliberationBudgetManager.reservePass()
-         reservation unavailable -> terminate BUDGET_EXHAUSTED
-
        ContextOrchestrator.assembleDeliberationContext()
          -> preserve objective, active hypotheses, rejected strategies,
-            constraints, evidence, remaining budget
+            constraints, evidence, pending evidence-acquisition trigger;
+            fit to provider context capacity (ContextCapacityPlanner)
 
        ModelGateway.request()
-         -> normalized ReasoningSettings
+         -> normalized ReasoningSettings under effortGrantId
          -> provider/model
 
        ModelGateway response
          -> structured proposal / reasoning summary / read-only observation request
 
-       ToolBroker
-         -> read-only evidence acquisition only
+       evidence acquisition
+         -> if pendingEvidenceAcquisitionTrigger or an observation was requested:
+              EvidenceAcquisitionPlanner selects the cheapest decisive
+              read-only observation; ToolBroker executes it
+         -> a pass that acquired no new observation raises
+              EvidenceAcquisitionTrigger for the next pass (recorded)
 
        DeliberationProgressEvaluator.measure()
          -> evidence delta
@@ -4769,40 +4777,35 @@ enter deliberation (from HYPOTHESIZE or STRATEGIZE)
          -> hypotheses eliminated
          -> strategy stability
          -> refutation attempted
-
-       BudgetManager.settlePass()
-
-       DiminishingReturnDetector.classify()
-
-         no_progress
-           -> GATHER_EVIDENCE
-           | ESCALATE_MODEL
-           | BRANCH
-           | DELEGATE
-           | ESCALATE
-           | terminate NO_PROGRESS
-
-       if toollessPassCount >= maxToollessPasses
-           -> EvidenceAcquisitionPlanner MUST run before another pass
+       record reasoningUsage / resourceUsage (telemetry only)
 
        SufficiencyEvaluator.evaluate()
-
          sufficient
-           -> terminate SUFFICIENT
+           -> checkpoint session; terminate SUFFICIENT
 
-         insufficient
+       DiminishingReturnDetector.classify() + RepeatedFailureDetector.classify()
+         progress possible
            -> continuation decision with a recorded continuationReasons entry
-           -> next pass if budget permits
+           -> next pass
+         diminishing returns | StrategyChangeRequired
+           -> change strategy
+           | GATHER_EVIDENCE
+           | DELEGATE
+           | BRANCH
+           | ESCALATE_MODEL
+           | ESCALATE (human decision)
+           | terminate NO_PROGRESS when none of those changes is available
 
+  -> checkpoint session state
   -> emit DeliberationRecord
-  -> return control to AgentReasoningEngine
+  -> return control to AgentReasoningEngine (kernel)
 ```
 
-The loop has no path from a pass directly to execution. Sufficiency returns to the reasoning engine, which emits the ReasoningArtifact and submits it for authorization.
+The loop has no path from a pass directly to execution. Sufficiency returns to the reasoning engine, which emits the ReasoningArtifact and submits it for authorization. The loop has no usage-exhaustion path and no fixed pass ceiling: a pass is never refused because of tokens, requests, cost, reasoning tokens, pass count, or elapsed time. An observation-free pass is a signal to obtain evidence, not a termination condition. Anti-thrash protection comes from DiminishingReturnDetector, RepeatedFailureDetector, and StrategyChangeRequired. Physical resource pressure is handled by ResourceIntegrityAuthority (BS §72) — a pass waits, is rescheduled, or is checkpointed — and never by the deliberation runtime terminating itself.
 
 ### 72.5 ReasoningEffortSelector
 
-The selector computes the granted level as the minimum of the requested level, the policy ceiling for the task's risk class, the level the remaining budget can fund, and the level the routed provider actually supports. The grant, the requested level, and the binding constraint are recorded, so a downgrade is visible rather than silent.
+The selector computes the granted level as the minimum of the requested level, the policy ceiling for the task's risk class, the level the currently available execution capacity (physical resource integrity, BS §72) admits, and the level the routed provider actually supports, raised to the task's minimum required effort from its requirements, uncertainty, and risk. The grant is issued under an `effortGrantId`; the grant, the requested level, and the binding constraint are recorded, so a downgrade is visible rather than silent. AI usage is not an input: there is no remaining budget, and no grant is ever refused or lowered because of tokens, requests, cost, or elapsed time.
 
 The selector must have no capability to raise a permission ceiling and no path to the policy engine's grant functions. Effort and permission are separate axes by construction.
 
@@ -4829,11 +4832,11 @@ The evaluator implements the §68.7 conjunction. It consults the required-eviden
 
 A stated confidence value is an input to uncertainty only and can never satisfy the conjunction alone. For a change classified high-risk the evaluator must refuse sufficiency while architectural impact, dependency impact, affected-symbol analysis, regression plan, or validation plan is absent.
 
-### 72.7 HypothesisEvaluator and CounterexampleEngine
+### 72.7 HypothesisEvaluator and StrategyCritic
 
 HypothesisEvaluator enumerates candidates, obtains a discriminating test per candidate from EvidenceAcquisitionPlanner, ranks by decisiveness divided by cost, executes the most decisive affordable test, and records refutation against the hypothesis records of §71.5. At DEEP and above it must report whether the last pass attempted refutation or only confirmation; a confirmation-only pass does not count as competition.
 
-CounterexampleEngine runs before authorization at DEEP and above for the change classes enumerated in §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
+StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
 
 ### 72.8 EvidenceAcquisitionPlanner
 
@@ -4845,28 +4848,29 @@ Cost estimates come from the ResourceProfiler of §69, so the planner prefers a 
 
 Deliberation records and sessions are stored in the SQLite execution ledger keyed by task and project, and are therefore replayable by the trajectory engine of §58 and inspectable by the debugger of §67.
 
-DeliberationContinuationManager checkpoints session state on every pass boundary. The context assembler of §59.3 must treat active hypotheses, rejected strategies, and remaining budget as constraint-class content under §53.3, which makes them ineligible for eviction during compaction. A compaction that drops them is detectable by comparing session revision against the post-compaction context manifest, and is reported as a defect rather than tolerated.
+DeliberationContinuationManager checkpoints session state on every pass boundary. The context assembler of §59.3 must treat active hypotheses, rejected strategies, the effort grant, and any pending evidence-acquisition trigger as constraint-class content under §53.3, which makes them ineligible for eviction during compaction. A compaction that drops them is detectable by comparing session revision against the post-compaction context manifest, and is reported as a defect rather than tolerated.
 
 ### 72.10 Failure modes and recovery
 
 | Failure | Runtime behavior |
 |---|---|
 | Agent requests an effort level above policy | Downgraded to highest permitted; grant reason recorded |
-| Budget exhausted before sufficiency | Terminate BUDGET_EXHAUSTED; cycle yields WAITING or ESCALATED |
-| Observation-free pass bound reached | Further passes refused until evidence is acquired |
+| Pass acquires no new observation | EvidenceAcquisitionTrigger raised; the next pass acquires evidence or changes approach, never reasons again over the same observation set |
+| Strategy repeated against unchanged evidence | RepeatedFailureDetector raises StrategyChangeRequired; strategy change, evidence acquisition, delegation, branch, or escalation forced |
+| Physical resource pressure during deliberation | ResourceIntegrityAuthority queues, reschedules, reduces concurrency, or checkpoints the pass per BS §72; deliberation resumes from the checkpoint; no deliberation outcome is produced by pressure |
 | Diminishing returns detected | Approach change forced; a further plain pass is refused |
 | All hypotheses refuted | Terminate NO_PROGRESS; escalate or branch |
 | Critic finds a counterexample | Strategy rejected; return to STRATEGIZE with the finding as a constraint |
 | Escalated model unavailable | Continue at the available model and record the capability gap |
 | Compaction drops session state | Restore from the last pass checkpoint; report the compaction defect |
-| Provider fails mid-session | Resume the deliberation from the last checkpoint. Revalidate the replacement provider's reasoning capability before issuing the next pass. Preserve the runtime effort requirement and remaining budget; if the replacement provider cannot satisfy the required effort level, either route to another approved provider/model or terminate with a typed capability gap. A provider failover must never silently reduce required effort. |
+| Provider fails mid-session | Resume the deliberation from the last checkpoint. Revalidate the replacement provider's reasoning capability before issuing the next pass. Preserve the runtime effort requirement and effort grant; if the replacement provider cannot satisfy the required effort level, either route to another approved provider/model or terminate with a typed capability gap. A provider failover must never silently reduce required effort. |
 | Record fails admissibility | Rejected at write; deliberation cannot report sufficiency |
 
 No failure mode permits presenting an unvalidated leading strategy as sufficient.
 
 ### 72.11 Architecture tests
 
-The runtime is correct only when an agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the constraint recorded; when a deliberation exceeding its pass budget terminates BUDGET_EXHAUSTED and the cycle does not execute the leading strategy; when consecutive observation-free passes are refused at the bound until evidence is acquired; when a high-risk change is refused sufficiency with a stated confidence of 0.95 and a missing regression plan; when a discriminating test refutes the leading hypothesis and the selected strategy changes as a result; when a counterexample finding returns the cycle to strategy selection without mutating the project; when an escalated model executes under the identical permission ceiling; when a forced context compaction preserves active hypotheses and rejected strategies and the session resumes without re-deriving them; when consecutive passes of flat uncertainty reaching the **configured** `diminishingReturnThreshold` produce NO_PROGRESS and an approach change rather than a further plain pass; when the ledger shows zero project mutation events between deliberation entry and the kernel `AUTHORIZE` grant; when an effort escalation carries a `grantDecisionReason` citing the observed condition that triggered it; and when no deliberation record in the ledger contains verbatim model reasoning.
+The runtime is correct only when an agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the constraint recorded; when a deliberation that has consumed arbitrarily many tokens, requests, reasoning passes, and hours continues while progress remains possible and no usage-exhaustion outcome exists in the ledger; when an observation-free pass raises an evidence-acquisition trigger and the following pass acquires evidence or changes approach; when a strategy retried against unchanged evidence raises StrategyChangeRequired; when physical memory pressure injected mid-deliberation causes the pass to be checkpointed and resumed rather than terminated; when a high-risk change is refused sufficiency with a stated confidence of 0.95 and a missing regression plan; when a discriminating test refutes the leading hypothesis and the selected strategy changes as a result; when a counterexample finding returns the cycle to strategy selection without mutating the project; when an escalated model executes under the identical permission ceiling; when a forced context compaction preserves active hypotheses and rejected strategies and the session resumes without re-deriving them; when consecutive passes of flat uncertainty reaching the **configured** `diminishingReturnThreshold` produce NO_PROGRESS and an approach change rather than a further plain pass; when the ledger shows zero project mutation events between deliberation entry and the kernel `AUTHORIZE` grant; when an effort escalation carries a `grantDecisionReason` citing the observed condition that triggered it; and when no deliberation record in the ledger contains verbatim model reasoning.
 
 The threshold is configuration, not a runtime constant. No component may hardcode a pass count for `NO_PROGRESS`: the classification is a function of the configured threshold, the measured per-pass movement, and consecutive-pass semantics. A test fixture supplies its own threshold value, and a runtime that behaves identically regardless of the configured value has not implemented the detector.
 
@@ -5748,19 +5752,19 @@ The implementation must prove that file-save continuation, build-completion cont
 
 Nirman remains a Windows-first local host for Android generation. The isolation boundary is the approved Windows workspace and supervised process environment; no container, virtual machine, WSL, or generic web/cloud deployment runtime is implied by this contract.
 
-## 77. Cost Governance Implementation Contract
+## 77. Runtime Resource Integrity Implementation Contract
 
 ### 77.1 Canonical schema
 
-`CostGovernanceRecord` is persisted with the task and operation ledger. `CostAuthority` evaluates reservations before admission and settlements after completion. It receives provider usage, token estimates, process telemetry, emulator cost estimates, and configured caps through typed records.
+`ResourceIntegrityRecord` (BS §72) is persisted with the task and operation ledger. `ResourceIntegrityAuthority` (§59) evaluates `resourceRequirements` against currently admissible physical capacity before admission and records `observedPressure`, `pressureResponse`, and `livenessState` while work runs. It receives process telemetry, host memory and disk signals, emulator slot state, workspace I/O and concurrency counters, provider context capacity, and liveness probes through typed records. Provider `UsageRecord`s (tokens, requests, estimated cost, reasoning usage) are linked through `usageTelemetryRefs` and are observational: the authority never reads them to admit, deny, throttle, degrade, pause, or terminate work, and no record field carries an AI-usage ceiling, reservation, remaining budget, or exhaustion outcome.
 
 ### 77.2 Lifecycle and authority
 
-The lifecycle is `UNSET → DECLARED → RESERVED → RUNNING → SETTLED`, with `RECONCILIATION_REQUIRED`, `DEGRADED`, `PAUSED_FOR_APPROVAL`, and `SAFE_FAILED` side states. Cost authority may deny, downgrade, pause, or request approval, but cannot grant an operation capability or promote evidence. Under Nirman's resource integrity model, tasks are not terminated or degraded by artificial token or request caps; resource constraints apply to physical host, process, and emulator stability.
+The lifecycle is `DECLARED → ADMITTED → RUNNING → COMPLETED`, with `QUEUED`, `CONCURRENCY_REDUCED`, `RESCHEDULED`, `CHECKPOINTED`, `SERIALIZED`, `RECLAIMING`, `RECOVERING`, and `BLOCKED_NO_SAFE_PATH` side states. Under physical pressure the authority applies queueing, concurrency reduction, scheduling, checkpointing, work serialization, cache and resource reclamation, and recovery in that order before a blocking outcome, and blocks only when no safe path remains. It may queue, reschedule, reduce concurrency, checkpoint, or contain a hung operation, but cannot grant an operation capability, promote evidence, widen permission, or mark work complete; it cannot override safety, privacy, signing, evidence, or completion authority. A liveness timeout is scoped to one hung operation and MUST NOT terminate a healthy goal for elapsed time. Tasks are never terminated, degraded, paused, or blocked because of token consumption, provider request count, monetary expenditure, reasoning usage, or elapsed autonomous-goal duration.
 
 ### 77.3 Failure and recovery
 
-Unknown provider usage, missing settlement, telemetry loss, cap exhaustion, and disagreement between estimated and reported usage produce durable diagnostics. Recovery may reduce context, concurrency, or model profile, or pause for policy; it must never retry an unknown external charge blindly. Physical host resource pressure prefers queueing, concurrency reduction, worker scheduling, checkpointing, and resource reclamation before declaring safe failure.
+Memory exhaustion, disk exhaustion, process-count limits, emulator slot contention, workspace I/O saturation, hung operations, and telemetry loss produce durable diagnostics. Recovery may queue, reschedule, reduce concurrency, checkpoint, serialize, reclaim rebuildable caches, restart a contained process, or resume from the last checkpoint when capacity returns; it must never retry an unknown external charge blindly, and a `BLOCKED_NO_SAFE_PATH` outcome preserves the last checkpoint and event log and is never reported as completion. Unknown or unreported provider usage is recorded as `unavailable` telemetry and does not change execution.
 
 ## 78. Agent Trust Boundary Implementation Contract
 
@@ -6110,7 +6114,7 @@ ConversationStore failure triggers reconciliation. Conversation continuation MUS
 
 Conversation does NOT create a second memory, task, or project authority. Conversation owns conversational lineage only (messages, attachments, decisions, suggestions, active goal, task lineage).
 
-`CONTRACT.RUNTIME.MEMORY` remains authoritative for retained semantic memory records. `CONTRACT.RUNTIME.CONTEXT` remains authoritative for reconstruction policy and context budget governance. `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` remains authoritative for background execution and interruption/resume state. Task and project state remain authoritative for execution state.
+`CONTRACT.RUNTIME.MEMORY` remains authoritative for retained semantic memory records. `CONTRACT.RUNTIME.CONTEXT` remains authoritative for reconstruction policy and context capacity governance. `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY` remains authoritative for background execution and interruption/resume state. Task and project state remain authoritative for execution state.
 
 Storage authority separation:
 - `Conversation`: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
