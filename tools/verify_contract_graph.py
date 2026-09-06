@@ -1357,6 +1357,22 @@ def check_semantic_documentation(docs, R, D):
                           ("No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace", "BS §76.1 namespace rule")):
         if anchor not in (ta if label.startswith("TA") else bs):
             D.add("semantic documentation", "forbidden preview pipeline path", f"{label} is missing")
+    # The TA §74.5 certification report must carry the §67.11 status vocabulary
+    # verbatim; a PASSED/FAILED result would hide the with-skips state.
+    report = re.search(r"```text\s*\nDocumentationCertificationReport\s*\n(.+?)\n```", ta, re.S)
+    if report is None:
+        D.add("semantic documentation", "certification report schema",
+              "TA §74.5 lacks the DocumentationCertificationReport field block")
+    else:
+        body = report.group(1)
+        if "- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED" not in body:
+            D.add("semantic documentation", "certification report schema",
+                  "TA §74.5 `result` must enumerate exactly the §67.11 terminal statuses "
+                  "FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED")
+        for fld in ("checksUnevaluated", "unevaluatedSubjects"):
+            if f"- {fld}" not in body:
+                D.add("semantic documentation", "certification report schema",
+                      f"TA §74.5 report lacks `{fld}`; the with-skips status is unverifiable without it")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

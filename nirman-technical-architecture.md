@@ -5813,12 +5813,16 @@ DocumentationCertificationReport
 - checksExecuted
 - graphClassesChecked
 - semanticRulesChecked
+- checksUnevaluated
+- unevaluatedSubjects
 - defectCount
 - defects
-- result: PASSED | FAILED
+- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED
 - evidenceId
 - generatedAt
 ```
+
+`result` carries the verifier's terminal status verbatim (build spec §67.11): `FAIL` when `defectCount` is non-zero; `DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` when `defectCount` is zero and `checksUnevaluated` is non-zero, with every skipped subject listed in `unevaluatedSubjects`; `DOCUMENTATION_CERTIFIED` only when both are zero. The report has no `PASSED` value, so a report can never be read as complete certification while a check went unevaluated.
 
 The report certifies documentation identity, registry resolution, graph structure, and declared semantic documentation rules only. It never certifies runtime source, Windows isolation, provider behavior, Android execution, preview truth, recovery, signing, or APK validity.
 

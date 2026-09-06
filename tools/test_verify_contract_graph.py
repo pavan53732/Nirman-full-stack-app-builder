@@ -593,6 +593,10 @@ CASES = {
         TA, "- classifyFailure()          -> AndroidTechnologyAdapterResolution\n",
         "- classifyFailure()          -> AndroidTechnologyAdapterResolution\n- executeBuild()             -> AndroidBuildObservation\n",
         "semantic documentation"),
+    "certification report reverts to PASSED or FAILED": (
+        TA, "- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED\n",
+        "- result: PASSED | FAILED\n",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
