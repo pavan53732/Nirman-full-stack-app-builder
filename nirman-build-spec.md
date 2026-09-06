@@ -1078,7 +1078,7 @@ The first usable release should satisfy the following conditions:
 | Risk | Impact | Mitigation |
 |---|---|---|
 | The generated project becomes inconsistent | High | Use templates, project specifications, incremental patches, and checkpoints |
-| The agent enters an infinite repair loop | High | Enforce attempt, time, and token limits; classify repeated failures |
+| The agent enters an infinite repair loop | High | Detect repeated failure fingerprints and diminishing returns, force a strategy change, and escalate (§68.13); no attempt, time, or token ceiling is an execution control (§72) |
 | Local toolchains are missing | High | Provide environment diagnostics and supported-version guidance |
 | A generated command is unsafe | High | Use command policies, path restrictions, approvals, and process isolation |
 | Cloud providers receive sensitive project data | High | Provide context exclusions, privacy notices, and redaction |
@@ -1156,7 +1156,7 @@ Dynamic mode selection and context capacity allocation are governed by twelve ma
 9. `projectRevision`: workspace transaction identity and git commit boundary.
 10. `planRevision`: active plan node lineage and step dependency requirements.
 11. `context_capacity`: the selected provider's actual context capacity and the admissible context share for the operation; a technical capacity, not a usage budget.
-12. `provider_capabilities`: provider context capacity, prefix caching, and reasoning effort reported by `attentionCapabilities`.
+12. `provider_capabilities`: provider context capacity, prefix caching, reasoning effort, and the measured `AttentionReliabilityProfile` reported by `attentionCapabilities`; the reliable recall span, not only the declared capacity, bounds the DENSE block (§53.11).
 
 ---
 
@@ -2415,6 +2415,22 @@ Model output MUST pass through the mutation broker. Direct model writes to proje
 
 The broker MUST reject blind search-and-replace mutations for high-risk source files. Whole-file generation is allowed only inside an isolated transaction and only when the resulting file passes syntax, graph, build, test, and content-integrity gates.
 
+Every model-proposed mutation is a `StructuredPatch` bound to the `ContextPackage` it was proposed against:
+
+```text
+StructuredPatch
+- patchId
+- contextId
+- baseRevision
+- targetSymbolIds
+- anchorHashes
+- premises
+- operations
+- proposedBy
+```
+
+`anchorHashes` are the hashes of the `EXACT` regions the proposal edits, as they appeared in the originating package; `premises` are the symbol identities and signature hashes the proposal relies on, as they appeared at `STRUCTURAL` or `EXACT` fidelity. Before syntax validation and before any `ConstructionTransaction` opens, the broker compares `baseRevision`, `anchorHashes`, and `premises` against the originating package and the current project revision. Any mismatch is rejected with the typed outcome `PREMISE_MISMATCH`, is recorded as a recall failure for the provider model's `AttentionReliabilityProfile` (§53.11), and is never repaired by silently re-anchoring the patch. A patch that names no anchors for an `EXACT` edit is rejected as malformed.
+
 ### 43.3 Project Impact Graph
 
 Before a refinement, Nirman MUST calculate affected files, modules, resources, tests, permissions, preview surfaces, and artifact outputs. The impact graph MUST support incremental indexing, affected-test selection, dependency conflict analysis, navigation and resource reachability, manifest/API usage correlation, long-horizon map sharding, checkpoint-aware invalidation, and reconciliation conflict detection.
@@ -3248,7 +3264,7 @@ The user-facing stream must show concise structured events for these transitions
 - authoritySection: §38
 - extendingSection: §53
 - extensionType: adds_clauses
-- extendedClauses: CLAUSE.CONTEXT.CONSTRAINT_PRIORITY, CLAUSE.CONTEXT.SOURCE_REQUIRED
+- extendedClauses: CLAUSE.CONTEXT.CONSTRAINT_PRIORITY, CLAUSE.CONTEXT.SOURCE_REQUIRED, CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED, CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY
 - nonOverriddenClauses: CLAUSE.MEMORY.SCOPES, CLAUSE.MEMORY.RETENTION_AUTHORITY, CLAUSE.MEMORY.SECRET_EXCLUSION
 
 
@@ -3299,11 +3315,15 @@ ContextPackage
 - capacityAllocation
 - selectionReasons
 - omittedForCapacity
+- attentionProfileRef
+- placementPlan
+- attendabilityMap
+- recallProbes
 - cacheReferences
 - integrityHash
 ```
 
-`requiredItems` MUST NOT be evicted. `EXACT` items MUST NOT be replaced by summaries when required for mutation or line-level reasoning. Active constraints and locked decisions must never be dropped for capacity reasons. If they cannot fit, the runtime must reduce supporting or historical context, not constraint content, and must record the reduction in `omittedForCapacity`.
+`requiredItems` MUST NOT be evicted. `EXACT` items MUST NOT be replaced by summaries when required for mutation or line-level reasoning. Active constraints and locked decisions must never be dropped for capacity reasons. If they cannot fit, the runtime must reduce supporting or historical context, not constraint content, and must record the reduction in `omittedForCapacity`. `attentionProfileRef`, `placementPlan`, `attendabilityMap`, and `recallProbes` are defined in §53.11; `placementPlan` records where every item was physically placed in the transmitted request, and `attendabilityMap` records whether each item is expected to be reliably attendable there.
 
 ### 53.4 Context sufficiency and coverage gate
 
@@ -3319,6 +3339,8 @@ CONTEXT_ASSEMBLE
 1. **COVERAGE_CHECK**: The `RetrievalCompletenessChecker` validates that all direct dependencies, mutated file targets, active interface definitions, and required validation assertions on the `EvidenceFrontier` are present at the required fidelity level.
 2. **INTEGRITY_CHECK**: The `ContextIntegrityVerifier` validates that `contextRevision`, `goalRevision`, `projectRevision`, `planRevision`, and `evidenceRevision` match current authoritative ledger state.
 
+`COVERAGE_CHECK` evaluates the seven confidence dimensions of TA §59.4, including `attentionReliability`: every `requiredItems` entry and every mutation-target `EXACT` item must be `EXPECTED_RELIABLE` in the `attendabilityMap`, or be covered by a passing recall probe in the same package (§53.11). Presence in the package is necessary; attendability is what the gate certifies.
+
 If required dependency, interface, or evidence coverage is insufficient:
 
 ```text
@@ -3326,7 +3348,7 @@ MODEL invocation prohibited
 → expand retrieval OR re-ground
 ```
 
-The model invocation is strictly prohibited. The runtime automatically expands retrieval over the Repository Semantic Graph or triggers `RegroundingService` to resolve missing context.
+The model invocation is strictly prohibited. The runtime automatically expands retrieval over the Repository Semantic Graph or triggers `RegroundingService` to resolve missing context. If coverage is sufficient but attendability is not, the runtime re-projects the affected items into the DENSE block, narrows the step so the DENSE block fits the reliable recall span, or selects a provider model whose profile satisfies the step, in that order; only when none applies does it re-ground or escalate. None of these responses is a usage control: they change what is sent and how it is verified, never whether valid work may proceed.
 
 ### 53.5 Cognitive Working Set
 
@@ -3379,7 +3401,55 @@ Project memory must never be read across project boundaries. Runtime-improvement
 
 ### 53.10 Acceptance criteria
 
-The memory and context contract is satisfied only when a session can be interrupted, resumed after a runtime restart, and continue without re-asking a settled question; when a locked decision is never contradicted by a later action; when every memory record cites its source evidence; and when a context package can be reproduced from the event ledger for any historical model call.
+The memory and context contract is satisfied only when a session can be interrupted, resumed after a runtime restart, and continue without re-asking a settled question; when a locked decision is never contradicted by a later action; when every memory record cites its source evidence; when a context package can be reproduced from the event ledger for any historical model call; when a constraint placed under the provider's measured reliable recall span is recalled verbatim by the model or, when it is not, the failure is detected before any consequential action and answered by re-projection, step narrowing, or provider selection; and when a proposal whose anchors or premises disagree with its originating package is rejected as `PREMISE_MISMATCH` before any transaction opens.
+
+### 53.11 Attention reliability, placement, and recall verification
+
+Nirman does not implement attention. The provider's model does, and models with hybrid sparse, linear, recurrent, or sliding-window attention recall distant literal content unevenly by position, window fill, and distractor density. Presence of an item in a `ContextPackage` therefore does not establish that the model can attend to it. This subsection makes attendability measured, placed against, gated, and verified independently of the model's recall.
+
+**Attention reliability profile.** Every provider model carries an `AttentionReliabilityProfile`, exposed through `ProviderProfile.attentionCapabilities` and defined canonically in TA §19.2:
+
+```text
+AttentionReliabilityProfile
+- profileId
+- providerProfileId
+- modelId
+- source: DECLARED | PROBED | LEARNED | UNPROFILED
+- declaredContextTokens
+- reliableLiteralSpanTokens
+- reliableGistSpanTokens
+- positionalRecall
+- multiNeedleRecall
+- distractorSensitivity: LOW | MEDIUM | HIGH | UNKNOWN
+- postCompactionRetention
+- toolResultRecallDecay
+- supportsPrefixCaching
+- supportsStructuredCache
+- lastProbedAt
+- probeFixtureId
+- evidenceIds
+- confidence: HIGH | MEDIUM | LOW
+```
+
+`declaredContextTokens` is the provider's physical context capacity and keeps its existing role: `ContextCapacityPlanner` fits the package to it. `reliableLiteralSpanTokens` is the largest window fill at which literal-recall probes pass at or above the configured threshold; it bounds the DENSE block, never the whole package, and is not a budget. A profile is `UNPROFILED` until a probe has run; an `UNPROFILED` model receives conservative placement and consequential steps against it require an in-package probe to pass. A `DECLARED` value is provider metadata, not evidence, and is replaced by the first `PROBED` result.
+
+**Placement.** `ContextAssembler` serializes every `ContextPackage` in this order, and `placementPlan` records the resulting block boundaries and item positions:
+
+1. Cache-stable prefix: system and role text, policy text, and tool catalogue. The prefix is never the only copy of any active constraint or locked decision.
+2. SPARSE breadth block: repository semantic graph neighborhoods, historical summaries, causal memory, distant consumers, prior failures.
+3. DENSE precision block, physically adjacent to the instruction: active constraints and locked decisions restated verbatim with their identifiers, `EXACT` mutation targets, `STRUCTURAL` interfaces, current diagnostics, current evidence, and active task state.
+4. State digest: goal, current step, constraint identifiers, acceptance criteria, and the four revision identifiers, as the final block before the instruction.
+5. The instruction.
+
+Constraint identifiers appear in the prefix and in the DENSE block; the DENSE copy is authoritative for the request. The `cacheBreakpointPolicy` of §74 places the cache breakpoint before the DENSE block, and a cache hit never moves DENSE content into the prefix. `attendabilityMap` marks each item `EXPECTED_RELIABLE`, `EXPECTED_DEGRADED`, or `UNKNOWN` from its planned position, the window fill, and the profile's `positionalRecall`.
+
+**Recall probes.** `RecallProbeService` embeds deterministic probes whose expected answers are known only to the runtime and verified by exact match: constraint restatement by identifier and wording, anchored-symbol and signature echo, anchor-hash and line-anchor echo, multi-needle recall, post-compaction re-projection of the constraint ledger, and tool-result recall. Probe results are evidence records referenced from `evidenceIds`. Probe cadence is bound to structural events only: provider profile save (the ADR-208 connection test), checkpoint creation, phase boundaries, every compaction, and any `PREMISE_MISMATCH`; it is never bound to token, request, or pass counts.
+
+**Learning.** Every `PREMISE_MISMATCH` returned by the mutation broker (§43.2) and every failed probe updates `positionalRecall` with `source: LEARNED`, so the profile improves without additional model calls. Reliability evidence derives only from probes and premise mismatches; a model's statement about what it remembers is inadmissible.
+
+**Compaction.** Compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity. After every compaction the runtime re-projects them from `ConstraintRegistry` and the ledger into the DENSE block and verifies the re-projection with a recall probe before the next consequential step.
+
+**Authority boundary.** Attention reliability is telemetry and a context-quality input with no execution-authority semantics (§72). It may change placement, step size, and provider or model selection; it may never pause, throttle, degrade, terminate, or fail valid work, and it is never a completion signal.
 
 ## 54. Swarm Coordination and Concurrent Change Management
 
@@ -4315,7 +4385,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216 | M81 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-219 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RECONCILIATION | BS §55 | — | TA §61 | ADR-144 | M83 | CROSS_CUTTING |
@@ -4339,7 +4409,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199 | M113 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199, ADR-219 | M113 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M120 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212 | M121 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | BS §83 | — | TA §87 | ADR-213 | M122 | CROSS_CUTTING |
@@ -4413,6 +4483,8 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.MEMORY.SECRET_EXCLUSION | CONTRACT.RUNTIME.MEMORY | §38 | credentials, signing keys, raw secrets never enter semantic memory | SEALED |
 | CLAUSE.CONTEXT.CONSTRAINT_PRIORITY | CONTRACT.RUNTIME.CONTEXT | §53 | active constraints and locked decisions are never evicted for capacity | SEALED |
 | CLAUSE.CONTEXT.SOURCE_REQUIRED | CONTRACT.RUNTIME.CONTEXT | §53 | a memory record requires a non-empty source event set | SEALED |
+| CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED | CONTRACT.RUNTIME.CONTEXT | §53 | consequential model invocation requires required items and mutation-target EXACT items to be placed within the provider model's measured reliable recall span or probe-verified in the same package | SEALED |
+| CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY | CONTRACT.RUNTIME.CONTEXT | §53 | attention reliability derives only from deterministic probe and premise-mismatch evidence, never from model self-report, and carries no execution-authority semantics | SEALED |
 | CLAUSE.WORKSPACE.SINGLE_WRITER | CONTRACT.RUNTIME.WORKSPACE | §22 | one worker holds write ownership of a workspace path at a time | SEALED |
 | CLAUSE.RESERVATION.GRANT_AUTHORITY | CONTRACT.RUNTIME.RESERVATION | §54 | only the deterministic runtime grants, revokes, or invalidates a reservation | SEALED |
 | CLAUSE.RESERVATION.STALE_INVALIDATION | CONTRACT.RUNTIME.RESERVATION | §54 | a surface change invalidates every read_stable reservation on it | SEALED |
@@ -4552,7 +4624,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
-| CONTRACT.RUNTIME.CONTEXT | CAP.ANDROID.LONG_HORIZON | BS §53 | BS §53 | TA §59 | TA §59.3 | BS §53 | TA §59.5 | TA §59.6 | ADR-141 | M81 | TEST-MEM-001 | EV-MEM-001 |
+| CONTRACT.RUNTIME.CONTEXT | CAP.ANDROID.LONG_HORIZON | BS §53 | BS §53 | TA §59 | TA §59.3 | BS §53 | TA §59.5 | TA §59.6 | ADR-141, ADR-219 | M81 | TEST-MEM-001 | EV-MEM-001 |
 | CONTRACT.RUNTIME.WORKSPACE | CAP.ANDROID.PARALLEL | BS §22 | BS §22 | TA §8 | TA §8.1 | BS §22 | TA §8.2 | TA §8.3 | ADR-068 | M69 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RESERVATION | CAP.ANDROID.PARALLEL | BS §54 | BS §54 | TA §60 | TA §60.2 | BS §54 | TA §60.4 | TA §60.6 | ADR-143 | M82 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RECONCILIATION | CAP.ANDROID.USER_COEDIT | BS §55 | BS §55 | TA §61 | TA §61.2 | BS §55 | TA §61.5 | TA §61.6 | ADR-144 | M83 | TEST-RCN-001 | EV-RCN-001 |
@@ -4574,7 +4646,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | CAP.ANDROID.RESOURCE_AWARE_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-218 | M111 | TEST-RESOURCE-001 | EV-RESOURCE-001 |
 | CONTRACT.RUNTIME.AGENT_TRUST | CAP.ANDROID.TRUSTED_EXTENSIONS | BS §73 | BS §73 | TA §78 | TA §78.1 | BS §73 | TA §78.2 | TA §78.3 | ADR-198 | M112 | TEST-TRUST-001 | EV-TRUST-001 |
-| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199, ADR-219 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | CAP.ANDROID.FRONTEND_CONTROL_PLANE | BS §76 | BS §76 | TA §81 | TA §81.1 | BS §76 | TA §81.2 | TA §81.3 | ADR-201 | M115 | TEST-FCP-001 | EV-FCP-001 |
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
@@ -5450,11 +5522,11 @@ Context compaction and provider caching are governed independently from memory, 
 
 Compaction may summarize logs and ordinary context, but it must preserve active constraints, locked decisions, source and revision identity, acceptance criteria, evidence lineage, unresolved failures, required tool results, and signing or privacy restrictions. Cache reuse is valid only when provider, model, policy, context selection, project revision, relevant files, tool results, and privacy classification are compatible. A cache hit must be visible in telemetry and must not be represented as a fresh observation.
 
-Compaction triggers include context utilization thresholds, phase boundaries, provider continuation limits, failure boundaries, and explicit policy requests. Cache invalidation occurs after source changes, policy changes, credential changes, provider or model changes, tool-result changes, evidence invalidation, or privacy classification changes. Context governance may reduce or defer work but cannot evict mandatory constraints or weaken evidence requirements.
+Compaction triggers include context utilization thresholds, phase boundaries, provider continuation limits, failure boundaries, and explicit policy requests. Compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity: after every compaction they are re-projected from durable state into the DENSE block and verified by a recall probe (§53.11). The `cacheBreakpointPolicy` places the breakpoint before the DENSE block, and `placementPlan` is part of the policy-visible record. Cache invalidation occurs after source changes, policy changes, credential changes, provider or model changes, tool-result changes, evidence invalidation, or privacy classification changes. Context governance may reduce or defer work but cannot evict mandatory constraints or weaken evidence requirements.
 
 ### 74.1 Acceptance criteria
 
-Fixtures must prove protected-constraint retention, compaction at a threshold, cache reuse and invalidation, provider/model mismatch, privacy exclusion, cache telemetry, failed compaction recovery, and preservation of causal and evidence lineage.
+Fixtures must prove protected-constraint retention, compaction at a threshold, cache reuse and invalidation, provider/model mismatch, privacy exclusion, cache telemetry, failed compaction recovery, preservation of causal and evidence lineage, a passing post-compaction recall probe, and a recorded `placementPlan` with the cache breakpoint before the DENSE block.
 
 ## 75. Android Runtime Integrity Contract
 
@@ -6323,7 +6395,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §24.3 | "The settings interface should allow the user to create, duplicate, test, disable, and delete provider profiles" | MUST offer all five operations | Each is reachable without editing a file by hand; deleting a profile removes its keychain entry |
 | TA §24.3 | "It should support custom base URLs and model IDs" | MUST accept a user-entered base URL and model ID | Neither is restricted to a built-in list; an unknown value is accepted and validated by Test rather than rejected by pattern |
 | TA §24.3 | "The connection test should discover or validate the configured endpoint, verify authentication, test the selected model, detect available features, measure a basic response, and record the provider request ID" | MUST perform all six checks | A Test that cannot complete one of the six reports that check as failed rather than passing the whole; Save stays disabled unless all six succeed, per ADR-208 |
-| TA §24.3 | "The page should show capability badges for" the thirteen listed capabilities | MUST show all thirteen badges in one of three states | Text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, embeddings, reasoning, supported reasoning effort levels, reasoning usage reporting, and context capacity are each shown as confirmed by probe, user-overridden, or unknown; a badge is never shown as confirmed on the basis of provider name alone |
+| TA §24.3 | "The page should show capability badges for" the fourteen listed capabilities | MUST show all fourteen badges in one of three states | Text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, embeddings, reasoning, supported reasoning effort levels, reasoning usage reporting, context capacity, and attention reliability are each shown as confirmed by probe, user-overridden, or unknown; a badge is never shown as confirmed on the basis of provider name alone |
 | TA §24.4 | "The model gateway should convert all supported protocols into a canonical internal request" | MUST convert every protocol into the `ModelRequest` shape | The nineteen `ModelRequest` fields and the seven `ReasoningSettings` fields are the sole request representation the agent runtime constructs; protocol-specific request objects exist only inside adapters |
 | TA §24.4 | "The canonical response should be event-oriented" | MUST represent every response as an ordered `ModelEvent` sequence | The ten event types are the closed set; `sequence` is strictly increasing per `requestId`; a non-streaming provider still yields at minimum started, completed or failed, and usage events |
 | TA §24.5 | "Chat-completion tool calls, response-item function calls, and message-oriented tool calls should normalize to" `ToolCallRequest` | MUST normalize all three into `ToolCallRequest` | The seven fields are populated for every tool call regardless of source protocol; `callId` round-trips unchanged into the `ToolCallResult` and into the next request |
@@ -6333,7 +6405,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §24.6 | "Provider retries should classify authentication errors, invalid requests, rate limits, transient network failures, provider overload, context overflow, unsupported capabilities, and content-policy responses separately" | MUST classify into exactly these eight classes | Each class has its own retry decision; authentication errors, invalid requests, unsupported capabilities, and content-policy responses are not retried blindly; an unclassifiable error is surfaced rather than retried |
 | TA §24.6 | "the context planner should compact or retrieve less context instead of silently dropping required instructions" | MUST compact or narrow retrieval; MUST NOT drop required instructions | System instructions, the active task contract, and the tool schemas are never removed to fit a context window; if the request still does not fit after compaction the request fails visibly |
 | TA §24.7 | "Nirman should record token usage when the provider reports it" | MUST record reported usage; MUST mark unreported usage as unavailable | An estimate is never stored in a field that means reported; token usage is telemetry with no execution-authority semantics, and only an explicit user-declared policy stop condition may act on it |
-| TA §24.8 | "The provider test suite should use protocol fixtures for" the twelve listed cases | MUST include all twelve fixtures | Simple text, multi-turn messages, multimodal input, structured JSON, tool calls and results, streaming deltas, cancellation, rate-limit and network recovery, context overflow, refusal handling, request-ID and usage capture, and capability mismatch; an adapter is not production-ready until it passes those relevant to its declared capabilities |
+| TA §24.8 | "The provider test suite should use protocol fixtures for" the fourteen listed cases | MUST include all fourteen fixtures | Simple text, multi-turn messages, multimodal input, structured JSON, tool calls and results, streaming deltas, cancellation, rate-limit and network recovery, context overflow, refusal handling, request-ID and usage capture, capability mismatch, positional literal recall across fill buckets, and post-compaction constraint retention; an adapter is not production-ready until it passes those relevant to its declared capabilities |
 | TA §25.2 | "Nirman should use a stable launcher/controller process and a replaceable application process" | MUST use the two-process model | The controller owns the update lock and active-version pointer; the application process is the only replaceable half; the nine-stage update protocol (download, verify, stage, compatibility-check, quiesce, switch, restart, health-check, rollback) is followed in order |
 | TA §25.2 | "The controller should not be replaced during an ordinary self-update" | MUST NOT replace the controller in an ordinary self-update | A controller change is a distinct, explicitly-flagged update path that invalidates dependent evidence unless independence is proven |
 | TA §25.3 | "A self-development task should include" the `SelfDevContract` fields | MUST include all thirteen fields | A self-development task missing any of the thirteen does not start; the task begins with a source checkpoint and an isolated worktree in every case |
@@ -6422,7 +6494,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §28.2 | "The recovery manager should maintain a failure-pattern record containing the fingerprint, affected project area, attempted strategies, successful fixes, last known-good checkpoint, and confidence" | MUST maintain all six fields | The record feeds project memory and improvement proposals only after sensitive data is removed |
 | TA §28.3 | "The runtime should measure whether an attempt made verified progress" | MUST evaluate verified progress after every attempt | Progress means more passing tests, fewer runtime errors, a smaller conflict set, successful environment setup, a valid artifact, or a newly satisfied acceptance condition; an attempt consuming requests without improving evidence routes into recovery rather than repeating |
 | TA §29.1 | "Every completed, failed, cancelled, recovered, or escalated task should produce an `EpisodeRecord`" | MUST produce an `EpisodeRecord` with all eighteen fields for all five terminal classes | The record holds structured summaries and evidence references; unrestricted source code and secrets are never copied into long-term memory |
-| TA §29.2 | "Nirman should track quality metrics by project type, task class, provider profile, worker role, and runtime version" | MUST track the ten tabled metrics across all five dimensions | Goal completion rate, evidence completeness, regression rate, recovery success rate, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, human intervention rate; these metrics are diagnostic and are never used to conceal a failed task or to optimize speed against correctness |
+| TA §29.2 | "Nirman should track quality metrics by project type, task class, provider profile, worker role, and runtime version" | MUST track the eleven tabled metrics across all five dimensions | Goal completion rate, evidence completeness, regression rate, recovery success rate, strategy diversity, repair efficiency, tool reliability, provider reliability, attention reliability, self-update safety, human intervention rate; these metrics are diagnostic and are never used to conceal a failed task or to optimize speed against correctness |
 | TA §29.3 | "The evaluation engine should include" the eleven listed scenario classes | MUST include all eleven | Ordinary feature tasks, multi-file refactors, environment failures, provider failures, merge conflicts, visual regressions, database migrations, sandbox tests, long-running continuation, self-update failures, recovery scenarios; a run records exact inputs and produces comparable results |
 | TA §30.1 | "An improvement proposal should include evidence frequency, affected task classes, confidence, expected benefit, possible regressions, scope, and rollback plan" | MUST include all seven | A single unusual failure is never converted into a permanent rule; the threshold is the BS §80.2 three-occurrence fingerprint rule |
 | TA §30.3 | "The self-improvement manager should be able to run this loop in the background. It should not modify the active runtime merely because it found a possible improvement" | MUST run in the background; MUST NOT modify the active runtime on discovery alone | Candidate changes are versioned, reproducible, measurable, and reversible; modification happens only through the TA §25.6 promotion path |
@@ -6482,10 +6554,11 @@ Every "configurable" parameter in the specification has a default value defined 
 | Retry backoff max | 60 seconds | 10-300 seconds | Per project |
 | Retry backoff multiplier | 2.0 | 1.1-3.0 | Per project |
 | Deliberation diminishing return threshold | 3 passes | 2-10 passes | Per task |
-| Deliberation max passes (NORMAL) | 1 | 1-3 | Per task |
-| Deliberation max passes (EXTENDED) | 3 | 2-5 | Per task |
-| Deliberation max passes (DEEP) | 5 | 3-10 | Per task |
-| Deliberation max passes (EXHAUSTIVE) | 10 | 5-20 | Per task |
+| Deliberation pass ceiling | None (progress-governed per §68.13) | N/A | Not overridable |
+| Recall probe pass threshold | 0.95 literal exact-match rate per fill bucket | 0.90-1.00 | Per project |
+| Recall probe fill buckets | 25%, 50%, 75%, 90% of declared context | 3-6 buckets | Per provider profile |
+| Recall probes per bucket | 5 | 3-20 | Per provider profile |
+| Unprofiled DENSE block bound | 25% of declared context | 10-50% | Per provider profile |
 | Screenshot comparison threshold | 0.95 similarity | 0.80-0.99 | Per project |
 | Visual diff threshold | 5% pixel diff | 1-20% | Per project |
 | Uncertainty threshold (high risk) | 0.1 | 0.05-0.3 | Per task |
@@ -6801,6 +6874,7 @@ ProviderProfile
 - maxReasoningTokens: integer?
 - reasoningUsageReporting: ("reported" | "estimated" | "unavailable")
 - contextCapacity: integer (tokens)
+- attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11)
 - status: ("configured" | "reachable" | "authenticated" | "degraded" | "unavailable")
 - createdAt: timestamp
 - updatedAt: timestamp
@@ -7052,26 +7126,36 @@ Each milestone's work items MUST be implemented in the order listed. Dependencie
 
 Every system prompt used by the runtime is defined here. An agent MUST use these exact templates.
 
+Templates follow the placement layout of §53.11: stable role and policy text first, breadth context next, then the DENSE block (constraints, locked decisions, exact targets) restated immediately before the state digest and the instruction. `{constraints}` and `{locked_decisions}` are injected by the runtime from `ConstraintRegistry` and carry their identifiers; `{state_digest}` is the runtime-built state digest; `{recall_probes}` is empty when no probe is scheduled.
+
 #### 80.8.1 System prompt for planning
 
 ```
 You are an autonomous Android development agent. Your goal is to plan and execute the following task:
-
-Task: {task_description}
 
 Project context:
 - Framework: {framework}
 - Package: {package_id}
 - Current revision: {revision}
 
-Constraints:
-{constraints}
-
-Locked decisions:
-{locked_decisions}
-
 Available capabilities:
 {capabilities}
+
+Breadth context:
+{sparse_context}
+
+Constraints (authoritative for this request):
+{constraints}
+
+Locked decisions (authoritative for this request):
+{locked_decisions}
+
+State digest:
+{state_digest}
+
+{recall_probes}
+
+Task: {task_description}
 
 You MUST:
 1. Produce a plan with discrete, ordered steps
@@ -7101,15 +7185,29 @@ Output your plan in this format:
 ```
 You are an autonomous Android development agent. Your goal is to implement the following change:
 
-Task: {task_description}
-Plan step: {step_description}
+Breadth context:
+{sparse_context}
 
 File: {file_path}
-Current content:
-{file_content}
+Exact target regions (anchor ids and content):
+{exact_targets}
 
-Constraints:
+Interfaces this change depends on (symbol ids and signatures):
+{structural_interfaces}
+
+Constraints (authoritative for this request):
 {constraints}
+
+Locked decisions (authoritative for this request):
+{locked_decisions}
+
+State digest:
+{state_digest}
+
+{recall_probes}
+
+Task: {task_description}
+Plan step: {step_description}
 
 You MUST:
 1. Produce a minimal, targeted change
@@ -7124,8 +7222,9 @@ You MUST NOT:
 3. Introduce security vulnerabilities
 4. Hardcode secrets
 5. Add dependencies not in the approved plan
+6. Edit a region whose anchor id is not listed above
 
-Output your change as a unified diff or complete file replacement.
+Output your change as a StructuredPatch: for each edit name the anchor id and the symbol ids and signatures it relies on, then the replacement content. A complete file replacement is permitted only when the step description authorizes it.
 ```
 
 #### 80.8.3 System prompt for validation
@@ -7133,11 +7232,18 @@ Output your change as a unified diff or complete file replacement.
 ```
 You are an autonomous Android development agent. Your goal is to validate the following change:
 
-Task: {task_description}
 Change: {change_summary}
 
 Validation plan:
 {validation_plan}
+
+Constraints (authoritative for this request):
+{constraints}
+
+State digest:
+{state_digest}
+
+Task: {task_description}
 
 You MUST:
 1. Run all specified checks
@@ -7164,13 +7270,29 @@ Output your validation in this format:
 ```
 You are an autonomous Android development agent. Your goal is to repair the following failure:
 
-Task: {task_description}
-Failure: {failure_description}
-Error output: {error_output}
-Changed files: {changed_files}
-
 Previous attempts:
 {previous_attempts}
+
+Changed files: {changed_files}
+
+Failure: {failure_description}
+Error output: {error_output}
+
+Exact target regions (anchor ids and content):
+{exact_targets}
+
+Constraints (authoritative for this request):
+{constraints}
+
+Locked decisions (authoritative for this request):
+{locked_decisions}
+
+State digest:
+{state_digest}
+
+{recall_probes}
+
+Task: {task_description}
 
 You MUST:
 1. Identify the root cause from evidence
@@ -7194,36 +7316,29 @@ Output your repair in this format:
 
 #### 80.8.5 Context compaction prompt
 
-```
-The following context has exceeded the compaction threshold. Produce a structured summary that retains:
+The compaction prompt summarizes history only. Active constraints, locked decisions, the goal, the plan, acceptance criteria, and revision identifiers are not passed to the model for retention; the runtime re-projects them from `ConstraintRegistry` and the ledger after compaction and verifies the re-projection with a recall probe (§53.11, §74).
 
-MUST RETAIN:
-- Active constraints: {constraints}
-- Locked decisions: {decisions}
-- Current goal: {goal}
-- Current plan: {plan}
-- Active errors: {errors}
-- Recent evidence (last 5 turns): {recent_evidence}
-- Recent file changes (last 5 turns): {recent_changes}
+```
+The following historical context is being compacted. Produce a structured summary of it.
 
 SUMMARIZE:
 - Earlier context into a structured summary
-- Historical commands and results
-- Superseded plans
+- Historical commands and their results
+- Superseded plans and why they were superseded
+- Recent evidence (last 5 turns): {recent_evidence}
+- Recent file changes (last 5 turns): {recent_changes}
 
-ARCHIVE:
+ARCHIVE (list references only):
 - Full traces to cold storage
 - Old screenshots
 - Completed handoffs
 
+Do not restate constraints, locked decisions, the goal, or the plan; the runtime supplies them separately.
+
 Output the summary in this format:
-## Goal
-## Active constraints
-## Locked decisions
-## Current plan
-## Active errors
-## Recent evidence summary
 ## Historical summary
+## Recent evidence summary
+## Recent changes summary
 ## Archived references
 ```
 
