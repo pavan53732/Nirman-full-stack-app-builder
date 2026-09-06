@@ -1302,6 +1302,8 @@ ReasoningCapabilityProfile
 
 `effortParameterMapping` is configuration metadata, not authority: it records how normalized effort levels translate into provider-specific parameters, but it can never alter granted effort, resource-integrity decisions, permission ceilings, or authority state.
 
+`maxReasoningTokensOptional` is provider capability metadata: the largest per-request reasoning allocation the provider accepts. It is never a Nirman execution budget, authorization ceiling, or termination condition; it bounds what ModelGateway may request from the provider, and reasoning usage reported against it is telemetry only (BS §72).
+
 ### 24.3 AI Settings page behavior
 
 The settings interface should allow the user to create, duplicate, test, disable, and delete provider profiles. It should support custom base URLs and model IDs. Save is disabled until a connection Test against the configured endpoint and model returns a successful validated response per ADR-208. Any edit to key, base URL, model ID, or compatibility mode invalidates a prior pass and re-disables Save.

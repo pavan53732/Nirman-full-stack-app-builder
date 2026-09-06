@@ -6871,7 +6871,7 @@ ProviderProfile
 - compatibilityMode: ("openai_compatible" | "anthropic_compatible")
 - reasoningSupport: boolean
 - reasoningEffortLevels: ("normal" | "extended" | "deep" | "exhaustive")[]
-- maxReasoningTokens: integer?
+- maxReasoningTokens: integer? (provider capability metadata only — never a Nirman execution budget, authorization ceiling, or termination condition; usage against it is telemetry per §72)
 - reasoningUsageReporting: ("reported" | "estimated" | "unavailable")
 - contextCapacity: integer (tokens)
 - attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11)
