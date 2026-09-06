@@ -1824,6 +1824,7 @@ H. no re-asking settled requirements (Continue MUST reject stale or contradictor
 I. negative cases and authority-boundary violations (Conversation cannot act as Memory, Context, or Task authority)
 J. stale revision handling (no Continue path may execute against a stale project revision)
 K. BackgroundContinuity resume synthesis
+L. crash during Continue resolution after one durable record is written; recovery MUST restore one coherent ConversationRevision/project/task state and MUST NOT execute from a partially committed resolution (TA §86.2)
 
 ---
 
@@ -1843,7 +1844,7 @@ Deliver:
 - verification summary
 - recommended next-step projection (advisory, with recommendationSource, recommendationBasis, requiredAuthority)
 - ChangeIntelligenceStore (persistence, immutability, revision-addressability)
-- failure and reconstruction semantics (projector failure records ChangeReportStatus = INCOMPLETE without failing parent transaction; async ChangeIntelligenceRecoveryJob under RecoveryAuthority)
+- failure and reconstruction semantics (projector failure records ChangeReportRecord.status = INCOMPLETE without failing parent transaction; the initial record obligation commits atomically with the parent ConstructionTransaction (TA §87.5); async ChangeIntelligenceRecoveryJob under RecoveryAuthority)
 - WinUI 3 presentation contract (Calm, Inspect, Developer views)
 - `TEST-CHANGE-001`
 - `EV-CHANGE-001`
@@ -1869,6 +1870,7 @@ J. projector failure and recovery lifecycle:
    5. recovery reconstructs report
    6. COMPLETE report becomes immutable
 K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
+L. crash immediately after parent commit and before projection: after restart exactly one ChangeReportRecord exists for the transaction with status INCOMPLETE, recovery reconstructs it, and a repeated recovery scan creates no duplicate record
 
 
 ---
