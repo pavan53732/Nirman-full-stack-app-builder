@@ -1246,10 +1246,10 @@ A major failure mode of autonomous agents is getting trapped in endless "doom lo
 
 ### 22.4 Shared Task Ledger and Cross-Agent Coordination
 
-For multi-worker tasks and parallel swarms, Nirman maintains a centralized, machine-readable **Task Ledger** stored locally as a structured state file within the workspace.
+For multi-worker tasks and parallel swarms, Nirman maintains a centralized, machine-readable **Task Ledger**. The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe` (§26.1, §51.2; ADR-110): task units, dependencies, claims, progress, and completion evidence are transactional rows in that ledger. Any task-ledger file written into the workspace is a derived, read-only projection exported from the SQLite ledger for human review or external tooling; it is never read back as state, never claimed against, and never a second state authority.
 
 - **Atomic Task Units**: Tasks are broken down into discrete, atomic items with defined dependencies (e.g., Task 3 cannot start until Task 1 and Task 2 pass their tests).
-- **Claim-and-Update Protocol**: Background workers claim unassigned tasks, mark their progress in real time, and record completion evidence (test logs, file paths).
+- **Claim-and-Update Protocol**: Background workers claim unassigned tasks through atomic ledger transactions, mark their progress in real time, and record completion evidence (test logs, file paths) as ledger rows with artifact references.
 - **Inter-Agent Handoffs**: Workers can read each other's completion summaries. For instance, the Test Engineer reads the Backend Specialist's implementation notes to write precise integration tests.
 
 ---

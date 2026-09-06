@@ -273,7 +273,7 @@ Add specialized workers and isolated parallel execution only after the single-wo
 
 1. Implement worker roles and task contracts.
 2. Implement durable worker messages and acknowledgements.
-3. Implement a shared task ledger with atomic task claims.
+3. Implement the shared task ledger in the SQLite execution ledger with atomic task claims (ADR-110); any workspace task-ledger file is a derived projection, never state.
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
 6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements.
