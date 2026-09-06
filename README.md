@@ -210,7 +210,7 @@ Raw private chain-of-thought is never stored or displayed. Nirman may expose str
 
 Nirman treats writing, conversation history, and mutation explanations as structured development state:
 - **Durable conversation continuation**: Conversation history, attachments, accepted suggestions, and settled requirements are preserved across restarts and compactions, allowing seamless continuation without re-asking questions or losing context.
-- **First-class product writing/content**: UX copy, error messages, localization, and accessibility labels are versioned, validated, and linked to project revisions and UI semantics rather than treated as disposable model text.
+- **First-class product writing/content**: UX copy, error messages, translations, and accessibility labels are versioned, validated, and linked to project revisions and UI semantics rather than treated as disposable model text.
 - **Post-mutation change intelligence**: Every committed ConstructionTransaction creates a durable, revision-bound change-report record detailing what changed, why, affected tests, preview impact, and evidence status. The completed ChangeImpactReport is immutable; incomplete reports are reconstructed asynchronously, and recommendations remain strictly advisory.
 
 ### Long-horizon cognition substrate and Cognitive Context Kernel

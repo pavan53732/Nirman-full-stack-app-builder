@@ -1295,7 +1295,7 @@ To prevent duplicate implementation of the same capability across coarse (M0–M
 | Evidence graph | M38 evidence foundations | M93 twelve-edge coverage; M108/114 evidence linkage | CONTRACT.RUNTIME.EVIDENCE (ADR-071) | TEST-INV-001 / EV-INV-001 |
 | Continuity | M116 background continuity | M116 (orthogonal to lifecycle, ADR-202) | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 / EV-BG-001 |
 | Frontend boundary | M115 protocol | M115 (ADR-201) split gates A–F | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 / EV-FCP-001 |
-| Content / writing intelligence | M3 foundation, M28 localization | M120 Content and Writing Intelligence | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE (ADR-211) | TEST-CONTENT-001 / EV-CONTENT-001 |
+| Content / writing intelligence | M3 foundation, M28 self-improvement candidates | M120 Content and Writing Intelligence | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE (ADR-211) | TEST-CONTENT-001 / EV-CONTENT-001 |
 | Conversation context | M1/M3 chat/session, M116 continuity | M121 Durable Conversation Context | CONTRACT.RUNTIME.CONVERSATION_CONTEXT (ADR-212) | TEST-CONV-001 / EV-CONV-001 |
 | Change intelligence | M38 evidence, M114 integrity | M122 Change Intelligence | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE (ADR-213) | TEST-CHANGE-001 / EV-CHANGE-001 |
 
@@ -1763,11 +1763,11 @@ Deliver:
 - ContentWorker, ContentTransactionCoordinator, ContentValidator, ContentAuthority
 - ContentStore (persistence, retention, atomic transactions)
 - terminology/tone/brand profiles
-- localization propagation (consuming existing LOCALIZATION contract)
+- translation propagation across `supportedLocales`, written into Android locale resources through the mutation broker (no new locale mechanism)
 - accessibility content validation
 - transaction integration
 - generalized dependency graph invalidation (ContentRevision -> ContentDependency* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence)
-- boundary clause with LOCALIZATION
+- boundary clause with Android locale resources and with regression localization (`CONTRACT.RUNTIME.LOCALIZATION`, BS §62): content regressions are cause-localized through §62, nothing more
 - `TEST-CONTENT-001`
 - `EV-CONTENT-001`
 
@@ -1777,7 +1777,7 @@ A content mutation must create a revision-bound transaction, update affected sur
 TEST-CONTENT-001 MUST prove:
 A. UX copy mutation
 B. terminology propagation
-C. localization propagation
+C. translation propagation across supported locales
 D. accessibility-label validation
 E. placeholder/interpolation preservation
 F. generalized dependency graph invalidation across UI, locale, accessibility, preview, and evidence

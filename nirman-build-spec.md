@@ -7487,11 +7487,13 @@ Changing any upstream node traverses the `ImpactGraph` to identify all dependent
 3. Dependent `ValidationResult` and `EvidenceArtifact` records are invalidated by `EvidenceAuthority`.
 4. Revalidation across all traversed surfaces is required before task completion.
 
-### 81.4 Boundary with LOCALIZATION
+### 81.4 Boundary with Android locale resources and regression localization
 
-CONTENT_INTELLIGENCE owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, and localization orchestration.
+CONTENT_INTELLIGENCE owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, and translation orchestration across the project's `supportedLocales`.
 
-CONTRACT.RUNTIME.LOCALIZATION remains authoritative for locale/resource execution and localization runtime behavior. Content Intelligence consumes that contract and must not replace it.
+Android locale-resource mechanics — resource qualifiers, string-resource compilation, locale fallback at runtime, and the resource graph that §43.1 tracks — remain owned by the Android code-intelligence and build contracts (§43, §5); Content Intelligence writes `ContentRevision`s into those resources and must not replace that mechanism.
+
+`CONTRACT.RUNTIME.LOCALIZATION` (§62) is *regression localization*: finding the mutation that caused a regression. It has no internationalization meaning anywhere in this document set. A content regression (wrong string, missing translation, broken placeholder) surfaced by validation is localized to its causing `ContentMutation` through §62 like any other regression; that is the only relationship between the two contracts.
 
 ### 81.5 Acceptance
 

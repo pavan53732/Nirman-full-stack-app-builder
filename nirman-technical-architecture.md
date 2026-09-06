@@ -6213,9 +6213,11 @@ affected UI / locale / accessibility / preview / tests / evidence
 
 When any upstream dependency in the `ImpactGraph` mutates (requirements, brand assets, accessibility semantics, navigation, API terminology, feature flags, permissions, legal rules, locale catalogs), the `ImpactGraph` propagates invalidation to all dependent `ContentRevision`s, compiled resources, preview surfaces, and dependent evidence artifacts. Dependent evidence is invalidated by `EvidenceAuthority`, and the completion evaluator forbids completion until all traversed dependents pass revalidation.
 
-### 85.5 Boundary with LOCALIZATION
+### 85.5 Boundary with Android locale resources and regression localization
 
-Content Intelligence consumes the existing `CONTRACT.RUNTIME.LOCALIZATION` for locale-aware content resolution and translation execution. Content Intelligence owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, content consistency, and orchestration of localized content. LOCALIZATION owns the runtime localization mechanism, locale resources, and translation execution. Content Intelligence does not replace LOCALIZATION.
+Content Intelligence owns content authoring, terminology, tone, brand voice, UX copy, accessibility copy, content consistency, and orchestration of translated content across `supportedLocales`. Android locale-resource mechanics (resource qualifiers, string-resource compilation, runtime locale fallback) belong to the Android code-intelligence layer of §47 and the build pipeline; `ContentRevision`s are written into those resources through the mutation broker and never bypass them.
+
+`CONTRACT.RUNTIME.LOCALIZATION` is the regression-localization service of §63 (build spec §62) and carries no internationalization semantics. Content Intelligence meets it in exactly one place: a content regression detected by `ContentValidationResult` is localized to its causing `ContentMutation` by the §63 pipeline (impact graph, then signature match, then bisection) so that repair is cause-scoped (`CLAUSE.LOCALIZE.CAUSE_SCOPE`).
 
 ### 85.6 Propagation
 

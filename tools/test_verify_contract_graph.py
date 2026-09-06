@@ -537,6 +537,17 @@ CASES = {
         TA, "**Implements:** build spec §73 and `CONTRACT.RUNTIME.AGENT_TRUST`\n",
         "**Implements:** build spec §73\n",
         "semantic documentation"),
+    "LOCALIZATION cited as the locale authority": (
+        BS, "`CONTRACT.RUNTIME.LOCALIZATION` (§62) is *regression localization*",
+        "`CONTRACT.RUNTIME.LOCALIZATION` remains authoritative for locale resources; it (§62) is *regression localization*",
+        "semantic documentation"),
+    "ADR-164 locks the regression-localization contract again": (
+        DEC, "## ADR-164: Language-neutral AndroidCodeIntelligence\n\n**Locks:** `CONTRACT.RUNTIME.SCOPE`",
+        "## ADR-164: Language-neutral AndroidCodeIntelligence\n\n**Locks:** `CONTRACT.RUNTIME.LOCALIZATION`",
+        "semantic documentation"),
+    "LOCALIZATION authority heading becomes an i18n heading": (
+        BS, "## 62. Regression Localization", "## 62. Locale and Language Resources",
+        "canonical identity"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

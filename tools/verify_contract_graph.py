@@ -995,7 +995,7 @@ def _contract_domain_pattern(contract_id):
         "RECONCILIATION":   r"Reconciliation|Coordinate|Swarm",
         "E2E":             r"End|State|Scenario|Testing|Verification|Probe",
         "VERIFICATION":    r"Verification|Quality|Gate|Validator|Inspect|Architecture",
-        "LOCALIZATION":    r"Localization|Regression|Language|Locale",
+        "LOCALIZATION":    r"Regression Localization|Regression",
         "SUPPLY_CHAIN":    r"Supply|Chain|Security|Provenance|Artifact",
         "DEVICE_MATRIX":   r"Device|Scenario|Coordination|Android|Multi-Device",
         "DIRECTIVE":       r"Directive|Command|Routing|Router|Control|Service",
@@ -1253,6 +1253,26 @@ def check_semantic_documentation(docs, R, D):
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")
+
+    # CONTRACT.RUNTIME.LOCALIZATION is regression localization (BS §62,
+    # ADR-147). Any sentence that makes it the authority for locales,
+    # translation, or i18n resources is the homonym error this rule pins.
+    i18n_claims = (
+        r"CONTRACT\.RUNTIME\.LOCALIZATION`? (?:remains|is) authoritative for locale",
+        r"consumes (?:the existing )?`?CONTRACT\.RUNTIME\.LOCALIZATION`? for (?:locale|translation|i18n)",
+        r"LOCALIZATION owns the runtime localization mechanism",
+        r"consuming existing LOCALIZATION contract",
+    )
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        for pat in i18n_claims:
+            if re.search(pat, text):
+                D.add("semantic documentation", f"LOCALIZATION homonym in {label}",
+                      "CONTRACT.RUNTIME.LOCALIZATION is regression localization (BS §62); "
+                      "it must not be cited as the locale/translation authority")
+    m164 = adr_blocks(dec).get(164, "")
+    if "**Locks:** `CONTRACT.RUNTIME.LOCALIZATION`" in m164:
+        D.add("semantic documentation", "ADR-164 lock",
+              "ADR-164 (language adapters) must not lock the regression-localization contract")
 
     browser_core = (
         "Run browser, device, accessibility, and visual QA where applicable",

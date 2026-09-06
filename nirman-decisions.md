@@ -963,9 +963,11 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 ## ADR-164: Language-neutral AndroidCodeIntelligence
 
-**Locks:** `CONTRACT.RUNTIME.LOCALIZATION`
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
 
 **Status:** Accepted
+
+**Amended under ADR-147 and ADR-180:** this record originally declared `CONTRACT.RUNTIME.LOCALIZATION` as its lock. That contract is regression localization (build spec §62, ADR-147) and has no relationship to language adapters; the lock was a homonym error. The language-adapter decision governs the Android code-intelligence layer of build spec §43, which is part of the Android generation scope that `CONTRACT.RUNTIME.SCOPE` (build spec §5, ADR-180) owns. The decision, rationale, and consequences below are unchanged.
 
 **Decision:** Nirman will use language adapters for Kotlin, Java, XML, manifests, Gradle, TypeScript/JavaScript, C/C++ native modules, configuration formats, SQL, and lockfiles.
 
