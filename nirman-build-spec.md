@@ -167,7 +167,7 @@ Nirman should use a minimal, focused desktop layout inspired by modern AI coding
 
 ### 4.2 First-run experience
 
-On first launch, Nirman should explain that it is a local desktop application and ask the user to choose an AI provider. The setup flow should offer three paths:
+On first launch, Nirman should explain that it is a local desktop application and ask the user to choose an AI provider. The setup flow should offer two paths:
 
 1. Configure a cloud provider with a base URL, API key, and model ID.
 
