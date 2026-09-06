@@ -200,7 +200,7 @@ Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch
 1. Implement authorized tools for inspect, search, read, write, patch, command, build, install/launch, observe, validate, diff, checkpoint, repair, and rollback.
 2. Add plan and Android acceptance-contract generation from the selected `AndroidTechnologyPlan`.
 3. Add file-change grouping, source-revision tracking, and diff display.
-4. Route every tool call through the M115 command envelope, control plane, authority, transaction, and durable event path; the WinUI 3 client must not invoke Android tooling directly.
+4. Route every tool call through the canonical authenticated command envelope, control-plane authority path, transaction boundary, and durable event path defined by the frontend–control-plane contract (BS §76, TA §81); the WinUI 3 client must not invoke Android tooling directly. M115 owns the full protocol certification; M5 implements only the minimum compatible subset its vertical slice requires, must not duplicate the authority, and does not depend on M115 completing first.
 5. Add an automatic checkpoint before mutation and a rollback/undo reference after a failed repair or validation.
 6. Add Gradle/build execution, installation or launch, runtime observation, and diagnostic capture.
 7. Add failure classification, injected-failure fixtures, and focused repair prompts.
@@ -1345,7 +1345,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
 | M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
 
-M93 must additionally run the contract-graph verifier of build spec §67.11 across all eleven §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure check. It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation.
+M93 must additionally run the contract-graph verifier of build spec §67.11 across all twelve §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure checks (which are additional to, not counted among, the twelve). It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, section-ownership violation, or structure violation.
 
 ### M93 Contract-Graph Certification Regression Gate
 
@@ -1758,6 +1758,7 @@ Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 Deliver:
 - ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState, invalidatedBy)
 - ContentDependency schema and ImpactGraph edge integration
+- ContentMutation, ContentValidationResult, ContentPropagationPlan, TerminologyProfile, and ContentEvidence schemas (TA §85.1), registered in the CanonicalSchemaRegistry (TA §36.1)
 - ContentWorker, ContentTransactionCoordinator, ContentValidator, ContentAuthority
 - ContentStore (persistence, retention, atomic transactions)
 - terminology/tone/brand profiles
@@ -1793,7 +1794,8 @@ Deliver:
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
 - providerTransmissionPolicy delegation to ContextGovernance / ProviderContextDecision
-- requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
+- requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, sourceEvidenceIds, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
+- ConversationMessage, ConversationTaskLink, ConversationRequirementIndex, ConversationDecisionIndex, and ConversationRebaseRecord schemas (TA §86.1), registered in the CanonicalSchemaRegistry (TA §36.1); a ConversationRebaseRecord is written for every RECONCILE/REBASE and USER_REQUIRED outcome
 - active-goal binding
 - project-revision binding
 - task lineage
@@ -1830,8 +1832,8 @@ Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
 - atomic reporting unit definition: MutationReportUnit = committed ConstructionTransaction
-- ChangeReportRecord schema (with recordId, transactionId, projectRevision, status, report, failureDiagnostics, createdAt, updatedAt)
-- ChangeImpactReport schema (with reportId, requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
+- ChangeReportRecord schema (with recordId, transactionId, projectRevisionAfter — the authoritative committed project revision represented by the record — status, report, failureDiagnostics, createdAt, updatedAt)
+- ChangeImpactReport schema (with reportId, projectionStatus — immutable and informational; ChangeReportRecord.status is the authoritative lifecycle state — requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
 - field provenance for every field
 - deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
 - mutation projection
