@@ -2347,6 +2347,13 @@ def check_skill_bodies(docs, D, repo_root):
     if not names:
         D.add("semantic documentation", "BS §79.7", "platform-skill table lists no skills")
         return
+    # Document-only parity (runs even without the skill tree): every id of
+    # the BS §79.7 capability vocabulary has a TA §84.1 matrix row.
+    doc_vocab = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| ", m.group(0), re.M))
+    ta_rows = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| windows \| (?:available|environment_dependent|unavailable_by_platform) \|", docs["ta"], re.M))
+    for cid in sorted(doc_vocab - ta_rows):
+        D.add("semantic documentation", f"capability id {cid}",
+              "named in the BS §79.7 skill vocabulary but absent from the TA §84.1 PlatformCapabilityEntry matrix rows")
     skills_root = os.path.join(repo_root, "crates", "nirman-skills", "skills")
     if not os.path.isdir(skills_root):
         D.skip("semantic documentation", "skill bodies",
@@ -2383,10 +2390,6 @@ def check_skill_bodies(docs, D, repo_root):
         declared[row[0]] = set(re.findall(r"`([A-Z][A-Z_]+)`", row[1]))
     if not vocab or not declared:
         D.add("semantic documentation", "BS §79.7", "capability-id vocabulary or per-skill requiredCapabilities table not found")
-    ta_rows = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| windows \| (?:available|environment_dependent|unavailable_by_platform) \|", docs["ta"], re.M))
-    for cid in sorted(vocab - ta_rows):
-        D.add("semantic documentation", f"capability id {cid}",
-              "named in the BS §79.7 skill vocabulary but absent from the TA §84.1 PlatformCapabilityEntry matrix rows")
     for name in names:
         path = bodies.get(name)
         if path is None:
