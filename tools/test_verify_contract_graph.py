@@ -263,9 +263,47 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- schema semantics audit: registry meaning, drafts vs admitted records, lifecycle rules
+    "canonical-definition column reintroduced": (
+        TA, "| schemaId (normative contract; implementation schema) |", "| schemaId (canonical definition) |",
+        "semantic documentation"),
+    "Content record removed from architecture": (
+        TA, "```text\nContent\n- contentId\n- projectId", "```text\nContentX\n- contentId\n- projectId",
+        "semantic documentation"),
+    "ContentMutation carries an admitted revision again": (
+        TA, "- proposedContentRevision: ContentRevisionDraft", "- contentRevision",
+        "semantic documentation"),
+    "ContentRevisionDraft smuggles an authoritative field": (
+        TA, "ContentRevisionDraft\n- contentType", "ContentRevisionDraft\n- contentRevisionId\n- contentType",
+        "semantic documentation"),
+    "BS/TA ContentRevision field parity broken": (
+        BS, "- previousValue\n- proposedValue\n- placeholderSchema", "- value\n- placeholderSchema",
+        "semantic documentation"),
+    "conversationRevision rule weakened": (
+        BS, "`conversationRevision` is incremented only when the authoritative `ConversationResolver` commits",
+        "`conversationRevision` may be incremented when the `ConversationResolver` commits",
+        "semantic documentation"),
+    "USER_REQUIRED advances the expected revision": (
+        BS, "A `USER_REQUIRED` outcome does not advance `expectedProjectRevision`",
+        "A `USER_REQUIRED` outcome advances `expectedProjectRevision`",
+        "semantic documentation"),
+    "§83.4 requires a complete report for every transaction again": (
+        BS, "exposes exactly one durable `ChangeReportRecord`. The record may initially be `INCOMPLETE`",
+        "exposes a complete, valid report. The record may initially be `INCOMPLETE`",
+        "semantic documentation"),
+    "typed causal source removed from build spec": (
+        BS, "- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION\n- causeId\n", "",
+        "semantic documentation"),
+    "ContentStore called authoritative persistence again": (
+        TA, "canonical persistence implementation for Content records", "authoritative persistence implementation of the BS content records",
+        "semantic documentation"),
+    "M120 drops the Content schema": (
+        DEV, "- Content schema (persisted logical content resource", "- (persisted logical content resource",
+        "semantic documentation"),
+
     # ---- schema identity audit: registry completeness, evidence provenance, revision/status naming
     "canonical schema dropped from the registry": (
-        TA, "BuildGateRecord\nContent\nContentRevision\nContentMutation\n", "BuildGateRecord\nContent\nContentRevision\n",
+        TA, "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\nContentMutation\n", "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\n",
         "semantic documentation"),
     "canonical schema declared without a field block": (
         TA, "ConversationRebaseRecord\n- recordId\n- conversationId", "ConversationRebaseRecordX\n- recordId\n- conversationId",

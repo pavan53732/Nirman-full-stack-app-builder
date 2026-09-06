@@ -1720,6 +1720,56 @@ def check_semantic_documentation(docs, R, D):
     if "M115 command envelope" in dev:
         D.add("semantic documentation", "M5 sequencing",
               "M5 must reference the canonical command envelope contract, not depend on the M115 milestone")
+    # Registry semantics (TA §36.1): one canonical identity per schema, BS
+    # holds the normative contract shape, TA the implementation schema, and
+    # for the content / conversation / change-intelligence families the two
+    # must agree field for field.
+    if "| schemaId (normative contract; implementation schema) |" not in ta or "(canonical definition)" in ta:
+        D.add("semantic documentation", "CanonicalSchemaRegistry metadata",
+              "TA §36.1 metadata must cite a normative contract (BS) and an implementation schema (TA), not a 'canonical definition' in two places")
+    def _fields(text, name):
+        m = re.search(rf"\n{name}\n((?:- .*\n)+)", text)
+        return [re.sub(r":.*", "", ln[2:]).strip() for ln in m.group(1).splitlines()] if m else None
+    for name in registered:
+        if not name.startswith(("Content", "Conversation", "ChangeReport", "ChangeImpact", "TerminologyProfile")):
+            continue
+        fb, ft = _fields(bs, name), _fields(ta, name)
+        if fb and ft and fb != ft:
+            D.add("semantic documentation", f"{name} field parity",
+                  f"BS and TA field lists differ (BS only {sorted(set(fb) - set(ft))}, TA only {sorted(set(ft) - set(fb))}, or order)")
+    if not _fields(ta, "Content") or "- currentRevisionId" not in ta:
+        D.add("semantic documentation", "Content schema",
+              "TA §85.1 must define the persisted Content record (BS §81.1)")
+    draft = _fields(ta, "ContentRevisionDraft")
+    mutation = _fields(ta, "ContentMutation")
+    if not draft or not mutation or "proposedContentRevision" not in mutation or "contentRevision" in mutation:
+        D.add("semantic documentation", "ContentMutation proposal type",
+              "ContentMutation must carry proposedContentRevision: ContentRevisionDraft, never an admitted ContentRevision")
+    if draft and set(draft) & {"contentRevisionId", "transactionId", "validationStatus", "approvalState", "sourceEvidenceIds"}:
+        D.add("semantic documentation", "ContentRevisionDraft",
+              "a draft must not carry authoritative ContentRevision fields")
+    for token in ("`conversationRevision` is incremented only when the authoritative `ConversationResolver` commits",
+                  "A `RECONCILE/REBASE` changes `expectedProjectRevision` only after the rebase decision",
+                  "A `USER_REQUIRED` outcome does not advance `expectedProjectRevision`",
+                  "exposes exactly one durable `ChangeReportRecord`",
+                  "The owning task may claim completion only when the record is `COMPLETE`"):
+        if token not in bs:
+            D.add("semantic documentation", "conversation/change lifecycle rule",
+                  f"build spec lacks the required rule: {token}")
+    if "exposes a complete, valid report" in bs:
+        D.add("semantic documentation", "BS §83.4",
+              "acceptance must not require a complete report for every committed transaction; INCOMPLETE/UNRESOLVED are permitted states")
+    for label, text in (("build spec", bs), ("architecture", ta)):
+        rpt = _fields(text, "ChangeImpactReport") or []
+        if "causeType" not in rpt or "causeId" not in rpt:
+            D.add("semantic documentation", f"change causal provenance in {label}",
+                  "ChangeImpactReport must carry the typed causal source causeType/causeId from which why is projected")
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        if "authoritative persistence implementation" in text:
+            D.add("semantic documentation", f"ContentStore authority in {label}",
+                  "ContentStore is the canonical persistence implementation; ContentAuthority owns admission and lifecycle")
+    if "- Content schema (persisted logical content resource" not in dev:
+        D.add("semantic documentation", "M120 deliverables", "M120 must deliver the Content schema")
     # Vocabulary contradicted by an accepted decision must not reappear in the
     # active product, architecture, or milestone documents.
     contradicted_vocabulary = (
