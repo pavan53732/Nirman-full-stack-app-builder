@@ -788,7 +788,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 ## ADR-065: Use canonical versioned runtime contracts
 
 **Status:** Accepted  
-**Decision:** Define versioned contracts for `AutonomousAndroidSession`, `AndroidApplicationContract`, `VisualSpecification`, `AndroidTechnologyPlan`, `TaskGraph`, `WorkerContract`, `TerminalSession`, `PreviewRevision`, `EvidenceRecord`, `RecoveryRecord`, `ArtifactRecord`, and `ProviderProfile`.
+**Decision:** Define versioned contracts for `AutonomousAndroidSession`, `AndroidConstructionContract` (named `AndroidApplicationContract` when this ADR was written; ADR-158 fixed the canonical name), `VisualSpecification`, `AndroidTechnologyPlan`, `TaskGraph`, `WorkerContract`, `TerminalSession`, `PreviewRevision`, `EvidenceRecord`, `RecoveryRecord`, `ArtifactRecord`, and `ProviderProfile`.
 
 **Reasoning:** Autonomous execution becomes unreliable when the UI, model, workers, and persistence layer invent incompatible state shapes.
 

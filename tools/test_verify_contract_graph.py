@@ -323,6 +323,12 @@ CASES = {
     "command registry count overstated again": (
         BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
         "semantic documentation"),
+    "retired AndroidApplicationContract name reintroduced": (
+        BS, "| `AndroidConstructionContract` | Captures features, screens, behavior,", "| `AndroidApplicationContract` | Captures features, screens, behavior,",
+        "semantic documentation"),
+    "ResourceGovernor identity with ResourceIntegrityAuthority dropped": (
+        TA, "`ResourceGovernor` is the §57.2 process-topology name of `ResourceIntegrityAuthority`", "`ResourceGovernor` is a separate service from `ResourceIntegrityAuthority`",
+        "semantic documentation"),
     "ownership map cites the worker-registry ADR for toolchain authority": (
         DEV, "(ADR-163 toolchain manifest and project lock; ADR-114 externally managed toolchains)", "(ADR-049 toolchain authority)",
         "semantic documentation"),

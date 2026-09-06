@@ -2060,7 +2060,7 @@ The following contracts are versioned and validated at the control-plane boundar
 ```text
 CanonicalSchemaRegistry
 AutonomousAndroidSession
-AndroidApplicationContract
+AndroidConstructionContract
 VisualSpecification
 AndroidTechnologyPlan
 AndroidCapabilityProfile
@@ -2776,7 +2776,7 @@ The service records concise decision summaries without hidden chain-of-thought. 
 
 ### 51.3 ResourceGovernor
 
-The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradle memory, worker/provider concurrency, context size, log volume, build duration, and device slots. It can compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or use an approved lighter provider profile whose `AttentionReliabilityProfile` satisfies the pending step's `requiredReliability` (§59.12). It cannot weaken sandbox, permission, evidence, signing, or artifact gates.
+`ResourceGovernor` is the §57.2 process-topology name of `ResourceIntegrityAuthority` (§59, §77; build spec §72) — one service, one authority. The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradle memory, worker/provider concurrency, context size, log volume, build duration, and device slots. It can compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or use an approved lighter provider profile whose `AttentionReliabilityProfile` satisfies the pending step's `requiredReliability` (§59.12). It cannot weaken sandbox, permission, evidence, signing, or artifact gates.
 
 ---
 
@@ -2787,7 +2787,7 @@ The architecture is accepted only when killing the supervisor during a transacti
 
 ### 53.1 WorkflowCoordinator
 
-`WorkflowCoordinator` is the single control-plane service that connects the autonomous Android session contract to execution and completion. It owns no side-effect implementation itself; it emits typed commands to supervised services and consumes validated events.
+`WorkflowCoordinator` is the single control-plane service that connects the autonomous Android session contract to execution and completion. It is the `IntegratedAndroidWorkflowCoordinator` of build spec §47.1 and ADR-082, listed as `AndroidWorkflowCoordinator` in the §57.2 process topology: one service under three spellings, and no other coordinator owns the Android construction lifecycle. It owns no side-effect implementation itself; it emits typed commands to supervised services and consumes validated events.
 
 ```text
 WorkflowCoordinator
@@ -3796,7 +3796,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | AttentionProfiler | Runs the recall probe fixtures at provider profile save and at checkpoints; writes the per-model `AttentionReliabilityProfile` as evidence, never from declaration or self-report |
 | PlacementPlanner | Computes `placementPlan` per BS §53.11: cache-stable prefix, SPARSE breadth block, DENSE precision block, state digest, instruction; positions the cache breakpoint before the DENSE block |
 | RecallProbeService | Embeds deterministic recall probes with runtime-held expected answers, verifies responses by exact match, and emits probe evidence on structural events only |
-| ResourceIntegrityAuthority | Implements BS §72: evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure and admits work against physical capacity; holds no AI-usage cap |
+| ResourceIntegrityAuthority | Implements BS §72 (listed as `ResourceGovernor` in the §57.2 process topology and §51.3; same service): evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure and admits work against physical capacity; holds no AI-usage cap |
 | CacheManager | Manages prefix-cache checkpoints, structured KV caches, and cache hit optimization |
 | CompactionPlanner | Executes non-destructive semantic compaction of historical context |
 | RetrievalCompletenessChecker | Executes pre-model COVERAGE_CHECK verifying dependency, interface, and evidence completeness |
@@ -6529,7 +6529,7 @@ ProjectRevision
 TaskRevision
 ```
 
-When `Continue` is invoked, the `ConversationContinuationResolver` evaluates `Conversation.expectedProjectRevision` against `Project.currentRevision`:
+When `Continue` is invoked, the `ConversationContinuationResolver` (the `ConversationResolver` of build spec §82.1; one component) evaluates `Conversation.expectedProjectRevision` against `Project.currentRevision`:
 1. `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
    State transitions to `CONTINUE`. Next task graph is synthesized from current conversation state.
 2. `MISMATCH` (`Conversation.expectedProjectRevision != Project.currentRevision`):

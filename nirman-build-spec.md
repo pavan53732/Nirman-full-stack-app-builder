@@ -2130,7 +2130,7 @@ The primary product promise is that one user instruction and optional screenshot
 
 ### 29.1 Input fusion
 
-The session combines the user’s chat instruction, screenshots, supplied assets, existing project files, emulator requirements, integrations, and delivery requirements into three authoritative inputs: an `AndroidApplicationContract`, a `VisualSpecification`, and an `AndroidTechnologyPlan`. The user does not select a framework or template. The configured AI resolves the implementation from these inputs.
+The session combines the user’s chat instruction, screenshots, supplied assets, existing project files, emulator requirements, integrations, and delivery requirements into three authoritative inputs: an `AndroidConstructionContract` (§42.1, ADR-158), a `VisualSpecification`, and an `AndroidTechnologyPlan`. The user does not select a framework or template. The configured AI resolves the implementation from these inputs.
 
 ### 29.2 Autonomous Android session
 
@@ -2222,7 +2222,7 @@ The implementation must define versioned, validated contracts for:
 | Contract | Responsibility |
 |---|---|
 | `AutonomousAndroidSession` | Owns the full task from one user request to validated APK output |
-| `AndroidApplicationContract` | Captures features, screens, behavior, integrations, devices, permissions, and acceptance conditions |
+| `AndroidConstructionContract` | Captures features, screens, behavior, integrations, devices, permissions, and acceptance conditions (§42.1; schema in §80.5.3) |
 | `VisualSpecification` | Captures screenshot-derived layouts, states, components, typography, color, spacing, and comparison rules |
 | `AndroidTechnologyPlan` | Records AI-selected languages, UI systems, native modules, SDKs, libraries, device APIs, and build strategy |
 | `TaskGraph` | Defines phases, dependencies, workers, inputs, outputs, checkpoints, and completion conditions |
@@ -2602,7 +2602,7 @@ For each material autonomous decision, Nirman records a concise DecisionTrace co
 
 ### 45.3 ResourceGovernor
 
-The resource governor monitors CPU, memory, disk, checkpoint storage, emulator memory, Gradle memory, worker concurrency, provider concurrency, context size, log volume, build duration, and device slots.
+`ResourceGovernor` is the process-topology name of the `ResourceIntegrityAuthority` defined by §72 (TA §59, §77); the two names denote one service and one authority, and no second resource authority exists. The resource governor monitors CPU, memory, disk, checkpoint storage, emulator memory, Gradle memory, worker concurrency, provider concurrency, context size, log volume, build duration, and device slots.
 
 Under pressure it may compact context, reduce concurrency, prune safe caches, stop redundant workers, run affected tests, defer nonessential visual checks, or switch to an approved lighter provider profile. It MUST NOT silently weaken sandboxing, permissions, evidence, signing, or artifact gates.
 
@@ -2647,7 +2647,7 @@ The integration is complete only when a complete AndroidConstructionContract can
 
 ### 47.1 IntegratedAndroidWorkflowCoordinator
 
-Nirman MUST provide one canonical coordinator for the complete Android construction lifecycle. This is a runtime service, not a single oversized prompt. It connects user input, screenshots, contract generation, feasibility analysis, technology selection, worker allocation, transactional mutation, build, preview, testing, self-critique, repair, packaging, and evidence-backed promotion.
+Nirman MUST provide one canonical coordinator for the complete Android construction lifecycle (`IntegratedAndroidWorkflowCoordinator`; the `WorkflowCoordinator` of TA §53.1 and the `AndroidWorkflowCoordinator` of the §51.2 and TA §57.2 process topology are the same service). This is a runtime service, not a single oversized prompt. It connects user input, screenshots, contract generation, feasibility analysis, technology selection, worker allocation, transactional mutation, build, preview, testing, self-critique, repair, packaging, and evidence-backed promotion.
 
 ```text
 User request and screenshots
@@ -6831,10 +6831,12 @@ ScreenState
 - components: ComponentSpec[] (overrides for this state)
 ```
 
-#### 80.5.3 AndroidApplicationContract
+#### 80.5.3 AndroidConstructionContract
+
+This is the field-level schema of the §42.1 `AndroidConstructionContract` (ADR-158). The earlier name `AndroidApplicationContract` is retired; it was never a separate record.
 
 ```text
-AndroidApplicationContract
+AndroidConstructionContract
 - contractId: string (uuid)
 - projectId: string (uuid)
 - revision: string (hash)
@@ -6907,7 +6909,7 @@ TaskGraph
 - graphId: string (uuid)
 - projectId: string (uuid)
 - sessionId: string (uuid)
-- goalContractId: string (AndroidApplicationContract identity)
+- goalContractId: string (AndroidConstructionContract identity)
 - revision: string (hash)
 - phases: TaskPhase[]
 - dependencies: { fromPhase: string, toPhase: string }[]
@@ -7723,7 +7725,7 @@ The three revision fields have distinct change rules:
 - A `USER_REQUIRED` outcome does not advance `expectedProjectRevision`; its `ConversationRebaseRecord` records the conflict with `resolution` pending, and no Continue path proceeds until the user resolves it.
 
 `Continue` is the `conversation.continue` command kind of the §76.1 `UICommandRegistry` when a user invokes it; supervisor restart and background resumption (§77) invoke the same use case internally with the same authority and projection effect, and no other path may create tasks from a conversation. When it is invoked:
-1. `ConversationResolver` reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
+1. `ConversationResolver` (implemented as `ConversationContinuationResolver`, TA §86.2) reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
 2. State transitions follow:
    - `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
      Transition to `CONTINUE`. Task planner synthesizes next tasks from durable requirements and decisions.

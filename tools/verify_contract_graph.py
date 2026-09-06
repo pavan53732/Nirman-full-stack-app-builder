@@ -1399,6 +1399,21 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
         D.add("semantic documentation", "update controller placement",
               "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
+    # Component naming identities (audit M19): aliases are allowed only
+    # where the identity is stated at the definition site.
+    for text, label, needle, why in (
+            (bs, "BS §45.3", "`ResourceGovernor` is the process-topology name of the `ResourceIntegrityAuthority`", "ResourceGovernor must be declared the same service as ResourceIntegrityAuthority"),
+            (ta, "TA §51.3", "`ResourceGovernor` is the §57.2 process-topology name of `ResourceIntegrityAuthority`", "ResourceGovernor must be declared the same service as ResourceIntegrityAuthority"),
+            (ta, "TA §53.1", "It is the `IntegratedAndroidWorkflowCoordinator` of build spec §47.1 and ADR-082, listed as `AndroidWorkflowCoordinator`", "WorkflowCoordinator must be identified with IntegratedAndroidWorkflowCoordinator and AndroidWorkflowCoordinator"),
+            (ta, "TA §86.5", "(the `ConversationResolver` of build spec §82.1; one component)", "ConversationContinuationResolver must be identified with BS ConversationResolver"),
+            (bs, "BS §80.5.3", "#### 80.5.3 AndroidConstructionContract", "the §42.1 contract schema must carry the canonical ADR-158 name")):
+        if needle not in text:
+            D.add("semantic documentation", "component naming", f"{label}: {why}")
+    retirement = "The earlier name `AndroidApplicationContract` is retired; it was never a separate record."
+    for text, label in ((bs, "BS"), (ta, "TA"), (docs["dev"], "DP")):
+        if text.replace(retirement, "").count("AndroidApplicationContract"):
+            D.add("semantic documentation", "component naming",
+                  f"{label} still uses the retired name AndroidApplicationContract; the canonical record is AndroidConstructionContract (ADR-158)")
     # DP ownership map: each row's parenthetical ADR must be the decision
     # that actually governs the row's mechanism (audit found ADR-049, the
     # worker registry, cited for the toolchain manifest, and ADR-068 cited
