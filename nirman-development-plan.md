@@ -470,7 +470,7 @@ Implement file-level checkpoints alongside task-level checkpoints. Add last-know
 
 Implement retrieval-based and large-context modes, context-package reports, secret filtering, provider-context-capacity fallback, external-tool capability discovery, scoped connections, health checks, and policy mediation.
 
-**Exit gate:** A small-context provider uses repository retrieval, a large-context provider can use a filtered near-full repository, and an external tool cannot bypass Nirman path, network, or approval rules.
+**Exit gate:** A small-context provider uses repository retrieval, a large-context provider can use a filtered near-full repository, and an external tool cannot bypass Nirman path, network, or approval rules. Near-full-repository ingestion fidelity is verified by symbol-index parity against the language-adapter index, never by model recall.
 
 ## 21. Revised Fixture and Recovery Evaluation Matrix
 
@@ -1216,7 +1216,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 
 | Milestone | Focus | Required result |
 |---|---|---|
-| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService |
+| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService, AttentionProfiler, PlacementPlanner, RecallProbeService |
 | M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks |
 | M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
 | M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all eight required scenario classes, determinism quarantine |
@@ -1234,7 +1234,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 
 ### Memory and context gate
 
-A session is interrupted by a runtime restart and resumes without re-asking a settled question; a locked decision remains present in every subsequent context package until superseded; a memory write attempted without a source event is rejected; a project-scoped query cannot return another project's records; and a historical context package is reproduced from the ledger. Fixtures prove that: (1) required context cannot be evicted; (2) a stale ContextPackage is rejected before action authorization; (3) dependency neighborhoods are reconstructed via bidirectional dependency retrieval; (4) EXACT source is preserved for edited regions and active interfaces, and semantic summaries cannot replace exact source; (5) contradicted evidence triggers expanded retrieval or re-grounding; (6) runtime restart reconstructs an identical working set; (7) forced compaction preserves authoritative state and invariant proofs; (8) provider context-capacity changes cause deterministic repacking; and (9) a 10k-action fixture retains causal continuity across the entire execution sequence.
+A session is interrupted by a runtime restart and resumes without re-asking a settled question; a locked decision remains present in every subsequent context package until superseded; a memory write attempted without a source event is rejected; a project-scoped query cannot return another project's records; and a historical context package is reproduced from the ledger. Fixtures prove that: (1) required context cannot be evicted; (2) a stale ContextPackage is rejected before action authorization; (3) dependency neighborhoods are reconstructed via bidirectional dependency retrieval; (4) EXACT source is preserved for edited regions and active interfaces, and semantic summaries cannot replace exact source; (5) contradicted evidence triggers expanded retrieval or re-grounding; (6) runtime restart reconstructs an identical working set; (7) forced compaction preserves authoritative state and invariant proofs; (8) provider context-capacity changes cause deterministic repacking; and (9) a 10k-action fixture retains causal continuity across the entire execution sequence; (10) a constraint placed at the head of a 90 percent-filled window on a provider model with a large declared capacity and a smaller measured reliable span is recalled by probe or the package is re-projected before mutation; (11) a five-needle locked-decision recall probe passes or the DENSE block is narrowed; and (12) an injected anchor or premise mismatch is rejected by the mutation broker as `PREMISE_MISMATCH` before any transaction opens and updates the provider model's `AttentionReliabilityProfile` as `LEARNED`.
 
 ### Coordination gate
 
@@ -1314,7 +1314,7 @@ Each milestone may implement one or more registered contracts, but each contract
 
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
 |---|---|---|---|---|---|
-| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155, ADR-214, ADR-215, ADR-216 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
+| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155, ADR-214, ADR-215, ADR-216, ADR-219 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
 | M82 | CONTRACT.RUNTIME.RESERVATION | ADR-142, ADR-143 | TEST-RES-001 | EV-RES-001 | Coordination gate |
 | M83 | CONTRACT.RUNTIME.RECONCILIATION | ADR-144 | TEST-RCN-001 | EV-RCN-001 | Reconciliation gate |
 | M84 | CONTRACT.RUNTIME.E2E | ADR-146 | TEST-E2E-001 | EV-E2E-001 | Verification gate |
@@ -1334,7 +1334,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-PSYNC-001 | EV-PSYNC-001 | Preview synchronization protocol and first Android vertical slice |
 | M111 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | ADR-218 | TEST-RESOURCE-001 | EV-RESOURCE-001 | Runtime resource-integrity, adaptive scheduling, backpressure, physical resource protection, and liveness gate |
 | M112 | CONTRACT.RUNTIME.AGENT_TRUST | ADR-198 | TEST-TRUST-001 | EV-TRUST-001 | Agent-layer trust scanning and revocation gate |
-| M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
+| M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199, ADR-219 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
 | M114 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | ADR-200 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate |
 | M115 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | ADR-201 | TEST-FCP-001 | EV-FCP-001 | Frontend–control-plane protocol and generated service adapter gate |
 | M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
@@ -1658,7 +1658,7 @@ Implement pre-admission scanning for skills, MCP-compatible tools, plugins, work
 
 ## M113 — Context compaction and cache governance
 
-Implement `ContextCachePolicy`, protected-context classes, provider attention adaptation (`attentionCapabilities`), provider context capacity fitting (`ContextCapacityPlanner`), compaction triggers, cache key compatibility, prefix caching, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
+Implement `ContextCachePolicy`, protected-context classes, provider attention adaptation — the per-model `AttentionReliabilityProfile` carried by `attentionCapabilities`, `AttentionProfiler` probing at profile save and checkpoints, `PlacementPlanner` producing the `placementPlan` layout with the cache breakpoint before the DENSE block, `RecallProbeService` verification, and `PREMISE_MISMATCH` learning (BS §53.11, TA §59.12) — provider context capacity fitting (`ContextCapacityPlanner`), compaction triggers, cache key compatibility, prefix caching, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
 
 `TEST-CONTEXT-001` validates long-horizon cognition and governance under adversarial conditions, exercising:
 - 1k-action long-horizon autonomous task
@@ -1673,8 +1673,12 @@ Implement `ContextCachePolicy`, protected-context classes, provider attention ad
 - Repeated failure handling with causal fingerprint matching
 - Cache invalidation on upstream schema or file mutation
 - Recovery from checkpoint with authoritative context re-grounding
+- Post-compaction constraint re-projection verified by a recall probe
+- Provider switch by measured attention reliability, not declared capacity
+- Attention-aware placement recorded in `placementPlan` with the cache breakpoint before the DENSE block
+- Recall probe failure answered by re-projection and step narrowing without pausing work
 
-**Exit gate:** fixtures prove that compaction preserves constraints, required context is never evicted, cache reuse requires compatible identity, invalidation follows source or policy changes, cache hits are visible, stale context packages are rejected before action authorization, and context overflow does not cause secret leakage or evidence loss.
+**Exit gate:** fixtures prove that compaction preserves constraints, required context is never evicted, cache reuse requires compatible identity, invalidation follows source or policy changes, cache hits are visible, stale context packages are rejected before action authorization, context overflow does not cause secret leakage or evidence loss, placement is policy-visible, and required items are attendable or probe-verified before every consequential step.
 
 ## M114 — Android runtime integrity and honest coverage
 
