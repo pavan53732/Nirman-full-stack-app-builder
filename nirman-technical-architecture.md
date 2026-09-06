@@ -1033,6 +1033,50 @@ User or shared skills must be scanned for prompt injection, unsafe commands, sec
 
 Skills should be testable through fixture tasks and should declare the minimum tools, worker roles, and project profiles they require.
 
+Skill admission and invocation are durable ledger records (M119), both registered in §36.1:
+
+```text
+SkillAdmission
+- admissionId
+- skillId
+- skillVersion
+- sessionId
+- taskId
+- environmentFingerprint
+- environmentCapabilityRecordId
+- requiredCapabilities
+- capabilityResolution: per required capability, AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
+- decision: ADMITTED | BLOCKED | NOT_FOUND | NOT_INVOCABLE
+- decisionReason
+- scanStatus
+- trustStatus
+- policyDecisionId
+- decidedAt
+```
+
+```text
+SkillInvocationRecord
+- invocationId
+- admissionId
+- skillId
+- skillVersion
+- sessionId
+- taskId
+- workerId
+- projectRevision
+- environmentFingerprint
+- inputRef
+- outputRef
+- toolCallIds
+- evidenceIds
+- outcome: COMPLETED | FAILED | CANCELLED | BLOCKED
+- invalidatedBy
+- startedAt
+- completedAt
+```
+
+`SkillAdmission` is written before any instruction body loads or tool call runs; a skill with no `ADMITTED` admission for the current environment fingerprint cannot be invoked. `SkillInvocationRecord` pins the version admitted for the session (ADR-154), links every tool call and evidence item the invocation produced, and is invalidated (`invalidatedBy`) when the environment fingerprint, skill version, or project revision it was bound to changes.
+
 ### 19.2 Provider Attention Capabilities and Neural Architecture Adaptation
 
 Nirman does not implement hybrid sparse/linear attention itself. The model provider owns neural attention architecture (sparse, linear, recurrent, cached, or hybrid attention). Because such architectures recall distant literal content unevenly by position, window fill, and distractor density, a boolean "supports long context" flag carries no usable information. Nirman therefore exposes provider attention behavior as a measured, per-model `AttentionReliabilityProfile` through `ProviderProfile.attentionCapabilities` (BS §53.11 is the normative authority; this is the canonical schema):
@@ -2051,7 +2095,11 @@ StructuredPatch
 AndroidRuntimeIntegrityObservation
 ContinuityDimensions
 BackgroundContinuityRecord
-APKExportRecord
+ExportVerificationRecord
+PackagingProfile
+SkillPackage
+SkillInvocationRecord
+SkillAdmission
 EnvironmentCapabilityRecord
 PlatformCapabilityEntry
 ValidationEnvironment
@@ -2080,6 +2128,8 @@ ChangeImpactReport
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
+
+`APKExportRecord` is not a registered schema: it is the read-model view of `ExportVerificationRecord` for an APK deployment (§74.3, build spec §78) and carries no field of its own. `SigningState`, `DeliveryState`, `ReproducibilityLevel`, `AssuranceState`, `CapabilityMaturity`, and `ProductLifecycleState` are enumerations owned by build spec §5.7.2, not registered schemas; `ReproducibilityLevel` is the value set of the `reproducibilityLevel` field of `AndroidCapabilityProfile` and `ArtifactSet`. `PackagingProfile` is owned by build spec §5.7.3 and `SkillPackage` by build spec §23.11; §19.1 restates the latter field for field.
 
 `CanonicalSchemaRegistry` is the sole machine-readable ownership index for these contracts. Each entry records `schemaId`, `canonicalOwner`, `version`, fields, enum values, invariants, migration policy, authority, persistence location, and acceptance-fixture IDs. Repeated schema descriptions in other documents are explanatory or implementation views and must identify the registry entry they implement; they cannot silently redefine fields or enum semantics.
 

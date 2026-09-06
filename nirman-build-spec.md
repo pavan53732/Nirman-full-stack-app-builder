@@ -398,7 +398,11 @@ SigningState          = NOT_REQUIRED | UNSIGNED_DEBUG | CONFIGURED |
                         INSPECTED | FAILED | BLOCKED | UNKNOWN
 DeliveryState         = NOT_REQUESTED | ELIGIBLE | EXPORTING | EXPORTED |
                         DELIVERED | FAILED | BLOCKED | UNKNOWN
+ReproducibilityLevel  = UNKNOWN | INPUTS_RECORDED | REBUILD_MATCHED |
+                        BIT_FOR_BIT_VERIFIED | NOT_REPRODUCIBLE
 ```
+
+`ReproducibilityLevel` is the value set of the `reproducibilityLevel` field on `AndroidCapabilityProfile` (§5.7.1) and `ArtifactSet` (technical architecture §36.4); `REBUILD_MATCHED` and `BIT_FOR_BIT_VERIFIED` are reached only from an observed rebuild whose artifact hashes were compared, never from a declared policy.
 
 `RUNNING` describes lifecycle or process activity; it does not imply `OBSERVED`, `VERIFIED`, or `COMPLETED`. `DELIVERED` proves a successful local handoff, not that every optional integration or release-signing condition passed. `CERTIFIED` is permitted only after the required executable fixtures and evidence gates pass.
 

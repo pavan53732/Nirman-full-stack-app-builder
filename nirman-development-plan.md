@@ -1741,7 +1741,7 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 
 | Work item | Acceptance condition |
 |---|---|---|
-| Skill package persistence | `SkillPackage` has a `CanonicalSchemaRegistry` entry (TA §19.1) with version compatibility; packages persist through the M2 SQLite ledger as `SkillInvocationRecord` and `SkillAdmission` records |
+| Skill package persistence | `SkillPackage` (BS §23.11; restated TA §19.1), `SkillAdmission`, and `SkillInvocationRecord` (TA §19.1) have `CanonicalSchemaRegistry` entries (TA §36.1) with version compatibility; packages, admissions, and invocations persist through the M2 SQLite ledger with the fields those blocks define |
 | Fail-closed selection | `select_required_skills` resolves required skill ids against the registry and the `EnvironmentCapabilityRecord`; an admitted capability-bearing skill requires a matching `PlatformCapabilityState::Available` or `Repairable` record; absence reports `Blocked` or `NotFound`, never inferred success |
 | Capability-bearing admission | a skill whose `required_capabilities` intersect a non-`Available`/`Repairable` capability in the environment record is blocked fail-closed before any tool call or instruction load |
 | Trust and scan gating | unscanned packages (`ScanStatus::Pending`/`Scanning`) are `NotInvocable`; revoked packages (`TrustStatus::Revoked`) are `NotInvocable`; built-in packages are the M118 v1 set |

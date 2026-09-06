@@ -627,6 +627,12 @@ CASES = {
     "platform fixture A reverts to a Linux host": (
         BS, "| A — validation environment absent | host = Windows; target = Android;", "| A — host mismatch | host = Linux, target = Windows;",
         "semantic documentation"),
+    "registry re-registers the APK export view instead of the canonical record": (
+        TA, "BackgroundContinuityRecord\nExportVerificationRecord\nPackagingProfile\n", "BackgroundContinuityRecord\nAPKExportRecord\nPackagingProfile\n",
+        "semantic documentation"),
+    "SkillInvocationRecord loses its field block": (
+        TA, "```text\nSkillInvocationRecord\n- invocationId\n", "```text\nSkillInvocationRecordX\n- invocationId\n",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

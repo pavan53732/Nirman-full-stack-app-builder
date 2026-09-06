@@ -1968,6 +1968,7 @@ def check_semantic_documentation(docs, R, D, root="."):
         ("signingIdentityBindingId", bs + ta, "export signing lineage"),
         ("ExportVerificationRecord\n- exportId", ta, "export verification schema"),
         ("APKExportRecord", ta, "APK export implementation view"),
+        ("`APKExportRecord` is not a registered schema: it is the read-model view of `ExportVerificationRecord`", ta, "APK export view identity"),
         ("deliveryProjection", ta, "export delivery projection wiring"),
         # Anchored to the §83.2 export-copy sentence, not the bare lifecycle
         # token: ADR-203's ExternalEffectRecord generalization (§20.3) also
@@ -2023,9 +2024,11 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "documentation certification" not in dev.lower() or "runtime certification" not in dev.lower():
         D.add("semantic documentation", "certification tier separation",
               "development plan does not distinguish documentation and runtime certification")
-    if "reproducibilityLevel" not in bs or "repositoryTrustRequirement" not in bs:
+    profile_block = re.search(r"\nAndroidCapabilityProfile\n((?:- .*\n)+)", bs)
+    profile_fields = profile_block.group(1) if profile_block else ""
+    if "- reproducibilityLevel\n" not in profile_fields or "- repositoryTrustRequirement\n" not in profile_fields:
         D.add("semantic documentation", "profile maturity fields",
-              "capability profile is missing reproducibility or repository-trust identity")
+              "AndroidCapabilityProfile (BS §5.7.1) is missing the reproducibilityLevel or repositoryTrustRequirement field")
     if "attributionStatus" not in ta:
         D.add("semantic documentation", "resource attribution",
               "resource usage lacks explicit parent/child/shared attribution")
@@ -2074,10 +2077,21 @@ def check_semantic_documentation(docs, R, D, root="."):
                 D.add("semantic documentation", "canonical schema definition",
                       f"{name} is called canonical but has no field block in the architecture")
     for name in ("ContentMutation", "ConversationRebaseRecord", "AndroidCapabilityProfile",
-                 "ChangeReportRecord", "ChangeImpactReport"):
+                 "ChangeReportRecord", "ChangeImpactReport", "ExportVerificationRecord",
+                 "PackagingProfile", "SkillPackage", "SkillInvocationRecord", "SkillAdmission"):
         if name not in registered:
             D.add("semantic documentation", "CanonicalSchemaRegistry",
                   f"{name} must be listed in TA §36.1")
+    if "APKExportRecord" in registered:
+        D.add("semantic documentation", "CanonicalSchemaRegistry",
+              "APKExportRecord is a view of ExportVerificationRecord (BS §78, TA §74.3) and must not be registered as a schema")
+    for name in ("SkillInvocationRecord", "SkillAdmission"):
+        if f"\n{name}\n- " not in ta:
+            D.add("semantic documentation", "canonical schema definition",
+                  f"{name} is a registered M119 ledger record but has no field block in TA §19.1")
+    if "ReproducibilityLevel  = " not in bs:
+        D.add("semantic documentation", "canonical schema definition",
+              "BS §5.7.2 must define the ReproducibilityLevel value set that TA §36.4 names as a separate field")
     if "\nCapabilityProfile\n" in ta or "\nCapabilityProfile\n" in bs:
         D.add("semantic documentation", "capability profile identity",
               "bare 'CapabilityProfile' schema name; the Android capability profile is AndroidCapabilityProfile (BS §5.7.1)")
