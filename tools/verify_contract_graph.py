@@ -1325,6 +1325,38 @@ def check_semantic_documentation(docs, R, D):
         D.add("semantic documentation", f"{cid} architecture binding",
               f"§67.8 maps the contract to TA §{', §'.join(str(n) for n in secs)} but no listed "
               f"section names `{cid}` (ContractId header or Implements line)")
+    # Forbidden preview-pipeline paths (TA §73.14). The typed command registry
+    # must expose no UI → ADB / Gradle / Metro-Expo / emulator command kind, and
+    # the technology adapter must expose only its six resolution operations —
+    # any concrete execution operation on it is the forbidden
+    # "UI → AndroidTechnologyAdapter.executeBuild | install | …" path.
+    reg_rows = re.findall(r"^\| `([a-z_.]+)` \|",
+                          bs.split("### 76.1 UICommandRegistry", 1)[-1].split("### 76.2", 1)[0], re.M)
+    for kind in reg_rows:
+        ns = kind.split(".", 1)[0]
+        if ns in ("adb", "gradle", "metro", "expo", "emulator"):
+            D.add("semantic documentation", "forbidden preview pipeline path",
+                  f"§76.1 registers `{kind}`: a UI → {ns} command kind is a forbidden path (TA §73.14); "
+                  "the UI reaches build and device tooling only through PreviewCoordinator")
+    ops_block = re.search(r"```text\s*\nAndroidTechnologyAdapter operations\s*\n(.+?)\n```", ta, re.S)
+    allowed_ops = {"validatePlan", "initializeProject", "planBuild", "classifyFailure",
+                   "resolveBuildAdapter", "resolveDeviceAdapter"}
+    if ops_block is None:
+        D.add("semantic documentation", "forbidden preview pipeline path",
+              "TA §73.10 lacks the `AndroidTechnologyAdapter operations` block that bounds the adapter to resolution operations")
+    else:
+        declared_ops = set(re.findall(r"^- ([A-Za-z]+)\(", ops_block.group(1), re.M))
+        for op in sorted(declared_ops - allowed_ops):
+            D.add("semantic documentation", "forbidden preview pipeline path",
+                  f"TA §73.10 exposes `AndroidTechnologyAdapter.{op}`; the adapter resolves execution authorities and "
+                  "must expose only validatePlan, initializeProject, planBuild, classifyFailure, resolveBuildAdapter, resolveDeviceAdapter (TA §73.14)")
+        for op in sorted(allowed_ops - declared_ops):
+            D.add("semantic documentation", "forbidden preview pipeline path",
+                  f"TA §73.10 no longer declares `AndroidTechnologyAdapter.{op}`, which DP M108 and TA §73.14 require")
+    for anchor, label in (("\nUI → ADB\nUI → Gradle\nUI → Metro or Expo\nUI → emulator\n", "TA §73.14 forbidden-path block"),
+                          ("No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace", "BS §76.1 namespace rule")):
+        if anchor not in (ta if label.startswith("TA") else bs):
+            D.add("semantic documentation", "forbidden preview pipeline path", f"{label} is missing")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

@@ -586,6 +586,13 @@ CASES = {
     "milestone-level evidence id loses its constituent statement": (
         DEV, "and `EV-GEN-001` is not complete for that capability while `EV-IB-001` is missing.", "",
         "reverse break"),
+    "command registry gains a UI-to-emulator command kind": (
+        BS, "| `preview.start` | Start a revision-bound preview |", "| `emulator.start` | Start a revision-bound preview |",
+        "semantic documentation"),
+    "technology adapter exposes a concrete execution operation": (
+        TA, "- classifyFailure()          -> AndroidTechnologyAdapterResolution\n",
+        "- classifyFailure()          -> AndroidTechnologyAdapterResolution\n- executeBuild()             -> AndroidBuildObservation\n",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

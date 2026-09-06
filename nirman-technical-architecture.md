@@ -5627,7 +5627,7 @@ UI
 
 The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each: `AndroidBuildAdapter` for build and artifact operations, `AndroidDeviceAdapter` for device and runtime operations.
 
-The following paths are forbidden and MUST be rejected by the typed command registry and the contract-graph verifier:
+The following paths are forbidden and MUST be rejected by the typed command registry and the contract-graph verifier. The registry rejects them structurally: no `commandKind` in build spec §76.1 is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, and the `preview.*` command kinds dispatch only to `PreviewCoordinator`. The verifier rejects them as a §67.11 semantic-documentation defect whenever a §76.1 registry row appears in one of those namespaces or the §73.10 `AndroidTechnologyAdapter operations` block lists anything other than its six resolution operations:
 
 ```text
 UI → ADB
