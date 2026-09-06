@@ -462,7 +462,7 @@ The following decisions remain intentionally open:
 **Status:** Accepted  
 **Decision:** Nirman will normalize chat-completion, response-item, message-oriented, and custom provider protocols behind one internal Model Gateway. The gateway will preserve provider-specific raw data while exposing common events for text, tool calls, structured output, vision, streaming, cancellation, usage, request IDs, and errors.
 
-**Reasoning:** Users need to configure custom base URLs and model IDs, including compatible cloud services and local runtimes, without changing the agent orchestrator for each provider.
+**Reasoning:** Users need to configure custom base URLs and model IDs across supported cloud-hosted providers without changing the agent orchestrator for each provider. ADR-207 excludes local, offline, on-device, and self-hosted model runtimes from product scope.
 
 **Trade-off:** Some providers expose capabilities that cannot be mapped perfectly. The settings page must show detected capabilities and unsupported features explicitly.
 
