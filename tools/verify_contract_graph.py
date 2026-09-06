@@ -1443,6 +1443,18 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "This table is the canonical execution-profile set: exactly these five profiles exist" not in bs:
         D.add("semantic documentation", "execution profile set",
               "BS §26.5 must declare itself the canonical execution-profile set")
+    # Platform fixtures run on the Windows host only (BS §2, ADR-108): a
+    # fixture, exit gate, or example that requires a Linux/macOS/non-Windows
+    # host describes a lane Nirman cannot execute.
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        for token in ("host = Linux", "host_platform:             linux", "Linux host →", "on a non-Windows host",
+                      "from a non-Windows host", "at least two host platforms", "macOS host"):
+            if token in text:
+                D.add("semantic documentation", f"non-Windows host fixture in {label}",
+                      f"{token!r}: Nirman runs only on Windows; platform fixtures vary the validation environment, not the host OS (BS §79.13)")
+    if "a fixture that requires a non-Windows host cannot run inside Nirman's certification lane" not in bs:
+        D.add("semantic documentation", "platform fixture host rule",
+              "BS §79.13 must state that every TEST-PLAT-001 fixture executes on the Windows host")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

@@ -5883,16 +5883,18 @@ VALIDATION PLATFORM  = the platform on which runtime behavior is observed
 CERTIFICATION STATUS = the gate result over accumulated, bound evidence
 ```
 
-These are distinct state values and MUST never be collapsed into one `BUILD=SUCCESS`, one completion claim, or one capability status. A task running on a Linux x64 host for a Windows x64 target MUST be represented, after preflight, as:
+These are distinct state values and MUST never be collapsed into one `BUILD=SUCCESS`, one completion claim, or one capability status. Nirman's host environment is always the Windows x64 machine it runs on (§2, ADR-108); the dimension that varies is whether the validation environment the target requires is present and observable. A task on a Windows x64 host whose Android target requires the Nirman-managed local emulator while hardware virtualization is unavailable (§79.16) MUST be represented, after preflight, as:
 
 ```text
-host_platform:             linux x86_64
-target_platform:           windows x86_64
-cross_compilation:         AVAILABLE   (only when toolchain preflight proves it)
-native_target_execution:   UNAVAILABLE
+host_platform:             windows x86_64
+target_platform:           android (declared API level and ABI)
+artifact_build:            AVAILABLE   (only when toolchain preflight proves it)
+target_runtime_execution:  UNAVAILABLE (no accelerated emulator; no physical device is a substitute, §4.4)
 target_runtime_validation: USER_REQUIRED or UNAVAILABLE
 certification:             cannot complete without target-platform runtime evidence
 ```
+
+The same shape applies to Nirman's own Windows artifacts when a Windows validation environment lease (§79.8) cannot be acquired: the artifact build may be `VERIFIED` while `WINDOWS_RUNTIME` stays `UNVERIFIED`.
 
 A worker, model, skill, or report that merges these states into a single result fails this contract and every gate that consumes it.
 
@@ -6045,7 +6047,7 @@ A container, virtual machine, WSL, Windows Sandbox, remote build farm, or simula
 
 ### 79.10 Host Development and Target Certification Are Different Lanes
 
-Development on a non-target host is permitted and expected where the toolchain exists: reading and editing source, static analysis, host-native Rust and frontend tests, cross-build of the target artifact, artifact inspection, documentation verification, and platform-independent fixtures. The target environment then performs install, launch, platform-specific runtime tests, process supervision and recovery tests, and installer tests. Certification combines evidence: host-platform evidence plus target-platform evidence, each bound to its own record. Neither lane may report the other lane's result.
+Development work on the Windows host without the target's validation environment is permitted and expected where the toolchain exists: reading and editing source, static analysis, host-native Rust and WinUI 3 tests, building the target artifact (Android APK, or Nirman's own Windows build in the self-build lane), artifact inspection, documentation verification, and platform-independent fixtures. The validation environment — the leased Nirman-managed emulator for Android, or a leased Windows validation environment for Nirman's own artifacts — then performs install, launch, platform-specific runtime tests, process supervision and recovery tests, and installer tests. Certification combines evidence: host-platform evidence plus target-platform evidence, each bound to its own record. Neither lane may report the other lane's result.
 
 ### 79.11 Unavailable Validation Environment as a Hidden Human Dependency
 
@@ -6066,12 +6068,12 @@ Silent continuation that skips the gate, or a claim that the gate passed, is a c
 
 ### 79.13 Hallucination-Prevention Fixtures
 
-The following are mandatory runtime-certification fixtures (test family `TEST-PLAT-001`, evidence `EV-PLAT-001`; implementation: TA §84.5, M118):
+The following are mandatory runtime-certification fixtures (test family `TEST-PLAT-001`, evidence `EV-PLAT-001`; implementation: TA §84.5, M118). Every fixture executes on the Windows x64 host that Nirman runs on; a fixture that requires a non-Windows host cannot run inside Nirman's certification lane and is therefore not a valid fixture of this family — the four-state invariant is exercised by varying the validation environment, not the host operating system:
 
 | Fixture | Setup | Required behavior |
 |---|---|---|
-| A — host mismatch | host = Linux, target = Windows; task: "build and validate" | cross-build may execute; native Windows validation MUST NOT be claimed; the blocked node records `USER_REQUIRED`/`UNAVAILABLE` with the two §79.11 lists |
-| B — successful cross-build | a Windows `.exe`/installer is produced from a non-Windows host | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` are both recorded; the aggregate status is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, never `SUPPORTED` |
+| A — validation environment absent | host = Windows; target = Android; the Nirman-managed emulator is unavailable (virtualization disabled per §79.16, or no `ValidationEnvironment` lease per §79.8); task: "build and validate" | the artifact build may execute; runtime validation MUST NOT be claimed; the blocked node records `USER_REQUIRED`/`UNAVAILABLE` with the two §79.11 lists; no physical device or substitute target (§79.9) is offered |
+| B — build without runtime | host = Windows; the Windows `.exe`/installer (self-build lane, §28) or the Android APK is produced while the matching validation environment lease is absent | `ARTIFACT_BUILD = VERIFIED` and the runtime state (`WINDOWS_RUNTIME` or `ANDROID_RUNTIME`) `= UNVERIFIED` are both recorded; the aggregate status is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, never `SUPPORTED` |
 | C — fake completion | a model or worker reports "Windows runtime tests passed" with no target observation | the completion claim is durably rejected by the completion evaluator and the rejection cites the missing evidence |
 | D — stale target evidence | target-platform evidence exists, then the source revision, toolchain identity, or environment fingerprint changes | the prior target evidence is `INVALIDATED`; the certification gate re-closes until re-validation on the target platform |
 

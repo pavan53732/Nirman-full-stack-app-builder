@@ -4,8 +4,9 @@ Scope: native Windows runtime validation — startup, IPC, ConPTY, process
 supervision, Job Objects, isolation, restart/recovery, credential
 storage, installer/uninstaller behavior (BS §79.7).
 
-Gated by `target_platform = windows` AND `native_execution = AVAILABLE`.
-On any non-Windows host the required capabilities resolve to
+Gated by `target_platform = windows` AND `native_execution = AVAILABLE`,
+which requires a leased Windows ValidationEnvironment (BS §79.8). When
+no lease can be acquired the required capabilities resolve to
 UNAVAILABLE (or USER_REQUIRED), so the gated steps MUST NOT execute and
 the blocked state MUST be reported with the §79.11 lists. A simulated or
 cross-compiled pass is prohibited and is a certification failure.

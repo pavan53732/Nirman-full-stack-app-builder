@@ -6121,7 +6121,7 @@ Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation 
 
 ### 84.5 Runtime acceptance
 
-`TEST-PLAT-001` (evidence `EV-PLAT-001`) implements the BS §79.13 fixtures A–D and MUST additionally prove: the planner emits the extended traceability chain with the environment-requirement and capability-resolution edges populated; the target-mismatch guard rejects a runtime-validation claim from a non-matching host before execution; worker scheduling honors the `WorkerContract` platform fields; lease loss fences in-flight validation; and a matrix version change re-runs preflight without invalidating unrelated observed records. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
+`TEST-PLAT-001` (evidence `EV-PLAT-001`) implements the BS §79.13 fixtures A–D and MUST additionally prove: the planner emits the extended traceability chain with the environment-requirement and capability-resolution edges populated; the target-mismatch guard rejects a runtime-validation claim made without a leased matching validation environment before execution (the host is always Windows; the fixture varies the validation environment, never the host operating system); worker scheduling honors the `WorkerContract` platform fields; lease loss fences in-flight validation; and a matrix version change re-runs preflight without invalidating unrelated observed records. Documentation certification proves only that these contracts and fixture declarations exist; runtime certification must execute the fixtures.
 
 ---
 

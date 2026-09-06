@@ -314,7 +314,7 @@ The following distinctions are mandatory:
 | `STALE` / `INVALIDATED` | Existing evidence or projection no longer applies |
 | `CERTIFIED` / `COMPLETED` | Only after the applicable runtime evidence and deterministic gates pass |
 
-Host environment, target platform, validation platform, and certification status are separate states (build spec §79, ADR-206). Cross-compilation from a non-target host establishes artifact production only; target-runtime validation and certification require observation on a matching validation environment. When that environment is absent, the affected gate is reported as `USER_REQUIRED` or `UNAVAILABLE` and independent work continues — it is never represented as a pass.
+Host environment, target platform, validation platform, and certification status are separate states (build spec §79, ADR-206). Building an artifact without its validation environment (an Android APK with no accelerated emulator lease, or Nirman's own Windows build with no Windows validation lease) establishes artifact production only; target-runtime validation and certification require observation on a matching validation environment. When that environment is absent, the affected gate is reported as `USER_REQUIRED` or `UNAVAILABLE` and independent work continues — it is never represented as a pass.
 
 ## Repository map
 

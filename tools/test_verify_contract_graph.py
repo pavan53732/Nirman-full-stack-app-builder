@@ -624,6 +624,9 @@ CASES = {
     "architecture profile table drops Review-only": (
         TA, "| Review-only | No write access and no arbitrary process execution; diff, security, and architecture analysis |\n", "",
         "semantic documentation"),
+    "platform fixture A reverts to a Linux host": (
+        BS, "| A — validation environment absent | host = Windows; target = Android;", "| A — host mismatch | host = Linux, target = Windows;",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
