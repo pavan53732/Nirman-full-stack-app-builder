@@ -6168,7 +6168,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 
 | BS §23.1 | "should automatically create a concise project-context file in every managed workspace" | MUST create | On workspace creation, before the first task runs |
 | BS §23.1 | "This file should contain the project purpose, supported commands, framework conventions..." | MUST contain all seven categories | Product intent, architecture, commands, conventions, constraints, known issues, validation — per the §23.1 table |
-| BS §23.1 | "It should remain short enough to load frequently" | MUST stay within budget | Hard ceiling 8,000 tokens. Content beyond it moves to linked documentation |
+| BS §23.1 | "It should remain short enough to load frequently" | MUST remain within the context-file size limit | Hard context-file size ceiling: 8,000 tokens. Content beyond it moves to linked documentation |
 | BS §23.1 | "should link to deeper documentation when more context is needed" | MUST link, not inline | References by relative path; the context file never embeds full documents |
 | BS §23.1 | "should also maintain a durable execution plan for long-running tasks" | MUST maintain | For any task exceeding one worker delegation or one build cycle |
 | BS §23.1 | "The plan should be stored as a project artifact and updated after each completed step, blocked step, or changed assumption" | MUST store durably and update at all three trigger points | Plan lives in the ledger, not in chat history |
