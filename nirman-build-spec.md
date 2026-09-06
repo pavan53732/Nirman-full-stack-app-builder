@@ -7401,33 +7401,40 @@ Content consistency MUST be checked across affected screens and resources. Local
 ```text
 Content
 - contentId
+- projectId
 - canonicalKey
 - contentType
 - sourceLocale
 - supportedLocales
 - currentRevisionId
+- createdAt
+- updatedAt
 
 ContentRevision
 - contentRevisionId
 - contentId
 - projectRevisionId
 - requirementIds
+- contentType
 - locale
-- value
+- key
+- previousValue
+- proposedValue
 - placeholderSchema
 - pluralizationModel
 - localeFallback
+- sourceLocale
 - translationStatus
 - terminologyReferences
 - toneProfile
 - brandVoiceProfile
 - accessibilityContext
-- contentProvenance
-- approvalState
 - sourceEvidenceIds
 - transactionId
 - validationStatus
 - invalidatedBy
+- contentProvenance
+- approvalState
 
 ContentDependency
 - dependencyId
@@ -7536,6 +7543,7 @@ ConversationAttachment
 - projectIsolation
 - providerTransmissionPolicy
 - revisionBinding
+- createdAt
 ```
 
 Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages (`sourceMessageId`) and evidence (`sourceEvidenceIds`, referencing `EvidenceRecord` identifiers owned by `EvidenceAuthority`). Accepted and rejected suggestions MUST remain distinguishable.
@@ -7578,6 +7586,14 @@ MISMATCH + unresolved contradiction → USER_REQUIRED
 ```
 
 No Continue path may execute against stale project revision.
+
+The three revision fields have distinct change rules:
+
+- `conversationRevision` is incremented only when the authoritative `ConversationResolver` commits a new durable conversation state; no other component may advance it.
+- `projectRevisionId` changes only when the referenced project revision changes.
+- `expectedProjectRevision` is the revision against which Continue is evaluated.
+- A `RECONCILE/REBASE` changes `expectedProjectRevision` only after the rebase decision, recorded as a `ConversationRebaseRecord`, is durably committed; until that commit the previous value remains in force.
+- A `USER_REQUIRED` outcome does not advance `expectedProjectRevision`; its `ConversationRebaseRecord` records the conflict with `resolution` pending, and no Continue path proceeds until the user resolves it.
 
 When a continuation operation (`Continue`) is invoked (via user request, supervisor restart, or background resumption):
 1. `ConversationResolver` reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
@@ -7660,6 +7676,8 @@ ChangeImpactReport
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
+- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION
+- causeId
 - changed
 - why
 - files
@@ -7680,7 +7698,7 @@ ChangeImpactReport
 - projectionVersion
 ```
 
-`changed` MUST identify the actual mutation. `why` MUST reference the requirement, goal, directive, repair cause, or approved action that caused it.
+`changed` MUST identify the actual mutation. `causeType` and `causeId` identify the single authoritative causal source of the mutation — the requirement, goal, directive, repair cause, or approved action — and `why` is a projection rendered from that typed source; it is never free prose with independent content.
 
 `files` MUST contain actual changed paths. `runtimeEffects` MUST identify affected runtime behavior. `testsAffected` MUST identify impacted validation. `previewAffected` MUST identify affected preview surfaces. `evidenceInvalidated` MUST contain dependency-invalidated evidence. `verified` MUST contain only authoritative verification results.
 
@@ -7729,4 +7747,4 @@ The presentation client displays these structured dimensions with clickable file
 
 ### 83.4 Acceptance
 
-Every committed `ConstructionTransaction` exposes a complete, valid report. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.
+Every committed `ConstructionTransaction` exposes exactly one durable `ChangeReportRecord`. The record may initially be `INCOMPLETE` or become `UNRESOLVED` during recovery. The owning task may claim completion only when the record is `COMPLETE` and its `ChangeImpactReport` passes all declared validity checks. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.
