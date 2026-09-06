@@ -724,7 +724,8 @@ nirman/
 │   ├── worker-registry/
 │   ├── contracts/
 │   ├── handoffs/
-│   └── reconciliation/
+│   ├── reconciliation/
+│   └── context-engine/
 ├── tool-gateway/
 │   ├── filesystem/
 │   ├── process/
@@ -1010,20 +1011,40 @@ Skills should be testable through fixture tasks and should declare the minimum t
 
 ### 19.2 Provider Attention Capabilities and Neural Architecture Adaptation
 
-Nirman does not implement hybrid sparse/linear attention itself. The model provider owns neural attention architecture (sparse, linear, recurrent, cached, or hybrid attention). Nirman exposes provider attention capabilities through `attentionCapabilities`:
+Nirman does not implement hybrid sparse/linear attention itself. The model provider owns neural attention architecture (sparse, linear, recurrent, cached, or hybrid attention). Because such architectures recall distant literal content unevenly by position, window fill, and distractor density, a boolean "supports long context" flag carries no usable information. Nirman therefore exposes provider attention behavior as a measured, per-model `AttentionReliabilityProfile` through `ProviderProfile.attentionCapabilities` (BS §53.11 is the normative authority; this is the canonical schema):
 
 ```text
-attentionCapabilities
-- maxContextTokens: usize
-- supportsLongContext: bool
+AttentionReliabilityProfile
+- profileId: string
+- providerProfileId: string
+- modelId: string
+- source: DECLARED | PROBED | LEARNED | UNPROFILED
+- declaredContextTokens: usize
+- reliableLiteralSpanTokens: usize?
+- reliableGistSpanTokens: usize?
+- positionalRecall: PositionalRecallCell[]
+- multiNeedleRecall: { needleCount: usize, passRate: float }?
+- distractorSensitivity: LOW | MEDIUM | HIGH | UNKNOWN
+- postCompactionRetention: float?
+- toolResultRecallDecay: float?
 - supportsPrefixCaching: bool
 - supportsStructuredCache: bool
-- supportsReasoning: bool
-- supportsToolCalling: bool
-- supportsVision: bool
+- lastProbedAt: timestamp?
+- probeFixtureId: string?
+- evidenceIds: string[]
+- confidence: HIGH | MEDIUM | LOW
+
+PositionalRecallCell
+- fillBucket: float
+- positionBucket: HEAD | EARLY | MIDDLE | LATE | TAIL
+- literalPassRate: float
+- gistPassRate: float
+- samples: usize
 ```
 
-Nirman intelligently adapts around the model by aligning prompt boundaries with cache checkpoints, utilizing prefix caching, fitting tokens to provider context capacity, and routing queries through exact/sparse/summary memory without coupling to any proprietary model architecture.
+`declaredContextTokens` is the physical context capacity that `ContextCapacityPlanner` fits the package to; it is the former `maxContextTokens` and keeps that role. `reliableLiteralSpanTokens` bounds only the DENSE placement block of BS §53.11. Reasoning, tool-calling, and vision support are reported by `capabilityOverrides` and `reasoningCapabilityProfile` (§24.2), not by this profile. `confidence` is derived from sample counts, never declared.
+
+Nirman adapts around the model by measuring its recall with deterministic probes, placing precision content inside the measured reliable span adjacent to the instruction, aligning the cache breakpoint before that block, verifying proposals against anchors and premises independently of recall, and routing queries through exact/sparse/summary memory, without coupling to any proprietary model architecture.
 
 ## 20. External Tool Protocol Adapter
 
@@ -1287,7 +1308,7 @@ The settings interface should allow the user to create, duplicate, test, disable
 
 The connection test should discover or validate the configured endpoint, verify authentication, test the selected model, detect available features, measure a basic response, and record the provider request ID. Model discovery through a models endpoint is optional; a user must be able to enter a model ID manually when discovery is unavailable.
 
-The page should show capability badges for text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, embeddings, reasoning, supported reasoning effort levels, reasoning usage reporting, and context capacity. A capability badge must be based on a successful probe or explicit user override, not a provider name alone.
+The page should show capability badges for text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, embeddings, reasoning, supported reasoning effort levels, reasoning usage reporting, context capacity, and attention reliability. A capability badge must be based on a successful probe or explicit user override, not a provider name alone. The attention reliability badge shows the profile `source` and `reliableLiteralSpanTokens`; the connection test runs the recall probe fixture and saves the profile as `UNPROFILED` when the probe cannot complete, never as a declared value.
 
 Reasoning capability must be displayed separately from general text generation. A model that can generate text but does not expose or support provider-native reasoning must not be presented as supporting the configured deep-reasoning capability.
 
@@ -1383,7 +1404,7 @@ The provider may offer its own background-request mode, but Nirman’s local con
 
 Nirman should record token usage when the provider reports it; token usage is telemetry with no execution-authority semantics and never a completion lock. Context is fit to the provider's actual context capacity by compaction and retrieval; concurrency reduction responds to physical resource pressure; continuation is governed by progress and evidence. A user MAY declare an explicit policy stop condition, which is a user decision evaluated by policy authority, not a runtime budget.
 
-A provider profile may declare a context capacity or allow Nirman to learn it from probe results. If the selected request exceeds a provider’s actual hard context limit, the gateway must return a structured context-overflow result so the context planner can reduce or reassemble the request.
+A provider profile may declare a context capacity or allow Nirman to learn it from probe results. Attention reliability is always learned: a declared `AttentionReliabilityProfile` is `DECLARED` metadata until the recall probe fixture of §24.8 replaces it with a `PROBED` result, and premise mismatches from the mutation broker refine it as `LEARNED` (BS §53.11). If the selected request exceeds a provider’s actual hard context limit, the gateway must return a structured context-overflow result so the context planner can reduce or reassemble the request.
 
 ### 24.8 Provider compatibility tests
 
@@ -1401,8 +1422,10 @@ The provider test suite should use protocol fixtures for:
 10. Refusal or incomplete output handling.
 11. Request-ID and usage capture.
 12. Provider capability mismatch and fallback.
+13. Positional literal recall across fill buckets (writes the `AttentionReliabilityProfile`).
+14. Post-compaction constraint retention via re-projection and recall probe.
 
-A provider adapter is not production-ready until it passes the fixtures relevant to its declared capabilities.
+A provider adapter is not production-ready until it passes the fixtures relevant to its declared capabilities. Fixtures 13 and 14 never fail a profile save; they determine the saved profile's `source` and the placement bounds applied to it.
 
 ## 25. Optimized Self-Development Loop
 
@@ -1712,6 +1735,7 @@ Nirman should track quality metrics by project type, task class, provider profil
 | Tool reliability | Success and failure rates by tool and environment |
 | Provider reliability | Request success, tool-call correctness, and context-overflow rates |
 | Self-update safety | Candidate pass, rollback, crash, and migration-failure rates |
+| Attention reliability | Recall-probe pass rate by provider model, fill bucket, and position bucket, and `PREMISE_MISMATCH` rate per consequential step |
 | Human intervention rate | Number and category of decisions required per task |
 
 These metrics are for diagnosis and improvement. They must not be used to conceal failed tasks or to optimize only for speed at the expense of correctness.
@@ -1824,6 +1848,7 @@ The architecture must explicitly handle:
 | Worker crash | Preserve workspace, record interruption, and requeue or recover |
 | Provider outage | Retry with classification, use an approved fallback, or continue after service recovery |
 | Context overflow | Compact, retrieve, or change provider; never silently omit critical requirements |
+| In-window recall degradation or premise mismatch | Reject the proposal as `PREMISE_MISMATCH` before any transaction, re-project the DENSE block, narrow the step, or select a provider model by measured reliability; record the failure in the `AttentionReliabilityProfile`; never silently continue and never pause valid work |
 | Infinite repair tendency | Detect repeated fingerprints, backtrack, change strategy, and escalate only when necessary |
 | Candidate build failure | Keep the current version active and preserve candidate evidence |
 | Candidate health failure | Stop promotion and retain the previous known-good version |
@@ -1978,6 +2003,9 @@ EventSubscription
 ResourceIntegrityRecord
 AgentTrustAssessment
 ContextCachePolicy
+ContextPackage
+AttentionReliabilityProfile
+StructuredPatch
 AndroidRuntimeIntegrityObservation
 ContinuityDimensions
 BackgroundContinuityRecord
@@ -2370,7 +2398,8 @@ Rust Control Plane Supervisor
 ├── RecoveryAuthority
 ├── EvidenceAuthority
 ├── ArtifactAuthority
-└── ProjectMemoryStore
+├── ProjectMemoryStore
+└── ContextOrchestrator
         │
         ├── isolated worker processes
         ├── persistent PTY terminals
@@ -2499,9 +2528,9 @@ AndroidLanguageAdapter
   - returns: affectedFiles: list, affectedSymbols: list, affectedModules: list
   - errors: ImpactAnalysisError
 - validate_structured_patch(patch: StructuredPatch) -> PatchValidationResult
-  - params: patch: StructuredPatch
-  - returns: valid: bool, violations: list, affectedNodes: list
-  - errors: PatchValidationError
+  - params: patch: StructuredPatch (BS §43.2: contextId, baseRevision, targetSymbolIds, anchorHashes, premises, operations)
+  - returns: valid: bool, violations: list, affectedNodes: list, premiseMismatches: list
+  - errors: PatchValidationError, PremiseMismatchError
 - format_or_serialize(updated_unit: ParsedUnit) -> SerializedUnit
   - params: updated_unit: ParsedUnit
   - returns: content: str, format: str, encoding: str
@@ -2603,7 +2632,7 @@ The service records concise decision summaries without hidden chain-of-thought. 
 
 ### 51.3 ResourceGovernor
 
-The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradle memory, worker/provider concurrency, context size, log volume, build duration, and device slots. It can compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or use an approved lighter provider profile. It cannot weaken sandbox, permission, evidence, signing, or artifact gates.
+The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradle memory, worker/provider concurrency, context size, log volume, build duration, and device slots. It can compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or use an approved lighter provider profile whose `AttentionReliabilityProfile` satisfies the pending step's `requiredReliability` (§59.12). It cannot weaken sandbox, permission, evidence, signing, or artifact gates.
 
 ---
 
@@ -3042,6 +3071,7 @@ NirmanSupervisor.exe
 ├── TerminalSupervisor
 ├── AndroidWorkflowCoordinator
 ├── PreviewCoordinator
+├── ContextOrchestrator
 └── SQLite execution ledger
 ```
 
@@ -3601,7 +3631,10 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | MemoryRetriever | Queries structured memory records, locked decisions, and failure fingerprints |
 | EvidenceRetriever | Queries the active EvidenceFrontier to prioritize unvalidated or contradicted claims |
 | DependencyExpander | Computes graph neighborhoods and affected compilation units from the ImpactGraph |
-| ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity and tracks remaining admissible context capacity per request, without imposing a Nirman usage budget |
+| ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity and tracks remaining admissible context capacity per request, without imposing a Nirman usage budget; bounds the DENSE block by the measured reliable recall span and records `attendabilityMap` |
+| AttentionProfiler | Runs the recall probe fixtures at provider profile save and at checkpoints; writes the per-model `AttentionReliabilityProfile` as evidence, never from declaration or self-report |
+| PlacementPlanner | Computes `placementPlan` per BS §53.11: cache-stable prefix, SPARSE breadth block, DENSE precision block, state digest, instruction; positions the cache breakpoint before the DENSE block |
+| RecallProbeService | Embeds deterministic recall probes with runtime-held expected answers, verifies responses by exact match, and emits probe evidence on structural events only |
 | ResourceIntegrityAuthority | Implements BS §72: evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure and admits work against physical capacity; holds no AI-usage cap |
 | CacheManager | Manages prefix-cache checkpoints, structured KV caches, and cache hit optimization |
 | CompactionPlanner | Executes non-destructive semantic compaction of historical context |
@@ -3609,7 +3642,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | ContextIntegrityVerifier | Validates revision bindings (goal, project, plan, evidence) as an authoritative hard gate |
 
 The architecture retains three dedicated implementation collaborators:
-- `ContextAssembler`: internal assembly operation invoked by `ContextOrchestrator` to serialize the final `ContextPackage` payload.
+- `ContextAssembler`: internal assembly operation invoked by `ContextOrchestrator` to serialize the final `ContextPackage` payload in the placement layout of BS §53.11.
 - `RegroundingService`: invoked by `ContextOrchestrator` at checkpoints, on contradiction detection, or upon context integrity invalidation.
 - `RedactionFilter`: mandatory finalization stage executed before model gateway dispatch to strip secrets and credentials.
 
@@ -3696,17 +3729,18 @@ Hard fidelity invariants:
 
 ### 59.4 Context Confidence
 
-`ContextOrchestrator` evaluates context sufficiency across six dimensions before model invocation:
+`ContextOrchestrator` evaluates context sufficiency across seven dimensions before model invocation:
 - `coverage`: proportion of target symbols and files included in the working set.
 - `freshness`: proportion of context items verified against the latest `projectRevision` and `evidenceRevision`.
 - `fidelity`: adherence to mandatory fidelity rules (e.g. 100% of mutation targets at `EXACT`).
 - `dependencyCompleteness`: completeness of the direct bidirectional dependency neighborhood.
 - `evidenceCompleteness`: proportion of claims on the `EvidenceFrontier` with valid observations.
 - `uncertainty`: absence of unclassified or conflicting assumptions in `UncertaintyRegistry`.
+- `attentionReliability`: every `requiredItems` entry and every mutation-target `EXACT` item is `EXPECTED_RELIABLE` in the `attendabilityMap`, or is covered by a passing recall probe in the same package (BS §53.11).
 
 The aggregate evaluation determines task eligibility:
 - `HIGH`: Context is fully sufficient; eligible for immediate model invocation and autonomous mutation.
-- `MEDIUM`: Context coverage is partial; model invocation prohibited until `SemanticRetriever` expands retrieval.
+- `MEDIUM`: Context coverage is partial, or coverage is sufficient but attendability is not; model invocation prohibited until `SemanticRetriever` expands retrieval or `PlacementPlanner` re-projects the affected items, the step is narrowed to the reliable recall span, or a provider model whose profile satisfies the step is selected.
 - `LOW`: Context is stale, contradictory, or severely incomplete; model invocation prohibited; invokes `RegroundingService`.
 
 ### 59.5 Memory record schema
@@ -3741,6 +3775,7 @@ The orchestrator executes the following deterministic sequence:
    - `TemporalRetriever`: Recent causal execution chains from Warm memory.
    - `MemoryRetriever`: Failure fingerprints and historical invariants.
 5. **Fidelity Mapping**: `ContextFidelityManager` assigns fidelity levels (`EXACT`, `STRUCTURAL`, `SEMANTIC`, `SUMMARY`, `HISTORICAL`) ensuring edited regions and interfaces remain `EXACT`.
+5b. **Placement & Attendability Mapping**: `PlacementPlanner` assigns every item to a block of the BS §53.11 layout, computes `placementPlan`, and marks each item `EXPECTED_RELIABLE`, `EXPECTED_DEGRADED`, or `UNKNOWN` in `attendabilityMap` from the provider model's `AttentionReliabilityProfile`; `RecallProbeService` embeds probes when a structural event schedules them.
 6. **Sufficiency & Completeness Gate**:
    ```text
    CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
@@ -3755,7 +3790,7 @@ The orchestrator executes the following deterministic sequence:
    - causal memory
    - evidence frontier
    - active decisions and constraints
-8. **Capacity Adaptation**: If the selected representation exceeds the provider's actual context capacity, `ContextCapacityPlanner` progressively transforms items:
+8. **Capacity Adaptation**: `ContextCapacityPlanner` first fits the DENSE block inside the measured reliable recall span by re-projecting required items and, when necessary, narrowing the step so fewer mutation targets are active at once; only then, if the selected representation exceeds the provider's actual context capacity, it progressively transforms non-required items:
    ```text
    EXACT → STRUCTURAL → SEMANTIC → SUMMARY
    ```
@@ -3764,7 +3799,7 @@ The orchestrator executes the following deterministic sequence:
 10. **Payload Assembly & Ledger Emission**: `ContextAssembler` serializes the manifest defined in BS §53.3 and emits the cryptographically hashed package to the event ledger.
 
 Recovery behavior:
-When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly.
+When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly. When attendability fails (`RECALL_PROBE_FAILED`, `PREMISE_MISMATCH`), the orchestrator records the failure in the `AttentionReliabilityProfile` and applies the strategy-changing ladder re-project → narrow step → select provider model by reliability → re-ground or escalate; the ladder is never expressed as a pass count and never pauses valid work.
 
 ### 59.7 Hybrid Cognitive Context
 
@@ -3792,6 +3827,8 @@ SPARSE PATH:
 
 The dense path provides precision. The sparse path provides breadth. Neither path is authoritative independently; authoritative state remains in the durable project, execution, memory, and evidence stores.
 
+The two paths are also physical regions of the transmitted request (BS §53.11): the DENSE path occupies the block adjacent to the instruction and is bounded by the provider model's measured reliable literal-recall span, where full attention is most dependable; the SPARSE path occupies the breadth block, where gist recall from compressed attention state suffices. The boundary between them is measured per model by `AttentionProfiler`, not assumed.
+
 ### 59.8 Cache Architecture
 
 `CacheManager` optimizes prefix caching and structured KV reuse across provider requests. Cache is strictly an optimization, never memory authority:
@@ -3802,9 +3839,11 @@ The dense path provides precision. The sparse path provides breadth. Neither pat
 
 If a cache is invalid, cold, or unavailable, Nirman deterministically reconstructs the context from durable state and continues without degradation.
 
+The cache breakpoint always precedes the DENSE block. Cache hit-rate never justifies moving constraints, locked decisions, or `EXACT` targets into the cached prefix; the prefix may carry constraint identifiers, but the DENSE copy is authoritative for the request.
+
 ### 59.9 Re-grounding trigger conditions
 
-RegroundingService must run at checkpoint creation, before plan recompilation, after a runtime directive is accepted, after user-edit reconciliation, on resume from pause or restart, and after a candidate branch selection.
+RegroundingService must run at checkpoint creation, before plan recompilation, after a runtime directive is accepted, after user-edit reconciliation, on resume from pause or restart, after a candidate branch selection, after every compaction, and after a failed recall probe or a `PREMISE_MISMATCH` that the re-project and narrow steps did not resolve.
 
 ### 59.10 Persistence and isolation
 
@@ -3812,7 +3851,17 @@ Memory records are stored in the SQLite execution ledger keyed by project. Cross
 
 ### 59.11 Architecture tests
 
-Assembly is correct only when a locked decision remains present in every subsequent ContextPackage until superseded; when a memory write with no source event is rejected; when a project-scoped query cannot return another project's records; when an invalidated or stale ContextPackage is rejected before action authorization; and when a historical ContextPackage is reproducible from the ledger.
+Assembly is correct only when a locked decision remains present in every subsequent ContextPackage until superseded; when a memory write with no source event is rejected; when a project-scoped query cannot return another project's records; when an invalidated or stale ContextPackage is rejected before action authorization; when a historical ContextPackage is reproducible from the ledger; when a constraint placed at the head of a 90 percent-filled window on a provider model with a large declared capacity but a smaller measured reliable span is either recalled by probe or the package is re-projected before mutation; when a proposal whose anchor hashes or premises disagree with the originating package is rejected as `PREMISE_MISMATCH` before any transaction opens and the provider model's profile records the failure as `LEARNED`; when every compaction is followed by a passing re-projection probe; and when provider model selection under a lighter profile changes on measured reliability, not on declared capacity.
+
+### 59.12 Recall probes, placement bounds, and attention learning
+
+`RecallProbeService` implements the probe classes of BS §53.11: constraint restatement by identifier and wording, anchored-symbol and signature echo, anchor-hash and line-anchor echo, multi-needle recall, post-compaction re-projection of the constraint ledger, and tool-result recall. Expected answers are generated and held by the runtime and verified by exact match; a probe result is an evidence record and is never inferred from the model's own description of its memory.
+
+Probe cadence is bound to structural events only: provider profile save (the §24.3 connection test runs the §24.8 fixtures 13 and 14), checkpoint creation, phase boundaries, every compaction, and any `PREMISE_MISMATCH`. No component schedules a probe on a token, request, or pass count, and no probe result pauses, throttles, degrades, or fails valid work; probe results change placement, step size, and provider or model selection only.
+
+`AttentionProfiler` aggregates probe results into `positionalRecall` cells keyed by fill bucket and position bucket, derives `reliableLiteralSpanTokens` as the largest fill bucket whose literal pass rate meets the configured threshold (BS §80.3), and sets `confidence` from sample counts. Every `PREMISE_MISMATCH` returned by the mutation broker (BS §43.2) updates the cell corresponding to the mismatched item's recorded position with `source: LEARNED`, so the profile improves without additional model calls. An `UNPROFILED` model receives the unprofiled DENSE block bound of BS §80.3 and consequential steps against it carry an in-package probe that must pass.
+
+Each plan step carries `requiredReliability`, derived from the size of its DENSE block and whether it is consequential. `DeliberationModelRouter` (§72) and `ResourceGovernor` (§51.3) may select a lighter provider model only when its `AttentionReliabilityProfile` satisfies the step's `requiredReliability`; this is a capability match, like tool-calling or vision support, not a budget, and it operates inside the unchanged permission ceiling.
 
 ## 60. Peer Coordination and Semantic Reservations
 
@@ -4055,6 +4104,8 @@ Implements build spec §57. Extends §53 (Integrated Workflow and Quality Servic
 
 ```text
 structured mutation applied
+  -> premise check: StructuredPatch anchors and premises match the originating ContextPackage
+       PREMISE_MISMATCH -> reject before any transaction; profile learns; re-project or narrow
   -> DiagnosticRunner on affected surface
        new diagnostic -> repair or revert (mutation does not advance)
   -> IncrementalCompiler on affected module
@@ -4674,7 +4725,7 @@ Deliberation returns control to the reasoning engine. It never reaches the capab
 | SufficiencyEvaluator | Evaluates the §68.7 conjunction, not stated confidence |
 | HypothesisEvaluator | Runs competition, ranks by decisiveness, records refutation |
 | StrategyCritic | Adversarial critique and counterexample search; emits findings and evidence requests only |
-| DeliberationModelRouter | Escalates model within an unchanged permission ceiling |
+| DeliberationModelRouter | Escalates model within an unchanged permission ceiling; a selected model must satisfy the step's `requiredReliability` (§59.12) |
 | DeliberationContinuationManager | Persists session state across requests and compaction |
 | DeliberationRecordStore | Persists records; rejects inadmissible ones |
 
@@ -5784,15 +5835,15 @@ Hash drift, revoked content, scanner failure, malformed manifests, hidden instru
 
 ### 79.1 Canonical schema
 
-`ContextCachePolicy` is resolved for each provider request and context package. `ContextGovernance` records selected content, protected content, compaction trigger, cache key inputs, invalidation causes, redactions, telemetry disclosures, and resulting context lineage.
+`ContextCachePolicy` is resolved for each provider request and context package. `ContextGovernance` records selected content, protected content, compaction trigger, cache key inputs, invalidation causes, redactions, telemetry disclosures, resulting context lineage, the `placementPlan` of the transmitted package, and the post-compaction recall probe result.
 
 ### 79.2 Lifecycle and authority
 
-The lifecycle is `DECLARED → SELECTED → COMPACTED_OR_FULL → CACHED_OR_UNCACHED → TRANSMITTED → INVALIDATED`. Context governance cannot delete mandatory constraints, change user intent, or convert summarized content into a fresh observation.
+The lifecycle is `DECLARED → SELECTED → COMPACTED_OR_FULL → CACHED_OR_UNCACHED → TRANSMITTED → INVALIDATED`. Context governance cannot delete mandatory constraints, change user intent, or convert summarized content into a fresh observation. Compaction output never carries active constraints, locked decisions, acceptance criteria, or revision identity; `CompactionPlanner` re-projects them from `ConstraintRegistry` and the ledger into the DENSE block after every compaction, and `RecallProbeService` verifies the re-projection before the next consequential step.
 
 ### 79.3 Failure and recovery
 
-Context overflow, failed compaction, cache mismatch, cache corruption, privacy-policy change, or provider continuation loss causes context rebuild or safe reduction. The runtime must preserve required constraints and evidence references while recording what was excluded or summarized.
+Context overflow, failed compaction, cache mismatch, cache corruption, privacy-policy change, or provider continuation loss causes context rebuild or safe reduction. The runtime must preserve required constraints and evidence references while recording what was excluded or summarized. A failed post-compaction recall probe is a context-quality failure, not a task failure: the runtime re-projects, narrows, or selects a provider model by measured reliability and records the outcome in the `AttentionReliabilityProfile`.
 
 ## 80. Android Runtime Integrity Implementation Contract
 
