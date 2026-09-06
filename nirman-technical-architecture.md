@@ -2018,6 +2018,7 @@ ValidationEnvironment
 BuildGateRecord
 Content
 ContentRevision
+ContentRevisionDraft
 ContentMutation
 ContentValidationResult
 ContentPropagationPlan
@@ -2058,13 +2059,13 @@ ContractCompatibility
 
 A self-development candidate or contract migration cannot be promoted until its read/write compatibility, migration, restart, replay, and rollback behavior pass the declared fixtures. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion.
 
-Registry metadata for the content, conversation, and change-intelligence schemas is fixed as follows; the canonical field lists are the schema blocks cited in the `schemaId` column, and the fixture column names the acceptance fixture that proves them.
+Registry metadata for the content, conversation, and change-intelligence schemas is fixed as follows. The registry entry is the single canonical schema identity; the build spec section holds the normative contract shape and the architecture section holds the implementation schema, and the two must agree field for field. The fixture column names the acceptance fixture that proves them.
 
-| schemaId (canonical definition) | canonicalOwner | version | lifecycle | persistence | authority | acceptance fixture |
+| schemaId (normative contract; implementation schema) | canonicalOwner | version | lifecycle | persistence | authority | acceptance fixture |
 |---|---|---|---|---|---|---|
-| `Content`, `ContentRevision`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency` (BS §81.1, TA §85.1) | `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` | 1 | revision-bound to the parent `ConstructionTransaction`; invalidated through the `ImpactGraph` (§85.4) | `ContentStore` (SQLite; §85.3) | `ContentAuthority` admits and transitions; `EvidenceAuthority` owns `ContentEvidence` validity | `TEST-CONTENT-001` |
-| `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord` (BS §82, TA §86.1) | `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` | 1 | durable lineage; `conversationRevision` advances per Continue resolution; attachments `ACTIVE → DELETED` (§86.2) | `ConversationStore` (SQLite; §86.2) | `ConversationContinuationResolver` resolves; Memory, Context, and Task authorities remain canonical for what the indices reference (§86.4) | `TEST-CONV-001` |
-| `ChangeReportRecord`, `ChangeImpactReport` (BS §83.1, TA §87.1) | `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` | 1 | record `INCOMPLETE → COMPLETE` or `INCOMPLETE → UNRESOLVED`; a COMPLETE report is immutable (§87.1) | `ChangeIntelligenceStore` (SQLite; §87.5) | `ChangeIntelligenceProjector` is read-only; `RecoveryAuthority` owns reconstruction (§87.4, §87.6) | `TEST-CHANGE-001` |
+| `Content`, `ContentRevision`, `ContentRevisionDraft`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency` (normative contract: BS §81.1; implementation schema: TA §85.1) | `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` | 1 | revision-bound to the parent `ConstructionTransaction`; invalidated through the `ImpactGraph` (§85.4) | `ContentStore` (SQLite; §85.3) | `ContentAuthority` admits and transitions; `EvidenceAuthority` owns `ContentEvidence` validity | `TEST-CONTENT-001` |
+| `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord` (normative contract: BS §82; implementation schema: TA §86.1) | `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` | 1 | durable lineage; `conversationRevision` advances only when `ConversationContinuationResolver` commits new durable conversation state (BS §82.1); attachments `ACTIVE → DELETED` (§86.2) | `ConversationStore` (SQLite; §86.2) | `ConversationContinuationResolver` resolves; Memory, Context, and Task authorities remain canonical for what the indices reference (§86.4) | `TEST-CONV-001` |
+| `ChangeReportRecord`, `ChangeImpactReport` (normative contract: BS §83.1; implementation schema: TA §87.1) | `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` | 1 | record `INCOMPLETE → COMPLETE` or `INCOMPLETE → UNRESOLVED`; a COMPLETE report is immutable (§87.1) | `ChangeIntelligenceStore` (SQLite; §87.5) | `ChangeIntelligenceProjector` is read-only; `RecoveryAuthority` owns reconstruction (§87.4, §87.6) | `TEST-CHANGE-001` |
 
 ### 36.2 Lifecycle authority
 
@@ -6029,7 +6030,22 @@ Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation 
 
 ### 85.1 Schemas
 
-Canonical schemas: `ContentRevision`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency`.
+Canonical schemas: `Content`, `ContentRevision`, `ContentRevisionDraft`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency`.
+
+```text
+Content
+- contentId
+- projectId
+- canonicalKey
+- contentType
+- sourceLocale
+- supportedLocales
+- currentRevisionId
+- createdAt
+- updatedAt
+```
+
+`Content` is the persisted logical content resource; `currentRevisionId` names the admitted `ContentRevision` that is current for the project revision.
 
 ```text
 ContentRevision
@@ -6072,11 +6088,25 @@ ContentDependency
 `ContentMutation` is the proposal object a `ContentWorker` submits; it becomes a `ContentRevision` only when `ContentTransactionCoordinator` admits it through `ContentValidator` and `ContentAuthority` inside the parent `ConstructionTransaction`.
 
 ```text
+ContentRevisionDraft
+- contentType
+- locale
+- key
+- proposedValue
+- placeholderSchema
+- pluralizationModel
+- localeFallback
+- sourceLocale
+- terminologyReferences
+- toneProfile
+- brandVoiceProfile
+- accessibilityContext
+
 ContentMutation
 - mutationId
 - contentId
 - baseProjectRevision
-- contentRevision
+- proposedContentRevision: ContentRevisionDraft
 - requestedBy
 - requirementIds
 - transactionId
@@ -6119,7 +6149,7 @@ ContentEvidence
 - invalidationState
 ```
 
-`ContentMutation.baseProjectRevision` must equal the current project revision at admission or the mutation is rejected as stale (M120 fixture I). `ContentValidationResult.checks` covers the validation areas of BS §81.2. `ContentPropagationPlan` is the materialized result of the `ImpactGraph` traversal of §85.4 and BS §81.3. `ContentEvidence` is an evidence view owned by `EvidenceAuthority`: `freshness` and `invalidationState` are derived from the `ImpactGraph`, never asserted by a content worker.
+`ContentMutation.proposedContentRevision` is a `ContentRevisionDraft` — proposed values only, with no `contentRevisionId`, `transactionId`, `validationStatus`, `approvalState`, or `sourceEvidenceIds`; a mutation carrying an already-admitted `ContentRevision` or any of those authoritative fields is rejected, so a worker cannot smuggle authoritative state into a proposal. `ContentAuthority` mints the `ContentRevision` from the draft at admission. `ContentMutation.baseProjectRevision` must equal the current project revision at admission or the mutation is rejected as stale (M120 fixture I). `ContentValidationResult.checks` covers the validation areas of BS §81.2. `ContentPropagationPlan` is the materialized result of the `ImpactGraph` traversal of §85.4 and BS §81.3. `ContentEvidence` is an evidence view owned by `EvidenceAuthority`: `freshness` and `invalidationState` are derived from the `ImpactGraph`, never asserted by a content worker.
 
 ### 85.2 Runtime authorities and roles
 
@@ -6127,7 +6157,7 @@ The Content Intelligence runtime comprises deterministic authorities, coordinato
 - `ContentAuthority`: authoritative owner of content state, revision identity, content admission, and lifecycle transitions. ContentAuthority owns admission and lifecycle, not storage.
 - `ContentWorker`: proposal only; reads requirements and context, generates `ContentMutation` proposals, cannot directly write canonical state, and cannot mark content complete.
 - `ContentTransactionCoordinator`: coordinates content mutations and applies them through the existing `ConstructionTransaction` path.
-- `ContentStore`: authoritative persistence implementation of the BS content records; durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
+- `ContentStore`: canonical persistence implementation for Content records; `ContentAuthority` remains authoritative for state admission and lifecycle; durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
 - `ContentValidator`: validation only; verifies terminology consistency, locale completeness, accessibility suitability, placeholder preservation, and interpolation correctness.
 
 No content worker may directly mark content complete. `ContentWorker` proposes mutations; `ContentTransactionCoordinator` validates and admits the mutation through `ContentValidator` and `ContentAuthority`; the transaction commits; and `EvidenceAuthority` generates authoritative evidence.
@@ -6396,6 +6426,8 @@ ChangeImpactReport
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
+- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION
+- causeId
 - changed
 - why
 - files
@@ -6423,7 +6455,8 @@ Field provenance:
 - `projectRevisionBefore` / `projectRevisionAfter`: from ConstructionTransaction (authoritative)
 - `requirementIds`: from the requirement/goal/directive that caused the mutation (authoritative)
 - `changed`: from ConstructionTransaction mutation record (authoritative)
-- `why`: from the requirement/goal/directive/repair cause (authoritative)
+- `causeType` / `causeId`: the single authoritative causal source — requirement, goal, directive, repair cause, or approved action — from the ConstructionTransaction's recorded cause (authoritative)
+- `why`: projection rendered from `causeType`/`causeId`; carries no independent content
 - `files`: from ConstructionTransaction changed paths (authoritative)
 - `runtimeEffects`: from impact analysis against affected surface graph (authoritative)
 - `testsAffected` / `testsRun`: from ValidationResult (authoritative)
