@@ -6316,6 +6316,8 @@ The resolver MUST consume project revision, goal, requirements, decisions, sugge
 
 `ConversationStore` MUST participate in the existing checkpoint/recovery protocol. Conversation records survive UI restart, supervisor restart, and context compaction.
 
+A Continue resolution that changes `conversationRevision`, project binding (`expectedProjectRevision`, `projectRevisionId`), rebase state (`ConversationRebaseRecord`), or task lineage (`ConversationTaskLink`) MUST commit those related records atomically in one SQLite transaction. A partially committed Continue resolution is invalid and MUST be recovered or rolled back before execution resumes: on restart, `ConversationContinuationResolver` verifies that the latest `conversationRevision`, its rebase record, and its task links agree, and rolls back to the last coherent revision when they do not.
+
 Attachment lifecycle and security: `ConversationAttachment` lifecycle transitions from `ACTIVE` to `DELETED` (`ACTIVE → DELETED`). Attachments enforce `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. Provider transmission MUST delegate to existing `ContextGovernance` and `ProviderContextDecision` (TA §79, ADR-199); Conversation must not create a second policy authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
 ### 86.3 Failure and recovery
@@ -6498,6 +6500,8 @@ A `ChangeReportRecord` and its associated `ChangeImpactReport` (when `status == 
 
 `ChangeIntelligenceStore` persists report records in the durable SQLite task/project ledger, keyed by `recordId` and `transactionId`. Regeneration creates a new projection version linked to the same transaction and source revision. Reports survive UI and supervisor restart and remain addressable through the project revision history.
 
+The `ChangeReportRecord` obligation is coupled to the durable commit through the existing transaction/outbox mechanism: the `ConstructionTransactionManager` writes the initial `ChangeReportRecord` obligation (`status: INCOMPLETE`, `report: null`) in the same SQLite transaction that commits the parent `ConstructionTransaction`, so a committed transaction and its initial record obligation become durable atomically. `transactionId` is unique in `ChangeIntelligenceStore`; a second record for the same `transactionId` is rejected at write.
+
 ### 87.6 Failure and reconstruction semantics
 
 Projector failure MUST NOT fail or roll back the committed parent `ConstructionTransaction`.
@@ -6519,6 +6523,7 @@ ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
 2. A `ChangeReportRecord` is written to `ChangeIntelligenceStore` with `status: INCOMPLETE`, `report: null`, and failure diagnostics.
 3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
 4. The projector MUST NOT fabricate missing values. Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED` and cannot support completion.
+5. Crash between parent commit and projection: because the initial record obligation commits atomically with the parent (§87.5), a crash at any later point leaves an `INCOMPLETE` record, never a missing one. After restart, `RecoveryAuthority` MUST additionally scan for any committed `ConstructionTransaction` lacking a `ChangeReportRecord` and create exactly one `INCOMPLETE` record for it idempotently (keyed by `transactionId`), then schedule reconstruction as in step 3. Duplicate records for the same transaction are forbidden; the scan is safe to repeat.
 
 ### 87.7 Presentation contract
 
