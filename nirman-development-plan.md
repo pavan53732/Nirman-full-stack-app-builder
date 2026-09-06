@@ -1274,7 +1274,7 @@ A disabled webhook trigger opens no listening network surface. An over-scoped tr
 
 ### Speculation gate
 
-Parallel candidates leave the primary workspace untouched. The winning candidate is selected by identical validation evidence. A tie or universal failure escalates instead of arbitrary selection. Discarded candidate code never appears in the promoted artifact while its failure signature is retained. `TEST-SPEC-001` (technical architecture §88.6) proves these behaviors and a restart during speculation; it produces `EV-SPEC-001`, which is the M92 constituent of the capability-level `EV-VER-001` of `CAP.ANDROID.QUALITY_GATE`.
+Parallel candidates leave the primary workspace untouched. The winning candidate is selected by identical validation evidence. A tie or universal failure escalates instead of arbitrary selection. Discarded candidate code never appears in the promoted artifact while its failure signature is retained. `TEST-SPEC-001` (technical architecture §88.6) proves these behaviors and a restart during speculation; it produces `EV-SPEC-001`, which is the M92 constituent of the capability-level `EV-VER-001` of `CAP.ANDROID.QUALITY_GATE`; `EV-VER-001` is not complete for that capability while `EV-SPEC-001` is missing.
 
 ## Foundational milestone contract mapping
 
@@ -1310,7 +1310,9 @@ Refinement rule: when a coarse milestone and a refined milestone appear to overl
 
 ## M81–M122 contract mapping
 
-Each milestone may implement one or more registered contracts, but each contract must have one canonical owning milestone. This mapping is the addressing source for the reverse traversal required by §67.9; shared implementation milestones must list every contract they own and its acceptance evidence.
+Each milestone may implement one or more registered contracts, but each contract must have one canonical owning milestone: the milestone named in the contract's build spec §67.8 row. A later milestone that adds behavior to an already-owned contract lists it as `extends CONTRACT.…` in the table below; it is not a second owner, and the contract-graph verifier rejects a mapping table in which a contract has two owners or in which the §67.8 owner is missing. This mapping is the addressing source for the reverse traversal required by §67.9; shared implementation milestones must list every contract they own and its acceptance evidence.
+
+Test and evidence identity follows the same rule. A contract's capability-level identities are the ones in build spec §67.15 and §5.7; a milestone may declare a narrower milestone-level pair (for example `TEST-SPEC-001` / `EV-SPEC-001` for M92 and `TEST-IB-001` / `EV-IB-001` for M107) only when this document states, in the milestone's own text, that the pair is a constituent of the capability-level pair and that the capability-level evidence is incomplete while the constituent is missing. The verifier requires that constituent statement for every milestone whose ids are not themselves capability-level ids.
 
 | Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
 |---|---|---|---|---|---|
@@ -1329,7 +1331,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M93 | CONTRACT.RUNTIME.INVARIANTS | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
 | M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
 | M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
-| M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
+| M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, extends CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
 | M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
 | M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-PSYNC-001 | EV-PSYNC-001 | Preview synchronization protocol and first Android vertical slice |
 | M111 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | ADR-218 | TEST-RESOURCE-001 | EV-RESOURCE-001 | Runtime resource-integrity, adaptive scheduling, backpressure, physical resource protection, and liveness gate |
@@ -1340,7 +1342,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
 | M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
 | M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
-| M119 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
+| M119 | extends CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
 | M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
 | M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
 | M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
@@ -1552,6 +1554,8 @@ M107 implements build spec §70 and technical architecture §74. It follows the 
 Implement the versioned `IntegrationBoundaryContract` reference envelope and `BoundaryOperationProjection`. Add schema parity and compatibility records for payloads, responses, protocols, adapters/bridges, authorities, specialized state references, transaction domains, permissions, credentials, timeouts, cancellation, retries, observations, evidence, validation, downstream effects, and invalidation. Complete UI command/projection correlation, Android service-integration records, provider/context binding, UI-hierarchy observations, skill/external-tool lifecycle vocabulary, signing and certificate inspection, post-copy artifact export verification, and documentation certification reporting.
 
 The fixture matrix must cover UI reconnect and stale-command rejection; provider and context correlation; skill-to-capability-to-tool mediation; worker lease-loss fencing; patch/revision freshness; Android service functional evidence and independent operationality dimensions; Nirman-managed local Android emulator installation and UI-hierarchy evidence; signing certificate inspection; source/destination export hash equality; unknown external-effect reconciliation; timeout and cancellation propagation; adapter/protocol incompatibility; invalidation of downstream evidence; and separation of documentation certification from runtime certification.
+
+`TEST-IB-001` is the milestone-level fixture matrix above and produces `EV-IB-001`; both are constituents of the capability-level `TEST-GEN-001` / `EV-GEN-001` that `CAP.ANDROID.GENERATE` resolves through build spec §67.15 for `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, and `EV-GEN-001` is not complete for that capability while `EV-IB-001` is missing.
 
 **Exit gate:** every applicable boundary-crossing operation resolves one registered `IntegrationBoundaryContract`, all universal-chain references are resolvable, specialized authorities remain singular, unknown outcomes cannot be retried unsafely, stale identities cannot produce current effects, and all M107 fixtures produce durable evidence. A documentation verifier pass alone cannot promote runtime capability or artifact status.
 

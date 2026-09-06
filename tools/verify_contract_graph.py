@@ -296,8 +296,16 @@ def parse_registries(docs, D):
             if m_num in miles:
                 D.add("structure", f"M{m_num}", f"duplicate milestone registry identity: M{m_num}")
                 continue
+            owned, extended = [], []
+            for part in cells[1].split(","):
+                ids = re.findall(CIDRE, part)
+                if not ids:
+                    continue
+                (extended if re.match(r"\s*extends\b", part) else owned).extend(ids)
             miles[m_num] = dict(
-                contracts=re.findall(CIDRE, cells[1]),
+                contracts=owned + extended,
+                owns=owned,
+                extends=extended,
                 adrs=[int(x) for x in re.findall(r"ADR-(\d+)", cells[2])] if len(cells) > 2 else [],
                 test=cells[3] if len(cells) > 3 else "",
                 evidence=cells[4] if len(cells) > 4 else "")
@@ -802,6 +810,58 @@ def check_reverse(R, docs, D):
             if m and cid not in m["contracts"]:
                 D.add("reverse break", f"M{n}",
                       f"{cid} names M{n} but M{n}'s mapping does not list {cid}")
+
+    # 9e. single canonical owner (DP ownership rule): the §67.8 milestone owns
+    #     the contract; every other mapping row that lists it must say
+    #     `extends`. Two owners, or an owner that is not the §67.8 milestone,
+    #     is a reverse break.
+    owners = {}
+    for num, m in sorted(miles.items()):
+        for cid in m.get("owns", m["contracts"]):
+            owners.setdefault(cid, []).append(num)
+    for cid, r in sorted(contracts.items()):
+        registry_owner = [int(n) for n in re.findall(r"M(\d+)", r["mile"])]
+        listed = owners.get(cid, [])
+        if not registry_owner:
+            continue
+        if len(listed) > 1:
+            D.add("reverse break", cid,
+                  f"two owning milestones in the contract mapping ({', '.join('M%d' % n for n in listed)}); "
+                  f"only M{registry_owner[0]} (§67.8) owns it, the others must say 'extends'")
+        elif listed and listed[0] not in registry_owner:
+            D.add("reverse break", cid,
+                  f"mapping owner M{listed[0]} differs from the §67.8 milestone M{registry_owner[0]}")
+    for num, m in sorted(miles.items()):
+        for cid in m.get("extends", []):
+            if cid in contracts and num in [int(n) for n in re.findall(r"M(\d+)", contracts[cid]["mile"])]:
+                D.add("reverse break", f"M{num}",
+                      f"declares 'extends {cid}' but is that contract's §67.8 owner")
+
+    # 9f. milestone-level test/evidence ids must be declared constituents of the
+    #     owning contract's capability-level ids in the milestone's own text.
+    cap_tests = {c["test"] for c in caps.values()}
+    cap_evidence = {c["evidence"] for c in caps.values()}
+    dev = docs["dev"]
+    for num, m in sorted(miles.items()):
+        if m["test"] in cap_tests and m["evidence"] in cap_evidence:
+            continue
+        cap_ids = set()
+        for cid in m["contracts"]:
+            row = chain.get(cid)
+            if row:
+                cap_ids.update((row["test"], row["evidence"]))
+        if not m["test"] or not m["evidence"]:
+            continue
+        alts = "|".join(re.escape(x) for x in cap_ids) or "NONE"
+        ev = re.escape(m["evidence"])
+        constituent = rf"`{ev}`[^\n]*constituent[^\n]*`(?:{alts})`"
+        incomplete = rf"`(?:{alts})`[^\n]*not complete[^\n]*`{ev}`[^\n]*missing"
+        if not cap_ids or not re.search(constituent, dev) or not re.search(incomplete, dev):
+            D.add("reverse break", f"M{num}",
+                  f"milestone-level ids {m['test']}/{m['evidence']} are not capability-level ids; the plan "
+                  f"must state that {m['evidence']} is a constituent of the capability-level evidence "
+                  f"({', '.join(sorted(cap_ids)) or 'no §67.15 row for its contracts'}) and that the latter "
+                  f"is not complete while {m['evidence']} is missing")
 
 
 def check_orphan(R, adj, D):

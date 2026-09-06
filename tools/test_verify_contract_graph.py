@@ -580,6 +580,12 @@ CASES = {
     "CHANGE_INTELLIGENCE authority heading drifts": (
         BS, "## 83. Change Intelligence Contract", "## 83. Diff Viewer Notes",
         "canonical identity"),
+    "contract given a second owning milestone": (
+        DEV, "| M119 | extends CONTRACT.RUNTIME.SKILL |", "| M119 | CONTRACT.RUNTIME.SKILL |",
+        "reverse break"),
+    "milestone-level evidence id loses its constituent statement": (
+        DEV, "and `EV-GEN-001` is not complete for that capability while `EV-IB-001` is missing.", "",
+        "reverse break"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
