@@ -3363,7 +3363,7 @@ ProviderAdapter
 - supportedInputModalities: text | image | audio | tool_call | structured_output
 - supportedOutputModalities: text | tool_call | structured_output | reasoning
 - streamingSupported: bool
-- capabilityProfile: ProviderCapabilityProfile
+- capabilityProfile: the `capabilities`, `capabilityOverrides`, `attentionCapabilities`, and `reasoningCapabilityProfile` fields of the bound `ProviderProfile` (build spec §80.5.5), refreshed by `detectCapability` (no separate `ProviderCapabilityProfile` record)
 
 ProviderAdapter operations
 - initialize(profile: ProviderProfile) -> AdapterInitializationResult
@@ -3787,6 +3787,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, capacity planning against provider context capacity, and integrity verification |
 | WorkingSetPlanner | Partitions context into required, active, supporting, historical, and excluded sets |
 | ContextFidelityManager | Enforces context fidelity levels across exact, structural, semantic, summary, and historical tiers |
+| ExactRetriever | Resolves pinned symbols, target files, and explicitly referenced paths at EXACT fidelity; the first retriever of the §59.6 sequence |
 | SemanticRetriever | Traverses the hierarchical Repository Semantic Graph over bidirectional dependency edges |
 | TemporalRetriever | Retrieves recent causal action sequences and events from the Warm history tier |
 | MemoryRetriever | Queries structured memory records, locked decisions, and failure fingerprints |
@@ -6395,8 +6396,8 @@ Conversation
 - projectId
 - messages
 - attachments
-- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/RequirementStore
-- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical DecisionStore/MemoryStore
+- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/ConstraintRegistry records
+- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry/MemoryStore records
 - acceptedSuggestions
 - rejectedSuggestions
 - activeGoal
@@ -6488,7 +6489,7 @@ ConversationRebaseRecord
 - createdAt
 ```
 
-`ConversationMessage.contentReference` points at the durable message body; `sourceEventId` binds the message to the control-plane event that produced it. `ConversationTaskLink` is the durable form of `taskLineage`. `ConversationRequirementIndex` and `ConversationDecisionIndex` reference canonical `RequirementStore`/`MemoryStore` records by `canonicalRequirementId`/`canonicalDecisionId` and carry no second copy of their content. `sourceEvidenceIds` reference `EvidenceRecord` identifiers owned by `EvidenceAuthority`. A `ConversationRebaseRecord` is written for every `RECONCILE/REBASE` and every `USER_REQUIRED` outcome of §86.5, so a rebase is auditable rather than silent.
+`ConversationMessage.contentReference` points at the durable message body; `sourceEventId` binds the message to the control-plane event that produced it. `ConversationTaskLink` is the durable form of `taskLineage`. `ConversationRequirementIndex` and `ConversationDecisionIndex` reference canonical `ConstraintRegistry`/`MemoryStore` records by `canonicalRequirementId`/`canonicalDecisionId` and carry no second copy of their content. `sourceEvidenceIds` reference `EvidenceRecord` identifiers owned by `EvidenceAuthority`. A `ConversationRebaseRecord` is written for every `RECONCILE/REBASE` and every `USER_REQUIRED` outcome of §86.5, so a rebase is auditable rather than silent.
 
 ### 86.2 Persistence and resolver
 
@@ -6500,7 +6501,7 @@ The resolver MUST consume project revision, goal, requirements, decisions, sugge
 
 A Continue resolution that changes `conversationRevision`, project binding (`expectedProjectRevision`, `projectRevisionId`), rebase state (`ConversationRebaseRecord`), or task lineage (`ConversationTaskLink`) MUST commit those related records atomically in one SQLite transaction. A partially committed Continue resolution is invalid and MUST be recovered or rolled back before execution resumes: on restart, `ConversationContinuationResolver` verifies that the latest `conversationRevision`, its rebase record, and its task links agree, and rolls back to the last coherent revision when they do not.
 
-Attachment lifecycle and security: `ConversationAttachment` lifecycle transitions from `ACTIVE` to `DELETED` (`ACTIVE → DELETED`). Attachments enforce `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. Provider transmission MUST delegate to existing `ContextGovernance` and `ProviderContextDecision` (TA §79, ADR-199); Conversation must not create a second policy authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
+Attachment lifecycle and security: `ConversationAttachment` lifecycle transitions from `ACTIVE` to `DELETED` (`ACTIVE → DELETED`). Attachments enforce `contentHash`, `mimeType`, `sizeBytes`, `storageOwner`, `privacyClassification`, `deletionStatus`, `projectIsolation`, `providerTransmissionPolicy`, and `revisionBinding`. Attachments are strictly isolated per project. Provider transmission MUST delegate to existing `ContextGovernance` (§79.1) and `ProviderContextEnvelope.transmissionDecision` (§38; build spec §5.7.8), ADR-199; Conversation must not create a second policy authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
 ### 86.3 Failure and recovery
 
@@ -6514,8 +6515,8 @@ Conversation does NOT create a second memory, task, or project authority. Conver
 
 Storage authority separation:
 - `Conversation`: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
-- `MemoryStore` / `ContextStore` / `RequirementStore`: canonical semantic, context, and requirement authorities.
-Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); `ConversationStore` reads from `MemoryStore` and `ContextStore` and does not duplicate their canonical data or override their decisions.
+- `MemoryStore` (§59.1) for semantic memory, `ContextOrchestrator` (§59.1) for assembled context, and `ConstraintRegistry` (§59.1) for settled requirements and locked decisions: the canonical semantic, context, and requirement/decision authorities. No `ContextStore`, `RequirementStore`, or `DecisionStore` component exists.
+Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); `ConversationStore` reads from `MemoryStore`, `ConstraintRegistry`, and the `ContextOrchestrator` output and does not duplicate their canonical data or override their decisions.
 
 ### 86.5 Concurrency and revision consistency state machine
 

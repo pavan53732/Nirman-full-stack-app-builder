@@ -7625,8 +7625,8 @@ Conversation
 - projectId
 - messages
 - attachments
-- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/RequirementStore
-- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical DecisionStore/MemoryStore
+- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/ConstraintRegistry records
+- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry/MemoryStore records
 - acceptedSuggestions
 - rejectedSuggestions
 - activeGoal
@@ -7677,7 +7677,7 @@ ConversationAttachment
 
 Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages (`sourceMessageId`) and evidence (`sourceEvidenceIds`, referencing `EvidenceRecord` identifiers owned by `EvidenceAuthority`). Accepted and rejected suggestions MUST remain distinguishable.
 
-Attachment `providerTransmissionPolicy` MUST delegate to the existing `ContextGovernance` and `ProviderContextDecision` machinery (see §74) and minimum-context transmission rules rather than creating an independent transmission authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
+Attachment `providerTransmissionPolicy` MUST delegate to the existing `ContextGovernance` record (TA §79.1) and the `ProviderContextEnvelope.transmissionDecision` of §5.7.8 (there is no separate `ProviderContextDecision` record; the decision is the envelope field) and minimum-context transmission rules rather than creating an independent transmission authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
 Conversation owns conversational lineage only. MEMORY owns semantic memory; CONTEXT owns reconstruction policy; BACKGROUND_CONTINUITY owns interruption/resume state; Task/Project state owns execution state.
 
@@ -7692,7 +7692,7 @@ Task/Project = execution authority
 
 Storage authority separation:
 - Conversation: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
-- MemoryStore / ContextStore / RequirementStore: canonical semantic, context, and requirement authorities.
+- MemoryStore (TA §59.1) for semantic memory, ContextOrchestrator (TA §59.1) for assembled context, and ConstraintRegistry (TA §59.1) for settled requirements and locked decisions: the canonical semantic, context, and requirement/decision authorities. No `ContextStore`, `RequirementStore`, or `DecisionStore` component exists; those words in earlier drafts named these three.
 Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); it does NOT duplicate or maintain competing copies of their canonical storage.
 
 ### 82.1 Revision consistency and Continue state machine

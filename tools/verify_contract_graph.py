@@ -1399,6 +1399,24 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
         D.add("semantic documentation", "update controller placement",
               "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
+    # Orphan component names (audit M20): every named component must exist
+    # somewhere as a defined record, table row, or field.
+    tolerated = (
+        "(there is no separate `ProviderContextDecision` record; the decision is the envelope field)",
+        "No `ContextStore`, `RequirementStore`, or `DecisionStore` component exists; those words in earlier drafts named these three.",
+        "No `ContextStore`, `RequirementStore`, or `DecisionStore` component exists.",
+        "(no separate `ProviderCapabilityProfile` record)",
+    )
+    for name in ("ProviderContextDecision", "ContextStore", "RequirementStore", "DecisionStore", "ProviderCapabilityProfile"):
+        for text, label in ((bs, "BS"), (ta, "TA"), (docs["dev"], "DP")):
+            stripped = text
+            for t in tolerated:
+                stripped = stripped.replace(t, "")
+            if name in stripped:
+                D.add("semantic documentation", "orphan component",
+                      f"{label} names {name}, which is defined nowhere; use the owning record (ProviderContextEnvelope.transmissionDecision, MemoryStore/ContextOrchestrator/ConstraintRegistry, ProviderProfile capabilities)")
+    if "| ExactRetriever |" not in ta:
+        D.add("semantic documentation", "orphan component", "TA §59.6 uses ExactRetriever but the §59.1 component table does not define it")
     # Component naming identities (audit M19): aliases are allowed only
     # where the identity is stated at the definition site.
     for text, label, needle, why in (

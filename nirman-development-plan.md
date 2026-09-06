@@ -1798,7 +1798,7 @@ Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
 Deliver:
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
-- providerTransmissionPolicy delegation to ContextGovernance / ProviderContextDecision
+- providerTransmissionPolicy delegation to ContextGovernance / ProviderContextEnvelope.transmissionDecision
 - requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, sourceEvidenceIds, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
 - ConversationMessage, ConversationTaskLink, ConversationRequirementIndex, ConversationDecisionIndex, and ConversationRebaseRecord schemas (TA §86.1), registered in the CanonicalSchemaRegistry (TA §36.1); a ConversationRebaseRecord is written for every RECONCILE/REBASE and USER_REQUIRED outcome
 - active-goal binding

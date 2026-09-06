@@ -323,6 +323,12 @@ CASES = {
     "command registry count overstated again": (
         BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
         "semantic documentation"),
+    "orphan ProviderContextDecision reintroduced": (
+        DEV, "delegation to ContextGovernance / ProviderContextEnvelope.transmissionDecision", "delegation to ContextGovernance / ProviderContextDecision",
+        "semantic documentation"),
+    "ExactRetriever dropped from the context component table": (
+        TA, "| ExactRetriever | Resolves pinned symbols,", "| Exact retriever | Resolves pinned symbols,",
+        "semantic documentation"),
     "retired AndroidApplicationContract name reintroduced": (
         BS, "| `AndroidConstructionContract` | Captures features, screens, behavior,", "| `AndroidApplicationContract` | Captures features, screens, behavior,",
         "semantic documentation"),
