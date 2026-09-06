@@ -7348,7 +7348,9 @@ The agent-buildability contract is satisfied only when:
 
 1. Every "should" in the specification has explicit criteria in the §80.2
    resolution table. Current coverage is recorded in §80.10; this criterion
-   is NOT yet satisfied.
+   is satisfied for the statements currently enumerated in §80.2. Any
+   "should" subsequently added to a canonical document is an immediate
+   shortfall against this criterion until it appears in §80.2 (§80.10).
 2. Every "configurable" parameter has a default value
 3. Every vague procedure has a concrete step-by-step replacement
 4. Every referenced schema has a complete field definition
@@ -7726,6 +7728,8 @@ ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
 3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
 4. The projector MUST NOT fabricate missing values. Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED`.
 5. A report cannot claim completion or support goal completion while its `ChangeReportRecord` is in `INCOMPLETE` or `UNRESOLVED` state.
+
+The exactly-one invariant holds across crashes. The `ChangeReportRecord` obligation is coupled to the durable commit: a committed `ConstructionTransaction` and its initial `ChangeReportRecord` obligation MUST become durable atomically, so no committed transaction can exist without its record obligation. After restart, recovery MUST discover any committed transaction lacking its `ChangeReportRecord` and create exactly one `INCOMPLETE` record idempotently; duplicate records for the same `transactionId` are forbidden.
 
 ### 83.3 Presentation contract
 
