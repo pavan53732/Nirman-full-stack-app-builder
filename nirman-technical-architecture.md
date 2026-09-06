@@ -3183,6 +3183,23 @@ The Windows runtime uses native APIs including ConPTY, restricted process tokens
 
 The Android toolchain remains externally installed or managed by Nirman's toolchain authority.
 
+The Rust side is one Cargo workspace under `crates/`. The crate boundaries follow the authority boundaries of this architecture, and `nirman-ipc` — the crate that build spec §76.1 names as the mirror of the `UICommandRegistry` — is the only crate the C#/.NET host binds to:
+
+| Crate | Owns | May depend on |
+|---|---|---|
+| `nirman-domain` | Canonical schemas of §36.1 as Rust types, enumerations of build spec §5.7.2, `CanonicalSchemaRegistry` metadata | nothing internal |
+| `nirman-ipc` | `UICommandEnvelope`, `UIResponseEnvelope`, `UIErrorEnvelope`, `EventSubscription`, `command_registry()` mirroring build spec §76.1, the named-pipe `SupervisorConnection` protocol (§57.3) | `nirman-domain` |
+| `nirman-policy` | `PolicyAuthority`, permission profiles (build spec §26.5), operation capabilities | `nirman-domain` |
+| `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc` | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
+| `nirman-evidence` | `EvidenceAuthority`, evidence dependency graph, `ExportVerificationRecord` verification | `nirman-domain` |
+| `nirman-agents` | Agent loop kernel, deliberation runtime (§72), worker roles | `nirman-domain`, `nirman-policy`, `nirman-control-plane` |
+| `nirman-android` | `AndroidWorkflowCoordinator`, technology adapters (§73.10), build and device adapters, toolchain authority | `nirman-domain`, `nirman-policy`, `nirman-evidence` |
+| `nirman-preview` | `PreviewCoordinator`, `PreviewProjectionReducer`, `PreviewRequest` | `nirman-domain`, `nirman-android`, `nirman-evidence` |
+| `nirman-artifacts` | `ArtifactAuthority`, `PackagingProfile` admission, local export handler (§83) | `nirman-domain`, `nirman-evidence`, `nirman-policy` |
+| `nirman-skills` | Skill registry, `SkillAdmission`/`SkillInvocationRecord` persistence (§19.1), built-in bodies and manifests under `skills/` | `nirman-domain`, `nirman-policy` |
+
+`NirmanSupervisor.exe` is the binary that links these crates; `Nirman.exe` links only the generated `nirman-ipc` client bindings. A crate that reaches across this table (for example `nirman-preview` writing the ledger directly, or `nirman-ipc` containing domain logic) violates §57.2 and is rejected at code review by the M0 module-boundary check (development plan M0, "Repository layout").
+
 ### 57.2 Process topology
 
 ```text
@@ -6522,7 +6539,7 @@ resume semantics
 
 When the WinUI presentation client reconnects or the host wakes from suspension, `BackgroundContinuity` restores process supervision and watchdog health, while `ConversationContinuationResolver` resolves conversational intent against the current project revision. The two combine to determine whether background work continues seamlessly (`MATCH` or non-conflicting `MISMATCH`) or halts safely for user guidance (`UNRESOLVABLE`).
 
-`Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required.
+`Continue` MUST resolve a durable conversation before task creation. It MUST reject stale or contradictory state and trigger reconciliation when required. The user-facing entry is the registered `conversation.continue` command kind (build spec §76.1) dispatched through the §81.2 command-to-domain wiring; background resumption reaches the same `ConversationContinuationResolver` use case without a UI command, and both write the same `ConversationRebaseRecord` and projection.
 
 ### 86.7 Acceptance
 

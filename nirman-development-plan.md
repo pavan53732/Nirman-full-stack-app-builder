@@ -76,7 +76,7 @@ Create the source repository and define the code-quality baseline before impleme
 
 | Work item | Acceptance condition |
 |---|---|
-| Repository layout | Modules follow the architecture boundaries |
+| Repository layout | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits; the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge |
 | C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command |
 | Configuration model | Development, test, and production settings are separate |
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |

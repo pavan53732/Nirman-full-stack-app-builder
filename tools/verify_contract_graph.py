@@ -1414,6 +1414,9 @@ def check_semantic_documentation(docs, R, D, root="."):
             if token in readme:
                 D.add("semantic documentation", "README stop wording",
                       f"README says {token!r}: Nirman stops on recurring failure after materially different repairs, not on a count (ADR-218)")
+        if "28 canonical command kinds" in readme:
+            D.add("semantic documentation", "command registry cardinality",
+                  "README states 28 canonical command kinds; §76.1 registers twenty-nine including conversation.continue")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:
@@ -2242,15 +2245,21 @@ def check_semantic_documentation(docs, R, D, root="."):
     # the number of canonical rows; aliases are not registry entries.
     reg = bs.split("### 76.1 UICommandRegistry", 1)[-1].split("### 76.2", 1)[0]
     rows = re.findall(r"^\| `([a-z_.]+)` \|", reg, re.M)
-    if rows and len(rows) != 28:
+    if rows and len(rows) != 29:
         D.add("semantic documentation", "command registry cardinality",
-              f"§76.1 lists {len(rows)} canonical command kinds; the documented count is twenty-eight")
-    if "complete set of twenty-eight canonical command kinds" not in reg:
+              f"§76.1 lists {len(rows)} canonical command kinds; the documented count is twenty-nine")
+    if "complete set of twenty-nine canonical command kinds" not in reg:
         D.add("semantic documentation", "command registry cardinality",
-              "§76.1 must state the complete set of twenty-eight canonical command kinds and that UI aliases add no registry entries")
-    for token, label in (("thirty command kinds", "build spec"),):
+              "§76.1 must state the complete set of twenty-nine canonical command kinds and that UI aliases add no registry entries")
+    if "conversation.continue" not in rows:
+        D.add("semantic documentation", "command registry cardinality",
+              "§76.1 must register `conversation.continue`: the §82.1 Continue operation has no other UI entry")
+    if "| `nirman-ipc` |" not in ta or "| `nirman-domain` |" not in ta:
+        D.add("semantic documentation", "crate layout",
+              "TA §57.1 must define the Cargo workspace crate table naming nirman-domain and nirman-ipc (BS §76.1 cites nirman-ipc)")
+    for token in ("thirty command kinds", "twenty-eight canonical command kinds"):
         if token in bs:
-            D.add("semantic documentation", "command registry cardinality", f"stale count '{token}' in {label}")
+            D.add("semantic documentation", "command registry cardinality", f"stale count '{token}' in build spec")
     # Migration residue and scope wording (ADR-108 stack, ADR-207 cloud-only, ADR-210 emulator).
     for token, text, why in (
         ("TypeScript and Rust conventions", dev, "the host is C#/.NET WinUI 3 (ADR-108); TypeScript is not a Nirman stack convention"),

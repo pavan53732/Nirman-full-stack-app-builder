@@ -196,7 +196,7 @@ SQLite ledger
 → presentation-only task, continuity, preview, and evidence labels
 ```
 
-The host uses C#/.NET + WinUI 3 with the Windows App SDK. The host event is `nirman://control-event`. The design specifies authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 28 canonical command kinds plus four UI aliases (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected.
+The host uses C#/.NET + WinUI 3 with the Windows App SDK. The host event is `nirman://control-event`. The design specifies authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 29 canonical command kinds plus four UI aliases (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected.
 
 ## Autonomous runtime principles
 

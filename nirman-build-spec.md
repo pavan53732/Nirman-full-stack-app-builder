@@ -5643,6 +5643,7 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `task.start` | Start an approved Android goal | Lifecycle, policy, and capability authority | Local | Task and worker projection |
 | `task.cancel` | Request cancellation | Lifecycle authority | Local | Cancellation and recovery projection |
 | `task.resume` | Resume an eligible task | Lifecycle and recovery authority | Local | Task and continuation projection |
+| `conversation.continue` | Resolve the durable conversation against the current project revision (`Continue`, §82.1) before any task is created; outcomes `CONTINUE`, `RECONCILE/REBASE`, or `USER_REQUIRED` | Conversation resolver and lifecycle authority | Local | Conversation, rebase, and continuation projection |
 | `task.submit_instruction` | Submit a natural-language build instruction that opens the task's background run | Lifecycle authority | Local | Task and instruction projection |
 | `task.pause` | Pause an active task while preserving the background run | Lifecycle authority | Local | Task projection |
 | `connection.reconnect` | Rebind a UI session to the running host after a disconnect | Recovery authority | Local | Continuity projection |
@@ -5660,7 +5661,7 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `android.toolchain.preflight` | Preflight and lock the Android toolchain environment (M43) | Toolchain authority | Local | Android toolchain and environment projection |
 | `android.requirements.evaluate` | Evaluate Android requirements and select repairs (M47) | Android requirement authority | Local | Android requirement manifest and repair-selection projection |
 | `android.synthesis.build` | Record the Android synthesis plan and build provenance (M4) | Android synthesis authority | Local | Android synthesis and build provenance projection |
-| `android.project.scaffold` | Scaffold the real Android Gradle project workspace (M4b) | Android synthesis authority | Local | Android project workspace and revision projection |
+| `android.project.scaffold` | Scaffold the real Android Gradle project workspace (M4 work item 5) | Android synthesis authority | Local | Android project workspace and revision projection |
 | `agent.loop.run` | Drive the agent loop from synthesis through validated APK (M58) | Lifecycle authority | Local | Agent loop record and build projection |
 | `worker.task.claim` | Claim a coordination task under an expiring lease (M8) | Worker coordination authority | Local | Worker lease and coordination projection |
 | `worker.handoff.submit` | Submit a worker handoff for integration (M8) | Worker coordination authority | Local | Worker handoff projection |
@@ -5668,7 +5669,7 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `worker.reconcile` | Reconcile a worker integration transactionally (M8) | Worker coordination authority | Local | Transactional integration checkpoint projection |
 | `worker.step` | Execute one worker stage with declared capability and evidence (M5) | Worker execution authority | Local | Single-worker stage and evidence projection |
 
-The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of twenty-eight canonical command kinds admitted by the authenticated boundary; the four lifecycle UI aliases are alternate external spellings and do not create additional `commandKind` registry entries. Commands not listed are rejected before a domain transaction begins.
+The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of twenty-nine canonical command kinds admitted by the authenticated boundary; the four lifecycle UI aliases are alternate external spellings and do not create additional `commandKind` registry entries. Commands not listed are rejected before a domain transaction begins.
 
 For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins. No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace: the `preview.*` command kinds dispatch only to `PreviewCoordinator`, and the UI reaches ADB, Gradle, Metro or Expo, and the emulator solely through the technical architecture §73.14 pipeline; a registry row in one of those namespaces is a contract-graph verifier defect (§67.11).
 
@@ -7720,7 +7721,7 @@ The three revision fields have distinct change rules:
 - A `RECONCILE/REBASE` changes `expectedProjectRevision` only after the rebase decision, recorded as a `ConversationRebaseRecord`, is durably committed; until that commit the previous value remains in force.
 - A `USER_REQUIRED` outcome does not advance `expectedProjectRevision`; its `ConversationRebaseRecord` records the conflict with `resolution` pending, and no Continue path proceeds until the user resolves it.
 
-When a continuation operation (`Continue`) is invoked (via user request, supervisor restart, or background resumption):
+`Continue` is the `conversation.continue` command kind of the §76.1 `UICommandRegistry` when a user invokes it; supervisor restart and background resumption (§77) invoke the same use case internally with the same authority and projection effect, and no other path may create tasks from a conversation. When it is invoked:
 1. `ConversationResolver` reads `Conversation.expectedProjectRevision` and queries current `Project.currentRevision` from storage authority.
 2. State transitions follow:
    - `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):

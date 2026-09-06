@@ -321,7 +321,13 @@ CASES = {
 
     # ---- residue audit: command count, stack residue, emulator wording, ADR-037 scope, heading uniqueness
     "command registry count overstated again": (
-        BS, "complete set of twenty-eight canonical command kinds", "complete set of thirty command kinds",
+        BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
+        "semantic documentation"),
+    "Continue loses its registered command kind": (
+        BS, "| `conversation.continue` | Resolve the durable conversation", "| `conversation.resume` | Resolve the durable conversation",
+        "semantic documentation"),
+    "crate layout table dropped from the architecture": (
+        TA, "| `nirman-ipc` | `UICommandEnvelope`", "| nirman-ipc | `UICommandEnvelope`",
         "semantic documentation"),
     "canonical command row removed without updating the count": (
         BS, "| `worker.step` | Execute one worker stage", "| worker.step | Execute one worker stage",
