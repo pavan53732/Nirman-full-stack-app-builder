@@ -597,6 +597,10 @@ CASES = {
         TA, "- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED\n",
         "- result: PASSED | FAILED\n",
         "semantic documentation"),
+    "in-process hosting allowance loses its M7 bound": (
+        BS, "and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes.",
+        "and the two executables are separated when convenient.",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

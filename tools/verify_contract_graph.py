@@ -1373,6 +1373,22 @@ def check_semantic_documentation(docs, R, D):
             if f"- {fld}" not in body:
                 D.add("semantic documentation", "certification report schema",
                       f"TA §74.5 report lacks `{fld}`; the with-skips status is unverifiable without it")
+    # In-process hosting of the control plane is a bounded pre-M7 allowance,
+    # never an alternative to the two-process architecture (ADR-111, ADR-117).
+    for text, label in ((bs, "BS §51.2"), (ta, "TA §57.2")):
+        if "in-process inside `Nirman.exe`" in text or "in-process with the WinUI 3 application" in text:
+            if "from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes" not in text:
+                D.add("semantic documentation", "in-process hosting bound",
+                      f"{label} permits in-process control-plane hosting without bounding it to the pre-M7 vertical slice")
+            if "An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`" not in text:
+                D.add("semantic documentation", "in-process hosting bound",
+                      f"{label} must forbid an in-process build from claiming the M7 exit gate or background continuity")
+    if "| MUST separate from M7 onward |" not in bs:
+        D.add("semantic documentation", "in-process hosting bound",
+              "§80.2 row for BS §26.1 must resolve to 'MUST separate from M7 onward' so it agrees with §51.2")
+    if "The in-process allowance ends at M7" not in adr_blocks(dec).get(111, ""):
+        D.add("semantic documentation", "in-process hosting bound",
+              "ADR-111 must state that the in-process allowance ends at M7")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

@@ -1371,7 +1371,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** The first vertical slice may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. The production durable-autonomy architecture separates the reconnectable `Nirman.exe` UI from `NirmanSupervisor.exe`, which owns long-running execution and recovery.
+**Decision:** The first vertical slice may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. The production durable-autonomy architecture separates the reconnectable `Nirman.exe` UI from `NirmanSupervisor.exe`, which owns long-running execution and recovery. The in-process allowance ends at M7: from M7 onward the two executables are distinct processes, and an in-process build cannot claim background continuity (build spec §51.2).
 
 **Rationale:** Autonomous work must continue when the UI closes, crashes, or reconnects after Windows restart or sleep/resume.
 
@@ -1431,7 +1431,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Status:** Accepted
 
-**Decision:** The WinUI 3 client communicates with the Rust control plane through the typed authenticated SupervisorConnection protocol. The first implementation may use in-process interop where the supervisor boundary is not yet extracted; the production architecture uses named-pipe IPC with NirmanSupervisor.exe.
+**Decision:** The WinUI 3 client communicates with the Rust control plane through the typed authenticated SupervisorConnection protocol. The first implementation may use in-process interop where the supervisor boundary is not yet extracted, but only for the pre-M7 vertical slice and only behind the same typed protocol; the production architecture uses named-pipe IPC with NirmanSupervisor.exe.
 
 **Rationale:** This preserves one authoritative runtime while allowing the desktop UI to evolve independently.
 

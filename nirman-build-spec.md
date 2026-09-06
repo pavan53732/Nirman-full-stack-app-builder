@@ -2959,7 +2959,7 @@ Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP,
 
 ### 51.2 Two-executable production architecture
 
-The first vertical slice may host the Rust control plane in-process inside `Nirman.exe` alongside the WinUI 3 shell, rather than running it as a separate `NirmanSupervisor.exe`, to reduce initial process complexity. The production durable-autonomy architecture separates presentation from the long-running supervisor:
+The first vertical slice may host the Rust control plane in-process inside `Nirman.exe` alongside the WinUI 3 shell, rather than running it as a separate `NirmanSupervisor.exe`, to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The production durable-autonomy architecture separates presentation from the long-running supervisor:
 
 ```text
 Nirman.exe
@@ -6167,7 +6167,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §12.6 | "should be able to export" | MUST support export | User MUST be able to export source/APK |
 | BS §12.7 | "should be able to inspect" | MUST support diagnostics | User MUST be able to inspect diagnostics |
 
-| BS §26.1 | "should separate the desktop user interface from a local control plane" | MUST separate | `Nirman.exe` (WinUI 3 presentation) and `NirmanSupervisor.exe` (Rust/Tokio control plane) are distinct processes per ADR-111. UI holds presentation state only |
+| BS §26.1 | "should separate the desktop user interface from a local control plane" | MUST separate from M7 onward | `Nirman.exe` (WinUI 3 presentation) and `NirmanSupervisor.exe` (Rust/Tokio control plane) are distinct processes per ADR-111; the in-process hosting that §51.2 permits for the pre-M7 vertical slice still crosses the `SupervisorConnection` boundary and never satisfies background continuity. UI holds presentation state only |
 | BS §26.1 | "A local task daemon should own task execution, worker processes, approvals, checkpoints, logs, and recovery" | MUST own | The supervisor is sole owner of all six. No UI, model, or worker may write authoritative state for any of them |
 | BS §26.1 | "control plane should start when Nirman launches" | MUST start | Supervisor starts on `Nirman.exe` launch, or reconnects if already running. UI never proceeds past connect without an authenticated SupervisorConnection |
 | BS §26.1 | "should be able to continue as a user-scoped background process" | MUST continue | Supervisor survives UI close, minimise, and crash. Exits only on explicit user stop or OS shutdown |

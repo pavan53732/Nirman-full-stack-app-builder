@@ -3166,7 +3166,7 @@ NirmanSupervisor.exe
 └── SQLite execution ledger
 ```
 
-The first implementation may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. The production durable-autonomy architecture separates Nirman.exe from NirmanSupervisor.exe.
+The first implementation may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The production durable-autonomy architecture separates Nirman.exe from NirmanSupervisor.exe.
 
 ### 57.3 SupervisorConnection
 

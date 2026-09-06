@@ -244,7 +244,7 @@ A restricted worker cannot read protected files, write outside its workspace, ex
 
 Allow tasks to continue when the Nirman.exe UI is minimized or closed and recover safely after control-plane or operating-system restart. The NirmanSupervisor.exe process must survive UI closure and continue eligible autonomous tasks.
 
-M7 implements the one-product-two-processes contract: Nirman.exe may close while NirmanSupervisor.exe continues background work.
+M7 implements the one-product-two-processes contract: Nirman.exe may close while NirmanSupervisor.exe continues background work. M7 also ends the in-process hosting allowance of build spec §51.2 and technical architecture §57.2: from this milestone onward `NirmanSupervisor.exe` is a distinct process, and no in-process build may pass this exit gate or claim `CAP.ANDROID.BACKGROUND_CONTINUITY`.
 
 ### Work items
 
