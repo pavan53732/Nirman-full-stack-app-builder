@@ -1399,6 +1399,20 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
         D.add("semantic documentation", "update controller placement",
               "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
+    # TA §76.3 specialist gates must map onto the §6.5 canonical roles.
+    m763 = re.search(r"### 76\.3 .*?(?=\n### )", ta, re.S)
+    m65 = re.search(r"### 6\.5 .*?(?=\n## )", ta, re.S)
+    if m763 and m65:
+        roles = set(re.findall(r"^\| ([A-Z][A-Za-z ]+?) \| ", m65.group(0), re.M)) - {"Worker role"}
+        for gate, role_cell in re.findall(r"^\| ([^|`]+?) \| ([^|]+?) \| [^|]+ \| [^|]+ \|$", m763.group(0), re.M):
+            if gate in ("Specialist gate", "---"):
+                continue
+            named = [r for r in roles if r in role_cell]
+            if not named:
+                D.add("semantic documentation", "specialist gate roles",
+                      f"TA §76.3 gate {gate!r} names no §6.5 canonical worker role ({role_cell.strip()!r})")
+    else:
+        D.add("semantic documentation", "specialist gate roles", "TA §76.3 or §6.5 not found")
     if "| MUST separate from M7 onward |" not in bs:
         D.add("semantic documentation", "in-process hosting bound",
               "§80.2 row for BS §26.1 must resolve to 'MUST separate from M7 onward' so it agrees with §51.2")

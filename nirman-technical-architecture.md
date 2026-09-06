@@ -5977,18 +5977,18 @@ The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and
 
 ### 76.3 Specialist worker responsibilities
 
-Specialist workers are independent roles selected by the orchestrator; they do not become additional authorities.
+Specialist gates are responsibilities assigned to the canonical worker roles of §6.5 (build spec §23.4); they are not additional roles and do not become additional authorities. Each gate names the §6.5 role that carries it, so the specialist fixtures of development plan M110 dispatch through the same `WorkerRegistry` taxonomy as every other task.
 
-| Specialist role | Required responsibility | Blocking evidence or gate |
-|---|---|---|
-| Orchestrator | Maintain one shared goal, acceptance contract, task graph, dependency order, and handoff record | Authorized plan and task-graph transition |
-| Security worker | Detect secrets, unsafe configuration, dependency vulnerabilities, license violations, provenance gaps, and client-bundle exposure | Security and dependency evidence before commit or artifact promotion |
-| Consistency worker | Compare schemas, types, UI/control-plane messages, Android service contracts, and persisted records for drift | Schema compatibility and contract-parity result |
-| Diff-aware patch worker | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
-| Diagnostics worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
-| Validation worker | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
-| Memory/index worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
-| Release worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
+| Specialist gate | Canonical worker role (§6.5) | Required responsibility | Blocking evidence or gate |
+|---|---|---|---|
+| Orchestration | Primary Orchestrator | Maintain one shared goal, acceptance contract, task graph, dependency order, and handoff record | Authorized plan and task-graph transition |
+| Security scanning | Security Worker | Detect secrets, unsafe configuration, dependency vulnerabilities, license violations, provenance gaps, and client-bundle exposure | Security and dependency evidence before commit or artifact promotion |
+| Schema/type consistency | Reconciliation Worker | Compare schemas, types, UI/control-plane messages, Android service contracts, and persisted records for drift | Schema compatibility and contract-parity result |
+| Diff-aware patching | Debugging Worker (repairs) or the owning implementation worker (UI Worker, Android Data and Integration Worker) | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
+| Diagnostics | Debugging Worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
+| Validation | Test and QA Worker, with Visual QA Worker for visual/accessibility checks | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
+| Memory/index update | Documentation Worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
+| Release preparation | Release Worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
 
 The orchestrator reconciles specialist handoffs against one shared contract and the current project revision. A worker report cannot mark a task complete, promote a preview, approve a dependency, or authorize an external effect. A specialist may recommend a result only through its typed operation and evidence contract.
 

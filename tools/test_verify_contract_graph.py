@@ -323,6 +323,9 @@ CASES = {
     "command registry count overstated again": (
         BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
         "semantic documentation"),
+    "specialist gate invents a worker role": (
+        TA, "| Schema/type consistency | Reconciliation Worker |", "| Schema/type consistency | Consistency worker |",
+        "semantic documentation"),
     "update controller becomes a third executable": (
         TA, "The stable launcher/controller is not a third executable.", "The stable launcher/controller is a third executable, `NirmanLauncher.exe`.",
         "semantic documentation"),
