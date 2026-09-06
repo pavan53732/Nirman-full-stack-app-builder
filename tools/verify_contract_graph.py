@@ -1916,6 +1916,61 @@ def check_semantic_documentation(docs, R, D):
               "ADR-197 must be marked Superseded by ADR-218 while retaining its text")
 
 
+# Vocabulary that no skill instruction body may carry. The host stack is
+# C#/.NET + WinUI 3 + Rust (ADR-108, ADR-117; AGENTS.md §17) and the only
+# Android runtime surface is the Nirman-managed local emulator rendered inside
+# Nirman's embedded preview (BS §4.4) — a skill body that names a web-wrapper
+# shell or a physical device re-introduces an excluded product path.
+SKILL_BODY_BANNED = (
+    "Tauri", "Electron", "React ", "React/", "TypeScript", "Vite", "WebView",
+    "physical device", "physical Android device", "attached device", "USB device",
+)
+
+
+def check_skill_bodies(docs, D, repo_root):
+    """Skill instruction bodies (BS §79.7) exist for every registered platform
+    skill and carry neither the excluded host stack nor a physical-device path.
+
+    Skipped (not passed) when crates/ is absent, exactly like check 14: a
+    specification-only tree has no bodies to evaluate.
+    """
+    bs = docs["bs"]
+    m = re.search(r"### 79\.7 .*?(?=\n### |\n## )", bs, re.S)
+    if not m:
+        D.add("semantic documentation", "BS §79.7",
+              "platform-skill table (§79.7) not found")
+        return
+    names = re.findall(r"^\| `([a-z][a-z0-9-]*)` \|", m.group(0), re.M)
+    if not names:
+        D.add("semantic documentation", "BS §79.7", "platform-skill table lists no skills")
+        return
+    skills_root = os.path.join(repo_root, "crates", "nirman-skills", "skills")
+    if not os.path.isdir(skills_root):
+        D.skip("semantic documentation", "skill bodies",
+               "crates/nirman-skills/skills not found; skill bodies cannot be verified")
+        return
+    bodies = {}
+    for dirpath, _dirs, files in os.walk(skills_root):
+        if "SKILL.md" in files:
+            bodies[os.path.basename(dirpath)] = os.path.join(dirpath, "SKILL.md")
+    for name in names:
+        path = bodies.get(name)
+        if path is None:
+            D.add("semantic documentation", f"skill {name}",
+                  "registered in BS §79.7 but has no SKILL.md body under crates/nirman-skills/skills")
+            continue
+        with open(path, encoding="utf-8") as fh:
+            body = fh.read()
+        for token in SKILL_BODY_BANNED:
+            if token in body:
+                D.add("semantic documentation", f"skill {name}",
+                      f"body carries {token.strip()!r}: excluded host stack or physical-device "
+                      f"path (ADR-108, ADR-117, BS §4.4, AGENTS.md §17)")
+    for name in sorted(set(bodies) - set(names)):
+        D.add("semantic documentation", f"skill {name}",
+              "SKILL.md body exists but the skill is not registered in BS §79.7")
+
+
 def check_section_ownership(R, D):
     """Check 12: SECTION_OWNERSHIP — BS §68 has exactly one authoritative owner
     (`CONTRACT.RUNTIME.DELIBERATION`) and exactly one declared extension
@@ -2058,6 +2113,7 @@ def verify(root):
     check_section_ownership(R, D)
     check_semantic_documentation(docs, R, D)
     check_structure(docs, R, D)
+    check_skill_bodies(docs, D, root)
     check_command_payload_field_coverage(docs, R, D, root)
     return R, adj, D
 

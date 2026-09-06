@@ -1,7 +1,11 @@
 # Windows Desktop Build
 
-Scope: Tauri 2 / React / TypeScript / Vite / Rust build for Windows x64,
-bundling, and installer generation (BS §79.7).
+Scope: C#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust
+control-plane integration for Windows x64 — Nirman.exe packaging,
+NirmanSupervisor.exe packaging, the named-pipe SupervisorConnection, native
+Windows runtime integration, and installer generation (BS §79.7, ADR-108,
+ADR-117). The host stack is exactly the one those ADRs lock; no web-wrapper
+desktop shell is part of this skill's scope (AGENTS.md §17).
 
 Gated by the cross-compilation capability (or a native Windows host).
 When `cross_build_windows` or `windows_installer_generation` resolve to

@@ -5949,6 +5949,8 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
+Every skill registered in this table MUST have an instruction body at `crates/nirman-skills/skills/<group>/<skill>/SKILL.md`, and no body may name the excluded host stack (ADR-108, ADR-117, AGENTS.md §17) or a physical-device path (§4.4). The contract-graph verifier (§67.11) enforces both rules whenever the skill tree is present in the working tree and records a skip, never a pass, when it is absent.
+
 ### 79.8 Validation Environment as a First-Class Resource
 
 Native target validation consumes a `ValidationEnvironment` (schema: TA §84.1) as a first-class resource:

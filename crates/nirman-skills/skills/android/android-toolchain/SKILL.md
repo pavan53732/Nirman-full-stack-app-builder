@@ -2,7 +2,8 @@
 
 Scope: Node, package manager, Java, Gradle, Android SDK, platform tools,
 the Nirman-managed local Android emulator, native dependencies, and signing
-(BS §79.7). Physical Android devices are outside product scope.
+(BS §79.7). The emulator rendered inside Nirman's embedded preview is the
+only runtime surface (BS §4.4).
 
 Gated by the Android toolchain authority (TA §49), independent of the
 host-target build capability. When `android_build` (or the requested

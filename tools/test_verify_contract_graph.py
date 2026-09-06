@@ -43,6 +43,24 @@ RUST_SOURCES = (
      os.path.join(REPO, "crates/nirman-preview/src/lib.rs")),
 )
 
+# Skill instruction bodies (BS §79.7). The skill-body rule needs every
+# registered body present in the temp root, otherwise a "missing body" defect
+# would mask the mutation actually under test.
+SKILL_DIRS = (
+    "android/android-toolchain",
+    "cross-platform/cross-platform-build-diagnostics",
+    "environment/environment-preflight",
+    "environment/environment-repair",
+    "windows/windows-desktop-build",
+    "windows/windows-runtime-validation",
+)
+SKILL_SOURCES = tuple(
+    (f"crates/nirman-skills/skills/{d}/SKILL.md",
+     os.path.join(REPO, f"crates/nirman-skills/skills/{d}/SKILL.md"))
+    for d in SKILL_DIRS)
+WIN_BUILD_SKILL = SKILL_SOURCES[4][0]
+ANDROID_SKILL = SKILL_SOURCES[0][0]
+
 # label -> (doc, find, replace, expected defect check)
 CASES = {
     # ---- check 1: duplicate authority
@@ -1095,6 +1113,25 @@ CASES = {
         "MutationReportUnit = committed ConstructionTransaction",
         "MutationReportUnit = file edit",
         "semantic documentation"),
+    # ---- skill bodies (BS §79.7, ADR-108, BS §4.4)
+    "skill body names the excluded host stack": (
+        WIN_BUILD_SKILL,
+        "Scope: C#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust",
+        "Scope: Tauri 2 / React / TypeScript / Vite / Rust build plus Rust",
+        "semantic documentation",
+        SKILL_SOURCES),
+    "skill body reintroduces a physical device": (
+        ANDROID_SKILL,
+        "observation bound to the environment fingerprint.",
+        "observation bound to the environment fingerprint, or a physical device observation.",
+        "semantic documentation",
+        SKILL_SOURCES),
+    "registered skill without a body": (
+        BS,
+        "| `android-toolchain` | Node, package manager,",
+        "| `android-ghost` | placeholder | none |\n| `android-toolchain` | Node, package manager,",
+        "semantic documentation",
+        SKILL_SOURCES),
 }
 
 
@@ -1152,7 +1189,8 @@ def main():
     # and every skipped subject must be itemised so the unevaluated portion is
     # visible in the report rather than summarised away.
     skip_total = sum(int(x) for x in re.findall(r"SKIPPED \((\d+)\)", out))
-    itemised = len(re.findall(r"^  \[command payload coverage\] ", out, re.M))
+    unevaluated = out[out.index("UNEVALUATED CHECKS"):] if "UNEVALUATED CHECKS" in out else ""
+    itemised = len(re.findall(r"^  \[[a-z ]+\] ", unevaluated, re.M))
     if skip_total:
         status_ok = ("CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS" in out
                      and "\nCERTIFICATION: DOCUMENTATION_CERTIFIED\n" not in out
@@ -1199,6 +1237,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="hermes-cg-") as tmp:
             _copy_fixture(tmp, extra)
             path = os.path.join(tmp, doc)
+            if not os.path.exists(path):
+                results.append((f"negative: {label}", None,
+                                "SKIPPED — mutated file not present"))
+                skipped_count += 1
+                continue
             text = open(path, encoding="utf-8").read()
             if find not in text:
                 results.append((f"negative: {label}", False, "anchor missing -> test invalid"))
