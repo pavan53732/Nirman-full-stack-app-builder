@@ -263,6 +263,27 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- residue audit: command count, stack residue, emulator wording, ADR-037 scope, heading uniqueness
+    "command registry count overstated again": (
+        BS, "complete set of twenty-eight canonical command kinds", "complete set of thirty command kinds",
+        "semantic documentation"),
+    "canonical command row removed without updating the count": (
+        BS, "| `worker.step` | Execute one worker stage", "| worker.step | Execute one worker stage",
+        "semantic documentation"),
+    "TypeScript convention residue returns to M0": (
+        DEV, "| C#/.NET, WinUI 3, Windows App SDK, and Rust conventions |", "| TypeScript and Rust conventions |",
+        "semantic documentation"),
+    "M9 physical-device wording returns": (
+        DEV, "phone/tablet layout-profile checks on the managed emulator |", "phone/tablet checks |",
+        "semantic documentation"),
+    "ADR-037 names local runtimes again": (
+        DEC, "across supported cloud-hosted providers without changing the agent orchestrator",
+        "including compatible cloud services and local runtimes, without changing the agent orchestrator",
+        "semantic documentation"),
+    "duplicate acceptance-matrix heading reintroduced": (
+        DEV, "## Integrated acceptance matrix — autonomy (M51–M58)", "## Integrated acceptance matrix — runtime (M39–M50)",
+        "semantic documentation"),
+
     # ---- crash-safety audit: change-report atomicity, Continue atomicity, §80.9 consistency
     "change-report obligation decoupled from the commit": (
         TA, "in the same SQLite transaction that commits the parent `ConstructionTransaction`",

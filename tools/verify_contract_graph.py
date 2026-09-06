@@ -1790,6 +1790,33 @@ def check_semantic_documentation(docs, R, D):
     if "this criterion\n   is NOT yet satisfied" in bs or "is NOT yet satisfied" in bs:
         D.add("semantic documentation", "BS §80.9 criterion 1",
               "§80.10 records 100% coverage; criterion 1 must not simultaneously claim it is unsatisfied")
+    # Command registry cardinality (BS §76.1): the stated count must equal
+    # the number of canonical rows; aliases are not registry entries.
+    reg = bs.split("### 76.1 UICommandRegistry", 1)[-1].split("### 76.2", 1)[0]
+    rows = re.findall(r"^\| `([a-z_.]+)` \|", reg, re.M)
+    if rows and len(rows) != 28:
+        D.add("semantic documentation", "command registry cardinality",
+              f"§76.1 lists {len(rows)} canonical command kinds; the documented count is twenty-eight")
+    if "complete set of twenty-eight canonical command kinds" not in reg:
+        D.add("semantic documentation", "command registry cardinality",
+              "§76.1 must state the complete set of twenty-eight canonical command kinds and that UI aliases add no registry entries")
+    for token, label in (("thirty command kinds", "build spec"),):
+        if token in bs:
+            D.add("semantic documentation", "command registry cardinality", f"stale count '{token}' in {label}")
+    # Migration residue and scope wording (ADR-108 stack, ADR-207 cloud-only, ADR-210 emulator).
+    for token, text, why in (
+        ("TypeScript and Rust conventions", dev, "the host is C#/.NET WinUI 3 (ADR-108); TypeScript is not a Nirman stack convention"),
+        ("TypeScript and Rust conventions", bs, "the host is C#/.NET WinUI 3 (ADR-108); TypeScript is not a Nirman stack convention"),
+        ("phone/tablet checks |", dev, "device checks run as layout-profile checks on the managed emulator (ADR-210)"),
+        ("compatible cloud services and local runtimes", dec, "ADR-207 excludes local model runtimes; ADR-037 must not name them as supported"),
+    ):
+        if token in text:
+            D.add("semantic documentation", "migration residue", f"{token!r}: {why}")
+    # Every H2 heading in the development plan must be unique so sections are addressable.
+    h2 = re.findall(r"^## (.+)$", dev, re.M)
+    dupes = sorted({h for h in h2 if h2.count(h) > 1})
+    if dupes:
+        D.add("semantic documentation", "development plan headings", f"duplicate H2 headings: {dupes}")
     # Vocabulary contradicted by an accepted decision must not reappear in the
     # active product, architecture, or milestone documents.
     contradicted_vocabulary = (
