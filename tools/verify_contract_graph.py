@@ -1196,9 +1196,8 @@ def check_command_payload_field_coverage(docs, R, D, root):
          {"component", "lockedVersion", "compatibleRange"},
          {}),
         ("DeviceMatrixEntry",
-         domain_crate, None,
-         {"deviceId", "kind", "apiLevel", "formFactor", "density",
-          "screenSize", "abi", "availability", "role"},
+         domain_crate, "DeviceMatrixEntry",
+         None,
          {}),
         ("FixtureRecord",
          domain_crate, None,
@@ -1237,19 +1236,23 @@ def check_command_payload_field_coverage(docs, R, D, root):
          {"schemaVersion", "deviceId", "state", "reloadedAtEpochSeconds",
           "errorMessage"},
          {}),
-        # M11 work item 5: APK delivery
+        # M11 work item 5: APK build profiles and delivery. PackagingProfile
+        # is the BS §5.7.3 canonical block (TA §36.1 carries the identical
+        # block); the delivery record is the single canonical
+        # ExportVerificationRecord of TA §74.3 (ADR-203; DP M117 forbids a
+        # second export record), surfaced in full by the export response.
         ("PackagingProfile",
-         domain_crate, None,
-         {"profileId", "artifactKinds", "signingRequired", "destinationKind"},
+         domain_crate, "PackagingProfile",
+         None,
          {}),
-        ("ApkDeliveryRecord",
-         domain_crate, None,
-         {"schemaVersion", "deliveryId", "artifactId", "projectId",
-          "taskId", "sourceRevision", "packagingProfileId", "artifactKind",
-          "destinationPath", "destinationKind", "requestFingerprint",
-          "idempotencyKey", "sha256", "byteCount", "state",
-          "createdAtEpochSeconds", "completedAtEpochSeconds",
-          "errorMessage"},
+        ("ExportVerificationRecord",
+         domain_crate, "ExportVerificationRecord",
+         None,
+         {}),
+        ("ArtifactExportResponsePayload",
+         "crates/nirman-ipc/src/lib.rs",
+         "ExportVerificationRecord",
+         None,
          {}),
         # M11 work item 6: signing configuration
         ("SigningConfig",
@@ -1269,14 +1272,18 @@ def check_command_payload_field_coverage(docs, R, D, root):
             source = fh.read()
         if schema_name is not None:
             canonical = _parse_field_block(ta, schema_name)
+            source_label = f"TA §{schema_name}"
+            if canonical is None:
+                # BS-owned blocks (PackagingProfile §5.7.3, DeviceMatrixEntry §59.2)
+                canonical = _parse_field_block(docs["bs"], schema_name)
+                source_label = f"BS §{schema_name}"
             if canonical is None:
                 D.add("command payload coverage", struct_name,
-                      f"TA has no fenced field block for {schema_name}; "
+                      f"neither TA nor BS has a fenced field block for {schema_name}; "
                       f"cannot verify coverage")
                 continue
             required = (set(canonical) if mandatory_subset is None
                         else mandatory_subset)
-            source_label = f"TA §{schema_name}"
         else:
             # No canonical TA block for this struct yet. The check falls back
             # to the field set declared inline in the `mandatory_subset`,

@@ -6131,6 +6131,8 @@ The export handler resolves `packagingProfileId`, artifact kind, source revision
 ### 83.2 Durable copy operation
 The handler creates one `ExportVerificationRecord` before copying and records source identity, destination identity, source hash, destination hash, byte count, copy lifecycle, request fingerprint, idempotency key, and post-copy check. A copy that may have partially completed follows `UNKNOWN → RECONCILING`; destination inspection and source/destination identity and hash comparison must resolve it to `VERIFIED`, `FAILED`, or `BLOCKED` before retry. A hash or identity mismatch blocks completion and preserves the last-known-good artifact evidence. `reconciliationReference`, `failureEvidenceId`, and the corresponding external-effect or filesystem-inspection evidence are mandatory for the `UNKNOWN` and `RECONCILING` path.
 
+The `artifact.export` response is `UIResponseEnvelope` carrying `ArtifactExportResponsePayload`, which embeds the complete `ExportVerificationRecord` (every §74.3 field, no projection subset) so the command boundary cannot expose less than the durable record (development plan M117, ADR-203). The request side is `ArtifactExportCommandPayload` with the policy-mandatory request fields; neither payload introduces a second export record type.
+
 ### 83.3 Runtime acceptance
 Acceptance fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds and external deployment destinations, source/destination hash equality, destination identity, interrupted-copy reconciliation, signing/validation/promotion linkage, and refusal to treat source access as deployment completion. Documentation certification proves contract presence only; runtime certification must execute the fixtures.
 

@@ -1061,8 +1061,8 @@ CASES = {
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
     "device matrix entry body removed": (
         "crates/nirman-domain/src/lib.rs",
-        "    pub api_levels: Vec<u32>,\n",
-        "    pub api_levels_removed: Vec<u32>,\n",
+        "    pub api_level: u32,\n",
+        "    pub api_level_removed: u32,\n",
         "command payload coverage",
         (("crates/nirman-domain/src/lib.rs",
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
@@ -1117,15 +1117,15 @@ CASES = {
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
     "packaging profile body removed": (
         "crates/nirman-domain/src/lib.rs",
-        "    pub artifact_kinds: Vec<ArtifactKind>,\n",
-        "    pub artifact_kinds_removed: Vec<ArtifactKind>,\n",
+        "    pub required_artifacts: RequiredArtifacts,\n",
+        "    pub required_artifacts_removed: RequiredArtifacts,\n",
         "command payload coverage",
         (("crates/nirman-domain/src/lib.rs",
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
-    "apk delivery record body removed": (
+    "export verification record body removed": (
         "crates/nirman-domain/src/lib.rs",
-        "    pub source_revision: u64,\n",
-        "    pub source_revision_removed: u64,\n",
+        "    pub destination_file_identity: FileIdentity,\n",
+        "    pub destination_file_identity_removed: FileIdentity,\n",
         "command payload coverage",
         (("crates/nirman-domain/src/lib.rs",
           os.path.join(REPO, "crates/nirman-domain/src/lib.rs")),)),
