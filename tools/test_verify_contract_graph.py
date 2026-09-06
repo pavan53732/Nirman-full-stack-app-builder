@@ -263,6 +263,36 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- schema identity audit: registry completeness, evidence provenance, revision/status naming
+    "canonical schema dropped from the registry": (
+        TA, "BuildGateRecord\nContent\nContentRevision\nContentMutation\n", "BuildGateRecord\nContent\nContentRevision\n",
+        "semantic documentation"),
+    "canonical schema declared without a field block": (
+        TA, "ConversationRebaseRecord\n- recordId\n- conversationId", "ConversationRebaseRecordX\n- recordId\n- conversationId",
+        "semantic documentation"),
+    "bare CapabilityProfile name reintroduced": (
+        TA, "AndroidTechnologyPlan\nAndroidCapabilityProfile\nTaskGraph", "AndroidTechnologyPlan\nCapabilityProfile\nTaskGraph",
+        "semantic documentation"),
+    "reportStatus reintroduced on ChangeImpactReport": (
+        BS, "- projectionStatus: COMPLETE", "- reportStatus: COMPLETE",
+        "semantic documentation"),
+    "ambiguous projectRevision reintroduced on ChangeReportRecord": (
+        TA, "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevisionAfter\n",
+        "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevision\n",
+        "semantic documentation"),
+    "ConversationDecision loses evidence provenance": (
+        BS, "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n- sourceEvidenceIds\n",
+        "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n",
+        "semantic documentation"),
+    "forward traversal claims runtime implementation again": (
+        BS, "Forward traversal proves that every registered capability has a complete declared contract and certification traceability chain",
+        "Forward traversal proves that every capability is implemented",
+        "semantic documentation"),
+    "M5 depends on the M115 milestone again": (
+        DEV, "Route every tool call through the canonical authenticated command envelope",
+        "Route every tool call through the M115 command envelope",
+        "semantic documentation"),
+
     # ---- coherence audit 2026-09-06: contradicted vocabulary and unrecorded amendments
     "workspace file made the Task Ledger authority again": (
         BS, "The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe`",

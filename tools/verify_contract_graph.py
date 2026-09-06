@@ -1677,6 +1677,49 @@ def check_semantic_documentation(docs, R, D):
             if token in text:
                 D.add("semantic documentation", f"AI-usage budget vocabulary in {label}",
                       f"{token!r} reintroduces an AI-usage budget as an execution control (ADR-218, BS §72)")
+    # Canonical schema identity (TA §36.1): every schema a contract section
+    # calls canonical must be registered, the Android capability profile has
+    # one name, and the change-report revision/status fields are unambiguous.
+    registry_block = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", ta, re.S)
+    registered = set(registry_block.group(1).split()) if registry_block else set()
+    if not registry_block:
+        D.add("semantic documentation", "CanonicalSchemaRegistry",
+              "TA §36.1 CanonicalSchemaRegistry block is missing")
+    for m in re.finditer(r"^Canonical schemas: (.+)$", ta, re.M):
+        for name in re.findall(r"`([A-Za-z]+)`", m.group(1)):
+            if name not in registered:
+                D.add("semantic documentation", "CanonicalSchemaRegistry",
+                      f"{name} is called canonical in the architecture but is not listed in TA §36.1")
+            if f"\n{name}\n- " not in ta:
+                D.add("semantic documentation", "canonical schema definition",
+                      f"{name} is called canonical but has no field block in the architecture")
+    for name in ("ContentMutation", "ConversationRebaseRecord", "AndroidCapabilityProfile",
+                 "ChangeReportRecord", "ChangeImpactReport"):
+        if name not in registered:
+            D.add("semantic documentation", "CanonicalSchemaRegistry",
+                  f"{name} must be listed in TA §36.1")
+    if "\nCapabilityProfile\n" in ta or "\nCapabilityProfile\n" in bs:
+        D.add("semantic documentation", "capability profile identity",
+              "bare 'CapabilityProfile' schema name; the Android capability profile is AndroidCapabilityProfile (BS §5.7.1)")
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        if "reportStatus" in text:
+            D.add("semantic documentation", f"change report status in {label}",
+                  "ChangeImpactReport carries projectionStatus; ChangeReportRecord.status is the only lifecycle state")
+        if "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevision\n" in text:
+            D.add("semantic documentation", f"change report revision in {label}",
+                  "ChangeReportRecord must carry projectRevisionAfter, not an ambiguous projectRevision")
+    for label, text in (("build spec", bs), ("architecture", ta)):
+        for schema in ("ConversationRequirement", "ConversationDecision"):
+            block = re.search(rf"\n{schema}\n((?:- .*\n)+)", text)
+            if not block or "- sourceEvidenceIds\n" not in block.group(1):
+                D.add("semantic documentation", f"{schema} evidence provenance in {label}",
+                      f"{schema} must carry sourceEvidenceIds (BS §82: requirements and decisions reference evidence)")
+    if "Forward traversal proves that every capability is implemented" in bs:
+        D.add("semantic documentation", "documentation certification claim",
+              "BS §67.9 must not claim forward traversal proves runtime implementation (§67.6)")
+    if "M115 command envelope" in dev:
+        D.add("semantic documentation", "M5 sequencing",
+              "M5 must reference the canonical command envelope contract, not depend on the M115 milestone")
     # Vocabulary contradicted by an accepted decision must not reappear in the
     # active product, architecture, or milestone documents.
     contradicted_vocabulary = (
@@ -1922,7 +1965,7 @@ def main():
         return 1
 
     total_skips = sum(len(v) for v in skips.values())
-    print("\nall 14 §67.11 graph/structure checks pass in both traversal directions")
+    print("\nall twelve §67.11 contract-graph checks pass in both traversal directions; document-structure checks pass")
     print("semantic documentation lint: PASS")
     for check in CHECK_ORDER:
         if check in skips:
