@@ -1390,6 +1390,15 @@ def check_semantic_documentation(docs, R, D, root="."):
             if "An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`" not in text:
                 D.add("semantic documentation", "in-process hosting bound",
                       f"{label} must forbid an in-process build from claiming the M7 exit gate or background continuity")
+    # ADR-039's stable launcher/controller must be placed inside the
+    # two-process product (ADR-002A): the bootstrap stage of the supervisor,
+    # never a third executable.
+    if "bootstrap stage of `NirmanSupervisor.exe`" not in ta or "not a third executable" not in ta:
+        D.add("semantic documentation", "update controller placement",
+              "TA §25.2 must place the stable launcher/controller as the bootstrap stage of NirmanSupervisor.exe (ADR-039 within ADR-002A)")
+    if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
+        D.add("semantic documentation", "update controller placement",
+              "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
     if "| MUST separate from M7 onward |" not in bs:
         D.add("semantic documentation", "in-process hosting bound",
               "§80.2 row for BS §26.1 must resolve to 'MUST separate from M7 onward' so it agrees with §51.2")

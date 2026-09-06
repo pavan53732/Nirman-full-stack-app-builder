@@ -607,6 +607,7 @@ Required invariants:
 8. Supervisor and UI versions must remain compatibility-bound.
 9. Supervisor lifecycle failures must be recoverable and visible through Nirman.
 10. The user must never need to operate the supervisor independently.
+11. The stable launcher/controller of the self-development loop (ADR-039) is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable; it owns the active-version pointer and update lock, and `Nirman.exe` never promotes or rolls back versions (TA §25.2, §57.4).
 
 ### 6.2 Frontend interface
 

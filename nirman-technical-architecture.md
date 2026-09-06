@@ -1562,6 +1562,8 @@ Replaceable Nirman application
 
 The controller should not be replaced during an ordinary self-update. This gives the system a stable recovery path if the candidate application fails to start, crashes during migration, or cannot connect to the local database.
 
+The stable launcher/controller is not a third executable. It is the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (§57.4): the supervisor binary that Windows starts at user login owns the update lock and the active-version pointer, and the "replaceable Nirman application" is the versioned application directory it launches — `Nirman.exe` together with the supervisor's own control-plane modules loaded from that directory. The bootstrap stage is versioned and shipped separately from the application directory, is replaced only by an explicit controller-update path that ADR-039 and §25.3 escalate to a higher review level, and never loads the candidate's code before the candidate has passed compatibility checks. This keeps ADR-002A's one-product-two-processes contract intact: there is no launcher the user sees, and no process beyond `Nirman.exe` and `NirmanSupervisor.exe`. `Nirman.exe` never performs promotion or rollback; it only shows the §25.7 status projection.
+
 ### 25.3 Self-development task contract
 
 A self-development task should include:
@@ -3268,7 +3270,7 @@ Singleton enforcement:
 - Second-instance refusal: any additional supervisor process beyond the singleton must terminate immediately without acquiring leases or opening the ledger.
 - Supervisor takeover after crash: on crash recovery, the new supervisor fences abandoned leases, reconciles unknown outcomes, and resumes only eligible operations.
 
-`NirmanSupervisor.exe` starts at Windows user login when an eligible session or scheduled task exists, owns all long-running process trees, and records graceful or abnormal shutdown. On startup it validates SQLite integrity, migrations, leases, checkpoints, project fingerprints, process records, terminal sessions, preview revisions, and pending provider requests.
+`NirmanSupervisor.exe` starts at Windows user login when an eligible session or scheduled task exists, owns all long-running process trees, and records graceful or abnormal shutdown. Its first bootstrap stage is the stable `UpdateController` of §25.2 (ADR-039): it reads the active-version pointer, verifies the active application directory, and only then loads the control-plane modules of that version; a failed health check after a self-update rolls the pointer back to the previous known-good directory before the control plane starts. On startup it validates SQLite integrity, migrations, leases, checkpoints, project fingerprints, process records, terminal sessions, preview revisions, and pending provider requests.
 
 ```text
 Supervisor start

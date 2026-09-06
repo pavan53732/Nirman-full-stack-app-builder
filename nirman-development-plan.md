@@ -543,7 +543,7 @@ Provider capability detection must distinguish native reasoning support, support
 
 ### M23: Controlled self-development loop
 
-Implement the stable launcher/controller, isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
+Implement the stable launcher/controller as the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (technical architecture §25.2 and §57.4, ADR-039; no third executable), the isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
 
 **Exit gate:** Nirman can modify its own source in isolation, build a candidate, launch it separately, run static/unit/integration/provider/sandbox/recovery/smoke checks, promote it through the controller, and roll back after an injected startup, migration, IPC, or health-check failure.
 

@@ -488,6 +488,8 @@ The following decisions remain intentionally open:
 
 **Trade-off:** The product must maintain two version layers and an atomic active-version pointer.
 
+**Placement (aligned with ADR-002A):** the controller is the bootstrap stage of `NirmanSupervisor.exe`, not a third process; the replaceable half is the versioned application directory (`Nirman.exe` plus the supervisor's control-plane modules). See technical architecture §25.2 and §57.4.
+
 ---
 
 ## ADR-040: Self-development requires candidate validation before promotion
