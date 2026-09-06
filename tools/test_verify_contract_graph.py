@@ -523,6 +523,24 @@ CASES = {
     "CONTEXT_GOVERNANCE authority heading drifts": (
         BS, "## 74. Context and Cache Governance", "## 74. Provider Billing Notes",
         "canonical identity"),
+    # SPECULATION must resolve to its own architecture section, not to the
+    # emulator-scenario coordinator or repair registry it once borrowed.
+    "SPECULATION architecture edge points at the emulator coordinator": (
+        BS, "| CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §88 |",
+        "| CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §65 |",
+        "canonical identity"),
+    "SPECULATION architecture section loses its ContractId header": (
+        TA, "**ContractId:** `CONTRACT.RUNTIME.SPECULATION`  ",
+        "**ContractId:** `CONTRACT.RUNTIME.DEVICE_MATRIX`  ",
+        "semantic documentation"),
+    "architecture section mapped in §67.8 never names its contract": (
+        TA, "**Implements:** build spec §73 and `CONTRACT.RUNTIME.AGENT_TRUST`\n",
+        "**Implements:** build spec §73\n",
+        "semantic documentation"),
+    "CandidateBranch schema dropped from the architecture": (
+        TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
+        "```text\nCandidateBranchX\n- branchId\n- parentRevision",
+        "semantic documentation"),
 
     "causal-escalation clause unregistered": (
         BS, "CLAUSE.DELIBERATE.CAUSAL_ESCALATION, CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS",
@@ -1166,7 +1184,11 @@ def failed_checks(out):
     detection, not a pass, so it is surfaced as the synthetic class "FATAL" —
     keeping it distinguishable from a clean exit.
     """
-    hits = {m.group(1) for m in re.finditer(r"^\s*\[([a-z ]+)\] ", out, re.M)}
+    # Only the DEFECTS block counts. The UNEVALUATED CHECKS block itemises
+    # skips with the same "[class] subject" shape; a skip is not a detection.
+    body = out.split("\nDEFECTS\n", 1)[1] if "\nDEFECTS\n" in out else ""
+    body = body.split("\nCERTIFICATION:", 1)[0]
+    hits = {m.group(1) for m in re.finditer(r"^\s*\[([a-z ]+)\] ", body, re.M)}
     if "FATAL:" in out:
         hits.add("FATAL")
     return hits

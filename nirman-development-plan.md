@@ -1212,7 +1212,7 @@ The certification fixture should include a user instruction and optional screens
 
 # M81–M93: Long-Horizon Intelligence, Verification, and Documentation Certification
 
-These milestones implement build spec §53–§67 and technical architecture §59–§71. They follow the AgentExecutionKernel milestones M65–M80 and must be tested against Android fixture projects with injected failures. No milestone here may begin before the single-worker and durable-supervisor gates of Stages 1–3 have passed.
+These milestones implement build spec §53–§67 and technical architecture §59–§71 and §88. They follow the AgentExecutionKernel milestones M65–M80 and must be tested against Android fixture projects with injected failures. No milestone here may begin before the single-worker and durable-supervisor gates of Stages 1–3 have passed.
 
 | Milestone | Focus | Required result |
 |---|---|---|
@@ -1274,7 +1274,7 @@ A disabled webhook trigger opens no listening network surface. An over-scoped tr
 
 ### Speculation gate
 
-Parallel candidates leave the primary workspace untouched. The winning candidate is selected by identical validation evidence. A tie or universal failure escalates instead of arbitrary selection. Discarded candidate code never appears in the promoted artifact while its failure signature is retained.
+Parallel candidates leave the primary workspace untouched. The winning candidate is selected by identical validation evidence. A tie or universal failure escalates instead of arbitrary selection. Discarded candidate code never appears in the promoted artifact while its failure signature is retained. `TEST-SPEC-001` (technical architecture §88.6) proves these behaviors and a restart during speculation; it produces `EV-SPEC-001`, which is the M92 constituent of the capability-level `EV-VER-001` of `CAP.ANDROID.QUALITY_GATE`.
 
 ## Foundational milestone contract mapping
 
@@ -1325,7 +1325,7 @@ Each milestone may implement one or more registered contracts, but each contract
 | M89 | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER | ADR-145, ADR-152 | TEST-DIR-001 | EV-DIR-001 | Directive and debugger gate |
 | M90 | CONTRACT.RUNTIME.PROFILING | ADR-153 | TEST-DIR-001 | EV-DIR-001 | Resource profiling gate |
 | M91 | CONTRACT.RUNTIME.TRIGGER | ADR-151 | TEST-TRG-001 | EV-TRG-001 | Trigger gate |
-| M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-VER-001 | EV-VER-001 | Speculation gate |
+| M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-SPEC-001 | EV-SPEC-001 | Speculation gate |
 | M93 | CONTRACT.RUNTIME.INVARIANTS | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
 | M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
 | M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |

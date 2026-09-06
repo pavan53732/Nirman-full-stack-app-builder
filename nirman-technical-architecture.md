@@ -322,6 +322,8 @@ Approval and warning events must have multiple delivery paths: in-app queue, tra
 
 ## 8. Workspace Isolation and Reconciliation
 
+**Implements:** build spec §22 and `CONTRACT.RUNTIME.WORKSPACE` (with §46; the build spec section is the authority)
+
 ### 8.1 Workspace types
 
 | Workspace type | Purpose | Write target |
@@ -960,6 +962,8 @@ The recovery planner must reject a new attempt when it is substantially identica
 
 ## 19. Context Scaling Architecture
 
+**Implements:** build spec §53 and `CONTRACT.RUNTIME.CONTEXT` (with §59); §19.1 implements build spec §23 and `CONTRACT.RUNTIME.SKILL`. The build spec sections are the authorities.
+
 The context engine exposes an **Adaptive Context Architecture** operating across six provider-independent strategies:
 
 | Mode | Operational Scope | Pipeline |
@@ -1068,6 +1072,8 @@ External tools should be capability-discovered, permission-scoped, health-checke
 
 ## 21. Authority Hierarchy and Recovery Invariants
 
+**Implements:** build spec §33 and `CONTRACT.RUNTIME.AUTHORITY` (with §27; the build spec section is the authority)
+
 The model is a proposal generator, not the authority over the runtime. Model output remains untrusted data until deterministic runtime components validate, authorize, persist, and execute it.
 
 | Authority | Non-delegable responsibility |
@@ -1105,6 +1111,8 @@ The architecture test suite must add the following cases:
 15. An interface agreement is required before parallel workers modify coupled frontend/backend contracts.
 
 ## 23. Execution Surface and Evidence Model
+
+**Implements:** build spec §37 and `CONTRACT.RUNTIME.EVIDENCE`; §23.3 is the evidence-ledger implementation that `CONTRACT.RUNTIME.INVARIANTS` (build spec §67) verifies against. The build spec sections are the authorities.
 
 ### 23.1 Durable task graph
 
@@ -1579,6 +1587,8 @@ The architecture is ready for implementation of the advanced loop when it can co
 
 ## 27. Complete Runtime Control Plane
 
+**Implements:** build spec §33 and `CONTRACT.RUNTIME.AUTHORITY` (with §21; the build spec section is the authority)
+
 ### 27.1 Runtime responsibilities
 
 The Nirman runtime is the product’s autonomous core. It must own the entire development loop rather than acting as a thin wrapper around model requests.
@@ -1829,6 +1839,8 @@ Trusted auto-promotion should still preserve the stable controller, safety polic
 After promotion, the runtime should compare candidate behavior with the previous baseline using task outcomes, error rates, recovery patterns, provider reliability, crash-free operation, and user corrections. A statistically meaningful degradation or safety regression should trigger automatic rollback or scoped disablement.
 
 ## 31. Runtime Memory and Learning Boundaries
+
+**Implements:** build spec §38 and `CONTRACT.RUNTIME.MEMORY` (with §59; the build spec section is the authority)
 
 Nirman should maintain three memory scopes:
 
@@ -2496,6 +2508,8 @@ Writes are serialized per project revision. Independent read-only analysis may p
 
 ## 46. Lease and Capability Runtime
 
+**Implements:** build spec §22 and `CONTRACT.RUNTIME.WORKSPACE` (with §8; the build spec section is the authority)
+
 ### 46.1 Session leases
 
 A long-running autonomous session uses a renewable `SessionLease` rather than a fixed short execution token. The lease contains session ID, owner supervisor ID, issued time, expiry time, last progress time, heartbeat sequence, resource reservation, and revocation state.
@@ -2515,6 +2529,8 @@ Examples include dependency installation, emulator access, external network requ
 ---
 
 ## 47. Project Ingestion, Fingerprinting, and Android Code Intelligence
+
+**Implements:** build spec §5 and `CONTRACT.RUNTIME.SCOPE` (the build spec section is the authority)
 
 ### 47.1 Project ingestion pipeline
 
@@ -4599,7 +4615,7 @@ DECIDE  continue -> OBSERVE
 DECIDE  repair   -> HYPOTHESIZE
 DECIDE  replan   -> UNDERSTAND
 DECIDE  delegate -> DELEGATE -> OBSERVE
-DECIDE  branch   -> SPECULATE (§65) -> OBSERVE
+DECIDE  branch   -> SPECULATE (§88) -> OBSERVE
 DECIDE  terminate -> COMPLETED | BLOCKED | WAITING | RECOVERED | SAFELY_FAILED | ESCALATED
 ```
 
@@ -4877,7 +4893,7 @@ enter deliberation (from HYPOTHESIZE or STRATEGIZE)
            -> change strategy
            | GATHER_EVIDENCE
            | DELEGATE
-           | BRANCH
+           | BRANCH (speculation runtime, §88)
            | ESCALATE_MODEL
            | ESCALATE (human decision)
            | terminate NO_PROGRESS when none of those changes is available
@@ -4985,6 +5001,8 @@ The threshold is configuration, not a runtime constant. No component may hardcod
 
 
 ## 73. IntentSynthesisPromptContract and Truthful Preview Architecture
+
+**Implements:** build spec §69 and `CONTRACT.RUNTIME.PROMPT_CONTRACT` (the build spec section is the authority)
 
 ### 73.1 Prompt contract boundary
 
@@ -5840,6 +5858,8 @@ Nirman remains a Windows-first local host for Android generation. The isolation 
 
 ## 77. Runtime Resource Integrity Implementation Contract
 
+**Implements:** build spec §72 and `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
+
 ### 77.1 Canonical schema
 
 `ResourceIntegrityRecord` (BS §72) is persisted with the task and operation ledger. `ResourceIntegrityAuthority` (§59) evaluates `resourceRequirements` against currently admissible physical capacity before admission and records `observedPressure`, `pressureResponse`, and `livenessState` while work runs. It receives process telemetry, host memory and disk signals, emulator slot state, workspace I/O and concurrency counters, provider context capacity, and liveness probes through typed records. Provider `UsageRecord`s (tokens, requests, estimated cost, reasoning usage) are linked through `usageTelemetryRefs` and are observational: the authority never reads them to admit, deny, throttle, degrade, pause, or terminate work, and no record field carries an AI-usage ceiling, reservation, remaining budget, or exhaustion outcome.
@@ -5853,6 +5873,8 @@ The lifecycle is `DECLARED → ADMITTED → RUNNING → COMPLETED`, with `QUEUED
 Memory exhaustion, disk exhaustion, process-count limits, emulator slot contention, workspace I/O saturation, hung operations, and telemetry loss produce durable diagnostics. Recovery may queue, reschedule, reduce concurrency, checkpoint, serialize, reclaim rebuildable caches, restart a contained process, or resume from the last checkpoint when capacity returns; it must never retry an unknown external charge blindly, and a `BLOCKED_NO_SAFE_PATH` outcome preserves the last checkpoint and event log and is never reported as completion. Unknown or unreported provider usage is recorded as `unavailable` telemetry and does not change execution.
 
 ## 78. Agent Trust Boundary Implementation Contract
+
+**Implements:** build spec §73 and `CONTRACT.RUNTIME.AGENT_TRUST`
 
 ### 78.1 Canonical schema
 
@@ -5868,6 +5890,8 @@ Hash drift, revoked content, scanner failure, malformed manifests, hidden instru
 
 ## 79. Context and Cache Governance Implementation Contract
 
+**Implements:** build spec §74 and `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+
 ### 79.1 Canonical schema
 
 `ContextCachePolicy` is resolved for each provider request and context package. `ContextGovernance` records selected content, protected content, compaction trigger, cache key inputs, invalidation causes, redactions, telemetry disclosures, resulting context lineage, the `placementPlan` of the transmitted package, and the post-compaction recall probe result.
@@ -5882,6 +5906,8 @@ Context overflow, failed compaction, cache mismatch, cache corruption, privacy-p
 
 ## 80. Android Runtime Integrity Implementation Contract
 
+**Implements:** build spec §75 and `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
+
 ### 80.1 Canonical schema
 
 `AndroidRuntimeIntegrityObservation` is emitted by supervised device and runtime collectors. It binds each signal to project revision, artifact, package, device, runtime session, source, applicability, timestamp, and evidence.
@@ -5895,6 +5921,8 @@ The lifecycle is `REQUESTED → COLLECTING → OBSERVED → VALIDATED | NOT_APPL
 ANR, emulator session loss, unavailable Play Integrity, battery or Doze uncertainty, permission denial, stale runtime sessions, and collector errors produce typed evidence gaps. Recovery may restart collection, reconnect the device, change the declared profile, or report an honest coverage limitation; it cannot convert absence into a pass.
 
 ## 81. Frontend–Control-Plane Protocol Implementation Contract
+
+**Implements:** build spec §76 and `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 
 ### 81.1 Canonical protocol schemas
 
@@ -6546,4 +6574,80 @@ The presentation client displays these structured dimensions with clickable file
 ### 87.8 Acceptance
 
 `TEST-CHANGE-001` proves complete reports, revision binding, actual file lists, runtime impact, affected tests, preview impact, evidence invalidation, verification, and recommended next action.
+
+
+## 88. Speculative Candidate Branching Runtime
+
+**ContractId:** `CONTRACT.RUNTIME.SPECULATION`  
+**Authoritative build-spec section:** §65  
+**Role:** implementation of the named contract; adds no normative clause to it.
+
+Implements build spec §65. Extends §8 (Workspace Isolation and Reconciliation), §45 (Reducer, Event Store, and Transaction Manager), §58.7 (WorkspaceLeaseManager), §64 (Verification Orchestrator), and §59 (Memory/Context Runtime), which remain the authority on workspace isolation, event commitment, leases, verification, and memory writes. This section adds the runtime that produces competing candidates safely and selects one by evidence. It is entered only from the kernel transition `DECIDE branch -> SPECULATE` of §71.4 or the deliberation outcome `BRANCH` of §72.4; no other component may open a candidate branch.
+
+### 88.1 Components
+
+| Component | Responsibility |
+|---|---|
+| SpeculationAdmissionGate | Evaluates the §65.3 admission conditions: a declared uncertainty (`UncertaintyRegistry`, §58.12), admissible physical capacity for every additional candidate (`ResourceIntegrityAuthority`, §77, using `ResourceExecutionProfile` estimates from §69), and a shared objective validation metric; denies with a typed reason otherwise, and the caller executes a single approach |
+| CandidateWorkspaceProvisioner | Creates one worker worktree per candidate (§8.1) from the same `parentRevision`, each under its own `WorkspaceLeaseManager` lease (§58.7); candidates never share a working tree and never write to the main workspace |
+| CandidateRunner | Executes each candidate's approach inside its own workspace under the ordinary kernel authority path (§71.4); a candidate has no capability its parent task lacks |
+| CandidateValidator | Runs the identical `validationPlan` against every candidate through the Verification Orchestrator (§64) and records one `VerificationRun` set per candidate |
+| CandidateSelector | Applies the §65.4 rules: compares `comparableMetrics` produced by identical validation plans, marks exactly one `selectedAsWinner`, and on a tie or universal failure records the outcome and escalates through `DecisionNodeManager` (§58.12) instead of choosing |
+| CandidateDiscarder | Removes losing candidate worktrees from the deliverable path and writes their failure signatures as `FAILURE` memory records (§59.5, §63.4); losing code never reaches an integration workspace |
+
+### 88.2 Candidate branch schema
+
+The runtime persists the build spec §65.2 `CandidateBranch` record without addition or omission. Every field is written by a deterministic component, never by model output:
+
+```text
+CandidateBranch
+- branchId
+- parentRevision
+- approach
+- isolatedWorkspace
+- resourceRequirements
+- validationPlan
+- outcome: pending | validated | failed | abandoned
+- comparableMetrics
+- selectedAsWinner: true | false
+```
+
+`branchId` is issued by the reducer (§45.1) when the branch is opened; `parentRevision` is the committed revision the branch was created from; `isolatedWorkspace` is the absolute worktree path from the provisioner; `resourceRequirements` is the physical demand the admission gate reserved; `validationPlan` is the plan identity shared by every sibling; `comparableMetrics` is written only by `CandidateValidator`; `selectedAsWinner` is written only by `CandidateSelector`.
+
+### 88.3 Speculation sequence
+
+```text
+1. Kernel or deliberation emits branch intent with the declared uncertainty and candidate approaches
+2. SpeculationAdmissionGate admits or denies; denial -> single approach, reason recorded
+3. CandidateWorkspaceProvisioner opens N worktrees from parentRevision, one lease each
+4. CandidateRunner executes each approach under kernel authority (AUTHORIZE before EXECUTE)
+5. CandidateValidator runs the identical validationPlan in every candidate workspace
+6. CandidateSelector compares comparableMetrics
+     one best-validated candidate -> selectedAsWinner = true; outcome validated
+     tie or all failed            -> no winner; escalate via DecisionNodeManager
+7. Winner is reconciled into the integration workspace through the §8.3 algorithm and committed by ConstructionTransactionManager (§45.3)
+8. CandidateDiscarder abandons losers: worktree removed, failure signature retained, evidence retained
+```
+
+Steps 1–8 are kernel events in the event store (§45.2), so replay reconstructs which candidate produced every artifact.
+
+### 88.4 Persistence
+
+`CandidateBranch` records, per-candidate `VerificationRun` sets, and the selection decision are persisted in the session event store and evidence ledger (§23.3) keyed by `branchId` and `parentRevision`. Losing candidates' evidence and failure signatures are retained per §59.5; their worktrees are removed under the lease cleanup rules of §58.7. Retention follows the project's evidence retention policy; a candidate record is never deleted while any evidence cites its `branchId`.
+
+### 88.5 Failure and recovery
+
+| Failure | Behavior |
+|---|---|
+| Candidate workspace creation fails | Branch is `abandoned` before execution; remaining candidates continue only if the admission conditions still hold, otherwise the run falls back to a single approach |
+| Candidate lease expires or process dies | The candidate is `failed`; its worktree is recovered under §58.7 rules and never merged |
+| Validation cannot run identically for every candidate | Selection is refused; outcome recorded and escalated (§65.4) |
+| Runtime restart mid-speculation | Replay restores every `CandidateBranch` from events; candidates in `pending` resume or are marked `failed` from lease state; no candidate is re-created against a different `parentRevision` |
+| Winner reconciliation conflicts with the main workspace | Handled by the §8.3 reconciliation algorithm; the winner is not committed until the commit barrier (§45.4) passes |
+
+A losing candidate's validation is never cited as completion evidence, and a losing candidate's code never appears in a promoted artifact (`CLAUSE.SPECULATE.DISCARD_HYGIENE`).
+
+### 88.6 Architecture tests
+
+`TEST-SPEC-001` proves, against an Android fixture with two comparable approaches: parallel candidates leave the primary workspace untouched; the winner is selected only from identical validation evidence; a tie and a universal failure both escalate instead of selecting; a losing candidate's code is absent from the promoted artifact while its failure signature is present in memory; a restart during speculation replays every candidate to a consistent state; and an admission denial results in exactly one executed approach. Its evidence artifact is `EV-SPEC-001`, the milestone-level (M92) constituent of the capability evidence `EV-VER-001` that `CAP.ANDROID.QUALITY_GATE` resolves through build spec §67.15; `EV-VER-001` is not complete for that capability while `EV-SPEC-001` is missing.
 

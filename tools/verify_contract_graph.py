@@ -926,6 +926,33 @@ def check_canonical_identity(docs, R, D):
                       f"points to {doc_tag} §{sec} '{heading}' — heading does not "
                       f"align with {cid} domain (semantic drift)")
 
+    # The §67.15 architecture edge must resolve to one of the architecture
+    # sections §67.8 lists for the contract, and that section must name the
+    # contract. An edge that lands on a section belonging to another contract
+    # (SPECULATION once pointed at the emulator-scenario coordinator) has lost
+    # its identity even though the section exists.
+    ta_bodies = {}
+    ta_marks = [(m.start(), int(m.group(1))) for m in re.finditer(r"^##\s+(\d+)\.\s", docs["ta"], re.M)]
+    for i, (pos, num) in enumerate(ta_marks):
+        end = ta_marks[i + 1][0] if i + 1 < len(ta_marks) else len(docs["ta"])
+        ta_bodies[num] = docs["ta"][pos:end]
+    for cid, row in R["chain"].items():
+        cell = row.get("architecture", "").strip()
+        reg_arch = R["contracts"].get(cid, {}).get("arch", "").strip()
+        if cell == "all" or reg_arch in ("all", "—", "-", ""):
+            continue
+        doc_tag, sec = _parse_doc_sec(cell)
+        if doc_tag != "TA" or not sec:
+            continue
+        listed = secrefs(reg_arch)
+        if sec not in listed:
+            D.add("canonical identity", f"{cid} architecture",
+                  f"§67.15 architecture edge TA §{sec} is not among the §67.8 architecture "
+                  f"sections ({reg_arch}) for this contract")
+        elif not re.search(rf"(?<![A-Z_.]){re.escape(cid)}(?![A-Z_])", ta_bodies.get(sec, "")):
+            D.add("canonical identity", f"{cid} architecture",
+                  f"§67.15 architecture edge TA §{sec} never names `{cid}`")
+
     # Check 3: the §67.8 authority must be consistent — the same contract
     # must not be mapped to two different authority sections across the
     # capability registry and the twelve-edge table.
@@ -975,7 +1002,7 @@ def _contract_domain_pattern(contract_id):
         "DEBUGGER":        r"Debugger|Debug|Trace|Crash|Logcat|Runtime",
         "PROFILING":       r"Profiling|Resource|Performance|Metric|Telemetry",
         "TRIGGER":         r"Trigger|Event|Gateway|External|Scheduler|Hook",
-        "SPECULATION":     r"Speculation|Candidate|Branching|Repair|Govern|Decision",
+        "SPECULATION":     r"Speculat|Candidate|Branching",
         "SKILL":           r"Skill|Worker|Autonomous|Capabilit|Develop",
         "REASONING":       r"Reasoning|Delegation|Capability|Mode|Agent",
         "DELIBERATION":    r"Deliberation|Reasoning|Evidence|Alternative|Adap",
@@ -1203,6 +1230,29 @@ def check_semantic_documentation(docs, R, D):
     if "goalTemplate" in ta:
         D.add("semantic documentation", "goalTemplate",
               "active schedule schema uses template terminology; use goalDefinition or goalSpecification")
+
+    # Every §67.8 architecture section that is the sole implementation of a
+    # contract must bind itself to that contract by name (ContractId header or
+    # "Implements … `ContractId`" line). A registry row pointing at a section
+    # that never mentions the contract is an implementation-less contract —
+    # the SPECULATION defect this rule was added for.
+    ta_secs = {}
+    marks = [(m.start(), int(m.group(1))) for m in re.finditer(r"^##\s+(\d+)\.\s", ta, re.M)]
+    for i, (pos, num) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(ta)
+        ta_secs[num] = ta[pos:end]
+    for cid, r in sorted(R["contracts"].items()):
+        if r["arch"].strip() in ("all", "—", "-", ""):
+            continue
+        secs = secrefs(r["arch"])
+        if any(re.search(rf"(?<![A-Z_.]){re.escape(cid)}(?![A-Z_])", ta_secs.get(n, "")) for n in secs):
+            continue
+        D.add("semantic documentation", f"{cid} architecture binding",
+              f"§67.8 maps the contract to TA §{', §'.join(str(n) for n in secs)} but no listed "
+              f"section names `{cid}` (ContractId header or Implements line)")
+    if "\nCandidateBranch\n- branchId\n" not in ta:
+        D.add("semantic documentation", "CandidateBranch schema",
+              "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")
 
     browser_core = (
         "Run browser, device, accessibility, and visual QA where applicable",
