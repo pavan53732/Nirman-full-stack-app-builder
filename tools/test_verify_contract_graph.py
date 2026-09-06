@@ -263,6 +263,24 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
+    "§80.10 build-spec figure drifts from §80.2": (
+        BS, "| Build spec (all sections) | 284 | 284 | Complete |", "| Build spec (all sections) | 320 | 320 | Complete |",
+        "semantic documentation"),
+    "§80.10 total overstated": (
+        BS, "| **Total** | **459** | **459** | **100%** |", "| **Total** | **512** | **512** | **100%** |",
+        "semantic documentation"),
+    "§80.2 row deleted without updating §80.10": (
+        BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",
+        "semantic documentation"),
+    "§80.2 row added without updating §80.10": (
+        BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n',
+        '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n| BS §3.4 | "should also snapshot" | MUST snapshot | Before every multi-file autonomous task |\n',
+        "semantic documentation"),
+    "§80.10 drops the verifier-recomputes statement": (
+        BS, "the contract-graph verifier (§67.11) recomputes them from the §80.2 table on every run", "the figures are maintained by hand",
+        "semantic documentation"),
+
     # ---- residue audit: command count, stack residue, emulator wording, ADR-037 scope, heading uniqueness
     "command registry count overstated again": (
         BS, "complete set of twenty-eight canonical command kinds", "complete set of thirty command kinds",

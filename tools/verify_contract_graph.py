@@ -1790,6 +1790,42 @@ def check_semantic_documentation(docs, R, D):
     if "this criterion\n   is NOT yet satisfied" in bs or "is NOT yet satisfied" in bs:
         D.add("semantic documentation", "BS §80.9 criterion 1",
               "§80.10 records 100% coverage; criterion 1 must not simultaneously claim it is unsatisfied")
+    # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
+    # number of §80.2 rows carrying that scope prefix, and the total MUST be
+    # their sum. A hand-maintained figure that drifts from the table it
+    # summarizes is a defect (the 512-vs-459 drift this rule was added for).
+    table = bs.split('### 80.2 "Should" resolution table', 1)[-1].split("### 80.3", 1)[0]
+    scope_rows = {}
+    for prefix in re.findall(r"^\| (BS|TA|DP|AGENTS)\b", table, re.M):
+        scope_rows[prefix] = scope_rows.get(prefix, 0) + 1
+    status = bs.split("### 80.10 Resolution coverage status", 1)[-1].split("\n## ", 1)[0]
+    declared = {}
+    for label, n_rows, n_resolved in re.findall(
+            r"^\| (Build spec \(all sections\)|Technical architecture|Development plan|AGENTS\.md) \| (\d+) \| (\d+) \|", status, re.M):
+        declared[label] = (int(n_rows), int(n_resolved))
+    total = re.search(r"^\| \*\*Total\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \|", status, re.M)
+    scope_labels = {"BS": "Build spec (all sections)", "TA": "Technical architecture",
+                    "DP": "Development plan", "AGENTS": "AGENTS.md"}
+    if not table.strip() or not declared or not total:
+        D.add("semantic documentation", "§80.10 coverage derivation",
+              "§80.2 table or §80.10 coverage table not found; coverage cannot be derived")
+    else:
+        for prefix, label in scope_labels.items():
+            actual = scope_rows.get(prefix, 0)
+            if label not in declared:
+                D.add("semantic documentation", "§80.10 coverage derivation", f"§80.10 has no row for {label}")
+                continue
+            rows_n, resolved_n = declared[label]
+            if rows_n != actual or resolved_n != actual:
+                D.add("semantic documentation", "§80.10 coverage derivation",
+                      f"{label}: §80.10 states {rows_n}/{resolved_n} but §80.2 has {actual} rows with prefix {prefix}")
+        actual_total = sum(scope_rows.get(p, 0) for p in scope_labels)
+        if int(total.group(1)) != actual_total or int(total.group(2)) != actual_total:
+            D.add("semantic documentation", "§80.10 coverage derivation",
+                  f"§80.10 total states {total.group(1)}/{total.group(2)} but §80.2 has {actual_total} rows")
+        if "the contract-graph verifier (§67.11) recomputes them from the §80.2 table on every run" not in status:
+            D.add("semantic documentation", "§80.10 coverage derivation",
+                  "§80.10 must state that the verifier recomputes the coverage figures from §80.2")
     # Command registry cardinality (BS §76.1): the stated count must equal
     # the number of canonical rows; aliases are not registry entries.
     reg = bs.split("### 76.1 UICommandRegistry", 1)[-1].split("### 76.2", 1)[0]
