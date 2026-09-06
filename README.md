@@ -85,7 +85,7 @@ An earlier working tree held a pre-migration prototype built on React, Vite, Typ
 | SQLite durable ledger | Specified; no source written |
 | Android synthesis, build, preview, and delivery | Specified; no source written |
 | All 27 registered capabilities | `PLANNED` (BS §5.6) |
-| Documentation verifier and mutation harness | Present in tools/ (verify_contract_graph.py and test_verify_contract_graph.py); executed and certified |
+| Documentation verifier and mutation harness | Present in tools/ (verify_contract_graph.py and test_verify_contract_graph.py); certification requires an actual clean verifier and conformance run with zero defects — the repository does not itself evidence a run |
 | Windows `.exe` release | Not produced |
 
 Every row that says "specified" means exactly that: a contract exists and is machine-checkable in principle. It does not mean code exists, compiles, or has been observed to run.
@@ -211,7 +211,7 @@ Raw private chain-of-thought is never stored or displayed. Nirman may expose str
 Nirman treats writing, conversation history, and mutation explanations as structured development state:
 - **Durable conversation continuation**: Conversation history, attachments, accepted suggestions, and settled requirements are preserved across restarts and compactions, allowing seamless continuation without re-asking questions or losing context.
 - **First-class product writing/content**: UX copy, error messages, localization, and accessibility labels are versioned, validated, and linked to project revisions and UI semantics rather than treated as disposable model text.
-- **Post-mutation change intelligence**: Every completed modification generates an immutable, revision-bound change report detailing what changed, why, affected tests, preview impact, and evidence status, with recommendations remaining strictly advisory.
+- **Post-mutation change intelligence**: Every committed ConstructionTransaction creates a durable, revision-bound change-report record detailing what changed, why, affected tests, preview impact, and evidence status. The completed ChangeImpactReport is immutable; incomplete reports are reconstructed asynchronously, and recommendations remain strictly advisory.
 
 ### Long-horizon cognition substrate and Cognitive Context Kernel
 
@@ -346,7 +346,7 @@ actual files
 → documented result
 ```
 
-The verifier executes all 13 §67.11 graph and structure checks in both traversal directions along with semantic documentation linting. Certification claims require actual, clean execution of `python tools/verify_contract_graph.py .` and `python tools/test_verify_contract_graph.py`. A verifier that is absent or that silently no-ops produces no evidence; certification requires full automated verification with zero defects.
+The verifier executes the twelve §67.11 contract-graph checks in both traversal directions, plus document-structure checks and semantic documentation linting; the structure checks are additional to, not counted among, the twelve. Certification claims require actual, clean execution of `python tools/verify_contract_graph.py .` and `python tools/test_verify_contract_graph.py`. A verifier that is absent or that silently no-ops produces no evidence; certification requires full automated verification with zero defects.
 
 Commit only the intended coherent change. Never commit secrets, raw credentials, keystore material, temporary migration scripts, unrelated files, or unreviewed generated artifacts. Push only when explicitly requested, then fetch the remote and verify that local `HEAD` and `origin/main` match.
 
