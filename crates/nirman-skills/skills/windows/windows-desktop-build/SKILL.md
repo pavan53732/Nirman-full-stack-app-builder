@@ -1,7 +1,10 @@
 # Windows Desktop Build
 
-Scope: Tauri 2 / React / TypeScript / Vite / Rust build for Windows x64,
-bundling, and installer generation (BS §79.7).
+Scope: C#/.NET / WinUI 3 / Windows App SDK / XAML + Rust control-plane
+integration for Windows x64; Nirman.exe packaging, NirmanSupervisor.exe
+packaging, named-pipe SupervisorConnection, native Windows runtime
+integration, and MSIX installer generation (BS §79.7, §51.1; ADR-108,
+ADR-111, ADR-117).
 
 Gated by the cross-compilation capability (or a native Windows host).
 When `cross_build_windows` or `windows_installer_generation` resolve to
@@ -12,8 +15,10 @@ analysis, host-native tests, artifact inspection) continues.
 ## Workflow
 1. Consume the current EnvironmentCapabilityRecord; verify the required
    capabilities are AVAILABLE for this host→target pair.
-2. Build the target artifact (cross-build or native), bundle, and
-   generate the installer when the installer capability is available.
+2. Build the target artifacts (cross-build or native): the WinUI 3
+   Nirman.exe host and the Rust NirmanSupervisor.exe; package both
+   together and generate the MSIX installer when the installer
+   capability is available (BS §51.2; ADR-111).
 3. Emit build-gate evidence bound to the environment fingerprint.
 
 ## Invariants
