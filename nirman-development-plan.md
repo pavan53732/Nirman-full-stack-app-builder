@@ -1758,7 +1758,8 @@ Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 Deliver:
 - ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState, invalidatedBy)
 - ContentDependency schema and ImpactGraph edge integration
-- ContentMutation, ContentValidationResult, ContentPropagationPlan, TerminologyProfile, and ContentEvidence schemas (TA §85.1), registered in the CanonicalSchemaRegistry (TA §36.1)
+- Content schema (persisted logical content resource; BS §81.1, TA §85.1)
+- ContentRevisionDraft, ContentMutation (proposedContentRevision: ContentRevisionDraft — a proposal carrying an already-admitted ContentRevision is rejected), ContentValidationResult, ContentPropagationPlan, TerminologyProfile, and ContentEvidence schemas (TA §85.1), registered in the CanonicalSchemaRegistry (TA §36.1)
 - ContentWorker, ContentTransactionCoordinator, ContentValidator, ContentAuthority
 - ContentStore (persistence, retention, atomic transactions)
 - terminology/tone/brand profiles
@@ -1802,7 +1803,7 @@ Deliver:
 - ConversationContinuationResolver
 - ConversationStore (persistence, checkpoint/recovery)
 - restart/compaction recovery
-- revision consistency state machine (ConversationRevision ↕ ProjectRevision ↕ TaskRevision: MATCH -> CONTINUE, MISMATCH -> RECONCILE / REBASE, UNRESOLVABLE -> USER_REQUIRED)
+- revision consistency state machine (ConversationRevision ↕ ProjectRevision ↕ TaskRevision: MATCH -> CONTINUE, MISMATCH -> RECONCILE / REBASE, UNRESOLVABLE -> USER_REQUIRED); conversationRevision advances only on a committed resolver state, expectedProjectRevision changes only after a durably committed rebase, and USER_REQUIRED never advances it (BS §82.1)
 - integration with BackgroundContinuity (Conversation continuation + Background continuity = resume semantics)
 - boundary clause with MEMORY + CONTEXT + BACKGROUND_CONTINUITY
 - `TEST-CONV-001`
@@ -1833,7 +1834,7 @@ Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 Deliver:
 - atomic reporting unit definition: MutationReportUnit = committed ConstructionTransaction
 - ChangeReportRecord schema (with recordId, transactionId, projectRevisionAfter — the authoritative committed project revision represented by the record — status, report, failureDiagnostics, createdAt, updatedAt)
-- ChangeImpactReport schema (with reportId, projectionStatus — immutable and informational; ChangeReportRecord.status is the authoritative lifecycle state — requirementIds, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
+- ChangeImpactReport schema (with reportId, projectionStatus — immutable and informational; ChangeReportRecord.status is the authoritative lifecycle state — requirementIds, causeType and causeId as the typed causal source from which why is projected, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
 - field provenance for every field
 - deterministic source precedence (ConstructionTransaction > ImpactAnalysis > ValidationResult > PreviewRevision > EvidenceAuthority > RecoveryAuthority)
 - mutation projection
@@ -1848,7 +1849,7 @@ Deliver:
 - `EV-CHANGE-001`
 
 Exit gate:
-Every committed ConstructionTransaction produces exactly one ChangeReportRecord. A complete report is required before the owning task may claim completion.
+Every committed ConstructionTransaction produces exactly one durable ChangeReportRecord, which may initially be INCOMPLETE or become UNRESOLVED during recovery. The owning task may claim completion only when the record is COMPLETE and its ChangeImpactReport passes all declared validity checks.
 
 TEST-CHANGE-001 MUST prove:
 A. complete report produced for every committed ConstructionTransaction (MutationReportUnit = committed ConstructionTransaction)
