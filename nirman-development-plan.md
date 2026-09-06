@@ -33,7 +33,7 @@ The team should keep the master specification stable as the product contract, up
 | M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
 | M7 | Supervisor survives UI close/restart | Resume after UI close or restart, notifications, adaptive guardrails |
 | M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
-| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, Nirman-managed local Android emulator profiles, screenshots, Logcat, phone/tablet checks |
+| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, Nirman-managed local Android emulator profiles, screenshots, Logcat, phone/tablet layout-profile checks on the managed emulator |
 | M10 | Android packaging | APK build, artifact validation, signing boundaries |
 | M11 | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/emulator profile matrix, and representative fixture evidence |
 | M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
@@ -77,12 +77,12 @@ Create the source repository and define the code-quality baseline before impleme
 | Work item | Acceptance condition |
 |---|---|
 | Repository layout | Modules follow the architecture boundaries |
-| TypeScript and Rust conventions | Formatting, linting, and type checks run through the local certification command |
+| C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command |
 | Configuration model | Development, test, and production settings are separate |
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |
 | Test fixtures | At least three representative Android projects exist |
 | Security baseline | Secret files are excluded from logs and test fixtures |
-| Local certification pipeline | Documentation, foundation, Rust, frontend, fixture, and static checks run through the local certification command |
+| Local certification pipeline | Documentation, foundation, Rust supervisor, WinUI 3/.NET host (build, analyzers, and tests — there is no web frontend), fixture, and static checks run through the local certification command |
 
 ### Exit gate
 
@@ -956,7 +956,7 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 
 **Exit gate:** a single instruction plus optional screenshots can produce a validated Android APK with source revision, checksum, environment snapshot, preview evidence, validation evidence, and replayable session history without routine human intervention.
 
-## Integrated acceptance matrix
+## Integrated acceptance matrix — runtime (M39–M50)
 
 | Capability | Required proof |
 |---|---|
@@ -1025,7 +1025,7 @@ Implement independent-fixture validation for learned repair patterns, bounded al
 
 **Exit gate:** capability support is reported from passing fixtures and retained evidence, not module counts or unsupported percentages.
 
-## Integrated acceptance matrix
+## Integrated acceptance matrix — autonomy (M51–M58)
 
 | Capability | Required proof |
 |---|---|
@@ -1061,7 +1061,7 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 
 **Exit gate:** the user can reconnect after UI/control-plane restart and recover the filtered stream; presentation changes do not alter execution or policy behavior.
 
-## Integrated acceptance matrix
+## Integrated acceptance matrix — reasoning (M59–M61)
 
 | Capability | Required proof |
 |---|---|
@@ -1093,7 +1093,7 @@ Implement built APK extraction, asset presence and reachability checks, content-
 
 **Exit gate:** an APK cannot be promoted when requested branding assets are missing, stale, unintegrated, invalid, or placeholder-only. A complete artifact includes asset evidence, provenance, preview verification, and release-report references.
 
-## Integrated acceptance matrix
+## Integrated acceptance matrix — brand and asset completion (M62–M64)
 
 | Capability | Required proof |
 |---|---|
