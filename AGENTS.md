@@ -27,7 +27,7 @@ Agents MUST NOT infer authoritative state from conversational history when durab
 
 Model-generated summaries MUST NOT become authoritative memory without validated provenance.
 
-Before consequential action, the runtime-provided working set and context-integrity status MUST be honored. A model request MUST NOT execute consequential work when the runtime reports insufficient context coverage or stale context integrity.
+Before consequential action, the runtime-provided working set and context-integrity status MUST be honored. A model request MUST NOT execute consequential work when the runtime reports insufficient context coverage, stale context integrity, or unverified attendability (BS §53.11). Every proposed mutation MUST name the anchor ids and premises it relies on; a proposal whose anchors or premises disagree with its originating context package is rejected as `PREMISE_MISMATCH` and MUST NOT be re-anchored silently.
 
 Nirman NEVER terminates, degrades, downgrades, or blocks a valid task because of token consumption, provider request count, monetary expenditure, or elapsed task duration. Only physical host, workspace, process, emulator, storage, concurrency, and operating-system resource integrity constraints apply. Agents MUST NOT introduce AI token, provider-request, monetary, reasoning (token or pass), or autonomous-goal-duration budgets as execution controls; AI usage is telemetry with no execution-authority semantics (ADR-218, BS §72). Agents MAY implement physical resource limits, provider technical-capacity handling, process liveness protection, and concurrency/backpressure. Context is fit to the active provider via `ContextCapacityPlanner` and hierarchical fidelity transformation (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`), never by arbitrary truncation or budget eviction of active mutation targets and interfaces.
 
@@ -306,7 +306,7 @@ Generated projects must be isolated from Nirman credentials and unrelated host d
 
 Provider configuration may include a user-selected base URL, API key reference, model IDs, capabilities, and request settings. Store only secure keychain references, never raw API keys in ordinary project or task records. Validate provider reachability, authentication, capability, request compatibility, rate limits, and functional behavior as independent states.
 
-Cloud AI transmission must use an explicit provider-context envelope containing data classification, provider policy, selected context, redaction policy, approval policy, purpose, retention, and transmission decision. Send only the minimum required context. Never transmit raw credentials, private chain-of-thought, unrelated personal data, or excluded project content.
+Cloud AI transmission must use an explicit provider-context envelope containing data classification, provider policy, selected context, redaction policy, approval policy, purpose, retention, and transmission decision. Send only the minimum required context, placed per BS §53.11: the smallest DENSE block that satisfies attendability, adjacent to the instruction, with the cache breakpoint before it. Attention reliability is measured by deterministic probes and premise mismatches only; it is telemetry and a context-quality input and MUST NOT be used to pause, throttle, degrade, or fail valid work. Never transmit raw credentials, private chain-of-thought, unrelated personal data, or excluded project content.
 
 ## 13. Artifact, signing, and delivery regulations
 
