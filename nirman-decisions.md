@@ -1678,6 +1678,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Very large constraint sets reduce available file context, which forces retrieval mode earlier and makes constraint growth visible as a planning cost.
 
+**Amended by ADR-218:** "token budget" in this decision means the provider's context capacity — a technical representation constraint fitted by `ContextCapacityPlanner` (TA §59) — never an AI-usage budget, spend ceiling, or execution control; no such budget exists. What survives unchanged is the priority rule: active constraints and locked decisions are placed before file content, and file content is reduced first when the provider's context capacity is exceeded. Under ADR-219 the constraints are re-projected from durable state into the DENSE placement block after every compaction and verified by a recall probe.
+
 ## ADR-142: Workers coordinate but hold no authority over each other
 
 **Locks:** `CONTRACT.RUNTIME.RESERVATION`
@@ -1920,6 +1922,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Delegation requests are denied rather than degraded when a ceiling is exceeded, and the admissible parent capacity must be recomputed at each issue because sibling reservations and host pressure change it.
 
+**Amended by ADR-218:** the former child resource-budget wording is replaced by physical `resourceRequirements` evaluated against the parent's currently admissible resource capacity by `ResourceIntegrityAuthority` (BS §72); `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. The two grant-time invariants — capability-ceiling containment and admissible-capacity inequality — survive unchanged.
+
 ## ADR-171: Let the agent select execution mode within policy bounds
 
 **Locks:** `CONTRACT.RUNTIME.REASONING`
@@ -2005,6 +2009,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A provider request is not the unit of intelligence. If compaction discards active hypotheses or rejected strategies, the agent re-derives conclusions it already refuted and can loop indefinitely on a solved question.
 
 **Consequences:** Compaction has less room for file content, and a compaction that drops session state is detectable by revision comparison and reported as a defect rather than tolerated.
+
+**Amended by ADR-218:** the continuation state no longer carries a remaining budget; it carries the granted effort level and effort grant, and reasoning usage is telemetry. Session survival across compaction, failover, and restart is unchanged, and under ADR-219 the session state is re-projected from durable state after compaction rather than carried by the compaction output.
 
 ## ADR-177: Terminate deliberation on diminishing returns rather than reasoning further
 
@@ -2094,6 +2100,8 @@ No provider-native reasoning stream containing private model reasoning may be pe
 **Rationale:** A hard-problem-solving runtime needs to use models that support deeper inference when available, but provider-specific reasoning controls cannot become a second authority system. Separating native reasoning from runtime deliberation also prevents the system from treating one expensive model request as equivalent to evidence-producing iterative problem solving.
 
 **Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, reasoning usage must be recorded as telemetry attributed to the runtime effort grant, and provider failover must revalidate reasoning capability before continuation.
+
+**Amended by ADR-218:** the "reasoning budgets" and "pass limits" named in this decision no longer exist; deliberation is progress-governed (BS §68.13) and no fixed pass ceiling or reasoning-token ceiling is a Nirman execution control. What survives is everything else: provider-native reasoning is normalized into the NORMAL, EXTENDED, DEEP, and EXHAUSTIVE levels; the deterministic runtime alone issues effort grants (`effortGrantId`), evidence requirements, and authority; provider `maxReasoningTokens` is capability metadata that bounds what may be requested from the provider, not a Nirman ceiling; reasoning usage is recorded as reported, estimated, or unavailable and is telemetry only; capability gaps are handled by approved re-routing, permitted explicit downgrade, or a typed capability gap; and private reasoning streams are never persisted or exposed verbatim.
 
 
 ---
@@ -2545,11 +2553,11 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`
 
-**Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` and `CostAuthority` evaluate physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
+**Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
 
 **Rationale:** Artificial token or request caps artificially truncate long-horizon autonomous problem-solving and violate Nirman's core promise of autonomous engineering. Hardware stability and process integrity are valid physical constraints, but accounting-driven usage ceilings are not.
 
-**Consequences:** Clarifies `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` (formerly `COST_GOVERNANCE`) and `CONTRACT.RUNTIME.DELIBERATION`. Deliberation continues based on state progress and diminishing-return detection rather than pass counts or artificial token budgets. `ResourceIntegrityRecord` tracks physical host stability signals and links usage telemetry. ADR-218 completes this clarification by removing the budget vocabulary entirely.
+**Consequences:** Clarifies `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` (formerly `COST_GOVERNANCE`) and `CONTRACT.RUNTIME.DELIBERATION`. Deliberation continues based on state progress and diminishing-return detection rather than pass counts or artificial token budgets. `ResourceIntegrityRecord` tracks physical host stability signals and links usage telemetry. ADR-218 completes this clarification by removing the budget vocabulary entirely; the interim `CostAuthority` name is withdrawn and `ResourceIntegrityAuthority` (BS §72, TA §59) is the only authority over physical resource pressure, with physical-resource semantics only.
 
 **Reversal trigger:** Physical demonstration that unlimited autonomous execution causes unrecoverable host instability that cannot be mitigated by queueing, serialization, or checkpointing.
 
