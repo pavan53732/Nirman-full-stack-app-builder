@@ -1315,6 +1315,51 @@ def check_semantic_documentation(docs, R, D):
             if value not in mapped:
                 D.add("semantic documentation", "lifecycle mapping",
                       f"ProductLifecycleState value {value} is missing from the BS §33.2 mapping table")
+    # Schema parity (AGENTS.md: one canonical schema, every duplicate updated
+    # together; TA §36.1: BS holds the normative shape, TA the implementation
+    # schema, and the two agree field for field). For every schema name whose
+    # field block appears in both documents: a CanonicalSchemaRegistry schema
+    # must have identical field-name sets; any other duplicated block must
+    # carry every build-spec field (TA may add persistence-only fields).
+    def _field_blocks(text):
+        blocks = {}
+        lines = text.split("\n")
+        i = 0
+        while i < len(lines) - 1:
+            name = lines[i].strip()
+            if re.fullmatch(r"[A-Z][A-Za-z0-9]+", name) and lines[i + 1].startswith("- "):
+                j, fields = i + 1, []
+                while j < len(lines) and (lines[j].startswith("- ")
+                                          or (lines[j][:1] in (" ", "\t") and lines[j].strip())):
+                    if lines[j].startswith("- "):
+                        fields.append(re.sub(r"[:(].*", "", lines[j][2:]).strip())
+                    j += 1
+                blocks.setdefault(name, []).append((i + 1, fields))
+                i = j
+            else:
+                i += 1
+        return blocks
+    bs_blocks, ta_blocks = _field_blocks(bs), _field_blocks(ta)
+    reg_match = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", ta, re.S)
+    registry_names = set(reg_match.group(1).split()) if reg_match else set()
+    for name in sorted(set(bs_blocks) & set(ta_blocks)):
+        canonical = set(bs_blocks[name][0][1])
+        occurrences = ([("BS", l, set(f)) for l, f in bs_blocks[name][1:]]
+                       + [("TA", l, set(f)) for l, f in ta_blocks[name]])
+        if name in registry_names:
+            for doc, line, fs in occurrences:
+                if fs != canonical:
+                    D.add("semantic documentation", f"{name} schema parity",
+                          f"registry schema {name} at {doc} line {line} differs from its first "
+                          f"build-spec block (extra {sorted(fs - canonical)}, missing {sorted(canonical - fs)})")
+                    break
+        else:
+            for _, line, fs in occurrences:
+                missing = canonical - fs
+                if missing:
+                    D.add("semantic documentation", f"{name} schema parity",
+                          f"TA line {line} block for {name} lacks build-spec fields {sorted(missing)}")
+
     committer_rules = (
         ("Exactly one component commits transitions in either set: `LifecycleAuthority`, which is the pure session reducer", bs, "BS §33.2"),
         ("The only committer of a lifecycle transition is `LifecycleAuthority`, the `SessionReducer` of §45.1", ta, "TA §58.2"),
@@ -1513,7 +1558,7 @@ def check_semantic_documentation(docs, R, D):
         "recovery-attempt policies (`recoveryAttemptPolicy`)": dev,
         "**Execution suitability**": bs,
         "maxReasoningTokens: integer? (provider capability metadata only": bs,
-        "`maxReasoningTokensOptional` is provider capability metadata": ta,
+        "`maxReasoningTokens` is provider capability metadata": ta,
         "The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe`": bs,
         "### 56.1 Asset execution under the canonical UI Worker": ta,
         "compatible cloud-provider requests": dev,

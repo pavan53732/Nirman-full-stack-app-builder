@@ -221,14 +221,14 @@ WorkerMessage
 - messageId
 - taskId
 - contractId
-- senderId
-- recipientId or topic
-- type
+- senderWorkerId
+- recipientWorkerId or broadcastTopic
+- messageType
 - correlationId
-- sequence
+- sequenceNumber
 - payload
 - evidenceReferences
-- acknowledgementRequired
+- requiresAcknowledgement
 - createdAt
 - expiresAt
 ```
@@ -521,25 +521,41 @@ The project synthesizer builds a project graph from the goal contract, visual sp
 
 The technology resolver must treat all Android implementation styles as available capabilities. It may select Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, or a mixed architecture. Its decision must be based on the requested behavior, screenshot evidence, performance needs, device APIs, offline requirements, build constraints, dependency compatibility, and validation evidence—not on a fixed user-facing template list.
 
+The plan record is the build spec §80.5.1 `AndroidTechnologyPlan`, field for field; the build spec is the canonical owner and the typed definitions live there:
+
 ```text
 AndroidTechnologyPlan
 - planId
-- taskId
-- requestedCapabilities
-- visualRequirements
-- selectedLanguages
-- selectedUIFrameworks
-- selectedRuntimeLayers
-- selectedNativeModules
-- selectedBuildPlugins
-- selectedDeviceAPIs
-- selectedLibraries
-- compatibilityConstraints
-- rejectedAlternatives
-- requiredToolchains
-- validationPlan
-- confidence
+- projectId
 - revision
+- capabilityProfileId
+- requestedCapabilities
+- selectedLanguages
+- uiSystem
+- nativeModules
+- buildSystem
+- gradleVersion
+- agpVersion
+- kotlinVersion
+- compileSdk
+- targetSdk
+- minSdk
+- ndkVersion
+- cmakeVersion
+- packageId
+- versionCode
+- versionName
+- permissions
+- features
+- services
+- dependencies
+- testFrameworks
+- validationPlan
+- rationale
+- confidence
+- alternativesConsidered
+- lockedAt
+- lockedBy
 ```
 
 Internal bootstraps may provide known-good build foundations, but they are implementation details rather than product limitations. The resolver must be able to create different project shapes, combine technologies, replace an incompatible layer, and add native modules when validation proves that the current architecture cannot satisfy the goal. The user may inspect the technology plan, but should not be required to choose the stack before describing the desired application.
@@ -1121,22 +1137,28 @@ The architecture test suite must add the following cases:
 
 The control plane should represent each autonomous task as a durable directed graph rather than a flat progress string. The graph contains a root goal, requirement nodes, implementation phases, worker tasks, dependency edges, validation nodes, checkpoints, approvals, recovery attempts, and final evidence.
 
+The graph record is the build spec §80.5.4 `TaskGraph`, field for field (phases hold `TaskNode`s; `TaskNode.kind` represents the goal, requirement, worker-task, validation, checkpoint, approval, recovery-attempt, and evidence elements, `dependencies` the edges); the build spec is the canonical owner:
+
 ```text
 TaskGraph
 - graphId
-- taskId
+- projectId
+- sessionId
 - goalContractId
-- nodes
-- edges
-- currentNodeIds
-- completedNodeIds
-- blockedNodeIds
+- revision
+- phases
+- dependencies
+- workers
+- completionConditions
 - lastValidatedCheckpoint
 - completionEvaluation
+- createdAt
 - updatedAt
+- lockedAt
+- lockedBy
 ```
 
-A node may be `pending`, `ready`, `running`, `waiting_approval`, `waiting_resource`, `completed`, `failed`, `blocked`, `skipped`, or `cancelled`. A node can be marked `completed` only after its evidence requirements pass. Model summaries may explain a node, but they cannot complete it without an execution or review evidence record.
+A node may be `pending`, `ready`, `running`, `waiting_approval`, `waiting_resource`, `completed`, `failed`, `blocked`, `skipped`, or `cancelled` (`TaskNode.status`, build spec §80.5.4). A node can be marked `completed` only after its evidence requirements pass. Model summaries may explain a node, but they cannot complete it without an execution or review evidence record.
 
 ### 23.2 Nested execution tree
 
@@ -1265,35 +1287,37 @@ The official API reference distinguishes a response-oriented surface for direct 
 
 ### 24.2 Provider profile
 
-The AI Settings page should store a provider profile with the following shape:
+The AI Settings page should store a provider profile with the following shape (the build spec §80.5.5 record, field for field; the build spec is the canonical owner and this section adds no field):
 
 ```text
 ProviderProfile
-- providerId
+- providerProfileId
 - displayName
 - compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE
 - protocol: chat_completions | responses | messages | custom
 - baseUrl
 - apiKeySecretRef
+- customHeadersSecretRefs
 - modelId
 - visionModelId
 - embeddingModelId
 - rerankerModelId
-- organizationIdOptional
-- projectIdOptional
-- customHeadersSecretRefs
-- defaultParameters
+- reasoningModelId
+- organizationId
+- projectId
+- capabilities
 - capabilityOverrides
 - attentionCapabilities
-- reasoningModelIdOptional
 - reasoningCapabilityProfile
 - defaultReasoningEffort
-- maxReasoningTokensOptional
+- requestSettings
 - privacyPolicy
 - networkPolicy
 - enabled
+- status
 - lastConnectionTest
-- lastHealthStatus
+- createdAt
+- updatedAt
 ```
 
 The API key and sensitive headers must be stored only through the operating-system keychain. The profile may display a masked key fingerprint and last validation time, but never the raw key.
@@ -1304,7 +1328,7 @@ The `reasoningCapabilityProfile` field holds the provider's discovered reasoning
 ReasoningCapabilityProfile
 - supportsNativeReasoning: true | false | unknown
 - supportedEffortLevels: NORMAL | EXTENDED | DEEP | EXHAUSTIVE[]
-- maxReasoningTokensOptional
+- maxReasoningTokens
 - reasoningUsage: reported | estimated | unavailable
 - effortParameterMapping: provider-specific normalized mapping
 - supportsPerRequestEffortChange: true | false
@@ -1313,7 +1337,7 @@ ReasoningCapabilityProfile
 
 `effortParameterMapping` is configuration metadata, not authority: it records how normalized effort levels translate into provider-specific parameters, but it can never alter granted effort, resource-integrity decisions, permission ceilings, or authority state.
 
-`maxReasoningTokensOptional` is provider capability metadata: the largest per-request reasoning allocation the provider accepts. It is never a Nirman execution budget, authorization ceiling, or termination condition; it bounds what ModelGateway may request from the provider, and reasoning usage reported against it is telemetry only (BS §72).
+`maxReasoningTokens` is provider capability metadata: the largest per-request reasoning allocation the provider accepts (a request's `ReasoningSettings.maxReasoningTokensOptional` is bounded by it). It is never a Nirman execution budget, authorization ceiling, or termination condition; it bounds what ModelGateway may request from the provider, and reasoning usage reported against it is telemetry only (BS §72).
 
 ### 24.3 AI Settings page behavior
 
@@ -1888,16 +1912,16 @@ The runtime must model the user’s one-shot Android request as an `AutonomousAn
 ```text
 AutonomousAndroidSession
 - sessionId
-- goal
+- userGoal
 - screenshotsAndAssets
-- AndroidApplicationContract
-- VisualSpecification
-- AndroidTechnologyPlan
+- applicationContract
+- visualSpecification
+- technologyPlan
 - taskGraph
 - workerRegistry
 - terminalSessions
 - sandboxProfile
-- activeRevision
+- activeProjectRevision
 - previewState
 - checkpoints
 - validationState
@@ -2137,11 +2161,19 @@ IntegrationOperationality
 - credentialReference
 - schemaVersion
 - policyProfile
-- state: NOT_REQUIRED | SPECIFIED | CONFIGURED | REACHABLE |
-         FUNCTIONAL | DEGRADED | USER_REQUIRED | UNAVAILABLE |
-         BLOCKED | UNKNOWN
+- connectivityState: UNKNOWN | UNREACHABLE | REACHABLE
+- authenticationState: NOT_REQUIRED | UNKNOWN | INVALID | AUTHENTICATED
+- availabilityState: UNKNOWN | UNAVAILABLE | AVAILABLE | DEGRADED
+- functionalState: UNKNOWN | NON_FUNCTIONAL | FUNCTIONAL
+- acceptanceState: NOT_REQUIRED | UNKNOWN | NOT_ACCEPTED | ACCEPTED
+- aggregateState: NOT_REQUIRED | SPECIFIED | CONFIGURED | REACHABLE |
+                  FUNCTIONAL | DEGRADED | USER_REQUIRED | UNAVAILABLE |
+                  BLOCKED | UNKNOWN
 - healthEvidenceId
+- authenticationEvidenceId
 - functionalEvidenceId
+- acceptanceEvidenceId
+- lastObservedAt
 - invalidatedBy
 
 ExternalEffectRecord
@@ -2195,18 +2227,25 @@ The canonical preview-current predicate is:
 
 ```text
 preview_is_current(P) =
-    P.projectRevision == activeProjectRevision
+    P.activeBranchId == activeBranchId
+AND P.projectRevisionId == activeProjectRevisionId
+AND P.promotionLineage is the recorded lineage of activeBranchId
+AND P.checkpointId == activeCheckpointId
 AND P.sourceFingerprint == activeSourceFingerprint
-AND P.assetManifestVersion == activeAssetManifestVersion
-AND P.toolchainLock == activeToolchainLock
-AND P.artifactFingerprint == installedArtifactFingerprint
-AND P.deviceSession == activeDeviceSession
 AND P.contractVersion == activeContractVersion
+AND P.technologyPlanVersion == activeTechnologyPlanVersion
+AND P.assetManifestVersion == activeAssetManifestVersion
+AND P.artifactFingerprint == installedArtifactFingerprint
+AND P.deviceStateFingerprint == activeDeviceStateFingerprint
+AND P.applicationStateFingerprint == activeApplicationStateFingerprint
+AND P.environmentStateFingerprint == activeEnvironmentStateFingerprint
 AND P.executionTruth in {OBSERVED, VERIFIED}
 AND requiredEvidence(P) is current
 AND no invalidation exists after P.observedAt
 AND no policy or safety block is active
 ```
+
+Every `P.` term is a field of the build spec §69.4 `PreviewRevision`; the toolchain lock and emulator session participate through `environmentStateFingerprint` and `deviceStateFingerprint` (§34.2), never as fields of their own.
 
 Only the preview coordinator may promote a candidate through this predicate. UI, workers, models, artifact inspection, and presentation reducers may report facts but cannot independently make a preview current.
 
@@ -4672,11 +4711,12 @@ CapabilityInvocation
 - invocationId
 - cycleId
 - capabilityId
+- kind: skill | tool | worker | swarm | session | analysis | packaging
 - arguments
 - requestedPermissions
 - authorityDecision: granted | denied | requires_approval
 - denialReason
-- resourceReservationRef
+- resourceReservation
 - resultRef
 - evidenceRefs
 - startedAt
@@ -5076,19 +5116,28 @@ PreviewRequest
 - buildIdentity
 ```
 
-The resulting `PreviewRevision` is immutable and contains:
+The resulting `PreviewRevision` is immutable and is the build spec §69.4 record, field for field (the build spec is the canonical owner):
 
 ```text
 PreviewRevision
 - previewRevisionId
+- projectId
 - projectRevisionId
+- activeBranchId
+- promotionLineage
 - checkpointId
 - sourceFingerprint
+- contractVersion
+- technologyPlanVersion
+- assetManifestVersion
+- buildVariant
 - artifactId
 - artifactFingerprint
 - deviceId
 - androidApiLevel
-- buildVariant
+- deviceStateFingerprint
+- applicationStateFingerprint
+- environmentStateFingerprint
 - previewMode
 - executionTruth
 - buildStatus
@@ -5096,11 +5145,11 @@ PreviewRevision
 - launchStatus
 - runtimeStatus
 - validationStatus
-- evidenceIds
 - createdAt
 - observedAt
 - invalidatedAt
 - invalidatedReason
+- evidenceIds
 ```
 
 ### 73.4 Preview state machine
@@ -5600,34 +5649,46 @@ The §73.8 rule that the preview panel is a read model of durable control-plane 
 
 The runtime implements the common boundary envelope as a correlation projection. It does not replace the authoritative specialized contracts. `WorkflowCoordinator` creates or updates the boundary reference, the relevant deterministic authority admits the operation, and the specialized service owns its state transition.
 
+The persisted envelope is the build spec §70 `IntegrationBoundaryContract`, field for field (the build spec is the canonical owner); `BoundaryOperationProjection` below is the runtime state projection keyed by its `operationRef`:
+
 ```text
-IntegrationBoundaryRuntime
+IntegrationBoundaryContract
 - boundaryId
 - integrationBoundaryVersion
+- capabilityId
 - sourceEntityRef
 - destinationEntityRef
+- boundaryKind: ipc | process | worker | workspace | persistence |
+                 provider | device | artifact | external_service |
+                 credential | signing | documentation
+- sourceContractRef
 - payloadSchemaRef
 - responseSchemaRef
 - protocolVersion
 - adapterOrBridgeRef
+- adapterOrBridgeVersion
 - authorityRefs
+- stateProjectionRefs
 - operationRef
-- specializedStateRef
-- transactionRef
+- transactionDomain: local | device | external_effect | none
 - correlationId
 - causationId
 - idempotencyKey
+- permissionProfileRef
+- credentialReference
+- lifecyclePolicyRef
+- timeoutPolicy
+- cancellationPolicy
+- retryPolicy
 - compatibilityRef
-- timeoutPolicyRef
-- cancellationPolicyRef
-- retryPolicyRef
 - observationRefs
-- evidenceRefs
-- validationRef
+- evidenceRequirements
+- validationPolicyVersion
 - downstreamEffectRefs
-- invalidationRefs
+- invalidationDependencyRefs
 - failureRecoveryRef
-- applicability
+- applicability: required | optional | not_applicable
+- notApplicableReason
 ```
 
 `BoundaryOperationProjection` is not a second lifecycle authority:

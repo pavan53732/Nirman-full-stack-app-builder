@@ -282,8 +282,8 @@ CASES = {
         "- maxReasoningTokens: integer? (execution ceiling",
         "semantic documentation"),
     "maxReasoningTokensOptional metadata-only note removed from architecture": (
-        TA, "`maxReasoningTokensOptional` is provider capability metadata",
-        "`maxReasoningTokensOptional` is a runtime execution ceiling",
+        TA, "`maxReasoningTokens` is provider capability metadata",
+        "`maxReasoningTokens` is a runtime execution ceiling",
         "semantic documentation"),
 
     # ---- certification status audit: BS §67.11 status table and DP M93 semantics
@@ -561,6 +561,18 @@ CASES = {
     "AgentLoopReducer made the lifecycle committer again": (
         TA, "1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.",
         "1. Only `AgentLoopReducer` may commit lifecycle state.",
+        "semantic documentation"),
+    "registry schema field renamed in the architecture only": (
+        TA, "ProviderProfile\n- providerProfileId\n- displayName\n", "ProviderProfile\n- providerId\n- displayName\n",
+        "semantic documentation"),
+    "registry schema field dropped from the build spec typed block": (
+        BS, "- lastValidatedCheckpoint: string? (checkpoint id)\n", "",
+        "semantic documentation"),
+    "PreviewRevision field dropped from the architecture copy": (
+        TA, "- promotionLineage\n- checkpointId\n- sourceFingerprint\n- contractVersion\n", "- checkpointId\n- sourceFingerprint\n- contractVersion\n",
+        "semantic documentation"),
+    "non-registry duplicate loses a build-spec field in the architecture": (
+        TA, "- kind: skill | tool | worker | swarm | session | analysis | packaging\n- arguments\n", "- arguments\n",
         "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",

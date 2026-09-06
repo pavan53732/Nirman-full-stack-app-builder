@@ -842,22 +842,40 @@ Project
 
 ### 11.2 Provider profile
 
+The canonical typed definition is §80.5.5; this is the same record, field for field, and technical architecture §24.2 restates it without adding or renaming a field:
+
 ```text
 ProviderProfile
-- id
-- label
+- providerProfileId
+- displayName
+- compatibilityMode
+- protocol
 - baseUrl
-- keychainReference
-- chatModelId
+- apiKeySecretRef
+- customHeadersSecretRefs
+- modelId
 - visionModelId
 - embeddingModelId
+- rerankerModelId
+- reasoningModelId
+- organizationId
+- projectId
 - capabilities
+- capabilityOverrides
+- attentionCapabilities
+- reasoningCapabilityProfile
+- defaultReasoningEffort
 - requestSettings
+- privacyPolicy
+- networkPolicy
+- enabled
+- status
+- lastConnectionTest
 - createdAt
 - updatedAt
 ```
 
-The actual API key should not be stored in this record. The record should contain only a secure keychain reference.
+The actual API key should not be stored in this record. The record should contain only a secure keychain reference (`apiKeySecretRef`; sensitive headers likewise only through `customHeadersSecretRefs`).
 
 ### 11.3 Agent task
 
@@ -5039,38 +5057,40 @@ The UI MUST never render `PREDICTED`, `SIMULATED`, or `REQUESTED` as a running a
 
 ### 69.4 Revision-bound PreviewRevision
 
-Every preview panel state MUST be represented by a revision-bound `PreviewRevision` containing at least:
+Every preview panel state MUST be represented by a revision-bound `PreviewRevision` with exactly these fields (technical architecture §73.3 restates them field for field; §36.4's preview-current predicate reads only these names):
 
 ```text
-previewRevisionId
-projectId
-projectRevisionId
-activeBranchId
-promotionLineage
-checkpointId
-sourceFingerprint
-contractVersion
-technologyPlanVersion
-assetManifestVersion
-buildVariant
-artifactId
-artifactFingerprint
-deviceId
-androidApiLevel
-deviceStateFingerprint
-applicationStateFingerprint
-environmentStateFingerprint
-previewMode
-executionTruth
-buildStatus
-installStatus
-runtimeStatus
-validationStatus
-createdAt
-observedAt
-invalidatedAt
-invalidatedReason
-evidenceIds
+PreviewRevision
+- previewRevisionId
+- projectId
+- projectRevisionId
+- activeBranchId
+- promotionLineage
+- checkpointId
+- sourceFingerprint
+- contractVersion
+- technologyPlanVersion
+- assetManifestVersion
+- buildVariant
+- artifactId
+- artifactFingerprint
+- deviceId
+- androidApiLevel
+- deviceStateFingerprint
+- applicationStateFingerprint
+- environmentStateFingerprint
+- previewMode
+- executionTruth
+- buildStatus
+- installStatus
+- launchStatus
+- runtimeStatus
+- validationStatus
+- createdAt
+- observedAt
+- invalidatedAt
+- invalidatedReason
+- evidenceIds
 ```
 
 A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, emulator state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. “Newest revision” is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
@@ -6146,7 +6166,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.1 | "Large logs and binary artifacts should be stored in task-specific directories" | MUST store outside the database | Blobs live in per-task directories; the ledger stores metadata, path, size, and content hash only |
 | BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
 | BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
-| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All eleven `WorkerMessage` fields are mandatory. A message missing any field is rejected by the reducer and never applied |
+| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All twelve `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
 | BS §26.2 | "Supported message types should include" the eleven listed | MUST support all eleven | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
 | BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
 | BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
@@ -6408,7 +6428,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §9.3 | "External network access should be disabled in high-risk review profiles" | MUST be denied in the high-risk restricted profile | The deny is unoverridable while that profile is active; raising the need for external access requires switching profile, which is itself a policy-boundary decision |
 | TA §9.4 | "Nirman should record its source, version, lockfile change, requested scripts, and scan status" | MUST record all five before execution | An unfamiliar dependency or install script with any of the five unrecorded is not executed; "unfamiliar" means absent from the project's prior lockfile state |
 | TA §9.4 | "Unverified packages should be restricted to a disposable or explicitly approved environment" | MUST run only in the Disposable/Isolated profile or an environment the user explicitly approved | A package with scan status other than verified never executes in the trusted local or restricted process profiles |
-| TA §23.1 | "The control plane should represent each autonomous task as a durable directed graph rather than a flat progress string" | MUST represent every autonomous task as a durable directed graph | The graph survives restart; every one of the eleven named element kinds (root goal, requirement nodes, implementation phases, worker tasks, dependency edges, validation nodes, checkpoints, approvals, recovery attempts, final evidence) is representable; no task status is derived from a string that is not backed by graph state |
+| TA §23.1 | "The control plane should represent each autonomous task as a durable directed graph rather than a flat progress string" | MUST represent every autonomous task as a durable directed graph | The graph survives restart; every one of the ten named element kinds (root goal, requirement nodes, implementation phases, worker tasks, dependency edges, validation nodes, checkpoints, approvals, recovery attempts, final evidence) is representable through `TaskPhase`, `TaskNode.kind`, and `dependencies` of BS §80.5.4; no task status is derived from a string that is not backed by graph state |
 | TA §23.2 | "The UI-facing execution tree should be derived from the task graph and event ledger" | MUST be derived; MUST NOT be a second source of truth | The tree holds no state absent from the graph and ledger; discarding and rebuilding the tree from them produces an identical view |
 | TA §23.2 | "It should support expandable nodes for" the tabled tree | MUST support the node kinds shown in the TA §23.2 tree | Goal, requirement extraction, planning, implementation workstream with worker handoff / file changes / commands, validation workstream with preview / tests / build / security checks / visual or device QA, recovery and backtracking, and reconciliation and final evidence are each expandable |
 | TA §23.2 | "Each displayed node should reference a durable node ID, parent ID, owner, workspace, start and end timestamps, current action, heartbeat, resource snapshot, evidence IDs, warnings, and failure fingerprint" | MUST carry all twelve references | A node missing any of the twelve is not rendered as a normal node; end timestamp is null only while the node is running, and heartbeat staleness is shown rather than hidden |
@@ -6427,7 +6447,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §24.1 | "The first implementation should support three request surfaces" | MUST support all three at first release | Chat-completion surface, response-item surface, and generic message surface each have a passing adapter fixture set before release |
 | TA §24.1 | "Nirman should never discard tool-call IDs, refusal information, reasoning metadata when available, streaming event types, finish reasons, request IDs, or provider error details" | MUST NOT discard any of the seven | Each is present in the raw-response envelope even when the normalized response has no field for it; a normalization that loses one of the seven is a defect |
 | TA §24.1 | "Nirman should support both without assuming that every configured endpoint supports the same capabilities" | MUST support both surfaces; MUST determine capability per endpoint | Capability is established by probe or explicit user override per profile; no capability is inferred from provider name, base URL, or model ID |
-| TA §24.2 | "The AI Settings page should store a provider profile with the following shape" | MUST store all tabled `ProviderProfile` fields | The twenty-four fields listed in TA §24.2 are the complete record; `apiKeySecretRef` and `customHeadersSecretRefs` hold keychain references only and the raw key is never in the record, matching the BS §80.2 keychain-reference-only resolution |
+| TA §24.2 | "The AI Settings page should store a provider profile with the following shape" | MUST store all tabled `ProviderProfile` fields | The record is the canonical BS §80.5.5 `ProviderProfile`, which TA §24.2 restates field for field (BS §11.2 is the same record); `apiKeySecretRef` and `customHeadersSecretRefs` hold keychain references only and the raw key is never in the record, matching the BS §80.2 keychain-reference-only resolution |
 | TA §24.3 | "The settings interface should allow the user to create, duplicate, test, disable, and delete provider profiles" | MUST offer all five operations | Each is reachable without editing a file by hand; deleting a profile removes its keychain entry |
 | TA §24.3 | "It should support custom base URLs and model IDs" | MUST accept a user-entered base URL and model ID | Neither is restricted to a built-in list; an unknown value is accepted and validated by Test rather than rejected by pattern |
 | TA §24.3 | "The connection test should discover or validate the configured endpoint, verify authentication, test the selected model, detect available features, measure a basic response, and record the provider request ID" | MUST perform all six checks | A Test that cannot complete one of the six reports that check as failed rather than passing the whole; Save stays disabled unless all six succeed, per ADR-208 |
@@ -6690,6 +6710,8 @@ AndroidTechnologyPlan
 - planId: string (uuid)
 - projectId: string (uuid)
 - revision: string (hash)
+- capabilityProfileId: string (AndroidCapabilityProfile identity, §5.7.1; the composition and toolchainLock this plan resolves to)
+- requestedCapabilities: string[] (CAP.ANDROID.* identifiers the goal requires)
 - selectedLanguages: ("kotlin" | "java" | "typescript" | "javascript" | "cpp" | "c")[]
 - uiSystem: ("jetpack_compose" | "android_views" | "react_native" | "expo" | "mixed")?
 - nativeModules: string[] (Maven coordinates or npm package names)
@@ -6710,6 +6732,7 @@ AndroidTechnologyPlan
 - services: string[] (service class names)
 - dependencies: string[] (Maven coordinates or npm package names)
 - testFrameworks: string[] (e.g., "junit", "espresso", "compose_ui_test")
+- validationPlan: string? (ValidationPlanner plan identity, TA §58.9)
 - rationale: string (human-readable explanation of technology choices)
 - confidence: float (0.0-1.0)
 - alternativesConsidered: { technology: string, rejectionReason: string }[]
@@ -6843,11 +6866,14 @@ TaskGraph
 - graphId: string (uuid)
 - projectId: string (uuid)
 - sessionId: string (uuid)
+- goalContractId: string (AndroidApplicationContract identity)
 - revision: string (hash)
 - phases: TaskPhase[]
 - dependencies: { fromPhase: string, toPhase: string }[]
 - workers: WorkerAssignment[]
 - completionConditions: string[]
+- lastValidatedCheckpoint: string? (checkpoint id)
+- completionEvaluation: string? (CompletionDecision reference)
 - createdAt: timestamp
 - updatedAt: timestamp
 - lockedAt: timestamp
@@ -6866,10 +6892,11 @@ TaskPhase
 TaskNode
 - taskId: string (uuid)
 - phaseId: string (uuid)
+- kind: ("goal" | "requirement" | "worker_task" | "validation" | "checkpoint" | "approval" | "recovery_attempt" | "evidence")
 - name: string
 - description: string
 - role: string (worker role)
-- status: ("pending" | "active" | "completed" | "failed" | "blocked" | "waiting_approval")
+- status: ("pending" | "ready" | "running" | "waiting_approval" | "waiting_resource" | "completed" | "failed" | "blocked" | "skipped" | "cancelled")
 - dependencies: string[] (task IDs)
 - inputRefs: string[]
 - outputRefs: string[]
@@ -6895,25 +6922,42 @@ WorkerAssignment
 
 ```text
 ProviderProfile
-- id: string (uuid)
-- label: string
+- providerProfileId: string (uuid)
+- displayName: string
+- compatibilityMode: ("openai_compatible" | "anthropic_compatible")
+- protocol: ("chat_completions" | "responses" | "messages" | "custom")
 - baseUrl: string (URL)
-- keychainReference: string (credential ref, NOT the actual key)
-- chatModelId: string
+- apiKeySecretRef: string (credential ref, NOT the actual key)
+- customHeadersSecretRefs: string[] (credential refs for sensitive headers, never header values)
+- modelId: string
 - visionModelId: string?
 - embeddingModelId: string?
+- rerankerModelId: string?
+- reasoningModelId: string?
+- organizationId: string?
+- projectId: string?
 - capabilities: ("text" | "vision" | "structured_output" | "tool_calling" | "reasoning" | "embeddings")[]
+- capabilityOverrides: { capability: string, enabled: boolean }[] (user overrides of discovered capabilities)
+- attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11; carries declaredContextTokens, the physical context capacity)
+- reasoningCapabilityProfile: ReasoningCapabilityProfile
+- defaultReasoningEffort: ("normal" | "extended" | "deep" | "exhaustive")
 - requestSettings: RequestSettings
-- compatibilityMode: ("openai_compatible" | "anthropic_compatible")
-- reasoningSupport: boolean
-- reasoningEffortLevels: ("normal" | "extended" | "deep" | "exhaustive")[]
-- maxReasoningTokens: integer? (provider capability metadata only — never a Nirman execution budget, authorization ceiling, or termination condition; usage against it is telemetry per §72)
-- reasoningUsageReporting: ("reported" | "estimated" | "unavailable")
-- contextCapacity: integer (tokens)
-- attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11)
+- privacyPolicy: string?
+- networkPolicy: string?
+- enabled: boolean
 - status: ("configured" | "reachable" | "authenticated" | "degraded" | "unavailable")
+- lastConnectionTest: timestamp?
 - createdAt: timestamp
 - updatedAt: timestamp
+
+ReasoningCapabilityProfile
+- supportsNativeReasoning: (true | false | "unknown")
+- supportedEffortLevels: ("normal" | "extended" | "deep" | "exhaustive")[]
+- maxReasoningTokens: integer? (provider capability metadata only — never a Nirman execution budget, authorization ceiling, or termination condition; usage against it is telemetry per §72)
+- reasoningUsage: ("reported" | "estimated" | "unavailable")
+- effortParameterMapping: { effortLevel: string, providerParameters: object }[] (configuration metadata, never authority)
+- supportsPerRequestEffortChange: boolean
+- supportsContinuation: (true | false | "unknown")
 
 RequestSettings
 - temperature: float (0.0-2.0, default 0.7)
