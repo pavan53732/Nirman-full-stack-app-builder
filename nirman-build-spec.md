@@ -5599,7 +5599,7 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 | `worker.reconcile` | Reconcile a worker integration transactionally (M8) | Worker coordination authority | Local | Transactional integration checkpoint projection |
 | `worker.step` | Execute one worker stage with declared capability and evidence (M5) | Worker execution authority | Local | Single-worker stage and evidence projection |
 
-The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of thirty command kinds admitted by the authenticated boundary; commands not listed are rejected before a domain transaction begins.
+The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of twenty-eight canonical command kinds admitted by the authenticated boundary; the four lifecycle UI aliases are alternate external spellings and do not create additional `commandKind` registry entries. Commands not listed are rejected before a domain transaction begins.
 
 For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins.
 
@@ -7063,7 +7063,7 @@ Each milestone's work items MUST be implemented in the order listed. Dependencie
 #### 80.7.1 M0 sequencing
 
 1. Repository layout (must exist before any code)
-2. TypeScript and Rust conventions (must exist before any code)
+2. C#/.NET, WinUI 3, Windows App SDK, and Rust conventions (must exist before any code)
 3. Configuration model (needed by all subsequent work)
 4. Logging standard (needed by all subsequent work)
 5. Test fixtures (needed for exit gate)
