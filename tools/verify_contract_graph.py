@@ -1414,6 +1414,20 @@ def check_semantic_documentation(docs, R, D, root="."):
             if token in readme:
                 D.add("semantic documentation", "README stop wording",
                       f"README says {token!r}: Nirman stops on recurring failure after materially different repairs, not on a count (ADR-218)")
+    # Approval expiry has exactly two rules (BS §26.13); every statement of it
+    # must carry both so no document reads as clock-only or context-only.
+    if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:
+        D.add("semantic documentation", "approval expiry rules",
+              "BS §26.13 must define the two approval-expiry rules (context expiry and the §80.3 clock, whichever comes first)")
+    for token, label in (("Approval requests must expire under the two build spec §26.13 rules", "TA §7.3"),
+                         ("or when the build spec §80.3 approval-expiry clock elapses, whichever comes first", "TA §23.6")):
+        if token not in ta:
+            D.add("semantic documentation", "approval expiry rules",
+                  f"{label} states approval expiry without both §26.13 rules (context expiry and the §80.3 clock)")
+    exp_row = re.search(r"^\| Approval expiry \| ([^|]+) \| ([^|]+) \|", bs, re.M)
+    if not exp_row or exp_row.group(1).strip() != "24 hours" or exp_row.group(2).strip() != "1-168 hours":
+        D.add("semantic documentation", "approval expiry rules",
+              "§80.3 approval-expiry row must read default 24 hours, range 1-168 hours (the values §26.13 and TA §7.3 cite)")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

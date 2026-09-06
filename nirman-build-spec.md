@@ -1765,7 +1765,7 @@ Although Nirman runs as a Windows desktop application, its generated target is A
 
 When a minimized or background task requires approval, the control plane should create a durable approval request with an expiry policy. The desktop application should display it on return and may use an operating-system notification when notifications are enabled.
 
-The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task until later. An approval must be bound to the exact action, workspace, worker, and policy context that generated it. Expired approvals must not be reused.
+The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task until later. An approval must be bound to the exact action, workspace, worker, and policy context that generated it. A pending approval request expires in exactly two ways, whichever comes first: immediately when the bound action, task state, or policy context changes (context expiry), or when the per-project approval-expiry clock of §80.3 (default 24 hours, range 1–168 hours) elapses (clock expiry). Both emit `approval_expired`; expired approvals must not be reused, and a session-scoped approval additionally ends with its session.
 
 ### 26.14 Continuous execution state machine
 
@@ -6226,7 +6226,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.11 | "The runtime should resolve a project toolchain through a version manager, portable installation, or explicitly configured local path" | MUST resolve by one of the three | In that precedence order. Unresolvable toolchain fails the build with a diagnostic; it never falls back to a global install |
 | BS §26.11 | "The environment record should contain executable paths, detected versions, source of installation, compatibility result, and reproducibility status" | MUST contain all five | Bound to the environment fingerprint used for evidence |
 | BS §26.12 | "Runtime operations should use an Android-focused interface" | MUST use the Android interface | Defining process launch, termination, filesystem policy, environment discovery, port management, emulator control, Logcat capture, Gradle and Metro execution, quotas, and APK handling |
-| BS §26.13 | "the control plane should create a durable approval request with an expiry policy" | MUST create durable with expiry | Default expiry 24 hours per §80.3, range 1-168 hours. Survives UI restart |
+| BS §26.13 | "the control plane should create a durable approval request with an expiry policy" | MUST create durable with expiry | Clock expiry default 24 hours per §80.3, range 1-168 hours, per project; context expiry is immediate when the bound action, task state, or policy changes; whichever comes first. Survives UI restart |
 | BS §26.13 | "The desktop application should display it on return" | MUST display on reconnect | Pending approvals shown immediately on UI reconnect, before any other task interaction |
 | BS §26.13 | "The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task" | MUST offer all five options | Session-scoped approval binds to the exact action signature and expires with the session |
 | BS §26.14 | "Long-running tasks should use an explicit state machine" | MUST use the §26.14 state machine | The listed states and transitions are binding. No informal loop may substitute |

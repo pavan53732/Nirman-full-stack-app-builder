@@ -305,7 +305,7 @@ Initial defaults should be configurable and conservative:
 
 An approval request should be durable. If the application is minimized, the control plane may issue a Windows notification. If the application is closed, the request should appear when Nirman reopens.
 
-Approval requests must expire. The user can approve once, approve a matching rule for the session, deny once, deny the worker, or pause the entire task. The approval record must include the exact command, path, worker, workspace, policy, and task state.
+Approval requests must expire under the two build spec §26.13 rules — context expiry when the bound action, task state, or policy changes, and clock expiry at the per-project §80.3 approval-expiry setting (default 24 hours, range 1–168 hours), whichever comes first. The user can approve once, approve a matching rule for the session, deny once, deny the worker, or pause the entire task. The approval record must include the exact command, path, worker, workspace, policy, and task state.
 
 ### 7.4 Scheduled tasks
 
@@ -1246,7 +1246,7 @@ The validation pipeline must include architectural-drift checks for duplicate co
 
 The policy engine should classify actions into ordinary approved work, reviewable work, and privileged work. Ordinary reversible actions inside an approved workspace may proceed without repeated prompts. Reviewable and privileged actions create approval requests only when the action is reached.
 
-An approval request must include the exact action, worker, workspace, path or destination, policy rule, risk explanation, requested data, predicted side effect, and choices. Approval must be bound to the request fingerprint and must expire when the action, task state, or policy changes.
+An approval request must include the exact action, worker, workspace, path or destination, policy rule, risk explanation, requested data, predicted side effect, and choices. Approval must be bound to the request fingerprint and must expire when the action, task state, or policy changes (context expiry) or when the build spec §80.3 approval-expiry clock elapses, whichever comes first (build spec §26.13).
 
 ### 23.7 Termination coordinator
 
