@@ -1294,6 +1294,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The worker cannot modify unrelated source, change runtime authority, grant permissions, or mark completion. Each asset is linked to a source revision and construction transaction.
 
+**Amended under ADR-049:** the dedicated `BrandAssetWorker` role is withdrawn; ADR-049's single canonical worker registry admits no additional worker taxonomy. Branding and visual-asset work executes as a scoped asset transaction of the canonical UI Worker under the `BrandAssetPipeline` (BS §50, TA §56) with the same restrictions this decision imposed on the worker — it cannot modify unrelated source, change the technology plan, grant permissions, or mark completion. Explicit ownership, provenance, regeneration history, and validation are carried by the versioned `BrandManifest` and `AssetManifest`, the asset transaction, `AssetValidator`, `ArtifactAssetInspector`, and `BrandAssetCompletionGate`, so asset work remains mandatory and gated rather than a side effect; those records and gates are unchanged.
+
 ## ADR-104: Asset completion requires project, preview, and artifact proof
 
 **Status:** Accepted

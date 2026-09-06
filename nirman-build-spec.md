@@ -1211,7 +1211,7 @@ To prevent the latency and scalability bottlenecks of traditional sequential too
 | Repository Scout | Repository, dependency, and environment mapping | Read-only background worker |
 | Requirements Planner | Requirements, assumptions, interfaces, and acceptance criteria | Planning artifacts only |
 | Architecture Worker | Architecture and integration design | Design artifacts only |
-| UI Worker | Frontend screens, components, styling, and interactions | Assigned isolated workspace |
+| UI Worker | Frontend screens, components, styling, interactions, and branding/visual assets (§50) | Assigned isolated workspace |
 | Android Data and Integration Worker | Generated Android data layer, persistence, service integrations, and business logic | Assigned isolated workspace |
 | Test and QA Worker | Tests, fixtures, regression checks, and validation execution | Test paths and approved commands |
 | Debugging Worker | Failure diagnosis and scoped repairs | Assigned repair paths |
@@ -1250,7 +1250,7 @@ For multi-worker tasks and parallel swarms, Nirman maintains a centralized, mach
 
 - **Atomic Task Units**: Tasks are broken down into discrete, atomic items with defined dependencies (e.g., Task 3 cannot start until Task 1 and Task 2 pass their tests).
 - **Claim-and-Update Protocol**: Background workers claim unassigned tasks through atomic ledger transactions, mark their progress in real time, and record completion evidence (test logs, file paths) as ledger rows with artifact references.
-- **Inter-Agent Handoffs**: Workers can read each other's completion summaries. For instance, the Test Engineer reads the Backend Specialist's implementation notes to write precise integration tests.
+- **Inter-Agent Handoffs**: Workers can read each other's completion summaries. For instance, the Test and QA Worker reads the Android Data and Integration Worker's implementation notes to write precise integration tests.
 
 ---
 
@@ -1316,7 +1316,7 @@ Recommended built-in workers are shown below.
 | Repository Scout | Map files, symbols, dependencies, entry points, and environment | Read-only |
 | Requirements Planner | Convert requests into specifications, assumptions, and acceptance criteria | Read-only |
 | Architecture Worker | Design structure, interfaces, data flow, and integration choices | Read-only; design artifacts |
-| UI Worker | Build screens, components, styling, interactions, and responsive behavior | Workspace edits; preview |
+| UI Worker | Build screens, components, styling, interactions, responsive behavior, and branding/visual assets under a scoped asset transaction (§50) | Workspace edits; preview |
 | Android Data and Integration Worker | Build the Android data layer, persistence, validation, and integrations with external services | Workspace edits; approved commands |
 | Test and QA Worker | Create and run unit, integration, regression, and edge-case checks | Test files; test commands |
 | Debugging Worker | Diagnose failures and apply minimal or alternative repairs | Approved file edits; diagnostics |

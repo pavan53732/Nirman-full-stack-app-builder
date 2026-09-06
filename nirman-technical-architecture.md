@@ -254,7 +254,7 @@ The worker registry must use one canonical role taxonomy across the product, arc
 | Repository Scout | Repository, dependency, and environment mapping | Read-only |
 | Requirements Planner | Requirements, assumptions, interfaces, acceptance criteria | Planning artifacts only |
 | Architecture Worker | Architecture and integration design | Design artifacts only |
-| UI Worker | Frontend screens, components, styling, interactions | Assigned workspace |
+| UI Worker | Frontend screens, components, styling, interactions, branding and visual assets (§56) | Assigned workspace |
 | Android Data and Integration Worker | Android data layer, persistence schemas, service integrations, business logic | Assigned workspace |
 | Test and QA Worker | Tests, fixtures, regression checks | Test paths and approved commands |
 | Debugging Worker | Failure diagnosis and repairs | Assigned repair paths |
@@ -2916,13 +2916,13 @@ If summarization fails, Nirman emits a safe generic progress event and continues
 10. Calm, Inspect, and Developer modes change presentation only, not runtime behavior.
 ## 56. Brand and Asset Runtime Architecture
 
-### 56.1 BrandAssetWorker
+### 56.1 Asset execution under the canonical UI Worker
 
-`BrandAssetWorker` is the specialized worker responsible for turning user brand intent, screenshots, supplied assets, and the AndroidConstructionContract into validated Android visual assets. It may propose generated or vector assets, but the runtime validates every output before integration and promotion.
+Branding and visual-asset work is executed by the canonical UI Worker (§6.5; ADR-049) inside a scoped asset transaction; no dedicated asset worker role exists (ADR-103 as amended). Within that scope the UI Worker turns user brand intent, screenshots, supplied assets, and the AndroidConstructionContract into validated Android visual assets. It may propose generated or vector assets, but the runtime validates every output before integration and promotion.
 
-Responsibilities include brand-intent extraction, BrandManifest creation, asset planning, provider/image-generation requests, vector or deterministic local fallback, adaptive-icon preparation, splash integration, notification-icon preparation, density/format conversion, resource integration, content hashing, visual inspection, accessibility checks, and regeneration after a branding change.
+Responsibilities within the asset scope include brand-intent extraction, BrandManifest creation, asset planning, provider/image-generation requests, vector or deterministic local fallback, adaptive-icon preparation, splash integration, notification-icon preparation, density/format conversion, resource integration, content hashing, visual inspection, accessibility checks, and regeneration after a branding change.
 
-The worker is scoped to the asset transaction and cannot modify unrelated source, change the technology plan, grant permissions, or mark the APK complete.
+The asset scope is bound to the asset transaction: within it the UI Worker cannot modify unrelated source, change the technology plan, grant permissions, or mark the APK complete.
 
 ### 56.2 BrandManifest and AssetManifest schemas
 
@@ -3023,7 +3023,7 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 ### 56.9 Technical acceptance tests
 
 1. A brand request creates versioned BrandManifest and AssetManifest records.
-2. BrandAssetWorker cannot modify unrelated source or bypass transaction scope.
+2. The UI Worker's asset transaction cannot modify unrelated source or bypass transaction scope.
 3. Adaptive, legacy, monochrome, splash, notification, in-app, and theme assets are validated according to the target Android configuration.
 4. Resource references and manifest entries resolve before build.
 5. APK extraction confirms requested assets are actually packaged.

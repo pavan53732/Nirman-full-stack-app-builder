@@ -1075,9 +1075,9 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 | Back-pressure | UI disconnect cannot stop autonomous execution |
 # M62–M64: Brand and Asset Completion Milestones
 
-## M62 — BrandManifest, AssetManifest, and BrandAssetWorker
+## M62 — BrandManifest, AssetManifest, and UI Worker asset scope
 
-Implement versioned BrandManifest and AssetManifest schemas, brand-intent extraction, screenshot references, asset provenance, content hashes, regeneration history, and the scoped BrandAssetWorker.
+Implement versioned BrandManifest and AssetManifest schemas, brand-intent extraction, screenshot references, asset provenance, content hashes, regeneration history, and the scoped asset transaction executed by the canonical UI Worker (ADR-049; ADR-103 as amended — no dedicated asset worker role).
 
 **Exit gate:** a user request for a logo, icon, splash screen, notification icon, illustration, or visual identity creates explicit asset requirements and a traceable asset plan.
 
