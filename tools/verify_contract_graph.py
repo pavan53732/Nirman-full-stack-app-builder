@@ -1380,6 +1380,15 @@ def check_semantic_documentation(docs, R, D):
         "CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED": bs,
         "CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY": bs,
         "ADR-219": dec,
+        "ResourceExecutionProfile\n- planRevision": ta,
+        "`ResourceExecutionProfile` (TA §69.3)": bs,
+        "ResourceExecutionProfile with honest confidence": dev,
+        "recovery-attempt policy (`recoveryAttemptPolicy`) bounds": bs,
+        "The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded": ta,
+        "recovery-attempt policies (`recoveryAttemptPolicy`)": dev,
+        "**Execution suitability**": bs,
+        "maxReasoningTokens: integer? (provider capability metadata only": bs,
+        "`maxReasoningTokensOptional` is provider capability metadata": ta,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1655,6 +1664,9 @@ def check_semantic_documentation(docs, R, D):
         "CLAUSE.COST.EXHAUSTION_EXPLICIT", "CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET",
         "CAP.ANDROID.BUDGETED_AUTONOMY", "TEST-COST-001", "EV-COST-001",
         "Deliberation max passes", "maxPasses", "max_passes",
+        "PlanCostEstimate", "ContextBudgetAllocator", "mutation budget",
+        "mutation-budget", "retry budget", "Retry budget", "Cost efficiency",
+        "lower-cost model",
     )
     for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
         for token in banned_execution_controls:

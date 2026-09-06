@@ -232,6 +232,37 @@ CASES = {
     "M95 mapping loses its contract": (
         DEV, "| M95 | CONTRACT.RUNTIME.DELIBERATION |", "| M95 | |", "reverse break"),
 
+    # ---- ADR-218 vocabulary cleanup (second pass): budget wording must not return
+    "mutation budget reintroduced in broker validation list": (
+        BS, "schema, syntax, mutation safety constraints, dependency policy, and evidence requirements.",
+        "schema, syntax, mutation budget, dependency policy, and evidence requirements.",
+        "semantic documentation"),
+    "retry budget reintroduced in defaults table": (
+        BS, "| Recovery-attempt policy: materially different attempts per failure fingerprint (transient failures) | 3 | 1-10 | Per task |",
+        "| Retry budget (transient failures) | 3 | 1-10 | Per task |",
+        "semantic documentation"),
+    "recovery-attempt policy definition removed from architecture": (
+        TA, "The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded",
+        "The retry ceiling is policy-configurable and bounded",
+        "semantic documentation"),
+    "cost-efficiency routing criterion reintroduced": (
+        BS, "4. **Execution suitability**", "4. **Cost efficiency**",
+        "semantic documentation"),
+    "PlanCostEstimate schema reintroduced in architecture": (
+        TA, "ResourceExecutionProfile\n- planRevision", "PlanCostEstimate\n- planRevision",
+        "semantic documentation"),
+    "ResourceExecutionProfile removed from development plan": (
+        DEV, "ResourceExecutionProfile with honest confidence", "plan estimate with honest confidence",
+        "semantic documentation"),
+    "maxReasoningTokens metadata-only note removed from build spec": (
+        BS, "- maxReasoningTokens: integer? (provider capability metadata only",
+        "- maxReasoningTokens: integer? (execution ceiling",
+        "semantic documentation"),
+    "maxReasoningTokensOptional metadata-only note removed from architecture": (
+        TA, "`maxReasoningTokensOptional` is provider capability metadata",
+        "`maxReasoningTokensOptional` is a runtime execution ceiling",
+        "semantic documentation"),
+
     # ---- ADR-219: attention reliability is measured, placed, gated, verified
     "fixed deliberation pass ceiling table row reintroduced": (
         BS, "| Deliberation pass ceiling | None (progress-governed per §68.13) | N/A | Not overridable |",
