@@ -646,6 +646,9 @@ CASES = {
     "skill manifest requests a permission": (
         "crates/nirman-skills/skills/android/android-toolchain/skill.json", '"permissionRequests": [],', '"permissionRequests": ["filesystem:write"],',
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill capability id missing from the TA §84.1 matrix": (
+        TA, "| `ANDROID_EMULATOR_EXECUTION` | windows | environment_dependent |", "| `ANDROID_EMULATOR_EXECUTION` | windows | environment-dependent |",
+        "semantic documentation"),
     "skill manifest names a capability outside the vocabulary": (
         "crates/nirman-skills/skills/windows/windows-runtime-validation/skill.json", '"WINDOWS_NATIVE_EXECUTION"', '"WINDOWS_DEVICE_EXECUTION"',
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),

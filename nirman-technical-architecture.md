@@ -6151,6 +6151,14 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 | `path_length` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, effective_max_path_length, long_path_policy_status | 1 |
 | `security_software_interference` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, real_time_scanning_detected, exclusion_status | 1 |
 | `hypervisor_availability` | windows | environment_dependent | windows_sdk | windows_host_fingerprint, firmware_virtualization_enabled, hypervisor_platform_present, conflicting_consumers | 1 |
+| `HOST_TOOL_OBSERVATION` | windows | available | none (host shell) | windows_host_fingerprint, tool_version_probe_output_per_required_tool | 1 |
+| `ENVIRONMENT_REPAIR` | windows | environment_dependent | package_manager_or_sdk_manager | windows_host_fingerprint, repair_admission_decision, pre_and_post_repair_tool_version_probe | 1 |
+| `WINDOWS_HOST_TOOLCHAIN` | windows | environment_dependent | dotnet_sdk, windows_app_sdk, msbuild, rust_toolchain_x64 | windows_host_fingerprint, toolchain_version_probe, target_build_observation | 1 |
+| `WINDOWS_NATIVE_EXECUTION` | windows | environment_dependent | windows_sdk, validation_environment_lease | windows_host_fingerprint, validation_environment_lease_id, process_launch_observation_with_executable_path | 1 |
+| `ANDROID_BUILD_TOOLCHAIN` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, android_toolchain_manifest_lock, gradle_build_observation | 1 |
+| `ANDROID_EMULATOR_EXECUTION` | windows | environment_dependent | android_emulator, hypervisor_acceleration | windows_host_fingerprint, hypervisor_availability_result, emulator_boot_observation_with_session_id | 1 |
+
+The six upper-case rows are the closed skill capability-id vocabulary of build spec §79.7: they are the only ids a `SkillPackage.requiredCapabilities` may name, and each is classified per environment by `EnvironmentCapabilityPlanner` from the listed evidence, never asserted by a skill or a model. `HOST_TOOL_OBSERVATION` is the one capability whose expected result is `available`, because the preflight skill that produces every other classification must not be gated by a classification it has not yet produced.
 
 Job Object containment is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 

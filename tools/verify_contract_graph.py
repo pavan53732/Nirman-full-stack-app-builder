@@ -2383,6 +2383,10 @@ def check_skill_bodies(docs, D, repo_root):
         declared[row[0]] = set(re.findall(r"`([A-Z][A-Z_]+)`", row[1]))
     if not vocab or not declared:
         D.add("semantic documentation", "BS §79.7", "capability-id vocabulary or per-skill requiredCapabilities table not found")
+    ta_rows = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| windows \| (?:available|environment_dependent|unavailable_by_platform) \|", docs["ta"], re.M))
+    for cid in sorted(vocab - ta_rows):
+        D.add("semantic documentation", f"capability id {cid}",
+              "named in the BS §79.7 skill vocabulary but absent from the TA §84.1 PlatformCapabilityEntry matrix rows")
     for name in names:
         path = bodies.get(name)
         if path is None:
