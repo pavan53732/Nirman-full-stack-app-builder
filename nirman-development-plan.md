@@ -535,7 +535,7 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
 
-The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible local-provider requests. It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
+The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible cloud-provider requests (cloud-hosted providers only per ADR-207). It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
 
 Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
 
