@@ -1777,6 +1777,8 @@ COMPLETED or ESCALATED
 
 Every state transition should be persisted with a reason and event reference. A task may continue automatically only from states marked recoverable. A task that reaches `ESCALATED` must require a new user action or explicit retry strategy.
 
+This is the canonical **task-execution state set** (`TaskExecutionState`). It is the only vocabulary for the state of one autonomous task, and technical architecture §5.1 implements it with exactly these names. It is distinct from, and nested inside, the **session product lifecycle** of §33.2 (`ProductLifecycleState`, whose machine-readable enum is fixed in §5.7.2): a session in `Implementing` may own many tasks, each in one of the states above. Kernel cycle outcomes (technical architecture §71.4) and completion classifications (§27.10) are neither task nor session states; the §33.2 mapping table fixes how each of them projects onto these two sets. No document may introduce a further task or session state vocabulary (AGENTS.md: one canonical lifecycle).
+
 ### 26.15 Updated implementation acceptance criteria
 
 The initial architecture is not complete until it can demonstrate the following behavior:
@@ -2221,6 +2223,28 @@ Created → Understanding → Planning → EnvironmentPreparing
 ```
 
 Safe terminal states are `BlockedByPolicy`, `BlockedByMissingInformation`, `ProviderUnavailable`, `EnvironmentUnrecoverable`, `Cancelled`, and `SafelyFailed`. Models, workers, skills, hooks, and UI events may propose transitions but cannot commit them directly.
+
+This PascalCase machine is the human-readable form of the session `ProductLifecycleState` enum fixed in §5.7.2; the two are one lifecycle with one committer, related name by name:
+
+| §33.2 session state | §5.7.2 `ProductLifecycleState` |
+|---|---|
+| `Created` | `CREATED` |
+| `Understanding`, `Planning`, `EnvironmentPreparing` | `PLANNING` |
+| `ProjectSynthesizing` | `SYNTHESIZING` |
+| `Implementing` | `IMPLEMENTING` |
+| `Previewing` | `PREVIEWING` |
+| `Testing`, `Revalidating` | `VALIDATING` |
+| `Recovering` | `RECOVERING` |
+| `Packaging` | `PACKAGING` |
+| `Completed` | `COMPLETED` |
+| `BlockedByPolicy`, `EnvironmentUnrecoverable` | `BLOCKED` |
+| `BlockedByMissingInformation`, `ProviderUnavailable` | `USER_REQUIRED` |
+| `Cancelled` | `CANCELLED` |
+| `SafelyFailed` | `SAFELY_FAILED` |
+
+The session lifecycle contains the per-task execution states of §26.14 (`TaskExecutionState`): a task's `COMPLETED` or `ESCALATED` is an input to the session's next transition, never a session state itself. Two further vocabularies project onto these sets and add no states: a kernel cycle outcome (technical architecture §71.4: `COMPLETED`, `BLOCKED`, `WAITING`, `RECOVERED`, `SAFELY_FAILED`, `ESCALATED`) is the result of one reasoning cycle inside a `RUNNING` task and maps to the task states `VALIDATING`/`COMPLETED`, `WAITING_APPROVAL`/`WAITING_RESOURCE`, `RECOVERING`, `ESCALATED`, and to the session terminal `SafelyFailed`; a completion classification (§27.10: Completed, Completed with warnings, Blocked, Escalated, Cancelled, Failed) is the user-facing report of the terminal state a task or session reached and is derived from it.
+
+Exactly one component commits transitions in either set: `LifecycleAuthority`, which is the pure session reducer of technical architecture §45.1 (`SessionReducer`; ADR-066, ADR-159). The kernel's `AgentLoopReducer` (technical architecture §58.2) derives the next *proposed* task state from a cycle outcome and submits it as a validated event; it holds no commit right. No other reducer, authority, projection, or continuity record may commit a lifecycle transition.
 
 ### 33.3 Renewable leases and operation capabilities
 
@@ -5775,7 +5799,7 @@ Any aggregate state
   → ACTIVE_BACKGROUND only after all required dimensions are healthy and reconciliation is resolved
   → USER_REQUIRED or SAFELY_FAILED when deterministic authorities cannot safely continue
 
-ProductLifecycleState=Packaging
+ProductLifecycleState=PACKAGING (§33.2 `Packaging`)
   + CompletionDecision=COMPLETED
   → aggregateState=COMPLETED
 ```

@@ -150,12 +150,15 @@ Under the `Unattended / Full Autonomy` profile, the runtime must select and appl
 
 ### 5.1 Task state machine
 
+This machine implements the canonical task-execution state set of build spec §26.14 (`TaskExecutionState`) with exactly its names; it adds none and omits none.
+
 ```text
-QUEUED → PLANNING → READY → RUNNING → VALIDATING → COMPLETED
+QUEUED → PLANNING → READY → RUNNING → VALIDATING → RECONCILING → COMPLETED
                     │          │          │
                     │          │          ├── WAITING_APPROVAL
                     │          │          ├── WAITING_RESOURCE
                     │          │          ├── RECOVERING
+                    │          │          ├── PAUSED
                     │          │          └── CANCEL_REQUESTED
                     │          │
                     │          └── FAILED_RETRYABLE → RECOVERING
@@ -163,7 +166,7 @@ QUEUED → PLANNING → READY → RUNNING → VALIDATING → COMPLETED
                     └── ESCALATED
 ```
 
-Every transition should include a reason, actor, timestamp, task revision, and event ID. The transition function must reject invalid transitions, such as moving a cancelled task directly to completed without a new retry decision.
+`RECONCILING` resolves unknown external effects, leases, emulator sessions, or provider responses after validation and before completion (build spec §77); `PAUSED` is entered only by a user or policy directive and resumes to `RUNNING`. Every transition should include a reason, actor, timestamp, task revision, and event ID. The transition function must reject invalid transitions, such as moving a cancelled task directly to completed without a new retry decision.
 
 ### 5.2 Worker state machine
 
@@ -2091,6 +2094,8 @@ Created → Understanding → Planning → EnvironmentPreparing
 
 Terminal states are `BlockedByPolicy`, `BlockedByMissingInformation`, `ProviderUnavailable`, `EnvironmentUnrecoverable`, `Cancelled`, and `SafelyFailed`. State transitions are accepted only through deterministic transition guards. A model response, worker message, skill, hook, or frontend event can request a transition but cannot commit one.
 
+This machine is the build spec §33.2 session lifecycle; its machine-readable enum is `ProductLifecycleState` (build spec §5.7.2) and the name-by-name mapping between the two, plus the projection of per-task states (§5.1 / build spec §26.14), kernel cycle outcomes (§71.4), and completion classifications (§23.7) onto it, is fixed in build spec §33.2 and is not restated here. The lifecycle authority is `LifecycleAuthority` = the pure `SessionReducer` of §45.1 (ADR-159): one component, two names, one commit path for session and task transitions alike.
+
 ### 36.3 Renewable session leases and operation capabilities
 
 The session supervisor maintains a renewable lease containing session ID, supervisor generation, last heartbeat, progress sequence, project revision, sandbox profile, and authority policy. Lease renewal is permitted only when the task is making validated progress or is waiting on a classified external condition.
@@ -2406,7 +2411,7 @@ This section translates the accepted Sync-AI-derived principles into Nirman’s 
 |---|---|---|
 | ModelGateway and AI workers | Interpretation, planning, technology proposals, repair proposals, visual analysis, decision summaries | Lifecycle, permissions, direct file writes, arbitrary process authority, completion, artifact promotion |
 | Control-plane supervisor | Scheduling, leases, retries, recovery, worker lifecycle, health, event emission | Model reasoning or unvalidated mutation |
-| Lifecycle reducer | Durable state transitions and replay | Side effects |
+| `LifecycleAuthority` (`SessionReducer`, §45.1) | Durable session and task state transitions and replay | Side effects |
 | Policy authority | Permissions, sandbox profiles, physical resource requirements, network and device policy | AI strategy |
 | Transaction manager | Snapshots, revision checks, conflict detection, commit/rollback | Unvalidated model output |
 | Toolchain authority | Android toolchain resolution, lock verification, environment construction | User project semantics |
@@ -2459,7 +2464,7 @@ No UI command may bypass the control plane to invoke a terminal, edit a file, la
 
 ### 45.1 Session reducer
 
-`SessionReducer` is a pure function over validated events. It receives the previous state and an event, validates the transition, and returns the next immutable state. Side effects are emitted as commands for supervised handlers.
+`SessionReducer` is a pure function over validated events. It receives the previous state and an event, validates the transition, and returns the next immutable state. Side effects are emitted as commands for supervised handlers. `SessionReducer` is the implementation of `LifecycleAuthority` (§36.2, §57.2; ADR-066, ADR-159): it is the only component that commits a session-lifecycle (build spec §33.2) or task-execution (build spec §26.14) transition. Proposed transitions from the kernel's `AgentLoopReducer` (§58.2), workers, skills, hooks, or the UI arrive as events and are accepted or rejected here.
 
 ```text
 Event received
@@ -3104,7 +3109,7 @@ Nirman.exe
               │ authenticated named-pipe protocol
               ▼
 NirmanSupervisor.exe
-├── LifecycleAuthority
+├── LifecycleAuthority (SessionReducer + EventStore, §45)
 ├── TaskScheduler
 ├── WorkerRegistry
 ├── PolicyAuthority
@@ -3389,7 +3394,7 @@ EVALUATE_PROGRESS
   └── COMPLETE
 ```
 
-Only `AgentLoopReducer` may commit a lifecycle transition. A provider delta, partial stream, worker message, or UI action may request a transition but cannot apply one directly.
+`AgentLoopReducer` is the kernel's deterministic step function: it folds a cycle outcome (§71.4) into the next proposed task-execution state and emits that proposal as a validated kernel event. It commits nothing. The only committer of a lifecycle transition is `LifecycleAuthority`, the `SessionReducer` of §45.1 (build spec §33.2; ADR-159), which accepts or rejects the kernel's proposal like any other event. A provider delta, partial stream, worker message, or UI action may request a transition but cannot apply one directly.
 
 ### 58.3 Durable schemas
 
@@ -3640,7 +3645,7 @@ Deliberation checkpoints, rejected strategies, and alternative hypotheses are in
 
 ### 58.15 Runtime invariants
 
-1. Only the reducer commits lifecycle state.
+1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.
 2. Only the ToolBroker executes tools.
 3. Only PolicyAuthority grants capabilities.
 4. Only ConstructionTransactionManager mutates the project.
@@ -5022,7 +5027,8 @@ Prompt builder
     → ConstructionTransaction / ToolBroker
     → supervised observation
     → EvidenceAuthority
-    → AgentLoopReducer
+    → AgentLoopReducer (proposed transition)
+    → LifecycleAuthority / SessionReducer (committed transition)
 ```
 
 A prompt, model response, reasoning stream, or worker handoff cannot bypass this sequence.

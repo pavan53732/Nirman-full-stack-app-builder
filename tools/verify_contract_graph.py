@@ -1274,6 +1274,61 @@ def check_semantic_documentation(docs, R, D):
         D.add("semantic documentation", "ADR-164 lock",
               "ADR-164 (language adapters) must not lock the regression-localization contract")
 
+    # Lifecycle identity (BS §26.14 / §33.2, TA §5.1 / §36.2, AGENTS.md): the
+    # task-execution state set is defined once in BS §26.14 and implemented
+    # name-for-name in TA §5.1; the session lifecycle is defined once in BS
+    # §33.2 and restated verbatim in TA §36.2; every §5.7.2 ProductLifecycleState
+    # value appears in the §33.2 mapping table; and exactly one component is
+    # named as the committer.
+    def _fence_after(text, heading):
+        i = text.find(heading)
+        if i < 0:
+            return None
+        m = re.search(r"```text\n(.*?)```", text[i:], re.S)
+        return m.group(1) if m else None
+    def _states(block):
+        return set(re.findall(r"\b[A-Z][A-Z_]{3,}\b", block or ""))
+    bs_task = _states(_fence_after(bs, "### 26.14 Continuous execution state machine"))
+    ta_task = _states(_fence_after(ta, "### 5.1 Task state machine"))
+    if not bs_task or not ta_task:
+        D.add("semantic documentation", "task-execution state set",
+              "BS §26.14 or TA §5.1 state-machine fence not found")
+    elif bs_task != ta_task:
+        D.add("semantic documentation", "task-execution state set",
+              f"TA §5.1 must implement BS §26.14 name for name (BS only {sorted(bs_task - ta_task)}, "
+              f"TA only {sorted(ta_task - bs_task)})")
+    bs_sess = _fence_after(bs, "### 33.2 Authoritative lifecycle")
+    ta_sess = _fence_after(ta, "### 36.2 Lifecycle authority")
+    if not bs_sess or not ta_sess or bs_sess.strip() != ta_sess.strip():
+        D.add("semantic documentation", "session lifecycle",
+              "TA §36.2 must restate the BS §33.2 session lifecycle verbatim")
+    pls = re.search(r"ProductLifecycleState = ((?:[A-Z_]+\s*\|\s*)+[A-Z_]+)", bs)
+    sec332 = bs[bs.find("### 33.2 Authoritative lifecycle"):bs.find("### 33.3")]
+    if not pls or "| §33.2 session state | §5.7.2 `ProductLifecycleState` |" not in sec332:
+        D.add("semantic documentation", "lifecycle mapping",
+              "BS §33.2 must carry the session-state ↔ ProductLifecycleState mapping table")
+    else:
+        mapped = set()
+        for row in re.findall(r"^\| `[^\n]*\| ([^\n]*) \|$", sec332, re.M):
+            mapped.update(re.findall(r"`([A-Z_]+)`", row))
+        for value in re.findall(r"[A-Z_]+", pls.group(1)):
+            if value not in mapped:
+                D.add("semantic documentation", "lifecycle mapping",
+                      f"ProductLifecycleState value {value} is missing from the BS §33.2 mapping table")
+    committer_rules = (
+        ("Exactly one component commits transitions in either set: `LifecycleAuthority`, which is the pure session reducer", bs, "BS §33.2"),
+        ("The only committer of a lifecycle transition is `LifecycleAuthority`, the `SessionReducer` of §45.1", ta, "TA §58.2"),
+        ("1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.", ta, "TA §58.15"),
+    )
+    for token, text, where in committer_rules:
+        if token not in text:
+            D.add("semantic documentation", "lifecycle committer",
+                  f"{where} must name LifecycleAuthority/SessionReducer as the single lifecycle committer")
+    for bad in ("Only `AgentLoopReducer` may commit", "Only the reducer commits lifecycle state."):
+        if bad in ta:
+            D.add("semantic documentation", "lifecycle committer",
+                  f"architecture reintroduces an ambiguous or second committer: {bad!r}")
+
     browser_core = (
         "Run browser, device, accessibility, and visual QA where applicable",
         "browser/device/accessibility/visual QA",

@@ -548,6 +548,20 @@ CASES = {
     "LOCALIZATION authority heading becomes an i18n heading": (
         BS, "## 62. Regression Localization", "## 62. Locale and Language Resources",
         "canonical identity"),
+    "TA task state machine drops a BS §26.14 state": (
+        TA, "                    │          │          ├── PAUSED\n", "",
+        "semantic documentation"),
+    "TA session lifecycle drifts from BS §33.2": (
+        TA, "  → Testing → Recovering → Revalidating → Packaging → Completed\n```\n\nTerminal states are",
+        "  → Testing → Recovering → Packaging → Completed\n```\n\nTerminal states are",
+        "semantic documentation"),
+    "ProductLifecycleState value missing from the §33.2 mapping": (
+        BS, "| `SafelyFailed` | `SAFELY_FAILED` |\n", "",
+        "semantic documentation"),
+    "AgentLoopReducer made the lifecycle committer again": (
+        TA, "1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.",
+        "1. Only `AgentLoopReducer` may commit lifecycle state.",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
