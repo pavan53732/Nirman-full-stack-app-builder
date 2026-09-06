@@ -1446,9 +1446,9 @@ Structured results will allow future automation, regression testing, analytics, 
 
 ### 23.10 Model routing and fallback
 
-Nirman should route different task types to different model profiles when the user has configured multiple providers or models. Planning and architecture may use a high-reasoning model, repository exploration may use a faster model, visual inspection may use a vision-capable model, and simple documentation updates may use a lower-cost model.
+Nirman should route different task types to different model profiles when the user has configured multiple providers or models. Planning and architecture may use a high-reasoning model, repository exploration may use a faster model, visual inspection may use a vision-capable model, and simple documentation updates may use a lighter model whose measured attention reliability suffices for the step.
 
-The routing policy should consider task type, required capabilities, context size, latency, cost, current provider health, and user preference. The user should be able to override the route for an individual task.
+The routing policy should consider task type, required capabilities, context size, latency, measured attention reliability, current provider health, and user preference. The user should be able to override the route for an individual task.
 
 If a provider is unavailable, rate-limited, or returns an unsupported capability error, Nirman should optionally fall back to an approved alternative. Fallback behavior must be visible in the task record and should never silently send sensitive project context to an unapproved provider.
 
@@ -4875,7 +4875,7 @@ The critic produces findings and evidence requests only. It has no mutation capa
 
 ### 68.11 Model escalation without authority escalation
 
-Deliberation may escalate the model, not the permissions. Routing considers problem complexity, required reasoning effort, context capacity, tool-call capability, vision requirement, coding capability, historical failure rate for the surface, provider health, latency, cost, and privacy policy — extending the routing of §9 rather than replacing it.
+Deliberation may escalate the model, not the permissions. Routing considers problem complexity, required reasoning effort, context capacity, tool-call capability, vision requirement, coding capability, historical failure rate for the surface, provider health, latency, measured attention reliability, and privacy policy — extending the routing of §9 rather than replacing it. Price is not a routing input; AI usage is telemetry (§72).
 
 A stronger or specialist model receives exactly the same permission ceiling, the same evidence requirements, and the same authority path as the model it replaced. Escalation changes who is asked, never what is allowed.
 
@@ -6217,7 +6217,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.9 | "The interface should render these events in real time and persist them in the activity log" | MUST render live and persist | Persistence is durable; UI disconnection MUST NOT lose events |
 | BS §23.9 | "The final task result should be available as both human-readable Markdown and machine-readable JSON" | MUST provide both forms | Both derive from the same record and MUST NOT diverge |
 | BS §23.10 | "should route different task types to different model profiles" | MUST route when multiple profiles are configured | With one profile configured, routing is a no-op, not an error |
-| BS §23.10 | "The routing policy should consider task type, required capabilities, context size, latency, cost, current provider health, and user preference" | MUST consider all seven | User preference outranks all other inputs when set |
+| BS §23.10 | "The routing policy should consider task type, required capabilities, context size, latency, measured attention reliability, current provider health, and user preference" | MUST consider all seven | User preference outranks all other inputs when set |
 | BS §23.10 | "The user should be able to override the route for an individual task" | MUST allow per-task override | Override is recorded on the task record |
 | BS §23.10 | "Nirman should optionally fall back to an approved alternative" | MAY fall back; MUST record it | Only to a provider already approved for that project. Fallback is visible in the task record |
 | BS §23.10 | "should never silently send sensitive project context to an unapproved provider" | MUST NOT send to unapproved providers | Failure to find an approved fallback is a truthful block, never a substitution |
@@ -6614,7 +6614,7 @@ When selecting a model for a task, the runtime MUST use this ordered criteria:
 1. **Capability requirement** — The model MUST have the required capabilities (vision, reasoning, tool calling)
 2. **Task type suitability** — The model MUST be suitable for the task type (planning, coding, visual)
 3. **Context capacity** — The model MUST have sufficient context capacity for the task
-4. **Cost efficiency** — Prefer lower-cost models when capability is equivalent
+4. **Execution suitability** — Prefer the model with the strongest expected correctness and reliability for the task — its measured `AttentionReliabilityProfile` against the step's `requiredReliability` (§53.11), structured-output fidelity, and tool-call fidelity — when required capabilities are equivalent. Price is never a routing criterion (§72)
 5. **Latency** — Prefer lower-latency models when capability is equivalent
 6. **Historical performance** — Prefer models with higher success rates for this task type
 7. **Provider health** — Prefer providers with better current health metrics
