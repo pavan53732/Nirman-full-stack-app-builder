@@ -4471,6 +4471,16 @@ M93 must verify the contract graph programmatically rather than by inspection. T
 
 The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve contract-graph checks in both traversal directions and across its document-structure checks; document-structure checks are additional to, and never counted among, the twelve contract-graph checks.
 
+The verifier's terminal status line MUST be one of exactly three values, and readers and agents MUST interpret them as follows:
+
+| Terminal status | Meaning |
+|---|---|
+| `CERTIFICATION: FAIL` | At least one defect; exit code 1. Nothing is certified. |
+| `CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` | Zero defects, but at least one check could not be evaluated because its required input (implementation source under `crates/`) is absent from the working tree; exit code 0. This establishes `DOCUMENTATION_CERTIFIED` scope only. Implementation-facing field coverage is unevaluated, and the run is not `RUNTIME_CERTIFIED`. The verifier MUST list every unevaluated subject individually above this line. |
+| `CERTIFICATION: DOCUMENTATION_CERTIFIED` | Zero defects and zero unevaluated checks; exit code 0. Establishes `DOCUMENTATION_CERTIFIED` scope, including implementation-facing field coverage against the present source. It is still not `RUNTIME_CERTIFIED` (§3 certification scope). |
+
+Exit code 0 means zero defects; it does not by itself mean every check was evaluated. An agent MUST NOT report a run as complete documentation certification when the terminal status carries the `_WITH_RUNTIME_SOURCE_SKIPS` suffix, and MUST NOT describe either passing status as runtime certification.
+
 
 ### 67.12 Clause Registry
 

@@ -268,6 +268,17 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- certification status audit: BS §67.11 status table and DP M93 semantics
+    "BS §67.11 loses the with-skips status definition": (
+        BS, "| `CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` |", "| `CERTIFICATION: PASS (WITH SKIPS)` |",
+        "semantic documentation"),
+    "BS §67.11 loses the exit-code semantics sentence": (
+        BS, "Exit code 0 means zero defects; it does not by itself mean every check was evaluated.", "Exit code 0 means the documentation is fully certified.",
+        "semantic documentation"),
+    "DP M93 drops the with-skips semantics": (
+        DEV, "`DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` (zero defects, but implementation-facing field coverage unevaluated because the `crates/` source is absent)", "`DOCUMENTATION_CERTIFIED` (zero defects)",
+        "semantic documentation"),
+
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
         BS, "| Build spec (all sections) | 284 | 284 | Complete |", "| Build spec (all sections) | 320 | 320 | Complete |",

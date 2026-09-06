@@ -1790,6 +1790,24 @@ def check_semantic_documentation(docs, R, D):
     if "this criterion\n   is NOT yet satisfied" in bs or "is NOT yet satisfied" in bs:
         D.add("semantic documentation", "BS §80.9 criterion 1",
               "§80.10 records 100% coverage; criterion 1 must not simultaneously claim it is unsatisfied")
+    # Certification status vocabulary (BS §67.11): the three terminal values must
+    # be defined, and the retired unqualified "PASS (WITH SKIPS)" wording must not
+    # be reintroduced anywhere it could be read as complete certification.
+    for token, subject in (
+        ("| `CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` |", "BS §67.11 with-skips status row"),
+        ("| `CERTIFICATION: DOCUMENTATION_CERTIFIED` |", "BS §67.11 unqualified status row"),
+        ("| `CERTIFICATION: FAIL` |", "BS §67.11 fail status row"),
+        ("Exit code 0 means zero defects; it does not by itself mean every check was evaluated.", "BS §67.11 exit-code semantics"),
+    ):
+        if token not in bs:
+            D.add("semantic documentation", subject, f"required rule is missing: {token}")
+    if "DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS" not in dev:
+        D.add("semantic documentation", "DP M93 status semantics",
+              "M93 must state that runs without crates/ source carry the with-skips status and are not complete evaluation")
+    for label, text in (("build spec", bs), ("technical architecture", ta), ("development plan", dev), ("decisions", dec)):
+        if "PASS (WITH SKIPS)" in text:
+            D.add("semantic documentation", "retired certification status",
+                  f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
     # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
     # number of §80.2 rows carrying that scope prefix, and the total MUST be
     # their sum. A hand-maintained figure that drifts from the table it
