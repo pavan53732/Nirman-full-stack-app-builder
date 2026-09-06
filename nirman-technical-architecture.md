@@ -142,7 +142,7 @@ Apply automatically under unattended policy
 Expose the selected strategy or escalate at a hard gate
 ```
 
-Under the `Unattended / Full Autonomy` profile, the runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, retry budgets, risk policy, and current evidence. The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or emulator gate is reached. A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
+Under the `Unattended / Full Autonomy` profile, the runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, the recovery-attempt policy, risk policy, and current evidence. The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or emulator gate is reached. A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
 
 ---
 
@@ -2620,7 +2620,7 @@ A `PreviewRevision` includes source revision, artifact hash, device serial/profi
 
 ### 51.1 Repair registry
 
-`AndroidRepairRegistry` maps structured failure fingerprints to repair strategies. Each pattern contains classifier, severity, likely cause, allowed scope, preconditions, operation type, retry budget, checkpoint rule, validation command, and evidence requirements.
+`AndroidRepairRegistry` maps structured failure fingerprints to repair strategies. Each pattern contains classifier, severity, likely cause, allowed scope, preconditions, operation type, recovery-attempt policy (`recoveryAttemptPolicy`), checkpoint rule, validation command, and evidence requirements.
 
 Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle/dependency conflicts, resource and manifest errors, DEX/R8 failures, NDK/native-module failures, Metro/Expo failures, emulator/ADB/install failures, runtime crashes, permission errors, visual/accessibility issues, and APK/signing failures.
 
@@ -2690,7 +2690,7 @@ Routine environment repairs may be dispatched through authorized capabilities. T
 
 ### 53.3 FailureModeRegistry
 
-`FailureModeRegistry` stores preventive and reactive rules. A record contains failure fingerprint, detection source, classification, preconditions, prevention checks, permitted repair scope, strategy alternatives, retry budget, checkpoint rule, stop condition, and required evidence.
+`FailureModeRegistry` stores preventive and reactive rules. A record contains failure fingerprint, detection source, classification, preconditions, prevention checks, permitted repair scope, strategy alternatives, recovery-attempt policy (`recoveryAttemptPolicy`), checkpoint rule, stop condition, and required evidence.
 
 The registry is consulted before open-ended model diagnosis. A model may propose a new pattern, but promotion into the trusted registry requires independent fixture validation and regression checks.
 
@@ -5778,7 +5778,7 @@ source or runtime event
   → evidence update or materially different recovery strategy
 ```
 
-A retry budget is policy-configurable and bounded. Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When safe strategies are exhausted, the runtime backtracks, degrades, pauses for a required decision, or reports a truthful blocker.
+The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded: it caps materially different recovery attempts per failure fingerprint. It is an anti-thrashing and liveness constraint rather than an AI token, request, monetary, reasoning, or duration budget (BS §72). Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When the policy's bound is reached or safe strategies are exhausted, the runtime changes strategy, backtracks, delegates, escalates, degrades, pauses for a required decision, or reports a truthful blocker.
 
 ### 76.3 Specialist worker responsibilities
 

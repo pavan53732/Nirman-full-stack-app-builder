@@ -936,7 +936,7 @@ Implement parser-aware and schema-aware mutations, path and revision validation,
 
 Implement Android capability/requirement inference, missing and over-permission detection, manifest/resource validation, and deterministic repair patterns for toolchain, dependency, source/build, runtime, visual, accessibility, emulator, ADB, APK, and signing failures.
 
-**Exit gate:** representative failure fixtures classify correctly, select an allowed repair, respect retry budgets, restore checkpoints when required, and produce validation evidence.
+**Exit gate:** representative failure fixtures classify correctly, select an allowed repair, respect the recovery-attempt policy, restore checkpoints when required, and produce validation evidence.
 
 ## M48 — Preview fallback matrix and revision binding
 
@@ -997,7 +997,7 @@ Implement independent correctness, architecture, build, security, dependency, ru
 
 ## M54 — Failure-mode prevention catalogue
 
-Implement `FailureModeRegistry` with triggers, prevention checks, classification, permitted scope, recovery strategies, retry budgets, stop conditions, and evidence requirements for Android toolchain, dependency, source, runtime, device, visual, accessibility, packaging, and signing failures.
+Implement `FailureModeRegistry` with triggers, prevention checks, classification, permitted scope, recovery strategies, recovery-attempt policies (`recoveryAttemptPolicy`), stop conditions, and evidence requirements for Android toolchain, dependency, source, runtime, device, visual, accessibility, packaging, and signing failures.
 
 **Exit gate:** representative fault fixtures classify consistently and select deterministic recovery or safe states.
 

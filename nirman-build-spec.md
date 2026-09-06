@@ -2010,7 +2010,7 @@ The runtime must continue from durable events rather than waiting for another ch
 | `promotion_or_export_requested` | Run health checks, artifact inspection, required validation, signing/certificate checks, and post-copy verification; retain last-known-good on failure | PreviewPromotionGate, artifact authority, signing authority, and export verification |
 | `stream_reconnected` | Replay missing durable events and rebuild projections before resuming display or execution decisions | Event continuity and projection cursor |
 
-A failure continuation must pass the real diagnostic context—failure fingerprint, relevant stack trace or process output, changed files, environment identity, prior attempts, checkpoint, and validation results—to the next authorized diagnostic or coding worker. A retry without new evidence, a changed strategy, or a changed authority context is not a new attempt. Retry budgets are bounded and policy-configurable; reaching a budget triggers strategy change, backtracking, degradation, or a truthful blocker rather than a blind loop.
+A failure continuation must pass the real diagnostic context—failure fingerprint, relevant stack trace or process output, changed files, environment identity, prior attempts, checkpoint, and validation results—to the next authorized diagnostic or coding worker. A retry without new evidence, a changed strategy, or a changed authority context is not a new attempt. A recovery-attempt policy (`recoveryAttemptPolicy`) bounds how many materially different recovery attempts a task may make against one failure fingerprint before it must change course; it is policy-configurable and bounded. A recovery-attempt policy is an anti-thrashing and liveness constraint, not an AI token, request, monetary, reasoning, or duration budget (§72). Reaching its bound triggers strategy change, backtracking, delegation, escalation, degradation, or a truthful blocker rather than a blind loop.
 
 Nirman uses Windows process and workspace isolation for local execution. The runtime must not imply that a Docker container, virtual machine, WSL environment, or other prohibited external sandbox was used. Nirman also has no generic web or cloud deployment target; `promotion_or_export_requested` refers to local Android preview promotion or declared APK artifact export.
 
@@ -6549,7 +6549,7 @@ Every "configurable" parameter in the specification has a default value defined 
 | Context compaction threshold | 80% of context limit | 60-95% | Per project |
 | Context compaction minimum retention | 20% of context limit | 10-40% | Per project |
 | Telemetry sampling interval | 30 seconds | 5-300 seconds | Per project |
-| Retry budget (transient failures) | 3 | 1-10 | Per task |
+| Recovery-attempt policy: materially different attempts per failure fingerprint (transient failures) | 3 | 1-10 | Per task |
 | Retry backoff initial | 1 second | 0.1-10 seconds | Per project |
 | Retry backoff max | 60 seconds | 10-300 seconds | Per project |
 | Retry backoff multiplier | 2.0 | 1.1-3.0 | Per project |
