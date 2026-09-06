@@ -263,6 +263,42 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- coherence audit 2026-09-06: contradicted vocabulary and unrecorded amendments
+    "workspace file made the Task Ledger authority again": (
+        BS, "The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe`",
+        "The Task Ledger is stored locally as a structured state file within the workspace",
+        "semantic documentation"),
+    "local-provider requests reintroduced in M22": (
+        DEV, "compatible cloud-provider requests (cloud-hosted providers only per ADR-207)",
+        "compatible local-provider requests",
+        "semantic documentation"),
+    "BrandAssetWorker reintroduced in architecture": (
+        TA, "### 56.1 Asset execution under the canonical UI Worker", "### 56.1 BrandAssetWorker",
+        "semantic documentation"),
+    "BrandAssetWorker reintroduced in M62": (
+        DEV, "scoped asset transaction executed by the canonical UI Worker", "scoped BrandAssetWorker",
+        "semantic documentation"),
+    "legacy worker names reintroduced in swarm handoff example": (
+        BS, "the Test and QA Worker reads the Android Data and Integration Worker's implementation notes",
+        "the Test Engineer reads the Backend Specialist's implementation notes",
+        "semantic documentation"),
+    "ADR-141 amendment note removed": (
+        DEC, "**Amended by ADR-218:** \"token budget\" in this decision means",
+        "**Note:** \"token budget\" in this decision means",
+        "semantic documentation"),
+    "ADR-184 amendment note removed": (
+        DEC, "**Amended by ADR-218:** the \"reasoning budgets\" and \"pass limits\" named in this decision no longer exist",
+        "**Note:** the \"reasoning budgets\" and \"pass limits\" named in this decision no longer exist",
+        "semantic documentation"),
+    "ADR-217 names CostAuthority again": (
+        DEC, "Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure",
+        "Instead, `ResourceIntegrityAuthority` and `CostAuthority` evaluate physical host memory pressure",
+        "semantic documentation"),
+    "ADR-103 BrandAssetWorker withdrawal removed": (
+        DEC, "**Amended under ADR-049:** the dedicated `BrandAssetWorker` role is withdrawn",
+        "**Note:** the dedicated `BrandAssetWorker` role remains",
+        "semantic documentation"),
+
     # ---- ADR-219: attention reliability is measured, placed, gated, verified
     "fixed deliberation pass ceiling table row reintroduced": (
         BS, "| Deliberation pass ceiling | None (progress-governed per §68.13) | N/A | Not overridable |",

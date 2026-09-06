@@ -1389,6 +1389,10 @@ def check_semantic_documentation(docs, R, D):
         "**Execution suitability**": bs,
         "maxReasoningTokens: integer? (provider capability metadata only": bs,
         "`maxReasoningTokensOptional` is provider capability metadata": ta,
+        "The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe`": bs,
+        "### 56.1 Asset execution under the canonical UI Worker": ta,
+        "compatible cloud-provider requests": dev,
+        "scoped asset transaction executed by the canonical UI Worker": dev,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1673,6 +1677,36 @@ def check_semantic_documentation(docs, R, D):
             if token in text:
                 D.add("semantic documentation", f"AI-usage budget vocabulary in {label}",
                       f"{token!r} reintroduces an AI-usage budget as an execution control (ADR-218, BS §72)")
+    # Vocabulary contradicted by an accepted decision must not reappear in the
+    # active product, architecture, or milestone documents.
+    contradicted_vocabulary = (
+        ("BrandAssetWorker", "ADR-049 admits one worker taxonomy; asset work executes under the UI Worker (ADR-103 as amended)"),
+        ("Test Engineer", "legacy worker role name (ADR-049)"),
+        ("Backend Specialist", "legacy worker role name (ADR-049)"),
+        ("Frontend Specialist", "legacy worker role name (ADR-049)"),
+        ("local-provider", "local and self-hosted model runtimes are out of scope (ADR-207)"),
+        ("stored locally as a structured state file", "the Task Ledger is the SQLite execution ledger (ADR-110); files are projections"),
+    )
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        for token, why in contradicted_vocabulary:
+            if token in text:
+                D.add("semantic documentation", f"contradicted vocabulary in {label}",
+                      f"{token!r}: {why}")
+    # Decisions that ADR-218 amends must say so on the record itself, and
+    # ADR-217's decision text must not name a second physical-resource authority.
+    adrs = adr_blocks(dec)
+    for n in (141, 170, 172, 174, 176, 177, 184):
+        if "Amended by ADR-218" not in adrs.get(n, ""):
+            D.add("semantic documentation", f"ADR-{n} amendment",
+                  "ADR-218 amends this decision; the record must carry an explicit "
+                  "'Amended by ADR-218' note stating the surviving semantics")
+    decision_217 = adrs.get(217, "").split("**Decision:**", 1)[-1].split("**Rationale:**", 1)[0]
+    if "CostAuthority" in decision_217:
+        D.add("semantic documentation", "ADR-217 authority",
+              "ADR-217 names CostAuthority; ResourceIntegrityAuthority is the only physical-resource authority (ADR-218)")
+    if "Amended under ADR-049" not in adrs.get(103, ""):
+        D.add("semantic documentation", "ADR-103 amendment",
+              "ADR-103 must record that the dedicated BrandAssetWorker role is withdrawn under ADR-049")
     for token in ("AI usage telemetry MUST NOT authorize, deny, throttle, degrade, terminate, pause, or complete work",
                   "Usage telemetry is informational and has no execution-authority semantics.",
                   "CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY",
