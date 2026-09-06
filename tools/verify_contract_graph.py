@@ -1428,6 +1428,21 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not exp_row or exp_row.group(1).strip() != "24 hours" or exp_row.group(2).strip() != "1-168 hours":
         D.add("semantic documentation", "approval expiry rules",
               "§80.3 approval-expiry row must read default 24 hours, range 1-168 hours (the values §26.13 and TA §7.3 cite)")
+    # Execution profiles: BS §26.5 is the canonical set; TA §9.1 must list the
+    # identical profile names (schema-style parity for the profile tables).
+    def _profile_names(text, heading, nxt):
+        seg = text.split(heading, 1)[-1].split(nxt, 1)[0]
+        return [m.strip() for m in re.findall(r"^\| ([^|`]+?) \| ", seg, re.M) if m.strip() not in ("Profile", "---")]
+    bs_profiles = _profile_names(bs, "### 26.5 Sandbox profiles and operating-system isolation", "### 26.6")
+    ta_profiles = _profile_names(ta, "### 9.1 Execution profiles", "### 9.2")
+    if not bs_profiles or not ta_profiles:
+        D.add("semantic documentation", "execution profile set", "BS §26.5 or TA §9.1 profile table not found")
+    elif bs_profiles != ta_profiles:
+        D.add("semantic documentation", "execution profile set",
+              f"TA §9.1 profiles {ta_profiles} differ from the canonical BS §26.5 set {bs_profiles}")
+    if "This table is the canonical execution-profile set: exactly these five profiles exist" not in bs:
+        D.add("semantic documentation", "execution profile set",
+              "BS §26.5 must declare itself the canonical execution-profile set")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")

@@ -225,7 +225,7 @@ Make execution safe before enabling autonomous background work.
 2. Add path rules, command patterns, external-directory rules, network categories, and worker-specific policies.
 3. Add protected-file defaults for environment secrets, keychains, personal directories, and credentials.
 4. Add process-tree cancellation and resource quotas.
-5. Implement the restricted Windows process profile.
+5. Implement the five execution profiles of build spec §26.5 (Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only) with Restricted process as the autonomous default; a worker cannot switch itself to a weaker profile.
 6. Add native Windows restricted-process, ACL, Job Object, resource-quota, toolchain-isolation, and disposable-emulator-snapshot boundaries.
 7. Add dependency and artifact safety checks.
 8. Add repeated-action and doom-loop detection.

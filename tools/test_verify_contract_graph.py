@@ -621,6 +621,9 @@ CASES = {
         TA, "Approval must be bound to the request fingerprint and must expire when the action, task state, or policy changes (context expiry) or when the build spec §80.3 approval-expiry clock elapses, whichever comes first (build spec §26.13).",
         "Approval must be bound to the request fingerprint and must expire when the action, task state, or policy changes.",
         "semantic documentation"),
+    "architecture profile table drops Review-only": (
+        TA, "| Review-only | No write access and no arbitrary process execution; diff, security, and architecture analysis |\n", "",
+        "semantic documentation"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

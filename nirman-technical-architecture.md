@@ -364,14 +364,15 @@ If integration fails, the integration workspace remains available for inspection
 
 ### 9.1 Execution profiles
 
-Nirman should implement at least four profiles:
+Nirman should implement the five execution profiles of build spec §26.5, which is the canonical profile set; this table restates it without adding or removing a profile:
 
 | Profile | Characteristics |
 |---|---|
 | Trusted local | Fast, user process, workspace and command policies |
-| Restricted process | Restricted token, process-tree control, workspace paths, environment filtering |
+| Restricted process | Restricted token, process-tree control, workspace paths, environment filtering; the default for autonomous execution |
 | High-risk restricted process | Strongest native boundary for untrusted repositories and risky dependencies |
 | Disposable/Isolated | Temporary, fully isolated environment for untrusted code execution; destroyed after use |
+| Review-only | No write access and no arbitrary process execution; diff, security, and architecture analysis |
 
 The interface should explain when a requested operation requires a stronger profile. A worker must not be able to switch itself to a weaker profile.
 
