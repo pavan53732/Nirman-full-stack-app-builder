@@ -2100,15 +2100,22 @@ def main():
     total_skips = sum(len(v) for v in skips.values())
     print("\nall twelve §67.11 contract-graph checks pass in both traversal directions; document-structure checks pass")
     print("semantic documentation lint: PASS")
-    for check in CHECK_ORDER:
-        if check in skips:
-            count = len(skips[check])
-            print(f"{check}: SKIPPED ({count}) — source not present")
     if total_skips:
-        print(f"\nCERTIFICATION: PASS (WITH SKIPS)")
+        # Skips are an environment state (the input a check needs is absent),
+        # not a defect, so the exit code stays 0. The status vocabulary must
+        # nevertheless make the unevaluated portion impossible to overlook:
+        # every skipped subject is listed and the terminal status is a
+        # distinct value, never the unqualified one (BS §67.11, DP M93).
+        print(f"\nUNEVALUATED CHECKS ({total_skips}) — required input not present in the working tree:")
+        for check in CHECK_ORDER:
+            for subject, detail in skips.get(check, []):
+                print(f"  [{check}] {subject}: {detail}")
+        print("\nimplementation-facing field coverage was NOT evaluated; this run is documentation-scope only")
+        print("and is not RUNTIME_CERTIFIED. Exit code 0 reflects zero defects, not complete evaluation.")
+        print("\nCERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS")
     else:
-        print("\ncommand payload coverage: PASS")
-        print("CERTIFICATION: PASS")
+        print("command payload coverage: PASS")
+        print("\nCERTIFICATION: DOCUMENTATION_CERTIFIED")
     return 0
 
 

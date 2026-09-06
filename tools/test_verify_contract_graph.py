@@ -21,6 +21,11 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import verify_contract_graph
 REPO = os.path.dirname(HERE)
+# Terminal status family printed by the verifier on a zero-defect run. The
+# with-skips value is documentation-scope only; the unqualified value requires
+# zero skipped checks. "CERTIFICATION: PASS" is no longer emitted.
+CERTIFIED_RE = re.compile(
+    r"^CERTIFICATION: DOCUMENTATION_CERTIFIED(_WITH_RUNTIME_SOURCE_SKIPS)?$", re.M)
 TOOL = os.path.join(HERE, "verify_contract_graph.py")
 DOCS = ("nirman-build-spec.md", "nirman-technical-architecture.md",
         "nirman-decisions.md", "nirman-development-plan.md")
@@ -1129,8 +1134,26 @@ def main():
     rc, out = run(REPO)
     n = re.search(r"defects\s*:\s*(\d+)", out)
     results.append(("positive: repo certifies",
-                    rc == 0 and "CERTIFICATION: PASS" in out and n and n.group(1) == "0",
+                    rc == 0 and CERTIFIED_RE.search(out) is not None and n and n.group(1) == "0",
                     f"exit={rc} defects={n.group(1) if n else '?'}"))
+    # Status semantics: the terminal status must be the with-skips value iff any
+    # check was skipped, the unqualified value must never appear alongside skips,
+    # and every skipped subject must be itemised so the unevaluated portion is
+    # visible in the report rather than summarised away.
+    skip_total = sum(int(x) for x in re.findall(r"SKIPPED \((\d+)\)", out))
+    itemised = len(re.findall(r"^  \[command payload coverage\] ", out, re.M))
+    if skip_total:
+        status_ok = ("CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS" in out
+                     and "\nCERTIFICATION: DOCUMENTATION_CERTIFIED\n" not in out
+                     and "CERTIFICATION: PASS" not in out
+                     and f"UNEVALUATED CHECKS ({skip_total})" in out
+                     and "NOT evaluated" in out
+                     and itemised == skip_total)
+    else:
+        status_ok = ("\nCERTIFICATION: DOCUMENTATION_CERTIFIED\n" in out
+                     and "WITH_RUNTIME_SOURCE_SKIPS" not in out)
+    results.append(("positive: skipped checks change the terminal status and are itemised",
+                    status_ok, f"skips={skip_total} itemised={itemised}"))
 
     rc2, out2 = run(REPO)
     results.append(("deterministic", out == out2, ""))
@@ -1199,7 +1222,7 @@ def main():
                          "### 67.99 Registered contract identifiers", 1))
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",
-                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
     # POSITIVE CONFORMANCE: identifiers in ordinary prose, comments, and fenced
@@ -1213,7 +1236,7 @@ def main():
             fh.write("```text\nCONTRACT.RUNTIME.EXAMPLE is illustrative, not registered.\n```\n")
         rc, out = run(tmp)
         results.append(("positive: prose/comment/fence identifiers are inert",
-                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
     # POSITIVE CONFORMANCE: harmless Unicode explanatory text must not affect
@@ -1225,7 +1248,7 @@ def main():
             fh.write("\nImplementation note — résumé, café, and हिन्दी text are non-normative.\n")
         rc, out = run(tmp)
         results.append(("positive: Unicode explanatory text is inert",
-                        rc == 0 and "CERTIFICATION: PASS" in out,
+                        rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
     with tempfile.TemporaryDirectory(prefix="hermes-cg-ctl-") as tmp:
@@ -1254,7 +1277,7 @@ def main():
                       for doc, token in required)
         rc, out = run(tmp)
         results.append(("positive: continuity and APK export anchors certify",
-                        present and rc == 0 and "CERTIFICATION: PASS" in out,
+                        present and rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
     # POSITIVE CONFORMANCE (ADR-218): §68 has exactly one authoritative owner
@@ -1353,7 +1376,7 @@ def main():
                       for doc, token in required)
         rc, out = run(tmp)
         results.append(("positive: content, conversation, and change anchors certify",
-                        present and rc == 0 and "CERTIFICATION: PASS" in out,
+                        present and rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
     # POSITIVE CONFORMANCE: invoke verify_contract_graph.py as CLI and verify M120-M122 in dumped registries
@@ -1382,7 +1405,7 @@ def main():
         except Exception:
             parsed_ok = False
     results.append(("positive: verifier CLI execution certifies with code 0",
-                    cli_rc == 0 and "CERTIFICATION: PASS" in cli_out,
+                    cli_rc == 0 and CERTIFIED_RE.search(cli_out) is not None,
                     f"exit={cli_rc}"))
     results.append(("positive: verifier CLI dumps M120-M122 milestone registrations",
                     parsed_ok and m120_cli_ok and m121_cli_ok and m122_cli_ok,
