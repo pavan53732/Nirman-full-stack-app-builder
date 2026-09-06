@@ -1286,12 +1286,12 @@ To prevent duplicate implementation of the same capability across coarse (M0–M
 
 | Capability area | Coarse scope (M0–M38) | Refined owner (M39–M122) | Canonical contract | Test / Evidence |
 |---|---|---|---|---|
-| Toolchain / clean build | M4 local runtime, M5 build→install | M43 AndroidToolchainManifest (ADR-049 toolchain authority) | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-TC-001 / EV-TC-001 |
+| Toolchain / clean build | M4 local runtime, M5 build→install | M43 AndroidToolchainManifest (ADR-163 toolchain manifest and project lock; ADR-114 externally managed toolchains) | CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-TC-001 / EV-TC-001 |
 | Provider gateway | M3 foundation, M22 settings | M22 ModelGateway (full), M44 bridge | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.SCOPE | TEST-PRV-001 / EV-PRV-001 |
 | Preview | M4/M9/M20 runtime preview | M108 PreviewSync | CONTRACT.RUNTIME.PREVIEW_SYNC (ADR-195) | TEST-PSYNC-001 / EV-PSYNC-001 |
 | Execution kernel | M39 construction runtime | M65 AgentExecutionKernel | CONTRACT.RUNTIME.AUTHORITY (ADR-066/071) | TEST-GEN-001 / EV-GEN-001 |
 | Packaging | M10 packaging | M10 (mechanism), M11 (coverage), M117 (export delivery) | CONTRACT.RUNTIME.APK_EXPORT (ADR-203) | TEST-APK-001 / EV-APK-001 |
-| Reservation/lease/capability | M39 session/lease | M39/M43 reservation+lease+capability ordering | CONTRACT.RUNTIME.WORKSPACE (ADR-068) | TEST-RES-001 / EV-RES-001 |
+| Reservation/lease/capability | M39 session/lease | M39/M43 reservation+lease+capability ordering | CONTRACT.RUNTIME.WORKSPACE (ADR-067 renewable leases and scoped capabilities; contract locked by ADR-068) | TEST-RES-001 / EV-RES-001 |
 | Evidence graph | M38 evidence foundations | M93 twelve-edge coverage; M108/114 evidence linkage | CONTRACT.RUNTIME.EVIDENCE (ADR-071) | TEST-INV-001 / EV-INV-001 |
 | Continuity | M116 background continuity | M116 (orthogonal to lifecycle, ADR-202) | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | TEST-BG-001 / EV-BG-001 |
 | Frontend boundary | M115 protocol | M115 (ADR-201) split gates A–F | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | TEST-FCP-001 / EV-FCP-001 |

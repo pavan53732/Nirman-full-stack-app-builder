@@ -1399,6 +1399,24 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
         D.add("semantic documentation", "update controller placement",
               "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
+    # DP ownership map: each row's parenthetical ADR must be the decision
+    # that actually governs the row's mechanism (audit found ADR-049, the
+    # worker registry, cited for the toolchain manifest, and ADR-068 cited
+    # for lease semantics decided by ADR-067).
+    dp = docs["dev"]
+    own = re.search(r"### Coarse-to-refined milestone ownership map.*?(?=\nRefinement rule)", dp, re.S)
+    if own:
+        for label, adr, why in (("Toolchain / clean build", "ADR-163", "the Android toolchain manifest and project lock decision"),
+                                ("Reservation/lease/capability", "ADR-067", "the renewable-lease and scoped-capability decision")):
+            row = re.search(r"^\| " + re.escape(label) + r" \|.*$", own.group(0), re.M)
+            if row is None:
+                D.add("semantic documentation", "ownership map", f"row {label!r} missing from the DP ownership map")
+            elif adr not in row.group(0):
+                D.add("semantic documentation", "ownership map", f"row {label!r} must cite {adr} ({why})")
+            if row is not None and label == "Toolchain / clean build" and "ADR-049" in row.group(0):
+                D.add("semantic documentation", "ownership map", "toolchain row cites ADR-049 (worker registry), which does not govern toolchain authority")
+    else:
+        D.add("semantic documentation", "ownership map", "DP coarse-to-refined ownership map not found")
     # TA §76.3 specialist gates must map onto the §6.5 canonical roles.
     m763 = re.search(r"### 76\.3 .*?(?=\n### )", ta, re.S)
     m65 = re.search(r"### 6\.5 .*?(?=\n## )", ta, re.S)

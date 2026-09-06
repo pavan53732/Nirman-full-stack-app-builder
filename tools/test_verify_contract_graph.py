@@ -323,6 +323,9 @@ CASES = {
     "command registry count overstated again": (
         BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
         "semantic documentation"),
+    "ownership map cites the worker-registry ADR for toolchain authority": (
+        DP, "(ADR-163 toolchain manifest and project lock; ADR-114 externally managed toolchains)", "(ADR-049 toolchain authority)",
+        "semantic documentation"),
     "specialist gate invents a worker role": (
         TA, "| Schema/type consistency | Reconciliation Worker |", "| Schema/type consistency | Consistency worker |",
         "semantic documentation"),
