@@ -3957,7 +3957,7 @@ This section extends §52.12 backpressure and resource reservation. That section
 
 ### 64.1 Product requirement
 
-The runtime must predict from measured history rather than guess. Gradle builds, emulator boots, instrumentation runs, and provider calls have measurable cost profiles that determine whether a plan is feasible on the current host.
+The runtime must predict from measured history rather than guess. Gradle builds, emulator boots, instrumentation runs, and provider calls have measurable resource execution profiles that determine whether a plan is feasible on the current host.
 
 ### 64.2 Profile record
 
@@ -3980,7 +3980,7 @@ Profiles are keyed by project and host fingerprint because the same operation co
 
 ### 64.3 Planning use
 
-Before committing to a plan the runtime must estimate total cost from profiles and compare it against available host capacity and any user-declared time bound. When the estimate exceeds capacity the runtime must reduce scope, sequence work differently, or surface the constraint. It must not begin work it can predict will exhaust the host.
+Before committing to a plan the runtime must derive the plan's `ResourceExecutionProfile` (TA §69.3) — expected CPU, memory, disk, emulator slots, concurrency, build pressure, and observed duration, with confidence and sample counts — from profiles and compare it against available host capacity and any user-declared time bound. The profile describes physical execution demand only; it carries no token, request, or monetary field (§72). When the estimate exceeds capacity the runtime must reduce scope, sequence work differently, or surface the constraint. It must not begin work it can predict will exhaust the host.
 
 ### 64.4 Honest estimation
 

@@ -1820,6 +1820,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Early runs on a new project or host operate with sparse data and must declare lower confidence.
 
+**Clarified under ADR-218:** the estimate produced from these profiles is the physical `ResourceExecutionProfile` (TA §69.3) — expected CPU, memory, disk, emulator slots, concurrency, build pressure, and observed duration with confidence and sample counts. It carries no token, request, price, or monetary field, and "cost" in this decision means physical execution demand, never AI usage.
+
 ## ADR-154: Pin skill versions for the duration of an active session
 
 **Locks:** `CONTRACT.RUNTIME.SKILL`

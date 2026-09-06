@@ -4379,7 +4379,7 @@ Implements build spec §64. Extends §3 (Process Model) and the resource governa
 |---|---|
 | OperationTimer | Measures duration, peak memory, CPU, and disk delta per operation |
 | ProfileStore | Persists profiles keyed by operation class, project, and host |
-| CostEstimator | Estimates plan cost from stored profiles |
+| ExecutionProfileEstimator | Derives the plan's `ResourceExecutionProfile` from stored profiles |
 | CapacityChecker | Compares estimates against available host capacity |
 | DegradationDetector | Flags operations drifting from their profile |
 
@@ -4390,22 +4390,26 @@ Measurement must wrap the supervised process, not the model's description of it.
 ### 69.3 Estimation contract
 
 ```text
-PlanCostEstimate
+ResourceExecutionProfile
 - planRevision
-- perOperationEstimates
-- totalEstimatedDurationMs
-- totalEstimatedPeakMemory
-- estimatedDiskRequired
+- perOperationProfiles
+- expectedCpu
+- expectedMemory
+- expectedDisk
+- expectedEmulatorSlots
+- expectedConcurrency
+- expectedBuildPressure
+- expectedDurationObserved
 - confidence: profiled | sparse | unprofiled
 - sampleCounts
-- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk
+- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk | exceeds_emulator_slots | exceeds_concurrency
 ```
 
-An operation class with fewer than the configured minimum samples must report `unprofiled` and must not receive a fabricated numeric estimate, satisfying the honesty invariant of build spec §66.1.
+A `ResourceExecutionProfile` describes the physical execution demand of a plan revision on this host — CPU, memory, disk, emulator slots, concurrency, build pressure, and the duration observed for the same operation classes — so that `ResourceIntegrityAuthority` (§59, BS §72) can admit it. It carries no token, request, price, or monetary field; AI usage is telemetry and is never an input to admission (BS §72). An operation class with fewer than the configured minimum samples must report `unprofiled` and must not receive a fabricated numeric estimate, satisfying the honesty invariant of build spec §66.1.
 
 ### 69.4 Planning integration
 
-When `capacityVerdict` is not `fits`, the kernel must reduce scope, reorder work to lower peak concurrency, or surface the constraint as a decision node before execution. Beginning work that the estimate predicts will exhaust the host is prohibited.
+When `capacityVerdict` is not `fits`, the kernel must reduce scope, reorder work to lower peak concurrency, or surface the constraint as a decision node before execution. Beginning work that the `ResourceExecutionProfile` predicts will exhaust the host is prohibited.
 
 ### 69.5 Degradation signals
 
@@ -4895,7 +4899,7 @@ StrategyCritic runs before authorization at DEEP and above for the change classe
 
 The planner selects observations that are read-only by construction: file and symbol reads, impact-graph queries, index lookups, log reads, and non-mutating diagnostics. A candidate observation that would mutate project state, install a dependency, or write to a device is not acquirable during deliberation and must be proposed as an ordinary action through §71.7 authorization instead.
 
-Cost estimates come from the ResourceProfiler of §69, so the planner prefers a cheap decisive observation over an expensive one and reports `unprofiled` rather than guessing.
+Execution-resource estimates (`ResourceExecutionProfile`) come from the ResourceProfiler of §69, so the planner prefers a light decisive observation over a heavy one and reports `unprofiled` rather than guessing.
 
 ### 72.9 Persistence and continuation
 

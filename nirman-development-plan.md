@@ -1225,7 +1225,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 | M87 | Adversarial Security and Supply Chain | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline |
 | M88 | Android Emulator E2E | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping |
 | M89 | Runtime Directives and Agent Debugger | DirectiveIntake with validation and decision-boundary application, PlanReconciler effect accounting, read-only RuntimeSnapshot, SurfaceTracer, DecisionTracer |
-| M90 | Historical Resource Profiling | Supervisor-level measurement, project/host-keyed profiles, PlanCostEstimate with honest confidence, capacity gating, DegradationDetector |
+| M90 | Historical Resource Profiling | Supervisor-level measurement, project/host-keyed profiles, ResourceExecutionProfile with honest confidence, capacity gating, DegradationDetector |
 | M91 | External Event Gateway | TriggerRegistry, authentication, AdmissionController with ceiling capping, default-disabled webhook surface, complete firing audit |
 | M92 | Speculative Candidate Branching | Isolated candidate workspaces, admission conditions, evidence-only selection, escalation on tie, discard hygiene with retained signatures |
 | M93 | Documentation Coverage Certification | Ledger-based invariant verification for all ten invariants and a complete twelve-edge traceability chain for every capability |
