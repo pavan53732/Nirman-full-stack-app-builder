@@ -1255,7 +1255,7 @@ Nirman should support continuous background execution for large-scale developmen
 A major failure mode of autonomous agents is getting trapped in endless "doom loops"—repeatedly attempting the exact same failing command or file patch without making progress. Nirman addresses this through an active **Anti-Thrashing and Error Recovery Harness**:
 
 1. **Failure Fingerprinting**: The runtime records the exact signature of errors (compiler output, test stack trace, linter exit code).
-2. **Repetition Detection**: If an identical tool call or failing error signature occurs three times consecutively, the execution loop is instantly suspended.
+2. **Repetition Detection**: If an identical tool call or failing error signature recurs against unchanged evidence, `RepeatedFailureDetector` classifies it as `StrategyChangeRequired` (§68.13) and the loop MUST change strategy before it may continue; the repetition count is a fingerprint-repetition signal for the graduated recovery ladder (§28.2), never a suspension trigger by itself, and never a token, request, duration, or pass budget (§72).
 3. **Strategy Escalation**: When trapped, the system automatically triggers a recovery protocol:
    - **Context Reset**: Strips out noisy intermediate trace logs and re-injects only the core error message and initial acceptance criteria.
    - **Model Escalation**: Automatically routes the problem to a higher-reasoning model tier configured in the user's provider settings.
@@ -1536,7 +1536,7 @@ Visual verification should compare screenshots against the requested design requ
 
 Testing should be treated as part of implementation rather than as a final optional step. Nirman should infer relevant checks from the project and task, including formatting, linting, type checking, unit tests, integration tests, build validation, smoke tests, and visual checks.
 
-When a check fails, the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint. It should attempt the smallest reasonable repair, rerun the failed check, and stop after the configured retry limit.
+When a check fails, the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint. It should attempt the smallest reasonable repair, rerun the failed check, and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached (§26.3; technical architecture §76.2), hand the failure to the graduated recovery ladder (§28.2) — change strategy, backtrack, delegate, escalate, or report a truthful blocker — rather than repeating the same repair.
 
 The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run. “No test command was available” must not be presented as “tests passed.”
 
@@ -1666,7 +1666,7 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 | Worker heartbeat interval | 10 seconds |
 | Worker stale threshold | 60 seconds, configurable |
 | Default task wall-clock policy | No artificial completion limit. Nirman does not terminate, degrade, or block a valid task because of elapsed task duration, token consumption, request count, or monetary expenditure. Execution is constrained only by actual host, workspace, process, emulator, storage, concurrency, and liveness resource integrity. |
-| Default repair attempts per failure | 3 strategy changes, not three identical retries |
+| Default `recoveryAttemptPolicy` per failure fingerprint | 3 materially different repairs, not three identical retries; reaching the bound escalates through the §28.2 recovery ladder and never ends the goal (an anti-thrashing constraint, not an AI-usage budget) |
 | Default task context capacity | The selected provider's actual context capacity, fit by `ContextCapacityPlanner`; visible, and a technical capacity rather than a usage budget |
 | Default disk quota per task | 10 GB unless project policy overrides |
 
@@ -6302,7 +6302,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.15 | "Testing should be treated as part of implementation rather than as a final optional step" | MUST run within implementation | Implementation cannot be marked complete with untested changes |
 | BS §23.15 | "Nirman should infer relevant checks from the project and task" | MUST infer | Formatting, linting, type checking, unit, integration, build validation, smoke, visual — those the project actually defines |
 | BS §23.15 | "the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint" | MUST receive all four | A repair attempted without all four inputs is prohibited |
-| BS §23.15 | "It should attempt the smallest reasonable repair, rerun the failed check, and stop after the configured retry limit" | MUST do all three | Retry limit is 3 strategy changes per §26.3, not three identical retries |
+| BS §23.15 | "It should attempt the smallest reasonable repair, rerun the failed check, and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached" | MUST do all three and MUST escalate through the recovery ladder at the bound | The bound is the `recoveryAttemptPolicy` default of 3 materially different repairs per failure fingerprint (§26.3); reaching it changes strategy, backtracks, delegates, or escalates — it never terminates the goal and is not an AI-usage budget (ADR-218) |
 | BS §23.15 | "The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run" | MUST distinguish all five | "No test command was available" MUST NOT be reported as "tests passed" |
 | BS §23.16 | "should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage" | MUST show all seven when the provider exposes them | An unexposed metric shows `unavailable`; it is never estimated and presented as reported |
 | BS §23.16 | "Nirman imposes no task budget" | MUST NOT impose any token, request, monetary, or duration budget; MAY accept an explicit user-declared policy stop condition | No default budget of any kind exists; per §26.3 the only constraints are physical resource integrity, and usage telemetry has no execution-authority semantics per §72 |

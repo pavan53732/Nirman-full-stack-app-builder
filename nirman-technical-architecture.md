@@ -4491,14 +4491,15 @@ ResourceExecutionProfile
 - expectedDurationObserved
 - confidence: profiled | sparse | unprofiled
 - sampleCounts
-- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk | exceeds_emulator_slots | exceeds_concurrency
+- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |
+                   exceeds_emulator_slots | exceeds_concurrency
 ```
 
 A `ResourceExecutionProfile` describes the physical execution demand of a plan revision on this host — CPU, memory, disk, emulator slots, concurrency, build pressure, and the duration observed for the same operation classes — so that `ResourceIntegrityAuthority` (§59, BS §72) can admit it. It carries no token, request, price, or monetary field; AI usage is telemetry and is never an input to admission (BS §72). An operation class with fewer than the configured minimum samples must report `unprofiled` and must not receive a fabricated numeric estimate, satisfying the honesty invariant of build spec §66.1.
 
 ### 69.4 Planning integration
 
-When `capacityVerdict` is not `fits`, the kernel must reduce scope, reorder work to lower peak concurrency, or surface the constraint as a decision node before execution. Beginning work that the `ResourceExecutionProfile` predicts will exhaust the host is prohibited.
+When `capacityVerdict` is not `fits`, the kernel must reduce scope, reorder work to lower peak concurrency, or surface the constraint as a decision node before execution. Beginning work that the `ResourceExecutionProfile` predicts will exhaust the host is prohibited. `exceeds_declared_time_bound` is returned only when the user has declared an explicit time bound for the goal (the user-declared time bound of BS §64.3) and the observed duration of the same operations predicts that it cannot be met; it is surfaced as a decision node for the user and never terminates, degrades, or blocks a goal that has no declared bound — there is no default autonomous-goal completion deadline (§7.2, ADR-218).
 
 ### 69.5 Degradation signals
 

@@ -20,4 +20,6 @@ by the policy engine; loading this skill never grants it.
 - No repair may mark a capability AVAILABLE; the planner re-classifies
   from fresh observation.
 - A rejected or failed repair is reported truthfully with the durable
-  evidence reference; it is never retried beyond the declared budget.
+  evidence reference; an identical repair is never re-run against
+  unchanged evidence, and the recoveryAttemptPolicy bound on materially
+  different repairs escalates rather than terminating the goal.

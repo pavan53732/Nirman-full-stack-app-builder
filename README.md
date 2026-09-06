@@ -64,7 +64,7 @@ Close the window at any point and the work continues. Reopen it and the session 
 
 **What makes this different from generating code:** every claim above is backed by an observation. "It builds" means Gradle exited zero. "It runs" means the generated Android application launched in Nirman's managed local Android emulator. "It is live in preview" means that runtime's actual rendering surface is projected into Nirman's Preview panel. "It works" means an executable interaction scenario produced the expected observed runtime state and assertion result, and the screenshot proving it is retained. Nirman cannot report success it did not observe — that rule is a sealed clause in the build spec, not a convention.
 
-**What it will tell you instead of guessing:** if the emulator is missing, if a permission was denied, if a test failed three times, or if your request needs something it cannot reliably infer from prose, it says so in plain language and stops. The eight-prompt battery targets six of eight completed with no human intervention beyond the original prompt.
+**What it will tell you instead of guessing:** if the emulator is missing, if a permission was denied, if the same failure keeps recurring after materially different repairs, or if your request needs something it cannot reliably infer from prose, it says so in plain language and stops. The eight-prompt battery targets six of eight completed with no human intervention beyond the original prompt.
 
 None of this runs today. It is the specified behavior, written down so it can be built and verified rather than approximated.
 

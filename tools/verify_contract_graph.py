@@ -1400,6 +1400,20 @@ def check_semantic_documentation(docs, R, D, root="."):
                 D.add("semantic documentation", "certification entry point",
                       f"AGENTS.md instructs running `{entry}`, which is absent from the working tree, without "
                       "stating that it is an M0 deliverable and naming the present gate (verify_contract_graph.py + harness)")
+    # A capacity verdict on time exists only for a user-declared bound and must
+    # say so next to the enum (TA §69.3); README may not describe a count stop.
+    if "exceeds_declared_time_bound" in ta and \
+            "never terminates, degrades, or blocks a goal that has no declared bound" not in ta:
+        D.add("semantic documentation", "declared time bound verdict",
+              "TA §69.3 defines exceeds_declared_time_bound without stating that it applies only to a "
+              "user-declared bound and never stops an unbounded goal (ADR-218)")
+    readme_path = os.path.join(root, "README.md")
+    if os.path.exists(readme_path):
+        readme = open(readme_path, encoding="utf-8").read()
+        for token in ("failed three times", "three times and stops", "after three attempts"):
+            if token in readme:
+                D.add("semantic documentation", "README stop wording",
+                      f"README says {token!r}: Nirman stops on recurring failure after materially different repairs, not on a count (ADR-218)")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")
@@ -1991,6 +2005,11 @@ def check_semantic_documentation(docs, R, D, root="."):
         "PlanCostEstimate", "ContextBudgetAllocator", "mutation budget",
         "mutation-budget", "retry budget", "Retry budget", "Cost efficiency",
         "lower-cost model",
+        # count- or clock-driven stop wording (ADR-218: repetition feeds the
+        # recovery ladder; only a user-declared time bound may raise a verdict)
+        "occurs three times consecutively, the execution loop is instantly suspended",
+        "stop after the configured retry limit", "exceeds_time |", "| exceeds_time",
+        "bounded retry limits",
     )
     for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
         for token in banned_execution_controls:

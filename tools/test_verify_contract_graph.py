@@ -605,6 +605,18 @@ CASES = {
         "AGENTS.md", "do not exist yet in this documentation-only repository", "are the standard gate",
         "semantic documentation",
         (("AGENTS.md", os.path.join(REPO, "AGENTS.md")),)),
+    "capacity verdict regains an unqualified time exhaustion value": (
+        TA, "- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |",
+        "- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk |",
+        "semantic documentation"),
+    "debugger worker stops on a retry count again": (
+        BS, "and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached (§26.3; technical architecture §76.2), hand the failure to the graduated recovery ladder (§28.2) — change strategy, backtrack, delegate, escalate, or report a truthful blocker — rather than repeating the same repair.",
+        "and stop after the configured retry limit.",
+        "semantic documentation"),
+    "README describes a three-failure stop": (
+        "README.md", "if the same failure keeps recurring after materially different repairs,", "if a test failed three times,",
+        "semantic documentation",
+        (("README.md", os.path.join(REPO, "README.md")),)),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

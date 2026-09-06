@@ -204,7 +204,7 @@ Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch
 5. Add an automatic checkpoint before mutation and a rollback/undo reference after a failed repair or validation.
 6. Add Gradle/build execution, installation or launch, runtime observation, and diagnostic capture.
 7. Add failure classification, injected-failure fixtures, and focused repair prompts.
-8. Add bounded retry limits and escalation when the worker is stuck or the environment is unavailable.
+8. Add the `recoveryAttemptPolicy` bound on materially different repairs per failure fingerprint (BS §26.3) and graduated escalation when the worker is stuck or the environment is unavailable; identical retries do not count as attempts, and reaching the bound changes strategy or escalates rather than ending the task.
 9. Add a final structured task result and evidence summary linked to the source revision and checkpoint.
 
 ### Exit gate
