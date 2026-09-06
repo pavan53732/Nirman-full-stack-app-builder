@@ -79,7 +79,7 @@ CASES = {
 
     # ---- check 5: clause contradiction
     "sealed clause listed as extended": (
-        BS, "- extendedClauses: CLAUSE.CONTEXT.CONSTRAINT_PRIORITY, CLAUSE.CONTEXT.SOURCE_REQUIRED",
+        BS, "- extendedClauses: CLAUSE.CONTEXT.CONSTRAINT_PRIORITY, CLAUSE.CONTEXT.SOURCE_REQUIRED, CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED, CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY",
         "- extendedClauses: CLAUSE.MEMORY.RETENTION_AUTHORITY", "clause contradiction"),
     "clause authority contradicts contract authority": (
         BS, "| CLAUSE.RECONCILE.USER_PRECEDENCE | CONTRACT.RUNTIME.RECONCILIATION | §55 |",
@@ -231,6 +231,59 @@ CASES = {
         "semantic documentation"),
     "M95 mapping loses its contract": (
         DEV, "| M95 | CONTRACT.RUNTIME.DELIBERATION |", "| M95 | |", "reverse break"),
+
+    # ---- ADR-219: attention reliability is measured, placed, gated, verified
+    "fixed deliberation pass ceiling table row reintroduced": (
+        BS, "| Deliberation pass ceiling | None (progress-governed per §68.13) | N/A | Not overridable |",
+        "| Deliberation max passes (DEEP) | 5 | 3-10 | Per task |",
+        "semantic documentation"),
+    "attention profile schema removed from build spec": (
+        BS, "AttentionReliabilityProfile\n- profileId", "AttentionProfile\n- profileId",
+        "semantic documentation"),
+    "attention profile schema removed from architecture": (
+        TA, "AttentionReliabilityProfile\n- profileId: string", "AttentionProfile\n- profileId: string",
+        "semantic documentation"),
+    "seventh confidence dimension removed": (
+        TA, "evaluates context sufficiency across seven dimensions", "evaluates context sufficiency across six dimensions",
+        "semantic documentation"),
+    "premise check rung removed from gate sequence": (
+        TA, "  -> premise check: StructuredPatch anchors and premises match the originating ContextPackage\n",
+        "", "semantic documentation"),
+    "compaction allowed to carry constraints (§74)": (
+        BS, "Compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity: after every compaction",
+        "Compaction output retains active constraints, locked decisions, acceptance criteria, and revision identity: after every compaction",
+        "semantic documentation"),
+    "compaction allowed to carry constraints (§53)": (
+        BS, "**Compaction.** Compaction output is never the carrier of active constraints",
+        "**Compaction.** Compaction output remains the carrier of active constraints",
+        "semantic documentation"),
+    "cache breakpoint moved after DENSE block": (
+        BS, "The `cacheBreakpointPolicy` of §74 places the cache breakpoint before the DENSE block",
+        "The `cacheBreakpointPolicy` of §74 places the cache breakpoint after the DENSE block",
+        "semantic documentation"),
+    "attendability clause unregistered": (
+        BS, "| CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED | CONTRACT.RUNTIME.CONTEXT | §53 |",
+        "| CLAUSE.CONTEXT.ATTENDABILITY_NOTE | CONTRACT.RUNTIME.CONTEXT | §53 |",
+        "unregistered contract"),
+    "ADR-219 dropped from CONTEXT registry row": (
+        BS, "| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-219 | M81 | CROSS_CUTTING |",
+        "| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-999 | M81 | CROSS_CUTTING |",
+        "dangling reference"),
+    "ADR-219 heading renamed": (
+        DEC, "## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it",
+        "## ADR-219: Attention notes", "semantic documentation"),
+    "ADR-219 loses its Reversal trigger role fields": (
+        DEC, "**Reversal trigger:** Measured literal recall is uniform within the configured threshold",
+        "**Note:** Measured literal recall is uniform within the configured threshold", "structure"),
+    "positional recall provider fixture removed": (
+        TA, "13. Positional literal recall across fill buckets", "13. Long context smoke test",
+        "semantic documentation"),
+    "post-compaction probe fixture dropped from M113": (
+        DEV, "- Post-compaction constraint re-projection verified by a recall probe\n", "",
+        "semantic documentation"),
+    "CONTEXT_GOVERNANCE authority heading drifts": (
+        BS, "## 74. Context and Cache Governance", "## 74. Provider Billing Notes",
+        "canonical identity"),
 
     "causal-escalation clause unregistered": (
         BS, "CLAUSE.DELIBERATE.CAUSAL_ESCALATION, CLAUSE.DELIBERATE.NO_MUTATION_IN_PASS",
@@ -1027,6 +1080,32 @@ def main():
                         f"m111={R['milestones'].get(111)}"))
         no_cost_milestone = not any("COST" in c for m in R["milestones"].values() for c in m["contracts"])
         results.append(("positive: no milestone maps an AI-cost governance contract", no_cost_milestone, ""))
+
+    # POSITIVE CONFORMANCE (ADR-219): M81 and M113 cite ADR-219, the CONTEXT
+    # authority owns both new sealed clauses, and §53 adopts them.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-adr219-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        docs = verify_contract_graph.load(tmp)
+        D = verify_contract_graph.Defects()
+        R = verify_contract_graph.parse_registries(docs, D)
+        m81 = R["milestones"].get(81, {})
+        m113 = R["milestones"].get(113, {})
+        results.append(("positive: M81 and M113 cite ADR-219",
+                        219 in m81.get("adrs", []) and 219 in m113.get("adrs", []),
+                        f"m81={m81.get('adrs')} m113={m113.get('adrs')}"))
+        owned = sorted(cl for cl, meta in R["clauses"].items()
+                       if meta["contract"] == "CONTRACT.RUNTIME.CONTEXT" and meta["sealed"])
+        results.append(("positive: CONTEXT owns four sealed clauses incl. attendability and recall-evidence",
+                        owned == ["CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED",
+                                  "CLAUSE.CONTEXT.CONSTRAINT_PRIORITY",
+                                  "CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY",
+                                  "CLAUSE.CONTEXT.SOURCE_REQUIRED"],
+                        f"owned={owned}"))
+        adr219 = verify_contract_graph.adr_blocks(docs["dec"]).get(219, "")
+        results.append(("positive: ADR-219 locks CONTEXT and CONTEXT_GOVERNANCE with a Reversal trigger",
+                        "`CONTRACT.RUNTIME.CONTEXT`" in adr219
+                        and "`CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`" in adr219
+                        and "**Reversal trigger:**" in adr219, ""))
 
     # POSITIVE CONFORMANCE: M120, M121, M122 resolve their respective contracts
     with tempfile.TemporaryDirectory(prefix="hermes-cg-m120-122-") as tmp:

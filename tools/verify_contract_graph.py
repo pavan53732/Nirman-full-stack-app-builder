@@ -981,6 +981,10 @@ def _contract_domain_pattern(contract_id):
         "DELIBERATION":    r"Deliberation|Reasoning|Evidence|Alternative|Adap",
         "INVARIANTS":      r"Invariant|Safety|Consistency|Document|Coverage",
         "PROMPT_CONTRACT": r"Intent|Prompt|Synthesis|Truthful|Preview|Revision",
+        "RESOURCE_INTEGRITY": r"Resource|Integrity|Runtime",
+        "AGENT_TRUST":       r"Trust|Agent|Extension|Boundary",
+        "CONTEXT_GOVERNANCE": r"Context|Cache|Governance|Compaction",
+        "ANDROID_INTEGRITY": r"Android|Runtime|Integrity",
     }
     return patterns.get(domain)
 
@@ -1359,6 +1363,23 @@ def check_semantic_documentation(docs, R, D):
         "EV-FCP-001": bs + dev,
         "M115": dev,
         "ADR-201": dec,
+        # ADR-219: attention reliability is measured, placed against, gated, and
+        # verified independently of model recall. The schema and its vocabulary
+        # must exist on every canonical surface that the decision names.
+        "AttentionReliabilityProfile\n- profileId\n- providerProfileId": bs,
+        "AttentionReliabilityProfile\n- profileId: string": ta,
+        "reliableLiteralSpanTokens": bs + ta,
+        "placementPlan": bs + ta + dev,
+        "attendabilityMap": bs + ta,
+        "recallProbes": bs,
+        "attentionReliability": bs + ta,
+        "PREMISE_MISMATCH": bs + ta + dev,
+        "PlacementPlanner": ta + dev,
+        "RecallProbeService": ta + dev,
+        "AttentionProfiler": ta + dev,
+        "CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED": bs,
+        "CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY": bs,
+        "ADR-219": dec,
     }
     for token, text in required_cross_entity_tokens.items():
         if token not in text:
@@ -1455,6 +1476,9 @@ def check_semantic_documentation(docs, R, D):
         ("## ADR-198: Scan and revoke agent-layer extension content", dec, "agent trust decision"),
         ("## ADR-199: Govern context compaction and provider cache reuse", dec, "context governance decision"),
         ("## ADR-200: Report Android runtime integrity as independent applicable signals", dec, "Android integrity decision"),
+        ("### 53.11 Attention reliability, placement, and recall verification", bs, "attention reliability authority"),
+        ("### 59.12 Recall probes, placement bounds, and attention learning", ta, "attention reliability architecture"),
+        ("## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it", dec, "attention reliability decision"),
     )
     for anchor, text, subject in governance_sections:
         if anchor not in text:
@@ -1480,6 +1504,15 @@ def check_semantic_documentation(docs, R, D):
         ("`ContextGovernance` records selected content", ta, "context governance implementation"),
         ("Runtime collectors observe;", ta, "runtime integrity authority implementation"),
         ("Autonomy-level capability ladder", bs, "autonomy ladder"),
+        ("**Compaction.** Compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity.", bs, "compaction never carries constraints (§53)"),
+        ("Compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity: after every compaction they are re-projected from durable state into the DENSE block and verified by a recall probe", bs, "compaction never carries constraints (§74)"),
+        ("Post-compaction constraint re-projection verified by a recall probe", dev, "post-compaction probe fixture in M113"),
+        ("The `cacheBreakpointPolicy` of §74 places the cache breakpoint before the DENSE block", bs, "cache breakpoint precedes DENSE block"),
+        ("evaluates context sufficiency across seven dimensions", ta, "seven confidence dimensions"),
+        ("premise check: StructuredPatch anchors and premises match the originating ContextPackage", ta, "premise check gate rung"),
+        ("13. Positional literal recall across fill buckets", ta, "positional recall provider fixture"),
+        ("14. Post-compaction constraint retention", ta, "post-compaction retention provider fixture"),
+        ("a model's statement about what it remembers is inadmissible", bs, "recall self-report inadmissible"),
     )
     for token, text, subject in governance_tokens:
         if token not in text:
@@ -1621,6 +1654,7 @@ def check_semantic_documentation(docs, R, D):
         "timeBudget", "CONTRACT.RUNTIME.COST_GOVERNANCE",
         "CLAUSE.COST.EXHAUSTION_EXPLICIT", "CLAUSE.DELIBERATE.RUNTIME_GRANTS_BUDGET",
         "CAP.ANDROID.BUDGETED_AUTONOMY", "TEST-COST-001", "EV-COST-001",
+        "Deliberation max passes", "maxPasses", "max_passes",
     )
     for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
         for token in banned_execution_controls:
@@ -1742,6 +1776,10 @@ def check_structure(docs, R, D):
         if not any(k in body for k in CONSEQUENCE):
             D.add("structure", f"ADR-{n}",
                   f"missing consequence role (one of {', '.join(CONSEQUENCE)})")
+        # The decision log requires every ADR accepted from ADR-209 onward to
+        # state the observable evidence that would justify superseding it.
+        if n >= 209 and "**Reversal trigger:**" not in body:
+            D.add("structure", f"ADR-{n}", "missing Reversal trigger field (required from ADR-209 onward)")
 
     # registry cardinality sanity
     if len(R["contracts"]) < 2:
