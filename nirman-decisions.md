@@ -2306,6 +2306,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Consequences:** M113 must prove compaction, cache compatibility, invalidation, privacy, and lineage fixtures.
 
+**Amended by ADR-219:** compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity; they are re-projected from durable state after every compaction and verified by a recall probe, and the cache breakpoint precedes the DENSE placement block.
+
 ## ADR-200: Report Android runtime integrity as independent applicable signals
 
 **Locks:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
@@ -2528,6 +2530,8 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Consequences:** Retrieval completeness is an authoritative hard gate owned jointly by `PolicyAuthority` and `EvidenceAuthority`. Models cannot bypass coverage checks or execute mutations against partial or stale context.
 
+**Amended by ADR-219:** the confidence dimension list gains `attentionReliability` as a seventh dimension, and the gate's recovery path adds re-projection into the DENSE block and step narrowing alongside retrieval expansion and re-grounding.
+
 **Reversal trigger:** Evidence that optimistic model execution with post-hoc reconciliation resolves dependencies faster without increasing regression rates.
 
 ---
@@ -2559,3 +2563,17 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Consequences:** BS §72 becomes the Runtime Resource Integrity Authority with `TEST-RESOURCE-001`/`EV-RESOURCE-001`; TA §77 becomes its implementation contract; M111 is the resource-integrity gate and no milestone exists for AI-cost governance; BS §68 and TA §72 lose every budget path, the former `RUNTIME_GRANTS_BUDGET` clause becomes `CLAUSE.DELIBERATE.RUNTIME_GRANTS_EFFORT`, and the former `COST.EXHAUSTION_EXPLICIT` clause is replaced by `CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY` and `CLAUSE.RESOURCE.ADAPT_BEFORE_BLOCK`; ADR-197 is superseded and retained for history; ADR-170, ADR-172, ADR-174, ADR-176, ADR-177, and ADR-184 are amended where they named budgets; the verifier proves that BS §68 has exactly one authoritative owner (`CONTRACT.RUNTIME.DELIBERATION`) and exactly one declared extension (of `CONTRACT.RUNTIME.REASONING`). Agents MUST NOT introduce AI token, provider-request, monetary, reasoning, or autonomous-goal-duration budgets as execution controls; they MAY implement physical resource limits, provider technical-capacity handling, process liveness protection, and concurrency/backpressure.
 
 **Reversal trigger:** Physical demonstration that autonomous execution without AI-usage controls causes harm that physical resource integrity, provider capacity handling, policy stop conditions, and evidence authority cannot prevent.
+
+## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+**Amends:** ADR-199, ADR-216 (builds on ADR-214 and ADR-215)
+
+**Decision:** A provider model's ability to attend to context is a measured, per-model `AttentionReliabilityProfile` (`DECLARED`, `PROBED`, `LEARNED`, or `UNPROFILED`), distinct from its declared context capacity. Context assembly places required items and mutation-target `EXACT` items inside the measured reliable recall span in a fixed layout — cache-stable prefix, SPARSE breadth, DENSE precision block, state digest, instruction — recorded in `placementPlan`; the sufficiency gate evaluates `attentionReliability` as a seventh confidence dimension; the mutation broker rejects a proposal whose anchors or premises do not match the originating `ContextPackage` with `PREMISE_MISMATCH` before any transaction opens; and compaction output never carries active constraints, locked decisions, acceptance criteria, or revision identity, which are re-projected from durable state after every compaction and verified by a recall probe. Reliability evidence derives only from deterministic recall probes and premise mismatches, never from model self-report.
+
+**Rationale:** Nirman does not implement attention; the provider does (TA §19.2), and providers with hybrid sparse, linear, recurrent, or sliding-window attention recall distant literal content unevenly by position, window fill, and distractor density in ways they do not publish. Set-membership sufficiency — coverage, freshness, fidelity, dependency and evidence completeness, uncertainty — cannot detect an item that is present but not attendable, so the failure surfaces late as a wrong edit with a misleading failure fingerprint. Presence is necessary; attendability is what a consequential mutation depends on. The only levers Nirman holds are to measure, place, verify independently of recall, and recover, and each must be deterministic and evidence-backed.
+
+**Consequences:** BS §53.11 and TA §59.12 define the profile, placement, probes, and learning; `ContextPackage` gains `attentionProfileRef`, `placementPlan`, `attendabilityMap`, and `recallProbes`; `ProviderProfile.attentionCapabilities` carries the profile; `StructuredPatch` gains `baseRevision`, `targetSymbolIds`, `anchorHashes`, and `premises`; the sealed clauses `CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED` and `CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY` join `CONTRACT.RUNTIME.CONTEXT`; the prompt templates of BS §80.8 adopt the placement layout and the compaction prompt no longer carries constraints; the provider compatibility fixtures, the AI Settings capability badges, and the runtime quality metrics gain attention reliability; M81 and M113 gain attention fixtures. Probe results are telemetry and context-quality inputs with no execution-authority semantics (ADR-218): they may change placement, step size, and provider or model selection and may never pause, throttle, degrade, or fail valid work; probe cadence is bound to structural events, never to token, request, or pass counts. `ContextCapacityPlanner` keeps its name and its capacity role.
+
+**Reversal trigger:** Measured literal recall is uniform within the configured threshold across all fill and position buckets for every approved provider model over a full evaluation run, or providers publish verifiable lossless literal recall across the declared context window.
