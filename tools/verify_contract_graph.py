@@ -1770,6 +1770,26 @@ def check_semantic_documentation(docs, R, D):
                   "ContentStore is the canonical persistence implementation; ContentAuthority owns admission and lifecycle")
     if "- Content schema (persisted logical content resource" not in dev:
         D.add("semantic documentation", "M120 deliverables", "M120 must deliver the Content schema")
+    # Crash-safety and consistency rules (TA §87.5/§87.6, §86.2; BS §80.9).
+    for token, text, subject in (
+        ("MUST become durable atomically", bs, "change-report atomicity (BS §83.2)"),
+        ("create exactly one `INCOMPLETE` record idempotently", bs, "change-report recovery idempotence (BS §83.2)"),
+        ("in the same SQLite transaction that commits the parent `ConstructionTransaction`", ta, "change-report atomicity (TA §87.5)"),
+        ("`transactionId` is unique in `ChangeIntelligenceStore`", ta, "change-report uniqueness (TA §87.5)"),
+        ("5. Crash between parent commit and projection", ta, "change-report crash recovery (TA §87.6)"),
+        ("MUST commit those related records atomically in one SQLite transaction", ta, "atomic Continue resolution (TA §86.2)"),
+        ("A partially committed Continue resolution is invalid", ta, "partial Continue recovery (TA §86.2)"),
+        ("L. crash immediately after parent commit and before projection", dev, "TEST-CHANGE-001 crash fixture"),
+        ("L. crash during Continue resolution after one durable record is written", dev, "TEST-CONV-001 crash fixture"),
+    ):
+        if token not in text:
+            D.add("semantic documentation", subject, f"required rule is missing: {token}")
+    if "ChangeReportStatus" in dev or "ChangeReportStatus" in bs or "ChangeReportStatus" in ta:
+        D.add("semantic documentation", "change report status name",
+              "the lifecycle field is ChangeReportRecord.status (INCOMPLETE | COMPLETE | UNRESOLVED); no ChangeReportStatus type exists")
+    if "this criterion\n   is NOT yet satisfied" in bs or "is NOT yet satisfied" in bs:
+        D.add("semantic documentation", "BS §80.9 criterion 1",
+              "§80.10 records 100% coverage; criterion 1 must not simultaneously claim it is unsatisfied")
     # Vocabulary contradicted by an accepted decision must not reappear in the
     # active product, architecture, or milestone documents.
     contradicted_vocabulary = (

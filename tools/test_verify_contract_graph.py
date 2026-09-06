@@ -263,6 +263,37 @@ CASES = {
         "`maxReasoningTokensOptional` is a runtime execution ceiling",
         "semantic documentation"),
 
+    # ---- crash-safety audit: change-report atomicity, Continue atomicity, §80.9 consistency
+    "change-report obligation decoupled from the commit": (
+        TA, "in the same SQLite transaction that commits the parent `ConstructionTransaction`",
+        "after the parent `ConstructionTransaction` has committed",
+        "semantic documentation"),
+    "duplicate change-report records permitted": (
+        TA, "`transactionId` is unique in `ChangeIntelligenceStore`", "`recordId` is unique in `ChangeIntelligenceStore`",
+        "semantic documentation"),
+    "crash-window recovery step removed": (
+        TA, "5. Crash between parent commit and projection", "5. Projection retry",
+        "semantic documentation"),
+    "build spec drops the atomic record obligation": (
+        BS, "MUST become durable atomically", "SHOULD become durable together",
+        "semantic documentation"),
+    "Continue resolution no longer atomic": (
+        TA, "MUST commit those related records atomically in one SQLite transaction",
+        "commits those related records in sequence",
+        "semantic documentation"),
+    "TEST-CHANGE-001 loses the crash fixture": (
+        DEV, "L. crash immediately after parent commit and before projection", "L. projection retry",
+        "semantic documentation"),
+    "TEST-CONV-001 loses the Continue crash fixture": (
+        DEV, "L. crash during Continue resolution after one durable record is written", "L. Continue retry",
+        "semantic documentation"),
+    "nonexistent ChangeReportStatus type reintroduced": (
+        DEV, "projector failure records ChangeReportRecord.status = INCOMPLETE", "projector failure records ChangeReportStatus = INCOMPLETE",
+        "semantic documentation"),
+    "§80.9 criterion 1 contradicts §80.10 again": (
+        BS, "is satisfied for the statements currently enumerated in §80.2.", "is NOT yet satisfied.",
+        "semantic documentation"),
+
     # ---- schema semantics audit: registry meaning, drafts vs admitted records, lifecycle rules
     "canonical-definition column reintroduced": (
         TA, "| schemaId (normative contract; implementation schema) |", "| schemaId (canonical definition) |",
