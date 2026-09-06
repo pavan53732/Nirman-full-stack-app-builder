@@ -4012,7 +4012,7 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | ScenarioRegistry | Stores scenario definitions and requirement links |
 | ScenarioCompiler | Translates a scenario into instrumentation and ADB steps |
 | SeedDataProvisioner | Establishes preconditions through the app's own data layer |
-| ScenarioExecutor | Runs steps against a emulator session and records results |
+| ScenarioExecutor | Runs steps against an emulator session and records results |
 | StateProbe | Verifies persisted state after process death or restart |
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
 
@@ -5257,7 +5257,7 @@ MixedAndroidAdapter (internal implementation family)
 - adapterId prefix: nirman.adapter.mixed
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
   resolveBuildAdapter (composed Gradle plus Metro or Expo plus NDK or
-  CMake), resolveDeviceAdapter (AndroidDeviceAdapter for emulator or
+  CMake), resolveDeviceAdapter (AndroidDeviceAdapter for the
   Nirman-managed local Android emulator)
 ```
 
@@ -5367,7 +5367,7 @@ A resolver output is recorded as part of the `PreviewRequest` decision trace. Th
 
 ### 73.12 Android device adapter contract
 
-The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Emulator and Nirman-managed local Android emulator implementations MUST satisfy this interface; the interface is an execution contract, not an authority.
+The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Every Nirman-managed local Android emulator implementation MUST satisfy this interface; the interface is an execution contract, not an authority.
 
 ```text
 AndroidDeviceAdapter

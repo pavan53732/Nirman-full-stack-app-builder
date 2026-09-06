@@ -197,7 +197,7 @@ A request may include one or more screenshots as visual references. Nirman shoul
 
 The live preview MUST use a Nirman-managed local Android emulator as the sole canonical Android runtime. The emulator MUST run locally on the Windows host, MUST be launched headless, and MUST render its actual Android application surface inside Nirman's Preview panel. The user MUST NOT need physical Android hardware to build, install, launch, interact with, validate, or visually inspect the generated application.
 
-No physical Android devices are outside Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency.
+Physical Android devices are outside Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency; the generated application renders inside Nirman's own embedded preview surface on the Nirman-managed local Android emulator.
 
 The live preview MUST show the selected device, build/install state, Metro or native development-server output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
 
@@ -325,7 +325,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.QUALITY_GATE | Prevent unverified mutations from reaching a deliverable | CONTRACT.RUNTIME.VERIFICATION, CONTRACT.RUNTIME.SPECULATION | TEST-VER-001 | EV-VER-001 | PLANNED |
 | CAP.ANDROID.REGRESSION_REPAIR | Repair a regression at its cause without broad regeneration | CONTRACT.RUNTIME.LOCALIZATION | TEST-LOC-001 | EV-LOC-001 | PLANNED |
 | CAP.ANDROID.SECURE_RELEASE | Produce a packaged artifact with verified dependencies and provenance | CONTRACT.RUNTIME.SUPPLY_CHAIN | TEST-SEC-001 | EV-SEC-001 | PLANNED |
-| CAP.ANDROID.DEVICE_COVERAGE | Report honest verification coverage across a emulator profile matrix | CONTRACT.RUNTIME.DEVICE_MATRIX | TEST-DEV-001 | EV-DEV-001 | PLANNED |
+| CAP.ANDROID.DEVICE_COVERAGE | Report honest verification coverage across an emulator profile matrix | CONTRACT.RUNTIME.DEVICE_MATRIX | TEST-DEV-001 | EV-DEV-001 | PLANNED |
 | CAP.ANDROID.LIVE_STEER | Change direction mid-run, inspect runtime state, and plan within host capacity | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER, CONTRACT.RUNTIME.PROFILING | TEST-DIR-001 | EV-DIR-001 | PLANNED |
 | CAP.ANDROID.AUTOMATED_START | Begin work from an authenticated external event | CONTRACT.RUNTIME.TRIGGER | TEST-TRG-001 | EV-TRG-001 | PLANNED |
 | CAP.ANDROID.SKILL_WORKFLOW | Apply reusable domain workflows without granting new permissions | CONTRACT.RUNTIME.SKILL | TEST-SKL-001 | EV-SKL-001 | PLANNED |
@@ -1117,9 +1117,9 @@ The task review screen should show the original request, implementation plan, ch
 
 The project should be built in vertical slices rather than by completing every subsystem separately. Each slice should produce a usable part of the application.
 
-The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan, synthesize a project, apply a small file change, start an emulator or emulator preview, and inspect the result.
+The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan, synthesize a project, apply a small file change, start the Nirman-managed local Android emulator preview, and inspect the result.
 
-The second slice should add checkpoints, diffs, tests, repair attempts, Android Nirman-managed local Android emulator preview, and cancellation. The third should add Android packaging, APK artifacts, signing boundaries, and emulator validation.
+The second slice should add checkpoints, diffs, tests, repair attempts, Nirman-managed local Android emulator preview, and cancellation. The third should add Android packaging, APK artifacts, signing boundaries, and emulator validation.
 
 The team should maintain a fixture library of representative projects and tasks. Each agent change should be evaluated against these fixtures for code correctness, preview startup, test results, changed-file scope, and safe failure behavior.
 
@@ -1729,7 +1729,7 @@ When the user reverts a checkpoint, Nirman should stop or invalidate the preview
 
 The Android preview should support named emulator profiles for phone, tablet, portrait, landscape, Android version, architecture, screen density, and API level. A visual test should launch the same flow across selected Nirman-managed emulator profiles, compare screenshots, and record profile-specific findings.
 
-Android preview should use a emulator-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple emulator sessions later.
+Android preview should use an emulator-manager abstraction that reports Nirman-managed local Android emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status. The first implementation may support one Nirman-managed local Android emulator at a time, but the protocol should allow multiple emulator sessions later.
 
 ### 26.11 Toolchain version management
 
@@ -2133,7 +2133,7 @@ The session owns the complete task independently of the chat interface. It remai
 
 ### 29.3 Live preview and execution synchronization
 
-The live Android Nirman-managed local Android emulator is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, emulator identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
+The live Nirman-managed local Android emulator is a first-class execution surface. Every preview state must expose the project revision, checkpoint ID, emulator identity, installation state, reload state, Logcat, runtime errors, latest screenshot, visual comparison result, and the worker or task responsible for the current change.
 
 If a candidate change breaks the application, the preview must show the last valid revision and identify the failed candidate. The execution tree and preview must share a revision identifier so the user can see exactly which work produced the running application.
 
@@ -2163,7 +2163,7 @@ The product must validate AI-selected generation across JavaScript-driven Androi
 
 ## 30. Android Completion Report
 
-The final completion screen must show the application identity, selected technology plan and reasons, final emulator or emulator state, build and validation results, APK paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
+The final completion screen must show the application identity, selected technology plan and reasons, final emulator state, build and validation results, APK paths and checksums, recovery history, source revision, checkpoints, warnings, and unresolved issues. A model-generated statement that the work is complete is never sufficient evidence.
 
 ---
 
@@ -3218,7 +3218,7 @@ Nirman must also provide a clearly labeled **Simulation/Dry-Run Mode**. It may p
 
 The runtime must detect dependency cycles across tasks, workers, resource reservations, approvals, workspace leases, and ToolSessions. A detected deadlock must produce a typed finding and trigger safe recovery, reordering, worker replacement, or a structured decision node.
 
-Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, emulator slots, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
+Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
 
 Cancellation must propagate from goal to task graph, workers, skills, ToolSessions, processes, PTY sessions, emulator operations, and pending provider requests. Each layer must support graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
 
@@ -3740,7 +3740,7 @@ Supply-chain verification is satisfied only when a fixture containing a delibera
 - nonOverriddenClauses: CLAUSE.E2E.DETERMINISM, CLAUSE.E2E.SEED_PROVENANCE
 
 
-This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across a emulator profile matrix.
+This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across an emulator profile matrix.
 
 ### 59.1 Product requirement
 
@@ -6163,7 +6163,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.9 | "The UI should never show a preview as current when it represents a different checkpoint" | MUST NOT show stale as current | Revision mismatch forces the `STALE` label. This is a display invariant, not a preference |
 | BS §26.10 | "Android preview should support named emulator profiles" | MUST support named profiles | Covering phone, tablet, portrait, landscape, Android version, architecture, screen density, API level |
 | BS §26.10 | "A visual test should launch the same flow across selected emulator profiles, compare screenshots, and record profile-specific findings" | MUST do all three | Per selected profile. A profile that fails to launch is recorded as a failure, never skipped silently |
-| BS §26.10 | "Android preview should use a emulator-manager abstraction" | MUST use the abstraction | Reporting emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status |
+| BS §26.10 | "Android preview should use an emulator-manager abstraction" | MUST use the abstraction | Reporting emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status |
 | BS §26.10 | "the protocol should allow multiple emulator sessions later" | MUST design for multiple; MAY implement one initially | Protocol and schemas carry an emulator session identifier from the outset so multi-session needs no breaking change |
 | BS §26.11 | "Nirman should not rely on one globally installed toolchain" | MUST NOT rely on a global toolchain | Per-project resolution is mandatory |
 | BS §26.11 | "Each Android project should declare required versions or compatible ranges" | MUST declare | For Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator images, Expo/React Native tooling, and native build dependencies. Recorded in `toolchainLock` (§369) |

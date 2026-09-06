@@ -1532,7 +1532,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Rationale:** Early capability planning prevents late discovery of impossible Android validation paths.
 
-**Consequences:** Physical-emulator access, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
+**Consequences:** Emulator hypervisor acceleration, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
 
 ## ADR-128: Make ValidationPlanner and mutation/regression analysis authoritative for test selection
 
@@ -2213,7 +2213,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Decision:** Local source/artifact mutations, device operations, and external side effects use separate transaction records and rollback semantics. A consumed mutation capability cannot be reused for a new side effect after an unknown response. Reconciliation uses an explicitly scoped reconciliation authority, idempotency key, read-back, or compensation evidence.
 
-**Rationale:** Filesystem rollback can restore local state, but it cannot automatically undo a emulator installation or a remote request.
+**Rationale:** Filesystem rollback can restore local state, but it cannot automatically undo an emulator installation or a remote request.
 
 **Consequences:** Unknown outcomes are durable states, duplicate external effects are rejected, and local commit never implies remote or device success.
 

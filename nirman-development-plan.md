@@ -14,7 +14,7 @@
 
 Nirman should be built in vertical slices. Every milestone must produce a usable and testable part of the application instead of completing isolated infrastructure with no end-to-end workflow.
 
-The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run an Nirman-managed local Android emulator preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and emulator testing.
+The first usable slice should allow a user to open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run a Nirman-managed local Android emulator preview, execute validation, and undo the task. The next slices should make that flow resilient to long-running tasks, worker failures, application closure, parallel work, Android packaging, and emulator testing.
 
 The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in the decision log.
 
@@ -312,7 +312,7 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 
 A Nirman-managed local headless emulator can launch the generated Android application and render its actual live surface inside the Nirman Preview panel. The user can interact with that running application inside Nirman, observe resulting runtime state, evaluate assertions, and capture revision-bound evidence without a physical Android phone.
 
-Physical-emulator validation is optional secondary coverage and cannot be required to satisfy the primary PreviewRuntime gate.
+No physical-device validation exists in the product; the Nirman-managed local Android emulator rendered inside Nirman's embedded preview is the only validation surface, and the primary PreviewRuntime gate is satisfied only there.
 
 ---
 
@@ -713,7 +713,7 @@ Implement the capability registry, technology planner, framework resolver, mixed
 
 ## 31. Definition of Done for Nirman
 
-Nirman is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASSED under the no-human-intervention definition.
+Nirman is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASS under the no-human-intervention definition.
 
 The product is not considered autonomous-ready unless the runtime, rather than the model, remains the authority over lifecycle, permissions, sandboxing, storage, evidence, recovery, promotion, rollback, and termination.
 
@@ -747,7 +747,7 @@ Implement a progress ledger and stall detector that measure changed files, new e
 
 ## 34. Live Preview and APK Completion Gate
 
-Make the Android Nirman-managed local Android emulator a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
+Make the Nirman-managed local Android emulator a first-class validation surface and require the preview revision to remain synchronized with the execution tree.
 
 ### Acceptance criteria
 
@@ -1567,7 +1567,7 @@ Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, a
 |---|---|---|
 | Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered as strategy and composition adapters; only `validatePlan`, `initializeProject`, `planBuild`, `classifyFailure`, `resolveBuildAdapter`, `resolveDeviceAdapter` exposed; no concrete execution operation on the technology adapter; `resolveBuildAdapter` and `resolveDeviceAdapter` are deterministic over the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities`; emitted `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` |
 | Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly |
-| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by both Nirman-managed local Android emulator implementations; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
+| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by every Nirman-managed local Android emulator implementation; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
 | Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
 | Preview Panel Pipeline | TA §73.14 | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry and by the contract-graph verifier |
 
@@ -1622,7 +1622,7 @@ Documentation and contracts: the contract and parameterized fixture specificatio
 
 Parameterized coverage: nine technology profiles specified as `AndroidCapabilityProfile` instances and reachable through `resolveBuildAdapter` / `resolveDeviceAdapter` against the canonical rule table.
 
-Runtime certification: not claimed by this milestone. Runtime certification of the nine profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, emulator sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on an actually attached matching device and the runtime adapter implementations; neither is asserted by this documentation milestone.
+Runtime certification: not claimed by this milestone. Runtime certification of the nine profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, emulator sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on a running Nirman-managed local Android emulator session and the runtime adapter implementations; neither is asserted by this documentation milestone.
 
 **Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, Nirman-managed local Android emulator runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
 
