@@ -1298,7 +1298,7 @@ def check_command_payload_field_coverage(docs, R, D, root):
                       f"policy-mandatory field of the canonical record")
 
 
-def check_semantic_documentation(docs, R, D):
+def check_semantic_documentation(docs, R, D, root="."):
     """Detect high-risk semantic drift not covered by the contract graph."""
     bs, ta, dec, dev = docs["bs"], docs["ta"], docs["dec"], docs["dev"]
 
@@ -1389,6 +1389,17 @@ def check_semantic_documentation(docs, R, D):
     if "The in-process allowance ends at M7" not in adr_blocks(dec).get(111, ""):
         D.add("semantic documentation", "in-process hosting bound",
               "ADR-111 must state that the in-process allowance ends at M7")
+    # AGENTS.md may not instruct agents to run a certification entry point that
+    # the working tree does not contain (tools/verify.sh|.ps1 are M0 deliverables).
+    agents_path = os.path.join(root, "AGENTS.md")
+    if os.path.exists(agents_path):
+        agents = open(agents_path, encoding="utf-8").read()
+        for entry in ("tools/verify.sh", "tools/verify.ps1"):
+            if entry in agents and not os.path.exists(os.path.join(root, entry)) \
+                    and "do not exist yet in this documentation-only repository" not in agents:
+                D.add("semantic documentation", "certification entry point",
+                      f"AGENTS.md instructs running `{entry}`, which is absent from the working tree, without "
+                      "stating that it is an M0 deliverable and naming the present gate (verify_contract_graph.py + harness)")
     if "\nCandidateBranch\n- branchId\n" not in ta:
         D.add("semantic documentation", "CandidateBranch schema",
               "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")
@@ -2420,7 +2431,7 @@ def verify(root):
     check_orphan(R, adj, D)
     check_canonical_identity(docs, R, D)
     check_section_ownership(R, D)
-    check_semantic_documentation(docs, R, D)
+    check_semantic_documentation(docs, R, D, root)
     check_structure(docs, R, D)
     check_skill_bodies(docs, D, root)
     check_command_payload_field_coverage(docs, R, D, root)

@@ -601,6 +601,10 @@ CASES = {
         BS, "and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes.",
         "and the two executables are separated when convenient.",
         "semantic documentation"),
+    "AGENTS.md presents the absent verify.sh entry point as present": (
+        "AGENTS.md", "do not exist yet in this documentation-only repository", "are the standard gate",
+        "semantic documentation",
+        (("AGENTS.md", os.path.join(REPO, "AGENTS.md")),)),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

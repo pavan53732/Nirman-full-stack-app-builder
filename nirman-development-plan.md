@@ -82,7 +82,7 @@ Create the source repository and define the code-quality baseline before impleme
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |
 | Test fixtures | At least three representative Android projects exist |
 | Security baseline | Secret files are excluded from logs and test fixtures |
-| Local certification pipeline | Documentation, foundation, Rust supervisor, WinUI 3/.NET host (build, analyzers, and tests — there is no web frontend), fixture, and static checks run through the local certification command |
+| Local certification pipeline | `tools/verify.sh` and `tools/verify.ps1` exist, stay aligned (ADR-204), and run documentation certification (`tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py`), foundation, Rust supervisor, WinUI 3/.NET host (build, analyzers, and tests — there is no web frontend), fixture, and static checks; until this item lands the two Python commands are the complete available gate |
 
 ### Exit gate
 

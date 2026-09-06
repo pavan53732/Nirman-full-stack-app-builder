@@ -349,7 +349,7 @@ Adaptive resource management may compact context, reduce concurrency, switch amo
 
 Documentation certification proves only document structure, identity, registry consistency, graph reachability, semantic anchors, and declared conformance. It does not prove a working C#/.NET + WinUI 3 desktop UI, Rust runtime, Windows process supervisor, Android project synthesis, Gradle build, Nirman-managed local Android emulator execution, real preview synchronization, APK validity, signing, recovery, or runtime fixture execution.
 
-Local certification is authoritative for repository engineering validation. Run `tools/verify.sh` on Unix-like development environments or `tools/verify.ps1` on Windows; both must execute the same local checks for documentation, M0 foundation, Rust formatting/tests, frontend installation/build, and fixture validation. Git hosting and hosted CI providers—including GitHub Actions—are optional source-control or convenience services. They are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact. GitHub independence does not imply offline certification: dependency installation may require a configured package registry or cached dependencies, but it must not require GitHub or a hosted repository for authority or execution.
+Local certification is authoritative for repository engineering validation. The local certification entry points `tools/verify.sh` (Unix-like development environments) and `tools/verify.ps1` (Windows) are an M0 deliverable (development plan M0 "Local certification pipeline"; ADR-204) and do not exist yet in this documentation-only repository; until M0 lands, the complete available local gate is `python tools/verify_contract_graph.py .` followed by `python tools/test_verify_contract_graph.py`. When the entry points exist, both must execute the same local checks for documentation, M0 foundation, Rust formatting/tests, WinUI 3/.NET host build and tests, and fixture validation. Git hosting and hosted CI providers—including GitHub Actions—are optional source-control or convenience services. They are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact. GitHub independence does not imply offline certification: dependency installation may require a configured package registry or cached dependencies, but it must not require GitHub or a hosted repository for authority or execution.
 
 Never change a capability from `PLANNED` or an environment-qualified status to `SUPPORTED` based on prose, a model response, a worker claim, a successful documentation verifier, or an unexecuted test identity. Runtime support requires real source, executable fixtures, and evidence.
 
@@ -390,11 +390,13 @@ Before committing:
 ```text
 git status --short
 git diff --check
-./tools/verify.sh                 # Unix-like environments
-.\\tools\\verify.ps1             # Windows PowerShell
+python tools/verify_contract_graph.py .        # documentation certification (present today)
+python tools/test_verify_contract_graph.py     # verifier mutation and conformance harness (present today)
+./tools/verify.sh                              # Unix-like environments — once M0 delivers it
+.\\tools\\verify.ps1                          # Windows PowerShell — once M0 delivers it
 ```
 
-The local certification entry point is the preferred gate because it orchestrates the complete available validation sequence. Direct verifier, conformance, Rust, frontend, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
+Once M0 delivers it, the local certification entry point is the preferred gate because it orchestrates the complete available validation sequence; until then the two Python commands above are the complete available gate. Direct verifier, conformance, Rust, frontend, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
 
 A commit must contain only the intended coherent change, use a descriptive message, and never include secrets, generated credentials, temporary migration scripts, unrelated files, or unreviewed artifacts. Push only when explicitly requested. After pushing, fetch the remote and confirm that local `HEAD` and `origin/main` match.
 
