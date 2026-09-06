@@ -2334,7 +2334,7 @@ def check_skill_bodies(docs, D, repo_root):
         D.add("semantic documentation", "BS §79.7",
               "platform-skill table (§79.7) not found")
         return
-    names = re.findall(r"^\| `([a-z][a-z0-9-]*)` \|", m.group(0), re.M)
+    names = list(dict.fromkeys(re.findall(r"^\| `([a-z][a-z0-9-]*)` \|", m.group(0), re.M)))
     if not names:
         D.add("semantic documentation", "BS §79.7", "platform-skill table lists no skills")
         return
@@ -2363,6 +2363,54 @@ def check_skill_bodies(docs, D, repo_root):
     for name in sorted(set(bodies) - set(names)):
         D.add("semantic documentation", f"skill {name}",
               "SKILL.md body exists but the skill is not registered in BS §79.7")
+    # Manifests (BS §79.7): skill.json beside each body, built_in scope,
+    # requiredCapabilities equal to the §79.7 row, drawn from the closed
+    # capability-id vocabulary, no permission requests, no ledger state.
+    import json as _json
+    sec = m.group(0)
+    vocab = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| ", sec, re.M))
+    declared = {}
+    for row in re.findall(r"^\| `([a-z][a-z0-9-]*)` \| ([^|]*) \|$", sec, re.M):
+        declared[row[0]] = set(re.findall(r"`([A-Z][A-Z_]+)`", row[1]))
+    if not vocab or not declared:
+        D.add("semantic documentation", "BS §79.7", "capability-id vocabulary or per-skill requiredCapabilities table not found")
+    for name in names:
+        path = bodies.get(name)
+        if path is None:
+            continue
+        mpath = os.path.join(os.path.dirname(path), "skill.json")
+        if not os.path.exists(mpath):
+            D.add("semantic documentation", f"skill {name}", "no skill.json manifest beside SKILL.md (BS §79.7)")
+            continue
+        try:
+            with open(mpath, encoding="utf-8") as fh:
+                man = _json.load(fh)
+        except ValueError as exc:
+            D.add("semantic documentation", f"skill {name}", f"skill.json is not valid JSON: {exc}")
+            continue
+        if man.get("skillId") != name:
+            D.add("semantic documentation", f"skill {name}", f"manifest skillId {man.get('skillId')!r} differs from the directory and §79.7 id")
+        if man.get("scope") != "built_in":
+            D.add("semantic documentation", f"skill {name}", "manifest scope must be built_in for a §79.7 skill")
+        if man.get("permissionRequests"):
+            D.add("semantic documentation", f"skill {name}", "manifest requests permissions; built-in skills are permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT)")
+        if man.get("sourcePath") != "SKILL.md":
+            D.add("semantic documentation", f"skill {name}", "manifest sourcePath must name the sibling SKILL.md")
+        caps = set(man.get("requiredCapabilities") or [])
+        for extra in man.get("conditionalCapabilities", {}).values():
+            caps |= set(extra)
+        unknown = sorted(caps - vocab)
+        if unknown:
+            D.add("semantic documentation", f"skill {name}", f"manifest names capability ids outside the §79.7 vocabulary: {unknown}")
+        if name in declared and caps != declared[name]:
+            D.add("semantic documentation", f"skill {name}",
+                  f"manifest requiredCapabilities {sorted(caps)} differ from the §79.7 row {sorted(declared[name])}")
+        for fld in ("scanStatus", "trustStatus", "enabled", "installedAt", "lastUsedAt"):
+            if fld in man:
+                D.add("semantic documentation", f"skill {name}", f"manifest carries ledger-state field {fld}; the registry owns it")
+        for fld in ("name", "description", "version", "compatibleWorkerRoles", "triggerConditions", "requiredTools", "inputSchema", "outputSchema"):
+            if fld not in man:
+                D.add("semantic documentation", f"skill {name}", f"manifest lacks SkillPackage field {fld}")
 
 
 def check_section_ownership(R, D):

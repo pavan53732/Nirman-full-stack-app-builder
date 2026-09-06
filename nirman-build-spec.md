@@ -6010,7 +6010,29 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-Every skill registered in this table MUST have an instruction body at `crates/nirman-skills/skills/<group>/<skill>/SKILL.md`, and no body may name the excluded host stack (ADR-108, ADR-117, AGENTS.md §17) or a physical-device path (§4.4). The contract-graph verifier (§67.11) enforces both rules whenever the skill tree is present in the working tree and records a skip, never a pass, when it is absent.
+The `requiredCapabilities` of the six built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+
+| Capability id | Meaning | Classified from |
+|---|---|---|
+| `HOST_TOOL_OBSERVATION` | Host tools can be enumerated and version-probed | always `AVAILABLE` on a running Windows host; never blocks preflight |
+| `ENVIRONMENT_REPAIR` | Authorized toolchain, SDK, PATH, or configuration repair may execute | repair capability plus policy admission (§26.11) |
+| `WINDOWS_HOST_TOOLCHAIN` | .NET SDK, Windows App SDK, MSBuild, and the Rust toolchain for Windows x64 are present | toolchain preflight |
+| `WINDOWS_NATIVE_EXECUTION` | A leased Windows `ValidationEnvironment` (§79.8) can launch and observe Nirman's own executables | lease acquisition plus observation; `UNAVAILABLE` without a lease |
+| `ANDROID_BUILD_TOOLCHAIN` | JDK, Gradle, Android SDK, platform tools, and (when selected) Node and package manager are present and locked (`AndroidToolchainManifest`, TA §49) | Android toolchain authority |
+| `ANDROID_EMULATOR_EXECUTION` | An accelerated Nirman-managed local emulator session can be leased (§79.16) | hypervisor and emulator preflight; `UNAVAILABLE` without acceleration; no physical device substitutes (§4.4) |
+
+| Skill | `requiredCapabilities` |
+|---|---|
+| `environment-preflight` | none — it produces the classification the others consume |
+| `environment-repair` | `HOST_TOOL_OBSERVATION`, `ENVIRONMENT_REPAIR` |
+| `windows-desktop-build` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-runtime-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
+| `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
+
+Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
+
+Every skill registered in this table MUST have an instruction body at `crates/nirman-skills/skills/<group>/<skill>/SKILL.md` and a manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json`, and no body may name the excluded host stack (ADR-108, ADR-117, AGENTS.md §17) or a physical-device path (§4.4). The contract-graph verifier (§67.11) enforces the body rules and the manifest rules (present, `scope: built_in`, `requiredCapabilities` equal to the table, empty `permissionRequests`, `sourcePath` naming the sibling body, no ledger-state field) whenever the skill tree is present in the working tree and records a skip, never a pass, when it is absent.
 
 ### 79.8 Validation Environment as a First-Class Resource
 

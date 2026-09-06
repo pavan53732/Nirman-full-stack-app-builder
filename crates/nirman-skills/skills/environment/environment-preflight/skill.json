@@ -1,0 +1,23 @@
+{
+  "skillId": "environment-preflight",
+  "name": "Environment Preflight",
+  "description": "Identify host and target; inspect toolchain, SDKs, runtimes, and native dependencies; classify executable and validation capabilities; produce the environment fingerprint (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Repository Scout",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "task_start_before_implementation",
+    "environment_fingerprint_missing_or_stale"
+  ],
+  "requiredTools": [
+    "host-tool-probe"
+  ],
+  "requiredCapabilities": [],
+  "permissionRequests": [],
+  "inputSchema": "EnvironmentPreflightInput",
+  "outputSchema": "EnvironmentCapabilityRecord",
+  "sourcePath": "SKILL.md"
+}

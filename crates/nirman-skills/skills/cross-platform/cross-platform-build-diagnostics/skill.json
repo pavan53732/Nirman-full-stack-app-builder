@@ -1,0 +1,24 @@
+{
+  "skillId": "cross-platform-build-diagnostics",
+  "name": "Cross-Platform Build Diagnostics",
+  "description": "For a host→target pair, determine what can be built, which artifacts can be produced, and which validation evidence necessarily remains missing (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Repository Scout",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "validation_environment_unavailable"
+  ],
+  "requiredTools": [
+    "host-tool-probe"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "BuildDiagnosticsRequest",
+  "outputSchema": "BuildDiagnosticsReport",
+  "sourcePath": "SKILL.md"
+}

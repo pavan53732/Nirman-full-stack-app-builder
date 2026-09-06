@@ -1,0 +1,36 @@
+{
+  "skillId": "android-toolchain",
+  "name": "Android Toolchain",
+  "description": "Node, package manager, Java, Gradle, Android SDK, platform tools, the Nirman-managed local Android emulator, native dependencies, and signing (BS §79.7); the emulator rendered inside Nirman's embedded preview is the only runtime surface (BS §4.4).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker",
+    "Debugging Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "android_toolchain_preflight",
+    "android_toolchain_repair",
+    "emulator_session_required"
+  ],
+  "requiredTools": [
+    "java",
+    "gradle",
+    "sdkmanager",
+    "adb",
+    "emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AndroidToolchainRequest",
+  "outputSchema": "AndroidToolchainManifest",
+  "sourcePath": "SKILL.md",
+  "conditionalCapabilities": {
+    "emulator_steps": [
+      "ANDROID_EMULATOR_EXECUTION"
+    ]
+  }
+}

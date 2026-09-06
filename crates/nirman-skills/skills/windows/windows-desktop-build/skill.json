@@ -1,0 +1,26 @@
+{
+  "skillId": "windows-desktop-build",
+  "name": "Windows Desktop Build",
+  "description": "C#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust control-plane integration for Windows x64: Nirman.exe and NirmanSupervisor.exe packaging, named-pipe SupervisorConnection, installer generation (BS §79.7, ADR-108, ADR-117).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "self_build_lane_target_build"
+  ],
+  "requiredTools": [
+    "dotnet",
+    "msbuild",
+    "cargo"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "WindowsDesktopBuildRequest",
+  "outputSchema": "BuildGateRecord",
+  "sourcePath": "SKILL.md"
+}

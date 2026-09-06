@@ -58,6 +58,10 @@ SKILL_SOURCES = tuple(
     (f"crates/nirman-skills/skills/{d}/SKILL.md",
      os.path.join(REPO, f"crates/nirman-skills/skills/{d}/SKILL.md"))
     for d in SKILL_DIRS)
+SKILL_MANIFESTS = tuple(
+    (f"crates/nirman-skills/skills/{d}/skill.json",
+     os.path.join(REPO, f"crates/nirman-skills/skills/{d}/skill.json"))
+    for d in SKILL_DIRS)
 WIN_BUILD_SKILL = SKILL_SOURCES[4][0]
 ANDROID_SKILL = SKILL_SOURCES[0][0]
 
@@ -633,6 +637,12 @@ CASES = {
     "SkillInvocationRecord loses its field block": (
         TA, "```text\nSkillInvocationRecord\n- invocationId\n", "```text\nSkillInvocationRecordX\n- invocationId\n",
         "semantic documentation"),
+    "skill manifest requests a permission": (
+        "crates/nirman-skills/skills/android/android-toolchain/skill.json", '"permissionRequests": [],', '"permissionRequests": ["filesystem:write"],',
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill manifest names a capability outside the vocabulary": (
+        "crates/nirman-skills/skills/windows/windows-runtime-validation/skill.json", '"WINDOWS_NATIVE_EXECUTION"', '"WINDOWS_DEVICE_EXECUTION"',
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
@@ -1233,19 +1243,19 @@ CASES = {
         "Scope: C#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust",
         "Scope: Tauri 2 / React / TypeScript / Vite / Rust build plus Rust",
         "semantic documentation",
-        SKILL_SOURCES),
+        SKILL_SOURCES + SKILL_MANIFESTS),
     "skill body reintroduces a physical device": (
         ANDROID_SKILL,
         "observation bound to the environment fingerprint.",
         "observation bound to the environment fingerprint, or a physical device observation.",
         "semantic documentation",
-        SKILL_SOURCES),
+        SKILL_SOURCES + SKILL_MANIFESTS),
     "registered skill without a body": (
         BS,
         "| `android-toolchain` | Node, package manager,",
         "| `android-ghost` | placeholder | none |\n| `android-toolchain` | Node, package manager,",
         "semantic documentation",
-        SKILL_SOURCES),
+        SKILL_SOURCES + SKILL_MANIFESTS),
 }
 
 

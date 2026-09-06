@@ -1,0 +1,25 @@
+{
+  "skillId": "windows-runtime-validation",
+  "name": "Windows Runtime Validation",
+  "description": "Native Windows runtime validation of Nirman's own executables: startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "self_build_lane_runtime_validation"
+  ],
+  "requiredTools": [
+    "dotnet",
+    "process-observer"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "WindowsRuntimeValidationRequest",
+  "outputSchema": "BuildGateRecord",
+  "sourcePath": "SKILL.md"
+}
