@@ -7365,17 +7365,19 @@ The agent-buildability contract is satisfied only when:
 
 The "should" resolution table in §80.2 is complete. This subsection records actual coverage so that no reader or agent mistakes partial resolution for full resolution, and so that any future "should" added to a canonical document is visibly accounted for.
 
-| Scope | Statements | Resolved | Status |
+The unit of coverage is the §80.2 resolution row. One row resolves one "should" statement together with every verbatim recurrence of that statement in the same section, so the row count is lower than a raw count of the word "should". The figures below are the number of §80.2 rows whose Section column carries the scope prefix; the contract-graph verifier (§67.11) recomputes them from the §80.2 table on every run and reports a defect if this table disagrees with it.
+
+| Scope | Resolution rows | Resolved | Status |
 |---|---|---|---|
-| Build spec (all sections) | 320 | 320 | Complete |
-| Technical architecture | 172 | 172 | Complete |
-| Development plan | 18 | 18 | Complete |
+| Build spec (all sections) | 284 | 284 | Complete |
+| Technical architecture | 157 | 157 | Complete |
+| Development plan | 16 | 16 | Complete |
 | AGENTS.md | 2 | 2 | Complete |
-| **Total** | **512** | **512** | **100%** |
+| **Total** | **459** | **459** | **100%** |
 
-An earlier revision of this table recorded BS §3–§12 as 42 of 42 resolved. The correct figure for those sections is 82 statements; the original 42 rows covered a subset. The remaining §3–§12 statements are resolved in the same batch that completed the build spec, and the table above now counts whole documents rather than partial ranges.
+Earlier revisions of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 49 rows.
 
-Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table.
+Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table; the verifier enforces this.
 
 Coverage is 100 percent as of this revision. Any "should" subsequently added to a canonical document is unresolved until it appears in §80.2, and this table MUST be updated to show the shortfall in the same commit that adds it.
 
