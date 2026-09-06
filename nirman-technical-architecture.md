@@ -2444,7 +2444,7 @@ Replay reconstructs session state and can optionally re-run validation commands 
 
 ### 45.3 ConstructionTransactionManager
 
-The manager creates a pre-mutation checkpoint, captures the project fingerprint and base revision, validates worker scope and operation capability, stages changes in a transaction workspace, runs syntax/graph/policy/mutation-budget checks, applies the candidate revision, re-indexes affected files, runs affected tests/build/preview checks, collects evidence, and commits or rolls back atomically.
+The manager creates a pre-mutation checkpoint, captures the project fingerprint and base revision, validates worker scope and operation capability, stages changes in a transaction workspace, runs syntax/graph/policy/mutation-safety checks, applies the candidate revision, re-indexes affected files, runs affected tests/build/preview checks, collects evidence, and commits or rolls back atomically.
 
 Writes are serialized per project revision. Independent read-only analysis may proceed concurrently.
 

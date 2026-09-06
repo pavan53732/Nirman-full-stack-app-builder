@@ -898,7 +898,7 @@ Implement the side-effect-free session reducer, append-only event store, monoton
 
 ## M41 — ConstructionTransaction and commit barrier
 
-Implement pre-mutation checkpointing, project revisions, transaction workspaces, mutation budgets, conflict detection, serialized per-revision commits, semantic reconciliation, rollback, and evidence-linked promotion.
+Implement pre-mutation checkpointing, project revisions, transaction workspaces, mutation safety constraints, conflict detection, serialized per-revision commits, semantic reconciliation, rollback, and evidence-linked promotion.
 
 **Exit gate:** stale and conflicting worker proposals are rejected or reconciled without corrupting the project; failed transactions roll back atomically.
 
@@ -928,7 +928,7 @@ Implement language adapters and graph indexing for Kotlin, Java, XML, manifests,
 
 ## M46 — Structured mutation broker
 
-Implement parser-aware and schema-aware mutations, path and revision validation, file ownership, dependency policy, mutation budgets, whole-file fallback restrictions, formatting, syntax validation, and content-integrity checks.
+Implement parser-aware and schema-aware mutations, path and revision validation, file ownership, dependency policy, mutation safety constraints, whole-file fallback restrictions, formatting, syntax validation, and content-integrity checks.
 
 **Exit gate:** direct model writes and unsafe blind replacements are rejected; valid structured changes commit with evidence; invalid syntax or out-of-scope paths never reach the project.
 

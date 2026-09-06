@@ -2401,7 +2401,7 @@ The graph MUST track files, modules, symbols, references, Gradle dependencies, m
 
 ### 43.2 Structured Mutation Broker
 
-Model output MUST pass through the mutation broker. Direct model writes to project files are forbidden. The broker validates project scope, path normalization, base revision, file ownership, schema, syntax, mutation budget, dependency policy, and evidence requirements.
+Model output MUST pass through the mutation broker. Direct model writes to project files are forbidden. The broker validates project scope, path normalization, base revision, file ownership, schema, syntax, mutation safety constraints, dependency policy, and evidence requirements. Mutation safety constraints are structural limits on a single transaction — declared change surface, owned paths, base revision, format validity, and whole-file fallback restrictions — enforced for integrity; they are not usage budgets and never count tokens, requests, cost, or time (§72).
 
 | File category | Preferred transformation |
 |---|---|
