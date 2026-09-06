@@ -1977,7 +1977,7 @@ AutonomousAndroidSession
 AndroidApplicationContract
 VisualSpecification
 AndroidTechnologyPlan
-CapabilityProfile
+AndroidCapabilityProfile
 TaskGraph
 WorkerContract
 TerminalSession
@@ -2016,6 +2016,26 @@ EnvironmentCapabilityRecord
 PlatformCapabilityEntry
 ValidationEnvironment
 BuildGateRecord
+Content
+ContentRevision
+ContentMutation
+ContentValidationResult
+ContentPropagationPlan
+TerminologyProfile
+ContentEvidence
+ContentDependency
+Conversation
+ConversationMessage
+ConversationAttachment
+ConversationRequirement
+ConversationDecision
+ConversationSuggestion
+ConversationTaskLink
+ConversationRequirementIndex
+ConversationDecisionIndex
+ConversationRebaseRecord
+ChangeReportRecord
+ChangeImpactReport
 ```
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
@@ -2036,7 +2056,15 @@ ContractCompatibility
 - acceptanceFixtureIds
 ```
 
-A self-development candidate or contract migration cannot be promoted until its read/write compatibility, migration, restart, replay, and rollback behavior pass the declared fixtures. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion.
+A self-development candidate or contract migration cannot be promoted until its read/write compatibility, migration, restart, replay, and rollback behavior pass the declared fixtures. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion.
+
+Registry metadata for the content, conversation, and change-intelligence schemas is fixed as follows; the canonical field lists are the schema blocks cited in the `schemaId` column, and the fixture column names the acceptance fixture that proves them.
+
+| schemaId (canonical definition) | canonicalOwner | version | lifecycle | persistence | authority | acceptance fixture |
+|---|---|---|---|---|---|---|
+| `Content`, `ContentRevision`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency` (BS §81.1, TA §85.1) | `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` | 1 | revision-bound to the parent `ConstructionTransaction`; invalidated through the `ImpactGraph` (§85.4) | `ContentStore` (SQLite; §85.3) | `ContentAuthority` admits and transitions; `EvidenceAuthority` owns `ContentEvidence` validity | `TEST-CONTENT-001` |
+| `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord` (BS §82, TA §86.1) | `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` | 1 | durable lineage; `conversationRevision` advances per Continue resolution; attachments `ACTIVE → DELETED` (§86.2) | `ConversationStore` (SQLite; §86.2) | `ConversationContinuationResolver` resolves; Memory, Context, and Task authorities remain canonical for what the indices reference (§86.4) | `TEST-CONV-001` |
+| `ChangeReportRecord`, `ChangeImpactReport` (BS §83.1, TA §87.1) | `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` | 1 | record `INCOMPLETE → COMPLETE` or `INCOMPLETE → UNRESOLVED`; a COMPLETE report is immutable (§87.1) | `ChangeIntelligenceStore` (SQLite; §87.5) | `ChangeIntelligenceProjector` is read-only; `RecoveryAuthority` owns reconstruction (§87.4, §87.6) | `TEST-CHANGE-001` |
 
 ### 36.2 Lifecycle authority
 
@@ -6041,6 +6069,58 @@ ContentDependency
 - invalidationPolicy
 ```
 
+`ContentMutation` is the proposal object a `ContentWorker` submits; it becomes a `ContentRevision` only when `ContentTransactionCoordinator` admits it through `ContentValidator` and `ContentAuthority` inside the parent `ConstructionTransaction`.
+
+```text
+ContentMutation
+- mutationId
+- contentId
+- baseProjectRevision
+- contentRevision
+- requestedBy
+- requirementIds
+- transactionId
+
+ContentValidationResult
+- validationId
+- contentRevisionId
+- status
+- checks
+- evidenceIds
+- projectRevision
+- createdAt
+
+ContentPropagationPlan
+- propagationId
+- contentRevisionId
+- affectedSurfaceIds
+- affectedLocaleIds
+- affectedResourceIds
+- affectedTestIds
+- affectedPreviewIds
+- invalidationIds
+
+TerminologyProfile
+- profileId
+- projectId
+- terms
+- forbiddenTerms
+- aliases
+- locale
+- version
+
+ContentEvidence
+- evidenceId
+- contentRevisionId
+- observationId
+- validationId
+- projectRevision
+- freshness
+- invalidationState
+```
+
+`ContentMutation.baseProjectRevision` must equal the current project revision at admission or the mutation is rejected as stale (M120 fixture I). `ContentValidationResult.checks` covers the validation areas of BS §81.2. `ContentPropagationPlan` is the materialized result of the `ImpactGraph` traversal of §85.4 and BS §81.3. `ContentEvidence` is an evidence view owned by `EvidenceAuthority`: `freshness` and `invalidationState` are derived from the `ImpactGraph`, never asserted by a content worker.
+
 ### 85.2 Runtime authorities and roles
 
 The Content Intelligence runtime comprises deterministic authorities, coordinators, and proposal workers:
@@ -6095,7 +6175,7 @@ Fixture `TEST-CONTENT-001` proves content creation, propagation, terminology con
 
 ### 86.1 Schemas
 
-Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`.
+Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord`.
 
 ```text
 Conversation
@@ -6117,10 +6197,21 @@ Conversation
 ```
 
 ```text
+ConversationMessage
+- messageId
+- conversationId
+- sequence
+- role
+- contentReference
+- attachmentIds
+- sourceEventId
+- createdAt
+
 ConversationRequirement
 - requirementId
 - status
 - sourceMessageId
+- sourceEvidenceIds
 - supersedes
 - supersededBy
 
@@ -6128,6 +6219,7 @@ ConversationDecision
 - decisionId
 - status
 - sourceMessageId
+- sourceEvidenceIds
 - supersedes
 - locked
 
@@ -6151,7 +6243,40 @@ ConversationAttachment
 - providerTransmissionPolicy
 - revisionBinding
 - createdAt
+
+ConversationTaskLink
+- linkId
+- conversationId
+- taskId
+- relationship
+- projectRevision
+- createdAt
+
+ConversationRequirementIndex
+- requirementId
+- sourceMessageId
+- canonicalRequirementId
+- status
+
+ConversationDecisionIndex
+- decisionId
+- sourceMessageId
+- canonicalDecisionId
+- locked
+
+ConversationRebaseRecord
+- recordId
+- conversationId
+- fromProjectRevision
+- toProjectRevision
+- reason
+- affectedTaskIds
+- conflictingRequirementIds
+- resolution
+- createdAt
 ```
+
+`ConversationMessage.contentReference` points at the durable message body; `sourceEventId` binds the message to the control-plane event that produced it. `ConversationTaskLink` is the durable form of `taskLineage`. `ConversationRequirementIndex` and `ConversationDecisionIndex` reference canonical `RequirementStore`/`MemoryStore` records by `canonicalRequirementId`/`canonicalDecisionId` and carry no second copy of their content. `sourceEvidenceIds` reference `EvidenceRecord` identifiers owned by `EvidenceAuthority`. A `ConversationRebaseRecord` is written for every `RECONCILE/REBASE` and every `USER_REQUIRED` outcome of §86.5, so a rebase is auditable rather than silent.
 
 ### 86.2 Persistence and resolver
 
@@ -6253,7 +6378,7 @@ Canonical schemas: `ChangeReportRecord`, `ChangeImpactReport`.
 ChangeReportRecord
 - recordId
 - transactionId
-- projectRevision
+- projectRevisionAfter
 - status: INCOMPLETE | COMPLETE | UNRESOLVED
 - report: ChangeImpactReport | null
 - failureDiagnostics: string | null
@@ -6261,11 +6386,13 @@ ChangeReportRecord
 - updatedAt
 ```
 
+`projectRevisionAfter` is the authoritative committed project revision represented by this `ChangeReportRecord`; it is taken from the committed `ConstructionTransaction` and must equal the nested report's `projectRevisionAfter`. `status` is the authoritative lifecycle state of the reporting unit.
+
 ```text
 ChangeImpactReport
 - reportId
 - transactionId
-- reportStatus: COMPLETE
+- projectionStatus: COMPLETE
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
@@ -6292,7 +6419,7 @@ ChangeImpactReport
 Field provenance:
 - `reportId`: assigned by ChangeIntelligenceProjector
 - `transactionId`: from ConstructionTransaction (authoritative)
-- `reportStatus`: COMPLETE when projection succeeds
+- `projectionStatus`: COMPLETE; immutable and informational — `ChangeReportRecord.status` is the authoritative lifecycle state
 - `projectRevisionBefore` / `projectRevisionAfter`: from ConstructionTransaction (authoritative)
 - `requirementIds`: from the requirement/goal/directive that caused the mutation (authoritative)
 - `changed`: from ConstructionTransaction mutation record (authoritative)
