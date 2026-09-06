@@ -4,11 +4,12 @@ Nirman contract-graph verifier — implements build spec §67.11.
 
 Runs all twelve §67.11 contract-graph checks over the four canonical
 documents in both traversal directions (§67.9), plus the document-structure
-check required by the verifier harness and a semantic-documentation lint layer.
-Exits 1 on any defect.
+checks (structure, semantic documentation, command payload coverage, skill
+bodies) that BS §67.11 lists as additional to the twelve. Exits 1 on any defect.
+`--dump-registries` prints the parsed registries.
 
 Registries consumed:
-  §5.6   Capability Registry           (CapabilityId -> required contracts, test, evidence)
+  §5.7   Capability Registry           (CapabilityId -> required contracts, test, evidence)
   §67.8  Contract Authority Registry   (ContractId -> authority, extensions, class)
   §67.12 Clause Registry               (ClauseId -> contract, authority, value, seal)
   §67.13 ExtensionDeclaration format
@@ -214,7 +215,7 @@ def parse_registries(docs, D):
     caps = {}
     for c in rows:
         if len(c) < 6:
-            D.add("structure", c[0] if c else "?", "§5.6 row has too few cells")
+            D.add("structure", c[0] if c else "?", "§5.7 row has too few cells")
             continue
         capid = c[0]
         if capid in caps:
@@ -386,7 +387,7 @@ def check_unregistered(R, docs, D):
     for cid in sorted(set(re.findall(CIDRE, all_text)) - set(R["contracts"])):
         D.add("unregistered contract", cid, "referenced but absent from §67.8")
     for cap in sorted(set(re.findall(CAPRE, all_text)) - set(R["capabilities"])):
-        D.add("unregistered contract", cap, "capability referenced but absent from §5.6")
+        D.add("unregistered contract", cap, "capability referenced but absent from the §5.7 capability registry")
     for cl in sorted(set(re.findall(CLRE, all_text)) - set(R["clauses"])):
         D.add("unregistered contract", cl, "clause referenced but absent from §67.12")
 
@@ -628,7 +629,7 @@ def check_dangling(R, docs, D):
             if int(n) not in miles:
                 D.add("dangling reference", cid, f"M{n} has no contract mapping")
 
-    # §5.6 references
+    # §5.7 capability registry references
     for cap, c in sorted(caps.items()):
         for cid in c["contracts"]:
             if cid not in contracts:
@@ -649,7 +650,7 @@ def check_dangling(R, docs, D):
         if cid not in contracts:
             D.add("dangling reference", cid, "twelve-edge row for unregistered contract")
         if row["capability"] not in caps:
-            D.add("dangling reference", cid, f"capability {row['capability']} not in §5.6")
+            D.add("dangling reference", cid, f"capability {row['capability']} not in the §5.7 capability registry")
 
         for edge, required in EDGE_DOMAIN.items():
             cell = row[edge]
@@ -718,10 +719,6 @@ def check_forward(R, D):
             if row is None:
                 D.add("forward break", cap, f"required {cid} has no twelve-edge row")
                 continue
-            if row["capability"] != cap and cap not in row["capability"]:
-                # a contract may serve a different primary capability; ensure the
-                # capability's own test/evidence ids are reachable somewhere
-                pass
         if c["status"] == "SUPPORTED":
             for cid in c["contracts"]:
                 row = chain.get(cid, {})
@@ -793,10 +790,10 @@ def check_reverse(R, docs, D):
         tid, eid = row["test"], row["evidence"]
         owners = [c for c, meta in caps.items() if meta["test"] == tid]
         if not owners:
-            D.add("reverse break", tid, f"test id used by {cid} maps to no capability in §5.6")
+            D.add("reverse break", tid, f"test id used by {cid} maps to no capability in §5.7")
         owners = [c for c, meta in caps.items() if meta["evidence"] == eid]
         if not owners:
-            D.add("reverse break", eid, f"evidence id used by {cid} maps to no capability in §5.6")
+            D.add("reverse break", eid, f"evidence id used by {cid} maps to no capability in §5.7")
 
     # 9d. every milestone referenced by a contract must map back to that contract
     for cid, r in sorted(contracts.items()):
@@ -852,7 +849,7 @@ def check_orphan(R, adj, D):
         if cls == "CROSS_CUTTING":
             if cid not in reachable:
                 D.add("orphan contract", cid,
-                      "CROSS_CUTTING but not capability-reachable from any §5.6 capability")
+                      "CROSS_CUTTING but not capability-reachable from any §5.7 capability")
         elif cls == "FOUNDATIONAL":
             dependents = [o for o, ro in contracts.items()
                           if o != cid and cid in ro["ext"] + ro["arch"]]
@@ -914,8 +911,10 @@ def check_canonical_identity(docs, R, D):
     # is the primary semantic anchor. Persistence/schema/failure edges may
     # legitimately point to multi-domain architecture sections.
     for cid, row in R["chain"].items():
-        domain_pat = _contract_domain_pattern(cid)
-        if not domain_pat:
+        try:
+            domain_pat = _contract_domain_pattern(cid)
+        except KeyError as exc:
+            D.add("canonical identity", f"{cid} authority", str(exc))
             continue
         cell = row.get("authority", "")
         doc_tag, sec = _parse_doc_sec(cell)
@@ -1012,8 +1011,24 @@ def _contract_domain_pattern(contract_id):
         "AGENT_TRUST":       r"Trust|Agent|Extension|Boundary",
         "CONTEXT_GOVERNANCE": r"Context|Cache|Governance|Compaction",
         "ANDROID_INTEGRITY": r"Android|Runtime|Integrity",
+        # BS §70–§83 authority headings for the newer contracts.
+        "INTEGRATION_BOUNDARY":   r"Integration Boundary",
+        "PREVIEW_SYNC":           r"Preview Synchronization",
+        "FRONTEND_CONTROL_PLANE": r"Frontend.Control-Plane|Frontend",
+        "BACKGROUND_CONTINUITY":  r"Background Continuity|Continuity",
+        "APK_EXPORT":             r"APK Export|Export Provenance",
+        "PLATFORM_CAPABILITY":    r"Platform|Target Environment",
+        "AGENT_BUILDABILITY":     r"Buildability",
+        "CONTENT_INTELLIGENCE":   r"Content|Writing Intelligence",
+        "CONVERSATION_CONTEXT":   r"Conversation Context|Conversation",
+        "CHANGE_INTELLIGENCE":    r"Change Intelligence",
     }
-    return patterns.get(domain)
+    pattern = patterns.get(domain)
+    if pattern is None:
+        # Every registered contract must have a domain anchor; a new contract
+        # added without one would silently escape the drift check.
+        raise KeyError(f"no canonical-identity domain pattern for {contract_id}")
+    return pattern
 
 
 def _camel_to_snake(name):
@@ -2250,7 +2265,7 @@ def check_structure(docs, R, D):
     if len(R["contracts"]) < 2:
         D.add("structure", "§67.8", "registry has fewer than 2 contracts")
     if not R["capabilities"]:
-        D.add("structure", "§5.6", "capability registry is empty")
+        D.add("structure", "§5.7", "capability registry is empty")
     if not R["clauses"]:
         D.add("structure", "§67.12", "clause registry is empty")
 

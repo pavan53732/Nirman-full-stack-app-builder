@@ -574,6 +574,12 @@ CASES = {
     "non-registry duplicate loses a build-spec field in the architecture": (
         TA, "- kind: skill | tool | worker | swarm | session | analysis | packaging\n- arguments\n", "- arguments\n",
         "semantic documentation"),
+    "APK_EXPORT authority heading drifts to a billing heading": (
+        BS, "## 78. APK Export Provenance Contract", "## 78. Release Billing Notes",
+        "canonical identity"),
+    "CHANGE_INTELLIGENCE authority heading drifts": (
+        BS, "## 83. Change Intelligence Contract", "## 83. Diff Viewer Notes",
+        "canonical identity"),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

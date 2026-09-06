@@ -4513,6 +4513,16 @@ M93 must verify the contract graph programmatically rather than by inspection. T
 
 The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve contract-graph checks in both traversal directions and across its document-structure checks; document-structure checks are additional to, and never counted among, the twelve contract-graph checks.
 
+The document-structure checks are these three defect classes. Each is individually addressable in the verifier output exactly like the twelve above, and a defect in any of them fails certification:
+
+| Additional check | Failure condition |
+|---|---|
+| Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, or ADR numbering has gaps |
+| Semantic documentation | A canonical anchor, schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, or homonym rule declared in the verifier is violated; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
+| Command payload coverage | An implementation-facing command payload under `crates/` lacks a policy-mandatory field of its canonical schema; reported as unevaluated, never as passed, when the source is absent |
+
+The verifier also accepts `--dump-registries`, which prints the parsed §5.7, §67.8, §67.12, §67.15, and milestone-mapping registries without changing the exit code; this is the only sanctioned way to inspect what the verifier believes the registries say.
+
 The verifier's terminal status line MUST be one of exactly three values, and readers and agents MUST interpret them as follows:
 
 | Terminal status | Meaning |
