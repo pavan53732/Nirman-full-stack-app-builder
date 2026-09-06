@@ -4427,7 +4427,7 @@ No `ContractId` may be introduced without a row in this table. A section declari
 
 ### 67.9 Bidirectional traceability
 
-Certification must traverse the traceability chain in both directions. Forward traversal proves that every capability is implemented. Reverse traversal proves that nothing is implemented without a reason.
+Certification must traverse the traceability chain in both directions. Forward traversal proves that every registered capability has a complete declared contract and certification traceability chain; it does not prove runtime implementation, which only the capability's test and evidence identifiers can establish (§67.6, §5.6). Reverse traversal proves that nothing is specified without a reason.
 
 Forward direction, per §67.3:
 
@@ -4442,7 +4442,7 @@ Reverse direction:
 Evidence -> Test -> Milestone -> ADR -> ContractId -> Capability or declared class
 ```
 
-A forward break is an unimplemented capability. A reverse break is architectural dead code at specification level: a contract with schemas, components, decisions, milestones, and tests that no product capability requires. Both are documentation defects and both fail certification.
+A forward break is a capability whose declared chain is incomplete. A reverse break is architectural dead code at specification level: a contract with schemas, components, decisions, milestones, and tests that no product capability requires. Both are documentation defects and both fail certification.
 
 ### 67.10 Orphan contract rule
 
@@ -4469,7 +4469,7 @@ M93 must verify the contract graph programmatically rather than by inspection. T
 | Canonical identity | A cross-document reference resolves to the wrong semantic object (INVARIANT.DOCUMENTATION.CANONICAL_IDENTITY) |
 | Section ownership | The deliberation section (§68) has other than exactly one authoritative owner (`CONTRACT.RUNTIME.DELIBERATION`) or other than exactly one declared extension (of `CONTRACT.RUNTIME.REASONING`) |
 
-The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve checks in both traversal directions.
+The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve contract-graph checks in both traversal directions and across its document-structure checks; document-structure checks are additional to, and never counted among, the twelve contract-graph checks.
 
 
 ### 67.12 Clause Registry
@@ -7505,6 +7505,7 @@ ConversationRequirement
 - requirementId
 - status
 - sourceMessageId
+- sourceEvidenceIds
 - supersedes
 - supersededBy
 
@@ -7512,6 +7513,7 @@ ConversationDecision
 - decisionId
 - status
 - sourceMessageId
+- sourceEvidenceIds
 - supersedes
 - locked
 
@@ -7536,7 +7538,7 @@ ConversationAttachment
 - revisionBinding
 ```
 
-Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages and evidence. Accepted and rejected suggestions MUST remain distinguishable.
+Messages and attachments MUST be linked to durable identifiers. Decisions and requirements MUST reference their source messages (`sourceMessageId`) and evidence (`sourceEvidenceIds`, referencing `EvidenceRecord` identifiers owned by `EvidenceAuthority`). Accepted and rejected suggestions MUST remain distinguishable.
 
 Attachment `providerTransmissionPolicy` MUST delegate to the existing `ContextGovernance` and `ProviderContextDecision` machinery (see §74) and minimum-context transmission rules rather than creating an independent transmission authority. Private, high-risk, or oversized attachments are sanitized, capped, or redacted by `ContextGovernance` before model context inclusion.
 
@@ -7630,7 +7632,7 @@ One canonical object model governs change intelligence:
 ChangeReportRecord
 - recordId
 - transactionId
-- projectRevision
+- projectRevisionAfter
 - status
 - report
 - failureDiagnostics
@@ -7638,7 +7640,7 @@ ChangeReportRecord
 - updatedAt
 ```
 
-`ChangeImpactReport` is the COMPLETE immutable projection.
+`projectRevisionAfter` is the authoritative committed project revision represented by this `ChangeReportRecord`; it equals the owning `ConstructionTransaction`'s committed revision and the nested report's `projectRevisionAfter`. `ChangeImpactReport` is the COMPLETE immutable projection.
 
 Clarification of commit and projection lifecycle:
 ```text
@@ -7654,7 +7656,7 @@ Every committed `ConstructionTransaction` MUST produce one revision-bound `Chang
 ChangeImpactReport
 - reportId
 - transactionId
-- reportStatus: COMPLETE
+- projectionStatus: COMPLETE
 - projectRevisionBefore
 - projectRevisionAfter
 - requirementIds
@@ -7682,7 +7684,7 @@ ChangeImpactReport
 
 `files` MUST contain actual changed paths. `runtimeEffects` MUST identify affected runtime behavior. `testsAffected` MUST identify impacted validation. `previewAffected` MUST identify affected preview surfaces. `evidenceInvalidated` MUST contain dependency-invalidated evidence. `verified` MUST contain only authoritative verification results.
 
-Every field in `ChangeImpactReport` is derived from an authoritative source. `recommendedNextStep` is advisory only. The projector MUST NOT invent facts or fabricate missing values.
+Every field in `ChangeImpactReport` is derived from an authoritative source. `projectionStatus` is immutable and informational; `ChangeReportRecord.status` is the authoritative lifecycle state. `recommendedNextStep` is advisory only. The projector MUST NOT invent facts or fabricate missing values.
 
 ### 83.2 Failure and reconstruction semantics
 
