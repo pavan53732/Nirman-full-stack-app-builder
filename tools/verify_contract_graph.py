@@ -2348,6 +2348,23 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "these are fields of the canonical `EvidenceRecord` (technical architecture §23.3)" not in bs:
         D.add("semantic documentation", "evidence identity",
               "BS §5.7.4 must bind the evidence-node requirements to the canonical EvidenceRecord fields")
+    # Capability status derivation (audit: §5.6 status and §5.7.2
+    # CapabilityMaturity were two vocabularies for one fact with no mapping).
+    # BS §5.6 must carry a total derivation table from every CapabilityMaturity
+    # value, and the profile's status field must be typed with the §5.6 set.
+    m_cm = re.search(r"^CapabilityMaturity\s*= ((?:[A-Z_]+\s*\|\s*)+[A-Z_]+)", bs, re.M)
+    cm_values = set(re.findall(r"[A-Z_]+", m_cm.group(1))) if m_cm else set()
+    s56 = bs[bs.find("### 5.6 Android Capability Coverage Matrix"):bs.find("### 5.7 ")]
+    m_der = re.search(r"^\| `CapabilityMaturity` \(§5\.7\.2\) \| Environment condition \| Derived §5\.6 status \|\n\|---\|---\|---\|\n((?:\|.*\|\n)+)", s56, re.M)
+    der_rows = m_der.group(1) if m_der else ""
+    der_inputs = set(re.findall(r"`([A-Z_]+)`", "\n".join(r.split("|")[1] for r in der_rows.splitlines() if r.count("|") >= 4)))
+    der_inputs |= {"UNKNOWN"} if "`UNKNOWN` maturity" in der_rows else set()
+    if not m_der or not cm_values <= der_inputs:
+        D.add("semantic documentation", "capability status derivation",
+              f"BS §5.6 must derive a §5.6 status from every CapabilityMaturity value (missing {sorted(cm_values - der_inputs)})")
+    if not re.search(r"^- status: derived §5\.6 status \(SUPPORTED \| SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS \| DEGRADED \| USER_REQUIRED \| UNAVAILABLE \| PLANNED\)", bs, re.M):
+        D.add("semantic documentation", "capability status derivation",
+              "AndroidCapabilityProfile.status (BS §5.7.1) must be typed with the derived §5.6 status set")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this

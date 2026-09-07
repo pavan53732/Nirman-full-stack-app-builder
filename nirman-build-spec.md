@@ -300,6 +300,19 @@ These statuses describe evidence for a registered capability profile; they are n
 
 The runtime must report the current status of each capability in the preflight report and must not claim SUPPORTED status for any capability whose fixture evidence is missing.
 
+The §5.6 status is a **derived, product-facing projection**; it is never stored as an independent fact. Its input is the internal `CapabilityMaturity` of the capability's selected profile (§5.7.2) together with that profile's current environment evidence, and the derivation is total and deterministic:
+
+| `CapabilityMaturity` (§5.7.2) | Environment condition | Derived §5.6 status |
+|---|---|---|
+| `SPECIFIED` or `IMPLEMENTED` | any | `PLANNED` |
+| `VERIFIED` or `CERTIFIED` | every required environment entry of the profile is present and the evidence was produced on the declared device matrix | `SUPPORTED` |
+| `VERIFIED` or `CERTIFIED` | a required SDK, device, vendor, or toolchain capability may be absent, or evidence exists only for a subset of the device matrix (§59.2 primary-profile rule) | `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` |
+| `DEGRADED` | any | `DEGRADED` |
+| `BLOCKED` | a credential, device, hardware, approval, or external dependency is the blocker | `USER_REQUIRED` |
+| `BLOCKED` | any other blocker, or `UNKNOWN` maturity | `UNAVAILABLE` |
+
+`CapabilityMaturity` is written only by `CapabilityPromotionAuthority` (§5.7.9); the §5.6 status is recomputed from it by the same deterministic classifier that produces the preflight report, so the two vocabularies cannot disagree. `AndroidCapabilityProfile.status` (§5.7.1) holds the derived §5.6 value for that profile, and the registry `Status` column below holds it for the capability's selected profile.
+
 
 ### 5.7 Capability Registry
 
@@ -362,7 +375,7 @@ AndroidCapabilityProfile
 - reproducibilityLevel
 - testIds
 - evidenceReportIds
-- status
+- status: derived §5.6 status (SUPPORTED | SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS | DEGRADED | USER_REQUIRED | UNAVAILABLE | PLANNED)
 - adapterId
 - adapterVersion
 - technologyPlanHash

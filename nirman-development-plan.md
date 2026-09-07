@@ -1544,7 +1544,7 @@ Choose one canonical owner for every machine-readable schema and make every impl
 
 ## Implementation-status boundary
 
-Milestones M100–M105 define implementation work, not completed capability. Until their exit gates pass on executable fixtures, the relevant status remains `PLANNED` or `SPECIFIED`. A documentation certification pass cannot promote a runtime capability, preview, or APK artifact to `VERIFIED` or `CERTIFIED`.
+Milestones M100–M105 define implementation work, not completed capability. Until their exit gates pass on executable fixtures, the relevant capability maturity remains `SPECIFIED` or `IMPLEMENTED` and its derived §5.6 status therefore remains `PLANNED` (build spec §5.6 derivation table). A documentation certification pass cannot promote a runtime capability, preview, or APK artifact to `VERIFIED` or `CERTIFIED`.
 
 ## M106 — Documentation-verifier conformance
 

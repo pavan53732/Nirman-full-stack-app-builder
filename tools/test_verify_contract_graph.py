@@ -352,6 +352,13 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "BS §5.6 derivation table drops the DEGRADED maturity row": (
+        BS, "| `DEGRADED` | any | `DEGRADED` |\n", "",
+        "semantic documentation"),
+    "AndroidCapabilityProfile.status loses its derived §5.6 typing": (
+        BS, "- status: derived §5.6 status (SUPPORTED | SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS | DEGRADED | USER_REQUIRED | UNAVAILABLE | PLANNED)\n",
+        "- status\n",
+        "semantic documentation"),
     "TA §23.3 EvidenceRecord loses its toolchain and environment identity fields": (
         TA, "- toolchainLockId\n- environmentIdentityId\n- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
         "- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
