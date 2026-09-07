@@ -2406,6 +2406,25 @@ def check_semantic_documentation(docs, R, D, root="."):
             or re.search(r"where unavailable|degraded state", m_jo.group(0)):
         D.add("semantic documentation", "process containment",
               "§80.2 TA §9.2 Job Object row must resolve to unconditional assignment before resume with no degraded-but-running fallback")
+    # Document topology (ADR-220): the migration decision must exist, keep its
+    # required roles, and name every one of the ten root documents, so that
+    # no later step can quietly shrink or re-own the document set.
+    m_topo = adr_blocks(dec).get(220, "")
+    topo_docs = ("README.md", "AGENTS.md", "INDEX.md", "GLOSSARY.md", "nirman-build-spec.md",
+                 "nirman-technical-architecture.md", "nirman-schemas.md", "nirman-milestones.md",
+                 "nirman-decisions.md", "nirman-adrs.md")
+    if not m_topo:
+        D.add("semantic documentation", "document topology", "ADR-220 (ten root documents) is missing")
+    else:
+        missing_docs = [d for d in topo_docs if f"`{d}`" not in m_topo]
+        if missing_docs or "exactly ten Markdown documents" not in m_topo \
+                or "**Locks:** `CONTRACT.RUNTIME.AUTHORITY`" not in m_topo \
+                or "inherits the precedence of that owner section" not in m_topo \
+                or "byte-identical" not in m_topo or "**Reversal trigger:**" not in m_topo:
+            D.add("semantic documentation", "document topology",
+                  f"ADR-220 must name all ten root documents (missing {missing_docs}), lock CONTRACT.RUNTIME.AUTHORITY, "
+                  "state that schema blocks inherit their owner section's precedence, require byte-identical ADR "
+                  "relocation, and carry a Reversal trigger")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this

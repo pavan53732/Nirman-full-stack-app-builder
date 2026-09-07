@@ -352,6 +352,14 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "ADR-220 no longer fixes the root document count at ten": (
+        DEC, "The repository root holds exactly ten Markdown documents:",
+        "The repository root holds the following Markdown documents:",
+        "semantic documentation"),
+    "ADR-220 loses the owner-precedence inheritance rule": (
+        DEC, "and the block inherits the precedence of that owner section rather than holding authority of its own",
+        "and the block carries its own precedence",
+        "semantic documentation"),
     "§80.2 Job Object row regains the where-unavailable degraded fallback": (
         BS, "MUST use Job Objects, unconditionally | Every spawned process tree is assigned to a Job Object before it is resumed (technical architecture §3.4).",
         "MUST use Job Objects when the API is available | Every spawned process tree is assigned to a Job Object at creation; where unavailable the runtime records the degraded state.",
