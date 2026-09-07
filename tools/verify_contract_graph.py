@@ -2342,6 +2342,27 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "DEGRADED" in m22_s79:
         D.add("semantic documentation", "capability vocabulary",
               "BS §79 uses DEGRADED, which is not a §79.4 capability state (AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE)")
+    # §80.2 field-count fidelity (audit LOW): a resolution cell that says
+    # "<word> `Schema` fields" must match the schema's actual field block
+    # (BS block first, then TA), and the ModelEvent type-count claim must
+    # match the enumerated `type` values.
+    m22_words = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+                 "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+                 "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20}
+    m22_s802 = bs.find("### 80.2")
+    m22_e802 = bs.find("### 80.3", max(m22_s802, 0))
+    m22_body = bs[m22_s802:m22_e802] if 0 <= m22_s802 < m22_e802 else ""
+    for word, schema in re.findall(r"\b(" + "|".join(m22_words) + r")\s+`([A-Z][A-Za-z0-9]+)`\s+fields", m22_body):
+        actual = (bs_blocks.get(schema) or ta_blocks.get(schema) or [(0, None)])[0][1]
+        if actual is None or len(actual) != m22_words[word]:
+            D.add("semantic documentation", "§80.2 field count",
+                  f"§80.2 claims {word} `{schema}` fields; the canonical block has {len(actual) if actual is not None else 'no'} fields")
+    m22_ev = re.search(r"\nModelEvent\n(?:- .*\n)*?- type:([^\n]*(?:\n[ \t]+[^\n]*)*)", ta)
+    m22_ev_n = len([v for v in re.split(r"\s*\|\s*", m22_ev.group(1).strip()) if v]) if m22_ev else 0
+    m22_ev_claim = re.search(r"\| The (" + "|".join(m22_words) + r") event types are the closed set;", m22_body)
+    if not m22_ev_claim or m22_words[m22_ev_claim.group(1)] != m22_ev_n:
+        D.add("semantic documentation", "§80.2 field count",
+              f"§80.2 ModelEvent row must state that the {m22_ev_n} enumerated event types are the closed set")
     # Clause coverage (audit M21): every registered contract owns at least
     # one sealed §67.12 clause, otherwise its normative content is invisible
     # to the contradiction and override checks.

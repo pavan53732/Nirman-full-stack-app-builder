@@ -342,6 +342,9 @@ CASES = {
         TA, "construction_transactions, change_report_records, conversations,",
         "construction_transactions, conversations,",
         "semantic documentation"),
+    "§80.2 field count overstates TaskContract": (
+        BS, "all fifteen `TaskContract` fields", "all sixteen `TaskContract` fields",
+        "semantic documentation"),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),
