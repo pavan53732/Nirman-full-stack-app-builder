@@ -3589,6 +3589,10 @@ RenderTransport
 - state: OPENING | STREAMING | IDLE | LOST | CLOSED
 - lastFrameSequence
 - lastFrameAt
+- frameNotice
+  - previewSurfaceId
+  - ringSlot
+  - frameStamp
 - frameStamp
   - frameSequence
   - capturedAt

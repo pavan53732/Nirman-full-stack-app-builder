@@ -110,7 +110,7 @@
 
 **ReasoningArtifact / Hypothesis / CapabilityInvocation / DelegationGrant** — The records of the agent reasoning runtime: what was reasoned, hypothesised, invoked, and delegated under which grant. — BS §66; TA §71; SCHEMAS §1.27.
 
-**RenderTransport** — The supervisor-owned, per-emulator-session frame transport: loopback gRPC control channel, stamped frames in a shared-memory ring with drop-oldest backpressure, presented by PreviewHost on a `SwapChainPanel`. — TA §10.7; SCHEMAS §2.89.
+**RenderTransport / FrameNotice** — The supervisor-owned, per-emulator-session frame transport: loopback gRPC control channel, stamped frames in a shared-memory ring with drop-oldest backpressure, announced by volatile `FrameNotice` messages that are never logged or replayed (frames are pixels; `PreviewSyncEvent`s mark only stream-state changes), presented by PreviewHost on a `SwapChainPanel` and painted live only under a `CONNECTED` projection with a bound stamp. — TA §10.7; BS §71.1; SCHEMAS §2.89.
 
 **SigningIdentityBinding** — The binding between a capability promotion and the signing identity that produced its evidence. — BS §5.7.9; SCHEMAS §1.5.
 

@@ -1609,31 +1609,24 @@ def check_semantic_documentation(docs, R, D, root="."):
                  "make the supervisor the only owner of the emulator control channel"),
                 ("`backpressurePolicy: DROP_OLDEST`", "fix the drop-oldest backpressure policy"),
                 ("`SwapChainPanel`", "name the WinUI 3 presentation surface"),
-                ("Frame pixels never travel through the durable event log", "keep frame pixels out of the durable event log")):
+                ("Frame pixels and frame notices never travel through the durable event log",
+                 "keep frame pixels and frame notices out of the durable event log"),
+                ("a `FrameNotice` is not a `PreviewSyncEvent`", "state that a FrameNotice is not a PreviewSyncEvent"),
+                ("`PreviewSyncEvent`s are emitted only on a change of stream state, never per frame",
+                 "emit PreviewSyncEvents only on stream-state change, never per frame"),
+                ("Liveness therefore has two independent witnesses", "require both durable stream state and a fresh bound frame for liveness")):
             if needle not in m_rt:
                 D.add("semantic documentation", "render transport", f"TA §10.7 must {why} (ADR-221)")
-    if sch:
-        m_rt_blk = re.search(r"\nRenderTransport\n((?:- .*\n|[ \t]+.*\n)+)", sch)
-        m_rt_fields = set(re.sub(r"[:(].*", "", ln[2:]).strip() for ln in m_rt_blk.group(1).splitlines()
-                          if ln.startswith("- ")) if m_rt_blk else set()
-        for field in ("transportKind", "backpressurePolicy", "presentationSurface", "frameStamp", "maxFrameRate", "state"):
-            if field not in m_rt_fields:
-                D.add("semantic documentation", "render transport",
-                      f"the RenderTransport block (SCHEMAS §2.89) must carry `{field}` (TA §10.7; ADR-221)")
-    m_221 = adr_blocks(dec).get(221, "")
-    if not m_221:
-        D.add("semantic documentation", "toolchain provisioning", "ADR-221 (toolchain provisioning) is missing")
-    else:
-        for needle, why in (
-                ("Google Android Emulator", "name the engine"),
-                ("distributed through the Android SDK repository, running Google APIs x86_64 system images",
-                 "name the distribution channel and the Google APIs system-image variant that carries Google Play services"),
-                ("MUST NOT bundle, fork, patch, rebuild, or redistribute", "forbid bundling or building the engine"),
-                ("never an installation guide", "rule out installation guides"),
-                ("**Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`", "lock CONTRACT.RUNTIME.PLATFORM_CAPABILITY"),
-                ("**Reversal trigger:**", "carry a Reversal trigger")):
-            if needle not in m_221:
-                D.add("semantic documentation", "toolchain provisioning", f"ADR-221 must {why}")
+        if re.search(r"per frame[^.]*`PreviewSyncEvent`|`PreviewSyncEvent`[^.]*(?:each|every|per) frame", m_rt) \
+                and "never per frame" not in m_rt:
+            D.add("semantic documentation", "render transport",
+                  "TA §10.7 emits a PreviewSyncEvent per frame; frames are volatile FrameNotices and events mark stream-state changes only (ADR-221)")
+    m_71 = _section_text(bs, "71.1")
+    if m_71 is None or "A live emulator frame is not an event" not in m_71 \
+            or "A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED`" not in m_71:
+        D.add("semantic documentation", "render transport",
+              "BS §71.1 must state that a live frame is not a PreviewSyncEvent and that a frame is painted live only under "
+              "streamStatus CONNECTED with a bound stamp (TA §10.7; ADR-221)")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:

@@ -419,6 +419,23 @@ CASES = {
     "TA §49.4 provisions the discontinued HAXM accelerator": (
         TA, "HAXM is never provisioned", "HAXM is provisioned on Intel hosts",
         "semantic documentation"),
+    # Frames are pixels, events are meaning: a per-frame PreviewSyncEvent, a
+    # FrameNotice that reaches the durable log, a §71.1 without the paint rule,
+    # or a placeholder root the agent cannot create are all defects.
+    "TA §10.7 turns every frame back into a durable PreviewSyncEvent": (
+        TA, "`PreviewSyncEvent`s are emitted only on a change of stream state, never per frame",
+        "a `PreviewSyncEvent` is emitted per frame",
+        "semantic documentation"),
+    "TA §10.7 lets a FrameNotice be a PreviewSyncEvent": (
+        TA, "a `FrameNotice` is not a `PreviewSyncEvent`", "a `FrameNotice` is a `PreviewSyncEvent`",
+        "semantic documentation"),
+    "BS §71.1 drops the live-paint rule": (
+        BS, "A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED`",
+        "A frame may be painted as live whenever it arrives",
+        "semantic documentation"),
+    "the RenderTransport block loses its frameNotice field": (
+        SCHEMAS, "- frameNotice\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
