@@ -2,10 +2,11 @@
 """
 Nirman contract-graph verifier — implements build spec §67.11.
 
-Runs all twelve §67.11 contract-graph checks over the four canonical
-documents in both traversal directions (§67.9), plus the document-structure
-checks (structure, semantic documentation, command payload coverage, skill
-bodies) that BS §67.11 lists as additional to the twelve. Exits 1 on any defect.
+Runs all twelve §67.11 contract-graph checks (1-12) over the four canonical
+documents in both traversal directions (§67.9), plus the three document-structure
+checks that BS §67.11 lists as additional to the twelve: Check 13 structure,
+Check 14 command payload coverage, Check 15 semantic documentation (which also
+carries the skill-body rules of BS §79.7). Exits 1 on any defect.
 `--dump-registries` prints the parsed registries.
 
 Registries consumed:
@@ -1136,7 +1137,8 @@ def _rust_field_present(source, struct_name, snake_field):
 
 
 def check_command_payload_field_coverage(docs, R, D, root):
-    """Check 14: every command payload exposes the policy-mandatory fields
+    """Check 14 (document-structure, BS §67.11 "Command payload coverage"
+    row): every command payload exposes the policy-mandatory fields
     named by the canonical record it materializes.
 
     The contract is the field list declared in the fenced text block of
@@ -1306,7 +1308,8 @@ def check_command_payload_field_coverage(docs, R, D, root):
 
 
 def check_semantic_documentation(docs, R, D, root="."):
-    """Detect high-risk semantic drift not covered by the contract graph."""
+    """Check 15 (document-structure, BS §67.11 "Semantic documentation" row):
+    detect high-risk semantic drift not covered by the contract graph."""
     bs, ta, dec, dev = docs["bs"], docs["ta"], docs["dec"], docs["dev"]
 
     if "goalTemplate" in ta:
@@ -2561,7 +2564,8 @@ SKILL_BODY_BANNED = (
 
 
 def check_skill_bodies(docs, D, repo_root):
-    """Skill instruction bodies (BS §79.7) exist for every registered platform
+    """Check 15, skill part (reported under "semantic documentation"): skill
+    instruction bodies (BS §79.7) exist for every registered platform
     skill and carry neither the excluded host stack nor a physical-device path.
 
     Skipped (not passed) when crates/ is absent, exactly like check 14: a
@@ -2725,7 +2729,8 @@ def check_section_ownership(R, D):
 
 
 def check_structure(docs, R, D):
-    """Document-level integrity that the contract graph presupposes."""
+    """Check 13 (document-structure, BS §67.11 "Structure" row): document-level
+    integrity that the contract graph presupposes."""
     for label, key in (("build spec", "bs"), ("architecture", "ta")):
         text = docs[key]
         secs = sorted(sections(text))
