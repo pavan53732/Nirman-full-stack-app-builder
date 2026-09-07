@@ -25,6 +25,7 @@ DOCS = [
     "AGENTS.md",
     "nirman-build-spec.md",
     "nirman-technical-architecture.md",
+    "nirman-schemas.md",
     "nirman-milestones.md",
     "nirman-decisions.md",
     "nirman-adrs.md",

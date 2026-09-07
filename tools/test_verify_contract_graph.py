@@ -248,7 +248,7 @@ CASES = {
 
     # ---- ADR-218: AI-usage budget vocabulary must not return
     "budget exhaustion outcome reintroduced": (
-        TA, "- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED",
+        SCHEMAS, "- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED",
         "- outcome: SUFFICIENT | BUDGET_EXHAUSTED | NO_PROGRESS | ESCALATED | ABANDONED",
         "semantic documentation"),
     "fixed toolless pass ceiling reintroduced": (
@@ -283,13 +283,13 @@ CASES = {
         BS, "4. **Execution suitability**", "4. **Cost efficiency**",
         "semantic documentation"),
     "PlanCostEstimate schema reintroduced in architecture": (
-        TA, "ResourceExecutionProfile\n- planRevision", "PlanCostEstimate\n- planRevision",
+        SCHEMAS, "ResourceExecutionProfile\n- planRevision", "PlanCostEstimate\n- planRevision",
         "semantic documentation"),
     "ResourceExecutionProfile removed from development plan": (
         DEV, "ResourceExecutionProfile with honest confidence", "plan estimate with honest confidence",
         "semantic documentation"),
     "maxReasoningTokens metadata-only note removed from build spec": (
-        BS, "- maxReasoningTokens: integer? (provider capability metadata only",
+        SCHEMAS, "- maxReasoningTokens: integer? (provider capability metadata only",
         "- maxReasoningTokens: integer? (execution ceiling",
         "semantic documentation"),
     "maxReasoningTokensOptional metadata-only note removed from architecture": (
@@ -342,7 +342,7 @@ CASES = {
         "| Default task disk quota | Android-profile-based; 10 GB is not fixed",
         "semantic documentation"),
     "PreviewRevision.previewMode loses CONSERVATIVE_FULL_REINSTALL": (
-        BS, "FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE",
+        SCHEMAS, "FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE",
         "FULL_APK_REINSTALL | HEADLESS_SMOKE",
         "semantic documentation"),
     "§57.5 ledger drops the change_report_records table": (
@@ -356,8 +356,8 @@ CASES = {
         BS, "Recorded in `toolchainLock` (§5.7.1) |", "Recorded in `toolchainLock` (§369) |",
         "semantic documentation"),
     "BS §67.11 weakens the schema-parity statement": (
-        BS, "a registered schema MUST have identical field-name sets in every occurrence",
-        "a registered schema SHOULD have matching fields in every occurrence",
+        BS, "A registered schema MUST have identical field-name sets in every occurrence",
+        "A registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
     "an ADR block is written back into nirman-decisions.md": (
         DEC, "## Decision Review Rules\n",
@@ -392,7 +392,7 @@ CASES = {
         BS, "it is never a global prerequisite", "it is the session prerequisite",
         "semantic documentation"),
     "TA §34 AutonomousAndroidSession.providerMode loses its SessionProviderMode type": (
-        TA, "- providerMode: SessionProviderMode (build spec §5.7.2)\n", "- providerMode\n",
+        SCHEMAS, "- providerMode: SessionProviderMode (build spec §5.7.2)\n", "- providerMode\n",
         "semantic documentation"),
     "BS §15 roadmap reclaims normative status": (
         BS, "**Normative status:** This roadmap is explanatory sequencing, not a contract.",
@@ -406,11 +406,11 @@ CASES = {
         BS, "| `DEGRADED` | any | `DEGRADED` |\n", "",
         "semantic documentation"),
     "AndroidCapabilityProfile.status loses its derived §5.6 typing": (
-        BS, "- status: derived §5.6 status (SUPPORTED | SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS | DEGRADED | USER_REQUIRED | UNAVAILABLE | PLANNED)\n",
+        SCHEMAS, "- status: derived build spec §5.6 status (SUPPORTED | SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS | DEGRADED | USER_REQUIRED | UNAVAILABLE | PLANNED)\n",
         "- status\n",
         "semantic documentation"),
     "TA §23.3 EvidenceRecord loses its toolchain and environment identity fields": (
-        TA, "- toolchainLockId\n- environmentIdentityId\n- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
+        SCHEMAS, "- toolchainLockId\n- environmentIdentityId\n- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
         "- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
         "semantic documentation"),
     "BS §5.7.4 stops binding evidence-node requirements to EvidenceRecord fields": (
@@ -421,10 +421,10 @@ CASES = {
         BS, "MUST contain all twenty-eight `EvidenceRecord` fields", "MUST contain all twenty-seven `EvidenceRecord` fields",
         "semantic documentation"),
     "BS §11.5 Checkpoint loses its validity and knownGood fields": (
-        BS, "- validity: VALID | STALE | INVALIDATED\n- knownGood: boolean\n", "",
+        SCHEMAS, "- validity: VALID | STALE | INVALIDATED\n- knownGood: boolean\n", "",
         "semantic documentation"),
     "Checkpoint drops out of the TA §36.1 registry": (
-        TA, "PreviewRevision\nCheckpoint\nEvidenceRecord\n", "PreviewRevision\nEvidenceRecord\n",
+        SCHEMAS, "PreviewRevision\nCheckpoint\nEvidenceRecord\n", "PreviewRevision\nEvidenceRecord\n",
         "semantic documentation"),
     "TA §18 tiers stop declaring themselves projections of the canonical Checkpoint": (
         TA, "Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5",
@@ -439,13 +439,13 @@ CASES = {
         "CompletionState       = NOT_EVALUATED | COMPLETED | BLOCKED |",
         "semantic documentation"),
     "TA §34 AutonomousAndroidSession.completionState loses its CompletionState type": (
-        TA, "- completionState: CompletionState (build spec §5.7.2)", "- completionState",
+        SCHEMAS, "- completionState: CompletionState (build spec §5.7.2)", "- completionState",
         "semantic documentation"),
     "TA §36.4 stops recording the completion outcome as a CompletionState": (
         TA, "The outcome is recorded as a `CompletionState`", "The outcome is recorded as a completion state",
         "semantic documentation"),
     "AndroidServiceIntegration.requiredOperationality loses its IntegrationState type": (
-        TA, "- requiredOperationality: IntegrationState (build spec §5.7.2;", "- requiredOperationality (build spec §5.7.2;",
+        SCHEMAS, "- requiredOperationality: IntegrationState (build spec §5.7.2;", "- requiredOperationality (build spec §5.7.2;",
         "semantic documentation"),
     "BS §70 drops the operationality gate on service-integration boundaries": (
         BS, "meets the integration's declared `requiredOperationality`", "satisfies the integration's declared `requiredOperationality`",
@@ -540,16 +540,16 @@ CASES = {
         TA, "| schemaId (normative contract; implementation schema) |", "| schemaId (canonical definition) |",
         "semantic documentation"),
     "Content record removed from architecture": (
-        TA, "```text\nContent\n- contentId\n- projectId", "```text\nContentX\n- contentId\n- projectId",
+        SCHEMAS, "```text\nContent\n- contentId\n- projectId", "```text\nContentX\n- contentId\n- projectId",
         "semantic documentation"),
     "ContentMutation carries an admitted revision again": (
-        TA, "- proposedContentRevision: ContentRevisionDraft", "- contentRevision",
+        SCHEMAS, "- proposedContentRevision: ContentRevisionDraft", "- contentRevision",
         "semantic documentation"),
     "ContentRevisionDraft smuggles an authoritative field": (
-        TA, "ContentRevisionDraft\n- contentType", "ContentRevisionDraft\n- contentRevisionId\n- contentType",
+        SCHEMAS, "ContentRevisionDraft\n- contentType", "ContentRevisionDraft\n- contentRevisionId\n- contentType",
         "semantic documentation"),
-    "BS/TA ContentRevision field parity broken": (
-        BS, "- previousValue\n- proposedValue\n- placeholderSchema", "- value\n- placeholderSchema",
+    "ContentMutation field renamed in its single block while prose still cites it": (
+        SCHEMAS, "- baseProjectRevision\n", "- baseRevision\n",
         "semantic documentation"),
     "conversationRevision rule weakened": (
         BS, "`conversationRevision` is incremented only when the authoritative `ConversationResolver` commits",
@@ -564,7 +564,7 @@ CASES = {
         "exposes a complete, valid report. The record may initially be `INCOMPLETE`",
         "semantic documentation"),
     "typed causal source removed from build spec": (
-        BS, "- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION\n- causeId\n", "",
+        SCHEMAS, "- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION\n- causeId\n", "",
         "semantic documentation"),
     "ContentStore called authoritative persistence again": (
         TA, "canonical persistence implementation for Content records", "authoritative persistence implementation of the BS content records",
@@ -575,23 +575,23 @@ CASES = {
 
     # ---- schema identity audit: registry completeness, evidence provenance, revision/status naming
     "canonical schema dropped from the registry": (
-        TA, "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\nContentMutation\n", "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\n",
+        SCHEMAS, "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\nContentMutation\n", "BuildGateRecord\nContent\nContentRevision\nContentRevisionDraft\n",
         "semantic documentation"),
     "canonical schema declared without a field block": (
-        TA, "ConversationRebaseRecord\n- recordId\n- conversationId", "ConversationRebaseRecordX\n- recordId\n- conversationId",
+        SCHEMAS, "ConversationRebaseRecord\n- recordId\n- conversationId", "ConversationRebaseRecordX\n- recordId\n- conversationId",
         "semantic documentation"),
     "bare CapabilityProfile name reintroduced": (
-        TA, "AndroidTechnologyPlan\nAndroidCapabilityProfile\nTaskGraph", "AndroidTechnologyPlan\nCapabilityProfile\nTaskGraph",
+        SCHEMAS, "AndroidTechnologyPlan\nAndroidCapabilityProfile\nTaskGraph", "AndroidTechnologyPlan\nCapabilityProfile\nTaskGraph",
         "semantic documentation"),
     "reportStatus reintroduced on ChangeImpactReport": (
-        BS, "- projectionStatus: COMPLETE", "- reportStatus: COMPLETE",
+        SCHEMAS, "- projectionStatus: COMPLETE", "- reportStatus: COMPLETE",
         "semantic documentation"),
     "ambiguous projectRevision reintroduced on ChangeReportRecord": (
-        TA, "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevisionAfter\n",
+        SCHEMAS, "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevisionAfter\n",
         "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevision\n",
         "semantic documentation"),
     "ConversationDecision loses evidence provenance": (
-        BS, "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n- sourceEvidenceIds\n",
+        SCHEMAS, "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n- sourceEvidenceIds\n",
         "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n",
         "semantic documentation"),
     "forward traversal claims runtime implementation again": (
@@ -645,10 +645,10 @@ CASES = {
         "| Deliberation max passes (DEEP) | 5 | 3-10 | Per task |",
         "semantic documentation"),
     "attention profile schema removed from build spec": (
-        BS, "AttentionReliabilityProfile\n- profileId", "AttentionProfile\n- profileId",
+        SCHEMAS, "AttentionReliabilityProfile\n- profileId", "AttentionProfile\n- profileId",
         "semantic documentation"),
     "attention profile schema removed from architecture": (
-        TA, "AttentionReliabilityProfile\n- profileId: string", "AttentionProfile\n- profileId: string",
+        SCHEMAS, "AttentionReliabilityProfile\n- profileId: string", "AttentionProfile\n- profileId: string",
         "semantic documentation"),
     "seventh confidence dimension removed": (
         TA, "evaluates context sufficiency across seven dimensions", "evaluates context sufficiency across six dimensions",
@@ -730,17 +730,18 @@ CASES = {
         TA, "1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.",
         "1. Only `AgentLoopReducer` may commit lifecycle state.",
         "semantic documentation"),
-    "registry schema field renamed in the architecture only": (
-        TA, "ProviderProfile\n- providerProfileId\n- displayName\n", "ProviderProfile\n- providerId\n- displayName\n",
+    "registry schema field renamed in its single block while prose still cites it": (
+        SCHEMAS, "- attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11;",
+        "- attentionProfile: AttentionReliabilityProfile (TA §19.2; BS §53.11;",
         "semantic documentation"),
     "registry schema field dropped from the build spec typed block": (
-        BS, "- lastValidatedCheckpoint: string? (checkpoint id)\n", "",
+        SCHEMAS, "- lastValidatedCheckpoint: string? (checkpoint id)\n", "",
         "semantic documentation"),
-    "PreviewRevision field dropped from the architecture copy": (
-        TA, "- promotionLineage\n- checkpointId\n- sourceFingerprint\n- contractVersion\n", "- checkpointId\n- sourceFingerprint\n- contractVersion\n",
+    "PreviewRevision field dropped from its single block while prose still cites it": (
+        SCHEMAS, "- promotionLineage\n- checkpointId\n- sourceFingerprint\n- contractVersion\n", "- promotionLineage\n- sourceFingerprint\n- contractVersion\n",
         "semantic documentation"),
-    "non-registry duplicate loses a build-spec field in the architecture": (
-        TA, "- kind: skill | tool | worker | swarm | session | analysis | packaging\n- arguments\n", "- arguments\n",
+    "merged block loses the addition marker that keeps the §80.2 field count honest": (
+        SCHEMAS, "- contractId: (technical architecture §6.2 addition; build spec §67.11)\n", "- contractId\n",
         "semantic documentation"),
     "APK_EXPORT authority heading drifts to a billing heading": (
         BS, "## 78. APK Export Provenance Contract", "## 78. Release Billing Notes",
@@ -762,7 +763,7 @@ CASES = {
         "- classifyFailure()          -> AndroidTechnologyAdapterResolution\n- executeBuild()             -> AndroidBuildObservation\n",
         "semantic documentation"),
     "certification report reverts to PASSED or FAILED": (
-        TA, "- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED\n",
+        SCHEMAS, "- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED\n",
         "- result: PASSED | FAILED\n",
         "semantic documentation"),
     "in-process hosting allowance loses its M7 bound": (
@@ -774,7 +775,7 @@ CASES = {
         "semantic documentation",
         (("AGENTS.md", os.path.join(REPO, "AGENTS.md")),)),
     "capacity verdict regains an unqualified time exhaustion value": (
-        TA, "- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |",
+        SCHEMAS, "- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |",
         "- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk |",
         "semantic documentation"),
     "debugger worker stops on a retry count again": (
@@ -796,10 +797,10 @@ CASES = {
         BS, "| A — validation environment absent | host = Windows; target = Android;", "| A — host mismatch | host = Linux, target = Windows;",
         "semantic documentation"),
     "registry re-registers the APK export view instead of the canonical record": (
-        TA, "BackgroundContinuityRecord\nExportVerificationRecord\nPackagingProfile\n", "BackgroundContinuityRecord\nAPKExportRecord\nPackagingProfile\n",
+        SCHEMAS, "BackgroundContinuityRecord\nExportVerificationRecord\nPackagingProfile\n", "BackgroundContinuityRecord\nAPKExportRecord\nPackagingProfile\n",
         "semantic documentation"),
     "SkillInvocationRecord loses its field block": (
-        TA, "```text\nSkillInvocationRecord\n- invocationId\n", "```text\nSkillInvocationRecordX\n- invocationId\n",
+        SCHEMAS, "```text\nSkillInvocationRecord\n- invocationId\n", "```text\nSkillInvocationRecordX\n- invocationId\n",
         "semantic documentation"),
     "skill manifest requests a permission": (
         "crates/nirman-skills/skills/android/android-toolchain/skill.json", '"permissionRequests": [],', '"permissionRequests": ["filesystem:write"],',
@@ -819,7 +820,7 @@ CASES = {
         "emulator steps, `ANDROID_EMULATOR_EXECUTION`)", "emulator steps, `WINDOWS_NATIVE_EXECUTION`)",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "CandidateBranch schema dropped from the architecture": (
-        TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
+        SCHEMAS, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",
         "semantic documentation"),
 
@@ -910,7 +911,7 @@ CASES = {
 
     # ---- semantic documentation lint
     "semantic goal template identifier": (
-        TA, "- goalDefinition", "- goalTemplate", "semantic documentation"),
+        SCHEMAS, "- goalDefinition", "- goalTemplate", "semantic documentation"),
     "semantic browser core wording": (
         BS, "Use browser validation only for a declared optional external/auxiliary surface",
         "Run browser, device, accessibility, and visual QA where applicable", "semantic documentation"),
@@ -920,7 +921,7 @@ CASES = {
         TA, "### 73.5.1 Canonical `PreviewPromotionGate`",
         "### 73.5.1 Canonical preview promotion predicate", "semantic documentation"),
     "semantic missing profile identity": (
-        BS, "- profileId", "- profileIdentifier", "semantic documentation"),
+        SCHEMAS, "- profileId", "- profileIdentifier", "semantic documentation"),
     "semantic duplicate milestone outcome": (
         DEV, "| M38 | Certified Android profile coverage and production acceptance |",
         "| M38 | Android capability registry and representative profile coverage |",
@@ -969,11 +970,11 @@ CASES = {
         "## M105 — Cross-document conformance",
         "semantic documentation"),
     "semantic profile maturity field removed": (
-        BS, "- reproducibilityLevel",
+        SCHEMAS, "- reproducibilityLevel",
         "- reproducibilityMode",
         "semantic documentation"),
     "semantic resource attribution removed": (
-        TA, "- attributionStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE",
+        SCHEMAS, "- attributionStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE",
         "- usageStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE",
         "semantic documentation"),
     "semantic legacy artifact wording introduced": (
@@ -1001,15 +1002,15 @@ CASES = {
         "SOURCE\n  → DESTINATION",
         "semantic documentation"),
     "semantic UI hierarchy observation removed": (
-        TA, "UiHierarchyObservation",
-        "UIHierarchyRecord",
+        TA, "`UiHierarchyObservation` is defined in",
+        "`UIHierarchyRecord` is defined in",
         "semantic documentation"),
     "semantic certificate inspection removed": (
-        TA, "CertificateInspection",
-        "CertificateRecord",
+        SCHEMAS, "CertificateInspection\n- inspectionId\n",
+        "CertificateInspection\n- inspectionRef\n",
         "semantic documentation"),
     "semantic export verification removed": (
-        TA, "ExportVerificationRecord\n- exportId",
+        SCHEMAS, "ExportVerificationRecord\n- exportId",
         "ArtifactExportRecord\n- exportId",
         "semantic documentation"),
     "semantic continuity projection wiring removed": (
@@ -1037,15 +1038,15 @@ CASES = {
         "### 71.3 Preview ordering notes",
         "semantic documentation"),
     "semantic preview event schema removed": (
-        BS, "PreviewSyncEvent\n- eventId",
+        SCHEMAS, "PreviewSyncEvent\n- eventId",
         "PreviewEvent\n- eventId",
         "semantic documentation"),
     "semantic preview reducer schema removed": (
-        BS, "PreviewProjectionReducer\n- reducerId",
+        SCHEMAS, "PreviewProjectionReducer\n- reducerId",
         "PreviewReducer\n- reducerId",
         "semantic documentation"),
     "semantic preview evidence schema removed": (
-        BS, "PreviewSyncEvidenceRecord\n- evidenceId",
+        SCHEMAS, "PreviewSyncEvidenceRecord\n- evidenceId",
         "PreviewEvidence\n- evidenceId",
         "semantic documentation"),
     "semantic preview architecture removed": (
@@ -1065,11 +1066,11 @@ CASES = {
         "## ADR-195: Preview notes",
         "semantic documentation"),
     "semantic preview projection dimensions removed": (
-        BS, "PreviewProjection\n- projectionRevision",
+        SCHEMAS, "PreviewProjection\n- projectionRevision",
         "PreviewState\n- projectionRevision",
         "semantic documentation"),
     "semantic preview authority levels removed": (
-        BS, "authorityClass: DECLARATIVE",
+        SCHEMAS, "authorityClass: DECLARATIVE",
         "eventAuthority: DECLARATIVE",
         "semantic documentation"),
     "semantic preview causality removed": (
@@ -1081,7 +1082,7 @@ CASES = {
         "Preview reconciliation is implementation-defined.",
         "semantic documentation"),
     "semantic preview provenance decision removed": (
-        BS, "- certificationDecisionRef\n- completionDecisionRef",
+        SCHEMAS, "- certificationDecisionRef\n- completionDecisionRef",
         "- certificationDecision\n- completionDecisionRef",
         "semantic documentation"),
     "semantic source deployment export separation removed": (
@@ -1173,7 +1174,7 @@ CASES = {
         "### 76.2 Response envelopes",
         "semantic documentation"),
     "semantic error envelope removed": (
-        BS, "UIErrorEnvelope\n- errorId",
+        SCHEMAS, "UIErrorEnvelope\n- errorId",
         "ErrorEnvelope\n- errorId",
         "semantic documentation"),
     "semantic event subscription removed": (
@@ -1397,12 +1398,12 @@ CASES = {
         "1. ConstructionTransaction (mutation identity, files, revision)",
         "semantic documentation"),
     "BS/TA ContentDependency mismatch": (
-        TA,
+        SCHEMAS,
         "ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy",
         "ContentDependency\n- contentDependencyId\n- sourceContentId\n- dependencyType\n- targetId\n- dependencyRevision\n- invalidationPolicy",
         "semantic documentation"),
     "BS/TA ContentRevision requirementIds mismatch": (
-        TA,
+        SCHEMAS,
         "ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds",
         "ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementId",
         "semantic documentation"),
@@ -1412,7 +1413,7 @@ CASES = {
         "MATCH → PROCEED",
         "semantic documentation"),
     "missing ChangeReportRecord": (
-        BS,
+        SCHEMAS,
         "ChangeReportRecord\n- recordId",
         "ChangeReportEntry\n- recordId",
         "semantic documentation"),
@@ -1605,43 +1606,45 @@ def main():
         text = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
         open(path, "w", encoding="utf-8").write(fn(text))
 
-    def _move_candidate_branch(tmp, proj_sec="1.1", owner="BS §65.2", schemas_owner=None):
-        """Relocate CandidateBranch (fenced identically in BS §65.2 and TA §88.2)
-        into a synthetic nirman-schemas.md the way the migration will."""
-        stub = f"> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §{proj_sec}. Owner: {owner}.\n"
-        block = {}
+    # CandidateBranch lives in nirman-schemas.md (owner BS §65.2, projected at
+    # TA §88.2); its heading number is read from the document so a renumbering
+    # of the schema document does not invalidate these cases.
+    _cb_sec = re.search(r"^### (\d+\.\d+) CandidateBranch$",
+                        open(os.path.join(REPO, SCHEMAS), encoding="utf-8").read(), re.M).group(1)
+    _cb_proj = f"> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §{_cb_sec}. Owner: BS §65.2.\n"
 
-        def cut(text):
-            m = re.search(r"```text\nCandidateBranch\n.*?```\n", text, re.S)
-            block["b"] = m.group(0)
-            return text.replace(m.group(0), stub, 1)
-        _rw(tmp, BS, cut)
-        _rw(tmp, TA, cut)
-        _rw(tmp, SCHEMAS, lambda _t: (
-            "# Nirman Schemas\n\n## 1. Reasoning\n\n### 1.1 CandidateBranch\n\n"
-            f"**Owner:** {schemas_owner or owner} · **Contract:** — · **Projected at:** TA §88.2\n\n" + block["b"]
-            + "\n## References\n\n[1]: nirman-build-spec.md\n"))
+    def _move_candidate_branch(tmp, proj_sec=None, schemas_owner=None):
+        if proj_sec:
+            _rw(tmp, TA, lambda t: t.replace(_cb_proj, _cb_proj.replace(f"§{_cb_sec}.", f"§{proj_sec}."), 1))
+        if schemas_owner:
+            _rw(tmp, SCHEMAS, lambda t: t.replace(
+                f"### {_cb_sec} CandidateBranch\n\n**Owner:** BS §65.2", f"### {_cb_sec} CandidateBranch\n\n**Owner:** {schemas_owner}", 1))
 
     _topology_case("schema projection cites the wrong nirman-schemas.md section",
-                   lambda tmp: _move_candidate_branch(tmp, proj_sec="1.2"))
+                   lambda tmp: _move_candidate_branch(tmp, proj_sec="9.9"))
     _topology_case("nirman-schemas.md owner line names a heading that does not exist",
                    lambda tmp: _move_candidate_branch(tmp, schemas_owner="BS §65.9"))
 
     def _stub_dropped(tmp):
-        _move_candidate_branch(tmp)
-        _rw(tmp, BS, lambda t: t.replace(
-            "> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §1.1. Owner: BS §65.2.\n",
-            "CandidateBranch fields are listed in the schema document.\n", 1))
+        _rw(tmp, BS, lambda t: t.replace(_cb_proj, "CandidateBranch fields are listed in the schema document.\n", 1))
     _topology_case("owner section loses its schema projection line", _stub_dropped)
 
     def _fence_kept(tmp):
-        _move_candidate_branch(tmp)
         schemas = open(os.path.join(tmp, SCHEMAS), encoding="utf-8").read()
         fence = re.search(r"```text\nCandidateBranch\n.*?```\n", schemas, re.S).group(0)
-        _rw(tmp, TA, lambda t: t.replace(
-            "> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §1.1. Owner: BS §65.2.\n",
-            fence, 1))
+        _rw(tmp, TA, lambda t: t.replace(_cb_proj, fence, 1))
     _topology_case("a schema moved to nirman-schemas.md keeps a second fence in the architecture", _fence_kept)
+
+    def _projection_owner_drift(tmp):
+        _rw(tmp, BS, lambda t: t.replace(_cb_proj, _cb_proj.replace("Owner: BS §65.2", "Owner: TA §88.2"), 1))
+    _topology_case("a projection line names a different owner than the schema block", _projection_owner_drift)
+
+    def _registry_fence_back_in_ta(tmp):
+        schemas = open(os.path.join(tmp, SCHEMAS), encoding="utf-8").read()
+        fence = re.search(r"```text\nCanonicalSchemaRegistry\n.*?```\n", schemas, re.S).group(0)
+        _rw(tmp, TA, lambda t: t.replace(
+            "> **Schema projection:** `CanonicalSchemaRegistry` is defined in `nirman-schemas.md` §3.1. Owner: TA §36.1.\n", fence, 1))
+    _topology_case("the CanonicalSchemaRegistry list is written back into TA §36.1", _registry_fence_back_in_ta)
 
     _topology_case("GLOSSARY.md carries a Locks field and an upper-case requirement",
                    lambda tmp: _rw(tmp, GLOSSARY, lambda _t: "# Glossary\n\n**Term** — a thing. **Locks:** `CONTRACT.RUNTIME.SCOPE`. Agents MUST obey.\n"))
@@ -1656,8 +1659,7 @@ def main():
     _topology_case("an eleventh root Markdown file once the ADR-220 set is complete", _extra_root_file)
 
     _topology_case("a SCHEMAS § citation names a heading nirman-schemas.md lacks",
-                   lambda tmp: (_move_candidate_branch(tmp),
-                                _rw(tmp, TA, lambda t: t + "\nSee SCHEMAS §9.9 for the field list.\n")),
+                   lambda tmp: _rw(tmp, TA, lambda t: t + "\nSee SCHEMAS §9.9 for the field list.\n"),
                    expect="semantic documentation")
 
     # POSITIVE: renumbering a registry heading (together with the citations
@@ -1720,7 +1722,7 @@ def main():
             (TA, "## 82. Background Continuity Implementation Contract"),
             (DEV, "## M116 — Background continuity and interruption recovery"),
             (ADRS, "## ADR-202: Canonical background continuity state machine"),
-            (TA, "deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY"),
+            (SCHEMAS, "deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY"),
             (TA, "ExportVerificationRecord"),
             (BS, "## 78. APK Export Provenance Contract"),
             (TA, "## 83. APK Export Provenance Implementation Contract"),

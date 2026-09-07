@@ -7,7 +7,7 @@
 **Scope:** Local-first autonomous application development with configurable cloud AI providers  
 **Relationship to master specification:** This architecture document explains how to implement the behavior defined by the master product specification. It contains architecture and interfaces, not production source code.
 
-**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries. The Development Plan owns sequencing, milestones, fixtures, and exit gates. The Decision Log owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
+**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries; the field blocks of both documents are held in `nirman-schemas.md`, each under the section that owns it (ADR-220). The milestone document (`nirman-milestones.md`) owns sequencing, milestones, fixtures, and exit gates. The ADR document (`nirman-adrs.md`) owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
 
 ---
 
@@ -193,45 +193,13 @@ Workers should emit heartbeats while active. The scheduler should distinguish a 
 
 The orchestrator should assign each worker a task contract containing:
 
-```text
-TaskContract
-- contractId
-- parentTaskId
-- workerRole
-- objective
-- acceptanceCriteria
-- allowedPaths
-- forbiddenPaths
-- allowedTools
-- deniedTools
-- modelProfile
-- resourceRequirements
-- inputReferences
-- dependencyContracts
-- expectedOutputSchema
-- deadline
-```
+> **Schema projection:** `TaskContract` is defined in `nirman-schemas.md` §2.1. Owner: TA §6.1.
 
 The worker must return a structured result matching the expected output schema. Free-form commentary may be included, but the orchestrator must not depend on parsing it to determine success.
 
 ### 6.2 Message envelope
 
-```text
-WorkerMessage
-- messageId
-- taskId
-- contractId
-- senderWorkerId
-- recipientWorkerId or broadcastTopic
-- messageType
-- correlationId
-- sequenceNumber
-- payload
-- evidenceReferences
-- requiresAcknowledgement
-- createdAt
-- expiresAt
-```
+> **Schema projection:** `WorkerMessage` is defined in `nirman-schemas.md` §1.13. Owner: BS §26.2.
 
 Messages should be stored in the database before being delivered. This makes delivery retryable and preserves communication history for debugging.
 
@@ -406,43 +374,13 @@ A preview instance must be associated with a project revision and checkpoint. If
 
 A preview test can define multiple Android emulator profiles:
 
-```text
-AndroidDeviceProfile
-- name
-- platformVersion
-- apiLevel
-- architecture
-- width
-- height
-- density
-- orientation
-- locale
-- permissions
-- networkProfile
-```
+> **Schema projection:** `AndroidDeviceProfile` is defined in `nirman-schemas.md` §2.2. Owner: TA §10.2.
 
 The emulator worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
 
 The emulator validation subsystem MUST expose an authoritative `InteractionExecutor`.
 
-```text
-InteractionExecutor
-- interactionId
-- scenarioId
-- deviceId
-- artifactFingerprint
-- applicationStateFingerprintBefore
-- action
-- interactionMethod
-- targetIdentity
-- inputDataClass
-- observedResult
-- applicationStateFingerprintAfter
-- screenshotEvidenceId
-- uiHierarchyEvidenceId
-- logEvidenceId
-- createdAt
-```
+> **Schema projection:** `InteractionExecutor` is defined in `nirman-schemas.md` §2.3. Owner: TA §10.2.
 
 The InteractionExecutor operates only against the running generated Android application through an admitted Android device adapter. It MUST NOT satisfy an interaction requirement by modifying source, invoking application internals outside the declared test interface, or asserting an expected state without observing it.
 
@@ -454,19 +392,7 @@ The Android emulator manager should provide a normalized interface for Nirman-ma
 
 In Nirman's Android runtime contracts, a Device represents a Nirman-managed Android emulator session or emulator profile. Physical Android hardware is not an admissible Device implementation.
 
-```text
-Device
-- id
-- name
-- kind: emulator
-- platformVersion
-- architecture
-- connectionState
-- availableStorage
-- hotReloadState
-- logStream
-- installState
-```
+> **Schema projection:** `Device` is defined in `nirman-schemas.md` §2.4. Owner: TA §10.3.
 
 The first release may support one active device, but the interface should not assume that limitation. Device logs, installation results, reload failures, and build artifacts should be attached to the task record.
 
@@ -474,23 +400,7 @@ The first release may support one active device, but the interface should not as
 
 The input manager should accept screenshots, image sets, annotated references, and optional user assets as first-class project inputs. It should create a durable `VisualReference` record:
 
-```text
-VisualReference
-- referenceId
-- taskId
-- sourcePath
-- imageHash
-- deviceHypothesis
-- screenStateHypothesis
-- extractedLayout
-- extractedTypography
-- extractedColorTokens
-- extractedComponents
-- interactionClues
-- uncertaintyNotes
-- privacyStatus
-- createdAt
-```
+> **Schema projection:** `VisualReference` is defined in `nirman-schemas.md` §2.5. Owner: TA §10.4.
 
 The visual worker converts references into an editable visual specification rather than directly copying pixels. The specification records screens, navigation states, layout regions, component roles, spacing, typography, colors, assets, interactions, responsive behavior across Android emulator profiles, and unresolved uncertainties. The implementation worker uses that specification to synthesize Android code, while the validation worker compares Nirman-managed local Android emulator screenshots against the reference and reports visual differences with evidence.
 
@@ -522,42 +432,9 @@ The project synthesizer builds a project graph from the goal contract, visual sp
 
 The technology resolver must treat all Android implementation styles as available capabilities. It may select Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, or a mixed architecture. Its decision must be based on the requested behavior, screenshot evidence, performance needs, device APIs, offline requirements, build constraints, dependency compatibility, and validation evidence—not on a fixed user-facing template list.
 
-The plan record is the build spec §80.5.1 `AndroidTechnologyPlan`, field for field; the build spec is the canonical owner and the typed definitions live there:
+The plan record is the build spec §80.5.1 `AndroidTechnologyPlan`, field for field; the build spec is the canonical owner and the typed definition is the single block named below:
 
-```text
-AndroidTechnologyPlan
-- planId
-- projectId
-- revision
-- capabilityProfileId
-- requestedCapabilities
-- selectedLanguages
-- uiSystem
-- nativeModules
-- buildSystem
-- gradleVersion
-- agpVersion
-- kotlinVersion
-- compileSdk
-- targetSdk
-- minSdk
-- ndkVersion
-- cmakeVersion
-- packageId
-- versionCode
-- versionName
-- permissions
-- features
-- services
-- dependencies
-- testFrameworks
-- validationPlan
-- rationale
-- confidence
-- alternativesConsidered
-- lockedAt
-- lockedBy
-```
+> **Schema projection:** `AndroidTechnologyPlan` is defined in `nirman-schemas.md` §1.48. Owner: BS §80.5.1.
 
 Internal bootstraps may provide known-good build foundations, but they are implementation details rather than product limitations. The resolver must be able to create different project shapes, combine technologies, replace an incompatible layer, and add native modules when validation proves that the current architecture cannot satisfy the goal. The user may inspect the technology plan, but should not be required to choose the stack before describing the desired application.
 
@@ -606,33 +483,9 @@ WinUI PreviewHost
 
 The PreviewHost MUST NOT invoke ADB, Gradle, emulator APIs, or application internals directly.
 
-```text
-PreviewSurface
-- previewSurfaceId
-- previewSurfaceSessionId
-- projectId
-- taskId
-- previewRevisionId
-- deviceSessionId
-- runtimeSessionId
-- renderTransportId
-- renderTransportVersion
-- inputChannelId
-- viewportStateFingerprint
-- status
-- createdAt
+> **Schema projection:** `PreviewSurface` is defined in `nirman-schemas.md` §2.6. Owner: TA §10.8.
 
-PreviewInteraction
-- interactionId
-- previewSurfaceId
-- deviceId
-- runtimeSessionId
-- action
-- targetIdentity
-- inputDataClass
-- expectedObservation
-- createdAt
-```
+> **Schema projection:** `PreviewInteraction` is defined in `nirman-schemas.md` §2.7. Owner: TA §10.8.
 
 These are execution and projection records, not authorities.
 
@@ -648,20 +501,7 @@ Each project should declare required tool versions or compatible ranges. The run
 
 A project environment record should include:
 
-```text
-EnvironmentRecord
-- projectId
-- operatingSystem
-- executablePaths
-- detectedVersions
-- requestedVersions
-- resolutionSource
-- compatibilityStatus
-- reproducibilityStatus
-- maxPathLength
-- longPathPolicyEnabled
-- lastVerifiedAt
-```
+> **Schema projection:** `EnvironmentRecord` is defined in `nirman-schemas.md` §2.8. Owner: TA §11.1.
 
 Two projects that require different Node.js, Java, Android SDK, Rust, or package-manager versions must be able to run without silently changing global state.
 
@@ -679,24 +519,7 @@ The runtime should expose Android-focused interfaces for process execution, file
 
 The runtime should expose a `TerminalSession` abstraction instead of treating every command as a one-shot shell call.
 
-```text
-TerminalSession
-- sessionId
-- taskId
-- workerId
-- workspaceId
-- shellProfile
-- workingDirectory
-- environmentFingerprint
-- processGroupId
-- ptySupported
-- stdinPolicy
-- outputLogPath
-- rotationPolicy
-- status
-- createdAt
-- lastActivityAt
-```
+> **Schema projection:** `TerminalSession` is defined in `nirman-schemas.md` §2.9. Owner: TA §11.4.
 
 A worker can reuse a terminal session for commands that depend on working directory, environment variables, virtual-environment activation, package-manager state, or a long-running development server. Session environment changes must be explicit and recorded rather than inferred from arbitrary shell output.
 
@@ -818,21 +641,7 @@ A system that can generate code but cannot reconstruct what happened after a cra
 
 Goal Mode should be represented by a durable `GoalContract` attached to a task:
 
-```text
-GoalContract
-- goalId
-- taskId
-- statement
-- completionConditions
-- validationPlan
-- scope
-- autonomyPolicy
-- resourceRequirements
-- stopConditions
-- progressSummary
-- lastEvaluatedAt
-- status
-```
+> **Schema projection:** `GoalContract` is defined in `nirman-schemas.md` §2.10. Owner: TA §16.1.
 
 `resourceRequirements` declares the physical resources the goal needs and is evaluated by runtime resource integrity (BS §72); AI usage is telemetry and no field of the GoalContract carries an AI-usage budget.
 
@@ -897,22 +706,7 @@ When the user opens another project, the current task remains owned by the contr
 
 A schedule record should contain:
 
-```text
-Schedule
-- scheduleId
-- projectId
-- goalDefinition
-- triggerType
-- triggerExpression
-- enabled
-- allowedMode
-- approvalPolicy
-- resourceRequirements
-- notificationPolicy
-- lastRunId
-- nextRunAt
-- failureCount
-```
+> **Schema projection:** `Schedule` is defined in `nirman-schemas.md` §2.11. Owner: TA §16.4.
 
 The scheduler should calculate the next run transactionally, create a new task from the goal definition, and prevent duplicate runs after a control-plane restart. A scheduled task must inherit the project’s permission policy and may not upgrade its own autonomy.
 
@@ -938,25 +732,9 @@ Blocking hooks must complete before the associated action proceeds. They require
 
 The checkpoint manager should maintain file-level snapshots and task-level revisions. Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5 (`tier: FILE | TASK`); `FileCheckpoint` and `TaskCheckpoint` below are the per-tier projections of that record that the checkpoint manager exposes, not separate schemas, and every field they show maps onto a `Checkpoint` field (`parentRevision` and `projectRevision` are `revisionReference`; `previewRevision` is `previewRevisionId`; `validationSnapshot` is `validationSnapshotId`; `workerWorkspaces` and `metadataSnapshot` are resolved through `workspaceId` and `restoreReference`).
 
-```text
-FileCheckpoint
-- checkpointId
-- taskId
-- filePaths
-- contentHashes
-- parentRevision
-- createdAt
+> **Schema projection:** `FileCheckpoint` is defined in `nirman-schemas.md` §2.12. Owner: TA §18.
 
-TaskCheckpoint
-- checkpointId
-- taskId
-- projectRevision
-- workerWorkspaces
-- metadataSnapshot
-- previewRevision
-- validationSnapshot
-- createdAt
-```
+> **Schema projection:** `TaskCheckpoint` is defined in `nirman-schemas.md` §2.13. Owner: TA §18.
 
 The `Checkpoint.validity`, `knownGood`, and `retentionClass` fields are the durable form of the retention and backtracking rules below: "last known-good" always means the newest checkpoint with `knownGood = true` and `validity = VALID` for the task, never a checkpoint selected by recency or by a model's recommendation.
 
@@ -966,19 +744,7 @@ Android tasks should use profile-based quotas for JavaScript, native, emulator a
 
 Backtracking should restore a known-good checkpoint before trying a materially different strategy. The recovery manager should keep a strategy history:
 
-```text
-RecoveryAttempt
-- attemptId
-- taskId
-- failureFingerprint
-- checkpointRestored
-- strategyDescription
-- workerRole
-- modelProfile
-- actionsTaken
-- validationResult
-- createdAt
-```
+> **Schema projection:** `RecoveryAttempt` is defined in `nirman-schemas.md` §2.14. Owner: TA §18.
 
 The recovery planner must reject a new attempt when it is substantially identical to a previous failed attempt. It may change the context mode, worker role, model profile, implementation approach, or test strategy before resuming.
 
@@ -1007,27 +773,7 @@ The repository map scales incrementally via the Repository Semantic Graph (§59.
 
 The skill registry should store:
 
-```text
-SkillPackage
-- skillId
-- name
-- description
-- version
-- scope: built_in | user | project
-- compatibleWorkerRoles
-- triggerConditions
-- requiredTools
-- requiredCapabilities
-- permissionRequests
-- inputSchema
-- outputSchema
-- sourcePath
-- scanStatus
-- trustStatus
-- enabled
-- installedAt
-- lastUsedAt
-```
+> **Schema projection:** `SkillPackage` is defined in `nirman-schemas.md` §1.12. Owner: BS §23.11.
 
 A skill is selected by the orchestrator from a task requirement, explicit user request, or matching trigger condition. Loading a skill adds instructions and schemas; it never grants permissions automatically. Skill tool calls still pass through the policy engine and are logged as ordinary tool calls.
 
@@ -1037,45 +783,9 @@ Skills should be testable through fixture tasks and should declare the minimum t
 
 Skill admission and invocation are durable ledger records (M119), both registered in §36.1:
 
-```text
-SkillAdmission
-- admissionId
-- skillId
-- skillVersion
-- sessionId
-- taskId
-- environmentFingerprint
-- environmentCapabilityRecordId
-- requiredCapabilities
-- capabilityResolution: per required capability, AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
-- decision: ADMITTED | BLOCKED | NOT_FOUND | NOT_INVOCABLE
-- decisionReason
-- scanStatus
-- trustStatus
-- policyDecisionId
-- decidedAt
-```
+> **Schema projection:** `SkillAdmission` is defined in `nirman-schemas.md` §2.15. Owner: TA §19.1.
 
-```text
-SkillInvocationRecord
-- invocationId
-- admissionId
-- skillId
-- skillVersion
-- sessionId
-- taskId
-- workerId
-- projectRevision
-- environmentFingerprint
-- inputRef
-- outputRef
-- toolCallIds
-- evidenceIds
-- outcome: COMPLETED | FAILED | CANCELLED | BLOCKED
-- invalidatedBy
-- startedAt
-- completedAt
-```
+> **Schema projection:** `SkillInvocationRecord` is defined in `nirman-schemas.md` §2.16. Owner: TA §19.1.
 
 `SkillAdmission` is written before any instruction body loads or tool call runs; a skill with no `ADMITTED` admission for the current environment fingerprint cannot be invoked. `SkillInvocationRecord` pins the version admitted for the session (ADR-154), links every tool call and evidence item the invocation produced, and is invalidated (`invalidatedBy`) when the environment fingerprint, skill version, or project revision it was bound to changes.
 
@@ -1083,34 +793,9 @@ SkillInvocationRecord
 
 Nirman does not implement hybrid sparse/linear attention itself. The model provider owns neural attention architecture (sparse, linear, recurrent, cached, or hybrid attention). Because such architectures recall distant literal content unevenly by position, window fill, and distractor density, a boolean "supports long context" flag carries no usable information. Nirman therefore exposes provider attention behavior as a measured, per-model `AttentionReliabilityProfile` through `ProviderProfile.attentionCapabilities` (BS §53.11 is the normative authority; this is the canonical schema):
 
-```text
-AttentionReliabilityProfile
-- profileId: string
-- providerProfileId: string
-- modelId: string
-- source: DECLARED | PROBED | LEARNED | UNPROFILED
-- declaredContextTokens: usize
-- reliableLiteralSpanTokens: usize?
-- reliableGistSpanTokens: usize?
-- positionalRecall: PositionalRecallCell[]
-- multiNeedleRecall: { needleCount: usize, passRate: float }?
-- distractorSensitivity: LOW | MEDIUM | HIGH | UNKNOWN
-- postCompactionRetention: float?
-- toolResultRecallDecay: float?
-- supportsPrefixCaching: bool
-- supportsStructuredCache: bool
-- lastProbedAt: timestamp?
-- probeFixtureId: string?
-- evidenceIds: string[]
-- confidence: HIGH | MEDIUM | LOW
+> **Schema projection:** `AttentionReliabilityProfile` is defined in `nirman-schemas.md` §1.18. Owner: BS §53.11.
 
-PositionalRecallCell
-- fillBucket: float
-- positionBucket: HEAD | EARLY | MIDDLE | LATE | TAIL
-- literalPassRate: float
-- gistPassRate: float
-- samples: usize
-```
+> **Schema projection:** `PositionalRecallCell` is defined in `nirman-schemas.md` §2.17. Owner: TA §19.2.
 
 `declaredContextTokens` is the physical context capacity that `ContextCapacityPlanner` fits the package to; it is the former `maxContextTokens` and keeps that role. `reliableLiteralSpanTokens` bounds only the DENSE placement block of BS §53.11. Reasoning, tool-calling, and vision support are reported by `capabilityOverrides` and `reasoningCapabilityProfile` (§24.2), not by this profile. `confidence` is derived from sample counts, never declared.
 
@@ -1120,19 +805,7 @@ Nirman adapts around the model by measuring its recall with deterministic probes
 
 Nirman’s internal Tool Gateway remains authoritative, but an adapter may expose or consume standardized external tool servers. The adapter should translate external tool calls into Nirman policy requests before execution.
 
-```text
-ExternalToolConnection
-- connectionId
-- projectScope
-- serverIdentity
-- declaredTools
-- networkPolicy
-- dataPolicy
-- allowedWorkers
-- approvalPolicy
-- enabled
-- lastHealthCheck
-```
+> **Schema projection:** `ExternalToolConnection` is defined in `nirman-schemas.md` §2.18. Owner: TA §20.
 
 External tools should be capability-discovered, permission-scoped, health-checked, and auditable. A tool that requests local file access must still pass through the filesystem policy. A tool that causes an external side effect must create an approval request unless the project policy explicitly allows it.
 
@@ -1186,24 +859,7 @@ The control plane should represent each autonomous task as a durable directed gr
 
 The graph record is the build spec §80.5.4 `TaskGraph`, field for field (phases hold `TaskNode`s; `TaskNode.kind` represents the goal, requirement, worker-task, validation, checkpoint, approval, recovery-attempt, and evidence elements, `dependencies` the edges); the build spec is the canonical owner:
 
-```text
-TaskGraph
-- graphId
-- projectId
-- sessionId
-- goalContractId
-- revision
-- phases
-- dependencies
-- workers
-- completionConditions
-- lastValidatedCheckpoint
-- completionEvaluation
-- createdAt
-- updatedAt
-- lockedAt
-- lockedBy
-```
+> **Schema projection:** `TaskGraph` is defined in `nirman-schemas.md` §1.58. Owner: BS §80.5.4.
 
 A node may be `pending`, `ready`, `running`, `waiting_approval`, `waiting_resource`, `completed`, `failed`, `blocked`, `skipped`, or `cancelled` (`TaskNode.status`, build spec §80.5.4). A node can be marked `completed` only after its evidence requirements pass. Model summaries may explain a node, but they cannot complete it without an execution or review evidence record.
 
@@ -1235,37 +891,7 @@ Each displayed node should reference a durable node ID, parent ID, owner, worksp
 
 The evidence ledger records the facts that justify task status. An evidence record should contain:
 
-```text
-EvidenceRecord
-- evidenceId
-- taskId
-- nodeId
-- type
-- command or source
-- inputsHash
-- outputPath
-- result
-- exitCode
-- artifactReferences
-- capturedAt
-- reproducibilityStatus
-- sourceEventId
-- operationId
-- sessionId
-- projectRevision
-- checkpointId
-- artifactId
-- previewRevisionId
-- deviceIdentity
-- toolchainLockId
-- environmentIdentityId
-- validationPolicyVersion
-- freshnessInterval
-- dependencyIds
-- supersedes
-- supersededBy
-- invalidationReason
-```
+> **Schema projection:** `EvidenceRecord` is defined in `nirman-schemas.md` §2.19. Owner: TA §23.3.
 
 The first twelve fields describe the observation; the remaining sixteen are the identity and dependency fields that build spec §5.7.4 requires of every evidence node (source event, operation, session, project revision, checkpoint, artifact or preview identity, device and toolchain identity, validation-policy version, freshness interval, dependency ids, supersession, invalidation reason). `artifactId`, `previewRevisionId`, `deviceIdentity`, and `toolchainLockId` are null only when the evidence type has no such subject; a build, install, device, or preview observation without them is rejected at capture. `dependencyIds` are `EvidenceDependency` ids (§36.4); `supersedes`/`supersededBy` implement the immutability rule below, and `invalidationReason` is written only by the evidence authority when a §36.4 dependency is invalidated. An `EvidenceRecord` lacking these fields cannot participate in the `Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision` chain.
 
@@ -1354,51 +980,13 @@ The official API reference distinguishes a response-oriented surface for direct 
 
 The AI Settings page should store a provider profile with the following shape (the build spec §80.5.5 record, field for field; the build spec is the canonical owner and this section adds no field):
 
-```text
-ProviderProfile
-- providerProfileId
-- displayName
-- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE
-- protocol: chat_completions | responses | messages | custom
-- baseUrl
-- apiKeySecretRef
-- customHeadersSecretRefs
-- modelId
-- visionModelId
-- embeddingModelId
-- rerankerModelId
-- reasoningModelId
-- organizationId
-- projectId
-- capabilities
-- capabilityOverrides
-- attentionCapabilities
-- reasoningCapabilityProfile
-- defaultReasoningEffort
-- requestSettings
-- privacyPolicy
-- networkPolicy
-- enabled
-- status
-- lastConnectionTest
-- createdAt
-- updatedAt
-```
+> **Schema projection:** `ProviderProfile` is defined in `nirman-schemas.md` §1.62. Owner: BS §80.5.5.
 
 The API key and sensitive headers must be stored only through the operating-system keychain. The profile may display a masked key fingerprint and last validation time, but never the raw key.
 
 The `reasoningCapabilityProfile` field holds the provider's discovered reasoning capability:
 
-```text
-ReasoningCapabilityProfile
-- supportsNativeReasoning: true | false | unknown
-- supportedEffortLevels: NORMAL | EXTENDED | DEEP | EXHAUSTIVE[]
-- maxReasoningTokens
-- reasoningUsage: reported | estimated | unavailable
-- effortParameterMapping: provider-specific normalized mapping
-- supportsPerRequestEffortChange: true | false
-- supportsContinuation: true | false | unknown
-```
+> **Schema projection:** `ReasoningCapabilityProfile` is defined in `nirman-schemas.md` §1.63. Owner: BS §80.5.5.
 
 `effortParameterMapping` is configuration metadata, not authority: it records how normalized effort levels translate into provider-specific parameters, but it can never alter granted effort, resource-integrity decisions, permission ceilings, or authority state.
 
@@ -1418,38 +1006,9 @@ Reasoning capability must be displayed separately from general text generation. 
 
 The model gateway should convert all supported protocols into a canonical internal request:
 
-```text
-ModelRequest
-- requestId
-- taskId
-- workerId
-- conversationId
-- modelId
-- systemInstructions
-- messagesOrInputItems
-- tools
-- responseSchemaOptional
-- modalities
-- contextReferences
-- temperatureOptional
-- reasoningSettings
-- serviceTierOptional
-- stream
-- providerBackgroundOptional
-- cancellationSignal
-- privacyLabels
-```
+> **Schema projection:** `ModelRequest` is defined in `nirman-schemas.md` §2.20. Owner: TA §24.4.
 
-```text
-ReasoningSettings
-- effortLevel: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
-- maxReasoningTokensOptional
-- maxReasoningTimeMsOptional
-- providerNativeParameters
-- deliberationId
-- passNumber
-- effortGrantId
-```
+> **Schema projection:** `ReasoningSettings` is defined in `nirman-schemas.md` §2.21. Owner: TA §24.4.
 
 `providerNativeParameters` may contain provider-specific reasoning controls, but those values are generated by ModelGateway from the normalized runtime request. A model response or provider cannot modify the runtime's granted effort, permission ceiling, or authority state.
 
@@ -1457,21 +1016,7 @@ ReasoningSettings
 
 The canonical response should be event-oriented:
 
-```text
-ModelEvent
-- requestId
-- sequence
-- type: started | text_delta | reasoning_delta | tool_call_delta |
-        tool_call_complete | usage | completed | failed | cancelled
-- providerEventTypeOptional
-- contentOptional
-- toolCallOptional
-- usageOptional
-- finishReasonOptional
-- requestIdFromProviderOptional
-- errorOptional
-- createdAt
-```
+> **Schema projection:** `ModelEvent` is defined in `nirman-schemas.md` §2.22. Owner: TA §24.4.
 
 The orchestrator consumes the canonical events and writes them to the task event ledger. A provider’s streaming format must never be rendered directly by the UI as the source of truth.
 
@@ -1479,16 +1024,7 @@ The orchestrator consumes the canonical events and writes them to the task event
 
 Chat-completion tool calls, response-item function calls, and message-oriented tool calls should normalize to:
 
-```text
-ToolCallRequest
-- callId
-- toolName
-- argumentsJson
-- taskId
-- workerId
-- policyContext
-- providerRequestId
-```
+> **Schema projection:** `ToolCallRequest` is defined in `nirman-schemas.md` §2.23. Owner: TA §24.5.
 
 Nirman validates arguments against the registered tool schema, sends the request through the policy engine, executes the tool only when allowed, and returns a normalized `ToolCallResult` with status, output reference, redactions, duration, and evidence ID. Tool results must be associated with the original call ID so the next model request can be serialized correctly for the selected protocol.
 
@@ -1588,22 +1124,7 @@ The stable launcher/controller is not a third executable. It is the `UpdateContr
 
 A self-development task should include:
 
-```text
-SelfDevContract
-- taskId
-- sourceRevision
-- targetGoal
-- allowedSourcePaths
-- forbiddenPaths
-- allowedTools
-- testPlan
-- buildProfiles
-- promotionPolicy
-- rollbackPolicy
-- healthChecks
-- compatibilityChecks
-- releaseNotesRequired
-```
+> **Schema projection:** `SelfDevContract` is defined in `nirman-schemas.md` §2.24. Owner: TA §25.3.
 
 The task must begin with a source checkpoint and an isolated worktree. Changes to the updater/controller, security policy, database migrations, provider runtime, or permission engine should automatically require a higher review level and a broader test plan.
 
@@ -1802,27 +1323,7 @@ The runtime should measure whether an attempt made verified progress. Progress m
 
 Every completed, failed, cancelled, recovered, or escalated task should produce an `EpisodeRecord`:
 
-```text
-EpisodeRecord
-- episodeId
-- taskId
-- projectFingerprint
-- goalClass
-- stackProfile
-- providerProfile
-- planRevision
-- workerRoles
-- actionsSummary
-- checkpoints
-- failures
-- recoveryStrategies
-- validationResults
-- finalClassification
-- resourceTelemetry
-- userCorrections
-- privacyClassification
-- createdAt
-```
+> **Schema projection:** `EpisodeRecord` is defined in `nirman-schemas.md` §2.25. Owner: TA §29.1.
 
 The episode record should contain structured summaries and references to raw evidence rather than copying unrestricted source code or secrets into long-term memory.
 
@@ -1862,21 +1363,7 @@ It must not automatically convert a single unusual failure into a permanent rule
 
 ### 30.2 Improvement proposal
 
-```text
-ImprovementProposal
-- proposalId
-- sourceEpisodes
-- problemStatement
-- hypothesis
-- affectedComponents
-- proposedChanges
-- expectedMetrics
-- safetyImpact
-- testPlan
-- rollbackPlan
-- approvalPolicy
-- status
-```
+> **Schema projection:** `ImprovementProposal` is defined in `nirman-schemas.md` §2.26. Owner: TA §30.2.
 
 Possible proposal targets include prompts, task decomposition rules, model routing, context retrieval, tool schemas, failure classifiers, UI instructions, validation rules, worker roles, skill packages, provider adapters, and runtime code.
 
@@ -1976,27 +1463,7 @@ The self-improvement loop is ready when Nirman can observe task episodes, identi
 
 The runtime must model the user’s one-shot Android request as an `AutonomousAndroidSession`. The session owns the complete lifecycle from chat and screenshots to project synthesis, live preview, recovery, validation, and APK delivery. The session continues independently of the chat renderer and is resumable after UI closure, process restart, or host suspend/resume where the operating system permits it.
 
-```text
-AutonomousAndroidSession
-- sessionId
-- userGoal
-- screenshotsAndAssets
-- applicationContract
-- visualSpecification
-- technologyPlan
-- taskGraph
-- workerRegistry
-- terminalSessions
-- sandboxProfile
-- activeProjectRevision
-- previewState
-- checkpoints
-- validationState
-- recoveryState
-- artifactState
-- completionState: CompletionState (build spec §5.7.2)
-- providerMode: SessionProviderMode (build spec §5.7.2)
-```
+> **Schema projection:** `AutonomousAndroidSession` is defined in `nirman-schemas.md` §1.14. Owner: BS §29.2.
 
 ### 34.1 Input-fusion pipeline
 
@@ -2006,32 +1473,11 @@ The input manager combines the user instruction, screenshots, supplied assets, e
 
 The preview manager and execution manager share a `projectRevisionId`, `activeBranchId`, `checkpointId`, and promotion lineage. Every emulator state records the revision, emulator identity, installation state, reload state, Logcat stream, runtime errors, screenshot, visual comparison result, and responsible task node. Preview currency additionally requires:
 
-```text
-DeviceStateFingerprint
-- deviceIdentity
-- apiLevel
-- locale
-- orientation
-- permissionsSnapshot
-- systemSettingsSnapshot
-- networkMode
-- installedPackageState
+> **Schema projection:** `DeviceStateFingerprint` is defined in `nirman-schemas.md` §2.27. Owner: TA §34.2.
 
-ApplicationStateFingerprint
-- packageName
-- processState
-- databaseSnapshot
-- preferencesSnapshot
-- appPermissions
-- accountSessionState
+> **Schema projection:** `ApplicationStateFingerprint` is defined in `nirman-schemas.md` §2.28. Owner: TA §34.2.
 
-EnvironmentStateFingerprint
-- toolchainLock
-- environmentIdentity
-- dependencySnapshot
-- providerProfile
-- validationPolicyVersion
-```
+> **Schema projection:** `EnvironmentStateFingerprint` is defined in `nirman-schemas.md` §2.29. Owner: TA §34.2.
 
 If a candidate revision fails, the preview manager retains the last valid revision and marks the candidate as failed instead of presenting it as current. An identical emulator identity is not sufficient when any required device, application, or environment fingerprint differs.
 
@@ -2078,78 +1524,7 @@ The production runtime is divided into deterministic authorities and model-drive
 
 The following contracts are versioned and validated at the control-plane boundary:
 
-```text
-CanonicalSchemaRegistry
-AutonomousAndroidSession
-AndroidConstructionContract
-VisualSpecification
-AndroidTechnologyPlan
-AndroidCapabilityProfile
-TaskGraph
-WorkerContract
-TerminalSession
-PreviewRevision
-Checkpoint
-EvidenceRecord
-EvidenceDependency
-ValidationResult
-CertificationDecision
-CompletionDecision
-RecoveryRecord
-ArtifactRecord
-ArtifactSet
-IntegrationOperationality
-ExternalEffectRecord
-IntegrationBoundaryContract
-UsageRecord
-ProviderProfile
-FrontendControlPlaneContract
-UICommandRegistry
-UICommandEnvelope
-ProjectionSnapshot
-UIResponseEnvelope
-UIErrorEnvelope
-EventSubscription
-ResourceIntegrityRecord
-AgentTrustAssessment
-ContextCachePolicy
-ContextPackage
-AttentionReliabilityProfile
-StructuredPatch
-AndroidRuntimeIntegrityObservation
-ContinuityDimensions
-BackgroundContinuityRecord
-ExportVerificationRecord
-PackagingProfile
-SkillPackage
-SkillInvocationRecord
-SkillAdmission
-EnvironmentCapabilityRecord
-PlatformCapabilityEntry
-ValidationEnvironment
-BuildGateRecord
-Content
-ContentRevision
-ContentRevisionDraft
-ContentMutation
-ContentValidationResult
-ContentPropagationPlan
-TerminologyProfile
-ContentEvidence
-ContentDependency
-Conversation
-ConversationMessage
-ConversationAttachment
-ConversationRequirement
-ConversationDecision
-ConversationSuggestion
-ConversationTaskLink
-ConversationRequirementIndex
-ConversationDecisionIndex
-ConversationRebaseRecord
-ChangeReportRecord
-ChangeImpactReport
-```
+> **Schema projection:** `CanonicalSchemaRegistry` is defined in `nirman-schemas.md` §3.1. Owner: TA §36.1.
 
 Each contract has a schema version, owner, lifecycle status, project scope, source revision, created timestamp, updated timestamp, and audit references where applicable. Persistent records use atomic writes, file locking, migration backups, and rollback.
 
@@ -2159,27 +1534,17 @@ Each contract has a schema version, owner, lifecycle status, project scope, sour
 
 Schema compatibility is explicit:
 
-```text
-ContractCompatibility
-- fromVersion
-- toVersion
-- compatibleRead
-- compatibleWrite
-- migrationRequired
-- evidenceInvalidationPolicy
-- runtimeRestartRequired
-- acceptanceFixtureIds
-```
+> **Schema projection:** `ContractCompatibility` is defined in `nirman-schemas.md` §1.6. Owner: BS §5.7.9.
 
 A self-development candidate or contract migration cannot be promoted until its read/write compatibility, migration, restart, replay, and rollback behavior pass the declared fixtures. `IntegrationBoundaryContract` is the common reference envelope for boundary-crossing operations; specialized contracts remain authoritative for payloads, state machines, authorities, transactions, evidence, preview, providers, skills, artifacts, signing, and completion.
 
-Registry metadata for the content, conversation, and change-intelligence schemas is fixed as follows. The registry entry is the single canonical schema identity; the build spec section holds the normative contract shape and the architecture section holds the implementation schema, and the two must agree field for field. The fixture column names the acceptance fixture that proves them.
+Registry metadata for the content, conversation, and change-intelligence schemas is fixed as follows. The registry entry is the single canonical schema identity; the build spec section owns the normative contract shape, the architecture section owns the implementation semantics, and both cite the one field block in `nirman-schemas.md` (the `schema blocks` column), so the two cannot disagree field for field. The fixture column names the acceptance fixture that proves them.
 
-| schemaId (normative contract; implementation schema) | canonicalOwner | version | lifecycle | persistence | authority | acceptance fixture |
-|---|---|---|---|---|---|---|
-| `Content`, `ContentRevision`, `ContentRevisionDraft`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency` (normative contract: BS §81.1; implementation schema: TA §85.1) | `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` | 1 | revision-bound to the parent `ConstructionTransaction`; invalidated through the `ImpactGraph` (§85.4) | `ContentStore` (SQLite; §85.3) | `ContentAuthority` admits and transitions; `EvidenceAuthority` owns `ContentEvidence` validity | `TEST-CONTENT-001` |
-| `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord` (normative contract: BS §82; implementation schema: TA §86.1) | `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` | 1 | durable lineage; `conversationRevision` advances only when `ConversationContinuationResolver` commits new durable conversation state (BS §82.1); attachments `ACTIVE → DELETED` (§86.2) | `ConversationStore` (SQLite; §86.2) | `ConversationContinuationResolver` resolves; Memory, Context, and Task authorities remain canonical for what the indices reference (§86.4) | `TEST-CONV-001` |
-| `ChangeReportRecord`, `ChangeImpactReport` (normative contract: BS §83.1; implementation schema: TA §87.1) | `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` | 1 | record `INCOMPLETE → COMPLETE` or `INCOMPLETE → UNRESOLVED`; a COMPLETE report is immutable (§87.1) | `ChangeIntelligenceStore` (SQLite; §87.5) | `ChangeIntelligenceProjector` is read-only; `RecoveryAuthority` owns reconstruction (§87.4, §87.6) | `TEST-CHANGE-001` |
+| schemaId (normative contract; implementation schema) | canonicalOwner | version | lifecycle | persistence | authority | acceptance fixture | schema blocks |
+|---|---|---|---|---|---|---|---|
+| `Content`, `ContentRevision`, `ContentRevisionDraft`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency` (normative contract: BS §81.1; implementation schema: TA §85.1) | `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE` | 1 | revision-bound to the parent `ConstructionTransaction`; invalidated through the `ImpactGraph` (§85.4) | `ContentStore` (SQLite; §85.3) | `ContentAuthority` admits and transitions; `EvidenceAuthority` owns `ContentEvidence` validity | `TEST-CONTENT-001` | SCHEMAS §1.66, SCHEMAS §1.67, SCHEMAS §2.76, SCHEMAS §2.77, SCHEMAS §2.78, SCHEMAS §2.79, SCHEMAS §2.80, SCHEMAS §2.81, SCHEMAS §1.68 |
+| `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord` (normative contract: BS §82; implementation schema: TA §86.1) | `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` | 1 | durable lineage; `conversationRevision` advances only when `ConversationContinuationResolver` commits new durable conversation state (BS §82.1); attachments `ACTIVE → DELETED` (§86.2) | `ConversationStore` (SQLite; §86.2) | `ConversationContinuationResolver` resolves; Memory, Context, and Task authorities remain canonical for what the indices reference (§86.4) | `TEST-CONV-001` | SCHEMAS §1.69, SCHEMAS §2.82, SCHEMAS §1.73, SCHEMAS §1.70, SCHEMAS §1.71, SCHEMAS §1.72, SCHEMAS §2.83, SCHEMAS §2.84, SCHEMAS §2.85, SCHEMAS §2.86 |
+| `ChangeReportRecord`, `ChangeImpactReport` (normative contract: BS §83.1; implementation schema: TA §87.1) | `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE` | 1 | record `INCOMPLETE → COMPLETE` or `INCOMPLETE → UNRESOLVED`; a COMPLETE report is immutable (§87.1) | `ChangeIntelligenceStore` (SQLite; §87.5) | `ChangeIntelligenceProjector` is read-only; `RecoveryAuthority` owns reconstruction (§87.4, §87.6) | `TEST-CHANGE-001` | SCHEMAS §1.74, SCHEMAS §1.75 |
 
 ### 36.2 Lifecycle authority
 
@@ -2205,88 +1570,15 @@ Sensitive operations use single-use operation capabilities with an action type, 
 
 The following records are canonical implementation contracts, not additional authorities. They connect the existing lifecycle, evidence, preview, artifact, policy, toolchain, device, and integration services so that no subsystem can report a stronger state than its dependencies permit.
 
-```text
-EvidenceDependency
-- dependencyId
-- evidenceId
-- dependencyType: source | asset | toolchain | device | artifact |
-                    integration | policy | checkpoint | environment
-- dependencyIdentity
-- validFromEventId
-- invalidatedByEventId
-- invalidationReason
+> **Schema projection:** `EvidenceDependency` is defined in `nirman-schemas.md` §2.30. Owner: TA §36.4.
 
-ArtifactSet
-- artifactSetId
-- requiredArtifacts: APK | APK_AND_AAB
-- sourceRevision
-- assetManifestVersion
-- toolchainLockId
-- environmentIdentityId
-- validationPolicyVersion
-- artifactRecordIds
-- signingState
-- reproducibilityLevel
-- deliveryState
+> **Schema projection:** `ArtifactSet` is defined in `nirman-schemas.md` §2.31. Owner: TA §36.4.
 
-IntegrationOperationality
-- integrationId
-- required
-- endpointIdentity
-- credentialReference
-- schemaVersion
-- policyProfile
-- connectivityState: UNKNOWN | UNREACHABLE | REACHABLE
-- authenticationState: NOT_REQUIRED | UNKNOWN | INVALID | AUTHENTICATED
-- availabilityState: UNKNOWN | UNAVAILABLE | AVAILABLE | DEGRADED
-- functionalState: UNKNOWN | NON_FUNCTIONAL | FUNCTIONAL
-- acceptanceState: NOT_REQUIRED | UNKNOWN | NOT_ACCEPTED | ACCEPTED
-- aggregateState: NOT_REQUIRED | SPECIFIED | CONFIGURED | REACHABLE |
-                  FUNCTIONAL | DEGRADED | USER_REQUIRED | UNAVAILABLE |
-                  BLOCKED | UNKNOWN
-- healthEvidenceId
-- authenticationEvidenceId
-- functionalEvidenceId
-- acceptanceEvidenceId
-- lastObservedAt
-- invalidatedBy
+> **Schema projection:** `IntegrationOperationality` is defined in `nirman-schemas.md` §1.3. Owner: BS §5.7.5.
 
-ExternalEffectRecord
-- effectId
-- operationType
-- targetIdentity
-- requestFingerprint
-- authorityGrantId
-- idempotencyKey
-- requestState: NOT_SENT | SENT | ACKNOWLEDGED | UNKNOWN | FAILED
-- responseReference
-- compensationPlan
-- compensationState
-- localTransactionId
-- reconciliationState: KNOWN_SUCCESS | KNOWN_FAILURE | UNKNOWN | RECONCILING | RESOLVED
+> **Schema projection:** `ExternalEffectRecord` is defined in `nirman-schemas.md` §2.32. Owner: TA §36.4.
 
-`ExternalEffectRecord.reconciliationState` generalizes the export-only `UNKNOWN → RECONCILING` pattern (ADR-203) to every external side effect. Every adapter that performs an external effect—ADB install, Nirman-managed local Android emulator launch, provider/model request, signing operation, filesystem copy, package installation, process creation, and remote API—MUST record an `ExternalEffectRecord` and implement reconciliation against the canonical `reconciliationState` lifecycle:
-- `KNOWN_SUCCESS` / `KNOWN_FAILURE`: observed and verified terminal state.
-- `UNKNOWN`: the effect was issued but its outcome could not be confirmed (timeout, partial response, device/provider drop, interrupted copy, process disappearance).
-- `RECONCILING`: an `UNKNOWN` outcome is being resolved by destination/identity/hash inspection or provider/device status re-check; no retry of the effect is permitted until resolution.
-- `RESOLVED`: reconciliation completed and the outcome was deterministically classified as success or failure (recorded in `responseReference` / compensation state).
-
-An `UNKNOWN` outcome MUST NOT be retried, promoted, or reported as success until it transitions to `RESOLVED`. This applies uniformly; the export copy path (M117/ADR-203) is one instance, not a special case. The `CanonicalSchemaRegistry` owns this schema; adapter-local variants are explanatory only and must not redefine the enum.
-
-UsageRecord
-- usageId
-- parentUsageId
-- taskId
-- workerId
-- providerRequestId
-- processGroupId
-- resourceClass
-- reservedAmount
-- observedAmount
-- attributionStatus: DIRECT | INHERITED | SHARED | ESTIMATED | UNAVAILABLE
-- startEventId
-- endEventId
-```
+> **Schema projection:** `UsageRecord` is defined in `nirman-schemas.md` §2.33. Owner: TA §36.4.
 
 `RepositoryTrust`, `EnvironmentIdentity`, `SigningState`, `ReproducibilityLevel`, `CapabilityMaturity`, `ProductLifecycleState`, `AssuranceState`, `IntegrationOperationality`, and `DeliveryState` are separate fields. They MUST NOT be collapsed into a single status or inferred from model output.
 
@@ -2330,27 +1622,11 @@ Completion requires current mandatory evidence, selected profile maturity, requi
 
 The runtime separates transaction domains because they have different rollback semantics:
 
-```text
-LocalTransaction
-- stagedSourceRevision
-- changedPaths
-- checkpointId
-- commitState: STAGED | VALIDATED | COMMITTED | ROLLED_BACK
+> **Schema projection:** `LocalTransaction` is defined in `nirman-schemas.md` §2.34. Owner: TA §36.5.
 
-DeviceTransaction
-- deviceSessionId
-- installedArtifactFingerprint
-- appStateFingerprint
-- observationState: REQUESTED | INSTALLED | LAUNCHED | OBSERVED | UNKNOWN
-- cleanupPolicy
+> **Schema projection:** `DeviceTransaction` is defined in `nirman-schemas.md` §2.35. Owner: TA §36.5.
 
-ExternalEffectTransaction
-- externalEffectId
-- idempotencyKey
-- requestState
-- reconciliationState
-- compensationState
-```
+> **Schema projection:** `ExternalEffectTransaction` is defined in `nirman-schemas.md` §2.36. Owner: TA §36.5.
 
 `ConstructionTransaction` governs local source and artifact preparation. Device operations produce observations and cleanup records; they are not assumed to be atomically rolled back with source changes. External effects require `ExternalEffectRecord` reconciliation and compensation semantics. A local commit never implies that a remote or device operation succeeded.
 
@@ -2368,50 +1644,13 @@ Workers and models may propose capability status changes but cannot write `SUPPO
 
 Release signing uses an immutable binding:
 
-```text
-SigningIdentityBinding
-- artifactHash
-- applicationId
-- versionCode
-- certificateFingerprint
-- signingScheme
-- keystoreIdentity
-- buildVariant
-- signingPolicyVersion
-- inspectionEvidenceId
-```
+> **Schema projection:** `SigningIdentityBinding` is defined in `nirman-schemas.md` §1.5. Owner: BS §5.7.9.
 
 A release-signed claim is invalid without this binding and an observed signing-inspection result.
 
-```text
-SigningOperation
-- operationId
-- artifactId
-- artifactHashBeforeSigning
-- keystoreIdentityReference
-- requestedCertificateFingerprint
-- buildVariant
-- signingScheme
-- policyDecisionId
-- operationState: REQUESTED | AUTHORIZED | IN_PROGRESS | OBSERVED |
-                 FAILED | BLOCKED
-- startedAt
-- completedAt
-- evidenceId
+> **Schema projection:** `SigningOperation` is defined in `nirman-schemas.md` §2.37. Owner: TA §36.5.
 
-CertificateInspection
-- inspectionId
-- artifactId
-- artifactHash
-- applicationId
-- versionCode
-- observedCertificateFingerprint
-- signingSchemesObserved
-- expectedBindingRef
-- result: PASSED | FAILED | UNKNOWN
-- inspectedAt
-- evidenceId
-```
+> **Schema projection:** `CertificateInspection` is defined in `nirman-schemas.md` §2.38. Owner: TA §36.5.
 
 A signing request or keystore reference is not proof of signing. `CertificateInspection` must observe the packaged artifact and compare it with `SigningIdentityBinding` before a release-signed state is accepted.
 
@@ -2673,37 +1912,7 @@ TOCTOU protection rejects an operation when files changed outside the transactio
 
 ### 47.3 Language adapter interface
 
-```text
-AndroidLanguageAdapter
-- detect(path: str) -> LanguageDetectionResult
-  - params: path: str (file path to detect language for)
-  - returns: languageId, confidence, fileExtensions
-  - errors: LanguageDetectionError
-- parse(path: str, content: str) -> ParsedUnit
-  - params: path: str, content: str (file content)
-  - returns: languageId, ast, symbols, references, imports, metadata
-  - errors: ParseError, UnsupportedLanguageError
-- index_symbols(parsed_unit: ParsedUnit) -> SymbolIndex
-  - params: parsed_unit: ParsedUnit
-  - returns: symbols: list of SymbolEntry, references: list of ReferenceEntry
-  - errors: IndexingError
-- resolve_references(index: SymbolIndex) -> ResolvedIndex
-  - params: index: SymbolIndex
-  - returns: resolved: list of ResolvedReference, unresolved: list of UnresolvedReference
-  - errors: ResolutionError
-- calculate_affected_nodes(change: StructuredPatch) -> AffectedNodeSet
-  - params: change: StructuredPatch
-  - returns: affectedFiles: list, affectedSymbols: list, affectedModules: list
-  - errors: ImpactAnalysisError
-- validate_structured_patch(patch: StructuredPatch) -> PatchValidationResult
-  - params: patch: StructuredPatch (BS §43.2: contextId, baseRevision, targetSymbolIds, anchorHashes, premises, operations)
-  - returns: valid: bool, violations: list, affectedNodes: list, premiseMismatches: list
-  - errors: PatchValidationError, PremiseMismatchError
-- format_or_serialize(updated_unit: ParsedUnit) -> SerializedUnit
-  - params: updated_unit: ParsedUnit
-  - returns: content: str, format: str, encoding: str
-  - errors: SerializationError
-```
+> **Schema projection:** `AndroidLanguageAdapter` is defined in `nirman-schemas.md` §2.39. Owner: TA §47.3.
 
 Adapters are selected by file type and technology plan. No single parser is mandatory for every Android project.
 
@@ -3388,56 +2597,7 @@ Provider adapters normalize configured Chat Completions, Responses-style, messag
 
 ### 57.8.1 ProviderAdapter interface
 
-```text
-ProviderAdapter
-- adapterId
-- adapterVersion
-- providerId
-- compatibilityMode: OPENAI_COMPATIBLE | ANTHROPIC_COMPATIBLE
-- protocol: chat_completions | responses | messages | custom
-- supportedInputModalities: text | image | audio | tool_call | structured_output
-- supportedOutputModalities: text | tool_call | structured_output | reasoning
-- streamingSupported: bool
-- capabilityProfile: the `capabilities`, `capabilityOverrides`, `attentionCapabilities`, and `reasoningCapabilityProfile` fields of the bound `ProviderProfile` (build spec §80.5.5), refreshed by `detectCapability` (no separate `ProviderCapabilityProfile` record)
-
-ProviderAdapter operations
-- initialize(profile: ProviderProfile) -> AdapterInitializationResult
-  - params: profile: ProviderProfile
-  - returns: adapterId, adapterVersion, protocol, capabilities, healthCheck
-  - errors: AdapterInitializationError, UnsupportedProtocolError
-- healthCheck() -> AdapterHealthResult
-  - params: none
-  - returns: healthy: bool, latencyMs, modelReachable, capabilitiesValid, checkedAt
-  - errors: HealthCheckError
-- buildRequest(request: ModelRequest) -> ProviderRequest
-  - params: request: ModelRequest (messages, tools, schema, context, cancellation)
-  - returns: providerRequest: dict, requestHash, estimatedTokens
-  - errors: RequestBuildError, UnsupportedFeatureError
-- sendRequest(providerRequest: ProviderRequest) -> ProviderResponse
-  - params: providerRequest: ProviderRequest
-  - returns: rawResponse: dict, responseId, modelId, finishReason, usage, latencyMs
-  - errors: ProviderRequestError, TimeoutError, RateLimitError, AuthenticationError
-- normalizeResponse(rawResponse: dict) -> NormalizedResponse
-  - params: rawResponse: dict (raw provider response envelope)
-  - returns: textBlocks, imageBlocks, toolCalls, structuredOutput, usage, finishReason, reasoningMetadata
-  - errors: NormalizationError, MalformedResponseError
-- streamRequest(providerRequest: ProviderRequest) -> StreamEvent
-  - params: providerRequest: ProviderRequest
-  - returns: StreamEvent (token, tool_call_delta, structured_output_delta, done, error)
-  - errors: StreamError, TimeoutError
-- cancelRequest(requestId: str) -> CancelResult
-  - params: requestId: str
-  - returns: cancelled: bool, cancelTimestamp
-  - errors: CancelError
-- detectCapability(modelId: str) -> CapabilityDetectionResult
-  - params: modelId: str
-  - returns: modelId, capabilities: list, confidence, detectedAt
-  - errors: CapabilityDetectionError
-- validateResponse(rawResponse: dict) -> ResponseValidationResult
-  - params: rawResponse: dict
-  - returns: valid: bool, violations: list, toolCallIds: list, schemaCompliant: bool
-  - errors: ResponseValidationError
-```
+> **Schema projection:** `ProviderAdapter` is defined in `nirman-schemas.md` §2.40. Owner: TA §57.8.1.
 
 ### 57.9 Git and worktree subsystem
 
@@ -3494,21 +2654,7 @@ These modules produce proposals and state transitions, but LifecycleAuthority, P
 
 ### 58.2 AgentExecutionKernel contract
 
-```text
-AgentExecutionKernel
-- start(goal_id, session_id)
-- observe(observation)
-- propose(proposal)
-- authorize(proposal)
-- execute(authorized_action)
-- observe_result(result)
-- evaluate_progress()
-- continue_or_recover()
-- delegate(request)
-- validate(plan)
-- replan(trigger)
-- complete(evidence_set)
-```
+> **Schema projection:** `AgentExecutionKernel` is defined in `nirman-schemas.md` §2.41. Owner: TA §58.2.
 
 The kernel loop is:
 
@@ -3542,56 +2688,11 @@ EVALUATE_PROGRESS
 
 ### 58.3 Durable schemas
 
-```text
-AgentLoopRecord
-- loop_id
-- session_id
-- task_id
-- agent_instance_id
-- state
-- state_version
-- goal_revision
-- plan_revision
-- project_revision
-- last_observation_id
-- last_proposal_id
-- progress_status
-- retry_strategy
-- cancellation_scope
-- created_at
-- updated_at
+> **Schema projection:** `AgentLoopRecord` is defined in `nirman-schemas.md` §2.42. Owner: TA §58.3.
 
-AgentProposal
-- proposal_id
-- source_provider
-- source_worker
-- input_revision
-- action_type
-- action_arguments
-- expected_observation
-- required_capabilities
-- risk_class
-- schema_status
-- policy_status
-- transaction_status
-- evidence_status
+> **Schema projection:** `AgentProposal` is defined in `nirman-schemas.md` §2.43. Owner: TA §58.3.
 
-AgentProfile
-- profile_id
-- model_profile
-- reasoning_mode
-- context_strategy
-- skill_ids
-- tool_capabilities
-- permission_profile
-- autonomy_level
-- generation_parameters
-- max_children
-- resource_policy
-- recovery_policy
-- validation_policy
-- memory_policy
-```
+> **Schema projection:** `AgentProfile` is defined in `nirman-schemas.md` §2.44. Owner: TA §58.3.
 
 A proposal is immutable after validation. Any change creates a new proposal revision linked to the evidence or contradiction that caused it.
 
@@ -3599,25 +2700,7 @@ A proposal is immutable after validation. Any change creates a new proposal revi
 
 `SkillRuntime` resolves skill discovery, compatibility, composition, input binding, context assembly, execution, tool mediation, output validation, and evidence capture. It verifies skill version, required ToolBroker version, Android profile, worker role, input/output schema, permissions, and resource requirements before execution.
 
-```text
-SkillExecutionRecord
-- execution_id
-- skill_id
-- skill_version
-- task_id
-- worker_id
-- agent_instance_id
-- input_hash
-- context_references
-- tools_used
-- permissions_used
-- files_changed
-- evidence_ids
-- duration_ms
-- model_usage
-- result_status
-- rollback_reference
-```
+> **Schema projection:** `SkillExecutionRecord` is defined in `nirman-schemas.md` §2.45. Owner: TA §58.4.
 
 A skill composition is a directed acyclic graph with bounded depth, explicit inputs/outputs, shared revision identity, and a single validation contract. A composed skill cannot grant another skill permissions.
 
@@ -3645,38 +2728,13 @@ Every operation carries parent task, cancellation lineage, input references, exp
 
 `KnowledgeLedger` stores typed, scoped `KnowledgeArtifact` records. `TaskBlackboard` is a task-scoped projection containing the goal, requirements, architecture, decisions, constraints, assumptions, active workers, completed/blocked work, findings, conflicts, evidence, known failures, and next actions. A separate graph database is not implied. When typed relationships are required, the ledger may store:
 
-```text
-KnowledgeRelation
-- relationId
-- fromArtifactId
-- toArtifactId
-- relationType: derived_from | supports | contradicts | invalidates |
-                supersedes | depends_on
-- sourceEventId
-- projectScope
-- createdAt
-- invalidatedAt
-```
+> **Schema projection:** `KnowledgeRelation` is defined in `nirman-schemas.md` §2.46. Owner: TA §58.6.
 
 `KnowledgeRelation` is a scoped projection edge and never grants authority. It must not allow identifiable project content to cross the memory boundary.
 
 Workers may read, propose, attach evidence, request changes, and retrieve relevant entries. Only authoritative services may commit a decision, change the task graph, mark a requirement complete, change policy, or promote an artifact.
 
-```text
-KnowledgeArtifact
-- artifact_id
-- kind: finding | decision | constraint | assumption | architecture_fact |
-        failure_pattern | test_result | artifact | environment_fact
-- source_worker
-- source_task
-- project_revision
-- confidence
-- evidence_ids
-- valid_from
-- valid_until
-- scope
-- supersedes
-```
+> **Schema projection:** `KnowledgeArtifact` is defined in `nirman-schemas.md` §2.47. Owner: TA §58.6.
 
 ### 58.7 WorkspaceLeaseManager and ToolSessionRegistry
 
@@ -3684,24 +2742,7 @@ KnowledgeArtifact
 
 `ToolSessionRegistry` represents terminals, ADB, emulators, debuggers, LSPs, preview processes, and other long-lived tools as reconnectable sessions:
 
-```text
-ToolSession
-- session_id
-- tool_type
-- owner_worker
-- task_id
-- project_id
-- environment_fingerprint
-- process_group
-- state
-- capability_scope
-- input_policy
-- output_reference
-- heartbeat
-- reconnect_policy
-- cleanup_policy
-- evidence_ids
-```
+> **Schema projection:** `ToolSession` is defined in `nirman-schemas.md` §2.48. Owner: TA §58.7.
 
 A tool session may be reattached after worker replacement or UI restart, but reattachment does not expand its capability scope.
 
@@ -3717,21 +2758,7 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 
 `ValidationPlanner` chooses validation from changed files, symbols, call graph, route graph, dependency graph, requirement traceability, project type, risk, previous failures, emulator profiles, and resource availability. `MutationRegressionAnalyzer` predicts affected behavior and expands validation when a change touches a manifest, permission, navigation route, data model, native module, build file, authentication boundary, or shared UI component.
 
-```text
-ValidationPlan
-- plan_id
-- task_id
-- project_revision
-- affected_nodes
-- required_checks
-- focused_checks
-- expanded_checks
-- risk_score
-- device_matrix
-- resource_reservations
-- stop_conditions
-- evidence_requirements
-```
+> **Schema projection:** `ValidationPlan` is defined in `nirman-schemas.md` §2.49. Owner: TA §58.9.
 
 ### 58.10 TrajectoryReplayEngine and SimulationExecutor
 
@@ -3942,21 +2969,7 @@ The aggregate evaluation determines task eligibility:
 
 ### 59.5 Memory record schema
 
-```text
-MemoryRecord
-- recordId
-- projectId
-- sessionId
-- class: DECISION | CONSTRAINT | FACT | FAILURE | ARTIFACT
-- statement
-- sourceEventIds
-- sourceRevision
-- confidence
-- scope: task | project | runtime_improvement
-- retentionPolicy
-- supersededBy
-- createdAt
-```
+> **Schema projection:** `MemoryRecord` is defined in `nirman-schemas.md` §2.50. Owner: TA §59.5.
 
 `sourceEventIds` must be non-empty. MemoryWriter must reject a record with no source event, which structurally prevents model claims from becoming memory.
 
@@ -4184,18 +3197,7 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 
 ### 62.2 Step and assertion schema
 
-```text
-ScenarioStep
-- stepIndex
-- kind: ui_action | system_event | wait_for | assert | probe_state
-- target
-- input
-- timeoutMs
-- expected
-- result: passed | failed | skipped | error
-- screenshotRef
-- logcatRange
-```
+> **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
 
 System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses.
 
@@ -4260,17 +3262,7 @@ The identified cause surface becomes the permitted repair scope. The mutation br
 
 ### 63.4 Failure signature schema
 
-```text
-FailureSignature
-- signatureId
-- symptomKind: compile | lint | assertion | scenario | runtime_crash | performance
-- symptomFingerprint
-- causeClass
-- causeSurfaceKind
-- successfulRepairKind
-- occurrences
-- lastSeenAt
-```
+> **Schema projection:** `FailureSignature` is defined in `nirman-schemas.md` §2.52. Owner: TA §63.4.
 
 Signatures are written as FAILURE memory records per §59.5 and are project-scoped unless anonymized for runtime-improvement memory.
 
@@ -4324,17 +3316,7 @@ For requirements marked critical, MutationProber must inject at least one fault 
 
 ### 64.5 Verification record schema
 
-```text
-VerificationRun
-- runId
-- mutationId
-- method: diagnostics | lint | incremental_compile | unit | scenario | screenshot | mutation_probe | property_probe | performance
-- surfaces
-- outcome: passed | failed | vacuous | skipped
-- evidenceRefs
-- durationMs
-- ranAtRevision
-```
+> **Schema projection:** `VerificationRun` is defined in `nirman-schemas.md` §2.53. Owner: TA §64.5.
 
 ### 64.6 Architecture tests
 
@@ -4368,16 +3350,7 @@ DevicePool must respect the resource reservations of the backpressure controller
 
 ### 65.4 Divergence record
 
-```text
-ScenarioDivergence
-- divergenceId
-- scenarioId
-- passingEmulatorProfiles
-- failingEmulatorProfiles
-- differingAttributes: apiLevel | density | formFactor | abi | orientation | permissions | networkProfile
-- classification: defect | environment_limitation
-- evidenceRefs
-```
+> **Schema projection:** `ScenarioDivergence` is defined in `nirman-schemas.md` §2.54. Owner: TA §65.4.
 
 Default classification is `defect`. Classification as `environment_limitation` requires cited evidence that the failure originates in the device or vendor rather than the application.
 
@@ -4417,18 +3390,7 @@ DirectiveValidator must reject a directive that requests raising a permission ce
 
 ### 66.4 Plan reconciliation outcomes
 
-```text
-DirectiveEffect
-- directiveId
-- appliedAtEventId
-- planRevisionBefore
-- planRevisionAfter
-- stepsUnchanged
-- stepsInvalidated
-- stepsAbandoned
-- evidenceInvalidated
-- workPreserved
-```
+> **Schema projection:** `DirectiveEffect` is defined in `nirman-schemas.md` §2.55. Owner: TA §66.4.
 
 PlanReconciler must classify every in-flight step. Validated work not touched by the directive stays validated; work whose premise the directive removed becomes `abandoned`; work whose assumptions changed becomes `invalidated` and requires revalidation before promotion.
 
@@ -4460,23 +3422,7 @@ Implements build spec §63. Extends §17 (Lifecycle Hook Dispatcher) and §55 (P
 
 ### 67.2 Snapshot schema
 
-```text
-RuntimeSnapshot
-- snapshotId
-- capturedAtEventId
-- kernelState
-- activePlanRevision
-- activeConstraints
-- lockedDecisions
-- contextPackageManifest
-- pendingToolCalls
-- completedToolCalls
-- heldReservations
-- heldLeases
-- evidenceLedgerSlice
-- recoveryLadderPosition
-- resourceReservations
-```
+> **Schema projection:** `RuntimeSnapshot` is defined in `nirman-schemas.md` §2.56. Owner: TA §67.2.
 
 The snapshot contains the context package manifest, not the assembled prompt text, and contains tool inputs and outputs, not model reasoning tokens.
 
@@ -4538,19 +3484,7 @@ Triggers with source `external_webhook` are disabled at registration and require
 
 ### 68.4 Audit record schema
 
-```text
-TriggerFiring
-- firingId
-- triggerId
-- firedAt
-- source
-- authenticationResult
-- requestedGoal
-- admissionDecision: admitted | rejected
-- rejectionReason
-- createdTaskId
-- effectivePermissionCeiling
-```
+> **Schema projection:** `TriggerFiring` is defined in `nirman-schemas.md` §2.57. Owner: TA §68.4.
 
 ### 68.5 Isolation from authority
 
@@ -4584,22 +3518,7 @@ Measurement must wrap the supervised process, not the model's description of it.
 
 ### 69.3 Estimation contract
 
-```text
-ResourceExecutionProfile
-- planRevision
-- perOperationProfiles
-- expectedCpu
-- expectedMemory
-- expectedDisk
-- expectedEmulatorSlots
-- expectedConcurrency
-- expectedBuildPressure
-- expectedDurationObserved
-- confidence: profiled | sparse | unprofiled
-- sampleCounts
-- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |
-                   exceeds_emulator_slots | exceeds_concurrency
-```
+> **Schema projection:** `ResourceExecutionProfile` is defined in `nirman-schemas.md` §2.58. Owner: TA §69.3.
 
 A `ResourceExecutionProfile` describes the physical execution demand of a plan revision on this host — CPU, memory, disk, emulator slots, concurrency, build pressure, and the duration observed for the same operation classes — so that `ResourceIntegrityAuthority` (§59, BS §72) can admit it. It carries no token, request, price, or monetary field; AI usage is telemetry and is never an input to admission (BS §72). An operation class with fewer than the configured minimum samples must report `unprofiled` and must not receive a fabricated numeric estimate, satisfying the honesty invariant of build spec §66.1.
 
@@ -4636,15 +3555,7 @@ Implements build spec §58. Extends §39 (Sandbox and Process Separation) and §
 
 ### 70.2 Dependency verification
 
-```text
-ResolvedDependency
-- coordinate
-- resolvedVersion
-- integrityHash
-- resolutionSource
-- previouslyRecordedHash
-- verdict: verified | hash_mismatch | unresolvable | substitution_suspected
-```
+> **Schema projection:** `ResolvedDependency` is defined in `nirman-schemas.md` §2.59. Owner: TA §70.2.
 
 A verdict other than `verified` blocks the build. A `hash_mismatch` against a previously recorded hash is treated as a supply-chain event, not a transient failure, and must be surfaced rather than auto-retried.
 
@@ -4654,20 +3565,7 @@ AppSecurityScanner must run before packaging and must check the categories enume
 
 ### 70.4 SBOM and provenance schema
 
-```text
-ArtifactProvenance
-- artifactId
-- artifactKind: apk | aab
-- artifactChecksum
-- sourceRevision
-- toolchainVersions
-- signingIdentityClass
-- dependencies: ResolvedDependency[]
-- securityFindings
-- dispositions
-- builtAt
-- reproducibilityInputs
-```
+> **Schema projection:** `ArtifactProvenance` is defined in `nirman-schemas.md` §2.60. Owner: TA §70.4.
 
 ProvenanceRecorder must refuse to mark an artifact promotable when the SBOM is incomplete or any finding lacks a disposition.
 
@@ -4731,28 +3629,7 @@ The reasoning engine sits above the kernel and below nothing. It cannot reach th
 
 ### 71.3 ReasoningArtifact schema
 
-```text
-ReasoningArtifact
-- artifactId: uuid
-- cycleId: uuid
-- taskId: uuid
-- producedAtEventId: int
-- objective: text
-- assumptions: text[]
-- activeConstraints: constraintId[]
-- lockedDecisions: decisionId[]
-- hypotheses: hypothesisId[]
-- alternativesConsidered: { strategy, rejectionReason }[]
-- selectedStrategy: text
-- selectionBasis: { kind: evidence | constraint | failure_signature | policy, ref }[]
-- confidence: float
-- uncertainties: text[]
-- expectedEffect: text
-- nextAction: { capabilityId, arguments }
-- requiredCapabilities: capabilityId[]
-- delegationPlan: grantId[]
-- validationPlan: { method, targetSurface }[]
-```
+> **Schema projection:** `ReasoningArtifact` is defined in `nirman-schemas.md` §1.27. Owner: BS §66.2.
 
 The store must reject an artifact with an empty `selectionBasis`, which structurally prevents unjustified strategy selection. No field of this record holds model reasoning text; `selectedStrategy` and `expectedEffect` are declarative statements, not transcripts.
 
@@ -4774,75 +3651,21 @@ Transitions are recorded as kernel events. The engine cannot enter `EXECUTE` fro
 
 ### 71.5 HypothesisManager
 
-```text
-Hypothesis
-- hypothesisId
-- taskId
-- statement
-- predictedObservation
-- discriminatingTest: { method, targetSurface }
-- state: CREATED | TESTED | SUPPORTED | REJECTED | SUPERSEDED
-- supportingEvidenceRefs
-- refutingEvidenceRefs
-- supersededBy
-- resultingRepairKind
-- createdAtEventId
-```
+> **Schema projection:** `Hypothesis` is defined in `nirman-schemas.md` §1.29. Owner: BS §66.6.
 
 The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.5 and feed the failure signatures of §63.4.
 
 ### 71.6 CapabilityRegistry and discovery
 
-```text
-CapabilityDescriptor
-- capabilityId
-- kind: skill | tool | worker | swarm | session | analysis | packaging
-- inputSchema
-- outputSchema
-- requiredPermissions
-- requiredEnvironment
-- resourceProfileRef
-- validationContract
-- evidenceKinds
-- failureStrategy
-- rollbackStrategy
-- availability: available | environment_missing | user_required | unavailable
-```
+> **Schema projection:** `CapabilityDescriptor` is defined in `nirman-schemas.md` §2.61. Owner: TA §71.6.
 
 Discovery is a query, not a grant. `discoverCapabilities(objective, constraints, environment)` returns descriptors whose availability is computed from the toolchain authority of §49 and the environment planner, with permissions still evaluated at invocation. A newly registered skill or tool becomes discoverable without modifying the reasoning engine, which is what makes the runtime extensible rather than hardcoded.
 
 ### 71.7 Invocation and delegation persistence
 
-```text
-CapabilityInvocation
-- invocationId
-- cycleId
-- capabilityId
-- kind: skill | tool | worker | swarm | session | analysis | packaging
-- arguments
-- requestedPermissions
-- authorityDecision: granted | denied | requires_approval
-- denialReason
-- resourceReservation
-- resultRef
-- evidenceRefs
-- startedAt
-- endedAt
+> **Schema projection:** `CapabilityInvocation` is defined in `nirman-schemas.md` §1.30. Owner: BS §66.7.
 
-DelegationGrant
-- grantId
-- parentAgentId
-- childAgentId
-- depth
-- maxDepth
-- capabilityCeiling: capabilityId[]
-- resourceRequirements
-- executionTimeout
-- workspaceScope
-- terminationPolicy
-- issuedAtEventId
-- revokedAtEventId
-```
+> **Schema projection:** `DelegationGrant` is defined in `nirman-schemas.md` §1.31. Owner: BS §66.8.
 
 Artifacts, reflections, hypotheses, invocations, and grants are stored in the SQLite execution ledger, keyed by task and project, and are therefore replayable by the trajectory engine of §58 and inspectable by the debugger of §67 without special instrumentation.
 
@@ -4936,62 +3759,9 @@ There is no budget manager. No component owns an AI-usage ceiling, reserves or s
 
 ### 72.3 DeliberationRecord and session schema
 
-```text
-DeliberationRecord
-- deliberationId: uuid
-- cycleId: uuid
-- taskId: uuid
-- effortLevelRequested: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
-- effortLevelGranted: NORMAL | EXTENDED | DEEP | EXHAUSTIVE
-- grantDecisionReason: text
-- escalationTriggerEventId: eventId | null
-- objective: text
-- question: text
-- passCount: int
-- toollessPassCount: int
-- evidenceAcquisitionTriggers: { pass, trigger }[]
-- hypothesesConsidered: hypothesisId[]
-- hypothesesRejected: hypothesisId[]
-- evidenceAcquired: evidenceRef[]
-- evidenceDeltaByPass: { pass, evidenceRefs }[]
-- alternativesConsidered: { strategy, rejectionReason }[]
-- selectedStrategy: text
-- rejectedStrategies: { strategy, refutingEvidenceRef }[]
-- strategyRevisionRefs: evidenceRef[]
-- refutationAttemptedByPass: { pass, attempted: true | false }[]
-- uncertaintyBefore: float
-- uncertaintyAfter: float
-- confidenceBefore: float
-- confidenceAfter: float
-- continuationReasons: { pass, reason }[]
-- reasonForTermination: text
-- modelProfilesUsed: profileId[]
-- providerRequestRefs: requestId[]
-- reasoningUsage: {
-    reasoningTokensReported,
-    reasoningTokensEstimated,
-    accountingStatus
-  }
-- resourceUsage: {
-    reasoningTimeMs,
-    modelRequests,
-    wallClockMs
-  }
-- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED
+> **Schema projection:** `DeliberationRecord` is defined in `nirman-schemas.md` §1.33. Owner: BS §68.2.
 
-DeliberationSession
-- sessionId
-- deliberationId
-- revision
-- activeHypotheses: hypothesisId[]
-- rejectedStrategies: { strategy, refutingEvidenceRef }[]
-- evidenceAcquired: evidenceRef[]
-- effortLevelGranted
-- effortGrantId
-- pendingEvidenceAcquisitionTrigger: trigger | null
-- providerContinuationState
-- lastCheckpointEventId
-```
+> **Schema projection:** `DeliberationSession` is defined in `nirman-schemas.md` §2.62. Owner: TA §72.3.
 
 DeliberationRecordStore must reject a record whose `passCount` exceeds one while `continuationReasons` has fewer entries than the additional passes, and must reject any record containing verbatim model reasoning in a text field. No field of either schema is a reasoning transcript.
 
@@ -5174,66 +3944,11 @@ Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly 
 
 `PreviewCoordinator` is the sole service allowed to create, reload, install, promote, invalidate, or roll back a live Android preview. It consumes a `PreviewRequest` only after the source transaction has committed a project revision or a declared preview-only diagnostic operation has been authorized.
 
-```text
-PreviewRequest
-- schemaVersion
-- requestId
-- projectId
-- taskId
-- projectRevisionId
-- checkpointId
-- sourceFingerprint
-- contractVersion
-- technologyPlanVersion
-- assetManifestVersion
-- buildVariant
-- deviceId
-- androidApiLevel
-- requestedMode
-- selectedLanguage
-- selectedUiFramework
-- changedPaths
-- requiredEvidenceKinds
-- policyDecisionId
-- workspaceRoot
-- buildIdentity
-```
+> **Schema projection:** `PreviewRequest` is defined in `nirman-schemas.md` §2.63. Owner: TA §73.3.
 
 The resulting `PreviewRevision` is immutable and is the build spec §69.4 record, field for field (the build spec is the canonical owner):
 
-```text
-PreviewRevision
-- previewRevisionId
-- projectId
-- projectRevisionId
-- activeBranchId
-- promotionLineage
-- checkpointId
-- sourceFingerprint
-- contractVersion
-- technologyPlanVersion
-- assetManifestVersion
-- buildVariant
-- artifactId
-- artifactFingerprint
-- deviceId
-- androidApiLevel
-- deviceStateFingerprint
-- applicationStateFingerprint
-- environmentStateFingerprint
-- previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD | INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY | USER_REQUIRED | BLOCKED
-- executionTruth
-- buildStatus
-- installStatus
-- launchStatus
-- runtimeStatus
-- validationStatus
-- createdAt
-- observedAt
-- invalidatedAt
-- invalidatedReason
-- evidenceIds
-```
+> **Schema projection:** `PreviewRevision` is defined in `nirman-schemas.md` §1.35. Owner: BS §69.4.
 
 ### 73.4 Preview state machine
 
@@ -5345,28 +4060,9 @@ The §73.2 `AndroidTechnologyResolver` selects Kotlin, Java, Compose, Views, Rea
 
 `AndroidTechnologyAdapter` is a strategy/composition resolver and does not execute concrete preview, build, artifact, device, runtime, observation, validation, or failure-classification operations. `AndroidBuildAdapter` and `AndroidDeviceAdapter` are the sole concrete execution surfaces. Each concrete preview operation has exactly one execution authority: `AndroidBuildAdapter` for build and artifact operations, or `AndroidDeviceAdapter` for device and runtime operations. The technology adapter resolves those authorities but never executes their concrete operations. The technology adapter is not a second execution surface and is not a second authority.
 
-```text
-AndroidTechnologyAdapter
-- adapterId
-- adapterVersion
-- technologyIds
-- supportedCompositions
-- requiredToolchainCapabilities
-- requiredDeviceCapabilities
-- compatibilityRules
+> **Schema projection:** `AndroidTechnologyAdapter` is defined in `nirman-schemas.md` §2.64. Owner: TA §73.10.
 
-AndroidTechnologyAdapterResolution
-- resolutionId
-- adapterId
-- adapterVersion
-- technologyPlanHash
-- toolchainLockId
-- buildAdapterIdentity
-- deviceAdapterIdentity
-- compatibilityDecision: COMPATIBLE | COMPATIBLE_WITH_REPAIR | INCOMPATIBLE
-- decisionReason
-- resolvedAt
-```
+> **Schema projection:** `AndroidTechnologyAdapterResolution` is defined in `nirman-schemas.md` §2.65. Owner: TA §73.10.
 
 The adapter MUST expose only the following operations. None of these operations perform concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, or validation work. Concrete operations are dispatched exclusively through the resolved `AndroidBuildAdapter` or `AndroidDeviceAdapter` returned by the resolution operations.
 
@@ -5423,31 +4119,9 @@ The `AndroidTechnologyAdapter` registry is part of the toolchain lock surface. A
 
 The preview mode is selected by a deterministic resolver over a recorded input set. The resolver is a pure function of the recorded input and the canonical rule table; it is not a model decision.
 
-```text
-PreviewModeResolverInput
-- technologyPlanHash
-- changedPaths
-- impactGraphRevision
-- sourceRevisionId
-- buildIdentity
-- artifactIdentity
-- deviceSessionId
-- runtimeSessionId
-- environmentFingerprint
-- toolchainLockId
-- nativeIdentityFingerprint
-- runtimeHealthObservationRef
+> **Schema projection:** `PreviewModeResolverInput` is defined in `nirman-schemas.md` §2.66. Owner: TA §73.11.
 
-PreviewModeResolverOutput
-- previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD |
-                INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL |
-                CONSERVATIVE_FULL_REINSTALL |
-                HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY |
-                USER_REQUIRED | BLOCKED
-- decisionReason
-- requiredOperations
-- invalidationSet
-```
+> **Schema projection:** `PreviewModeResolverOutput` is defined in `nirman-schemas.md` §2.67. Owner: TA §73.11.
 
 The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in §73.3 and build spec §69.4. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
 
@@ -5525,96 +4199,7 @@ A resolver output is recorded as part of the `PreviewRequest` decision trace. Th
 
 The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Every Nirman-managed local Android emulator implementation MUST satisfy this interface; the interface is an execution contract, not an authority.
 
-```text
-AndroidDeviceAdapter
-- adapterId
-- adapterVersion
-- supportedAbiFamilies
-- supportedAndroidApiLevels
-- supportedDeviceKinds: [EMULATOR]
-
-AndroidDeviceAdapter operations
-- enumerate() -> DeviceEnumerationResult
-  - params: none
-  - returns: list of DeviceDescriptor (Nirman-managed local Android emulator)
-  - errors: DeviceEnumerationError
-- acquire(deviceDescriptor: DeviceDescriptor) -> DeviceAcquisitionResult
-  - params: deviceDescriptor: DeviceDescriptor
-  - returns: deviceSessionId, runtimeSessionId, environmentFingerprint
-  - errors: DeviceAcquisitionError, DeviceUnavailableError
-- prepare() -> DevicePreparationResult
-  - params: none
-  - returns: prepared: bool, deviceStateFingerprint, toolchainLockId
-  - errors: DevicePreparationError
-- boot() -> DeviceBootResult
-  - params: none
-  - returns: booted: bool, bootTimestamp, apiLevel, abiFamily
-  - errors: DeviceBootError, BootTimeoutError
-- waitReady(timeoutMs: int = 30000) -> DeviceReadyResult
-  - params: timeoutMs: int (default 30000)
-  - returns: ready: bool, readyTimestamp, healthObservation
-  - errors: DeviceBootError, BootTimeoutError
-- install(apkPath: str) -> DeviceInstallResult
-  - params: apkPath: str (absolute path to APK)
-  - returns: installed: bool, installTimestamp, packageId
-  - errors: DeviceInstallError, InstallTimeoutError
-- uninstall(packageId: str) -> DeviceUninstallResult
-  - params: packageId: str
-  - returns: uninstalled: bool, uninstallTimestamp
-  - errors: DeviceUninstallError
-- launch(packageId: str, activity: str) -> DeviceLaunchResult
-  - params: packageId: str, activity: str
-  - returns: launched: bool, launchTimestamp, processId
-  - errors: DeviceLaunchError, LaunchTimeoutError
-- forceStop(packageId: str) -> DeviceForceStopResult
-  - params: packageId: str
-  - returns: stopped: bool, stopTimestamp
-  - errors: DeviceForceStopError
-- reload() -> DeviceReloadResult
-  - params: none
-  - returns: reloaded: bool, reloadTimestamp
-  - errors: DeviceReloadError
-- interact(input: InteractionInput) -> DeviceInteractionResult
-  - params: input: InteractionInput (tap, swipe, text, key)
-  - returns: interactionId, result: bool, screenshotRef, uiHierarchyRef
-  - errors: DeviceInteractionError, InteractionTimeoutError
-- captureScreenshot() -> ScreenshotResult
-  - params: none
-  - returns: screenshotId, screenshotRef, capturedAt, deviceStateFingerprint
-  - errors: ScreenshotCaptureError
-- captureUiHierarchy() -> UiHierarchyResult
-  - params: none
-  - returns: uiHierarchyId, uiHierarchyRef, capturedAt
-  - errors: UiHierarchyCaptureError
-- collectLogcat(filter: str = "", since: str = "") -> LogcatResult
-  - params: filter: str (default ""), since: str (default "")
-  - returns: logcatId, logcatRef, lineCount, capturedAt
-  - errors: LogcatCollectionError
-- collectCrash() -> CrashResult
-  - params: none
-  - returns: crashId, crashRef, crashType, stackTrace, capturedAt
-  - errors: CrashCollectionError
-- collectPermissionState() -> PermissionStateResult
-  - params: none
-  - returns: permissionStateId, permissions: list, capturedAt
-  - errors: PermissionStateCollectionError
-- reset() -> DeviceResetResult
-  - params: none
-  - returns: reset: bool, resetTimestamp
-  - errors: DeviceResetError
-- snapshot() -> DeviceSnapshotResult
-  - params: none
-  - returns: snapshotId, snapshotRef, deviceStateFingerprint
-  - errors: DeviceSnapshotError
-- restore(snapshotId: str) -> DeviceRestoreResult
-  - params: snapshotId: str
-  - returns: restored: bool, restoreTimestamp
-  - errors: DeviceRestoreError
-- release() -> DeviceReleaseResult
-  - params: none
-  - returns: released: bool, releaseTimestamp
-  - errors: DeviceReleaseError
-```
+> **Schema projection:** `AndroidDeviceAdapter` is defined in `nirman-schemas.md` §2.68. Owner: TA §73.12.
 
 Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, emulator identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
 
@@ -5622,51 +4207,9 @@ Every operation returns a typed observation that carries `adapterId`, `adapterVe
 
 Build execution is bound to a canonical `AndroidBuildAdapter` interface. The interface is an execution contract, not an authority; it does not authorize builds, and it does not promote artifacts.
 
-```text
-AndroidBuildAdapter
-- adapterId
-- adapterVersion
-- technologyPlanHash
-- toolchainLockId
-- buildVariant
-- workingDirectory
-- environmentFingerprint
-- commandPlan
-- artifactRules
+> **Schema projection:** `AndroidBuildAdapter` is defined in `nirman-schemas.md` §2.69. Owner: TA §73.13.
 
-AndroidBuildObservation
-- buildId
-- sourceRevisionId
-- toolchainLockId
-- adapterId
-- adapterVersion
-- environmentFingerprint
-- exitCode
-- artifactIds
-- artifactFingerprints
-- diagnostics
-- logs
-- reproducibilityStatus
-- capturedAt
-
-AndroidBuildAdapter operations
-- build() -> AndroidBuildObservation
-  - params: none (uses locked adapter state: technologyPlanHash, toolchainLockId, buildVariant)
-  - returns: buildId, exitCode, artifactIds, artifactFingerprints, diagnostics, logs, reproducibilityStatus
-  - errors: BuildError, ToolchainError, BuildTimeoutError
-- inspectArtifact(artifactId: str) -> ArtifactInspectionResult
-  - params: artifactId: str
-  - returns: artifactId, fingerprint, sizeBytes, signingState, manifestSummary
-  - errors: ArtifactInspectionError, ArtifactNotFoundError
-- sign(packageId: str, signingConfig: SigningConfig) -> SigningResult
-  - params: packageId: str, signingConfig: SigningConfig
-  - returns: signingId, certificateFingerprint, signingScheme, artifactFingerprint
-  - errors: SigningError, SigningPolicyViolationError
-- export(artifactId: str, destination: ExportDestination) -> ExportResult
-  - params: artifactId: str, destination: ExportDestination
-  - returns: exportId, destinationPath, byteCount, contentHash, reconciliationReference
-  - errors: ExportError, ExportTimeoutError, DestinationUnavailableError
-```
+> **Schema projection:** `AndroidBuildObservation` is defined in `nirman-schemas.md` §2.70. Owner: TA §73.13.
 
 The same interface MUST cover: Gradle native; Gradle plus Metro or Expo; React Native; NDK or CMake; and mixed native plus JavaScript. `AndroidBuildAdapter` is invoked by `PreviewCoordinator` through the `AndroidTechnologyAdapter` selected for the `AndroidTechnologyPlan`; it does not create a separate build authority, and it does not bypass `ToolchainAuthority` or `ArtifactAuthority`. A revision, toolchain update, environment fingerprint change, or adapter version change invalidates dependent observations and completion claims.
 
@@ -5734,149 +4277,29 @@ The runtime implements the common boundary envelope as a correlation projection.
 
 The persisted envelope is the build spec §70 `IntegrationBoundaryContract`, field for field (the build spec is the canonical owner); `BoundaryOperationProjection` below is the runtime state projection keyed by its `operationRef`:
 
-```text
-IntegrationBoundaryContract
-- boundaryId
-- integrationBoundaryVersion
-- capabilityId
-- sourceEntityRef
-- destinationEntityRef
-- boundaryKind: ipc | process | worker | workspace | persistence |
-                 provider | device | artifact | external_service |
-                 credential | signing | documentation
-- sourceContractRef
-- payloadSchemaRef
-- responseSchemaRef
-- protocolVersion
-- adapterOrBridgeRef
-- adapterOrBridgeVersion
-- authorityRefs
-- stateProjectionRefs
-- operationRef
-- transactionDomain: local | device | external_effect | none
-- correlationId
-- causationId
-- idempotencyKey
-- permissionProfileRef
-- credentialReference
-- lifecyclePolicyRef
-- timeoutPolicy
-- cancellationPolicy
-- retryPolicy
-- compatibilityRef
-- observationRefs
-- evidenceRequirements
-- validationPolicyVersion
-- downstreamEffectRefs
-- invalidationDependencyRefs
-- failureRecoveryRef
-- applicability: required | optional | not_applicable
-- notApplicableReason
-```
+> **Schema projection:** `IntegrationBoundaryContract` is defined in `nirman-schemas.md` §1.36. Owner: BS §70.
 
 `BoundaryOperationProjection` is not a second lifecycle authority:
 
-```text
-BoundaryOperationProjection
-- operationRef
-- boundaryId
-- state: PLANNED | AUTHORIZED | DISPATCHED | RUNNING | WAITING |
-          OBSERVED | VALIDATED | APPLIED | RETRYABLE_FAILURE |
-          CANCEL_REQUESTED | CANCELLED | BLOCKED | SAFELY_FAILED
-- specializedStateRef
-- timeoutPolicyRef
-- cancellationPolicyRef
-- retryAttempt
-- idempotencyKey
-- transactionRef
-- observationRefs
-- evidenceRefs
-- validationRef
-- downstreamEffectRefs
-- invalidationRefs
-```
+> **Schema projection:** `BoundaryOperationProjection` is defined in `nirman-schemas.md` §2.71. Owner: TA §74.
 
 The projection is valid only when `specializedStateRef` resolves to the state machine owned by the applicable service. Lease loss fences the operation by revoking capabilities and rejecting new writes. A timeout or cancellation produces a durable lifecycle event. A retry after an unknown device or external outcome requires the relevant transaction reconciliation, idempotency read-back, or compensation evidence before a new effect is authorized. A stale source revision, contract version, adapter version, toolchain, emulator state, application state, environment state, artifact, credential, or policy invalidates dependent observations and downstream effects.
 
 ### 74.1 Android service integration
 
-```text
-AndroidServiceIntegration
-- integrationId
-- appBoundaryRef
-- endpointIdentity
-- requestSchemaRef
-- responseSchemaRef
-- protocolVersion
-- adapterRef
-- authenticationProfileRef
-- credentialReference
-- datastoreOwner: local_android | external_service |
-                  user_managed_supporting_service
-- persistenceSchemaRef
-- offlineAndCachePolicy
-- idempotencyPolicy
-- requiredOperationality: IntegrationState (build spec §5.7.2; the minimum acceptable `IntegrationOperationality.aggregateState`, build spec §5.7.5)
-- functionalScenarioRefs
-- acceptanceEvidenceRefs
-- privacyAndNetworkPolicy
-```
+> **Schema projection:** `AndroidServiceIntegration` is defined in `nirman-schemas.md` §2.72. Owner: TA §74.1.
 
 An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone. `requiredOperationality` is the build spec §5.7.5 minimum: the integration satisfies its boundary only when the current `IntegrationOperationality.aggregateState` for `integrationId` meets or exceeds `requiredOperationality` in the build spec §5.7.5 order (`CONFIGURED` < `REACHABLE` < `FUNCTIONAL`; `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, and `UNKNOWN` never satisfy a `requiredOperationality` of `CONFIGURED` or above), and the comparison is made by `PolicyAuthority` from the recorded operationality evidence, never from the model's report.
 
 ### 74.2 UI hierarchy observation
 
-```text
-UiHierarchyObservation
-- observationId
-- taskId
-- previewRevisionId
-- deviceSessionId
-- projectRevisionId
-- applicationStateFingerprint
-- hierarchyFormat
-- hierarchyReference
-- redactionPolicyId
-- capturedAt
-- truth: REQUESTED | OBSERVED | VERIFIED | STALE | INVALIDATED
-- evidenceId
-```
+> **Schema projection:** `UiHierarchyObservation` is defined in `nirman-schemas.md` §2.73. Owner: TA §74.2.
 
 UI-hierarchy evidence may support accessibility, navigation, state, and visual checks. It cannot replace supervised Nirman-managed local Android emulator execution and cannot satisfy validation while requested, predicted, simulated, stale, or invalidated.
 
 ### 74.3 Signing and export verification
 
-```text
-ExportVerificationRecord
-- exportId
-- artifactId
-- sourcePathReference
-- destinationPathReference
-- sourceArtifactHash
-- destinationHash
-- byteCount
-- destinationFileIdentity
-- exportOperationState: REQUESTED | COPYING | COPIED | UNKNOWN |
-                        RECONCILING | VERIFIED | FAILED | BLOCKED
-- postCopyCheck
-- policyDecisionId
-- packagingProfileId
-- artifactKind: APK | AAB | SOURCE
-- sourceRevision
-- checkpointId
-- sourceFileIdentity
-- requestFingerprint
-- idempotencyKey
-- signingIdentityBindingId
-- validationDecisionId
-- promotionDecisionId
-- reconciliationReference
-- failureEvidenceId
-- deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY
-- destinationKind: LOCAL_WINDOWS_FILESYSTEM | USER_APPROVED_SOURCE_LOCATION
-- evidenceId
-- verifiedAt
-```
+> **Schema projection:** `ExportVerificationRecord` is defined in `nirman-schemas.md` §2.74. Owner: TA §74.3.
 
 `ExportVerificationRecord` is the canonical implementation record for both source access and deployment delivery. For local deployment it is materialized as an `APKExportRecord` view with `artifactKind: APK`, `deploymentDelivery: REQUIRED_APK`, `destinationKind: LOCAL_WINDOWS_FILESYSTEM`, the verified signing identity, validation decision, promotion decision, source and destination identities, source and destination hashes, byte count, and post-copy evidence. A declared AAB uses the same record only when the immutable `PackagingProfile` is `APK_AND_AAB`; it never makes AAB mandatory. Source, ZIP, and Git exports use `SOURCE_ACCESS_ONLY` and cannot satisfy artifact delivery or completion.
 
@@ -5887,23 +4310,7 @@ The artifact export handler accepts a deployment request only after resolving th
 
 ### 74.5 Documentation certification report
 
-```text
-DocumentationCertificationReport
-- reportId
-- documentSnapshotHash
-- verifierVersion
-- registryVersion
-- checksExecuted
-- graphClassesChecked
-- semanticRulesChecked
-- checksUnevaluated
-- unevaluatedSubjects
-- defectCount
-- defects
-- result: FAIL | DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS | DOCUMENTATION_CERTIFIED
-- evidenceId
-- generatedAt
-```
+> **Schema projection:** `DocumentationCertificationReport` is defined in `nirman-schemas.md` §2.75. Owner: TA §74.5.
 
 `result` carries the verifier's terminal status verbatim (build spec §67.11): `FAIL` when `defectCount` is non-zero; `DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` when `defectCount` is zero and `checksUnevaluated` is non-zero, with every skipped subject listed in `unevaluatedSubjects`; `DOCUMENTATION_CERTIFIED` only when both are zero. The report has no `PASSED` value, so a report can never be read as complete certification while a check went unevaluated.
 
@@ -6224,122 +4631,27 @@ Loss of a `ValidationEnvironment` mid-task invalidates its in-flight validation 
 
 Canonical schemas: `Content`, `ContentRevision`, `ContentRevisionDraft`, `ContentMutation`, `ContentValidationResult`, `ContentPropagationPlan`, `TerminologyProfile`, `ContentEvidence`, `ContentDependency`.
 
-```text
-Content
-- contentId
-- projectId
-- canonicalKey
-- contentType
-- sourceLocale
-- supportedLocales
-- currentRevisionId
-- createdAt
-- updatedAt
-```
+> **Schema projection:** `Content` is defined in `nirman-schemas.md` §1.66. Owner: BS §81.1.
 
 `Content` is the persisted logical content resource; `currentRevisionId` names the admitted `ContentRevision` that is current for the project revision.
 
-```text
-ContentRevision
-- contentRevisionId
-- contentId
-- projectRevisionId
-- requirementIds
-- contentType
-- locale
-- key
-- previousValue
-- proposedValue
-- placeholderSchema
-- pluralizationModel
-- localeFallback
-- sourceLocale
-- translationStatus
-- terminologyReferences
-- toneProfile
-- brandVoiceProfile
-- accessibilityContext
-- sourceEvidenceIds
-- transactionId
-- validationStatus
-- invalidatedBy
-- contentProvenance
-- approvalState
-```
+> **Schema projection:** `ContentRevision` is defined in `nirman-schemas.md` §1.67. Owner: BS §81.1.
 
-```text
-ContentDependency
-- dependencyId
-- contentId
-- dependencyType
-- dependencyIdentity
-- dependencyRevision
-- invalidationPolicy
-```
+> **Schema projection:** `ContentDependency` is defined in `nirman-schemas.md` §1.68. Owner: BS §81.1.
 
 `ContentMutation` is the proposal object a `ContentWorker` submits; it becomes a `ContentRevision` only when `ContentTransactionCoordinator` admits it through `ContentValidator` and `ContentAuthority` inside the parent `ConstructionTransaction`.
 
-```text
-ContentRevisionDraft
-- contentType
-- locale
-- key
-- proposedValue
-- placeholderSchema
-- pluralizationModel
-- localeFallback
-- sourceLocale
-- terminologyReferences
-- toneProfile
-- brandVoiceProfile
-- accessibilityContext
+> **Schema projection:** `ContentRevisionDraft` is defined in `nirman-schemas.md` §2.76. Owner: TA §85.1.
 
-ContentMutation
-- mutationId
-- contentId
-- baseProjectRevision
-- proposedContentRevision: ContentRevisionDraft
-- requestedBy
-- requirementIds
-- transactionId
+> **Schema projection:** `ContentMutation` is defined in `nirman-schemas.md` §2.77. Owner: TA §85.1.
 
-ContentValidationResult
-- validationId
-- contentRevisionId
-- status
-- checks
-- evidenceIds
-- projectRevision
-- createdAt
+> **Schema projection:** `ContentValidationResult` is defined in `nirman-schemas.md` §2.78. Owner: TA §85.1.
 
-ContentPropagationPlan
-- propagationId
-- contentRevisionId
-- affectedSurfaceIds
-- affectedLocaleIds
-- affectedResourceIds
-- affectedTestIds
-- affectedPreviewIds
-- invalidationIds
+> **Schema projection:** `ContentPropagationPlan` is defined in `nirman-schemas.md` §2.79. Owner: TA §85.1.
 
-TerminologyProfile
-- profileId
-- projectId
-- terms
-- forbiddenTerms
-- aliases
-- locale
-- version
+> **Schema projection:** `TerminologyProfile` is defined in `nirman-schemas.md` §2.80. Owner: TA §85.1.
 
-ContentEvidence
-- evidenceId
-- contentRevisionId
-- observationId
-- validationId
-- projectRevision
-- freshness
-- invalidationState
-```
+> **Schema projection:** `ContentEvidence` is defined in `nirman-schemas.md` §2.81. Owner: TA §85.1.
 
 `ContentMutation.proposedContentRevision` is a `ContentRevisionDraft` — proposed values only, with no `contentRevisionId`, `transactionId`, `validationStatus`, `approvalState`, or `sourceEvidenceIds`; a mutation carrying an already-admitted `ContentRevision` or any of those authoritative fields is rejected, so a worker cannot smuggle authoritative state into a proposal. `ContentAuthority` mints the `ContentRevision` from the draft at admission. `ContentMutation.baseProjectRevision` must equal the current project revision at admission or the mutation is rejected as stale (M120 fixture I). `ContentValidationResult.checks` covers the validation areas of BS §81.2. `ContentPropagationPlan` is the materialized result of the `ImpactGraph` traversal of §85.4 and BS §81.3. `ContentEvidence` is an evidence view owned by `EvidenceAuthority`: `freshness` and `invalidationState` are derived from the `ImpactGraph`, never asserted by a content worker.
 
@@ -6401,104 +4713,25 @@ Fixture `TEST-CONTENT-001` proves content creation, propagation, terminology con
 
 Canonical schemas: `Conversation`, `ConversationMessage`, `ConversationAttachment`, `ConversationRequirement`, `ConversationDecision`, `ConversationSuggestion`, `ConversationTaskLink`, `ConversationRequirementIndex`, `ConversationDecisionIndex`, `ConversationRebaseRecord`.
 
-```text
-Conversation
-- conversationId
-- projectId
-- messages
-- attachments
-- requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/ConstraintRegistry records
-- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry/MemoryStore records
-- acceptedSuggestions
-- rejectedSuggestions
-- activeGoal
-- projectRevisionId
-- expectedProjectRevision
-- conversationRevision
-- taskLineage
-- createdAt
-- updatedAt
-```
+> **Schema projection:** `Conversation` is defined in `nirman-schemas.md` §1.69. Owner: BS §82.
 
-```text
-ConversationMessage
-- messageId
-- conversationId
-- sequence
-- role
-- contentReference
-- attachmentIds
-- sourceEventId
-- createdAt
+> **Schema projection:** `ConversationMessage` is defined in `nirman-schemas.md` §2.82. Owner: TA §86.1.
 
-ConversationRequirement
-- requirementId
-- status
-- sourceMessageId
-- sourceEvidenceIds
-- supersedes
-- supersededBy
+> **Schema projection:** `ConversationRequirement` is defined in `nirman-schemas.md` §1.70. Owner: BS §82.
 
-ConversationDecision
-- decisionId
-- status
-- sourceMessageId
-- sourceEvidenceIds
-- supersedes
-- locked
+> **Schema projection:** `ConversationDecision` is defined in `nirman-schemas.md` §1.71. Owner: BS §82.
 
-ConversationSuggestion
-- suggestionId
-- status
-- proposedBy
-- acceptedAt
-- rejectedAt
-- resultingTaskIds
+> **Schema projection:** `ConversationSuggestion` is defined in `nirman-schemas.md` §1.72. Owner: BS §82.
 
-ConversationAttachment
-- attachmentId
-- contentHash
-- mimeType
-- sizeBytes
-- storageOwner
-- privacyClassification
-- deletionStatus
-- projectIsolation
-- providerTransmissionPolicy
-- revisionBinding
-- createdAt
+> **Schema projection:** `ConversationAttachment` is defined in `nirman-schemas.md` §1.73. Owner: BS §82.
 
-ConversationTaskLink
-- linkId
-- conversationId
-- taskId
-- relationship
-- projectRevision
-- createdAt
+> **Schema projection:** `ConversationTaskLink` is defined in `nirman-schemas.md` §2.83. Owner: TA §86.1.
 
-ConversationRequirementIndex
-- requirementId
-- sourceMessageId
-- canonicalRequirementId
-- status
+> **Schema projection:** `ConversationRequirementIndex` is defined in `nirman-schemas.md` §2.84. Owner: TA §86.1.
 
-ConversationDecisionIndex
-- decisionId
-- sourceMessageId
-- canonicalDecisionId
-- locked
+> **Schema projection:** `ConversationDecisionIndex` is defined in `nirman-schemas.md` §2.85. Owner: TA §86.1.
 
-ConversationRebaseRecord
-- recordId
-- conversationId
-- fromProjectRevision
-- toProjectRevision
-- reason
-- affectedTaskIds
-- conflictingRequirementIds
-- resolution
-- createdAt
-```
+> **Schema projection:** `ConversationRebaseRecord` is defined in `nirman-schemas.md` §2.86. Owner: TA §86.1.
 
 `ConversationMessage.contentReference` points at the durable message body; `sourceEventId` binds the message to the control-plane event that produced it. `ConversationTaskLink` is the durable form of `taskLineage`. `ConversationRequirementIndex` and `ConversationDecisionIndex` reference canonical `ConstraintRegistry`/`MemoryStore` records by `canonicalRequirementId`/`canonicalDecisionId` and carry no second copy of their content. `sourceEvidenceIds` reference `EvidenceRecord` identifiers owned by `EvidenceAuthority`. A `ConversationRebaseRecord` is written for every `RECONCILE/REBASE` and every `USER_REQUIRED` outcome of §86.5, so a rebase is auditable rather than silent.
 
@@ -6600,49 +4833,11 @@ Exactly one `ChangeReportRecord` is produced per committed `ConstructionTransact
 
 Canonical schemas: `ChangeReportRecord`, `ChangeImpactReport`.
 
-```text
-ChangeReportRecord
-- recordId
-- transactionId
-- projectRevisionAfter
-- status: INCOMPLETE | COMPLETE | UNRESOLVED
-- report: ChangeImpactReport | null
-- failureDiagnostics: string | null
-- createdAt
-- updatedAt
-```
+> **Schema projection:** `ChangeReportRecord` is defined in `nirman-schemas.md` §1.74. Owner: BS §83.1.
 
 `projectRevisionAfter` is the authoritative committed project revision represented by this `ChangeReportRecord`; it is taken from the committed `ConstructionTransaction` and must equal the nested report's `projectRevisionAfter`. `status` is the authoritative lifecycle state of the reporting unit.
 
-```text
-ChangeImpactReport
-- reportId
-- transactionId
-- projectionStatus: COMPLETE
-- projectRevisionBefore
-- projectRevisionAfter
-- requirementIds
-- causeType: REQUIREMENT | GOAL | DIRECTIVE | REPAIR_CAUSE | APPROVED_ACTION
-- causeId
-- changed
-- why
-- files
-- runtimeEffects
-- testsAffected
-- testsRun
-- previewAffected
-- evidenceInvalidated
-- evidenceRetained
-- verified
-- unresolvedIssues
-- recoveryActions
-- recommendedNextStep
-- recommendationSource
-- recommendationBasis
-- requiredAuthority
-- generatedAt
-- projectionVersion
-```
+> **Schema projection:** `ChangeImpactReport` is defined in `nirman-schemas.md` §1.75. Owner: BS §83.1.
 
 Field provenance:
 - `reportId`: assigned by ChangeIntelligenceProjector
@@ -6765,18 +4960,7 @@ Implements build spec §65. Extends §8 (Workspace Isolation and Reconciliation)
 
 The runtime persists the build spec §65.2 `CandidateBranch` record without addition or omission. Every field is written by a deterministic component, never by model output:
 
-```text
-CandidateBranch
-- branchId
-- parentRevision
-- approach
-- isolatedWorkspace
-- resourceRequirements
-- validationPlan
-- outcome: pending | validated | failed | abandoned
-- comparableMetrics
-- selectedAsWinner: true | false
-```
+> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §1.26. Owner: BS §65.2.
 
 `branchId` is issued by the reducer (§45.1) when the branch is opened; `parentRevision` is the committed revision the branch was created from; `isolatedWorkspace` is the absolute worktree path from the provisioner; `resourceRequirements` is the physical demand the admission gate reserved; `validationPlan` is the plan identity shared by every sibling; `comparableMetrics` is written only by `CandidateValidator`; `selectedAsWinner` is written only by `CandidateSelector`.
 

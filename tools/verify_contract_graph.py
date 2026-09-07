@@ -153,6 +153,13 @@ def adr_text(docs):
     return docs["adrs"] if docs.get("adrs") else docs["dec"]
 
 
+def schema_text(docs):
+    """The document that holds the fenced field-list schemas: nirman-schemas.md
+    (ADR-220) when present, otherwise the empty string (pre-migration layout,
+    where the blocks sit in the build spec and the architecture)."""
+    return docs.get("schemas") or ""
+
+
 def section_bodies(text):
     """section number -> body text, fences stripped."""
     out = {}
@@ -1300,8 +1307,11 @@ def check_command_payload_field_coverage(docs, R, D, root):
         with open(full_path, encoding="utf-8") as fh:
             source = fh.read()
         if schema_name is not None:
-            canonical = _parse_field_block(ta, schema_name)
-            source_label = f"TA §{schema_name}"
+            canonical = _parse_field_block(schema_text(docs), schema_name) if schema_text(docs) else None
+            source_label = f"SCHEMAS {schema_name}"
+            if canonical is None:
+                canonical = _parse_field_block(ta, schema_name)
+                source_label = f"TA §{schema_name}"
             if canonical is None:
                 # BS-owned blocks (PackagingProfile §5.7.3, DeviceMatrixEntry §59.2)
                 canonical = _parse_field_block(docs["bs"], schema_name)
@@ -1338,8 +1348,14 @@ def check_semantic_documentation(docs, R, D, root="."):
     """Check 15 (document-structure, BS §67.11 "Semantic documentation" row):
     detect high-risk semantic drift not covered by the contract graph."""
     bs, ta, dec, dev = docs["bs"], docs["ta"], adr_text(docs), docs["dev"]
+    # ADR-220: every fenced field-list schema lives once in nirman-schemas.md
+    # under an Owner line; `fbs` / `fta` are the texts in which a build-spec-
+    # owned / architecture-owned field block is looked up (the schema document
+    # when it exists, otherwise the owning document itself).
+    sch = schema_text(docs)
+    fbs, fta = (sch or bs), (sch or ta)
 
-    if "goalTemplate" in ta:
+    if "goalTemplate" in ta or "goalTemplate" in sch:
         D.add("semantic documentation", "goalTemplate",
               "active schedule schema uses template terminology; use goalDefinition or goalSpecification")
 
@@ -1396,7 +1412,7 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", "forbidden preview pipeline path", f"{label} is missing")
     # The TA §74.5 certification report must carry the §67.11 status vocabulary
     # verbatim; a PASSED/FAILED result would hide the with-skips state.
-    report = re.search(r"```text\s*\nDocumentationCertificationReport\s*\n(.+?)\n```", ta, re.S)
+    report = re.search(r"```text\s*\nDocumentationCertificationReport\s*\n(.+?)\n```", fta, re.S)
     if report is None:
         D.add("semantic documentation", "certification report schema",
               "TA §74.5 lacks the DocumentationCertificationReport field block")
@@ -1569,9 +1585,9 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "a fixture that requires a non-Windows host cannot run inside Nirman's certification lane" not in bs:
         D.add("semantic documentation", "platform fixture host rule",
               "BS §79.13 must state that every TEST-PLAT-001 fixture executes on the Windows host")
-    if "\nCandidateBranch\n- branchId\n" not in ta:
+    if "\nCandidateBranch\n- branchId\n" not in fta:
         D.add("semantic documentation", "CandidateBranch schema",
-              "architecture lacks the CandidateBranch field block that BS §65.2 defines (TA §88.2)")
+              "the CandidateBranch field block that BS §65.2 defines (TA §88.2) is missing")
 
     # CONTRACT.RUNTIME.LOCALIZATION is regression localization (BS §62,
     # ADR-147). Any sentence that makes it the authority for locales,
@@ -1658,10 +1674,13 @@ def check_semantic_documentation(docs, R, D, root="."):
             else:
                 i += 1
         return blocks
-    bs_blocks, ta_blocks = _field_blocks(bs), _field_blocks(ta)
-    reg_match = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", ta, re.S)
+    bs_blocks, ta_blocks = _field_blocks(fbs), _field_blocks(fta)
+    reg_match = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", fta, re.S)
     registry_names = set(reg_match.group(1).split()) if reg_match else set()
-    for name in sorted(set(bs_blocks) & set(ta_blocks)):
+    # With the schema document in place every name has exactly one block
+    # (check 13 enforces it), so the copy-parity rules below have nothing to
+    # compare; the loop is empty because both maps read the same text.
+    for name in sorted(set(bs_blocks) & set(ta_blocks)) if not sch else ():
         canonical = set(bs_blocks[name][0][1])
         occurrences = ([("BS", l, set(f)) for l, f in bs_blocks[name][1:]]
                        + [("TA", l, set(f)) for l, f in ta_blocks[name]])
@@ -1718,7 +1737,8 @@ def check_semantic_documentation(docs, R, D, root="."):
     profile_section = re.search(
         r"### 5\.7\.1 Internal capability-profile identity(.*?)(?=\n### 5\.7\.2|\n## 6\.)",
         bs, re.S)
-    if not profile_section or not re.search(r"(?m)^- profileId$", profile_section.group(1)):
+    profile_ids = re.search(r"\nAndroidCapabilityProfile\n- profileId\n", fbs)
+    if not profile_section or (not re.search(r"(?m)^- profileId$", profile_section.group(1)) and not profile_ids):
         D.add("semantic documentation", "ProfileId",
               "internal capability-profile identity is missing a stable ProfileId")
 
@@ -1800,7 +1820,7 @@ def check_semantic_documentation(docs, R, D, root="."):
         "PreviewProjection": bs + ta,
         "authorityClass": bs + ta,
         "runtimeSessionId": bs + ta,
-        "certificationDecisionRef": bs + ta,
+        "certificationDecisionRef": bs + ta + sch,
         "causationId": bs + ta,
         "CAP.ANDROID.LIVE_PREVIEW": bs,
         "TEST-PSYNC-001": bs + dev,
@@ -1840,7 +1860,7 @@ def check_semantic_documentation(docs, R, D, root="."):
         "ADR-198": dec,
         "ADR-199": dec,
         "ADR-200": dec,
-        "FrontendControlPlaneContract": bs + ta,
+        "FrontendControlPlaneContract": bs + ta + sch,
         "UICommandRegistry": bs + ta,
         "UICommandEnvelope": bs + ta,
         "ProjectionSnapshot": bs + ta,
@@ -1855,12 +1875,11 @@ def check_semantic_documentation(docs, R, D, root="."):
         # ADR-219: attention reliability is measured, placed against, gated, and
         # verified independently of model recall. The schema and its vocabulary
         # must exist on every canonical surface that the decision names.
-        "AttentionReliabilityProfile\n- profileId\n- providerProfileId": bs,
-        "AttentionReliabilityProfile\n- profileId: string": ta,
+        "AttentionReliabilityProfile\n- profileId: string\n- providerProfileId: string": fta,
         "reliableLiteralSpanTokens": bs + ta,
         "placementPlan": bs + ta + dev,
         "attendabilityMap": bs + ta,
-        "recallProbes": bs,
+        "recallProbes": fbs,
         "attentionReliability": bs + ta,
         "PREMISE_MISMATCH": bs + ta + dev,
         "PlacementPlanner": ta + dev,
@@ -1869,14 +1888,14 @@ def check_semantic_documentation(docs, R, D, root="."):
         "CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED": bs,
         "CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY": bs,
         "ADR-219": dec,
-        "ResourceExecutionProfile\n- planRevision": ta,
+        "ResourceExecutionProfile\n- planRevision": fta,
         "`ResourceExecutionProfile` (TA §69.3)": bs,
         "ResourceExecutionProfile with honest confidence": dev,
         "recovery-attempt policy (`recoveryAttemptPolicy`) bounds": bs,
         "The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded": ta,
         "recovery-attempt policies (`recoveryAttemptPolicy`)": dev,
         "**Execution suitability**": bs,
-        "maxReasoningTokens: integer? (provider capability metadata only": bs,
+        "maxReasoningTokens: integer? (provider capability metadata only": fbs,
         "`maxReasoningTokens` is provider capability metadata": ta,
         "The authoritative Task Ledger is the SQLite execution ledger owned by `NirmanSupervisor.exe`": bs,
         "### 56.1 Asset execution under the canonical UI Worker": ta,
@@ -1909,19 +1928,19 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "### 71.3 Ordering, duplicate, stale, and reconnect rules" not in bs:
         D.add("semantic documentation", "preview replay rules",
               "preview duplicate, ordering, stale, and reconnect rules are missing")
-    if "PreviewSyncEvent\n- eventId" not in bs:
+    if "PreviewSyncEvent\n- eventId" not in fbs:
         D.add("semantic documentation", "preview event schema",
               "canonical PreviewSyncEvent schema is missing")
-    if "PreviewProjectionReducer\n- reducerId" not in bs:
+    if "PreviewProjectionReducer\n- reducerId" not in fbs:
         D.add("semantic documentation", "preview reducer schema",
               "canonical PreviewProjectionReducer schema is missing")
-    if "PreviewSyncEvidenceRecord\n- evidenceId" not in bs:
+    if "PreviewSyncEvidenceRecord\n- evidenceId" not in fbs:
         D.add("semantic documentation", "preview synchronization evidence schema",
               "canonical PreviewSyncEvidenceRecord schema is missing")
-    if "PreviewProjection\n- projectionRevision" not in bs:
+    if "PreviewProjection\n- projectionRevision" not in fbs:
         D.add("semantic documentation", "preview projection schema",
               "canonical PreviewProjection dimension model is missing")
-    if "authorityClass: DECLARATIVE" not in bs:
+    if "authorityClass: DECLARATIVE" not in fbs:
         D.add("semantic documentation", "preview event authority levels",
               "preview event authority classes are missing")
     if "Preview truth reconciliation" not in bs:
@@ -2028,7 +2047,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "SOURCE\n  → CONTRACT\n  → ADAPTER / BRIDGE\n  → AUTHORITY\n  → STATE\n  → OPERATION\n  → OBSERVATION\n  → EVIDENCE\n  → VALIDATION\n  → DOWNSTREAM EFFECT" not in bs:
         D.add("semantic documentation", "universal integration chain",
               "canonical source-to-downstream-effect chain is missing")
-    if "CertificateInspection\n- inspectionId" not in ta:
+    if "CertificateInspection\n- inspectionId" not in fta:
         D.add("semantic documentation", "certificate inspection schema",
               "canonical CertificateInspection schema is missing")
     protocol_sections = (
@@ -2043,7 +2062,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     protocol_tokens = (
         ("### 76.1 UICommandRegistry", bs, "command registry"),
         ("### 76.2 Response and error envelopes", bs, "response and error envelopes"),
-        ("UIErrorEnvelope\n- errorId", bs, "error envelope schema"),
+        ("UIErrorEnvelope\n- errorId", fbs, "error envelope schema"),
         ("### 76.3 Subscription, replay, and snapshot cutover", bs, "event subscription"),
         ("snapshot cutover", bs, "snapshot cutover"),
         ("backpressure", bs, "event backpressure"),
@@ -2064,7 +2083,7 @@ def check_semantic_documentation(docs, R, D, root="."):
         ("## ADR-202: Canonical background continuity state machine", dec, "background continuity decision"),
         ("BackgroundContinuityRecord", bs + ta, "background continuity schema"),
         ("ContinuityDimensions", bs + ta, "continuity dimensions schema"),
-        ("ACTIVE_BACKGROUND | UI_DISCONNECTED | HOST_SUSPENDED", bs + ta, "background continuity state vocabulary"),
+        ("ACTIVE_BACKGROUND | UI_DISCONNECTED | HOST_SUSPENDED", bs + ta + sch, "background continuity state vocabulary"),
         ("unknown outcome", bs + ta, "background continuity reconciliation"),
         ("backgroundContinuityProjection", bs + ta, "background continuity projection wiring"),
     )
@@ -2077,10 +2096,10 @@ def check_semantic_documentation(docs, R, D, root="."):
         ("## M117 — Local APK export provenance and delivery admission", dev, "APK export milestone"),
         ("## ADR-203: Make local deployment export profile-bound and provenance-complete", dec, "APK export decision"),
         ("CAP.ANDROID.APK_DELIVERY", bs, "APK delivery capability"),
-        ("deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY", bs + ta, "deployment delivery distinction"),
-        ("destinationKind: LOCAL_WINDOWS_FILESYSTEM | USER_APPROVED_SOURCE_LOCATION", bs + ta, "deployment destination policy"),
-        ("signingIdentityBindingId", bs + ta, "export signing lineage"),
-        ("ExportVerificationRecord\n- exportId", ta, "export verification schema"),
+        ("deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY", bs + ta + sch, "deployment delivery distinction"),
+        ("destinationKind: LOCAL_WINDOWS_FILESYSTEM | USER_APPROVED_SOURCE_LOCATION", bs + ta + sch, "deployment destination policy"),
+        ("signingIdentityBindingId", bs + ta + sch, "export signing lineage"),
+        ("ExportVerificationRecord\n- exportId", fta, "export verification schema"),
         ("APKExportRecord", ta, "APK export implementation view"),
         ("`APKExportRecord` is not a registered schema: it is the read-model view of `ExportVerificationRecord`", ta, "APK export view identity"),
         ("deliveryProjection", ta, "export delivery projection wiring"),
@@ -2095,7 +2114,7 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", subject, f"APK-export requirement is missing: {token}")
 
     change_tokens = (
-        ("ChangeImpactReport\n- reportId", bs + ta, "change impact report schema"),
+        ("ChangeImpactReport\n- reportId", bs + ta + sch, "change impact report schema"),
         ("ChangeIntelligenceStore", ta, "change intelligence store implementation"),
         ("recommendationBasis", bs + ta, "change recommendation basis"),
         ("recommendationSource", bs + ta, "change recommendation source"),
@@ -2111,13 +2130,13 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", subject, f"ChangeImpactReport provenance or requirement is missing: {token}")
 
     schema_parity_tokens = (
-        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", bs, "BS ContentDependency schema"),
-        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", ta, "TA ContentDependency schema"),
-        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", bs, "BS ContentRevision requirementIds"),
-        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", ta, "TA ContentRevision requirementIds"),
+        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", fbs, "BS ContentDependency schema"),
+        ("ContentDependency\n- dependencyId\n- contentId\n- dependencyType\n- dependencyIdentity\n- dependencyRevision\n- invalidationPolicy", fta, "TA ContentDependency schema"),
+        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", fbs, "BS ContentRevision requirementIds"),
+        ("ContentRevision\n- contentRevisionId\n- contentId\n- projectRevisionId\n- requirementIds", fta, "TA ContentRevision requirementIds"),
         ("MATCH → CONTINUE", bs, "BS Continue state transition"),
-        ("ChangeReportRecord\n- recordId", bs, "BS ChangeReportRecord schema"),
-        ("ChangeReportRecord\n- recordId", ta, "TA ChangeReportRecord schema"),
+        ("ChangeReportRecord\n- recordId", fbs, "BS ChangeReportRecord schema"),
+        ("ChangeReportRecord\n- recordId", fta, "TA ChangeReportRecord schema"),
         ("COMPLETE → INCOMPLETE", ta, "TA invalid status transition text"),
         ("MutationReportUnit = committed ConstructionTransaction", bs, "BS MutationReportUnit"),
         ("MutationReportUnit = committed ConstructionTransaction", ta, "TA MutationReportUnit"),
@@ -2138,12 +2157,12 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "documentation certification" not in dev.lower() or "runtime certification" not in dev.lower():
         D.add("semantic documentation", "certification tier separation",
               "development plan does not distinguish documentation and runtime certification")
-    profile_block = re.search(r"\nAndroidCapabilityProfile\n((?:- .*\n)+)", bs)
+    profile_block = re.search(r"\nAndroidCapabilityProfile\n((?:- .*\n)+)", fbs)
     profile_fields = profile_block.group(1) if profile_block else ""
     if "- reproducibilityLevel\n" not in profile_fields or "- repositoryTrustRequirement\n" not in profile_fields:
         D.add("semantic documentation", "profile maturity fields",
               "AndroidCapabilityProfile (BS §5.7.1) is missing the reproducibilityLevel or repositoryTrustRequirement field")
-    if "attributionStatus" not in ta:
+    if "attributionStatus" not in fta:
         D.add("semantic documentation", "resource attribution",
               "resource usage lacks explicit parent/child/shared attribution")
 
@@ -2169,7 +2188,7 @@ def check_semantic_documentation(docs, R, D, root="."):
         "stop after the configured retry limit", "exceeds_time |", "| exceeds_time",
         "bounded retry limits",
     )
-    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev), ("schema document", sch)):
         for token in banned_execution_controls:
             if token in text:
                 D.add("semantic documentation", f"AI-usage budget vocabulary in {label}",
@@ -2177,19 +2196,19 @@ def check_semantic_documentation(docs, R, D, root="."):
     # Canonical schema identity (TA §36.1): every schema a contract section
     # calls canonical must be registered, the Android capability profile has
     # one name, and the change-report revision/status fields are unambiguous.
-    registry_block = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", ta, re.S)
+    registry_block = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", fta, re.S)
     registered = set(registry_block.group(1).split()) if registry_block else set()
     if not registry_block:
         D.add("semantic documentation", "CanonicalSchemaRegistry",
-              "TA §36.1 CanonicalSchemaRegistry block is missing")
+              "the CanonicalSchemaRegistry list (owner TA §36.1; SCHEMAS §3.1 after ADR-220) is missing")
     for m in re.finditer(r"^Canonical schemas: (.+)$", ta, re.M):
         for name in re.findall(r"`([A-Za-z]+)`", m.group(1)):
             if name not in registered:
                 D.add("semantic documentation", "CanonicalSchemaRegistry",
                       f"{name} is called canonical in the architecture but is not listed in TA §36.1")
-            if f"\n{name}\n- " not in ta:
+            if f"\n{name}\n- " not in fta:
                 D.add("semantic documentation", "canonical schema definition",
-                      f"{name} is called canonical but has no field block in the architecture")
+                      f"{name} is called canonical but has no field block")
     for name in ("ContentMutation", "ConversationRebaseRecord", "AndroidCapabilityProfile",
                  "ChangeReportRecord", "ChangeImpactReport", "ExportVerificationRecord",
                  "PackagingProfile", "SkillPackage", "SkillInvocationRecord", "SkillAdmission"):
@@ -2200,23 +2219,39 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "CanonicalSchemaRegistry",
               "APKExportRecord is a view of ExportVerificationRecord (BS §78, TA §74.3) and must not be registered as a schema")
     for name in ("SkillInvocationRecord", "SkillAdmission"):
-        if f"\n{name}\n- " not in ta:
+        if f"\n{name}\n- " not in fta:
             D.add("semantic documentation", "canonical schema definition",
                   f"{name} is a registered M119 ledger record but has no field block in TA §19.1")
+    # ADR-220: with exactly one block per schema the copy-parity rule has
+    # nothing to compare; the invariant that survives is that every dotted
+    # field reference (`Schema.field`) to a registered schema names a field
+    # the block carries, so a field cannot be dropped or renamed while prose
+    # in any canonical document still relies on it.
+    ref_blocks = {}
+    for text in (fbs, fta):
+        for name, occ in _field_blocks(text).items():
+            ref_blocks.setdefault(name, set()).update(occ[0][1])
+    seen_refs = set()
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev), ("schema document", sch)):
+        for name, field in re.findall(r"`([A-Z][A-Za-z0-9]+)\.([a-z][A-Za-z0-9]*)`", strip_fences(text)):
+            if name in registered and name in ref_blocks and field not in ref_blocks[name] and (name, field) not in seen_refs:
+                seen_refs.add((name, field))
+                D.add("semantic documentation", "schema field reference",
+                      f"{label} refers to `{name}.{field}` but the {name} block has no field {field}")
     if "ReproducibilityLevel  = " not in bs:
         D.add("semantic documentation", "canonical schema definition",
               "BS §5.7.2 must define the ReproducibilityLevel value set that TA §36.4 names as a separate field")
-    if "\nCapabilityProfile\n" in ta or "\nCapabilityProfile\n" in bs:
+    if "\nCapabilityProfile\n" in ta or "\nCapabilityProfile\n" in bs or "\nCapabilityProfile\n" in sch:
         D.add("semantic documentation", "capability profile identity",
               "bare 'CapabilityProfile' schema name; the Android capability profile is AndroidCapabilityProfile (BS §5.7.1)")
-    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev), ("schema document", sch)):
         if "reportStatus" in text:
             D.add("semantic documentation", f"change report status in {label}",
                   "ChangeImpactReport carries projectionStatus; ChangeReportRecord.status is the only lifecycle state")
         if "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevision\n" in text:
             D.add("semantic documentation", f"change report revision in {label}",
                   "ChangeReportRecord must carry projectRevisionAfter, not an ambiguous projectRevision")
-    for label, text in (("build spec", bs), ("architecture", ta)):
+    for label, text in ((("schema document", sch),) if sch else (("build spec", bs), ("architecture", ta))):
         for schema in ("ConversationRequirement", "ConversationDecision"):
             block = re.search(rf"\n{schema}\n((?:- .*\n)+)", text)
             if not block or "- sourceEvidenceIds\n" not in block.group(1):
@@ -2238,18 +2273,18 @@ def check_semantic_documentation(docs, R, D, root="."):
     def _fields(text, name):
         m = re.search(rf"\n{name}\n((?:- .*\n)+)", text)
         return [re.sub(r":.*", "", ln[2:]).strip() for ln in m.group(1).splitlines()] if m else None
-    for name in registered:
+    for name in (registered if not sch else ()):
         if not name.startswith(("Content", "Conversation", "ChangeReport", "ChangeImpact", "TerminologyProfile")):
             continue
         fb, ft = _fields(bs, name), _fields(ta, name)
         if fb and ft and fb != ft:
             D.add("semantic documentation", f"{name} field parity",
                   f"BS and TA field lists differ (BS only {sorted(set(fb) - set(ft))}, TA only {sorted(set(ft) - set(fb))}, or order)")
-    if not _fields(ta, "Content") or "- currentRevisionId" not in ta:
+    if not _fields(fta, "Content") or "- currentRevisionId" not in fta:
         D.add("semantic documentation", "Content schema",
               "TA §85.1 must define the persisted Content record (BS §81.1)")
-    draft = _fields(ta, "ContentRevisionDraft")
-    mutation = _fields(ta, "ContentMutation")
+    draft = _fields(fta, "ContentRevisionDraft")
+    mutation = _fields(fta, "ContentMutation")
     if not draft or not mutation or "proposedContentRevision" not in mutation or "contentRevision" in mutation:
         D.add("semantic documentation", "ContentMutation proposal type",
               "ContentMutation must carry proposedContentRevision: ContentRevisionDraft, never an admitted ContentRevision")
@@ -2267,7 +2302,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "exposes a complete, valid report" in bs:
         D.add("semantic documentation", "BS §83.4",
               "acceptance must not require a complete report for every committed transaction; INCOMPLETE/UNRESOLVED are permitted states")
-    for label, text in (("build spec", bs), ("architecture", ta)):
+    for label, text in ((("schema document", sch),) if sch else (("build spec", bs), ("architecture", ta))):
         rpt = _fields(text, "ChangeImpactReport") or []
         if "causeType" not in rpt or "causeId" not in rpt:
             D.add("semantic documentation", f"change causal provenance in {label}",
@@ -2321,7 +2356,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     # BS §5.7.2 IntegrationState and both BS §70 and TA §74.1 state the gate
     # (aggregateState must meet requiredOperationality); BS §5.7.5 owns the
     # comparison order.
-    m_asi = re.search(r"\nAndroidServiceIntegration\n((?:- .*\n|[ \t]+.*\n)+)", ta)
+    m_asi = re.search(r"\nAndroidServiceIntegration\n((?:- .*\n|[ \t]+.*\n)+)", fta)
     m_asi_fields = m_asi.group(1) if m_asi else ""
     if not re.search(r"^- requiredOperationality: IntegrationState\b", m_asi_fields, re.M):
         D.add("semantic documentation", "integration operationality gate",
@@ -2348,7 +2383,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     # semantics). The canonical record must be registered, carry the
     # identity/validity fields, and TA §18's two tiers must declare
     # themselves projections of it.
-    m_ckpt = re.search(r"\nCheckpoint\n((?:- .*\n)+)", bs)
+    m_ckpt = re.search(r"\nCheckpoint\n((?:- .*\n)+)", fbs)
     ckpt_fields = set(re.sub(r"[:(].*", "", l[2:]).strip() for l in m_ckpt.group(1).splitlines()) if m_ckpt else set()
     ckpt_required = {"tier", "parentCheckpointId", "workspaceId", "revisionReference", "sourceFingerprint",
                      "restoreReference", "validity", "knownGood", "retentionClass", "evidenceIds"}
@@ -2389,7 +2424,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not m_der or not cm_values <= der_inputs:
         D.add("semantic documentation", "capability status derivation",
               f"BS §5.6 must derive a §5.6 status from every CapabilityMaturity value (missing {sorted(cm_values - der_inputs)})")
-    if not re.search(r"^- status: derived §5\.6 status \(SUPPORTED \| SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS \| DEGRADED \| USER_REQUIRED \| UNAVAILABLE \| PLANNED\)", bs, re.M):
+    if not re.search(r"^- status: derived (?:build spec )?§5\.6 status \(SUPPORTED \| SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS \| DEGRADED \| USER_REQUIRED \| UNAVAILABLE \| PLANNED\)", fbs, re.M):
         D.add("semantic documentation", "capability status derivation",
               "AndroidCapabilityProfile.status (BS §5.7.1) must be typed with the derived §5.6 status set")
     # Roadmap normativity (audit: BS §15 phase "Exit criteria" are readable
@@ -2416,7 +2451,8 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not {"PLANNING_ONLY", "PROVIDER_CONFIGURED", "PROVIDER_VALIDATED", "OFFLINE"} <= spm_values:
         D.add("semantic documentation", "session provider mode",
               "BS §5.7.2 must define SessionProviderMode with PLANNING_ONLY, PROVIDER_CONFIGURED, PROVIDER_VALIDATED and OFFLINE")
-    if "- providerMode: SessionProviderMode (§5.7.2)" not in bs or "- providerMode: SessionProviderMode (build spec §5.7.2)" not in ta:
+    if (sch and "- providerMode: SessionProviderMode (build spec §5.7.2)" not in sch) or (not sch and (
+            "- providerMode: SessionProviderMode (§5.7.2)" not in bs or "- providerMode: SessionProviderMode (build spec §5.7.2)" not in ta)):
         D.add("semantic documentation", "session provider mode",
               "AutonomousAndroidSession.providerMode must be typed as SessionProviderMode in BS §29.2 and TA §34")
     if "it is never a global prerequisite" not in bs:
@@ -2475,8 +2511,9 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not {"NOT_COMPLETE", "COMPLETED", "INVALIDATED"} <= cs_values:
         D.add("semantic documentation", "completion state vocabulary",
               "BS §5.7.2 must define CompletionState with at least NOT_COMPLETE, COMPLETED and INVALIDATED")
-    if "- completionState: CompletionState (§5.7.2)" not in bs or \
-            "- completionState: CompletionState (build spec §5.7.2)" not in ta:
+    if (sch and "- completionState: CompletionState (build spec §5.7.2)" not in sch) or (not sch and (
+            "- completionState: CompletionState (§5.7.2)" not in bs
+            or "- completionState: CompletionState (build spec §5.7.2)" not in ta)):
         D.add("semantic documentation", "completion state vocabulary",
               "AutonomousAndroidSession.completionState must be typed as CompletionState in BS §29.2 and TA §34")
     if "The outcome is recorded as a `CompletionState`" not in ta:
@@ -2520,7 +2557,8 @@ def check_semantic_documentation(docs, R, D, root="."):
     # both canonical blocks and includes CONSERVATIVE_FULL_REINSTALL (TA §73.11).
     m22_modes = ("RN_EXPO_FAST_REFRESH", "COMPOSE_RELOAD", "INCREMENTAL_APK_INSTALL", "FULL_APK_REINSTALL",
                  "CONSERVATIVE_FULL_REINSTALL", "HEADLESS_SMOKE", "DIAGNOSTIC_SOURCE_ONLY", "USER_REQUIRED", "BLOCKED")
-    for label, text, where in (("build spec", bs, "BS §69.4"), ("technical architecture", ta, "TA §73.3")):
+    for label, text, where in ((("schema document", sch, "the PreviewRevision block (owner BS §69.4)"),) if sch
+                               else (("build spec", bs, "BS §69.4"), ("technical architecture", ta, "TA §73.3"))):
         pm = re.search(r"^- previewMode:([^\n]*)$", text, re.M)
         values = tuple(v.strip() for v in pm.group(1).split("|")) if pm else ()
         if values != m22_modes:
@@ -2620,10 +2658,16 @@ def check_semantic_documentation(docs, R, D, root="."):
     m22_body = bs[m22_s802:m22_e802] if 0 <= m22_s802 < m22_e802 else ""
     for word, schema in re.findall(r"(?<![A-Za-z-])(" + "|".join(sorted(m22_words, key=len, reverse=True)) + r")\s+`([A-Z][A-Za-z0-9]+)`\s+fields", m22_body):
         actual = (bs_blocks.get(schema) or ta_blocks.get(schema) or [(0, None)])[0][1]
-        if actual is None or len(actual) != m22_words[word]:
+        # A merged block marks the fields only the other document's copy
+        # carried ("(<document> §x addition; build spec §67.11)"); the owning
+        # document's count excludes them (nirman-schemas.md, introduction).
+        m22_blk = re.search(r"\n" + schema + r"\n((?:- .*\n|[ \t]+.*\n)+)", fbs if bs_blocks.get(schema) else fta)
+        m22_add = len(re.findall(r"^- .*addition; build spec §67\.11\)", m22_blk.group(1), re.M)) if m22_blk else 0
+        if actual is None or len(actual) - m22_add != m22_words[word]:
             D.add("semantic documentation", "§80.2 field count",
-                  f"§80.2 claims {word} `{schema}` fields; the canonical block has {len(actual) if actual is not None else 'no'} fields")
-    m22_ev = re.search(r"\nModelEvent\n(?:- .*\n)*?- type:([^\n]*(?:\n[ \t]+[^\n]*)*)", ta)
+                  f"§80.2 claims {word} `{schema}` fields; the canonical block has "
+                  f"{len(actual) - m22_add if actual is not None else 'no'} fields")
+    m22_ev = re.search(r"\nModelEvent\n(?:- .*\n)*?- type:([^\n]*(?:\n[ \t]+[^\n]*)*)", fta)
     m22_ev_n = len([v for v in re.split(r"\s*\|\s*", m22_ev.group(1).strip()) if v]) if m22_ev else 0
     m22_ev_claim = re.search(r"\| The (" + "|".join(m22_words) + r") event types are the closed set;", m22_body)
     if not m22_ev_claim or m22_words[m22_ev_claim.group(1)] != m22_ev_n:
@@ -3007,17 +3051,20 @@ def check_document_topology(docs, D, root):
         if re.search(r"^## (?:\d+\. )?M\d+\b", docs.get(key, ""), re.M):
             D.add("structure", DOCS[key], "carries a milestone block; nirman-milestones.md is the only home of milestone records (ADR-220)")
     schemas = docs.get("schemas", "")
-    fence_re = re.compile(r"```text[ \t]*\n([A-Z][A-Za-z0-9]+)[ \t]*\n- ")
+    # A schema fence is a text fence whose first line is a PascalCase name
+    # followed by field lines; the CanonicalSchemaRegistry list fence (a name
+    # per line) is treated the same way because ADR-220 moves it too.
+    fence_re = re.compile(r"```text[ \t]*\n(?:([A-Z][A-Za-z0-9]+)[ \t]*\n- |(CanonicalSchemaRegistry)[ \t]*\n)")
     fence_homes = {}
     for key in ("bs", "ta", "schemas", "dev", "adrs", "agents", "readme", "index", "glossary"):
         for m in fence_re.finditer(docs.get(key, "")):
-            fence_homes.setdefault(m.group(1), []).append(DOCS[key])
+            fence_homes.setdefault(m.group(1) or m.group(2), []).append(DOCS[key])
     if schemas:
         # A schema that has moved may not keep a fence anywhere else; once the
         # migration is complete (every ADR-220 document present) no fenced
         # schema may remain outside nirman-schemas.md at all.
         complete = all(f in present for f in ROOT_DOC_SET)
-        moved = set(fence_re.findall(schemas))
+        moved = {a or b for a, b in fence_re.findall(schemas)}
         for name, homes in sorted(fence_homes.items()):
             elsewhere = [h for h in homes if h != DOCS["schemas"]]
             if name in moved and elsewhere:
