@@ -352,6 +352,10 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "DP M6 work item regains a present-tense implementation claim": (
+        DEV, "8. Add repeated-action and doom-loop detection.",
+        "8. Add repeated-action and doom-loop detection; the loop detector now exposes a fingerprint counter.",
+        "semantic documentation"),
     "BS §5.7.2 CompletionState loses the NOT_COMPLETE outcome": (
         BS, "CompletionState       = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |",
         "CompletionState       = NOT_EVALUATED | COMPLETED | BLOCKED |",

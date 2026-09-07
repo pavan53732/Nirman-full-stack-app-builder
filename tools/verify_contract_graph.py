@@ -2315,6 +2315,20 @@ def check_semantic_documentation(docs, R, D, root="."):
     # same number of steps and the same anchor concepts in the same order, so
     # the two cannot drift apart (an agent reads AGENTS.md; an implementer
     # reads the architecture).
+    # Development-plan truthfulness: a milestone work item may state an
+    # obligation or record history, but it must not claim that code "now
+    # exposes" or "was added" — nothing implemented survives in this
+    # documentation-only tree, and a present-tense implementation claim is
+    # exactly the "agent claims as evidence" failure the certification model
+    # forbids. Scoped to numbered/bulleted work items in the plan.
+    dp_claim = re.compile(r"\b(?:now|already) (?:exposes|implements|supports|enforces|provides|includes|ships)\b"
+                          r"|\b(?:was|were|has been|have been) (?:added|implemented|wired|shipped|landed)\b", re.I)
+    for ln_no, ln in enumerate(dev.split("\n"), 1):
+        if re.match(r"^\s*(?:\d+\.|[-*])\s", ln) and dp_claim.search(ln) \
+                and "source no longer present" not in ln:
+            D.add("semantic documentation", "plan implementation claim",
+                  f"development plan line {ln_no} states a present-tense implementation claim "
+                  f"({dp_claim.search(ln).group(0)!r}); record it as history or as an obligation")
     # Completion outcome vocabulary: BS §5.7.2 defines CompletionState (the
     # value set of CompletionDecision, containing the NOT_COMPLETE outcome that
     # §5.7.7's CERTIFICATION ≠ COMPLETION rule relies on) and the session
