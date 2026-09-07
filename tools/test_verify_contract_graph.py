@@ -323,6 +323,13 @@ CASES = {
     "command registry count overstated again": (
         BS, "complete set of twenty-nine canonical command kinds", "complete set of thirty command kinds",
         "semantic documentation"),
+    "intelligence contract loses all of its clauses": (
+        BS,
+        "| CLAUSE.CONVERSATION.DURABLE_AGGREGATE | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | a Conversation survives UI restart, supervisor restart, context compaction, provider changes, and task handoff as a durable product object | SEALED |\n"
+        "| CLAUSE.CONVERSATION.REVISION_CONSISTENT_CONTINUE | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | Continue resolves expectedProjectRevision against Project.currentRevision into CONTINUE, RECONCILE/REBASE, or USER_REQUIRED; conflicting intervening changes halt autonomous execution and no rebase advances expectedProjectRevision before its ConversationRebaseRecord is durably committed | SEALED |\n"
+        "| CLAUSE.CONVERSATION.NO_TRANSCRIPT_RECONSTRUCTION | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | a continuation never reconstructs state solely by replaying the chat transcript or issuing another free-form prompt; compaction preserves requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage | SEALED |\n",
+        "",
+        "semantic documentation"),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),

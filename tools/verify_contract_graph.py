@@ -2286,6 +2286,13 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "PASS (WITH SKIPS)" in text:
             D.add("semantic documentation", "retired certification status",
                   f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
+    # Clause coverage (audit M21): every registered contract owns at least
+    # one sealed §67.12 clause, otherwise its normative content is invisible
+    # to the contradiction and override checks.
+    owned = {meta["contract"] for meta in R["clauses"].values()}
+    for cid in sorted(R["contracts"]):
+        if cid not in owned:
+            D.add("semantic documentation", "clause coverage", f"{cid} owns no §67.12 ClauseId")
     # §80.2 quote fidelity (audit M21): every quoted "should" statement must
     # occur verbatim inside the section it cites, so the resolution table
     # cannot drift from the prose it resolves (paraphrases, vanished quotes,

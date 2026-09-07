@@ -4644,6 +4644,15 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.BUILDABILITY.COMPLETE_PROCEDURES | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | every process described as "the runtime handles it" or "the system should" MUST have a concrete step-by-step procedure defined in §80 | SEALED |
 | CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | every "configurable" parameter MUST have a default value defined in §80.3 | SEALED |
 | CLAUSE.BUILDABILITY.DETERMINISTIC_DECISIONS | CONTRACT.RUNTIME.AGENT_BUILDABILITY | §80 | when the runtime has multiple options, it MUST choose using the explicit decision criteria defined in §80.4 | SEALED |
+| CLAUSE.CONTENT.REVISION_BOUND | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | §81 | every content mutation produces a ContentRevision bound to project revision, requirement, source evidence, and ConstructionTransaction | SEALED |
+| CLAUSE.CONTENT.SAME_GATES_AS_SOURCE | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | §81 | content changes pass the same checkpoint, diff, validation, evidence, freshness, invalidation, rollback, and completion systems as source mutations | SEALED |
+| CLAUSE.CONTENT.CONSISTENCY_VALIDATED | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | §81 | content validation covers terminology consistency, locale completeness, accessibility suitability, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure | SEALED |
+| CLAUSE.CONVERSATION.DURABLE_AGGREGATE | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | a Conversation survives UI restart, supervisor restart, context compaction, provider changes, and task handoff as a durable product object | SEALED |
+| CLAUSE.CONVERSATION.REVISION_CONSISTENT_CONTINUE | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | Continue resolves expectedProjectRevision against Project.currentRevision into CONTINUE, RECONCILE/REBASE, or USER_REQUIRED; conflicting intervening changes halt autonomous execution and no rebase advances expectedProjectRevision before its ConversationRebaseRecord is durably committed | SEALED |
+| CLAUSE.CONVERSATION.NO_TRANSCRIPT_RECONSTRUCTION | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | a continuation never reconstructs state solely by replaying the chat transcript or issuing another free-form prompt; compaction preserves requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage | SEALED |
+| CLAUSE.CHANGE.EXACTLY_ONE_REPORT | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | every committed ConstructionTransaction exposes exactly one durable ChangeReportRecord with its ChangeImpactReport; the obligation becomes durable with the commit and holds across crashes | SEALED |
+| CLAUSE.CHANGE.DERIVED_NOT_FABRICATED | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | every ChangeImpactReport field is derived from an authoritative source; the projector never fabricates missing values and reports INCOMPLETE or UNRESOLVED instead | SEALED |
+| CLAUSE.CHANGE.PROJECTOR_ISOLATION | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | projector failure never fails or rolls back the committed parent ConstructionTransaction, and the presentation client never infers mutation facts from model prose | SEALED |
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -7517,9 +7526,9 @@ Four values in the §80.2 table were not derived from any existing section and a
 
 Content is a first-class product surface. Nirman MUST be able to create, revise, validate, and propagate product content including UX copy, onboarding, empty states, errors, notifications, permission explanations, marketing copy, app-store descriptions, accessibility labels, localization, terminology, tone, and brand voice.
 
-Every content mutation MUST produce a ContentRevision bound to project revision, requirement, source evidence, and ConstructionTransaction.
+Every content mutation MUST produce a ContentRevision bound to project revision, requirement, source evidence, and ConstructionTransaction (CLAUSE.CONTENT.REVISION_BOUND).
 
-Content changes MUST participate in the same checkpoint, diff, validation, evidence, freshness, invalidation, rollback, and completion systems as source mutations.
+Content changes MUST participate in the same checkpoint, diff, validation, evidence, freshness, invalidation, rollback, and completion systems as source mutations (CLAUSE.CONTENT.SAME_GATES_AS_SOURCE).
 
 Content consistency MUST be checked across affected screens and resources. Localization changes MUST identify affected locales and unresolved translations. Accessibility labels MUST be validated against the corresponding UI semantics.
 
@@ -7574,7 +7583,7 @@ ContentDependency
 
 ### 81.2 Content validation
 
-Validation MUST cover terminology consistency, locale completeness, accessibility suitability, prohibited/unsafe text where applicable, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure.
+Validation MUST cover terminology consistency, locale completeness, accessibility suitability, prohibited/unsafe text where applicable, formatting, placeholder preservation, interpolation correctness, and consistency with the current UI structure (CLAUSE.CONTENT.CONSISTENCY_VALIDATED).
 
 ### 81.3 Content dependencies and invalidation
 
@@ -7617,7 +7626,7 @@ A content task is complete only when requested content is present in the project
 **ContractId:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.CONVERSATION_CONTEXT` (see §67.8)
 
-A Conversation is a durable product object representing the continuing development interaction. It MUST survive UI restart, supervisor restart, context compaction, provider changes, and task handoff.
+A Conversation is a durable product object representing the continuing development interaction. It MUST survive UI restart, supervisor restart, context compaction, provider changes, and task handoff (CLAUSE.CONVERSATION.DURABLE_AGGREGATE).
 
 ```text
 Conversation
@@ -7697,6 +7706,8 @@ Conversation references and indexes canonical requirements and decisions via typ
 
 ### 82.1 Revision consistency and Continue state machine
 
+This subsection is the authority for CLAUSE.CONVERSATION.REVISION_CONSISTENT_CONTINUE.
+
 Conversation consistency is governed by the triple revision invariant:
 
 ```text
@@ -7748,7 +7759,7 @@ resume semantics
 
 When the desktop UI reconnects or the host wakes from suspension, `BackgroundContinuity` restores process execution and supervisor health, while `ConversationResolver` resolves conversational intent against the current project revision. The two combine to determine whether execution continues autonomously (`MATCH` or non-conflicting `MISMATCH`) or halts safely for user guidance (`UNRESOLVABLE`).
 
-A continuation MUST NOT reconstruct state solely by replaying the chat transcript or issuing another free-form prompt.
+A continuation MUST NOT reconstruct state solely by replaying the chat transcript or issuing another free-form prompt (CLAUSE.CONVERSATION.NO_TRANSCRIPT_RECONSTRUCTION).
 
 Context compaction MAY summarize ordinary messages but MUST preserve requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage.
 
@@ -7795,7 +7806,7 @@ Recovery reconstructs the report.
 Projector failure never rolls back the committed transaction.
 ```
 
-Every committed `ConstructionTransaction` MUST produce one revision-bound `ChangeReportRecord` and associated `ChangeImpactReport`. The `ConstructionTransaction` is the canonical `MutationReportUnit`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
+Every committed `ConstructionTransaction` MUST produce one revision-bound `ChangeReportRecord` and associated `ChangeImpactReport` (CLAUSE.CHANGE.EXACTLY_ONE_REPORT). The `ConstructionTransaction` is the canonical `MutationReportUnit`. Individual file writes, scratch edits, intermediate worker patches, and rollbacks within a transaction do NOT produce isolated partial reports. Aborted or rolled-back transactions record recovery/failure evidence under `ConstructionTransaction` and do not produce completed change impact reports.
 
 ```text
 ChangeImpactReport
@@ -7835,7 +7846,7 @@ Every field in `ChangeImpactReport` is derived from an authoritative source. `pr
 
 ### 83.2 Failure and reconstruction semantics
 
-Projector failure MUST NOT fail or roll back the committed parent `ConstructionTransaction`.
+Projector failure MUST NOT fail or roll back the committed parent `ConstructionTransaction` (CLAUSE.CHANGE.PROJECTOR_ISOLATION).
 
 When report projection fails:
 ```text
@@ -7853,7 +7864,7 @@ ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
 1. The parent `ConstructionTransaction` remains durably committed in SQLite.
 2. A `ChangeReportRecord` is written to `ChangeIntelligenceStore` with `status: INCOMPLETE`, `report: null`, and failure diagnostics.
 3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
-4. The projector MUST NOT fabricate missing values. Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED`.
+4. The projector MUST NOT fabricate missing values (CLAUSE.CHANGE.DERIVED_NOT_FABRICATED). Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED`.
 5. A report cannot claim completion or support goal completion while its `ChangeReportRecord` is in `INCOMPLETE` or `UNRESOLVED` state.
 
 The exactly-one invariant holds across crashes. The `ChangeReportRecord` obligation is coupled to the durable commit: a committed `ConstructionTransaction` and its initial `ChangeReportRecord` obligation MUST become durable atomically, so no committed transaction can exist without its record obligation. After restart, recovery MUST discover any committed transaction lacking its `ChangeReportRecord` and create exactly one `INCOMPLETE` record idempotently; duplicate records for the same `transactionId` are forbidden.
