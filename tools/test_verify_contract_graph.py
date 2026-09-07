@@ -352,6 +352,16 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "BS §5.7.2 SessionProviderMode loses the PROVIDER_CONFIGURED state": (
+        BS, "SessionProviderMode   = PLANNING_ONLY | PROVIDER_CONFIGURED | PROVIDER_VALIDATED |\n                        OFFLINE\n",
+        "SessionProviderMode   = PLANNING_ONLY | PROVIDER_VALIDATED | OFFLINE\n",
+        "semantic documentation"),
+    "BS §5.7.2 turns provider validation into a global prerequisite": (
+        BS, "it is never a global prerequisite", "it is the session prerequisite",
+        "semantic documentation"),
+    "TA §34 AutonomousAndroidSession.providerMode loses its SessionProviderMode type": (
+        TA, "- providerMode: SessionProviderMode (build spec §5.7.2)\n", "- providerMode\n",
+        "semantic documentation"),
     "BS §15 roadmap reclaims normative status": (
         BS, "**Normative status:** This roadmap is explanatory sequencing, not a contract.",
         "**Status:** This roadmap is the sequencing contract.",

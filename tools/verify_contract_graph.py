@@ -2381,6 +2381,23 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", "roadmap normativity",
                   f"BS §{m_h.group(1)} carries phase exit criteria but does not declare itself non-normative "
                   f"and subordinate to the preview, scope and export contracts")
+    # Session provider mode (audit: "planning-only mode" (BS §4.2) and
+    # "Offline Mode" (TA §41) were each mentioned once and defined nowhere,
+    # while ADR-208's test-gated save could be read as a global prerequisite).
+    m_spm = re.search(r"^SessionProviderMode\s*= ((?:[A-Z_]+\s*\|\s*)+[A-Z_]+)", bs, re.M)
+    spm_values = set(re.findall(r"[A-Z_]+", m_spm.group(1))) if m_spm else set()
+    if not {"PLANNING_ONLY", "PROVIDER_CONFIGURED", "PROVIDER_VALIDATED", "OFFLINE"} <= spm_values:
+        D.add("semantic documentation", "session provider mode",
+              "BS §5.7.2 must define SessionProviderMode with PLANNING_ONLY, PROVIDER_CONFIGURED, PROVIDER_VALIDATED and OFFLINE")
+    if "- providerMode: SessionProviderMode (§5.7.2)" not in bs or "- providerMode: SessionProviderMode (build spec §5.7.2)" not in ta:
+        D.add("semantic documentation", "session provider mode",
+              "AutonomousAndroidSession.providerMode must be typed as SessionProviderMode in BS §29.2 and TA §34")
+    if "it is never a global prerequisite" not in bs:
+        D.add("semantic documentation", "session provider mode",
+              "BS §5.7.2 must state that provider validation is never a global prerequisite for non-model features")
+    if "(`SessionProviderMode.PLANNING_ONLY`, §5.7.2)" not in bs or "`SessionProviderMode.OFFLINE`" not in ta:
+        D.add("semantic documentation", "session provider mode",
+              "BS §4.2 planning-only path and TA §41 Offline Mode must be bound to SessionProviderMode values")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this

@@ -1995,6 +1995,7 @@ AutonomousAndroidSession
 - recoveryState
 - artifactState
 - completionState: CompletionState (build spec §5.7.2)
+- providerMode: SessionProviderMode (build spec §5.7.2)
 ```
 
 ### 34.1 Input-fusion pipeline
@@ -2483,7 +2484,7 @@ The replay service supports reopen, rerun validation, fork strategy, restore che
 
 ## 41. Host Reliability and Recovery
 
-The Windows host must initialize without a provider, enter Offline Mode when network access is unavailable, preserve history and checkpoints, and resume eligible active sessions after restart or reboot. State writes use temp-file-plus-rename, file locks, versioned migrations, backups, and rollback. The installer and updater preserve user state and keep the previous version runnable if candidate startup, IPC, migration, or health checks fail.
+The Windows host must initialize without a provider (`SessionProviderMode.PLANNING_ONLY`, build spec §5.7.2), enter Offline Mode (`SessionProviderMode.OFFLINE`) when network access is unavailable, preserve history and checkpoints, and resume eligible active sessions after restart or reboot. State writes use temp-file-plus-rename, file locks, versioned migrations, backups, and rollback. The installer and updater preserve user state and keep the previous version runnable if candidate startup, IPC, migration, or health checks fail.
 
 Large projects use virtualized trees, repository-map shards, dependency fingerprints, affected-test computation, cached validation, rotating logs, content-addressed checkpoint storage, and retention policies. Resource pressure adapts concurrency and storage retention; only hard protection limits stop execution.
 

@@ -171,7 +171,7 @@ On first launch, Nirman should explain that it is a local desktop application an
 
 1. Configure a cloud provider with a base URL, API key, and model ID.
 
-2. Continue in planning-only mode without an AI provider.
+2. Continue in planning-only mode without an AI provider (`SessionProviderMode.PLANNING_ONLY`, §5.7.2).
 
 The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and identify which Android capabilities are available. Missing tools should be reported with an installation guide rather than hidden behind a failed build.
 
@@ -413,6 +413,8 @@ DeliveryState         = NOT_REQUESTED | ELIGIBLE | EXPORTING | EXPORTED |
                         DELIVERED | FAILED | BLOCKED | UNKNOWN
 CompletionState       = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |
                         USER_REQUIRED | INVALIDATED
+SessionProviderMode   = PLANNING_ONLY | PROVIDER_CONFIGURED | PROVIDER_VALIDATED |
+                        OFFLINE
 ReproducibilityLevel  = UNKNOWN | INPUTS_RECORDED | REBUILD_MATCHED |
                         BIT_FOR_BIT_VERIFIED | NOT_REPRODUCIBLE
 ```
@@ -420,6 +422,8 @@ ReproducibilityLevel  = UNKNOWN | INPUTS_RECORDED | REBUILD_MATCHED |
 `ReproducibilityLevel` is the value set of the `reproducibilityLevel` field on `AndroidCapabilityProfile` (§5.7.1) and `ArtifactSet` (technical architecture §36.4); `REBUILD_MATCHED` and `BIT_FOR_BIT_VERIFIED` are reached only from an observed rebuild whose artifact hashes were compared, never from a declared policy.
 
 `CompletionState` is the value set of `CompletionDecision` and of the `completionState` field on `AutonomousAndroidSession` (§29.2; technical architecture §34). It is written only by the sole completion evaluator of §5.7.7: `NOT_EVALUATED` until the evaluator has run for the current revision; `NOT_COMPLETE` when the goal contract is not satisfied, including a technically certified artifact whose mandatory integration is unavailable; `COMPLETED` only when every §5.7.7 condition holds; `BLOCKED` and `USER_REQUIRED` for an unresolved blocking contradiction or a decision the user must make; `INVALIDATED` when a §5.7.4 dependency change retires a prior `COMPLETED`. `ProductLifecycleState.COMPLETED` mirrors `CompletionState.COMPLETED` and is never set ahead of it.
+
+`SessionProviderMode` is the value set of `AutonomousAndroidSession.providerMode` (§29.2; technical architecture §34) and is the only vocabulary for whether a session may call a model. `PLANNING_ONLY` is the §4.2 path with no `ProviderProfile` selected: project creation, opening, inspection, environment diagnostics, checkpoints, undo, preview of an already-built revision, and structured requirement capture remain available, and any operation that needs a model is reported as `USER_REQUIRED` with the provider setup as the resolution — never attempted, never simulated. `PROVIDER_CONFIGURED` means a `ProviderProfile` is selected whose last connection test has not passed for its current key, base URL, model ID, and mode (§8.1; ADR-208); it permits exactly what `PLANNING_ONLY` permits. `PROVIDER_VALIDATED` means the selected profile's `status` is `authenticated` (§80.5.5) from a passed test; Goal Mode (§27.1) and every model-backed operation require it. `OFFLINE` is the technical architecture §41 condition — a validated profile whose endpoint is currently unreachable — under which running work is preserved, checkpoints and history stay available, and model-backed steps wait or degrade per §26.1 rather than fail. The mode is derived by the control plane from the selected profile and the provider bridge state (technical architecture §48.1); it is never a global prerequisite: a `PLANNING_ONLY` or `PROVIDER_CONFIGURED` session is a complete, valid session, and the UI must not gate non-model features on provider validation.
 
 `RUNNING` describes lifecycle or process activity; it does not imply `OBSERVED`, `VERIFIED`, or `COMPLETED`. `DELIVERED` proves a successful local handoff, not that every optional integration or release-signing condition passed. `CERTIFIED` is permitted only after the required executable fixtures and evidence gates pass.
 
@@ -2188,6 +2192,7 @@ AutonomousAndroidSession
 - recoveryState
 - artifactState
 - completionState: CompletionState (§5.7.2)
+- providerMode: SessionProviderMode (§5.7.2)
 ```
 
 The session owns the complete task independently of the chat interface. It remains resumable after the interface closes, the process restarts, or the host resumes from sleep where the operating system permits it.
