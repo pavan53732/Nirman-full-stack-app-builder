@@ -30,6 +30,12 @@ TOOL = os.path.join(HERE, "verify_contract_graph.py")
 DOCS = ("nirman-build-spec.md", "nirman-technical-architecture.md",
         "nirman-decisions.md", "nirman-development-plan.md")
 BS, TA, DEC, DEV = DOCS
+# ADR-220 documents. Every root document present in the repository is copied
+# into each fixture so verifier rules that read them are exercised; the tuple
+# below names the ones that may not exist yet while the migration lands.
+ADR220_DOCS = ("nirman-schemas.md", "nirman-adrs.md", "nirman-milestones.md",
+               "INDEX.md", "GLOSSARY.md", "AGENTS.md", "README.md")
+SCHEMAS, ADRS, MILESTONES, INDEX, GLOSSARY, AGENTS_MD, README_MD = ADR220_DOCS
 
 # Extra (relpath, abspath) pairs the mutation battery needs to copy into the
 # temp root so the new command-payload-coverage check can resolve Rust sources
@@ -1444,6 +1450,9 @@ def _copy_fixture(tmp, files):
     """
     for d in DOCS:
         shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+    for d in ADR220_DOCS:
+        if os.path.exists(os.path.join(REPO, d)):
+            shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
     for relpath, abspath in files:
         if not os.path.exists(abspath):
             continue
@@ -1561,6 +1570,81 @@ def main():
             results.append((f"negative: {label}", rc == 1 and hit,
                             "" if (rc == 1 and hit) else
                             f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
+
+    # ---- ADR-220 document topology (synthetic fixtures). These rules read
+    # documents the migration introduces one commit at a time, so each case
+    # constructs the minimal fixture it needs inside the temp root instead of
+    # anchoring on a literal in the repository's current files.
+    def _topology_case(label, mutate, expect="structure"):
+        with tempfile.TemporaryDirectory(prefix="hermes-cg-topo-") as tmp:
+            _copy_fixture(tmp, ())
+            mutate(tmp)
+            rc, out = run(tmp)
+            hit = expect in failed_checks(out)
+            if hit:
+                covered.add(expect)
+            results.append((f"negative: {label}", rc == 1 and hit,
+                            "" if (rc == 1 and hit) else f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
+
+    def _rw(tmp, name, fn):
+        path = os.path.join(tmp, name)
+        text = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+        open(path, "w", encoding="utf-8").write(fn(text))
+
+    def _move_candidate_branch(tmp, proj_sec="1.1", owner="BS §65.2", schemas_owner=None):
+        """Relocate CandidateBranch (fenced identically in BS §65.2 and TA §88.2)
+        into a synthetic nirman-schemas.md the way the migration will."""
+        stub = f"> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §{proj_sec}. Owner: {owner}.\n"
+        block = {}
+
+        def cut(text):
+            m = re.search(r"```text\nCandidateBranch\n.*?```\n", text, re.S)
+            block["b"] = m.group(0)
+            return text.replace(m.group(0), stub, 1)
+        _rw(tmp, BS, cut)
+        _rw(tmp, TA, cut)
+        _rw(tmp, SCHEMAS, lambda _t: (
+            "# Nirman Schemas\n\n## 1. Reasoning\n\n### 1.1 CandidateBranch\n\n"
+            f"**Owner:** {schemas_owner or owner} · **Contract:** — · **Projected at:** TA §88.2\n\n" + block["b"]
+            + "\n## References\n\n[1]: nirman-build-spec.md\n"))
+
+    _topology_case("schema projection cites the wrong nirman-schemas.md section",
+                   lambda tmp: _move_candidate_branch(tmp, proj_sec="1.2"))
+    _topology_case("nirman-schemas.md owner line names a heading that does not exist",
+                   lambda tmp: _move_candidate_branch(tmp, schemas_owner="BS §65.9"))
+
+    def _stub_dropped(tmp):
+        _move_candidate_branch(tmp)
+        _rw(tmp, BS, lambda t: t.replace(
+            "> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §1.1. Owner: BS §65.2.\n",
+            "CandidateBranch fields are listed in the schema document.\n", 1))
+    _topology_case("owner section loses its schema projection line", _stub_dropped)
+
+    def _fence_kept(tmp):
+        _move_candidate_branch(tmp)
+        schemas = open(os.path.join(tmp, SCHEMAS), encoding="utf-8").read()
+        fence = re.search(r"```text\nCandidateBranch\n.*?```\n", schemas, re.S).group(0)
+        _rw(tmp, TA, lambda t: t.replace(
+            "> **Schema projection:** `CandidateBranch` is defined in `nirman-schemas.md` §1.1. Owner: BS §65.2.\n",
+            fence, 1))
+    _topology_case("a schema moved to nirman-schemas.md keeps a second fence in the architecture", _fence_kept)
+
+    _topology_case("GLOSSARY.md carries a Locks field and an upper-case requirement",
+                   lambda tmp: _rw(tmp, GLOSSARY, lambda _t: "# Glossary\n\n**Term** — a thing. **Locks:** `CONTRACT.RUNTIME.SCOPE`. Agents MUST obey.\n"))
+    _topology_case("INDEX.md carries an ADR block",
+                   lambda tmp: _rw(tmp, INDEX, lambda _t: "# Index\n\n## ADR-001: Something\n\n**Status:** Accepted\n"))
+
+    def _extra_root_file(tmp):
+        for name in (INDEX, GLOSSARY, ADRS, MILESTONES, SCHEMAS):
+            if not os.path.exists(os.path.join(tmp, name)):
+                _rw(tmp, name, lambda _t: "# placeholder\n")
+        _rw(tmp, "NOTES.md", lambda _t: "# scratch\n")
+    _topology_case("an eleventh root Markdown file once the ADR-220 set is complete", _extra_root_file)
+
+    _topology_case("a SCHEMAS § citation names a heading nirman-schemas.md lacks",
+                   lambda tmp: (_move_candidate_branch(tmp),
+                                _rw(tmp, TA, lambda t: t + "\nSee SCHEMAS §9.9 for the field list.\n")),
+                   expect="semantic documentation")
 
     # POSITIVE: renumbering a registry heading (together with the citations
     # that point at it, so no §-reference dangles, and keeping subsection

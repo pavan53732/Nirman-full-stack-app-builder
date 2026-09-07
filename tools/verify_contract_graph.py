@@ -34,12 +34,30 @@ CLRE = r"\bCLAUSE\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*"
 CLASSES = ("FOUNDATIONAL", "CROSS_CUTTING", "INTERNAL", "DEPRECATED")
 EXT_TYPES = ("adds_clauses", "adds_schema", "adds_component", "adds_verification")
 
-DOCS = {
-    "bs": "nirman-build-spec.md",
-    "ta": "nirman-technical-architecture.md",
-    "dec": "nirman-decisions.md",
-    "dev": "nirman-development-plan.md",
+# Document registry (ADR-220). key -> (filename, role, required).
+#   canonical  : holds product/architecture/milestone authority or ADR records
+#   process    : governs how documents or agents work; no product authority
+#   reference  : navigation/terminology; must never carry authority markers
+# `required=False` entries are documents the ADR-220 migration introduces one
+# gated commit at a time; a missing optional document is not a defect until
+# the topology rule is armed (see check_structure, "root document set").
+DOC_REGISTRY = {
+    "bs": ("nirman-build-spec.md", "canonical", True),
+    "ta": ("nirman-technical-architecture.md", "canonical", True),
+    "dec": ("nirman-decisions.md", "process", True),
+    "dev": ("nirman-development-plan.md", "canonical", True),
+    "schemas": ("nirman-schemas.md", "canonical", False),
+    "adrs": ("nirman-adrs.md", "canonical", False),
+    "agents": ("AGENTS.md", "process", True),
+    "readme": ("README.md", "reference", True),
+    "index": ("INDEX.md", "reference", False),
+    "glossary": ("GLOSSARY.md", "reference", False),
 }
+DOCS = {k: v[0] for k, v in DOC_REGISTRY.items()}
+# The exact root Markdown set once the migration completes (ADR-220).
+ROOT_DOC_SET = ("README.md", "AGENTS.md", "INDEX.md", "GLOSSARY.md", "nirman-build-spec.md",
+                "nirman-technical-architecture.md", "nirman-schemas.md", "nirman-milestones.md",
+                "nirman-decisions.md", "nirman-adrs.md")
 
 EDGES = ("capability", "requirement", "build_spec", "architecture", "schema",
          "authority", "persistence", "failure_recovery", "adr", "milestone",
@@ -89,10 +107,13 @@ def strip_fences(text):
 
 def load(root):
     docs = {}
-    for key, name in DOCS.items():
+    for key, (name, _role, required) in DOC_REGISTRY.items():
         path = os.path.join(root, name)
         if not os.path.exists(path):
-            sys.exit(f"FATAL: missing {name} in {root}")
+            if required:
+                sys.exit(f"FATAL: missing {name} in {root}")
+            docs[key] = ""
+            continue
         docs[key] = open(path, encoding="utf-8").read()
     return docs
 
@@ -2538,16 +2559,25 @@ def check_semantic_documentation(docs, R, D, root="."):
     # qualify it ("build spec §", "BS §", "technical architecture §", "TA §",
     # or a comma-continued list after such a qualifier). Development-plan
     # references are not resolved (its sections are milestone-numbered).
+    m22_schemas = docs.get("schemas", "")
     m22_heads = {k: set(m.group(1) for m in re.finditer(r"^#{2,4}\s+(\d+(?:\.\d+)*)\b", t, re.M))
-                 for k, t in (("bs", bs), ("ta", ta))}
+                 for k, t in (("bs", bs), ("ta", ta), ("schemas", m22_schemas))}
+    # ADR-220 qualifiers: SCHEMAS §/schemas § resolve against nirman-schemas.md;
+    # MILESTONES §/milestones § are aliases of development plan §/DP § (the
+    # milestone document is milestone-numbered and is not resolved).
     m22_qual = ((r"build[ -]spec(?:ification)?\s+§$", "bs"), (r"\bBS\s+§$", "bs"),
                 (r"technical[ -]architecture\s+§$", "ta"), (r"\bTA\s+§$", "ta"),
-                (r"development[ -]plan\s+§$", "dev"), (r"\bDP\s+§$", "dev"))
-    m22_list = re.compile(r"(build spec|BS|technical architecture|TA|development plan|DP)\s+§\d+(?:\.\d+)*"
-                          r"(?:,\s*§\d+(?:\.\d+)*)*,?\s*(?:and\s+)?$")
+                (r"development[ -]plan\s+§$", "dev"), (r"\bDP\s+§$", "dev"),
+                (r"\b(?:MILESTONES|milestones)\s+§$", "dev"), (r"nirman-milestones\.md`?\s+§$", "dev"),
+                (r"\b(?:SCHEMAS|schemas)\s+§$", "schemas"), (r"nirman-schemas\.md`?\s+§$", "schemas"))
+    m22_list = re.compile(r"(build spec|BS|technical architecture|TA|development plan|DP|SCHEMAS|schemas|MILESTONES|milestones)"
+                          r"\s+§\d+(?:\.\d+)*(?:,\s*§\d+(?:\.\d+)*)*,?\s*(?:and\s+)?$")
     m22_doc_of = {"build spec": "bs", "BS": "bs", "technical architecture": "ta", "TA": "ta",
-                  "development plan": "dev", "DP": "dev"}
-    for label, key, text in (("build spec", "bs", bs), ("technical architecture", "ta", ta)):
+                  "development plan": "dev", "DP": "dev", "SCHEMAS": "schemas", "schemas": "schemas",
+                  "MILESTONES": "dev", "milestones": "dev"}
+    m22_names = {"bs": "build spec", "ta": "technical architecture", "schemas": "schema document"}
+    for label, key, text in (("build spec", "bs", bs), ("technical architecture", "ta", ta),
+                             ("schema document", "schemas", m22_schemas)):
         seen = set()
         for m in re.finditer(r"§\s*(\d+(?:\.\d+)*)", text):
             num = m.group(1)
@@ -2566,7 +2596,7 @@ def check_semantic_documentation(docs, R, D, root="."):
             seen.add((target, num))
             D.add("semantic documentation", "section reference",
                   f"{label} line {text[:m.start()].count(chr(10)) + 1} cites §{num} of the "
-                  f"{'build spec' if target == 'bs' else 'technical architecture'}, which has no such heading")
+                  f"{m22_names[target]}, which has no such heading")
     # §80.2 field-count fidelity (audit LOW): a resolution cell that says
     # "<word> `Schema` fields" must match the schema's actual field block
     # (BS block first, then TA), and the ModelEvent type-count claim must
@@ -2913,6 +2943,113 @@ def check_section_ownership(R, D):
               f"expected {EXTENDS}")
 
 
+def check_document_topology(docs, D, root):
+    """ADR-220 document topology (reported under check 13 "structure").
+
+    (a) Root document set: once every ADR-220 document exists, the root holds
+        exactly ROOT_DOC_SET and nothing else. Before that the rule is not
+        armed, so the migration can land one document per commit.
+    (b) Reference documents (INDEX.md, GLOSSARY.md) and the process document
+        nirman-decisions.md may not carry authority markers: ADR blocks,
+        milestone blocks, Locks fields, fenced schemas, contract-authority
+        rows, or upper-case requirement statements.
+    (c) Every schema projection line resolves to exactly one schema block in
+        nirman-schemas.md whose owner line names the section the projection
+        sits in, and every schema name has exactly one fence across the root.
+    """
+    present = sorted(f for f in os.listdir(root) if f.endswith(".md") and os.path.isfile(os.path.join(root, f)))
+    if all(f in present for f in ROOT_DOC_SET):
+        extra = sorted(set(present) - set(ROOT_DOC_SET))
+        if extra:
+            D.add("structure", "root document set",
+                  f"root holds {len(present)} Markdown documents; ADR-220 fixes the set at the ten named documents "
+                  f"(unexpected: {extra})")
+    for key in ("index", "glossary", "dec"):
+        text = docs.get(key, "")
+        if not text:
+            continue
+        name = DOCS[key]
+        role = DOC_REGISTRY[key][1]
+        body = strip_fences(text) if key != "dec" else text
+        markers = []
+        if key != "dec" and re.search(r"^## ADR-\d+", text, re.M):
+            markers.append("an ADR block")
+        if key == "dec" and docs.get("adrs") and re.search(r"^## ADR-\d+", text, re.M):
+            markers.append("an ADR block (ADR records live in nirman-adrs.md)")
+        if re.search(r"^## (?:\d+\. )?M\d+\b", text, re.M):
+            markers.append("a milestone block")
+        if (key != "dec" or docs.get("adrs")) and "**Locks:**" in text:
+            markers.append("a Locks field")
+        if re.search(r"```text\s*\n[A-Z][A-Za-z0-9]+\s*\n- ", text):
+            markers.append("a fenced schema")
+        if re.search(r"^\| CONTRACT\.[A-Z_.]+ \| (?:BS|TA) §", text, re.M):
+            markers.append("a contract-authority row")
+        if key != "dec" and re.search(r"\b(?:MUST NOT|MUST|SHALL|NEVER)\b", body):
+            markers.append("an upper-case requirement statement")
+        for m in markers:
+            D.add("structure", name, f"{role} document carries {m}; ADR-220 denies it authority")
+    schemas = docs.get("schemas", "")
+    fence_re = re.compile(r"```text[ \t]*\n([A-Z][A-Za-z0-9]+)[ \t]*\n- ")
+    fence_homes = {}
+    for key in ("bs", "ta", "schemas", "dev", "adrs", "agents", "readme", "index", "glossary"):
+        for m in fence_re.finditer(docs.get(key, "")):
+            fence_homes.setdefault(m.group(1), []).append(DOCS[key])
+    if schemas:
+        # A schema that has moved may not keep a fence anywhere else; once the
+        # migration is complete (every ADR-220 document present) no fenced
+        # schema may remain outside nirman-schemas.md at all.
+        complete = all(f in present for f in ROOT_DOC_SET)
+        moved = set(fence_re.findall(schemas))
+        for name, homes in sorted(fence_homes.items()):
+            elsewhere = [h for h in homes if h != DOCS["schemas"]]
+            if name in moved and elsewhere:
+                D.add("structure", f"schema {name}",
+                      f"is defined in nirman-schemas.md but still has a fence in {elsewhere}; "
+                      "ADR-220 allows exactly one fence per schema name across the root")
+            elif complete and elsewhere:
+                D.add("structure", f"schema {name}",
+                      f"has a fence in {elsewhere}; after ADR-220 every fenced schema lives in nirman-schemas.md")
+            elif homes.count(DOCS["schemas"]) > 1:
+                D.add("structure", f"schema {name}", "has more than one fence in nirman-schemas.md")
+        owner_re = re.compile(r"^### (\d+\.\d+) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\* (BS|TA) §(\d+(?:\.\d+)*)", re.M)
+        owners = {m.group(2): (m.group(1), m.group(3), m.group(4)) for m in owner_re.finditer(schemas)}
+        proj_re = re.compile(r"^> \*\*Schema projection:\*\* `([A-Z][A-Za-z0-9]+)` is defined in `nirman-schemas\.md` "
+                             r"§(\d+\.\d+)\. Owner: (BS|TA) §(\d+(?:\.\d+)*)\.", re.M)
+        for key, tag in (("bs", "BS"), ("ta", "TA")):
+            text = docs[key]
+            for m in proj_re.finditer(text):
+                name, sec, odoc, osec = m.groups()
+                if name not in owners:
+                    D.add("structure", f"schema projection {name}",
+                          f"{DOCS[key]} projects {name} but nirman-schemas.md has no '### N.k {name}' block with an Owner line")
+                    continue
+                ssec, wdoc, wsec = owners[name]
+                if (ssec, wdoc, wsec) != (sec, odoc, osec):
+                    D.add("structure", f"schema projection {name}",
+                          f"{DOCS[key]} projection says SCHEMAS §{sec} / owner {odoc} §{osec}; "
+                          f"nirman-schemas.md has §{ssec} / owner {wdoc} §{wsec}")
+        for name, (ssec, wdoc, wsec) in sorted(owners.items()):
+            owner_text = docs["bs" if wdoc == "BS" else "ta"]
+            sec_body = _section_text(owner_text, wsec)
+            if sec_body is None:
+                D.add("structure", f"schema owner {name}",
+                      f"nirman-schemas.md §{ssec} names owner {wdoc} §{wsec}, which has no such heading")
+            elif f"`{name}` is defined in `nirman-schemas.md` §{ssec}." not in sec_body:
+                D.add("structure", f"schema owner {name}",
+                      f"owner section {wdoc} §{wsec} carries no projection line for {name} (nirman-schemas.md §{ssec})")
+
+
+def _section_text(text, num):
+    """Body of heading `num` (e.g. "29.2") up to the next heading of the same or
+    higher level; None when the heading does not exist."""
+    m = re.search(r"^(#{2,4}) " + re.escape(num) + r"(?:\.|\b)[^\n]*\n", text, re.M)
+    if not m:
+        return None
+    level = len(m.group(1))
+    nxt = re.compile(r"^#{2," + str(level) + r"} ", re.M).search(text, m.end())
+    return text[m.end():nxt.start() if nxt else len(text)]
+
+
 def check_structure(docs, R, D):
     """Check 13 (document-structure, BS §67.11 "Structure" row): document-level
     integrity that the contract graph presupposes."""
@@ -3068,6 +3205,7 @@ def verify(root):
     check_section_ownership(R, D)
     check_semantic_documentation(docs, R, D, root)
     check_structure(docs, R, D)
+    check_document_topology(docs, D, root)
     check_skill_bodies(docs, D, root)
     check_command_payload_field_coverage(docs, R, D, root)
     return R, adj, D
