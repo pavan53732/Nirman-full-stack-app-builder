@@ -378,6 +378,47 @@ CASES = {
     "README claims all capabilities PLANNED while a §5.7 row says SUPPORTED": (
         BS, "| TEST-GEN-001 | EV-GEN-001 | PLANNED |", "| TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
         "semantic documentation"),
+    # ADR-221: the Android toolchain and emulator are provisioned by Nirman on
+    # first launch. Each case removes exactly one of the load-bearing rules —
+    # no bundling, no licence auto-accept, readiness by observed frame, no
+    # installation guide, supervisor-owned transport, drop-oldest backpressure,
+    # the RenderTransport field block, the engine identity, no HAXM.
+    "TA §49.4 permits bundling the emulator in the installer": (
+        TA, "Nirman MUST NOT bundle, fork, patch, rebuild, or redistribute the emulator",
+        "Nirman MAY bundle the emulator",
+        "semantic documentation"),
+    "TA §49.4 lets Nirman accept the SDK licence for the user": (
+        TA, "Nirman MUST NOT pre-accept, auto-accept, or accept the licence on the user's behalf",
+        "Nirman accepts the licence on the user's behalf",
+        "semantic documentation"),
+    "TA §49.4 calls an install without an observed frame READY": (
+        TA, "`PROVISIONED_UNVERIFIED`, never `READY`", "`READY`",
+        "semantic documentation"),
+    "BS §4.2 hands the user an installation guide again": (
+        BS, "Nirman MUST NOT present an installation guide, a download link, or a command to run in place of provisioning",
+        "Missing tools are reported with an installation guide",
+        "semantic documentation"),
+    "BS §9.2 offers an installation reference for the Android toolchain": (
+        BS, "only a tool outside that toolchain — Git, or a Node.js version manager the project explicitly declares — may be reported with an official installation reference",
+        "every missing tool is reported with an official installation reference",
+        "semantic documentation"),
+    "TA §10.7 lets PreviewHost open the emulator control channel": (
+        TA, "The supervisor — never a worker, never PreviewHost — opens the single gRPC channel",
+        "PreviewHost opens the gRPC channel",
+        "semantic documentation"),
+    "TA §10.7 changes the frame backpressure policy to blocking": (
+        TA, "`backpressurePolicy: DROP_OLDEST`", "`backpressurePolicy: BLOCK`",
+        "semantic documentation"),
+    "the RenderTransport block loses its backpressurePolicy field": (
+        SCHEMAS, "- backpressurePolicy: DROP_OLDEST\n", "",
+        "semantic documentation"),
+    "ADR-221 drops the Google APIs system-image variant": (
+        ADRS, "distributed through the Android SDK repository, running Google APIs x86_64 system images",
+        "distributed through the Android SDK repository, running x86_64 system images",
+        "semantic documentation"),
+    "TA §49.4 provisions the discontinued HAXM accelerator": (
+        TA, "HAXM is never provisioned", "HAXM is provisioned on Intel hosts",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),

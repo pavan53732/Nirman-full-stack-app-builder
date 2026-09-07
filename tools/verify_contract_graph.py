@@ -1560,6 +1560,80 @@ def check_semantic_documentation(docs, R, D, root="."):
             if planned != registry_size:
                 D.add("semantic documentation", "README capability status",
                       f"README says all registered capabilities are PLANNED; BS §5.7 shows {planned} of {registry_size} PLANNED")
+    # Android toolchain provisioning (ADR-221). A fresh Windows machine has no
+    # JDK, SDK, emulator, or system image; the specification must say that
+    # Nirman provisions them itself (TA §49.4), that the engine is never
+    # bundled or built by Nirman, that the user is never handed an
+    # installation guide for the Android toolchain (BS §4.2), and that the
+    # frame path has a real transport record (RenderTransport, TA §10.7).
+    m_prov = _section_text(ta, "49.4")
+    if m_prov is None:
+        D.add("semantic documentation", "toolchain provisioning",
+              "TA §49.4 (Android toolchain provisioning; ADR-221) is missing")
+    else:
+        for needle, why in (
+                ("`ToolchainProvisioner`", "name the supervisor-owned `ToolchainProvisioner`"),
+                ("Nirman MUST NOT bundle, fork, patch, rebuild, or redistribute the emulator",
+                 "forbid bundling, forking, rebuilding, or redistributing the emulator and SDK components"),
+                ("Nirman MUST NOT pre-accept, auto-accept, or accept the licence on the user's behalf",
+                 "forbid accepting the Android SDK licence on the user's behalf"),
+                ("never an installation guide", "state that the three user actions are decisions, never an installation guide"),
+                ("Readiness is proven only by that frame", "prove readiness by an observed frame in PreviewHost"),
+                ("`PROVISIONED_UNVERIFIED`, never `READY`", "distinguish PROVISIONED_UNVERIFIED from READY"),
+                ("`ToolchainProvisioningRecord` is defined in `nirman-schemas.md`", "project the ToolchainProvisioningRecord schema"),
+                ("`ToolchainProvisioningManifest` is defined in `nirman-schemas.md`", "project the ToolchainProvisioningManifest schema")):
+            if needle not in m_prov:
+                D.add("semantic documentation", "toolchain provisioning", f"TA §49.4 must {why} (ADR-221)")
+        if re.search(r"HAXM", m_prov) and "HAXM is never provisioned" not in m_prov:
+            D.add("semantic documentation", "toolchain provisioning",
+                  "TA §49.4 mentions HAXM without stating that it is never provisioned (discontinued; ADR-221)")
+    m_fr = _section_text(bs, "4.2")
+    if m_fr is None or "installation guide" not in m_fr or "Nirman MUST NOT present an installation guide" not in m_fr \
+            or "technical architecture §49.4" not in m_fr:
+        D.add("semantic documentation", "toolchain provisioning",
+              "BS §4.2 must replace the installation-guide remedy with provisioning through TA §49.4 "
+              "and forbid presenting an installation guide for the Android toolchain (ADR-221)")
+    m_diag = _section_text(bs, "9.2")
+    if m_diag is not None and "official installation reference" in m_diag \
+            and "only a tool outside that toolchain" not in m_diag:
+        D.add("semantic documentation", "toolchain provisioning",
+              "BS §9.2 offers an official installation reference without confining it to tools outside the "
+              "Nirman-provisioned toolchain (ADR-221)")
+    m_rt = _section_text(ta, "10.7")
+    if m_rt is None or "`RenderTransport` is defined in `nirman-schemas.md`" not in m_rt:
+        D.add("semantic documentation", "render transport",
+              "TA §10.7 must project the RenderTransport schema block (ADR-221)")
+    else:
+        for needle, why in (
+                ("The supervisor — never a worker, never PreviewHost — opens the single gRPC channel",
+                 "make the supervisor the only owner of the emulator control channel"),
+                ("`backpressurePolicy: DROP_OLDEST`", "fix the drop-oldest backpressure policy"),
+                ("`SwapChainPanel`", "name the WinUI 3 presentation surface"),
+                ("Frame pixels never travel through the durable event log", "keep frame pixels out of the durable event log")):
+            if needle not in m_rt:
+                D.add("semantic documentation", "render transport", f"TA §10.7 must {why} (ADR-221)")
+    if sch:
+        m_rt_blk = re.search(r"\nRenderTransport\n((?:- .*\n|[ \t]+.*\n)+)", sch)
+        m_rt_fields = set(re.sub(r"[:(].*", "", ln[2:]).strip() for ln in m_rt_blk.group(1).splitlines()
+                          if ln.startswith("- ")) if m_rt_blk else set()
+        for field in ("transportKind", "backpressurePolicy", "presentationSurface", "frameStamp", "maxFrameRate", "state"):
+            if field not in m_rt_fields:
+                D.add("semantic documentation", "render transport",
+                      f"the RenderTransport block (SCHEMAS §2.89) must carry `{field}` (TA §10.7; ADR-221)")
+    m_221 = adr_blocks(dec).get(221, "")
+    if not m_221:
+        D.add("semantic documentation", "toolchain provisioning", "ADR-221 (toolchain provisioning) is missing")
+    else:
+        for needle, why in (
+                ("Google Android Emulator", "name the engine"),
+                ("distributed through the Android SDK repository, running Google APIs x86_64 system images",
+                 "name the distribution channel and the Google APIs system-image variant that carries Google Play services"),
+                ("MUST NOT bundle, fork, patch, rebuild, or redistribute", "forbid bundling or building the engine"),
+                ("never an installation guide", "rule out installation guides"),
+                ("**Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`", "lock CONTRACT.RUNTIME.PLATFORM_CAPABILITY"),
+                ("**Reversal trigger:**", "carry a Reversal trigger")):
+            if needle not in m_221:
+                D.add("semantic documentation", "toolchain provisioning", f"ADR-221 must {why}")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:
