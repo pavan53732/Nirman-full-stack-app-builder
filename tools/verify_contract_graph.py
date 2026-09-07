@@ -1627,6 +1627,42 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "render transport",
               "BS §71.1 must state that a live frame is not a PreviewSyncEvent and that a frame is painted live only under "
               "streamStatus CONNECTED with a bound stamp (TA §10.7; ADR-221)")
+    # The per-user root is a fixed literal (BS §79.14): an agent cannot create
+    # a directory from a placeholder, and TA §49.4 must build on the same root.
+    m_root = _section_text(bs, "79.14")
+    if m_root is None or "`C:\\Nirman\\<sid8>\\p\\<8-char-id>\\`" not in m_root \
+            or "first eight lowercase hex characters of the SHA-256" not in m_root:
+        D.add("semantic documentation", "toolchain provisioning",
+              "BS §79.14 must fix the per-user root literal C:\\Nirman\\<sid8>\\ (sid8 = first eight hex characters of the SHA-256 of the account SID)")
+    if m_prov is not None and "`C:\\Nirman\\<sid8>\\tc\\`" not in m_prov:
+        D.add("semantic documentation", "toolchain provisioning",
+              "TA §49.4 must place the toolchain under the BS §79.14 per-user root C:\\Nirman\\<sid8>\\tc\\")
+    for key, label in (("bs", "build spec"), ("ta", "technical architecture")):
+        if "C:\\<root>\\" in docs[key]:
+            D.add("semantic documentation", "toolchain provisioning",
+                  f"{label} still uses the placeholder C:\\<root>\\; the root literal is C:\\Nirman\\<sid8>\\ (BS §79.14)")
+    if sch:
+        m_rt_blk = re.search(r"\nRenderTransport\n((?:- .*\n|[ \t]+.*\n)+)", sch)
+        m_rt_fields = set(re.sub(r"[:(].*", "", ln[2:]).strip() for ln in m_rt_blk.group(1).splitlines()
+                          if ln.startswith("- ")) if m_rt_blk else set()
+        for field in ("transportKind", "backpressurePolicy", "presentationSurface", "frameStamp", "frameNotice", "maxFrameRate", "state"):
+            if field not in m_rt_fields:
+                D.add("semantic documentation", "render transport",
+                      f"the RenderTransport block (SCHEMAS §2.89) must carry `{field}` (TA §10.7; ADR-221)")
+    m_221 = adr_blocks(dec).get(221, "")
+    if not m_221:
+        D.add("semantic documentation", "toolchain provisioning", "ADR-221 (toolchain provisioning) is missing")
+    else:
+        for needle, why in (
+                ("Google Android Emulator", "name the engine"),
+                ("distributed through the Android SDK repository, running Google APIs x86_64 system images",
+                 "name the distribution channel and the Google APIs system-image variant that carries Google Play services"),
+                ("MUST NOT bundle, fork, patch, rebuild, or redistribute", "forbid bundling or building the engine"),
+                ("never an installation guide", "rule out installation guides"),
+                ("**Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`", "lock CONTRACT.RUNTIME.PLATFORM_CAPABILITY"),
+                ("**Reversal trigger:**", "carry a Reversal trigger")):
+            if needle not in m_221:
+                D.add("semantic documentation", "toolchain provisioning", f"ADR-221 must {why}")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:

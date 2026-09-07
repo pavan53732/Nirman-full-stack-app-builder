@@ -433,6 +433,9 @@ CASES = {
         BS, "A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED`",
         "A frame may be painted as live whenever it arrives",
         "semantic documentation"),
+    "BS §79.14 reverts the root to the <root> placeholder": (
+        BS, "`C:\\Nirman\\<sid8>\\p\\<8-char-id>\\`", "`C:\\<root>\\p\\<8-char-id>\\`",
+        "semantic documentation"),
     "the RenderTransport block loses its frameNotice field": (
         SCHEMAS, "- frameNotice\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
         "semantic documentation"),

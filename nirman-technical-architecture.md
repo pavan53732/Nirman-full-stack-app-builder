@@ -2005,10 +2005,10 @@ Provisioning is how a fresh Windows machine — no JDK, no Android SDK, no emula
 
 **Trigger and precedence.** Provisioning starts on first launch, before any project exists, as part of the first-run flow of build spec §4.2, and re-runs when the pinned manifest changes or a health probe fails. It never waits for an AI provider: a `SessionProviderMode.PLANNING_ONLY` session provisions fully, and provider setup proceeds in parallel. Within the resolution order of build spec §26.11 (restated in §11.1 of this document), the Nirman-provisioned toolchain root is the portable installation; it is selected whenever a project declares no version manager and no explicitly configured path, which is the default for every generated project. An Android SDK, JDK, or Android Studio already present on the host is detected and recorded in `EnvironmentSnapshot` (§49.2) as detected-not-used; it is never adopted implicitly. `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`, and the user or machine `PATH` are never read as a source of truth and never written; the equivalent variables are set per spawned process only, through the environment filtering of §9.2.
 
-**Toolchain root.** `C:\<root>\tc\` under the same short deterministic prefix as the workspace roots of build spec §79.14 — never under the user profile, Desktop, or a synced folder — created per Windows user and ACL-scoped to that user:
+**Toolchain root.** `C:\Nirman\<sid8>\tc\`, where `C:\Nirman\<sid8>\` is the per-user root of build spec §79.14 (`<sid8>` = the first eight lowercase hex characters of the SHA-256 of the Windows account SID) — never under the user profile, Desktop, or a synced folder — created by the supervisor and ACL-scoped to that account:
 
 ```text
-C:\<root>\tc\
+C:\Nirman\<sid8>\tc\
   manifest\<manifestVersion>.json          pinned component list, digests, licence hashes
   jdk\<vendor>-<major>\                    LTS JDK (Temurin or Microsoft Build of OpenJDK)
   sdk\cmdline-tools\latest\                sdkmanager, avdmanager
