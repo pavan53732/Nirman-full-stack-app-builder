@@ -2286,6 +2286,13 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "PASS (WITH SKIPS)" in text:
             D.add("semantic documentation", "retired certification status",
                   f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
+    # Schema-parity obligation must be stated normatively in BS §67.11, not
+    # only enforced here (audit residual): the build spec names the registry
+    # and the identical-field-set rule.
+    m22_6711 = bs[bs.find("### 67.11"):bs.find("### 67.12")] if bs.find("### 67.11") >= 0 else ""
+    if "`CanonicalSchemaRegistry`" not in m22_6711 or "identical field-name sets" not in m22_6711:
+        D.add("semantic documentation", "schema parity statement",
+              "BS §67.11 must state the CanonicalSchemaRegistry schema-parity relation (identical field-name sets for registered schemas)")
     # Cross-document consistency (audit M22). Each rule names the canonical
     # owner and rejects the drift that was found in the other document.
     # (a) Disk quota: BS §26.3 owns the 10 GB default; TA §7.2 must repeat it.

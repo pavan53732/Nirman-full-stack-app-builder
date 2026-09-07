@@ -4521,6 +4521,8 @@ The verifier must emit defects with the contract identifier, the sections involv
 
 The document-structure checks are these three defect classes. Each is individually addressable in the verifier output exactly like the twelve above, and a defect in any of them fails certification:
 
+The schema-parity relation named in the semantic-documentation row is this: the technical architecture's `CanonicalSchemaRegistry` (technical architecture §36.1) is the single list of registered schema identities; for every schema whose field block appears in both this document and the technical architecture, a registered schema MUST have identical field-name sets in every occurrence (this document's first block is the normative shape), and any other duplicated block MUST carry every field of this document's block (the technical architecture may add persistence-only fields). A schema named in the registry with no field block in either document, or a duplicated block that drops or renames a field, is a semantic-documentation defect.
+
 | Additional check | Failure condition |
 |---|---|
 | Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, or ADR numbering has gaps |

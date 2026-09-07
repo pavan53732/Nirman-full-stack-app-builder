@@ -348,6 +348,10 @@ CASES = {
     "§80.2 row cites a section number that has no heading": (
         BS, "Recorded in `toolchainLock` (§5.7.1) |", "Recorded in `toolchainLock` (§369) |",
         "semantic documentation"),
+    "BS §67.11 weakens the schema-parity statement": (
+        BS, "a registered schema MUST have identical field-name sets in every occurrence",
+        "a registered schema SHOULD have matching fields in every occurrence",
+        "semantic documentation"),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),
