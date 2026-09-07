@@ -304,11 +304,12 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 6. Add screenshot references to worker handoffs and final task results.
 7. Implement the authoritative InteractionExecutor for deterministic Android scenarios, including action execution, runtime-state observation, screenshots, UI-hierarchy evidence where supported, Logcat correlation, and assertion evaluation.
 8. Establish the Nirman-managed headless emulator as the canonical primary PreviewRuntime.
-9. Implement embedded WinUI PreviewHost rendering.
-10. Implement controlled preview input forwarding.
-11. Prove provisioning readiness end to end: from an empty toolchain root, `ToolchainProvisioner` reaches `READY` only when one stamped frame is observed inside PreviewHost, and a run that installs every component but delivers no frame is recorded as `PROVISIONED_UNVERIFIED`.
-12. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
-13. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
+9. Implement the supervisor-owned `RenderTransport` (TA §10.7; SCHEMAS §2.89): headless emulator launch with the loopback gRPC control channel, screenshot-stream subscription, frame stamping with the revision binding, the shared-memory frame ring with drop-oldest backpressure, and `IDLE`/`LOST` detection through the single reducer.
+10. Implement embedded WinUI PreviewHost rendering on a `SwapChainPanel` with the `WriteableBitmap` fallback recorded in `PreviewSurface.status`.
+11. Implement controlled preview input forwarding: `PreviewInteraction` → `SupervisorConnection` → `AndroidDeviceAdapter.interact()` → emulator input channel, with the interaction identity carried on the resulting frame stamp.
+12. Prove provisioning readiness end to end: from an empty toolchain root, `ToolchainProvisioner` reaches `READY` only when one stamped frame is observed inside PreviewHost, and a run that installs every component but delivers no frame is recorded as `PROVISIONED_UNVERIFIED`.
+13. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
+14. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
 
 ### Exit gate
 

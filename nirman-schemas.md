@@ -3563,6 +3563,47 @@ ToolchainProvisioningRecord
 - completedAt
 ```
 
+### 2.89 RenderTransport
+
+**Owner:** TA §10.7 · **Contract:** — · **Projected at:** —
+
+```text
+RenderTransport
+- renderTransportId
+- renderTransportVersion
+- previewSurfaceId
+- deviceId
+- deviceSessionId
+- runtimeSessionId
+- transportKind: SHARED_MEMORY_RING | WEBRTC_LOOPBACK
+- controlEndpoint
+- pixelFormat: RGBA8888
+- width
+- height
+- maxFrameRate
+- ringDepth
+- backpressurePolicy: DROP_OLDEST
+- staleAfterMs
+- gpuMode: HOST_GPU | SWIFTSHADER
+- presentationSurface: SWAPCHAIN_PANEL | WRITEABLE_BITMAP
+- state: OPENING | STREAMING | IDLE | LOST | CLOSED
+- lastFrameSequence
+- lastFrameAt
+- frameStamp
+  - frameSequence
+  - capturedAt
+  - width
+  - height
+  - pixelFormat
+  - deviceId
+  - previewRevisionId
+  - artifactFingerprint
+  - deviceStateFingerprint
+  - interactionId
+- createdAt
+- closedAt
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry

@@ -402,6 +402,7 @@
 | `ConversationRebaseRecord` | §2.86 | TA §86.1 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | — |
 | `ToolchainProvisioningManifest` | §2.87 | TA §49.4 | — | — |
 | `ToolchainProvisioningRecord` | §2.88 | TA §49.4 | — | — |
+| `RenderTransport` | §2.89 | TA §10.7 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
