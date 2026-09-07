@@ -2286,6 +2286,29 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "PASS (WITH SKIPS)" in text:
             D.add("semantic documentation", "retired certification status",
                   f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
+    # §80.2 quote fidelity (audit M21): every quoted "should" statement must
+    # occur verbatim inside the section it cites, so the resolution table
+    # cannot drift from the prose it resolves (paraphrases, vanished quotes,
+    # and wrong section numbers are defects).
+    def _section_body(text, num):
+        pat = re.compile(r"^(#{2,5}) " + re.escape(num) + r"(?:\.| |$)(.*)$", re.M)
+        m_ = pat.search(text)
+        if m_ is None:
+            return None
+        rest = text[m_.end():]
+        nxt = re.search(r"^#{2," + str(len(m_.group(1))) + r"} ", rest, re.M)
+        return rest[:nxt.start()] if nxt else rest
+    quote_table = bs.split('### 80.2 "Should" resolution table', 1)[-1].split("### 80.3", 1)[0]
+    plain = {"BS": bs.replace("**", ""), "TA": ta.replace("**", "")}
+    for doc, num, quote in re.findall(r"^\| (BS|TA) §([0-9.]+) \| \"([^\"]+)\"", quote_table, re.M):
+        body = _section_body(plain[doc], num)
+        if body is None:
+            D.add("semantic documentation", "§80.2 quote fidelity", f"{doc} §{num} does not exist (row {quote[:50]!r})")
+            continue
+        frags = [f.strip() for f in re.split(r"\.\.\.|…", quote) if f.strip()]
+        if not all(f in body for f in frags):
+            D.add("semantic documentation", "§80.2 quote fidelity",
+                  f"{doc} §{num} does not contain the quoted statement {quote[:70]!r}")
     # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
     # number of §80.2 rows carrying that scope prefix, and the total MUST be
     # their sum. A hand-maintained figure that drifts from the table it
