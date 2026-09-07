@@ -4,9 +4,10 @@ Scope: authorized repairs — missing tool, wrong tool version, missing
 target, broken PATH, missing SDK or dependency, incorrect configuration
 (BS §79.7).
 
-Gated by the repair capability plus policy approval through the normal
-transaction path. The declared `environment.repair` request is evaluated
-by the policy engine; loading this skill never grants it.
+Gated by `HOST_TOOL_OBSERVATION` and `ENVIRONMENT_REPAIR` plus policy
+approval through the normal transaction path. The repair request is
+evaluated by the policy engine (BS §26.11); loading this skill never
+grants it.
 
 ## Workflow
 1. Take the repair action only from a REPAIRABLE classification in the

@@ -4,8 +4,9 @@ Scope: identify host and target; inspect toolchain, SDKs, runtimes, and
 native dependencies; classify executable and validation capabilities;
 produce the environment fingerprint (BS §79.7).
 
-Runs before implementation. Gated by host tools only — it must never be
-blocked by the classification it produces.
+Runs before implementation. Requires no §79.7 capability — it produces
+the classification the other skills consume and must never be blocked
+by it.
 
 ## Workflow
 1. Observe the host platform, architecture, and every required tool

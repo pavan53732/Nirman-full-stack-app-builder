@@ -2638,6 +2638,23 @@ def check_skill_bodies(docs, D, repo_root):
         caps = set(man.get("requiredCapabilities") or [])
         for extra in man.get("conditionalCapabilities", {}).values():
             caps |= set(extra)
+        # Body gates (BS §79.7): the prose names its gates only in the closed
+        # capability-id vocabulary, and only the ids of the skill's own row;
+        # legacy lowercase gate ids (android_build, cross_build_windows,
+        # native_execution, environment.repair, ...) are rejected.
+        with open(path, encoding="utf-8") as fh:
+            body_text = fh.read()
+        body_upper = set(re.findall(r"`([A-Z][A-Z_]+)`", body_text))
+        body_caps = {c for c in body_upper if c in vocab or re.search(r"(TOOLCHAIN|EXECUTION|OBSERVATION|REPAIR)$", c)}
+        for cid in sorted(body_caps - vocab):
+            D.add("semantic documentation", f"skill {name}",
+                  f"body gates on capability id {cid}, which is outside the §79.7 vocabulary")
+        for cid in sorted((body_caps & vocab) - caps):
+            D.add("semantic documentation", f"skill {name}",
+                  f"body gates on {cid}, which is not in the skill's §79.7 row {sorted(caps)}")
+        for legacy in sorted(set(re.findall(r"`([a-z]+(?:[_.][a-z]+)+)`", body_text))):
+            D.add("semantic documentation", f"skill {name}",
+                  f"body uses legacy lowercase gate id `{legacy}`; gates are stated in the §79.7 capability-id vocabulary")
         unknown = sorted(caps - vocab)
         if unknown:
             D.add("semantic documentation", f"skill {name}", f"manifest names capability ids outside the §79.7 vocabulary: {unknown}")

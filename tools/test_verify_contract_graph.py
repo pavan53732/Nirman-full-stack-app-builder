@@ -701,6 +701,14 @@ CASES = {
     "skill manifest names a capability outside the vocabulary": (
         "crates/nirman-skills/skills/windows/windows-runtime-validation/skill.json", '"WINDOWS_NATIVE_EXECUTION"', '"WINDOWS_DEVICE_EXECUTION"',
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill body gates on a legacy lowercase capability id": (
+        "crates/nirman-skills/skills/windows/windows-desktop-build/SKILL.md",
+        "When `WINDOWS_HOST_TOOLCHAIN`\nresolves to", "When `cross_build_windows`\nresolves to",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill body gates on a capability outside its §79.7 row": (
+        "crates/nirman-skills/skills/android/android-toolchain/SKILL.md",
+        "emulator steps, `ANDROID_EMULATOR_EXECUTION`)", "emulator steps, `WINDOWS_NATIVE_EXECUTION`)",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "CandidateBranch schema dropped from the architecture": (
         TA, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

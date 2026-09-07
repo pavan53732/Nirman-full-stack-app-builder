@@ -4,9 +4,9 @@ Scope: for a host→target pair, determine what can be cross-built, which
 artifacts can be produced, and which validation evidence necessarily
 remains missing (BS §79.7).
 
-Gated by host toolchain observation. This skill's job is to state the
-gap truthfully: it reports what is missing, it does not produce the
-missing evidence.
+Gated by `HOST_TOOL_OBSERVATION`. This skill's job is to state the gap
+truthfully: it reports what is missing, it does not produce the missing
+evidence.
 
 ## Workflow
 1. Read the current EnvironmentCapabilityRecord for the pair.
