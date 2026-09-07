@@ -28,5 +28,3 @@ __pycache__/
 # AI assistant work trees and configuration directories.
 .workbuddy/
 .workbuddy-ai/
-.kilo/
-.kilocode/
