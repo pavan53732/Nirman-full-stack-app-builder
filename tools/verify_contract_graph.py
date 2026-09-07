@@ -1739,7 +1739,7 @@ def check_semantic_documentation(docs, R, D, root="."):
                   f"canonical build-spec anchor is missing: {anchor}")
 
     state_tokens = ("ProductLifecycleState", "AssuranceState", "CapabilityMaturity",
-                    "IntegrationState", "SigningState", "DeliveryState")
+                    "IntegrationState", "SigningState", "DeliveryState", "CompletionState")
     missing_state_tokens = [token for token in state_tokens if token not in bs]
     if missing_state_tokens:
         D.add("semantic documentation", "state vocabulary",
@@ -2315,6 +2315,22 @@ def check_semantic_documentation(docs, R, D, root="."):
     # same number of steps and the same anchor concepts in the same order, so
     # the two cannot drift apart (an agent reads AGENTS.md; an implementer
     # reads the architecture).
+    # Completion outcome vocabulary: BS §5.7.2 defines CompletionState (the
+    # value set of CompletionDecision, containing the NOT_COMPLETE outcome that
+    # §5.7.7's CERTIFICATION ≠ COMPLETION rule relies on) and the session
+    # record's completionState field is typed with it in both documents.
+    m_cs = re.search(r"^CompletionState\s*= ((?:[A-Z_]+\s*\|\s*)+[A-Z_]+)", bs, re.M)
+    cs_values = set(re.findall(r"[A-Z_]+", m_cs.group(1))) if m_cs else set()
+    if not {"NOT_COMPLETE", "COMPLETED", "INVALIDATED"} <= cs_values:
+        D.add("semantic documentation", "completion state vocabulary",
+              "BS §5.7.2 must define CompletionState with at least NOT_COMPLETE, COMPLETED and INVALIDATED")
+    if "- completionState: CompletionState (§5.7.2)" not in bs or \
+            "- completionState: CompletionState (build spec §5.7.2)" not in ta:
+        D.add("semantic documentation", "completion state vocabulary",
+              "AutonomousAndroidSession.completionState must be typed as CompletionState in BS §29.2 and TA §34")
+    if "The outcome is recorded as a `CompletionState`" not in ta:
+        D.add("semantic documentation", "completion state vocabulary",
+              "TA §36.4 must record the completion outcome as a CompletionState on CompletionDecision")
     # The TA side is checked unconditionally; the AGENTS side only when the
     # file is present (spec-only fixtures may omit it).
     chain_anchors = ("typed ipc client", "envelope", "supervisor", "command registry", "application use case",

@@ -352,6 +352,16 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "BS §5.7.2 CompletionState loses the NOT_COMPLETE outcome": (
+        BS, "CompletionState       = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |",
+        "CompletionState       = NOT_EVALUATED | COMPLETED | BLOCKED |",
+        "semantic documentation"),
+    "TA §34 AutonomousAndroidSession.completionState loses its CompletionState type": (
+        TA, "- completionState: CompletionState (build spec §5.7.2)", "- completionState",
+        "semantic documentation"),
+    "TA §36.4 stops recording the completion outcome as a CompletionState": (
+        TA, "The outcome is recorded as a `CompletionState`", "The outcome is recorded as a completion state",
+        "semantic documentation"),
     "AndroidServiceIntegration.requiredOperationality loses its IntegrationState type": (
         TA, "- requiredOperationality: IntegrationState (build spec §5.7.2;", "- requiredOperationality (build spec §5.7.2;",
         "semantic documentation"),

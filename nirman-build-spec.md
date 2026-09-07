@@ -398,11 +398,15 @@ SigningState          = NOT_REQUIRED | UNSIGNED_DEBUG | CONFIGURED |
                         INSPECTED | FAILED | BLOCKED | UNKNOWN
 DeliveryState         = NOT_REQUESTED | ELIGIBLE | EXPORTING | EXPORTED |
                         DELIVERED | FAILED | BLOCKED | UNKNOWN
+CompletionState       = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |
+                        USER_REQUIRED | INVALIDATED
 ReproducibilityLevel  = UNKNOWN | INPUTS_RECORDED | REBUILD_MATCHED |
                         BIT_FOR_BIT_VERIFIED | NOT_REPRODUCIBLE
 ```
 
 `ReproducibilityLevel` is the value set of the `reproducibilityLevel` field on `AndroidCapabilityProfile` (§5.7.1) and `ArtifactSet` (technical architecture §36.4); `REBUILD_MATCHED` and `BIT_FOR_BIT_VERIFIED` are reached only from an observed rebuild whose artifact hashes were compared, never from a declared policy.
+
+`CompletionState` is the value set of `CompletionDecision` and of the `completionState` field on `AutonomousAndroidSession` (§29.2; technical architecture §34). It is written only by the sole completion evaluator of §5.7.7: `NOT_EVALUATED` until the evaluator has run for the current revision; `NOT_COMPLETE` when the goal contract is not satisfied, including a technically certified artifact whose mandatory integration is unavailable; `COMPLETED` only when every §5.7.7 condition holds; `BLOCKED` and `USER_REQUIRED` for an unresolved blocking contradiction or a decision the user must make; `INVALIDATED` when a §5.7.4 dependency change retires a prior `COMPLETED`. `ProductLifecycleState.COMPLETED` mirrors `CompletionState.COMPLETED` and is never set ahead of it.
 
 `RUNNING` describes lifecycle or process activity; it does not imply `OBSERVED`, `VERIFIED`, or `COMPLETED`. `DELIVERED` proves a successful local handoff, not that every optional integration or release-signing condition passed. `CERTIFIED` is permitted only after the required executable fixtures and evidence gates pass.
 
@@ -473,7 +477,7 @@ Every remote or externally visible side effect MUST be represented by an `Extern
 
 ### 5.7.7 Completion predicate and illegal-state rules
 
-Certification and completion are different decisions and MUST never be treated as synonyms. `CertificationDecision` answers whether an artifact or revision satisfies the declared technical certification policy. `CompletionDecision` answers whether the user’s goal contract is satisfied, including mandatory integrations and product requirements. Therefore, `CERTIFICATION ≠ COMPLETION`: an APK may be technically certified while goal completion remains `NOT_COMPLETE` because a required backend is unavailable.
+Certification and completion are different decisions and MUST never be treated as synonyms. `CertificationDecision` answers whether an artifact or revision satisfies the declared technical certification policy. `CompletionDecision` answers whether the user’s goal contract is satisfied, including mandatory integrations and product requirements. Therefore, `CERTIFICATION ≠ COMPLETION`: an APK may be technically certified while goal completion remains `NOT_COMPLETE` (`CompletionState`, §5.7.2) because a required backend is unavailable.
 
 The sole completion evaluator MUST require the declared goal conditions, current mandatory evidence, valid dependencies, appropriate capability maturity, required integration operationality, preview gate when required, artifact and signing policy, reproducibility policy, and absence of blocking contradictions. At minimum, the following combinations are illegal and MUST be rejected:
 
@@ -2151,7 +2155,7 @@ AutonomousAndroidSession
 - validationState
 - recoveryState
 - artifactState
-- completionState
+- completionState: CompletionState (§5.7.2)
 ```
 
 The session owns the complete task independently of the chat interface. It remains resumable after the interface closes, the process restarts, or the host resumes from sleep where the operating system permits it.

@@ -1974,7 +1974,7 @@ AutonomousAndroidSession
 - validationState
 - recoveryState
 - artifactState
-- completionState
+- completionState: CompletionState (build spec §5.7.2)
 ```
 
 ### 34.1 Input-fusion pipeline
@@ -2302,7 +2302,7 @@ Every `P.` term is a field of the build spec §69.4 `PreviewRevision`; the toolc
 
 Only the preview coordinator may promote a candidate through this predicate. UI, workers, models, artifact inspection, and presentation reducers may report facts but cannot independently make a preview current.
 
-Completion requires current mandatory evidence, selected profile maturity, required integration operationality, preview and artifact gates when declared, signing policy, reproducibility policy, and no unresolved blocking condition. `COMPLETED`, `VERIFIED`, `CURRENT`, `SUPPORTED`, `DELIVERED`, `FUNCTIONAL`, and `CERTIFIED` states are rejected when their required dependencies are missing, stale, invalidated, or model-authored.
+Completion requires current mandatory evidence, selected profile maturity, required integration operationality, preview and artifact gates when declared, signing policy, reproducibility policy, and no unresolved blocking condition. `COMPLETED`, `VERIFIED`, `CURRENT`, `SUPPORTED`, `DELIVERED`, `FUNCTIONAL`, and `CERTIFIED` states are rejected when their required dependencies are missing, stale, invalidated, or model-authored. The outcome is recorded as a `CompletionState` (build spec §5.7.2: `NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED | USER_REQUIRED | INVALIDATED`) on `CompletionDecision` and mirrored into `AutonomousAndroidSession.completionState` (§34); `CERTIFICATION ≠ COMPLETION` (build spec §5.7.7) means a certified artifact may carry `NOT_COMPLETE`.
 
 ### 36.5 Transaction domains and capability promotion
 
