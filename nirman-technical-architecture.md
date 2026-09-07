@@ -4250,7 +4250,7 @@ FailureSignature
 - lastSeenAt
 ```
 
-Signatures are written as FAILURE memory records per §59.2 and are project-scoped unless anonymized for runtime-improvement memory.
+Signatures are written as FAILURE memory records per §59.5 and are project-scoped unless anonymized for runtime-improvement memory.
 
 ### 63.5 Architecture tests
 
@@ -4767,7 +4767,7 @@ Hypothesis
 - createdAtEventId
 ```
 
-The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.2 and feed the failure signatures of §63.4.
+The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.5 and feed the failure signatures of §63.4.
 
 ### 71.6 CapabilityRegistry and discovery
 
