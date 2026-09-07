@@ -2289,6 +2289,46 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "PASS (WITH SKIPS)" in text:
             D.add("semantic documentation", "retired certification status",
                   f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
+    # Integration operationality gate (audit follow-up): the TA §74.1
+    # `AndroidServiceIntegration.requiredOperationality` field is typed as the
+    # BS §5.7.2 IntegrationState and both BS §70 and TA §74.1 state the gate
+    # (aggregateState must meet requiredOperationality); BS §5.7.5 owns the
+    # comparison order.
+    m_asi = re.search(r"\nAndroidServiceIntegration\n((?:- .*\n|[ \t]+.*\n)+)", ta)
+    m_asi_fields = m_asi.group(1) if m_asi else ""
+    if not re.search(r"^- requiredOperationality: IntegrationState\b", m_asi_fields, re.M):
+        D.add("semantic documentation", "integration operationality gate",
+              "TA §74.1 AndroidServiceIntegration.requiredOperationality must be typed as IntegrationState (BS §5.7.2)")
+    m_ta741 = ta[ta.find("### 74.1 Android service integration"):ta.find("### 74.2", max(ta.find("### 74.1"), 0))]
+    if "meets or exceeds `requiredOperationality`" not in m_ta741 or "`IntegrationOperationality.aggregateState`" not in m_ta741:
+        D.add("semantic documentation", "integration operationality gate",
+              "TA §74.1 must state that IntegrationOperationality.aggregateState meets or exceeds requiredOperationality")
+    m_bs70 = bs[bs.find("## 70. Integration Boundary Contract"):bs.find("## 71. ", max(bs.find("## 70. Integration Boundary Contract"), 0))]
+    if "meets the integration's declared `requiredOperationality`" not in m_bs70:
+        D.add("semantic documentation", "integration operationality gate",
+              "BS §70 must gate a service-integration boundary on IntegrationOperationality.aggregateState meeting requiredOperationality")
+    m_bs575 = bs[bs.find("### 5.7.5 Required integration operationality"):bs.find("### 5.7.6", max(bs.find("### 5.7.5"), 0))]
+    if "`CONFIGURED` < `REACHABLE` < `FUNCTIONAL`" not in m_bs575:
+        D.add("semantic documentation", "integration operationality gate",
+              "BS §5.7.5 must define the requiredOperationality comparison order (CONFIGURED < REACHABLE < FUNCTIONAL)")
+    # AGENTS §8 canonical command chain and TA §81.2 restatement must have the
+    # same number of steps and the same anchor concepts in the same order, so
+    # the two cannot drift apart (an agent reads AGENTS.md; an implementer
+    # reads the architecture).
+    # The TA side is checked unconditionally; the AGENTS side only when the
+    # file is present (spec-only fixtures may omit it).
+    chain_anchors = ("typed ipc client", "envelope", "supervisor", "command registry", "application use case",
+                     "authority checks", "sqlite transaction", "event store", "projection projector", "projection ?snapshot")
+    chains = [("TA §81.2", re.search(r"### 81\.2 Command-to-domain wiring.*?```text\n(.*?)```", ta, re.S))]
+    if os.path.exists(agents_path):
+        agents_text = open(agents_path, encoding="utf-8").read()
+        chains.append(("AGENTS.md §8", re.search(r"The canonical wiring is:\n\n```text\n(.*?)```", agents_text, re.S)))
+    for label, m in chains:
+        steps = [s.strip() for s in m.group(1).strip().split("\n")] if m else []
+        arrows = [s for s in steps if s.startswith("→")]
+        if len(arrows) != 10 or any(not re.search(a, arrows[i], re.I) for i, a in enumerate(chain_anchors)):
+            D.add("semantic documentation", "command chain",
+                  f"{label} canonical command chain must list the ten steps in order: {', '.join(a.split('|')[0] for a in chain_anchors)}")
     # Schema-parity obligation must be stated normatively in BS §67.11, not
     # only enforced here (audit residual): the build spec names the registry
     # and the identical-field-set rule.

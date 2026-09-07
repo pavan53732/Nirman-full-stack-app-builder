@@ -5794,13 +5794,13 @@ AndroidServiceIntegration
 - persistenceSchemaRef
 - offlineAndCachePolicy
 - idempotencyPolicy
-- requiredOperationality
+- requiredOperationality: IntegrationState (build spec §5.7.2; the minimum acceptable `IntegrationOperationality.aggregateState`, build spec §5.7.5)
 - functionalScenarioRefs
 - acceptanceEvidenceRefs
 - privacyAndNetworkPolicy
 ```
 
-An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone.
+An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone. `requiredOperationality` is the build spec §5.7.5 minimum: the integration satisfies its boundary only when the current `IntegrationOperationality.aggregateState` for `integrationId` meets or exceeds `requiredOperationality` in the build spec §5.7.5 order (`CONFIGURED` < `REACHABLE` < `FUNCTIONAL`; `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, and `UNKNOWN` never satisfy a `requiredOperationality` of `CONFIGURED` or above), and the comparison is made by `PolicyAuthority` from the recorded operationality evidence, never from the model's report.
 
 ### 74.2 UI hierarchy observation
 

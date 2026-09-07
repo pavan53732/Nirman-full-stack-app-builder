@@ -352,6 +352,19 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "AndroidServiceIntegration.requiredOperationality loses its IntegrationState type": (
+        TA, "- requiredOperationality: IntegrationState (build spec §5.7.2;", "- requiredOperationality (build spec §5.7.2;",
+        "semantic documentation"),
+    "BS §70 drops the operationality gate on service-integration boundaries": (
+        BS, "meets the integration's declared `requiredOperationality`", "satisfies the integration's declared `requiredOperationality`",
+        "semantic documentation"),
+    "TA §81.2 command chain reorders authority checks before the use case": (
+        TA, "  → application use case\n  → deterministic authority checks", "  → deterministic authority checks\n  → application use case",
+        "semantic documentation"),
+    "AGENTS §8 command chain drops the authority-check step": (
+        "AGENTS.md", "→ deterministic authority checks\n→ repository and SQLite transaction", "→ repository and SQLite transaction",
+        "semantic documentation",
+        (("AGENTS.md", os.path.join(REPO, "AGENTS.md")),)),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),
