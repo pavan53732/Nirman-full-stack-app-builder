@@ -973,6 +973,7 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 | Preview | Revision-bound Nirman-managed local Android emulator evidence |
 | Resource governance | Pressure tests without gate weakening |
 | Artifact completion | APK checksum, signing, environment, and validation proof |
+
 # M51–M58: Integrated Workflow and Quality Intelligence Milestones
 
 These milestones add the accepted README-derived capabilities to the existing Nirman roadmap. They do not change the Android-only generated target.
@@ -1041,6 +1042,7 @@ Implement independent-fixture validation for learned repair patterns, bounded al
 | Worker metrics | Routing metrics without authority escalation |
 | Repair promotion | Independent validation before trusted reuse |
 | Scope integrity | Android-only generated-target audit |
+
 # M59–M61: Reasoning Visibility and Streaming Milestones
 
 ## M59 — PrivateReasoningRuntime and StructuredReasoningSummarizer
@@ -1073,6 +1075,7 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 | Replay | Side-effect-free reconstruction from filtered events |
 | Status truthfulness | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
 | Back-pressure | UI disconnect cannot stop autonomous execution |
+
 # M62–M64: Brand and Asset Completion Milestones
 
 ## M62 — BrandManifest, AssetManifest, and UI Worker asset scope
@@ -1106,6 +1109,7 @@ Implement built APK extraction, asset presence and reachability checks, content-
 | Accessibility | Contrast, transparency, silhouette, and theme checks |
 | Change handling | Affected assets regenerate and stale evidence is invalidated |
 | Completion gate | Missing or placeholder-only requested branding blocks promotion |
+
 # 5A. Locked Implementation Stages
 
 The detailed milestones below are executed through four architectural stages. Nirman must not attempt every autonomous capability simultaneously.
@@ -1153,6 +1157,7 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 ## 5C. Sequencing invariant
 
 Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
+
 # M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.

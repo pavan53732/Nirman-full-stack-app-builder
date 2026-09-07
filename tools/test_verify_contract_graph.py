@@ -763,6 +763,13 @@ CASES = {
         DEC, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
+    "child subsection precedes its parent": (
+        BS, "### 77.1 Orthogonal continuity dimensions and aggregate precedence",
+        "### 77.1.1 Orthogonal continuity dimensions and aggregate precedence",
+        "structure"),
+    "§80.2 table split by a blank line": (
+        BS, '| BS §26.1 | "should separate the desktop user int', '\n| BS §26.1 | "should separate the desktop user int',
+        "structure"),
     "References labels skip a number": (
         TA, '[7]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
         '[9]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
@@ -1468,15 +1475,20 @@ def main():
                             f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
 
     # POSITIVE: renumbering a registry heading (together with the citations
-    # that point at it, so no §-reference dangles) must not break registry
-    # location, because headings are matched by text rather than by number.
+    # that point at it, so no §-reference dangles, and keeping subsection
+    # order ascending) must not break registry location, because headings
+    # are matched by text rather than by section number.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-renum-") as tmp:
         _copy_fixture(tmp, RUST_SOURCES)
         path = os.path.join(tmp, BS)
         text = open(path, encoding="utf-8").read()
-        text = text.replace("### 67.8 Registered contract identifiers",
-                            "### 67.99 Registered contract identifiers", 1)
-        open(path, "w", encoding="utf-8").write(re.sub(r"§67\.8(?!\d)", "§67.99", text))
+        text = text.replace("### 67.15 Twelve-edge resolution table",
+                            "### 67.99 Twelve-edge resolution table", 1)
+        text = re.sub(r"(?<!TA )(?<!architecture )§67\.15(?!\d)", "§67.99", text)
+        open(path, "w", encoding="utf-8").write(text)
+        tpath = os.path.join(tmp, TA)
+        ttext = open(tpath, encoding="utf-8").read()
+        open(tpath, "w", encoding="utf-8").write(re.sub(r"(build spec §)67\.15(?!\d)", r"\g<1>67.99", ttext))
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",
                         rc == 0 and CERTIFIED_RE.search(out) is not None,

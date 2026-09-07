@@ -1080,6 +1080,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman is permanently an Android-only autonomous application builder. Windows is the desktop host, not a generated application target.
 
 **Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK artifacts.
+
 ## ADR-082: Integrated Android workflow coordinator
 
 **Status:** Accepted
@@ -1209,6 +1210,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** The README’s implementation stack is not compatible with Nirman’s product boundary.
 
 **Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK deliverables.
+
 ## ADR-095: Private internal reasoning with visible structured summaries
 
 **Status:** Accepted
@@ -1278,6 +1280,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Different providers expose different streaming formats and may emit incomplete or unsafe output.
 
 **Consequences:** Complete structured responses must pass schema, policy, scope, and transaction validation before execution.
+
 ## ADR-102: Branding and visual assets are first-class Android requirements
 
 **Status:** Accepted
@@ -1339,6 +1342,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Branding changes should be fast and should not unnecessarily regenerate unrelated application logic or assets.
 
 **Consequences:** Asset impact analysis and revision binding are required for preview and artifact promotion.
+
 ## ADR-108: Lock C#/.NET + WinUI 3 for the Windows application
 
 **Status:** Accepted
@@ -1438,6 +1442,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** This preserves one authoritative runtime while allowing the desktop UI to evolve independently.
 
 **Consequences:** No Tauri IPC, WebView IPC, or Node control-plane server is part of Nirman's architecture.
+
 ## ADR-118: Make AgentExecutionKernel a first-class runtime subsystem
 
 **Status:** Accepted

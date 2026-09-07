@@ -2764,6 +2764,39 @@ def check_structure(docs, R, D):
             if mc and cur is not None and int(mc.group(1)) != cur:
                 D.add("structure", label,
                       f"subsection {mc.group(1)}.{mc.group(2)} sits under section {cur}")
+        # Subsection order: within a section, `### N.k` headings ascend, and a
+        # `### N.k.j` never precedes its parent `### N.k` (BS §77.1.1 once
+        # preceded §77.1). Fenced blocks are ignored.
+        fence, cur, last_child = False, None, 0
+        for line in text.split("\n"):
+            if line.startswith("```"):
+                fence = not fence
+                continue
+            if fence:
+                continue
+            ms = re.match(r"^##\s+(\d+)\.\s", line)
+            if ms:
+                cur, last_child = int(ms.group(1)), 0
+                continue
+            mc = re.match(r"^###\s+(\d+)\.(\d+)(?:\.(\d+))?\s", line)
+            if mc and cur is not None and int(mc.group(1)) == cur:
+                child = int(mc.group(2))
+                if mc.group(3) is not None and child > last_child:
+                    D.add("structure", label, f"subsection {mc.group(0).strip()} precedes its parent §{cur}.{child}")
+                elif mc.group(3) is None and child < last_child:
+                    D.add("structure", label, f"subsection §{cur}.{child} is out of order after §{cur}.{last_child}")
+                last_child = max(last_child, child)
+    # The §80.2 resolution table is one table: no blank line may split its
+    # rows (a split table is two tables to any markdown reader and hides
+    # rows from row-count tooling).
+    s802 = docs["bs"].find("### 80.2")
+    e802 = docs["bs"].find("### 80.3", max(s802, 0))
+    if 0 <= s802 < e802:
+        rows = docs["bs"][s802:e802].split("\n")
+        for i in range(1, len(rows) - 1):
+            if rows[i] == "" and rows[i - 1].startswith("| ") and rows[i + 1].startswith("| "):
+                D.add("structure", "build spec", f"§80.2 table is split by a blank line after row {rows[i - 1][:40]!r}")
+                break
 
     adrs = adr_blocks(docs["dec"])
     nums = sorted(adrs)

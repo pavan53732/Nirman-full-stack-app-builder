@@ -2785,6 +2785,7 @@ The service records concise decision summaries without hidden chain-of-thought. 
 ## 52. Technical Acceptance Tests
 
 The architecture is accepted only when killing the supervisor during a transaction leaves a recoverable event log and checkpoint; replaying events reconstructs the same authoritative session state; stale worker proposals are rejected without changing the project; changed files or toolchain locks invalidate pending transactions through TOCTOU checks; parallel workers can analyze and propose while conflicting writes are serialized; provider bridge restart and protocol mismatch do not corrupt the session; builds use the locked Android toolchain; preview promotion rejects stale source or artifact revisions; resource pressure changes scheduling without bypassing completion gates; and an APK is not promoted without revision, checksum, environment, validation, and signing evidence.
+
 ## 53. Integrated Workflow and Quality Services
 
 ### 53.1 WorkflowCoordinator
@@ -2925,6 +2926,7 @@ Nirman must not advertise a module count, mechanism count, percentage of impleme
 ### 54.3 Technical acceptance additions
 
 The architecture is complete when the coordinator can run preflight before expensive work, independent quality gates can block promotion, every mandatory requirement maps to executable tests, contract and architecture drift is detected, runtime traces feed repair classification, dependency health is checked before commit, handbook and release reports are generated from validated state, worker metrics are recorded, learned repairs require independent validation, and native isolation or remote side effects cannot weaken the core authority model.
+
 ## 55. Private Reasoning and Visible ReasoningStream Architecture
 
 ### 55.1 Reasoning boundary
@@ -3058,6 +3060,7 @@ If summarization fails, Nirman emits a safe generic progress event and continues
 8. Stream back-pressure or UI disconnection never stops the autonomous session.
 9. Cancellation stops provider generation and records the last valid revision.
 10. Calm, Inspect, and Developer modes change presentation only, not runtime behavior.
+
 ## 56. Brand and Asset Runtime Architecture
 
 ### 56.1 Asset execution under the canonical UI Worker
@@ -3175,6 +3178,7 @@ Seeds, when supported, are recorded as inputs but do not guarantee identical AI 
 7. Branding changes invalidate affected evidence and regenerate only impacted assets.
 8. Provider failure and fallback behavior are explicit and replayable.
 9. Placeholder-only output blocks completion when branded assets were requested.
+
 ## 57. Locked Implementation Stack and Supervisor Process Architecture
 
 ### 57.1 Implementation stack

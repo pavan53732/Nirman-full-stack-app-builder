@@ -1419,7 +1419,6 @@ Example policy behavior is shown below.
 | Use a cloud provider with project context | Allow only after a project-level privacy policy has been explicitly configured; otherwise ask when sensitive files are included |
 | Commit changes inside the project repository | Allow in Autonomous and Unattended profiles when the task policy permits it |
 | Push changes or publish artifacts | Always ask |
-| Push changes or publish artifacts | Always ask |
 
 Policies should support wildcard patterns, project-specific overrides, worker-specific restrictions, session-wide approvals, one-time approvals, and explicit deny rules that cannot be bypassed by automatic mode.
 
@@ -4655,6 +4654,7 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.CHANGE.EXACTLY_ONE_REPORT | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | every committed ConstructionTransaction exposes exactly one durable ChangeReportRecord with its ChangeImpactReport; the obligation becomes durable with the commit and holds across crashes | SEALED |
 | CLAUSE.CHANGE.DERIVED_NOT_FABRICATED | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | every ChangeImpactReport field is derived from an authoritative source; the projector never fabricates missing values and reports INCOMPLETE or UNRESOLVED instead | SEALED |
 | CLAUSE.CHANGE.PROJECTOR_ISOLATION | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | §83 | projector failure never fails or rolls back the committed parent ConstructionTransaction, and the presentation client never infers mutation facts from model prose | SEALED |
+
 A `SEALED` clause may not be restated with a different value by any extension. An extension referencing a sealed `ClauseId` must list it under `nonOverriddenClauses` in its ExtensionDeclaration, which asserts that the extension adopts the authoritative value unchanged.
 
 Changing a sealed clause requires a new versioned contract, a recorded ADR, and reclassification of the superseded contract as `DEPRECATED` per §67.7. An extension that lists a sealed clause under `extendedClauses` rather than `nonOverriddenClauses` is an unversioned override and fails certification.
@@ -5745,7 +5745,8 @@ This contract makes background autonomy explicit across user-interface closure, 
 
 The existing product lifecycle remains authoritative for `Created`, `Planning`, `Recovering`, `Packaging`, `Completed`, cancellation, and terminal failure. Continuity records whether that lifecycle can currently advance and how it must recover. `BackgroundContinuityState.COMPLETED` is permitted only as a derived mirror after the existing completion authority commits `CompletionDecision=COMPLETED`; continuity alone can never complete a task.
 
-### 77.1.1 Orthogonal continuity dimensions and aggregate precedence
+### 77.1 Orthogonal continuity dimensions and aggregate precedence
+
 ```text
 ContinuityDimensions
 - uiConnectionState: CONNECTED | DISCONNECTED
@@ -5774,7 +5775,8 @@ SAFELY_FAILED
 
 A lower-precedence condition may remain recorded while a higher-precedence condition is active. Clearing one condition recomputes the aggregate from all current dimensions; it never blindly returns to `ACTIVE_BACKGROUND`.
 
-### 77.1 Canonical continuity record and state machine
+### 77.2 Canonical continuity record and state machine
+
 ```text
 BackgroundContinuityRecord
 - continuityId
@@ -5831,12 +5833,12 @@ A continuity transition cannot directly change product lifecycle, completion, ar
 
 `COMPLETED` is reachable only through the existing evidence, validation, artifact, signing, preview, and completion authorities. `USER_REQUIRED` is reserved for an actual policy, credential, permission, or product decision that cannot be resolved from declared authority; it is not a timer-based escalation. `SAFELY_FAILED` preserves the last checkpoint, diagnostics, leases, fencing state, and evidence gap.
 
-### 77.2 Interruption and recovery rules
+### 77.3 Interruption and recovery rules
 UI closure or UI crash disconnects presentation only; it MUST NOT cancel eligible autonomous work. Reconnect reconstructs the UI from a cursor-atomic snapshot and durable event replay. Supervisor restart, host reboot, or process replacement requires lease fencing, checkpoint reload, descendant reconciliation, and duplicate-effect prevention before resuming. Sleep, hibernation, or shutdown records the last durable state and resumes only after host identity and required tools are revalidated. Device loss invalidates device-bound observations and waits for a new emulator session or records an honest unavailable result. Provider or network outage uses bounded retry and provider operationality rules; it never converts an unobserved model response into a successful action.
 
 An unknown outcome remains `RECONCILING` until the authoritative ledger, process supervisor, emulator session, provider operation, or external-effect record resolves it. A retry is permitted only after idempotency and fencing checks. Late events from an old supervisor, device, branch, provider session, or lease cannot advance the current continuity state.
 
-### 77.3 Authority, projection, evidence, and acceptance
+### 77.4 Authority, projection, evidence, and acceptance
 The canonical authority mapping is: the existing supervisor/process-supervision authority owns `hostState`; `WorkspaceLeaseManager` and its lease/fencing authority own `leaseState`; the existing `RecoveryAuthority` owns recovery and reconciliation transitions; the existing device-session/device-operation authority owns `deviceAvailabilityState`; and the existing integration/provider operationality authority owns `providerAvailabilityState`. `SupervisorAuthority`, `LeaseAuthority`, `DeviceAuthority`, and `ProviderOperationalityAuthority` are aliases only and are not new authorities. The frontend renders `BackgroundContinuityRecord` as a projection and cannot resume, mark complete, clear an outage, or suppress a user-required state.
 
 Every continuity transition must reference the owning canonical authority, its decision ID, the prior and next dimension values, and the resulting aggregate state. No continuity authority can override `LifecycleAuthority`, `PolicyAuthority`, `EvidenceAuthority`, `ArtifactAuthority`, `PreviewPromotionGate`, or `CompletionDecision`.
@@ -6183,7 +6185,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §12.5 | "The user must be able to create, edit, test, select, and delete provider profiles" | MUST support provider CRUD | User MUST manage provider profiles |
 | BS §12.6 | "The user must be able to export source code as a ZIP archive, export or initialize a Git repository, and create a supported local build artifact" | MUST support export | User MUST be able to export source/APK |
 | BS §12.7 | "The user must be able to inspect installed tool versions, missing dependencies, provider connection state, active processes, port conflicts, and recent task failures" | MUST support diagnostics | User MUST be able to inspect diagnostics |
-
 | BS §26.1 | "should separate the desktop user interface from a local control plane" | MUST separate from M7 onward | `Nirman.exe` (WinUI 3 presentation) and `NirmanSupervisor.exe` (Rust/Tokio control plane) are distinct processes per ADR-111; the in-process hosting that §51.2 permits for the pre-M7 vertical slice still crosses the `SupervisorConnection` boundary and never satisfies background continuity. UI holds presentation state only |
 | BS §26.1 | "A local task daemon should own task execution, worker processes, approvals, checkpoints, logs, and recovery" | MUST own | The supervisor is sole owner of all six. No UI, model, or worker may write authoritative state for any of them |
 | BS §26.1 | "control plane should start when Nirman launches" | MUST start | Supervisor starts on `Nirman.exe` launch, or reconnects if already running. UI never proceeds past connect without an authenticated SupervisorConnection |
@@ -6248,7 +6249,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.13 | "The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task" | MUST offer all five options | Session-scoped approval binds to the exact action signature and expires with the session |
 | BS §26.14 | "Long-running tasks should use an explicit state machine" | MUST use the §26.14 state machine | The listed states and transitions are binding. No informal loop may substitute |
 | BS §26.14 | "Every state transition should be persisted with a reason and event reference" | MUST persist both | A transition without a reason and event reference is rejected by the reducer |
-
 | BS §23.1 | "should automatically create a concise project-context file in every managed workspace" | MUST create | On workspace creation, before the first task runs |
 | BS §23.1 | "This file should contain the project purpose, supported commands, framework conventions, architecture overview, important directories, testing instructions, environment assumptions, and known constraints" | MUST contain all seven categories | Product intent, architecture, commands, conventions, constraints, known issues, validation — per the §23.1 table |
 | BS §23.1 | "It should remain short enough to load frequently" | MUST remain within the context-file size limit | Hard context-file size ceiling: 8,000 tokens. Content beyond it moves to linked documentation |
@@ -6332,7 +6332,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.18 | "The expanded runtime should use the following internal components" | MUST implement all twelve | Per the §23.18 component tree |
 | BS §23.18 | "The Tool Gateway should be the only component allowed to invoke filesystem, terminal, browser, external-tool, or build actions" | MUST be the sole invoker | Any other component performing these actions is an architectural violation |
 | BS §23.18 | "The Task Controller should decide what work is needed, while the Policy Engine decides whether a proposed action is permitted" | MUST separate the two decisions | One component performing both is prohibited; this separation is what prevents a model response becoming an uncontrolled system action |
-
 | BS §1.1 | "should consistently be described as a desktop application for building other applications" | MUST describe consistently | Never as a platform, service, or website. Applies to UI copy, installer text, and documentation |
 | BS §1.3 | "should make Android development feel closer to describing a product" | MUST prioritise description over assembly | The primary control is the prompt; template or framework selection is never the first user action |
 | BS §1.3 | "A user should be able to explain an Android idea, answer a small number of important questions" | MUST bound the questions | At most four, batched, before generation begins, per §69.11 |
@@ -6428,7 +6427,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §51.3 | "Nirman should feel like one application even when the supervisor is a separate executable" | MUST present as one application | Installed together, versioned together, started and reconnected automatically |
 | BS §68.3 | "Competing strategies are comparable and should be tried per §65" | MUST route to §65 speculative branching | When the deliberation runtime returns BRANCH |
 | BS §69.7 | "Nirman SHOULD expose meaningful validated stages rather than streaming every token" | MUST expose validated stages only | Never stream unverified file predictions or raw token output as progress |
-
 | TA §7.1 | "A scheduler tick should be deterministic and idempotent" | MUST be deterministic and idempotent | Two ticks over identical persisted state produce an identical launch set; a contract already in `Running` or `Launching` is never launched a second time; determinism is proven by replaying a recorded tick input and comparing the emitted launch set byte-for-byte |
 | TA §7.2 | "The scheduler should calculate available CPU, memory, disk, provider concurrency, and workspace capacity before launching a worker" | MUST measure all five before every launch decision | A launch with any of the five unmeasured is rejected; the measured snapshot is written to the tick record and referenced by the launched worker's node |
 | TA §7.2 | "It should reduce concurrency under resource pressure and preserve resources for validation and recovery" | MUST reduce concurrency under pressure; MUST hold a reserve for validation and recovery | Under the BS §26.6 constrained condition, new write-capable worker admission stops while validation and recovery tasks continue to be admitted; a validation or recovery task is never refused admission because ordinary implementation workers hold the capacity |
@@ -6501,7 +6499,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §25.7 | "The user interface should show the candidate version, current version, validation progress, promotion status, and rollback status" | MUST show all five | Each is visible without opening a log file |
 | TA §25.7 | "A successful promotion should reopen the previous task tree and continue from its last validated checkpoint" | MUST reopen and resume | The resumed task continues from the last validated checkpoint, not from the beginning; if the checkpoint cannot be restored the task is reported blocked rather than silently restarted |
 | TA §25.8 | "The self-development test suite should deliberately exercise" the eleven listed failure modes | MUST exercise all eleven | Malformed builds, failed migrations, missing provider adapters, broken IPC, corrupted manifests, failed health checks, repeated crashes, interrupted promotions, locked files, disk exhaustion, and rollback during an active task; every case must end with the previous version runnable and task state recoverable |
-
 | TA §1 | "Nirman should be implemented as a local control system for autonomous software development" | MUST be a local control system with the desktop UI as one client | The background control plane owns task execution; closing the UI never ends a task; state persists across application closure, process failure, and OS restart |
 | TA §1 | "The architecture should prefer small, typed interfaces over implicit communication" | MUST use typed interfaces; MUST NOT communicate through shared mutable state or untyped payloads | A model may propose an action; only the policy engine authorizes it and only the tool gateway executes it, per the BS §23 separation rule |
 | TA §2 | "The control plane should communicate with the user interface through a local authenticated IPC channel" | MUST use authenticated named pipes in production | Loopback HTTP/WebSocket is permitted for development only, requires a per-installation secret or OS-authenticated channel, and is never the production `SupervisorConnection`; the UI cannot impersonate another project or bypass policy by editing client-side state |
@@ -6587,7 +6584,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §30.6 | "the runtime should compare candidate behavior with the previous baseline using" the six listed signals | MUST compare on all six after every promotion | Task outcomes, error rates, recovery patterns, provider reliability, crash-free operation, user corrections; a statistically meaningful degradation or any safety regression triggers automatic rollback or scoped disablement |
 | TA §31 | "Nirman should maintain three memory scopes" | MUST maintain exactly the three tabled scopes | Task memory until task retention expires; project memory for the project lifetime, user-deletable; runtime improvement memory for the runtime version lifetime, user-controlled |
 | TA §31 | "Memory should be written from validated events and user-confirmed decisions, not from every model statement" | MUST write only from validated events and user-confirmed decisions | A model assertion never enters memory on its own authority; the user can inspect, correct, export, and delete memory; secrets, raw credentials, protected files, and unclassified private content are excluded |
-
 | DP §1 | "Nirman should be built in vertical slices" | MUST build in vertical slices | Every milestone produces a usable and testable end-to-end part of the application; a milestone that completes isolated infrastructure with no reachable workflow does not satisfy its gate |
 | DP §1 | "The first usable slice should allow a user to" perform the nine listed actions | MUST deliver all nine in the first usable slice | Open Nirman, configure an AI provider, create an Android project, ask for a small change, review a plan, execute policy-allowed edits or approve a hard-gated action, run a Nirman-managed local emulator preview, execute validation, and undo the task; the following slices add resilience to long-running tasks, worker failures, application closure, parallel work, Android packaging, and emulator testing |
 | DP §1 | "The team should keep the master specification stable as the product contract, update the technical architecture when implementation decisions change, and record significant trade-offs in the decision log" | MUST follow this three-document discipline | The build spec changes only by explicit contract amendment; an implementation decision that contradicts the technical architecture updates that document in the same change; a trade-off that closes an alternative is recorded as an ADR, per the §77 precedence ladder |
