@@ -3481,6 +3481,88 @@ ConversationRebaseRecord
 - createdAt
 ```
 
+### 2.87 ToolchainProvisioningManifest
+
+**Owner:** TA §49.4 · **Contract:** — · **Projected at:** —
+
+```text
+ToolchainProvisioningManifest
+- manifestVersion
+- nirmanReleaseVersion
+- signature
+- toolchainRoot
+- baselineApiLevel
+- baselineAbi: x86_64
+- baselineImageVariant: google_apis
+- components
+  - componentId
+  - kind: JDK | CMDLINE_TOOLS | PLATFORM_TOOLS | BUILD_TOOLS | PLATFORM | EMULATOR | SYSTEM_IMAGE | HYPERVISOR_DRIVER
+  - sourceKind: SDK_REPOSITORY | VENDOR_URL
+  - sourceRef
+  - version
+  - sha256
+  - byteSize
+  - licenseId
+  - licenseHash
+  - installPath
+  - onDemand: bool
+- deviceProfiles
+  - profileId
+  - hardwareProfile
+  - resolution
+  - density
+  - ramMb
+  - systemImageComponentId
+- totalDownloadBytes
+- requiredFreeBytes
+- createdAt
+```
+
+### 2.88 ToolchainProvisioningRecord
+
+**Owner:** TA §49.4 · **Contract:** — · **Projected at:** —
+
+```text
+ToolchainProvisioningRecord
+- provisioningRunId
+- manifestVersion
+- environmentId
+- windowsAccountSid
+- state: NOT_PROVISIONED | CONSENT_REQUIRED | WAITING_NETWORK | DOWNLOADING | VERIFYING | INSTALLING | HYPERVISOR_REQUIRED | AVD_CREATING | FIRST_BOOT | SNAPSHOT_SAVED | READY | PROVISIONED_UNVERIFIED | FAILED_INTEGRITY | FAILED_DISK | USER_REQUIRED | UNAVAILABLE
+- capabilityClassification: AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
+- componentResults
+  - componentId
+  - source
+  - expectedSha256
+  - observedSha256
+  - installedPath
+  - result: INSTALLED | FAILED_INTEGRITY | SKIPPED_PRESENT | FAILED
+- licenseAcceptance
+  - licenseHash
+  - manifestVersion
+  - acceptedAt
+  - acceptedByAccountSid
+- consent
+  - downloadBytesShown
+  - requiredFreeBytesShown
+  - freeBytesObserved
+  - acceptedAt
+- hypervisorAction: NONE | WHPX_ENABLED | AEHD_INSTALLED | FIRMWARE_BLOCKED
+- elevationPerformed: bool
+- restartRequired: bool
+- detectedNotUsed
+  - kind
+  - path
+  - version
+- avdId
+- snapshotId
+- readinessEvidenceId
+- environmentFingerprintAfter
+- userRequiredDecisionIds
+- startedAt
+- completedAt
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry

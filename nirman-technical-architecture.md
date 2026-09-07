@@ -1984,6 +1984,52 @@ The environment snapshot includes toolchain lock hash, tool versions and hashes,
 
 Toolchain repair may install, hydrate, or repair components only through an approved operation capability. It records acquisition source, checksum, license metadata, before/after health, and rollback behavior. A repair that changes the lock requires a new checkpoint and technology-plan compatibility validation.
 
+### 49.4 Android toolchain provisioning
+
+Provisioning is how a fresh Windows machine — no JDK, no Android SDK, no emulator, no system image — acquires everything the Android build and the Nirman-managed local Android emulator need. It is owned by `ToolchainProvisioner`, a supervisor service under `ToolchainAuthority` (§49.1). No worker, model, skill, plugin, or UI component may download, unpack, or configure a toolchain component through any other path; provisioning is a privileged operation class (build spec §9.3) executed only by the supervisor.
+
+**Engine identity.** The Nirman-managed local Android emulator is the Google Android Emulator as distributed through the Android SDK repository, running Google APIs system images (ADR-221). Nirman MUST NOT bundle, fork, patch, rebuild, or redistribute the emulator, a system image, or any other Android SDK component, whether inside the Nirman installer or through a Nirman-operated download server: the SDK licence is granted to the user and is non-sublicensable, and a self-built system image lacks Google Play services, which the generated-application scope of build spec §5 requires (maps, push notifications, billing, fused location, sign-in). Nirman orchestrates the emulator engine exactly as it orchestrates the JDK, Gradle, and ADB (build spec §51.1). "Prebuilt" therefore means provisioned, configured, booted once, snapshotted, and proven inside the Preview panel before the user's first project — never shipped.
+
+**Trigger and precedence.** Provisioning starts on first launch, before any project exists, as part of the first-run flow of build spec §4.2, and re-runs when the pinned manifest changes or a health probe fails. It never waits for an AI provider: a `SessionProviderMode.PLANNING_ONLY` session provisions fully, and provider setup proceeds in parallel. Within the resolution order of build spec §26.11 (restated in §11.1 of this document), the Nirman-provisioned toolchain root is the portable installation; it is selected whenever a project declares no version manager and no explicitly configured path, which is the default for every generated project. An Android SDK, JDK, or Android Studio already present on the host is detected and recorded in `EnvironmentSnapshot` (§49.2) as detected-not-used; it is never adopted implicitly. `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`, and the user or machine `PATH` are never read as a source of truth and never written; the equivalent variables are set per spawned process only, through the environment filtering of §9.2.
+
+**Toolchain root.** `C:\<root>\tc\` under the same short deterministic prefix as the workspace roots of build spec §79.14 — never under the user profile, Desktop, or a synced folder — created per Windows user and ACL-scoped to that user:
+
+```text
+C:\<root>\tc\
+  manifest\<manifestVersion>.json          pinned component list, digests, licence hashes
+  jdk\<vendor>-<major>\                    LTS JDK (Temurin or Microsoft Build of OpenJDK)
+  sdk\cmdline-tools\latest\                sdkmanager, avdmanager
+  sdk\platform-tools\                      adb
+  sdk\build-tools\<version>\
+  sdk\platforms\android-<api>\
+  sdk\emulator\                            emulator engine
+  sdk\system-images\android-<api>\google_apis\x86_64\
+  sdk\licenses\                            accepted licence hashes, written only after the user accepts
+  avd\nirman-<profile>.avd\                AVDs and their quick-boot snapshots
+  gradle\                                  GRADLE_USER_HOME of the provisioned lane
+  downloads\                               in-flight archives; emptied after digest verification
+```
+
+**Pinned manifest.** The manifest is versioned and signed with the Nirman release and names, for every component, the SDK-repository package path or vendor download URL, the exact version, the SHA-256 digest, the byte size, the licence identifier with its hash, and the install location. It selects one baseline: the current stable API level's Google APIs x86_64 system image, the matching platform and build-tools, the current stable emulator, platform-tools, and one LTS JDK satisfying the AGP requirement of the `AndroidToolchainLock` (§49.1). Downloads come only from the manifest's sources over HTTPS; an archive whose digest does not match is discarded and recorded as `FAILED_INTEGRITY`; no component executes before its digest is verified. Further system images and device profiles (other API levels, tablet and foldable profiles) are provisioned on demand when the technology plan or the device matrix requires them, through the same manifest, consent, and evidence path. A new manifest version is the only way a component changes; it invalidates the AVD snapshot, rebuilds it, and changes the environment fingerprint so earlier evidence is invalidated per CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING.
+
+> **Schema projection:** `ToolchainProvisioningManifest` is defined in `nirman-schemas.md` §2.87. Owner: TA §49.4.
+
+**The three user actions no software can remove.** Each is a durable `USER_REQUIRED` decision under build spec §79.11 — a single action on a screen that already shows the consequence — and never an installation guide, an external link, or a command for the user to run:
+
+1. *Consent and licence acceptance*, once per machine. One screen lists the components, the download size, the disk requirement, and the full Android SDK License Agreement text; the single Continue action records `ToolchainProvisioningRecord.licenseAcceptance` (licence hash, manifest version, timestamp, Windows account) and only then writes `sdk\licenses\`. Nirman MUST NOT pre-accept, auto-accept, or accept the licence on the user's behalf. A declined licence leaves every Android capability `UNAVAILABLE` with that reason; the licence text is shown again only when its hash changes.
+2. *Hypervisor enablement*, when preflight (§49.1; build spec §79.16) finds firmware virtualization enabled but no usable accelerator. The supervisor relaunches itself elevated — `NirmanSupervisor.exe --elevated-hypervisor-setup`, one UAC prompt whose text names the exact change — and enables Windows Hypervisor Platform when Hyper-V, VBS/HVCI, WSL2, or Windows Sandbox is active on the host, otherwise installs the Android Emulator Hypervisor Driver from the SDK repository; never both. HAXM is never provisioned. A required restart is a `USER_REQUIRED` resume condition, and provisioning resumes from durable state after the restart without user action.
+3. *Firmware virtualization* disabled in UEFI/BIOS. No software can change it. Nirman names the setting for the detected firmware vendor, blocks emulator readiness on that single condition, and continues every non-emulator step under the split rule of build spec §79.4.
+
+**Preflight.** Disk: the free space on the toolchain drive must be at least 2.5 × the manifest's total download size (archives, unpacked trees, first snapshot); otherwise `FAILED_DISK` with the exact figures as a `USER_REQUIRED` decision, never a partial install. Network: the manifest sources must be reachable; otherwise `WAITING_NETWORK` with automatic retry and backoff — a condition independent of `SessionProviderMode.OFFLINE`, which concerns the AI provider only. Downloads are resumable. Real-time scanning over the toolchain root is recorded per build spec §79.15.
+
+**Readiness.** After installation the provisioner creates the AVD from the Nirman device profile with `avdmanager` (fixed hardware profile: phone, 1080 × 2400, 420 dpi, 4 GB RAM, host GPU with SwiftShader fallback per §10.7), cold-boots it headless once, waits for `sys.boot_completed`, saves the quick-boot snapshot, and runs the readiness probe: `adb` responsive, the emulator control endpoint answering `getStatus`, and one frame delivered through the `RenderTransport` (§10.7) into PreviewHost. Readiness is proven only by that frame, recorded as `ToolchainProvisioningRecord.readinessEvidenceId` (screenshot plus the `PreviewSyncEvent` that carried it); a run that installs everything but delivers no frame is `PROVISIONED_UNVERIFIED`, never `READY`.
+
+The provisioning state machine is `NOT_PROVISIONED → CONSENT_REQUIRED → DOWNLOADING → VERIFYING → INSTALLING → (HYPERVISOR_REQUIRED) → AVD_CREATING → FIRST_BOOT → SNAPSHOT_SAVED → READY`, with the side states `WAITING_NETWORK`, `FAILED_INTEGRITY`, `FAILED_DISK`, `PROVISIONED_UNVERIFIED`, `USER_REQUIRED`, and `UNAVAILABLE`. It maps onto the four-state vocabulary of build spec §79.1 deterministically: `READY` is `AVAILABLE`; `NOT_PROVISIONED`, `WAITING_NETWORK`, `FAILED_INTEGRITY`, `FAILED_DISK`, and `PROVISIONED_UNVERIFIED` are `REPAIRABLE`; `CONSENT_REQUIRED`, `HYPERVISOR_REQUIRED`, and a firmware block are `USER_REQUIRED`; a declined licence or an unsupported CPU is `UNAVAILABLE`. The classification is written by the provisioner from observed state (CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION); no model may set or raise it.
+
+**Evidence and isolation.** Every run produces a `ToolchainProvisioningRecord`, attached to `EnvironmentSnapshot` (§49.2) and to `EnvironmentCapabilityRecord` (build spec §79.2), extending the §49.3 record with the manifest version, per-component source and observed digest, licence acceptance, consent figures, hypervisor action, elevation performed, restart required, detected-not-used installs, AVD and snapshot identity, readiness evidence, and the environment fingerprint after the run. Every provisioning process — downloader, `sdkmanager`, `avdmanager`, the first boot — runs through the restricted-token and Job Object path of §3.4 and §9.2 with process-scoped environment only. Uninstalling Nirman offers to remove the toolchain root; it never removes an SDK the user installed themselves.
+
+> **Schema projection:** `ToolchainProvisioningRecord` is defined in `nirman-schemas.md` §2.88. Owner: TA §49.4.
+
 ---
 
 ## 50. Preview Coordinator and Android Runtime Validation

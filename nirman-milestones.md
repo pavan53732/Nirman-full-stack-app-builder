@@ -173,8 +173,9 @@ Create the Android construction foundation needed to turn a validated goal and v
 2. Enforce `targetPlatforms == ["android"]` at project construction.
 3. Implement the first Android technology-plan resolver without exposing a fixed template or framework picker as the primary creation path.
 4. Implement environment diagnostics for Java, Gradle, Android SDK, platform-tools, Nirman-managed local Android emulator tooling, package managers, and required project dependencies.
-5. Create the Android project workspace, record its source identity, and persist a preflight record describing available, repairable, user-required, and unavailable prerequisites.
-6. Create a durable checkpoint before subsequent mutation or runtime work.
+5. Implement `ToolchainProvisioner` (TA §49.4; ADR-221): the pinned `ToolchainProvisioningManifest`, digest-verified download into the toolchain root, the licence-acceptance and consent screen, the elevated hypervisor-setup relaunch, AVD creation, first boot, snapshot, and the `ToolchainProvisioningRecord` with its four-state classification — so that a Windows machine with no JDK, Android SDK, emulator, or system image reaches `SNAPSHOT_SAVED` with at most the three user actions and no installation guide.
+6. Create the Android project workspace, record its source identity, and persist a preflight record describing available, repairable, user-required, and unavailable prerequisites.
+7. Create a durable checkpoint before subsequent mutation or runtime work.
 
 ### Exit gate
 
@@ -305,12 +306,13 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 8. Establish the Nirman-managed headless emulator as the canonical primary PreviewRuntime.
 9. Implement embedded WinUI PreviewHost rendering.
 10. Implement controlled preview input forwarding.
-11. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
-12. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
+11. Prove provisioning readiness end to end: from an empty toolchain root, `ToolchainProvisioner` reaches `READY` only when one stamped frame is observed inside PreviewHost, and a run that installs every component but delivers no frame is recorded as `PROVISIONED_UNVERIFIED`.
+12. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
+13. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
 
 ### Exit gate
 
-A Nirman-managed local headless emulator can launch the generated Android application and render its actual live surface inside the Nirman Preview panel. The user can interact with that running application inside Nirman, observe resulting runtime state, evaluate assertions, and capture revision-bound evidence without a physical Android phone.
+Starting from a Windows machine with no JDK, Android SDK, emulator, or system image, Nirman provisions its own toolchain and emulator with at most the three user actions of TA §49.4, and the Nirman-managed local headless emulator can then launch the generated Android application and render its actual live surface inside the Nirman Preview panel. The user can interact with that running application inside Nirman, observe resulting runtime state, evaluate assertions, and capture revision-bound evidence without a physical Android phone.
 
 No physical-device validation exists in the product; the Nirman-managed local Android emulator rendered inside Nirman's embedded preview is the only validation surface, and the primary PreviewRuntime gate is satisfied only there.
 
