@@ -2365,6 +2365,22 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not re.search(r"^- status: derived §5\.6 status \(SUPPORTED \| SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS \| DEGRADED \| USER_REQUIRED \| UNAVAILABLE \| PLANNED\)", bs, re.M):
         D.add("semantic documentation", "capability status derivation",
               "AndroidCapabilityProfile.status (BS §5.7.1) must be typed with the derived §5.6 status set")
+    # Roadmap normativity (audit: BS §15 phase "Exit criteria" are readable
+    # as acceptance conditions weaker than the registered preview, synthesis
+    # and export contracts; §67.7 precedence only protects registered
+    # contracts, so the roadmap must subordinate itself explicitly). Any BS
+    # section that carries "Exit criteria" must be one that declares itself
+    # non-normative and names the governing ContractIds.
+    for m_h in re.finditer(r"^## (\d+)\. (.+)$", bs, re.M):
+        s_ = m_h.end(); nxt = re.search(r"^## \d+\. ", bs[s_:], re.M)
+        body_ = bs[s_:s_ + nxt.start()] if nxt else bs[s_:]
+        if "**Exit criteria:**" in body_ and not (
+                "**Normative status:** This roadmap is explanatory sequencing, not a contract." in body_
+                and "CONTRACT.RUNTIME.PREVIEW_SYNC" in body_ and "CONTRACT.RUNTIME.SCOPE" in body_
+                and "CONTRACT.RUNTIME.APK_EXPORT" in body_):
+            D.add("semantic documentation", "roadmap normativity",
+                  f"BS §{m_h.group(1)} carries phase exit criteria but does not declare itself non-normative "
+                  f"and subordinate to the preview, scope and export contracts")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this

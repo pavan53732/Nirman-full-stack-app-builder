@@ -352,6 +352,14 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "BS §15 roadmap reclaims normative status": (
+        BS, "**Normative status:** This roadmap is explanatory sequencing, not a contract.",
+        "**Status:** This roadmap is the sequencing contract.",
+        "semantic documentation"),
+    "a free-floating BS section gains phase exit criteria without subordination": (
+        BS, "## 21. Suggested Next Build Sequence\n\n1. Create the Nirman desktop shell.",
+        "## 21. Suggested Next Build Sequence\n\n**Exit criteria:** The shell launches.\n\n1. Create the Nirman desktop shell.",
+        "semantic documentation"),
     "BS §5.6 derivation table drops the DEGRADED maturity row": (
         BS, "| `DEGRADED` | any | `DEGRADED` |\n", "",
         "semantic documentation"),

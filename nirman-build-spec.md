@@ -1059,6 +1059,8 @@ The exact repository layout may change during implementation, but the boundaries
 
 ## 15. Implementation Roadmap
 
+**Normative status:** This roadmap is explanatory sequencing, not a contract. Its phases and **Exit criteria** are the historical coarse plan that the development plan's milestones refine; they define no acceptance condition of their own. Where a phase statement is broader or weaker than a registered contract, the contract governs: preview claims are governed by `CONTRACT.RUNTIME.PREVIEW_SYNC` (§71; technical architecture §75) and the revision-bound `PreviewRevision` of §69, project synthesis by `CONTRACT.RUNTIME.SCOPE` (§5, §69) and the `AndroidConstructionContract` of §29, packaging and delivery by `CONTRACT.RUNTIME.APK_EXPORT` (§78), and every milestone exit gate by the development plan (coarse-to-refined ownership map). In particular, "opened in the live preview" in Phase 3 means a `PreviewRevision` promoted to `CURRENT` by `PreviewPromotionGate` inside Nirman's managed emulator with recorded runtime observation (§69, §71); no weaker reading of an exit criterion is an acceptable implementation.
+
 ### Phase 1: Desktop shell and workspace
 
 Create the Windows-first desktop application shell, project picker, basic layout, settings navigation, local metadata storage, and secure credential storage abstraction.
