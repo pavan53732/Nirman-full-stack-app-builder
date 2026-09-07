@@ -166,7 +166,7 @@ CASES = {
 
     # ---- check 9: reverse break
     "ADR Locks field removed": (
-        DEC, "**Locks:** `CONTRACT.RUNTIME.SPECULATION`\n\n", "", "reverse break"),
+        ADRS, "**Locks:** `CONTRACT.RUNTIME.SPECULATION`\n\n", "", "reverse break"),
     "milestone mapping loses its contract": (
         DEV, "| M91 | CONTRACT.RUNTIME.TRIGGER |", "| M91 | |", "reverse break"),
     "milestone mapping loses test id": (
@@ -198,7 +198,7 @@ CASES = {
         "| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | BS §66 |",
         "dangling reference"),
     "reasoning ADR loses its Locks": (
-        DEC, "**Locks:** `CONTRACT.RUNTIME.REASONING`\n\n**Status:** Accepted\n\n**Decision:** Autonomous work will be driven",
+        ADRS, "**Locks:** `CONTRACT.RUNTIME.REASONING`\n\n**Status:** Accepted\n\n**Decision:** Autonomous work will be driven",
         "**Status:** Accepted\n\n**Decision:** Autonomous work will be driven",
         "reverse break"),
     "migration regression: BS cert ref reverted to 66": (
@@ -217,7 +217,7 @@ CASES = {
         "| CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | BS §68.3 |",
         "dangling reference"),
     "deliberation ADR loses its Locks": (
-        DEC, "**Locks:** `CONTRACT.RUNTIME.DELIBERATION`\n\n**Status:** Accepted\n\n**Decision:** Reasoning effort will be budgeted",
+        ADRS, "**Locks:** `CONTRACT.RUNTIME.DELIBERATION`\n\n**Status:** Accepted\n\n**Decision:** Reasoning effort will be budgeted",
         "**Status:** Accepted\n\n**Decision:** Reasoning effort will be budgeted", "reverse break"),
     "deliberation capability unregistered": (
         BS, "| CAP.ANDROID.DEEP_PROBLEM_SOLVING | Spend additional progress-governed reasoning",
@@ -259,7 +259,7 @@ CASES = {
         "AI usage telemetry MAY throttle work.",
         "semantic documentation"),
     "ADR-197 supersession removed": (
-        DEC, "**Status:** Superseded\n**Superseded by:** ADR-218",
+        ADRS, "**Status:** Superseded\n**Superseded by:** ADR-218",
         "**Status:** Accepted",
         "semantic documentation"),
     "M95 mapping loses its contract": (
@@ -358,12 +358,19 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "an ADR block is written back into nirman-decisions.md": (
+        DEC, "## Decision Review Rules\n",
+        "## ADR-221: Stray decision\n\n**Status:** Accepted\n**Locks:** `CONTRACT.RUNTIME.SCOPE`\n**Decision:** x\n**Rationale:** y\n**Consequences:** z\n**Reversal trigger:** none foreseeable\n\n---\n\n## Decision Review Rules\n",
+        "structure"),
+    "nirman-decisions.md loses its pointer to nirman-adrs.md": (
+        DEC, "live in `nirman-adrs.md`, in numeric order", "live in the decision records document, in numeric order",
+        "structure"),
     "ADR-220 no longer fixes the root document count at ten": (
-        DEC, "The repository root holds exactly ten Markdown documents:",
+        ADRS, "The repository root holds exactly ten Markdown documents:",
         "The repository root holds the following Markdown documents:",
         "semantic documentation"),
     "ADR-220 loses the owner-precedence inheritance rule": (
-        DEC, "and the block inherits the precedence of that owner section rather than holding authority of its own",
+        ADRS, "and the block inherits the precedence of that owner section rather than holding authority of its own",
         "and the block carries its own precedence",
         "semantic documentation"),
     "§80.2 Job Object row regains the where-unavailable degraded fallback": (
@@ -483,7 +490,7 @@ CASES = {
         DEV, "phone/tablet layout-profile checks on the managed emulator |", "phone/tablet checks |",
         "semantic documentation"),
     "ADR-037 names local runtimes again": (
-        DEC, "across supported cloud-hosted providers without changing the agent orchestrator",
+        ADRS, "across supported cloud-hosted providers without changing the agent orchestrator",
         "including compatible cloud services and local runtimes, without changing the agent orchestrator",
         "semantic documentation"),
     "duplicate acceptance-matrix heading reintroduced": (
@@ -609,19 +616,19 @@ CASES = {
         "the Test Engineer reads the Backend Specialist's implementation notes",
         "semantic documentation"),
     "ADR-141 amendment note removed": (
-        DEC, "**Amended by ADR-218:** \"token budget\" in this decision means",
+        ADRS, "**Amended by ADR-218:** \"token budget\" in this decision means",
         "**Note:** \"token budget\" in this decision means",
         "semantic documentation"),
     "ADR-184 amendment note removed": (
-        DEC, "**Amended by ADR-218:** the \"reasoning budgets\" and \"pass limits\" named in this decision no longer exist",
+        ADRS, "**Amended by ADR-218:** the \"reasoning budgets\" and \"pass limits\" named in this decision no longer exist",
         "**Note:** the \"reasoning budgets\" and \"pass limits\" named in this decision no longer exist",
         "semantic documentation"),
     "ADR-217 names CostAuthority again": (
-        DEC, "Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure",
+        ADRS, "Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure",
         "Instead, `ResourceIntegrityAuthority` and `CostAuthority` evaluate physical host memory pressure",
         "semantic documentation"),
     "ADR-103 BrandAssetWorker withdrawal removed": (
-        DEC, "**Amended under ADR-049:** the dedicated `BrandAssetWorker` role is withdrawn",
+        ADRS, "**Amended under ADR-049:** the dedicated `BrandAssetWorker` role is withdrawn",
         "**Note:** the dedicated `BrandAssetWorker` role remains",
         "semantic documentation"),
 
@@ -663,10 +670,10 @@ CASES = {
         "| CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-999 | M81 | CROSS_CUTTING |",
         "dangling reference"),
     "ADR-219 heading renamed": (
-        DEC, "## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it",
+        ADRS, "## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it",
         "## ADR-219: Attention notes", "semantic documentation"),
     "ADR-219 loses its Reversal trigger role fields": (
-        DEC, "**Reversal trigger:** Measured literal recall is uniform within the configured threshold",
+        ADRS, "**Reversal trigger:** Measured literal recall is uniform within the configured threshold",
         "**Note:** Measured literal recall is uniform within the configured threshold", "structure"),
     "positional recall provider fixture removed": (
         TA, "13. Positional literal recall across fill buckets", "13. Long context smoke test",
@@ -696,7 +703,7 @@ CASES = {
         "`CONTRACT.RUNTIME.LOCALIZATION` remains authoritative for locale resources; it (§62) is *regression localization*",
         "semantic documentation"),
     "ADR-164 locks the regression-localization contract again": (
-        DEC, "## ADR-164: Language-neutral AndroidCodeIntelligence\n\n**Locks:** `CONTRACT.RUNTIME.SCOPE`",
+        ADRS, "## ADR-164: Language-neutral AndroidCodeIntelligence\n\n**Locks:** `CONTRACT.RUNTIME.SCOPE`",
         "## ADR-164: Language-neutral AndroidCodeIntelligence\n\n**Locks:** `CONTRACT.RUNTIME.LOCALIZATION`",
         "semantic documentation"),
     "LOCALIZATION authority heading becomes an i18n heading": (
@@ -823,7 +830,7 @@ CASES = {
         BS, "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 |",
         "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M911 |", "dangling reference"),
     "scope ADR loses its Locks": (
-        DEC, "**Locks:** `CONTRACT.RUNTIME.SCOPE`\n\n**Status:** Accepted",
+        ADRS, "**Locks:** `CONTRACT.RUNTIME.SCOPE`\n\n**Status:** Accepted",
         "**Status:** Accepted", "reverse break"),
     "android-only clause loses its contract": (
         BS, "| CLAUSE.SCOPE.ANDROID_ONLY_TARGET | CONTRACT.RUNTIME.SCOPE |",
@@ -851,7 +858,7 @@ CASES = {
 
     # ---- structure
     "ADR numbering gap": (
-        DEC, "## ADR-150:", "## ADR-1500:", "structure"),
+        ADRS, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
     "child subsection precedes its parent": (
@@ -862,7 +869,7 @@ CASES = {
         BS, '| BS §26.1 | "should separate the desktop user int', '\n| BS §26.1 | "should separate the desktop user int',
         "structure"),
     "ADR blocks out of numeric order": (
-        DEC, "## ADR-159: Pure reducer as lifecycle authority", "## ADR-161: Pure reducer as lifecycle authority",
+        ADRS, "## ADR-159: Pure reducer as lifecycle authority", "## ADR-161: Pure reducer as lifecycle authority",
         "structure"),
     "References labels skip a number": (
         TA, '[7]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
@@ -979,7 +986,7 @@ CASES = {
         "## M107 — Integration conformance",
         "semantic documentation"),
     "semantic integration decision removed": (
-        DEC, "## ADR-194: Establish one canonical integration-boundary contract",
+        ADRS, "## ADR-194: Establish one canonical integration-boundary contract",
         "## ADR-194: Integration notes",
         "semantic documentation"),
     "semantic universal integration chain removed": (
@@ -1047,7 +1054,7 @@ CASES = {
         "## M109 — Preview resilience",
         "semantic documentation"),
     "semantic preview decision removed": (
-        DEC, "## ADR-195: Make preview synchronization event- and reducer-bound",
+        ADRS, "## ADR-195: Make preview synchronization event- and reducer-bound",
         "## ADR-195: Preview notes",
         "semantic documentation"),
     "semantic preview projection dimensions removed": (
@@ -1127,11 +1134,11 @@ CASES = {
         "## M111 — Resource notes",
         "semantic documentation"),
     "semantic resource integrity decision removed": (
-        DEC, "## ADR-218: AI usage telemetry is observational and has no execution-authority semantics",
+        ADRS, "## ADR-218: AI usage telemetry is observational and has no execution-authority semantics",
         "## ADR-218: Resource notes",
         "semantic documentation"),
     "semantic trust decision removed": (
-        DEC, "## ADR-198: Scan and revoke agent-layer extension content",
+        ADRS, "## ADR-198: Scan and revoke agent-layer extension content",
         "## ADR-198: Extension notes",
         "semantic documentation"),
     "semantic frontend-control-plane authority removed": (
@@ -1147,7 +1154,7 @@ CASES = {
         "## M115 — Frontend Protocol Notes",
         "semantic documentation"),
     "semantic frontend-control-plane decision removed": (
-        DEC, "## ADR-201: Make the frontend a typed projection client of the control plane",
+        ADRS, "## ADR-201: Make the frontend a typed projection client of the control plane",
         "## ADR-201: Frontend Protocol Notes",
         "semantic documentation"),
     "semantic command registry removed": (
@@ -1322,7 +1329,7 @@ CASES = {
         "| CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §9985 | ADR-211 | M120 | CROSS_CUTTING |",
         "dangling reference"),
     "remove ADR-211 locks": (
-        DEC,
+        ADRS,
         "**Locks:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`\n\n",
         "", "reverse break"),
     "remove M120 mapping": (
@@ -1705,14 +1712,14 @@ def main():
             (BS, "## 77. Background Continuity Contract"),
             (TA, "## 82. Background Continuity Implementation Contract"),
             (DEV, "## M116 — Background continuity and interruption recovery"),
-            (DEC, "## ADR-202: Canonical background continuity state machine"),
+            (ADRS, "## ADR-202: Canonical background continuity state machine"),
             (TA, "deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY"),
             (TA, "ExportVerificationRecord"),
             (BS, "## 78. APK Export Provenance Contract"),
             (TA, "## 83. APK Export Provenance Implementation Contract"),
             (BS, "CAP.ANDROID.APK_DELIVERY"),
             (DEV, "## M117 — Local APK export provenance and delivery admission"),
-            (DEC, "## ADR-203: Make local deployment export profile-bound and provenance-complete"),
+            (ADRS, "## ADR-203: Make local deployment export profile-bound and provenance-complete"),
         )
         present = all(token in open(os.path.join(tmp, doc), encoding="utf-8").read()
                       for doc, token in required)
@@ -1770,7 +1777,7 @@ def main():
                                   "CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY",
                                   "CLAUSE.CONTEXT.SOURCE_REQUIRED"],
                         f"owned={owned}"))
-        adr219 = verify_contract_graph.adr_blocks(docs["dec"]).get(219, "")
+        adr219 = verify_contract_graph.adr_blocks(verify_contract_graph.adr_text(docs)).get(219, "")
         results.append(("positive: ADR-219 locks CONTEXT and CONTEXT_GOVERNANCE with a Reversal trigger",
                         "`CONTRACT.RUNTIME.CONTEXT`" in adr219
                         and "`CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`" in adr219
@@ -1803,15 +1810,15 @@ def main():
             (BS, "### 81.3 Content dependencies and invalidation"),
             (TA, "## 85. Content Intelligence Implementation Contract"),
             (DEV, "## M120 — Content and Writing Intelligence"),
-            (DEC, "## ADR-211: Make product content a first-class autonomous capability"),
+            (ADRS, "## ADR-211: Make product content a first-class autonomous capability"),
             (BS, "## 82. Durable Conversation Context Contract"),
             (TA, "## 86. Conversation Context Implementation Contract"),
             (DEV, "## M121 — Durable Conversation Context"),
-            (DEC, "## ADR-212: Make Conversation a durable development aggregate"),
+            (ADRS, "## ADR-212: Make Conversation a durable development aggregate"),
             (BS, "## 83. Change Intelligence Contract"),
             (TA, "## 87. Change Intelligence Implementation Contract"),
             (DEV, "## M122 — Change Intelligence"),
-            (DEC, "## ADR-213: Standardize post-mutation change intelligence"),
+            (ADRS, "## ADR-213: Standardize post-mutation change intelligence"),
         )
         present = all(token in open(os.path.join(tmp, doc), encoding="utf-8").read()
                       for doc, token in required)

@@ -147,6 +147,12 @@ def adr_blocks(text):
     return {int(parts[i]): parts[i + 1] for i in range(1, len(parts), 2)}
 
 
+def adr_text(docs):
+    """The document that holds the ADR records: nirman-adrs.md (ADR-220) when
+    present, otherwise the pre-migration nirman-decisions.md."""
+    return docs["adrs"] if docs.get("adrs") else docs["dec"]
+
+
 def section_bodies(text):
     """section number -> body text, fences stripped."""
     out = {}
@@ -592,7 +598,7 @@ def check_unversioned_override(R, docs, D):
     """Check 6: sealed clauses change only via a versioned superseding contract."""
     contracts, clauses, decls = R["contracts"], R["clauses"], R["declarations"]
     bodies = section_bodies(strip_fences(docs["bs"]))
-    dec_text = docs["dec"]
+    dec_text = adr_text(docs)
 
     for (sec, _cid), d in sorted(decls.items()):
         for cl in d["extended"]:
@@ -637,7 +643,7 @@ def check_dangling(R, docs, D):
     """Check 7: every reference resolves to an existing target."""
     bs_secs, ta_secs = sections(docs["bs"]), sections(docs["ta"])
     bs_subs, ta_subs = subsections(docs["bs"]), subsections(docs["ta"])
-    adrs = adr_blocks(docs["dec"])
+    adrs = adr_blocks(adr_text(docs))
     miles = set(R["milestones"])
     caps, contracts, chain = R["capabilities"], R["contracts"], R["chain"]
     tests = {c["test"] for c in caps.values()} | {m["test"] for m in R["milestones"].values() if m["test"]}
@@ -760,7 +766,7 @@ def check_forward(R, D):
 def check_reverse(R, docs, D):
     """Check 9: Evidence -> Test -> Milestone -> ADR -> Contract -> Capability."""
     caps, contracts, chain = R["capabilities"], R["contracts"], R["chain"]
-    miles, adrs = R["milestones"], adr_blocks(docs["dec"])
+    miles, adrs = R["milestones"], adr_blocks(adr_text(docs))
 
     # index: contract -> capabilities requiring it (direct)
     required_by = {}
@@ -1331,7 +1337,7 @@ def check_command_payload_field_coverage(docs, R, D, root):
 def check_semantic_documentation(docs, R, D, root="."):
     """Check 15 (document-structure, BS §67.11 "Semantic documentation" row):
     detect high-risk semantic drift not covered by the contract graph."""
-    bs, ta, dec, dev = docs["bs"], docs["ta"], docs["dec"], docs["dev"]
+    bs, ta, dec, dev = docs["bs"], docs["ta"], adr_text(docs), docs["dev"]
 
     if "goalTemplate" in ta:
         D.add("semantic documentation", "goalTemplate",
@@ -3125,7 +3131,7 @@ def check_structure(docs, R, D):
                 D.add("structure", "build spec", f"§80.2 table is split by a blank line after row {rows[i - 1][:40]!r}")
                 break
 
-    adrs = adr_blocks(docs["dec"])
+    adrs = adr_blocks(adr_text(docs))
     nums = sorted(adrs)
     if nums != list(range(1, max(nums) + 1)):
         gaps = [n for n in range(1, max(nums) + 1) if n not in adrs]
@@ -3133,15 +3139,26 @@ def check_structure(docs, R, D):
     # ADR blocks appear in ascending numeric order (ADR-002A sits with
     # ADR-002), and the unnumbered "Decision Review Rules" block is not
     # interleaved between ADR blocks.
-    order = [int(n) for n in re.findall(r"^## ADR-(\d+)[A-Z]?:", docs["dec"], re.M)]
+    adr_doc = adr_text(docs)
+    order = [int(n) for n in re.findall(r"^## ADR-(\d+)[A-Z]?:", adr_doc, re.M)]
     for prev, cur in zip(order, order[1:]):
         if cur < prev:
             D.add("structure", "decision log", f"ADR-{cur:03d} appears after ADR-{prev:03d}; ADR blocks must be in ascending order")
             break
-    first_adr = docs["dec"].find("\n## ADR-")
-    review = docs["dec"].find("\n## Decision Review Rules")
-    if first_adr >= 0 and review >= 0 and review > first_adr and "\n## ADR-" in docs["dec"][review:]:
+    first_adr = adr_doc.find("\n## ADR-")
+    review = adr_doc.find("\n## Decision Review Rules")
+    if first_adr >= 0 and review >= 0 and review > first_adr and "\n## ADR-" in adr_doc[review:]:
         D.add("structure", "decision log", "'Decision Review Rules' is interleaved between ADR blocks; it belongs after the last ADR")
+    # ADR-220: once nirman-adrs.md exists it is the only home of ADR records
+    # and the process document keeps the format and review rules.
+    if docs.get("adrs"):
+        if "\n## Decision Review Rules" not in docs["dec"] or "## ADR format" not in docs["dec"]:
+            D.add("structure", "decision log", "nirman-decisions.md must keep the 'ADR format' and 'Decision Review Rules' sections (ADR-220)")
+        if "live in `nirman-adrs.md`" not in docs["dec"]:
+            D.add("structure", "decision log", "nirman-decisions.md must point to nirman-adrs.md as the home of the decision records (ADR-220)")
+        last = re.findall(r"^## ADR-(\d+)", docs["adrs"], re.M)
+        if not last or not docs["adrs"].rstrip().endswith("---"):
+            D.add("structure", "decision log", "nirman-adrs.md must end with the last ADR block's closing rule")
     # The corpus carries three house styles for the rationale and consequence
     # roles. Require the ROLE to be filled, not one specific label.
     RATIONALE = ("**Rationale:**", "**Reasoning:**")
