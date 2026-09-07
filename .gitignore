@@ -24,3 +24,9 @@ __pycache__/
 *.db
 *.db-wal
 *.db-shm
+
+# AI assistant work trees and configuration directories.
+.workbuddy/
+.workbuddy-ai/
+.kilo/
+.kilocode/
