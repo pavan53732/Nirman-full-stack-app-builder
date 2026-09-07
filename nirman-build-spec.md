@@ -4728,6 +4728,8 @@ Every preview operation that performs build, install, launch, observation, scree
 
 > **Schema projection:** `PreviewSyncEvent` is defined in `nirman-schemas.md` §1.37. Owner: BS §71.1.
 
+The `PreviewSyncEvent` fields identify the actual embedded rendering and interaction projection. They do not constitute a new authority. PreviewCoordinator remains responsible for promotion and PreviewProjectionReducer remains the sole projection reducer.
+
 > **Schema projection:** `PreviewProjection` is defined in `nirman-schemas.md` §1.38. Owner: BS §71.1.
 
 > **Schema projection:** `PreviewProjectionReducer` is defined in `nirman-schemas.md` §1.39. Owner: BS §71.1.

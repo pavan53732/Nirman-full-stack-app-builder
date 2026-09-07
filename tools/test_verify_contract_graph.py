@@ -369,6 +369,15 @@ CASES = {
     "README refers to the retired nirman-development-plan.md filename": (
         README_MD, "[3]: nirman-milestones.md", "[3]: nirman-development-plan.md",
         "structure"),
+    # README's capability numbers are projections of the parsed §5.7 registry:
+    # a hand-edited count, or an all-PLANNED claim that the registry no longer
+    # supports, is a semantic-documentation defect.
+    "README capability count drifts from the §5.7 registry": (
+        README_MD, "All 27 registered capabilities are `PLANNED`.", "All 26 registered capabilities are `PLANNED`.",
+        "semantic documentation"),
+    "README claims all capabilities PLANNED while a §5.7 row says SUPPORTED": (
+        BS, "| TEST-GEN-001 | EV-GEN-001 | PLANNED |", "| TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
@@ -1654,6 +1663,16 @@ def main():
                    lambda tmp: _rw(tmp, INDEX, lambda t: t.replace("| §1 | Product Identity |", "| §1 | Product identity |", 1)))
     _topology_case("INDEX.md loses a contract row",
                    lambda tmp: _rw(tmp, INDEX, lambda t: re.sub(r"^\| `CONTRACT\.RUNTIME\.SCOPE` \|.*\n", "", t, count=1, flags=re.M)))
+    # A requirement sentence smuggled into a schema fence: the reference
+    # document's authority-marker scan strips fences, so only the block-purity
+    # rule can see it. Anchored on the last field line of ExternalEffectRecord,
+    # the block whose trailing prose the post-migration audit moved back to
+    # TA §36.4.
+    _topology_case("a requirement sentence rides inside a nirman-schemas.md fence",
+                   lambda tmp: _rw(tmp, SCHEMAS, lambda t: t.replace(
+                       "- reconciliationState: KNOWN_SUCCESS | KNOWN_FAILURE | UNKNOWN | RECONCILING | RESOLVED\n```",
+                       "- reconciliationState: KNOWN_SUCCESS | KNOWN_FAILURE | UNKNOWN | RECONCILING | RESOLVED\n\n"
+                       "An `UNKNOWN` outcome MUST NOT be retried until it transitions to `RESOLVED`.\n```", 1)))
 
     # POSITIVE: --emit-index reproduces the committed INDEX.md byte for byte and
     # the regenerated tree still certifies.

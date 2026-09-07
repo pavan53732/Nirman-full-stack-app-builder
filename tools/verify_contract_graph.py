@@ -1545,6 +1545,21 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "28 canonical command kinds" in readme:
             D.add("semantic documentation", "command registry cardinality",
                   "README states 28 canonical command kinds; §76.1 registers twenty-nine including conversation.continue")
+        # README's capability count is a projection of the parsed §5.7 registry,
+        # never a hand-maintained number: every "N registered capabilities"
+        # phrase must equal the registry size, and the "all PLANNED" claim must
+        # match the registry's Status column.
+        registry_size = len(R.get("capabilities", {}))
+        for m in re.finditer(r"\b(\d+) registered capabilit", readme):
+            if int(m.group(1)) != registry_size:
+                D.add("semantic documentation", "README capability count",
+                      f"README says {m.group(1)} registered capabilities; BS §5.7 registers {registry_size}")
+        if "registered capabilities are `PLANNED`" in readme:
+            planned = sum(1 for c in R.get("capabilities", {}).values()
+                          if str(c.get("status", "")).strip("`") == "PLANNED")
+            if planned != registry_size:
+                D.add("semantic documentation", "README capability status",
+                      f"README says all registered capabilities are PLANNED; BS §5.7 shows {planned} of {registry_size} PLANNED")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:
@@ -3183,6 +3198,33 @@ def check_document_topology(docs, D, root):
                 D.add("structure", f"schema {name}", "has more than one fence in nirman-schemas.md")
         owner_re = re.compile(r"^### (\d+\.\d+) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\* (BS|TA) §(\d+(?:\.\d+)*)", re.M)
         owners = {m.group(2): (m.group(1), m.group(3), m.group(4)) for m in owner_re.finditer(schemas)}
+        # (d) A schema block is a field list and nothing else. nirman-schemas.md
+        # has no authority (ADR-220), and the authority-marker scan above strips
+        # fences, so a requirement sentence that rides inside a fence would be
+        # invisible to it while reading as normative to a human. Every line of
+        # a block after the name line must therefore be a field line (`- ` and
+        # an identifier start; comments, `or`, and method signatures after it
+        # are fine), an indented nested/continuation line, or an
+        # `<Adapter> operations` sub-heading. A sentence, a backtick-led
+        # bullet, or any other text is a defect: prose belongs in the owner
+        # section next to the projection line.
+        block_re = re.compile(r"^### (\d+\.\d+) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\*[^\n]*\n\n```text\n(.*?)\n```", re.M | re.S)
+        line_ok = re.compile(r"^(?:- [A-Za-z_].*|\s+\S.*|[A-Z][A-Za-z0-9]+ operations)$")
+        for m in block_re.finditer(schemas):
+            ssec, name, body = m.groups()
+            lines = body.split("\n")
+            if lines[0].strip() != name:
+                D.add("structure", f"schema block {name}",
+                      f"nirman-schemas.md §{ssec} fence does not open with the block name `{name}`")
+                continue
+            for raw in lines[1:]:
+                if raw.strip() == "":
+                    continue
+                if not line_ok.match(raw):
+                    D.add("structure", f"schema block {name}",
+                          f"nirman-schemas.md §{ssec} carries a non-field line inside its fence ({raw.strip()[:60]!r}); "
+                          "a schema block is a field list only — prose and requirement statements belong in the owner section (ADR-220)")
+                    break
         proj_re = re.compile(r"^> \*\*Schema projection:\*\* `([A-Z][A-Za-z0-9]+)` is defined in `nirman-schemas\.md` "
                              r"§(\d+\.\d+)\. Owner: (BS|TA) §(\d+(?:\.\d+)*)\.", re.M)
         for key, tag in (("bs", "BS"), ("ta", "TA")):
