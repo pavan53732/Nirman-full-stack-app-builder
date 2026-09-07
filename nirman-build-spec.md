@@ -923,16 +923,33 @@ ActionRecord
 
 ### 11.5 Checkpoint
 
+`Checkpoint` is the one canonical checkpoint record (registered in technical architecture §36.1). Every checkpoint reference elsewhere in this document set — `Project.activeCheckpointId`, `PreviewRevision.checkpointId`, `TaskGraph.lastValidatedCheckpoint`, `BackgroundContinuityRecord.lastCheckpointId`, `WorkspaceLease` parent checkpoint (§52.8), `RecoveryAttempt.checkpointRestored`, `LocalTransaction.checkpointId`, and `ExportVerificationRecord.checkpointId` — resolves to a record of this shape. The two tiers of §27.6 are values of `tier`, not separate record kinds; technical architecture §18 describes each tier's projection of this record.
+
 ```text
 Checkpoint
 - id
 - projectId
 - taskId
+- tier: FILE | TASK
+- parentCheckpointId
+- workspaceId
+- leaseId
 - revisionReference
+- sourceFingerprint
+- filePaths
+- contentHashes
+- previewRevisionId
+- validationSnapshotId
+- restoreReference
+- validity: VALID | STALE | INVALIDATED
+- knownGood: boolean
+- retentionClass: INITIAL | LAST_KNOWN_GOOD | RECOVERY_REFERENCED | RECENT | PRUNABLE
+- evidenceIds
 - description
-- changedFiles
 - createdAt
 ```
+
+`validity` and `knownGood` are written only by the storage authority on instruction from the recovery authority or the validation pipeline: a checkpoint becomes `knownGood` only when validation evidence recorded in `evidenceIds` passed against the same `revisionReference` and `sourceFingerprint`; it becomes `STALE` when the workspace, toolchain lock, or dependency snapshot it was taken under changes, and `INVALIDATED` when its `restoreReference` no longer resolves or a §5.7.4 dependency invalidation names it. A restore selects a checkpoint by `id`, verifies `validity = VALID` and that `restoreReference` still resolves, restores per its `tier` (a `FILE` checkpoint restores only `filePaths`; a `TASK` checkpoint restores the complete project revision, §27.6), and then emits the `checkpoint_restored` hook (technical architecture §17) so any preview whose `checkpointId` differs is invalidated. `retentionClass` is the input to the technical architecture §18 retention rule; a checkpoint whose class is not `PRUNABLE` is never deleted.
 
 ---
 

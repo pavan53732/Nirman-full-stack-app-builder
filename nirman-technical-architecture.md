@@ -936,7 +936,7 @@ Blocking hooks must complete before the associated action proceeds. They require
 
 ## 18. Two-Tier Checkpoint and Backtracking Architecture
 
-The checkpoint manager should maintain file-level snapshots and task-level revisions.
+The checkpoint manager should maintain file-level snapshots and task-level revisions. Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5 (`tier: FILE | TASK`); `FileCheckpoint` and `TaskCheckpoint` below are the per-tier projections of that record that the checkpoint manager exposes, not separate schemas, and every field they show maps onto a `Checkpoint` field (`parentRevision` and `projectRevision` are `revisionReference`; `previewRevision` is `previewRevisionId`; `validationSnapshot` is `validationSnapshotId`; `workerWorkspaces` and `metadataSnapshot` are resolved through `workspaceId` and `restoreReference`).
 
 ```text
 FileCheckpoint
@@ -957,6 +957,8 @@ TaskCheckpoint
 - validationSnapshot
 - createdAt
 ```
+
+The `Checkpoint.validity`, `knownGood`, and `retentionClass` fields are the durable form of the retention and backtracking rules below: "last known-good" always means the newest checkpoint with `knownGood = true` and `validity = VALID` for the task, never a checkpoint selected by recency or by a model's recommendation.
 
 Checkpoint storage must use a retention policy for long-running sessions. Every task retains the initial source checkpoint, the last known-good checkpoint, all checkpoints referenced by an active recovery strategy, and a configurable number of recent task checkpoints. Older intermediate checkpoints should be compacted into content-addressed snapshots or pruned only when no active branch, preview, recovery attempt, or evidence record references them. Before deletion, the system must verify that a full restore path remains available.
 
@@ -2068,6 +2070,7 @@ TaskGraph
 WorkerContract
 TerminalSession
 PreviewRevision
+Checkpoint
 EvidenceRecord
 EvidenceDependency
 ValidationResult

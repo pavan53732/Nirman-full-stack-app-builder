@@ -352,6 +352,16 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "BS §11.5 Checkpoint loses its validity and knownGood fields": (
+        BS, "- validity: VALID | STALE | INVALIDATED\n- knownGood: boolean\n", "",
+        "semantic documentation"),
+    "Checkpoint drops out of the TA §36.1 registry": (
+        TA, "PreviewRevision\nCheckpoint\nEvidenceRecord\n", "PreviewRevision\nEvidenceRecord\n",
+        "semantic documentation"),
+    "TA §18 tiers stop declaring themselves projections of the canonical Checkpoint": (
+        TA, "Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5",
+        "Both tiers are stored as checkpoint records of build spec §11.5",
+        "semantic documentation"),
     "DP M6 work item regains a present-tense implementation claim": (
         DEV, "8. Add repeated-action and doom-loop detection.",
         "8. Add repeated-action and doom-loop detection; the loop detector now exposes a fingerprint counter.",

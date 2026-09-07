@@ -2315,6 +2315,25 @@ def check_semantic_documentation(docs, R, D, root="."):
     # same number of steps and the same anchor concepts in the same order, so
     # the two cannot drift apart (an agent reads AGENTS.md; an implementer
     # reads the architecture).
+    # Checkpoint identity (audit: the BS §11.5 record was a 7-field stub while
+    # fifteen fields across both documents reference checkpoints by id and
+    # the recovery architecture needs validity, known-good and restore
+    # semantics). The canonical record must be registered, carry the
+    # identity/validity fields, and TA §18's two tiers must declare
+    # themselves projections of it.
+    m_ckpt = re.search(r"\nCheckpoint\n((?:- .*\n)+)", bs)
+    ckpt_fields = set(re.sub(r"[:(].*", "", l[2:]).strip() for l in m_ckpt.group(1).splitlines()) if m_ckpt else set()
+    ckpt_required = {"tier", "parentCheckpointId", "workspaceId", "revisionReference", "sourceFingerprint",
+                     "restoreReference", "validity", "knownGood", "retentionClass", "evidenceIds"}
+    if not ckpt_required <= ckpt_fields:
+        D.add("semantic documentation", "checkpoint identity",
+              f"BS §11.5 Checkpoint must carry {sorted(ckpt_required - ckpt_fields)}")
+    if "Checkpoint" not in registry_names:
+        D.add("semantic documentation", "checkpoint identity",
+              "Checkpoint must be listed in the TA §36.1 CanonicalSchemaRegistry")
+    if "Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5" not in ta:
+        D.add("semantic documentation", "checkpoint identity",
+              "TA §18 must declare FileCheckpoint and TaskCheckpoint as projections of the canonical Checkpoint record")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this
