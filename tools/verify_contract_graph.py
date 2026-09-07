@@ -2803,6 +2803,18 @@ def check_structure(docs, R, D):
     if nums != list(range(1, max(nums) + 1)):
         gaps = [n for n in range(1, max(nums) + 1) if n not in adrs]
         D.add("structure", "decision log", f"ADR numbering has gaps: {gaps}")
+    # ADR blocks appear in ascending numeric order (ADR-002A sits with
+    # ADR-002), and the unnumbered "Decision Review Rules" block is not
+    # interleaved between ADR blocks.
+    order = [int(n) for n in re.findall(r"^## ADR-(\d+)[A-Z]?:", docs["dec"], re.M)]
+    for prev, cur in zip(order, order[1:]):
+        if cur < prev:
+            D.add("structure", "decision log", f"ADR-{cur:03d} appears after ADR-{prev:03d}; ADR blocks must be in ascending order")
+            break
+    first_adr = docs["dec"].find("\n## ADR-")
+    review = docs["dec"].find("\n## Decision Review Rules")
+    if first_adr >= 0 and review >= 0 and review > first_adr and "\n## ADR-" in docs["dec"][review:]:
+        D.add("structure", "decision log", "'Decision Review Rules' is interleaved between ADR blocks; it belongs after the last ADR")
     # The corpus carries three house styles for the rationale and consequence
     # roles. Require the ROLE to be filled, not one specific label.
     RATIONALE = ("**Rationale:**", "**Reasoning:**")

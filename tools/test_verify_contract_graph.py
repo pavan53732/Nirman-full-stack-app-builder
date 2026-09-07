@@ -770,6 +770,9 @@ CASES = {
     "§80.2 table split by a blank line": (
         BS, '| BS §26.1 | "should separate the desktop user int', '\n| BS §26.1 | "should separate the desktop user int',
         "structure"),
+    "ADR blocks out of numeric order": (
+        DEC, "## ADR-159: Pure reducer as lifecycle authority", "## ADR-161: Pure reducer as lifecycle authority",
+        "structure"),
     "References labels skip a number": (
         TA, '[7]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
         '[9]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',

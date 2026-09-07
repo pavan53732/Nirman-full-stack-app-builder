@@ -30,6 +30,8 @@ ADR-001 through ADR-208 predate this requirement and are not retrofitted. Absenc
 
 ---
 
+---
+
 ## ADR-001: Nirman is a desktop application, not a hosted development platform
 
 **Status:** Accepted  
@@ -709,15 +711,6 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ---
 
-## Decision Review Rules
-
-Every major change to the master specification, technical architecture, security model, or execution permissions should add or update a decision record. Rejected alternatives should remain documented when they explain an important trade-off.
-
-A decision should be reviewed when a milestone exposes a failed assumption, a security test fails, a new operating-system constraint appears, or the product scope changes materially.
-
-
----
-
 ## ADR-059: One instruction creates one autonomous Android session
 
 **Status:** Accepted  
@@ -781,7 +774,6 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Reasoning:** Source generation or compilation alone does not prove that an Android application works on a device.
 
 **Trade-off:** Completion takes longer and requires Nirman-managed local Android emulator validation, but results are materially more trustworthy.
-
 
 ---
 
@@ -888,118 +880,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Trade-off:** Installer and lifecycle engineering becomes a first-class workstream rather than a final packaging task.
 
-
 ---
-
-## ADR-158: Canonical AndroidConstructionContract
-
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
-
-**Status:** Accepted
-
-**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK production.
-
-**Rationale:** A single validated contract prevents workers from inventing inconsistent requirements, allows replay and migration, separates user facts from model inferences, and provides a stable target for evidence-backed completion.
-
-**Consequences:** The contract schema must be versioned, migrated, validated, and stored with the session. Technology selection remains autonomous and is recorded rather than exposed as a user-facing framework choice.
-
-## ADR-159: Pure reducer as lifecycle authority
-
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
-
-**Status:** Accepted
-
-**Decision:** Durable Nirman session state is reconstructed by a pure reducer over validated runtime events. Side effects are executed by supervised command handlers.
-
-**Rationale:** Pure state transitions enable deterministic replay, crash recovery, impossible-transition detection, and testable lifecycle behavior.
-
-**Consequences:** UI code and model workers cannot mutate lifecycle state directly. Every state change requires a validated event and an authoritative reducer transition.
-
-## ADR-160: ConstructionTransaction as the atomic autonomous unit
-
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
-
-**Status:** Accepted
-
-**Decision:** Mutations, dependency changes, toolchain repairs, preview promotion, signing, and artifact promotion use ConstructionTransaction with a checkpoint, base revision, policy decision, validation evidence, and commit/rollback result.
-
-**Rationale:** Model output is only a proposal. Transactionality prevents partial changes, stale writes, and evidence-free promotion.
-
-**Consequences:** The transaction manager and evidence authority are mandatory runtime components. Every committed revision can be traced to its transaction.
-
-## ADR-161: Parallel proposals with serialized commit barriers
-
-**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
-
-**Status:** Accepted
-
-**Decision:** Read-only analysis, planning, indexing, diagnosis, visual QA, performance analysis, and independent tests may run in parallel. Conflicting writes, reconciliation, preview promotion, signing, and artifact promotion are serialized per project revision.
-
-**Rationale:** This preserves swarm productivity without allowing nondeterministic concurrent mutation.
-
-**Consequences:** Workers declare base revisions, touched paths, semantic symbols, dependencies, and expected outputs. Reconciliation is required for overlap or stale proposals.
-
-## ADR-162: Renewable session leases plus single-use operation capabilities
-
-**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
-
-**Status:** Accepted
-
-**Decision:** Long-running sessions use renewable progress-aware leases. Sensitive operations use single-use capabilities bound to session, worker, operation, scope fingerprint, base revision, and policy context.
-
-**Rationale:** A fixed short token cannot safely represent a long Android build, while unlimited authority is unsafe. The two-level model supports autonomy with bounded authority.
-
-**Consequences:** Expired leases revoke workers and block new work. Capabilities are consumed before external side effects and are never persisted in plaintext.
-
-## ADR-163: Android toolchain manifest and project lock
-
-**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
-
-**Status:** Accepted
-
-**Decision:** JDK, Gradle, AGP, Kotlin, Compose, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, and selected JavaScript/native tooling are resolved through an authoritative manifest and project lock.
-
-**Rationale:** Host-installed tools and configuration create nondeterministic builds and difficult recovery.
-
-**Consequences:** Tool versions, hashes, paths, licenses, compatibility, and environment variables must be validated before build or preview. Authorized repair may update the lock only at a checkpoint boundary.
-
-## ADR-164: Language-neutral AndroidCodeIntelligence
-
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
-
-**Status:** Accepted
-
-**Amended under ADR-147 and ADR-180:** this record originally declared `CONTRACT.RUNTIME.LOCALIZATION` as its lock. That contract is regression localization (build spec §62, ADR-147) and has no relationship to language adapters; the lock was a homonym error. The language-adapter decision governs the Android code-intelligence layer of build spec §43, which is part of the Android generation scope that `CONTRACT.RUNTIME.SCOPE` (build spec §5, ADR-180) owns. The decision, rationale, and consequences below are unchanged.
-
-**Decision:** Nirman will use language adapters for Kotlin, Java, XML, manifests, Gradle, TypeScript/JavaScript, C/C++ native modules, configuration formats, SQL, and lockfiles.
-
-**Rationale:** Android projects span multiple languages and technology plans; a single Windows-specific parser cannot be the universal architecture.
-
-**Consequences:** Full semantic analysis is required before high-impact mutation. The graph tracks symbols, resources, permissions, navigation, dependencies, tests, devices, and affected artifacts.
-
-## ADR-165: Structured mutation broker with validated whole-file fallback
-
-**Locks:** `CONTRACT.RUNTIME.VERIFICATION`
-
-**Status:** Accepted
-
-**Decision:** Models never write directly to project files. Parser-aware or schema-aware mutations are preferred. Whole-file generation is allowed only in an isolated transaction followed by syntax, graph, build, test, and integrity validation.
-
-**Rationale:** This balances mutation safety with the heterogeneous file formats required by all Android technology choices.
-
-**Consequences:** Blind replacements and out-of-scope writes are rejected. The broker owns path, revision, file ownership, mutation budget, dependency, and evidence checks.
-
-## ADR-166: Authenticated supervised provider bridge
-
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
-
-**Status:** Accepted
-
-**Decision:** The provider bridge is loopback-only, session-authenticated, protocol-versioned, capability-checked, health-supervised, and restartable. It may be implemented inside the Rust backend or as a separately supervised local process.
-
-**Rationale:** The reference local-service pattern is useful, but adding an unnecessary runtime increases packaging and failure surface.
-
-**Consequences:** Provider requests are normalized across supported protocols, logged without secrets, and bound to sessions, workers, privacy classifications, and tool policies.
 
 ## ADR-074: Android requirement and permission authority
 
@@ -1011,6 +892,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Each requirement carries source, confidence, affected files, validation rule, status, and evidence. Missing or excessive permissions block promotion until repaired or explicitly governed.
 
+---
+
 ## ADR-075: Android repair-pattern registry
 
 **Status:** Accepted
@@ -1020,6 +903,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Known failure fingerprints should be repaired consistently before expensive open-ended model reasoning is attempted.
 
 **Consequences:** Patterns specify scope, preconditions, retry budget, checkpoint policy, validation, and evidence. Learned repairs require repeated independent validation before trust promotion.
+
+---
 
 ## ADR-076: Revision-bound preview fallback hierarchy
 
@@ -1031,6 +916,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Every PreviewRevision is bound to source revision, artifact, emulator session/profile, API level, build variant, technology plan, and evidence. Stale preview cannot satisfy completion.
 
+---
+
 ## ADR-077: Decision trace without hidden chain-of-thought
 
 **Status:** Accepted
@@ -1040,6 +927,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Users and developers need to understand important autonomous decisions without creating a sensitive reasoning transcript.
 
 **Consequences:** The UI can explain technology selection, worker routing, repairs, provider changes, checkpoint restores, and preview choices using auditable summaries.
+
+---
 
 ## ADR-078: Adaptive ResourceGovernor cannot weaken safety
 
@@ -1051,6 +940,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** CPU, memory, disk, emulator, Gradle, provider, context, log, duration, and device telemetry/capacity signals are monitored and recorded in environment evidence. Provider and context capacity are technical constraints; CPU, memory, disk, process, emulator, and device pressure are runtime-integrity constraints; token, request, cost, and duration usage is telemetry only and never an execution control.
 
+---
+
 ## ADR-079: Android data-layer resolution instead of fixed ORM
 
 **Status:** Accepted
@@ -1060,6 +951,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Android applications have different storage, offline, encryption, migration, and synchronization needs. A fixed ORM would contradict automatic technology selection.
 
 **Consequences:** The selected strategy is recorded in AndroidConstructionContract and AndroidTechnologyPlan, includes migrations and corruption recovery, and cannot change without plan reconciliation.
+
+---
 
 ## ADR-080: Honest safe terminal states
 
@@ -1071,6 +964,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Every safe terminal state includes last checkpoint, failure classification, attempted strategies, evidence, recommended resume/fork action, and a replayable history.
 
+---
+
 ## ADR-081: Android-only generated target remains invariant
 
 **Status:** Accepted
@@ -1080,6 +975,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman is permanently an Android-only autonomous application builder. Windows is the desktop host, not a generated application target.
 
 **Consequences:** All requirements, toolchain, preview, repair, artifact, UX, and acceptance logic must resolve to Android projects and APK artifacts.
+
+---
 
 ## ADR-082: Integrated Android workflow coordinator
 
@@ -1091,6 +988,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Every phase emits durable events and must be idempotent across restart and command replay.
 
+---
+
 ## ADR-083: Preflight risk and feasibility gate
 
 **Status:** Accepted
@@ -1100,6 +999,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Early blocker detection reduces wasted work and makes autonomous recovery more effective.
 
 **Consequences:** Repairable issues may be handled automatically under policy; credentials, policy blocks, and unavailable required emulator profiles remain explicit states.
+
+---
 
 ## ADR-084: Independent Android quality gate
 
@@ -1111,6 +1012,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Findings are blocking, warning, or informational. A score or model assertion cannot replace evidence.
 
+---
+
 ## ADR-085: Proactive failure-mode catalogue
 
 **Status:** Accepted
@@ -1120,6 +1023,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Known failure classes should be detected and repaired consistently before open-ended diagnosis.
 
 **Consequences:** Every pattern has scope, retry policy, checkpoint behavior, stop condition, and evidence requirements. New patterns need independent validation before trust.
+
+---
 
 ## ADR-086: Acceptance-test traceability
 
@@ -1131,6 +1036,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Skipped, blocked, flaky, and not-applicable tests are represented honestly. Missing mandatory validation blocks completion.
 
+---
+
 ## ADR-087: Architecture and contract drift detection
 
 **Status:** Accepted
@@ -1140,6 +1047,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Autonomous systems can gradually lose alignment with the original requirements or architecture.
 
 **Consequences:** Drift cannot be hidden by changing the contract in place. Contract changes require versioning, rationale, reconciliation, and revalidation.
+
+---
 
 ## ADR-088: Runtime trace and dependency health intelligence
 
@@ -1151,6 +1060,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Trace data is redacted before persistence or provider submission. Dependency changes require transaction, restore, build, tests, security checks, and rollback evidence.
 
+---
+
 ## ADR-089: Project handbook and release-intelligence report
 
 **Status:** Accepted
@@ -1160,6 +1071,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Users need an understandable project record and trustworthy artifact metadata after autonomous construction.
 
 **Consequences:** Documentation is generated from validated state and cannot claim support beyond retained test and evidence results.
+
+---
 
 ## ADR-090: Metrics are evidence for routing, not authority
 
@@ -1171,6 +1084,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Metrics include success, regression, rollback, time-to-evidence, handoff completeness, and false-positive rates. Security and artifact gates remain deterministic.
 
+---
+
 ## ADR-091: Bounded structured reasoning
 
 **Status:** Accepted
@@ -1180,6 +1095,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman needs explainability without retaining sensitive internal reasoning transcripts.
 
 **Consequences:** A decision record contains inputs, constraints, alternatives, selected action, policy checks, provenance, confidence, outcome, and evidence IDs.
+
+---
 
 ## ADR-092: Native Windows isolation as the complete sandbox foundation
 
@@ -1191,6 +1108,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Workspace, process, toolchain, policy, and emulator-snapshot authorities are the complete isolation foundation. External sandbox setup, image management, virtual networking, volume management, and related maintenance are outside Nirman.
 
+---
+
 ## ADR-093: No unsupported capability-count claims
 
 **Status:** Accepted
@@ -1200,6 +1119,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Quantitative claims without functional proof mislead users and obscure real reliability.
 
 **Consequences:** Documentation and UI must distinguish planned, implemented, validated, degraded, and unavailable capabilities.
+
+---
 
 ## ADR-094: Android-only scope remains unchanged
 
@@ -1211,6 +1132,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** All new workflow, quality, risk, intelligence, preview, toolchain, and artifact services must resolve to Android projects and APK deliverables.
 
+---
+
 ## ADR-095: Private internal reasoning with visible structured summaries
 
 **Status:** Accepted
@@ -1220,6 +1143,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Internal reasoning can improve complex autonomous work, while verbatim reasoning transcripts can expose sensitive content, hidden instructions, private data, or unreliable intermediate thoughts. Users still need visibility during long-running sessions.
 
 **Consequences:** A summarizer and filter become mandatory boundaries between model output and the UI, event store, worker handoffs, exports, and evidence system.
+
+---
 
 ## ADR-096: ReasoningStreamEvent is separate from runtime authority
 
@@ -1231,6 +1156,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Every visible decision is paired with separate policy, execution, validation, and evidence events where applicable.
 
+---
+
 ## ADR-097: Deterministic redaction before display and persistence
 
 **Status:** Accepted
@@ -1240,6 +1167,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** The reasoning stream must remain useful without becoming a leakage channel.
 
 **Consequences:** Unsafe summaries are replaced with safe generic status events. Redaction metadata is recorded without retaining the withheld content.
+
+---
 
 ## ADR-098: Durable authenticated stream with replay
 
@@ -1251,6 +1180,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Back-pressure cannot stop autonomous execution. Duplicate and out-of-order events are detected and corrected through sequence replay.
 
+---
+
 ## ADR-099: Progressive reasoning presentation
 
 **Status:** Accepted
@@ -1260,6 +1191,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Beginners need a simple progress view, while advanced users need decision, operation, evidence, and replay detail.
 
 **Consequences:** Changing presentation affects only visibility, not execution, permissions, model routing, or policy outcomes.
+
+---
 
 ## ADR-100: Honest streamed status semantics
 
@@ -1271,6 +1204,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The stall detector and lifecycle reducer remain authoritative for progress. The stream reports their state and cannot manufacture progress.
 
+---
+
 ## ADR-101: Provider delta normalization without raw forwarding
 
 **Status:** Accepted
@@ -1281,6 +1216,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Complete structured responses must pass schema, policy, scope, and transaction validation before execution.
 
+---
+
 ## ADR-102: Branding and visual assets are first-class Android requirements
 
 **Status:** Accepted
@@ -1290,6 +1227,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A generated app is incomplete when its requested product identity is missing, generic, stale, or unintegrated even if the source code builds successfully.
 
 **Consequences:** Asset planning, generation, integration, preview verification, artifact inspection, and evidence are required parts of the autonomous Android workflow.
+
+---
 
 ## ADR-103: Dedicated BrandAssetWorker and versioned manifests
 
@@ -1303,6 +1242,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Amended under ADR-049:** the dedicated `BrandAssetWorker` role is withdrawn; ADR-049's single canonical worker registry admits no additional worker taxonomy. Branding and visual-asset work executes as a scoped asset transaction of the canonical UI Worker under the `BrandAssetPipeline` (BS §50, TA §56) with the same restrictions this decision imposed on the worker — it cannot modify unrelated source, change the technology plan, grant permissions, or mark completion. Explicit ownership, provenance, regeneration history, and validation are carried by the versioned `BrandManifest` and `AssetManifest`, the asset transaction, `AssetValidator`, `ArtifactAssetInspector`, and `BrandAssetCompletionGate`, so asset work remains mandatory and gated rather than a side effect; those records and gates are unchanged.
 
+---
+
 ## ADR-104: Asset completion requires project, preview, and artifact proof
 
 **Status:** Accepted
@@ -1312,6 +1253,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** An asset can exist on disk but be referenced incorrectly, omitted from packaging, stale in preview, or invalid at runtime.
 
 **Consequences:** `AssetValidator`, `PreviewCoordinator`, and `ArtifactAssetInspector` are required. Missing, stale, invalid, unintegrated, or placeholder-only requested assets block final promotion.
+
+---
 
 ## ADR-105: Provenance and reproducibility for generated assets
 
@@ -1323,6 +1266,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Raw prompts, sensitive user data, API keys, and private provider content remain filtered from ordinary logs and visible reasoning.
 
+---
+
 ## ADR-106: Asset fallback must be explicit
 
 **Status:** Accepted
@@ -1332,6 +1277,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Temporary placeholders are useful for recovery but must not silently pass a branded release requirement.
 
 **Consequences:** Placeholder-only output blocks completion when branding was requested. The user sees the fallback status through the structured reasoning stream.
+
+---
 
 ## ADR-107: Branding changes are revisioned and impact-scoped
 
@@ -1343,6 +1290,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Asset impact analysis and revision binding are required for preview and artifact promotion.
 
+---
+
 ## ADR-108: Lock C#/.NET + WinUI 3 for the Windows application
 
 **Status:** Accepted
@@ -1352,6 +1301,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman is a Windows-first native desktop application. WinUI 3 provides the native Windows application surface while Rust/Tokio remains responsible for deterministic autonomous execution, process supervision, policy, persistence, recovery, Android tooling, and evidence.
 
 **Consequences:** Tauri, Electron, React, TypeScript, Vite, Tailwind, shadcn/ui, and WebView-based desktop-shell architecture are not part of Nirman’s implementation stack. They may exist only as dependencies of unrelated development tooling and must not become Nirman's host UI architecture.
+
+---
 
 ## ADR-109: Rust and Tokio own the authoritative control plane
 
@@ -1363,6 +1314,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** WinUI state is presentation-only. The C# UI and model cannot bypass Rust runtime authorities.
 
+---
+
 ## ADR-110: SQLite is the execution ledger
 
 **Status:** Accepted
@@ -1372,6 +1325,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Nirman needs transactional state, migrations, event sequences, crash recovery, and replay without a cloud database.
 
 **Consequences:** Large logs, screenshots, diffs, patches, crash dumps, build output, and APK files remain in the filesystem artifact store with content-hash references.
+
+---
 
 ## ADR-111: Separate Nirman.exe from NirmanSupervisor.exe for durable autonomy
 
@@ -1383,6 +1338,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The supervisor requires authenticated IPC, protocol handshake, health monitoring, installation/update behavior, login startup, and SQLite recovery scanning.
 
+---
+
 ## ADR-112: Native WinUI editor surface is the first editor
 
 **Status:** Accepted
@@ -1392,6 +1349,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** The primary product is autonomous construction, preview, validation, and recovery. A native WinUI editor surface is sufficient for the first editor surface with lower integration overhead and no WebView2 dependency.
 
 **Consequences:** Editor state is presentation-only; semantic intelligence remains in Rust and language-specific analyzers.
+
+---
 
 ## ADR-113: Native WinUI terminal surface; Rust owns ConPTY
 
@@ -1403,6 +1362,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Terminal UI reconnects to durable terminal sessions and cannot forge command results or bypass policy.
 
+---
+
 ## ADR-114: Nirman orchestrates externally managed Android toolchains
 
 **Status:** Accepted
@@ -1412,6 +1373,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Android build and emulator tooling must remain compatible with the Android ecosystem while Nirman supplies orchestration, evidence, and recovery.
 
 **Consequences:** Toolchain manifests, locks, health checks, environment snapshots, and authorized repair are required.
+
+---
 
 ## ADR-115: Four-stage implementation order is mandatory
 
@@ -1423,6 +1386,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The development plan must track stage gates separately from feature milestones.
 
+---
+
 ## ADR-116: The UI is a reconnectable projection
 
 **Status:** Accepted
@@ -1432,6 +1397,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** UI-owned execution state is lost during crashes, restarts, and long-running background work.
 
 **Consequences:** Client state cannot mark completion, authorize operations, alter policies, or promote artifacts.
+
+---
 
 ## ADR-117: WinUI 3 communicates with Rust through SupervisorConnection
 
@@ -1443,6 +1410,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** No Tauri IPC, WebView IPC, or Node control-plane server is part of Nirman's architecture.
 
+---
+
 ## ADR-118: Make AgentExecutionKernel a first-class runtime subsystem
 
 **Status:** Accepted
@@ -1452,6 +1421,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Planning, execution, observation, recovery, delegation, and validation must form one durable runtime loop rather than remain scattered across worker prompts.
 
 **Consequences:** The kernel produces proposals and transitions, while policy, transaction, evidence, lifecycle, and artifact authorities remain non-delegable.
+
+---
 
 ## ADR-119: Separate agent-loop state from worker-process lifecycle state
 
@@ -1463,6 +1434,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Both state machines require durable sequence numbers, impossible-transition checks, and replayable events.
 
+---
+
 ## ADR-120: Use SkillRuntime for compatibility, composition, execution, and evidence
 
 **Status:** Accepted
@@ -1472,6 +1445,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A skill registry alone does not define safe execution or provenance.
 
 **Consequences:** Loading or composing a skill never grants a permission. Every invocation creates SkillExecutionRecord.
+
+---
 
 ## ADR-121: Use SwarmPlanner to decide parallelism
 
@@ -1483,6 +1458,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Some complex goals remain serialized when parallelism would increase conflict or validation risk.
 
+---
+
 ## ADR-122: Represent each worker as a runtime-configured instance
 
 **Status:** Accepted
@@ -1492,6 +1469,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Responsibility and operating behavior are separate concerns.
 
 **Consequences:** Worker creation is bounded and cannot expand authority or scope.
+
+---
 
 ## ADR-123: Formalize typed delegation and replacement operations
 
@@ -1503,6 +1482,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Unstructured worker-to-worker instructions cannot change the task graph or authority policy.
 
+---
+
 ## ADR-124: Share typed knowledge through a controlled ledger and blackboard
 
 **Status:** Accepted
@@ -1512,6 +1493,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Shared mutable memory causes stale assumptions, context pollution, and conflicting writes.
 
 **Consequences:** Every artifact has source, revision, confidence, scope, validity, and evidence.
+
+---
 
 ## ADR-125: Use renewable WorkspaceLease records
 
@@ -1523,6 +1506,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** A stale lease cannot write until recovery verifies process and revision state.
 
+---
+
 ## ADR-126: Model long-lived tools as ToolSessions
 
 **Status:** Accepted
@@ -1532,6 +1517,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Stateful tools outlive individual worker messages and sometimes the UI connection.
 
 **Consequences:** Reconnect preserves scope; it never grants additional capabilities.
+
+---
 
 ## ADR-127: Plan through a Tool Capability Graph and Environment Capability Planner
 
@@ -1543,6 +1530,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Emulator hypervisor acceleration, signing credentials, privileged permissions, and unavailable hardware may remain user-required.
 
+---
+
 ## ADR-128: Make ValidationPlanner and mutation/regression analysis authoritative for test selection
 
 **Status:** Accepted
@@ -1552,6 +1541,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Running the same fixed test set after every change is inefficient and can miss affected behavior.
 
 **Consequences:** A high-risk manifest, permission, data, navigation, native-module, or build change expands validation automatically.
+
+---
 
 ## ADR-129: Use side-effect-free trajectory replay
 
@@ -1563,6 +1554,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Replay results are clearly separate from production execution evidence.
 
+---
+
 ## ADR-130: Provide Simulation/Dry-Run Mode
 
 **Status:** Accepted
@@ -1572,6 +1565,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Users and engineers need to inspect a proposed plan and test runtime behavior safely.
 
 **Consequences:** Predicted, simulated, observed, and verified statuses must never be conflated.
+
+---
 
 ## ADR-131: Detect deadlocks and apply agent-level backpressure
 
@@ -1583,6 +1578,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The scheduler may reduce concurrency or reorder work rather than launch additional workers.
 
+---
+
 ## ADR-132: Propagate cancellation through the complete execution tree
 
 **Status:** Accepted
@@ -1592,6 +1589,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Partial cancellation leaves resource leaks, stale leases, and misleading task state.
 
 **Consequences:** Every descendant must acknowledge cancellation or be forcibly terminated under policy.
+
+---
 
 ## ADR-133: Support independent worker and skill pause/resume
 
@@ -1603,6 +1602,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Paused branches remain visible and cannot silently expire without recovery handling.
 
+---
+
 ## ADR-134: Represent ambiguity as structured Human Decision Nodes
 
 **Status:** Accepted
@@ -1612,6 +1613,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A decision node is richer and more durable than an unstructured approval request.
 
 **Consequences:** The task can resume from the selected option without reconstructing context from chat history.
+
+---
 
 ## ADR-135: Track uncertainty and contradiction as evidence-bound state
 
@@ -1623,6 +1626,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Contradictions create controlled decision revisions instead of silent last-write-wins behavior.
 
+---
+
 ## ADR-136: Recompile plans when evidence invalidates them
 
 **Status:** Accepted
@@ -1632,6 +1637,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A long-horizon plan must adapt to environment, requirements, toolchain, worker, and validation changes.
 
 **Consequences:** Completed side effects remain immutable and the new plan starts from verified state.
+
+---
 
 ## ADR-137: Tier execution history
 
@@ -1643,6 +1650,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Garbage collection cannot delete required evidence, active checkpoint parents, unresolved failure evidence, or artifact provenance.
 
+---
+
 ## ADR-138: Score workers using validated outcomes
 
 **Status:** Accepted
@@ -1653,6 +1662,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Scores are advisory routing signals and cannot override policy or evidence authorities.
 
+---
+
 ## ADR-139: Require end-to-end autonomous-runtime certification
 
 **Status:** Accepted
@@ -1662,6 +1673,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Capability claims require executable evidence, not module counts or architectural intent.
 
 **Consequences:** The single-worker and durable-supervisor gates remain mandatory prerequisites for expanded autonomy.
+
+---
 
 ## ADR-140: Classify every memory write and require source evidence
 
@@ -1674,6 +1687,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Untyped memory accumulates model speculation as if it were established fact. Requiring a source event makes it structurally impossible for a model claim to become memory.
 
 **Consequences:** Memory volume is lower and provenance is queryable. Every memory-producing path must first emit a validated event.
+
+---
 
 ## ADR-141: Never evict constraints or locked decisions for token budget
 
@@ -1689,6 +1704,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Amended by ADR-218:** "token budget" in this decision means the provider's context capacity — a technical representation constraint fitted by `ContextCapacityPlanner` (TA §59) — never an AI-usage budget, spend ceiling, or execution control; no such budget exists. What survives unchanged is the priority rule: active constraints and locked decisions are placed before file content, and file content is reduced first when the provider's context capacity is exceeded. Under ADR-219 the constraints are re-projected from durable state into the DENSE placement block after every compaction and verified by a recall probe.
 
+---
+
 ## ADR-142: Workers coordinate but hold no authority over each other
 
 **Locks:** `CONTRACT.RUNTIME.RESERVATION`
@@ -1700,6 +1717,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Peer-granted authority allows a single incorrect worker to launder its own claims through another worker and defeat the evidence model.
 
 **Consequences:** All arbitration is centralized in the deterministic runtime, which becomes a throughput bottleneck by design.
+
+---
 
 ## ADR-143: Reserve semantic surfaces and invalidate stale contracts
 
@@ -1713,6 +1732,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Parallel work is more constrained and some proposals are rejected at the commit barrier and must be revalidated, which is preferred over merging a broken result.
 
+---
+
 ## ADR-144: Treat user edits as authoritative and never overwrite them
 
 **Locks:** `CONTRACT.RUNTIME.RECONCILIATION`
@@ -1724,6 +1745,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Silently reverting a user's edit is the most destructive failure an autonomous editor can commit, and validation predating a user edit is not evidence about the current code.
 
 **Consequences:** Concurrent editing costs revalidation cycles, and the runtime must maintain content fingerprints for every mutation it performs.
+
+---
 
 ## ADR-145: Apply runtime directives at decision boundaries with bounded authority
 
@@ -1737,6 +1760,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Directives take effect with bounded latency rather than immediately, and the runtime must classify every in-flight step as unchanged, invalidated, or abandoned.
 
+---
+
 ## ADR-146: Require deterministic stateful scenarios with declared seed provenance
 
 **Locks:** `CONTRACT.RUNTIME.E2E`
@@ -1748,6 +1773,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Launching an app and screenshotting the first screen proves almost nothing about a stateful Android application. Flaky scenarios treated as passing are worse than absent scenarios because they manufacture false confidence.
 
 **Consequences:** Verification is substantially more expensive, and stabilizing flaky scenarios becomes prerequisite work rather than optional cleanup.
+
+---
 
 ## ADR-147: Localize regressions before repairing and confine repair to the cause
 
@@ -1761,6 +1788,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Localization consumes time before repair begins, and checkpoint retention becomes a functional requirement rather than a convenience.
 
+---
+
 ## ADR-148: Verify inside the loop and reject vacuous assertions
 
 **Locks:** `CONTRACT.RUNTIME.VERIFICATION`
@@ -1772,6 +1801,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Terminal-only validation lets errors accumulate until the cause is unrecoverable, and assertions written after a passing implementation tend to encode whatever the implementation already does.
 
 **Consequences:** Per-mutation cost rises and generation is slower, in exchange for defects surfacing at the mutation that caused them.
+
+---
 
 ## ADR-149: Verify the generated application and its supply chain, not only the host
 
@@ -1785,6 +1816,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Packaging gains a blocking gate, and artifacts without complete provenance cannot be promoted.
 
+---
+
 ## ADR-150: Report multi-device coverage explicitly and treat divergence as a defect
 
 **Locks:** `CONTRACT.RUNTIME.DEVICE_MATRIX`
@@ -1796,6 +1829,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Verification on a single emulator overstates confidence, and attributing emulator-profile-specific failures to "device noise" is the standard way real Android defects are dismissed.
 
 **Consequences:** Coverage reporting becomes more complex and often reports partial coverage, which is the honest result. Emulator capacity becomes a planning constraint.
+
+---
 
 ## ADR-151: Disable external network triggers by default and cap their authority
 
@@ -1809,6 +1844,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Automated integration requires deliberate configuration, and every firing carries audit overhead.
 
+---
+
 ## ADR-152: Provide operator-grade runtime inspection without exposing private reasoning
 
 **Locks:** `CONTRACT.RUNTIME.DEBUGGER`
@@ -1820,6 +1857,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** An autonomous runtime that cannot be inspected cannot be trusted or debugged, but exposing raw reasoning would violate the established privacy boundary and encourage users to treat speculation as fact.
 
 **Consequences:** The event ledger must be complete enough to reconstruct runtime state, which raises persistence requirements.
+
+---
 
 ## ADR-153: Estimate from measured history and label unprofiled operations honestly
 
@@ -1835,6 +1874,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Clarified under ADR-218:** the estimate produced from these profiles is the physical `ResourceExecutionProfile` (TA §69.3) — expected CPU, memory, disk, emulator slots, concurrency, build pressure, and observed duration with confidence and sample counts. It carries no token, request, price, or monetary field, and "cost" in this decision means physical execution demand, never AI usage.
 
+---
+
 ## ADR-154: Pin skill versions for the duration of an active session
 
 **Locks:** `CONTRACT.RUNTIME.SKILL`
@@ -1846,6 +1887,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Changing a skill's instructions underneath a running long-horizon task makes the run irreproducible and can invalidate earlier work in ways the replay engine cannot explain.
 
 **Consequences:** Skill versions must be retained while referenced, and urgent skill fixes do not reach in-flight sessions.
+
+---
 
 ## ADR-155: Isolate project memory and anonymize cross-project learning
 
@@ -1859,6 +1902,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Useful concrete patterns cannot transfer between projects, and learning transfer is limited to abstract failure and compatibility signals.
 
+---
+
 ## ADR-156: Permit speculative candidate branches only under declared conditions
 
 **Locks:** `CONTRACT.RUNTIME.SPECULATION`
@@ -1870,6 +1915,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Trying several approaches raises quality on genuinely uncertain work, but unconditional speculation multiplies cost and creates ambiguous evidence about which candidate a result came from.
 
 **Consequences:** Speculation is rare and explicitly justified, and workspace isolation infrastructure is required before it can be enabled.
+
+---
 
 ## ADR-157: Verify runtime invariants from the event ledger as a release gate
 
@@ -1883,6 +1930,136 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** The event ledger must record enough detail to prove each invariant, and certification requires a long-running Android fixture rather than unit tests alone.
 
+---
+
+## ADR-158: Canonical AndroidConstructionContract
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** Nirman will create one versioned AndroidConstructionContract for every autonomous session. It is the canonical handoff between user intent, screenshots, requirements, technology selection, workers, preview, validation, and APK production.
+
+**Rationale:** A single validated contract prevents workers from inventing inconsistent requirements, allows replay and migration, separates user facts from model inferences, and provides a stable target for evidence-backed completion.
+
+**Consequences:** The contract schema must be versioned, migrated, validated, and stored with the session. Technology selection remains autonomous and is recorded rather than exposed as a user-facing framework choice.
+
+---
+
+## ADR-159: Pure reducer as lifecycle authority
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** Durable Nirman session state is reconstructed by a pure reducer over validated runtime events. Side effects are executed by supervised command handlers.
+
+**Rationale:** Pure state transitions enable deterministic replay, crash recovery, impossible-transition detection, and testable lifecycle behavior.
+
+**Consequences:** UI code and model workers cannot mutate lifecycle state directly. Every state change requires a validated event and an authoritative reducer transition.
+
+---
+
+## ADR-160: ConstructionTransaction as the atomic autonomous unit
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** Mutations, dependency changes, toolchain repairs, preview promotion, signing, and artifact promotion use ConstructionTransaction with a checkpoint, base revision, policy decision, validation evidence, and commit/rollback result.
+
+**Rationale:** Model output is only a proposal. Transactionality prevents partial changes, stale writes, and evidence-free promotion.
+
+**Consequences:** The transaction manager and evidence authority are mandatory runtime components. Every committed revision can be traced to its transaction.
+
+---
+
+## ADR-161: Parallel proposals with serialized commit barriers
+
+**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
+
+**Status:** Accepted
+
+**Decision:** Read-only analysis, planning, indexing, diagnosis, visual QA, performance analysis, and independent tests may run in parallel. Conflicting writes, reconciliation, preview promotion, signing, and artifact promotion are serialized per project revision.
+
+**Rationale:** This preserves swarm productivity without allowing nondeterministic concurrent mutation.
+
+**Consequences:** Workers declare base revisions, touched paths, semantic symbols, dependencies, and expected outputs. Reconciliation is required for overlap or stale proposals.
+
+---
+
+## ADR-162: Renewable session leases plus single-use operation capabilities
+
+**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
+
+**Status:** Accepted
+
+**Decision:** Long-running sessions use renewable progress-aware leases. Sensitive operations use single-use capabilities bound to session, worker, operation, scope fingerprint, base revision, and policy context.
+
+**Rationale:** A fixed short token cannot safely represent a long Android build, while unlimited authority is unsafe. The two-level model supports autonomy with bounded authority.
+
+**Consequences:** Expired leases revoke workers and block new work. Capabilities are consumed before external side effects and are never persisted in plaintext.
+
+---
+
+## ADR-163: Android toolchain manifest and project lock
+
+**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
+
+**Status:** Accepted
+
+**Decision:** JDK, Gradle, AGP, Kotlin, Compose, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, and selected JavaScript/native tooling are resolved through an authoritative manifest and project lock.
+
+**Rationale:** Host-installed tools and configuration create nondeterministic builds and difficult recovery.
+
+**Consequences:** Tool versions, hashes, paths, licenses, compatibility, and environment variables must be validated before build or preview. Authorized repair may update the lock only at a checkpoint boundary.
+
+---
+
+## ADR-164: Language-neutral AndroidCodeIntelligence
+
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
+
+**Status:** Accepted
+
+**Amended under ADR-147 and ADR-180:** this record originally declared `CONTRACT.RUNTIME.LOCALIZATION` as its lock. That contract is regression localization (build spec §62, ADR-147) and has no relationship to language adapters; the lock was a homonym error. The language-adapter decision governs the Android code-intelligence layer of build spec §43, which is part of the Android generation scope that `CONTRACT.RUNTIME.SCOPE` (build spec §5, ADR-180) owns. The decision, rationale, and consequences below are unchanged.
+
+**Decision:** Nirman will use language adapters for Kotlin, Java, XML, manifests, Gradle, TypeScript/JavaScript, C/C++ native modules, configuration formats, SQL, and lockfiles.
+
+**Rationale:** Android projects span multiple languages and technology plans; a single Windows-specific parser cannot be the universal architecture.
+
+**Consequences:** Full semantic analysis is required before high-impact mutation. The graph tracks symbols, resources, permissions, navigation, dependencies, tests, devices, and affected artifacts.
+
+---
+
+## ADR-165: Structured mutation broker with validated whole-file fallback
+
+**Locks:** `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** Models never write directly to project files. Parser-aware or schema-aware mutations are preferred. Whole-file generation is allowed only in an isolated transaction followed by syntax, graph, build, test, and integrity validation.
+
+**Rationale:** This balances mutation safety with the heterogeneous file formats required by all Android technology choices.
+
+**Consequences:** Blind replacements and out-of-scope writes are rejected. The broker owns path, revision, file ownership, mutation budget, dependency, and evidence checks.
+
+---
+
+## ADR-166: Authenticated supervised provider bridge
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Decision:** The provider bridge is loopback-only, session-authenticated, protocol-versioned, capability-checked, health-supervised, and restartable. It may be implemented inside the Rust backend or as a separately supervised local process.
+
+**Rationale:** The reference local-service pattern is useful, but adding an unnecessary runtime increases packaging and failure surface.
+
+**Consequences:** Provider requests are normalized across supported protocols, logged without secrets, and bound to sessions, workers, privacy classifications, and tool policies.
+
+---
+
 ## ADR-167: Drive execution from a recorded reasoning cycle with cited selection basis
 
 **Locks:** `CONTRACT.RUNTIME.REASONING`
@@ -1894,6 +2071,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Without a recorded basis, strategy selection is unauditable and the runtime cannot distinguish a decision grounded in evidence from a plausible-sounding guess. Requiring a citation makes ungrounded selection structurally impossible rather than merely discouraged.
 
 **Consequences:** Every cycle carries a persistence cost, and reasoning that cannot cite anything cannot proceed — which is the intended constraint, not a limitation.
+
+---
 
 ## ADR-168: Persist structured reasoning artifacts and never verbatim private reasoning
 
@@ -1907,6 +2086,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Reasoning is auditable without a reasoning transcript existing anywhere in the system. Debugging relies on structured records rather than reading the model's stream of thought.
 
+---
+
 ## ADR-169: Make every autonomous capability agent-invocable and discoverable at runtime
 
 **Locks:** `CONTRACT.RUNTIME.REASONING`
@@ -1918,6 +2099,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** If the interface owns capability triggering, the agent is a text generator wired to buttons and every new capability requires agent changes. Runtime discovery makes the system extensible: a newly registered skill becomes usable without modifying the reasoning engine.
 
 **Consequences:** The capability registry becomes a required runtime component, and every capability must declare schemas, permissions, validation, evidence kinds, and rollback behavior to be discoverable.
+
+---
 
 ## ADR-170: Bound recursive delegation by capability and resource ceilings
 
@@ -1933,6 +2116,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Amended by ADR-218:** the former child resource-budget wording is replaced by physical `resourceRequirements` evaluated against the parent's currently admissible resource capacity by `ResourceIntegrityAuthority` (BS §72); `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. The two grant-time invariants — capability-ceiling containment and admissible-capacity inequality — survive unchanged.
 
+---
+
 ## ADR-171: Let the agent select execution mode within policy bounds
 
 **Locks:** `CONTRACT.RUNTIME.REASONING`
@@ -1945,17 +2130,7 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** A mode request exceeding policy is downgraded to the highest permitted mode and recorded, so the user can see that the runtime wanted more latitude than policy allowed.
 
-## ADR-180: Enforce the Android-only generated target as a machine-checked invariant
-
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
-
-**Status:** Accepted
-
-**Decision:** `Project.targetPlatforms` must equal exactly `["android"]` at every revision, enforced at project construction rather than stated as intent. The runtime rejects a project whose target list is empty, contains any other value, or pairs `android` with a second platform. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the technology resolver, not additional targets. No resolver path, worker role, or capability may produce a non-Android deployable.
-
-**Rationale:** A generic platform field with a documented intention drifts. Nirman's scope boundary is its most load-bearing product decision, and a configuration value able to widen it silently would let a web or server target enter through the data model without any decision being recorded.
-
-**Consequences:** The data model keeps generic field shapes for stability while the invariant constrains their values. A future multi-target product would require a new versioned scope contract and a superseding ADR, not a configuration change.
+---
 
 ## ADR-172: Treat deliberation computation as a first-class runtime resource
 
@@ -1971,6 +2146,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Amended by ADR-218:** the DeliberationBudget ceilings named above no longer exist. The surviving decision is that the agent requests effort and only the deterministic runtime grants it; the grant is selected from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity, and reasoning usage is telemetry.
 
+---
+
 ## ADR-173: Escalate reasoning effort through declared levels on recorded conditions
 
 **Locks:** `CONTRACT.RUNTIME.DELIBERATION`
@@ -1982,6 +2159,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Fixed effort is wrong in both directions: it wastes computation on routine changes and under-thinks the changes that damage a project. Requiring a recorded condition prevents escalation by preference.
 
 **Consequences:** The runtime must classify task risk before selecting effort, and EXHAUSTIVE work must terminate in branching or escalation rather than an unbounded search.
+
+---
 
 ## ADR-174: Require deliberation passes to produce evidence, not only reasoning
 
@@ -1995,6 +2174,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Deliberation consumes tool and I/O capacity, not just model capacity, and the planner must estimate observation cost before choosing.
 
+---
+
 ## ADR-175: Compete hypotheses and critique strategies adversarially at DEEP effort
 
 **Locks:** `CONTRACT.RUNTIME.DELIBERATION`
@@ -2006,6 +2187,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A defect with four plausible causes is not solved by acting on the most available one. Refutation is what distinguishes diagnosis from guessing, and a critique that cannot reject anything is decoration.
 
 **Consequences:** Hard problems take longer before the first mutation and are far more likely to be repaired at the cause, aligning with the cause-scoped repair rule of the localization contract.
+
+---
 
 ## ADR-176: Preserve deliberation state across provider requests and context compaction
 
@@ -2021,6 +2204,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Amended by ADR-218:** the continuation state no longer carries a remaining budget; it carries the granted effort level and effort grant, and reasoning usage is telemetry. Session survival across compaction, failover, and restart is unchanged, and under ADR-219 the session state is re-projected from durable state after compaction rather than carried by the compaction output.
 
+---
+
 ## ADR-177: Terminate deliberation on diminishing returns rather than reasoning further
 
 **Locks:** `CONTRACT.RUNTIME.DELIBERATION`
@@ -2032,6 +2217,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** Without a stall detector, "think longer" degenerates into thinking without converging. Flat uncertainty across passes means the current approach has extracted what it can, and the correct response is a different approach rather than more of the same.
 
 **Consequences:** Every pass must be measurable, and NO_PROGRESS must never be reported as sufficiency or permit the leading strategy to execute as though validated. *(Amended by ADR-218: the BUDGET_EXHAUSTED outcome is removed; deliberation has no usage-based termination.)*
+
+---
 
 ## ADR-178: Escalate the model without escalating authority
 
@@ -2045,6 +2232,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Routing considers more inputs than task type, and an unavailable escalation target is recorded as a capability gap rather than silently substituted.
 
+---
+
 ## ADR-179: Require skills to declare their reasoning and evidence requirements
 
 **Locks:** `CONTRACT.RUNTIME.DELIBERATION`
@@ -2057,6 +2246,21 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Skill authors must characterise their reasoning needs, and a skill can be blocked by environment limitations before it produces a partial migration.
 
+---
+
+## ADR-180: Enforce the Android-only generated target as a machine-checked invariant
+
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
+
+**Status:** Accepted
+
+**Decision:** `Project.targetPlatforms` must equal exactly `["android"]` at every revision, enforced at project construction rather than stated as intent. The runtime rejects a project whose target list is empty, contains any other value, or pairs `android` with a second platform. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the technology resolver, not additional targets. No resolver path, worker role, or capability may produce a non-Android deployable.
+
+**Rationale:** A generic platform field with a documented intention drifts. Nirman's scope boundary is its most load-bearing product decision, and a configuration value able to widen it silently would let a web or server target enter through the data model without any decision being recorded.
+
+**Consequences:** The data model keeps generic field shapes for stability while the invariant constrains their values. A future multi-target product would require a new versioned scope contract and a superseding ADR, not a configuration change.
+
+---
 
 ## ADR-181: Enforce intent-driven Android synthesis without user-facing templates
 
@@ -2070,6 +2274,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** Internal bootstraps, component libraries, and build profiles may improve reliability but have no user-facing identity or authority. Prompt, worker, skill, and deliberation contracts must reject template-selection requirements, archetype assumptions, and non-Android target proposals.
 
+---
+
 ## ADR-182: Make the live preview a revision- and checkpoint-bound evidence projection
 
 **Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
@@ -2082,6 +2288,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 
 **Consequences:** A candidate preview cannot replace the last-known-good revision until the declared build, install, launch, interaction, and validation observations pass. Stale, predicted, simulated, requested, and invalidated states remain visible but cannot satisfy completion.
 
+---
+
 ## ADR-183: Keep prompt and presentation layers subordinate to execution evidence
 
 **Locks:** `CONTRACT.RUNTIME.REASONING`, `CONTRACT.RUNTIME.VERIFICATION`
@@ -2093,6 +2301,8 @@ A decision should be reviewed when a milestone exposes a failed assumption, a se
 **Rationale:** A streamed model response, a progress spinner, a file timestamp, or a successful compilation can be mistaken for actual execution. Separating presentation from authority prevents false progress and false completion.
 
 **Consequences:** UI reconnect and replay reconstruct the durable projection from the event ledger. A disconnected or stale stream cannot advance status locally. Prompt or model claims are retained only as proposals or explanations and never as proof.
+
+---
 
 ## ADR-184: Normalize provider-native reasoning without exposing or delegating runtime authority
 
@@ -2111,7 +2321,6 @@ No provider-native reasoning stream containing private model reasoning may be pe
 **Consequences:** Provider adapters must expose normalized reasoning capability metadata, the ModelGateway must translate effort levels deterministically, reasoning usage must be recorded as telemetry attributed to the runtime effort grant, and provider failover must revalidate reasoning capability before continuation.
 
 **Amended by ADR-218:** the "reasoning budgets" and "pass limits" named in this decision no longer exist; deliberation is progress-governed (BS §68.13) and no fixed pass ceiling or reasoning-token ceiling is a Nirman execution control. What survives is everything else: provider-native reasoning is normalized into the NORMAL, EXTENDED, DEEP, and EXHAUSTIVE levels; the deterministic runtime alone issues effort grants (`effortGrantId`), evidence requirements, and authority; provider `maxReasoningTokens` is capability metadata that bounds what may be requested from the provider, not a Nirman ceiling; reasoning usage is recorded as reported, estimated, or unavailable and is telemetry only; capability gaps are handled by approved re-routing, permitted explicit downgrade, or a typed capability gap; and private reasoning streams are never persisted or exposed verbatim.
-
 
 ---
 
@@ -2168,7 +2377,6 @@ No provider-native reasoning stream containing private model reasoning may be pe
 **Reasoning:** A clean documentation graph cannot prove that the runtime starts, builds an Android application, survives failure, or exports a valid artifact.
 
 **Trade-off:** Release certification requires more jobs and fixtures, but capability claims become evidence-backed rather than inferred from prose.
-
 
 ---
 
@@ -2240,6 +2448,8 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 **Consequences:** Capability-promotion and signing-inspection records become part of the release evidence graph and are invalidated by relevant artifact, policy, or environment changes.
 
+---
+
 ## ADR-194: Establish one canonical integration-boundary contract
 
 **Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.RECONCILIATION`
@@ -2255,6 +2465,8 @@ The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE 
 **Rationale:** Existing Nirman contracts already cover transactions, capabilities, leases and fencing, preview, evidence, validation, providers, workers, runtime execution, signing, and artifact promotion. A single reference envelope closes their correlation gap without creating four divergent wiring architectures or a second authority system.
 
 **Consequences:** Boundary operations require explicit schema compatibility, lifecycle, timeout, cancellation, retry, reconciliation, observation, evidence, and invalidation references. Runtime implementation and fixture evidence are required before any capability or artifact claim is promoted. Android remains the only generated target; supporting services remain declared integrations rather than additional generated products.
+
+---
 
 ## ADR-195: Make preview synchronization event- and reducer-bound
 
@@ -2274,6 +2486,8 @@ The event authority class limits the projection dimensions that an event may adv
 
 **Consequences:** M108 must prove the complete chat-to-device-to-panel vertical slice, M109 must prove resilience and runtime-certification evidence, and implementation status cannot be inferred from the presence of the schemas or documentation verifier alone.
 
+---
+
 ## ADR-196: Continue autonomous work from durable events with specialist gates
 
 **Locks:** `CONTRACT.RUNTIME.TRIGGER`
@@ -2290,6 +2504,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Consequences:** M110 must prove the continuation triggers, failure-feedback loop, specialist gates, dependency/security blocking, last-known-good preservation, and replayable autonomous progress. Windows process/workspace isolation remains the local boundary, and Android remains the only generated target.
 
+---
+
 ## ADR-197: Make cost governance a deterministic resource authority
 
 **Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
@@ -2303,6 +2519,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Consequences:** M111 must prove usage accounting, unknown-outcome reconciliation, cap enforcement, and truthful exhaustion behavior.
 
+---
+
 ## ADR-198: Scan and revoke agent-layer extension content
 
 **Locks:** `CONTRACT.RUNTIME.AGENT_TRUST`
@@ -2314,6 +2532,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** Extension content can contain instructions or payloads that impersonate authority, request undeclared access, or exfiltrate secrets; scanning and revocation must therefore precede admission and remain enforceable.
 
 **Consequences:** M112 must prove quarantine and revocation fixtures. Untrusted instructions cannot alter target scope, authority, policy, or completion state.
+
+---
 
 ## ADR-199: Govern context compaction and provider cache reuse
 
@@ -2329,6 +2549,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Amended by ADR-219:** compaction output is never the carrier of active constraints, locked decisions, acceptance criteria, or revision identity; they are re-projected from durable state after every compaction and verified by a recall probe, and the cache breakpoint precedes the DENSE placement block.
 
+---
+
 ## ADR-200: Report Android runtime integrity as independent applicable signals
 
 **Locks:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
@@ -2340,6 +2562,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** Android runtime integrity signals have different availability and evidentiary meaning; treating unavailable Play Integrity, ANR, battery, or Doze data as a single pass would create false assurance.
 
 **Consequences:** M114 must prove honest coverage, stale-signal invalidation, and typed unavailable or not-applicable outcomes.
+
+---
 
 ## ADR-201: Make the frontend a typed projection client of the control plane
 
@@ -2353,6 +2577,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 **Consequences:** M115 must prove the command registry, typed failures, projection reconstruction, replay and backpressure behavior, SQLite transaction ownership, and generated Android service boundary.
 
+---
+
 ## ADR-202: Canonical background continuity state machine
 **Locks:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
 **Status:** Accepted
@@ -2360,12 +2586,16 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 **Rationale:** Continuity behavior already spans several authorities; orthogonal dimensions and an aggregate precedence rule prevent concurrent host, device, provider, lease, and UI conditions from overwriting one another without transferring authority to the model. Existing lifecycle, recovery, lease, device-session, and provider-operationality authorities remain canonical; continuity names are aliases only.
 **Consequences:** M116 must execute interruption and recovery fixtures. Suspended, offline, unreconciled, or invalidated work cannot be presented as verified progress or completion.
 
+---
+
 ## ADR-203: Make local deployment export profile-bound and provenance-complete
 **Locks:** `CONTRACT.RUNTIME.APK_EXPORT`
 **Status:** Accepted
 **Decision:** `ExportVerificationRecord` is strengthened with packaging-profile, artifact-kind, source-revision, checkpoint, source/destination identity, request-fingerprint, idempotency, signing, validation, promotion, reconciliation, failure-evidence, delivery-kind, and destination-kind references. Its copy lifecycle includes `UNKNOWN` and `RECONCILING`, and uncertain copies cannot be retried until destination inspection and identity/hash reconciliation resolve them. Local deployment is restricted to verified declared artifacts on the approved Windows filesystem. The required local deliverable remains APK; AAB remains optional only under an explicitly declared `PackagingProfile`. Workspace, ZIP, and Git access remains available as `SOURCE_ACCESS_ONLY` and never satisfies deployment completion.
 **Rationale:** A durable post-copy record must prove not just byte copying but the identity and policy lineage of the delivered artifact, while source access and deployment delivery are distinct user needs.
 **Consequences:** M117 must prove hash equality, destination identity, interrupted-copy reconciliation, profile admission, optional declared-AAB behavior, and rejection of external deployment destinations.
+
+---
 
 ## ADR-204: Make local certification authoritative and hosted CI optional
 
@@ -2470,6 +2700,8 @@ The embedded preview is a projection of the actual running Android runtime, not 
 
 **Reversal trigger:** Evidence that a separate content lifecycle creates materially worse correctness or provenance than the unified revision lifecycle.
 
+---
+
 ## ADR-212: Make Conversation a durable development aggregate
 
 **Status:** Accepted
@@ -2482,6 +2714,8 @@ The embedded preview is a projection of the actual running Android runtime, not 
 **Consequences:** Conversation persistence and continuation resolution become explicit runtime contracts. Conversation owns conversational lineage only. Conversation is NOT a second Memory, Context, or Task authority. Memory remains authoritative for durable semantic memory records. Context remains authoritative for context assembly/reconstruction policy. Task and project state remain authoritative for execution state. ConversationStore MUST NOT become a second memory, task, or project authority.
 
 **Reversal trigger:** Evidence that another durable state model provides equivalent continuation semantics without loss of conversation lineage.
+
+---
 
 ## ADR-213: Standardize post-mutation change intelligence
 
@@ -2570,6 +2804,8 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Reversal trigger:** Physical demonstration that unlimited autonomous execution causes unrecoverable host instability that cannot be mitigated by queueing, serialization, or checkpointing.
 
+---
+
 ## ADR-218: AI usage telemetry is observational and has no execution-authority semantics
 
 **Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`, `CONTRACT.RUNTIME.REASONING`
@@ -2585,6 +2821,8 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Reversal trigger:** Physical demonstration that autonomous execution without AI-usage controls causes harm that physical resource integrity, provider capacity handling, policy stop conditions, and evidence authority cannot prevent.
 
+---
+
 ## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it
 
 **Status:** Accepted
@@ -2598,3 +2836,11 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Consequences:** BS §53.11 and TA §59.12 define the profile, placement, probes, and learning; `ContextPackage` gains `attentionProfileRef`, `placementPlan`, `attendabilityMap`, and `recallProbes`; `ProviderProfile.attentionCapabilities` carries the profile; `StructuredPatch` gains `baseRevision`, `targetSymbolIds`, `anchorHashes`, and `premises`; the sealed clauses `CLAUSE.CONTEXT.ATTENDABILITY_REQUIRED` and `CLAUSE.CONTEXT.RECALL_EVIDENCE_ONLY` join `CONTRACT.RUNTIME.CONTEXT`; the prompt templates of BS §80.8 adopt the placement layout and the compaction prompt no longer carries constraints; the provider compatibility fixtures, the AI Settings capability badges, and the runtime quality metrics gain attention reliability; M81 and M113 gain attention fixtures. Probe results are telemetry and context-quality inputs with no execution-authority semantics (ADR-218): they may change placement, step size, and provider or model selection and may never pause, throttle, degrade, or fail valid work; probe cadence is bound to structural events, never to token, request, or pass counts. `ContextCapacityPlanner` keeps its name and its capacity role.
 
 **Reversal trigger:** Measured literal recall is uniform within the configured threshold across all fill and position buckets for every approved provider model over a full evaluation run, or providers publish verifiable lossless literal recall across the declared context window.
+
+---
+
+## Decision Review Rules
+
+Every major change to the master specification, technical architecture, security model, or execution permissions should add or update a decision record. Rejected alternatives should remain documented when they explain an important trade-off.
+
+A decision should be reviewed when a milestone exposes a failed assumption, a security test fails, a new operating-system constraint appears, or the product scope changes materially.
