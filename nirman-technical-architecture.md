@@ -5080,7 +5080,7 @@ Execution-resource estimates (`ResourceExecutionProfile`) come from the Resource
 
 Deliberation records and sessions are stored in the SQLite execution ledger keyed by task and project, and are therefore replayable by the trajectory engine of §58 and inspectable by the debugger of §67.
 
-DeliberationContinuationManager checkpoints session state on every pass boundary. The context assembler of §59.3 must treat active hypotheses, rejected strategies, the effort grant, and any pending evidence-acquisition trigger as constraint-class content under §53.3, which makes them ineligible for eviction during compaction. A compaction that drops them is detectable by comparing session revision against the post-compaction context manifest, and is reported as a defect rather than tolerated.
+DeliberationContinuationManager checkpoints session state on every pass boundary. The context assembler of §59.6 must treat active hypotheses, rejected strategies, the effort grant, and any pending evidence-acquisition trigger as constraint-class content under §53.3, which makes them ineligible for eviction during compaction. A compaction that drops them is detectable by comparing session revision against the post-compaction context manifest, and is reported as a defect rather than tolerated.
 
 ### 72.10 Failure modes and recovery
 
@@ -6699,7 +6699,7 @@ ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
 
 ### 87.7 Presentation contract
 
-The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (TA §55, build spec §28):
+The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (§55, build spec §45.1):
 
 ```text
 Change summary

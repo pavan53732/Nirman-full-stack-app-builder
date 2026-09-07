@@ -3607,7 +3607,7 @@ Reconciliation is satisfied only when a fixture in which the user edits a Kotlin
 - nonOverriddenClauses: CLAUSE.EVIDENCE.CLAIM_SEPARATION, CLAUSE.EVIDENCE.FRESHNESS
 
 
-This section extends §29 (End-to-End Android Generation Contract) and §36 (Complete Android Capability Fixture references). Those sections require end-to-end validation; this section specifies stateful scenarios, which single-screen validation cannot cover.
+This section extends §29 (End-to-End Android Generation Contract) and technical architecture §35 (Complete Android Capability Fixture Contract). Those sections require end-to-end validation; this section specifies stateful scenarios, which single-screen validation cannot cover.
 
 ### 56.1 The gap addressed
 
@@ -3740,7 +3740,7 @@ Advanced verification is satisfied only when no mutation advances with an unreso
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.SUPPLY_CHAIN` (see §67.8)
 
 
-This section extends §11 (Security and Trust Model) and §36 (Execution Isolation and Sandbox Boundaries). Those remain the authority on host isolation and permissions. This section adds verification of the generated application and its dependencies.
+This section extends §10 (Security and Trust Model) and §36 (Execution Isolation and Sandbox Boundaries). Those remain the authority on host isolation and permissions. This section adds verification of the generated application and its dependencies.
 
 ### 58.1 Two distinct security surfaces
 
@@ -3787,7 +3787,7 @@ Supply-chain verification is satisfied only when a fixture containing a delibera
 - nonOverriddenClauses: CLAUSE.E2E.DETERMINISM, CLAUSE.E2E.SEED_PROVENANCE
 
 
-This section extends §11 (Local Execution and Environment Management) and §51 device handling. Those remain the authority on toolchain and device health. This section adds scenario execution across an emulator profile matrix.
+This section extends §9 (Local Execution and Environment Management) and the §51.1 Android toolchain row. Those remain the authority on toolchain and device health. This section adds scenario execution across an emulator profile matrix.
 
 ### 59.1 Product requirement
 
@@ -3832,7 +3832,7 @@ Multi-emulator-profile coordination is satisfied only when the final report stat
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.TRIGGER` (see §67.8)
 
 
-This section extends §28 (Product Requirements for Goal-Based and Persistent Autonomy) and its scheduling material. Scheduling covers time-based initiation; this section covers externally originated initiation.
+This section extends §27 (Product Requirements for Goal-Based and Persistent Autonomy) and its §27.5 scheduling material. Scheduling covers time-based initiation; this section covers externally originated initiation.
 
 ### 60.1 Product requirement
 
@@ -3876,7 +3876,7 @@ The trigger gateway is satisfied only when a disabled trigger cannot start work,
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.DIRECTIVE` (see §67.8)
 
 
-This section extends §27 and §28 (implementation-level and goal-based autonomy requirements) and §52.12 (cancellation and pause/resume). Those remain the authority on lifecycle transitions. This section adds mid-run steering without restart.
+This section extends §26 and §27 (implementation-level and goal-based autonomy requirements) and §52.12 (cancellation and pause/resume). Those remain the authority on lifecycle transitions. This section adds mid-run steering without restart.
 
 ### 61.1 Product requirement
 
@@ -4954,7 +4954,7 @@ The critic produces findings and evidence requests only. It has no mutation capa
 
 ### 68.11 Model escalation without authority escalation
 
-Deliberation may escalate the model, not the permissions. Routing considers problem complexity, required reasoning effort, context capacity, tool-call capability, vision requirement, coding capability, historical failure rate for the surface, provider health, latency, measured attention reliability, and privacy policy — extending the routing of §9 rather than replacing it. Price is not a routing input; AI usage is telemetry (§72).
+Deliberation may escalate the model, not the permissions. Routing considers problem complexity, required reasoning effort, context capacity, tool-call capability, vision requirement, coding capability, historical failure rate for the surface, provider health, latency, measured attention reliability, and privacy policy — extending the model routing of §23.10 rather than replacing it. Price is not a routing input; AI usage is telemetry (§72).
 
 A stronger or specialist model receives exactly the same permission ceiling, the same evidence requirements, and the same authority path as the model it replaced. Escalation changes who is asked, never what is allowed.
 
@@ -7844,7 +7844,7 @@ The exactly-one invariant holds across crashes. The `ChangeReportRecord` obligat
 
 ### 83.3 Presentation contract
 
-The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (see §28 and TA §55):
+The authoritative `ChangeImpactReport` projects into the WinUI 3 presentation client across Calm, Inspect, and Developer modes (see §45.1 and TA §55):
 
 ```text
 Change summary

@@ -1447,7 +1447,7 @@ Passing this fixture requires the deliberation runtime to demonstrably change th
 
 The M95 acceptance is progress-driven deliberation, evidence acquisition, hypothesis competition, counterexample search, diminishing-return detection, strategy revision, provider capability adaptation, durable continuation, and the absence of AI-usage-based termination. A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
 
-This is the anti-vacuity rule of §57.5 applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.
+This is the anti-vacuity rule of build spec §57.5 (Assertion quality requirement) applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.
 
 
 ## M96 — IntentSynthesisPromptContract and no-template enforcement
