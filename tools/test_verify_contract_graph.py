@@ -1650,6 +1650,22 @@ def main():
                    lambda tmp: _rw(tmp, GLOSSARY, lambda _t: "# Glossary\n\n**Term** — a thing. **Locks:** `CONTRACT.RUNTIME.SCOPE`. Agents MUST obey.\n"))
     _topology_case("INDEX.md carries an ADR block",
                    lambda tmp: _rw(tmp, INDEX, lambda _t: "# Index\n\n## ADR-001: Something\n\n**Status:** Accepted\n"))
+    _topology_case("INDEX.md is edited by hand (drifts from the generator output)",
+                   lambda tmp: _rw(tmp, INDEX, lambda t: t.replace("| §1 | Product Identity |", "| §1 | Product identity |", 1)))
+    _topology_case("INDEX.md loses a contract row",
+                   lambda tmp: _rw(tmp, INDEX, lambda t: re.sub(r"^\| `CONTRACT\.RUNTIME\.SCOPE` \|.*\n", "", t, count=1, flags=re.M)))
+
+    # POSITIVE: --emit-index reproduces the committed INDEX.md byte for byte and
+    # the regenerated tree still certifies.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-index-") as tmp:
+        _copy_fixture(tmp, ())
+        before = open(os.path.join(tmp, INDEX), encoding="utf-8").read() if os.path.exists(os.path.join(tmp, INDEX)) else None
+        p = subprocess.run([sys.executable, TOOL, tmp, "--emit-index"], capture_output=True, text=True, timeout=180)
+        after = open(os.path.join(tmp, INDEX), encoding="utf-8").read()
+        rc, out = run(tmp)
+        results.append(("positive: --emit-index is idempotent against the committed INDEX.md and certifies",
+                        p.returncode == 0 and before == after and rc == 0 and CERTIFIED_RE.search(out) is not None,
+                        f"emit={p.returncode} identical={before == after} exit={rc}"))
 
     def _extra_root_file(tmp):
         for name in (INDEX, GLOSSARY, ADRS, MILESTONES, SCHEMAS):
@@ -1677,6 +1693,7 @@ def main():
         tpath = os.path.join(tmp, TA)
         ttext = open(tpath, encoding="utf-8").read()
         open(tpath, "w", encoding="utf-8").write(re.sub(r"(build spec §)67\.15(?!\d)", r"\g<1>67.99", ttext))
+        subprocess.run([sys.executable, TOOL, tmp, "--emit-index"], capture_output=True, text=True, timeout=180)
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",
                         rc == 0 and CERTIFIED_RE.search(out) is not None,
