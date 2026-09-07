@@ -2334,6 +2334,20 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "Both tiers are stored as the canonical `Checkpoint` record of build spec §11.5" not in ta:
         D.add("semantic documentation", "checkpoint identity",
               "TA §18 must declare FileCheckpoint and TaskCheckpoint as projections of the canonical Checkpoint record")
+    # EvidenceRecord ⊇ BS §5.7.4 (audit: the TA §23.3 record carried only the
+    # twelve observation fields while §5.7.4 mandates identity/dependency
+    # fields on every evidence node, and the cross-entity invalidation rule
+    # cannot run on a record that lacks them).
+    ev_fields = set((ta_blocks.get("EvidenceRecord") or [(0, [])])[0][1])
+    ev_required = {"sourceEventId", "operationId", "sessionId", "projectRevision", "checkpointId",
+                   "toolchainLockId", "environmentIdentityId", "validationPolicyVersion", "freshnessInterval",
+                   "dependencyIds", "supersedes", "supersededBy", "invalidationReason"}
+    if not ev_required <= ev_fields:
+        D.add("semantic documentation", "evidence identity",
+              f"TA §23.3 EvidenceRecord must carry the BS §5.7.4 identity fields {sorted(ev_required - ev_fields)}")
+    if "these are fields of the canonical `EvidenceRecord` (technical architecture §23.3)" not in bs:
+        D.add("semantic documentation", "evidence identity",
+              "BS §5.7.4 must bind the evidence-node requirements to the canonical EvidenceRecord fields")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this
@@ -2483,10 +2497,15 @@ def check_semantic_documentation(docs, R, D, root="."):
     m22_words = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
                  "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
                  "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20}
+    for _tens, _tv in (("twenty", 20), ("thirty", 30), ("forty", 40)):
+        for _ones, _ov in (("one", 1), ("two", 2), ("three", 3), ("four", 4), ("five", 5),
+                           ("six", 6), ("seven", 7), ("eight", 8), ("nine", 9)):
+            m22_words[f"{_tens}-{_ones}"] = _tv + _ov
+    m22_words.update({"thirty": 30, "forty": 40})
     m22_s802 = bs.find("### 80.2")
     m22_e802 = bs.find("### 80.3", max(m22_s802, 0))
     m22_body = bs[m22_s802:m22_e802] if 0 <= m22_s802 < m22_e802 else ""
-    for word, schema in re.findall(r"\b(" + "|".join(m22_words) + r")\s+`([A-Z][A-Za-z0-9]+)`\s+fields", m22_body):
+    for word, schema in re.findall(r"(?<![A-Za-z-])(" + "|".join(sorted(m22_words, key=len, reverse=True)) + r")\s+`([A-Z][A-Za-z0-9]+)`\s+fields", m22_body):
         actual = (bs_blocks.get(schema) or ta_blocks.get(schema) or [(0, None)])[0][1]
         if actual is None or len(actual) != m22_words[word]:
             D.add("semantic documentation", "§80.2 field count",

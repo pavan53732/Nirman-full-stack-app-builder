@@ -352,6 +352,17 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "TA §23.3 EvidenceRecord loses its toolchain and environment identity fields": (
+        TA, "- toolchainLockId\n- environmentIdentityId\n- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
+        "- validationPolicyVersion\n- freshnessInterval\n- dependencyIds\n",
+        "semantic documentation"),
+    "BS §5.7.4 stops binding evidence-node requirements to EvidenceRecord fields": (
+        BS, "these are fields of the canonical `EvidenceRecord` (technical architecture §23.3), not annotations kept beside it.",
+        "these are recorded alongside the canonical `EvidenceRecord` (technical architecture §23.3).",
+        "semantic documentation"),
+    "§80.2 hyphenated field count drifts from the EvidenceRecord block": (
+        BS, "MUST contain all twenty-eight `EvidenceRecord` fields", "MUST contain all twenty-seven `EvidenceRecord` fields",
+        "semantic documentation"),
     "BS §11.5 Checkpoint loses its validity and knownGood fields": (
         BS, "- validity: VALID | STALE | INVALIDATED\n- knownGood: boolean\n", "",
         "semantic documentation"),

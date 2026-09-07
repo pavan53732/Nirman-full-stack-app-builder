@@ -1249,7 +1249,25 @@ EvidenceRecord
 - artifactReferences
 - capturedAt
 - reproducibilityStatus
+- sourceEventId
+- operationId
+- sessionId
+- projectRevision
+- checkpointId
+- artifactId
+- previewRevisionId
+- deviceIdentity
+- toolchainLockId
+- environmentIdentityId
+- validationPolicyVersion
+- freshnessInterval
+- dependencyIds
+- supersedes
+- supersededBy
+- invalidationReason
 ```
+
+The first twelve fields describe the observation; the remaining sixteen are the identity and dependency fields that build spec §5.7.4 requires of every evidence node (source event, operation, session, project revision, checkpoint, artifact or preview identity, device and toolchain identity, validation-policy version, freshness interval, dependency ids, supersession, invalidation reason). `artifactId`, `previewRevisionId`, `deviceIdentity`, and `toolchainLockId` are null only when the evidence type has no such subject; a build, install, device, or preview observation without them is rejected at capture. `dependencyIds` are `EvidenceDependency` ids (§36.4); `supersedes`/`supersededBy` implement the immutability rule below, and `invalidationReason` is written only by the evidence authority when a §36.4 dependency is invalidated. An `EvidenceRecord` lacking these fields cannot participate in the `Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision` chain.
 
 Evidence types should include command results, test reports, build artifacts, screenshots, device results, security scans, dependency scans, review findings, user approvals, and environment diagnostics. Evidence must be immutable after capture; corrections create a new record linked to the old one.
 
