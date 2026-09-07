@@ -1538,7 +1538,7 @@ def main():
             (DEV, "## M116 — Background continuity and interruption recovery"),
             (DEC, "## ADR-202: Canonical background continuity state machine"),
             (TA, "deploymentDelivery: REQUIRED_APK | DECLARED_AAB_OPTIONAL | SOURCE_ACCESS_ONLY"),
-            (TA, "APKExportRecord"),
+            (TA, "ExportVerificationRecord"),
             (BS, "## 78. APK Export Provenance Contract"),
             (TA, "## 83. APK Export Provenance Implementation Contract"),
             (BS, "CAP.ANDROID.APK_DELIVERY"),

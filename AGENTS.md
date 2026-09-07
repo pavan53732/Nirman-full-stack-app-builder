@@ -212,7 +212,7 @@ The runtime should continue eligible work after UI closure or reconnect loss. It
 
 ## 8. Frontend and control-plane protocol
 
-The frontend communicates with the local control plane through authenticated, project-scoped, schema-versioned commands and durable event subscriptions. The UI must not directly execute shell commands, write project files, authorize operations, fill event gaps, promote artifacts, or mutate authoritative projections.
+The frontend — the WinUI 3 presentation client in `Nirman.exe` — communicates with the local control plane (`NirmanSupervisor.exe`) through authenticated, project-scoped, schema-versioned commands and durable event subscriptions. The UI must not directly execute shell commands, write project files, authorize operations, fill event gaps, promote artifacts, or mutate authoritative projections.
 
 Every command must include the required schema version, installation identity, user scope, project scope, command kind, payload, expected projection revision, idempotency key where applicable, correlation, causation, and sensitive-field policy. The control plane validates the command before beginning a domain transaction.
 
@@ -396,7 +396,7 @@ python tools/test_verify_contract_graph.py     # verifier mutation and conforman
 .\\tools\\verify.ps1                          # Windows PowerShell — once M0 delivers it
 ```
 
-Once M0 delivers it, the local certification entry point is the preferred gate because it orchestrates the complete available validation sequence; until then the two Python commands above are the complete available gate. Direct verifier, conformance, Rust, frontend, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
+Once M0 delivers it, the local certification entry point is the preferred gate because it orchestrates the complete available validation sequence; until then the two Python commands above are the complete available gate. Direct verifier, conformance, Rust, .NET/WinUI, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
 
 A commit must contain only the intended coherent change, use a descriptive message, and never include secrets, generated credentials, temporary migration scripts, unrelated files, or unreviewed artifacts. Push only when explicitly requested. After pushing, fetch the remote and confirm that local `HEAD` and `origin/main` match.
 

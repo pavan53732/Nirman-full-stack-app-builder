@@ -70,7 +70,7 @@ None of this runs today. It is the specified behavior, written down so it can be
 
 ## Current status
 
-This repository currently contains the specification for Nirman, not an implementation of it. The four canonical documents, AGENTS.md, and the v1 skill instruction bodies are the complete contents of the working tree.
+This repository currently contains the specification for Nirman, not an implementation of it. The four canonical documents, AGENTS.md, the contract-graph verifier and its harness under `tools/`, the six v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
 
 The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108 as superseded, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
 
@@ -84,7 +84,7 @@ An earlier working tree held a pre-migration prototype built on React, Vite, Typ
 | Rust/Tokio control plane | Specified; no source written |
 | SQLite durable ledger | Specified; no source written |
 | Android synthesis, build, preview, and delivery | Specified; no source written |
-| All 27 registered capabilities | `PLANNED` (BS §5.6) |
+| All 27 registered capabilities | `PLANNED` (BS §5.7 registry; §5.6 is the coverage matrix) |
 | Documentation verifier and mutation harness | Present in tools/ (verify_contract_graph.py and test_verify_contract_graph.py); certification requires an actual clean verifier and conformance run with zero defects — the repository does not itself evidence a run |
 | Windows `.exe` release | Not produced |
 
@@ -196,7 +196,7 @@ SQLite ledger
 → presentation-only task, continuity, preview, and evidence labels
 ```
 
-The host uses C#/.NET + WinUI 3 with the Windows App SDK. The host event is `nirman://control-event`. The design specifies authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 29 canonical command kinds plus four UI aliases (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected.
+The host uses C#/.NET + WinUI 3 with the Windows App SDK. The design specifies authenticated handshake, projection snapshot (with the typed worker/artifact/evidence/delivery projections), subscription bootstrap, cursor replay, acknowledgement, heartbeat, close, and typed dispatch for all 29 canonical command kinds plus four UI aliases (spec §76.1), including the agent loop, Android construction/preflight/synthesis/scaffold, preview, artifact build/export, provider, and worker coordination commands. Durable command-result records preserve idempotency across restart and conflicting request fingerprints are rejected.
 
 ## Autonomous runtime principles
 
@@ -325,7 +325,7 @@ Host environment, target platform, validation platform, and certification status
 | [`nirman-technical-architecture.md`](nirman-technical-architecture.md) | Implementation architecture, schemas, protocols, authorities, adapters, and runtime boundaries |
 | [`nirman-development-plan.md`](nirman-development-plan.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
 | [`nirman-decisions.md`](nirman-decisions.md) | Accepted ADRs, precedence, rationale, consequences, and supersession history |
-| [`crates/nirman-skills/skills/`](crates/nirman-skills/skills/) | Six v1 skill instruction bodies (`SKILL.md`); the skill runtime itself is not implemented |
+| [`crates/nirman-skills/skills/`](crates/nirman-skills/skills/) | Six v1 skill instruction bodies (`SKILL.md`) with their `skill.json` manifests (BS §79.7); the skill runtime itself is not implemented |
 | [`tools/verify_contract_graph.py`](tools/verify_contract_graph.py) | Documentation contract-graph and semantic certification tool |
 | [`tools/test_verify_contract_graph.py`](tools/test_verify_contract_graph.py) | Mutation and conformance test harness for the documentation verifier |
 
