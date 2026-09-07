@@ -2,7 +2,7 @@
 """
 Mutation battery for tools/verify_contract_graph.py.
 
-Each case copies the four canonical documents to a temp dir, injects one
+Each case copies the ten root documents (ADR-220) to a temp dir, injects one
 mutation, and asserts the verifier exits 1 reporting the EXPECTED defect class.
 A case that passes proves the corresponding §67.11 check is not vacuous.
 
@@ -1456,7 +1456,7 @@ def run(root):
 
 
 def _copy_fixture(tmp, files):
-    """Copy the four canonical docs plus any extra (relpath, abspath) files
+    """Copy the ten root documents plus any extra (relpath, abspath) files
     into the temp root, preserving relative paths. The verifier's
     `os.path.join(repo_root, rel_path)` lookups resolve correctly.
 

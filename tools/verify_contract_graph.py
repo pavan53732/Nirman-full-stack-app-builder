@@ -2,8 +2,8 @@
 """
 Nirman contract-graph verifier — implements build spec §67.11.
 
-Runs all twelve §67.11 contract-graph checks (1-12) over the four canonical
-documents in both traversal directions (§67.9), plus the three document-structure
+Runs all twelve §67.11 contract-graph checks (1-12) over the ten root documents
+of ADR-220 (DOC_REGISTRY) in both traversal directions (§67.9), plus the three document-structure
 checks that BS §67.11 lists as additional to the twelve: Check 13 structure,
 Check 14 command payload coverage, Check 15 semantic documentation (which also
 carries the skill-body rules of BS §79.7). Exits 1 on any defect.

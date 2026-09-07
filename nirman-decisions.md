@@ -4,7 +4,7 @@
 
 This document records significant product and engineering decisions for Nirman. It prevents important choices from disappearing into chat history and makes future changes deliberate. A decision may be revised when new evidence appears, but the reason for revision must be recorded.
 
-**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries. The Development Plan owns sequencing, milestones, fixtures, and exit gates. The Decision Log owns accepted decisions, rationale, and supersession. The README is explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
+**Canonical ownership:** The Build Spec owns product contracts, invariants, and capability/contract registries. The Technical Architecture owns implementation schemas, protocols, and module boundaries; the field blocks of both documents are held in `nirman-schemas.md`, each under the section that owns it (ADR-220). The milestone document (`nirman-milestones.md`) owns sequencing, milestones, fixtures, and exit gates. The ADR document (`nirman-adrs.md`) owns accepted decisions, rationale, and supersession; `nirman-decisions.md` owns only the decision process. The README, `INDEX.md`, and `GLOSSARY.md` are explanatory only. AGENTS defines agent operating constraints only. The verifier certifies documentation and semantic checks only; it is never a runtime authority.
 
 ## Decision Status Values
 

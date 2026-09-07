@@ -15,7 +15,7 @@ If you are an AI agent operating on this repository, read `AGENTS.md` in full be
 1. **Scope first.** Nirman is a Windows desktop application. Its generated target is Android only. Do not add web, PWA, Windows-app, container, Docker, VM, or WSL targets. Do not narrow the Android technology choice to a fixed template — the user describes the app; the resolver selects the technology.
 2. **Authority is deterministic, not yours.** You propose. The model, worker, skill, or verifier does not grant permissions, mutate authoritative state, promote artifacts, bypass policy, or mark work complete. Consult `AGENTS.md` §3 (Core authority rule) and the canonical documents.
 3. **Specification-only work.** All 27 registered capabilities are `PLANNED`. Do not report any capability as `SUPPORTED`, `IMPLEMENTED`, or `verified` without its full contract chain, validation path, recovery behavior, and fixture evidence. Documentation certification (the verifier in `tools/`) proves document structure and graph consistency only — not runtime behavior.
-4. **Document precedence.** Accepted ADRs → build spec (normative contracts) → technical architecture (schemas/protocols) → development plan (sequencing/exit gates) → README (explanatory only, never creates or weakens a contract) → AGENTS.md (agent rules, cannot override product contracts).
+4. **Document precedence.** Accepted ADRs (`nirman-adrs.md`) → build spec (normative contracts) → technical architecture (protocols, implementation semantics) → milestone document (sequencing/exit gates) → README (explanatory only, never creates or weakens a contract) → AGENTS.md (agent rules, cannot override product contracts). A `nirman-schemas.md` block carries the precedence of the section on its owner line; `INDEX.md` and `GLOSSARY.md` carry none.
 5. **No account, no hosted platform.** Do not introduce mandatory logins, subscriptions, hosted platforms, or cloud execution dependencies for Nirman itself (build spec §1.5, ADR-205).
 6. **Commit hygiene.** Make the smallest coherent change. Run `tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py` before committing documentation changes. One work item per commit. Never commit secrets, generated credentials, or unrelated files. Push only when explicitly requested.
 7. **No private chain-of-thought.** Do not persist or display raw reasoning. Retain only structured artifacts: strategy summaries, evidence references, hypotheses, confidence, and recovery decisions.
@@ -70,7 +70,7 @@ None of this runs today. It is the specified behavior, written down so it can be
 
 ## Current status
 
-This repository currently contains the specification for Nirman, not an implementation of it. The four canonical documents, AGENTS.md, the contract-graph verifier and its harness under `tools/`, the six v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
+This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, the six v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
 
 The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108 as superseded, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
 
@@ -78,7 +78,7 @@ An earlier working tree held a pre-migration prototype built on React, Vite, Typ
 
 | Area | Current state |
 |---|---|
-| Product and architecture specification | Complete and cross-linked across the four canonical documents |
+| Product and architecture specification | Complete and cross-linked across the canonical documents (build spec, technical architecture, schema document, milestones, ADRs) |
 | Android-only generated-target invariant | Specified |
 | Host architecture (C#/.NET + WinUI 3 + Windows App SDK) | Decided and specified; no source written |
 | Rust/Tokio control plane | Specified; no source written |
