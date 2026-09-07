@@ -2398,6 +2398,14 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "(`SessionProviderMode.PLANNING_ONLY`, §5.7.2)" not in bs or "`SessionProviderMode.OFFLINE`" not in ta:
         D.add("semantic documentation", "session provider mode",
               "BS §4.2 planning-only path and TA §41 Offline Mode must be bound to SessionProviderMode values")
+    # Process containment has no escape hatch (audit LOW): TA §3.4 makes Job
+    # Object assignment before resume the only durable containment, so no
+    # §80.2 row may reintroduce a "where unavailable ... degraded" reading.
+    m_jo = re.search(r"^\| TA §9\.2 \| \"The Windows runtime should use process-tree management[^\n]*$", bs, re.M)
+    if not m_jo or "MUST use Job Objects, unconditionally" not in m_jo.group(0) \
+            or re.search(r"where unavailable|degraded state", m_jo.group(0)):
+        D.add("semantic documentation", "process containment",
+              "§80.2 TA §9.2 Job Object row must resolve to unconditional assignment before resume with no degraded-but-running fallback")
     # Development-plan truthfulness: a milestone work item may state an
     # obligation or record history, but it must not claim that code "now
     # exposes" or "was added" — nothing implemented survives in this

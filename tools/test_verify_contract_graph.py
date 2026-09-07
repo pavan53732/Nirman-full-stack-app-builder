@@ -352,6 +352,10 @@ CASES = {
         BS, "a registered schema MUST have identical field-name sets in every occurrence",
         "a registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    "§80.2 Job Object row regains the where-unavailable degraded fallback": (
+        BS, "MUST use Job Objects, unconditionally | Every spawned process tree is assigned to a Job Object before it is resumed (technical architecture §3.4).",
+        "MUST use Job Objects when the API is available | Every spawned process tree is assigned to a Job Object at creation; where unavailable the runtime records the degraded state.",
+        "semantic documentation"),
     "BS §5.7.2 SessionProviderMode loses the PROVIDER_CONFIGURED state": (
         BS, "SessionProviderMode   = PLANNING_ONLY | PROVIDER_CONFIGURED | PROVIDER_VALIDATED |\n                        OFFLINE\n",
         "SessionProviderMode   = PLANNING_ONLY | PROVIDER_VALIDATED | OFFLINE\n",
