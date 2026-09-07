@@ -2342,6 +2342,41 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "DEGRADED" in m22_s79:
         D.add("semantic documentation", "capability vocabulary",
               "BS §79 uses DEGRADED, which is not a §79.4 capability state (AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE)")
+    # Section-reference resolution (audit LOW): every `§N[.N]` in the build
+    # spec and technical architecture must name an existing heading. A
+    # reference is same-document unless the words immediately before it
+    # qualify it ("build spec §", "BS §", "technical architecture §", "TA §",
+    # or a comma-continued list after such a qualifier). Development-plan
+    # references are not resolved (its sections are milestone-numbered).
+    m22_heads = {k: set(m.group(1) for m in re.finditer(r"^#{2,4}\s+(\d+(?:\.\d+)*)\b", t, re.M))
+                 for k, t in (("bs", bs), ("ta", ta))}
+    m22_qual = ((r"build[ -]spec(?:ification)?\s+§$", "bs"), (r"\bBS\s+§$", "bs"),
+                (r"technical[ -]architecture\s+§$", "ta"), (r"\bTA\s+§$", "ta"),
+                (r"development[ -]plan\s+§$", "dev"), (r"\bDP\s+§$", "dev"))
+    m22_list = re.compile(r"(build spec|BS|technical architecture|TA|development plan|DP)\s+§\d+(?:\.\d+)*"
+                          r"(?:,\s*§\d+(?:\.\d+)*)*,?\s*(?:and\s+)?$")
+    m22_doc_of = {"build spec": "bs", "BS": "bs", "technical architecture": "ta", "TA": "ta",
+                  "development plan": "dev", "DP": "dev"}
+    for label, key, text in (("build spec", "bs", bs), ("technical architecture", "ta", ta)):
+        seen = set()
+        for m in re.finditer(r"§\s*(\d+(?:\.\d+)*)", text):
+            num = m.group(1)
+            pre = text[max(0, m.start() - 30):m.start() + 1]
+            target = key
+            for pat, d in m22_qual:
+                if re.search(pat, pre):
+                    target = d
+                    break
+            else:
+                lst = m22_list.search(text[max(0, m.start() - 80):m.start()])
+                if lst:
+                    target = m22_doc_of[lst.group(1)]
+            if target == "dev" or num in m22_heads[target] or (target, num) in seen:
+                continue
+            seen.add((target, num))
+            D.add("semantic documentation", "section reference",
+                  f"{label} line {text[:m.start()].count(chr(10)) + 1} cites §{num} of the "
+                  f"{'build spec' if target == 'bs' else 'technical architecture'}, which has no such heading")
     # §80.2 field-count fidelity (audit LOW): a resolution cell that says
     # "<word> `Schema` fields" must match the schema's actual field block
     # (BS block first, then TA), and the ModelEvent type-count claim must

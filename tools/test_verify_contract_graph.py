@@ -345,6 +345,9 @@ CASES = {
     "§80.2 field count overstates TaskContract": (
         BS, "all fifteen `TaskContract` fields", "all sixteen `TaskContract` fields",
         "semantic documentation"),
+    "§80.2 row cites a section number that has no heading": (
+        BS, "Recorded in `toolchainLock` (§5.7.1) |", "Recorded in `toolchainLock` (§369) |",
+        "semantic documentation"),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),
@@ -1448,15 +1451,16 @@ def main():
                             "" if (rc == 1 and hit) else
                             f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
 
-    # POSITIVE: renumbering a registry heading must not break registry location,
-    # because headings are matched by text rather than by section number.
+    # POSITIVE: renumbering a registry heading (together with the citations
+    # that point at it, so no §-reference dangles) must not break registry
+    # location, because headings are matched by text rather than by number.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-renum-") as tmp:
         _copy_fixture(tmp, RUST_SOURCES)
         path = os.path.join(tmp, BS)
         text = open(path, encoding="utf-8").read()
-        open(path, "w", encoding="utf-8").write(
-            text.replace("### 67.8 Registered contract identifiers",
-                         "### 67.99 Registered contract identifiers", 1))
+        text = text.replace("### 67.8 Registered contract identifiers",
+                            "### 67.99 Registered contract identifiers", 1)
+        open(path, "w", encoding="utf-8").write(re.sub(r"§67\.8(?!\d)", "§67.99", text))
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",
                         rc == 0 and CERTIFIED_RE.search(out) is not None,

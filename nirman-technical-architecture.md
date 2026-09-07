@@ -507,7 +507,7 @@ A reference image MUST NOT be treated as establishing:
 | Dynamic behavior on interaction | The instruction or a clarifying question |
 | Input validation rules | The instruction or a clarifying question |
 | Responsive behavior across sizes and orientations | The emulator profile and technology plan |
-| Animation, transition, or gesture | The instruction; otherwise §5.4's ceiling applies |
+| Animation, transition, or gesture | The instruction; otherwise the build spec §5.4 ceiling applies |
 | Semantic purpose of a non-standard component | A clarifying question |
 
 The `interactionClues` field records hypotheses only. A hypothesis in that field MUST NOT be promoted to a requirement without confirmation from the instruction or an answered clarifying question. Every unpromoted hypothesis belongs in `uncertaintyNotes` and in the intent model's unresolved ambiguities.
@@ -4899,7 +4899,7 @@ Deliberation returns control to the reasoning engine. It never reaches the capab
 | RepeatedFailureDetector | Detects a strategy retried against unchanged evidence, uncertainty, and constraints and raises StrategyChangeRequired |
 | EvidenceAcquisitionPlanner | Selects the cheapest decisive read-only observation; runs on every EvidenceAcquisitionTrigger |
 | ReasoningEffortSelector | Selects the granted level from task requirements, uncertainty, risk, provider capability, policy, and available execution capacity |
-| SufficiencyEvaluator | Evaluates the §68.7 conjunction, not stated confidence |
+| SufficiencyEvaluator | Evaluates the build spec §68.7 conjunction, not stated confidence |
 | HypothesisEvaluator | Runs competition, ranks by decisiveness, records refutation |
 | StrategyCritic | Adversarial critique and counterexample search; emits findings and evidence requests only |
 | DeliberationModelRouter | Escalates model within an unchanged permission ceiling; a selected model must satisfy the step's `requiredReliability` (§59.12) |
@@ -5056,7 +5056,7 @@ These values must remain separately auditable.
 
 ### 72.6 SufficiencyEvaluator
 
-The evaluator implements the §68.7 conjunction. It consults the required-evidence set for the change's risk class, the uncertainty threshold for that class, strategy stability across the last pass, the presence of a validation plan, and whether HypothesisEvaluator reports an untested discriminating test.
+The evaluator implements the build spec §68.7 conjunction. It consults the required-evidence set for the change's risk class, the uncertainty threshold for that class, strategy stability across the last pass, the presence of a validation plan, and whether HypothesisEvaluator reports an untested discriminating test.
 
 A stated confidence value is an input to uncertainty only and can never satisfy the conjunction alone. For a change classified high-risk the evaluator must refuse sufficiency while architectural impact, dependency impact, affected-symbol analysis, regression plan, or validation plan is absent.
 
@@ -5064,7 +5064,7 @@ A stated confidence value is an input to uncertainty only and can never satisfy 
 
 HypothesisEvaluator enumerates candidates, obtains a discriminating test per candidate from EvidenceAcquisitionPlanner, ranks by decisiveness divided by cost, executes the most decisive affordable test, and records refutation against the hypothesis records of §71.5. At DEEP and above it must report whether the last pass attempted refutation or only confirmation; a confirmation-only pass does not count as competition.
 
-StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
+StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in build spec §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
 
 ### 72.8 EvidenceAcquisitionPlanner
 
@@ -5447,7 +5447,7 @@ PreviewModeResolverOutput
 - invalidationSet
 ```
 
-The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in build spec §69.4 and §73.3. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
+The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in §73.3 and build spec §69.4. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
 
 Canonical predicates (typed, evidence-bound, not free-form):
 
@@ -5708,7 +5708,7 @@ UI
 
 The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each: `AndroidBuildAdapter` for build and artifact operations, `AndroidDeviceAdapter` for device and runtime operations.
 
-The following paths are forbidden and MUST be rejected by the typed command registry and the contract-graph verifier. The registry rejects them structurally: no `commandKind` in build spec §76.1 is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, and the `preview.*` command kinds dispatch only to `PreviewCoordinator`. The verifier rejects them as a §67.11 semantic-documentation defect whenever a §76.1 registry row appears in one of those namespaces or the §73.10 `AndroidTechnologyAdapter operations` block lists anything other than its six resolution operations:
+The following paths are forbidden and MUST be rejected by the typed command registry and the contract-graph verifier. The registry rejects them structurally: no `commandKind` in build spec §76.1 is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, and the `preview.*` command kinds dispatch only to `PreviewCoordinator`. The verifier rejects them as a build spec §67.11 semantic-documentation defect whenever a §76.1 registry row appears in one of those namespaces or the §73.10 `AndroidTechnologyAdapter operations` block lists anything other than its six resolution operations:
 
 ```text
 UI → ADB
