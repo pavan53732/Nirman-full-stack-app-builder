@@ -2068,7 +2068,7 @@ Every recovery attempt must include a failure fingerprint, evidence, changed str
 
 Nirman must create an episode record for every completed, failed, recovered, cancelled, or escalated task. Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recovery strategies, validation results, resource telemetry, user corrections, and final classification.
 
-The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, and human intervention rate. These metrics should be visible for diagnosis and should not be optimized at the expense of correctness or safety.
+The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, attention reliability (§53.11), and human intervention rate — the eleven metrics of TA §29.2. These metrics should be visible for diagnosis and should not be optimized at the expense of correctness or safety.
 
 ### 28.4 Self-improvement manager
 
@@ -5104,7 +5104,7 @@ PreviewRevision
 - deviceStateFingerprint
 - applicationStateFingerprint
 - environmentStateFingerprint
-- previewMode
+- previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD | INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY | USER_REQUIRED | BLOCKED
 - executionTruth
 - buildStatus
 - installStatus
@@ -6120,7 +6120,7 @@ Workspace roots MUST be allocated under a short deterministic prefix (pattern `C
 
 ### 79.15 Host security-software interference
 
-Preflight MUST detect active real-time scanning over the workspace root, Gradle home, and toolchain directory, and record it in `EnvironmentCapabilityRecord`. Requesting exclusions is `USER_REQUIRED` and MUST be an explicit consented action displaying the exact paths. Nirman MUST NOT modify host security policy autonomously — this is a privileged command per BS §9.3. Absent exclusions the classification is `DEGRADED` with a stated performance consequence: not a failure, and not silence. Scanner file-lock contention MUST be distinguishable from a compilation error and separately retryable, since retrying the wrong class wastes time and physical resources.
+Preflight MUST detect active real-time scanning over the workspace root, Gradle home, and toolchain directory, and record it in `EnvironmentCapabilityRecord`. Requesting exclusions is `USER_REQUIRED` and MUST be an explicit consented action displaying the exact paths. Nirman MUST NOT modify host security policy autonomously — this is a privileged command per BS §9.3. Absent exclusions the capability classifies `AVAILABLE` under the four-state §79.4 vocabulary, with `security_software_interference` recorded in `EnvironmentCapabilityRecord` and a stated performance consequence attached to the result: not a failure, and not silence. Scanner file-lock contention MUST be distinguishable from a compilation error and separately retryable, since retrying the wrong class wastes time and physical resources.
 
 ### 79.16 Hypervisor availability and arbitration
 
@@ -6437,7 +6437,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §27.11 | "The user should be able to reopen each evidence item from the result" | MUST make evidence reopenable | Every claim in a result links to its durable evidence record |
 | BS §28.2 | "The runtime should continue automatically whenever a safe new strategy is available" | MUST continue while safe strategies remain | Repeating the same command, patch, prompt, or model route is not a new attempt |
 | BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recovery strategies, validation results, resource telemetry, user corrections, and final classification" | MUST record all nine | For every completed, failed, recovered, cancelled, or escalated task |
-| BS §28.3 | "The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, and human intervention rate" | MUST measure all nine | Visible for diagnosis |
+| BS §28.3 | "The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, attention reliability (§53.11), and human intervention rate" | MUST measure all eleven | Visible for diagnosis |
 | BS §28.3 | "These metrics should be visible for diagnosis and should not be optimized at the expense of correctness or safety" | MUST NOT optimise metrics over correctness | A metric improvement that weakens a gate is a regression |
 | BS §28.4 | "Nirman should identify recurring failure patterns, provider incompatibilities, repeated user corrections, regression clusters, tool failures, and evaluation degradation" | MUST identify all six pattern classes | From episode records |
 | BS §28.4 | "It should convert sufficiently repeated patterns into scoped improvement proposals" | MUST propose, never self-apply | Sufficiently repeated means three or more occurrences with a common fingerprint. Proposals carry evidence and hypothesis |

@@ -330,6 +330,18 @@ CASES = {
         "| CLAUSE.CONVERSATION.NO_TRANSCRIPT_RECONSTRUCTION | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | §82 | a continuation never reconstructs state solely by replaying the chat transcript or issuing another free-form prompt; compaction preserves requirements, locked decisions, active goal, project revision, task lineage, attachment references, unresolved failures, and evidence lineage | SEALED |\n",
         "",
         "semantic documentation"),
+    "TA §7.2 disk quota default drifts from BS §26.3": (
+        TA, "| Default task disk quota | 10 GB unless project policy overrides",
+        "| Default task disk quota | Android-profile-based; 10 GB is not fixed",
+        "semantic documentation"),
+    "PreviewRevision.previewMode loses CONSERVATIVE_FULL_REINSTALL": (
+        BS, "FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE",
+        "FULL_APK_REINSTALL | HEADLESS_SMOKE",
+        "semantic documentation"),
+    "§57.5 ledger drops the change_report_records table": (
+        TA, "construction_transactions, change_report_records, conversations,",
+        "construction_transactions, conversations,",
+        "semantic documentation"),
     "§80.2 row quotes a sentence its section does not contain": (
         BS, '| BS §6.3 | "It should never assume that a tool exists"', '| BS §6.3 | "should never assume tool exists"',
         "semantic documentation"),

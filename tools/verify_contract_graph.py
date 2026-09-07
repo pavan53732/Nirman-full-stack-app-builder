@@ -2286,6 +2286,62 @@ def check_semantic_documentation(docs, R, D, root="."):
         if "PASS (WITH SKIPS)" in text:
             D.add("semantic documentation", "retired certification status",
                   f"'PASS (WITH SKIPS)' in {label}: the terminal status is DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS (BS §67.11)")
+    # Cross-document consistency (audit M22). Each rule names the canonical
+    # owner and rejects the drift that was found in the other document.
+    # (a) Disk quota: BS §26.3 owns the 10 GB default; TA §7.2 must repeat it.
+    m22_quota = re.search(r"^\| Default task disk quota \|([^|]*)\|", ta, re.M)
+    if not m22_quota or "10 GB unless project policy overrides" not in m22_quota.group(1):
+        D.add("semantic documentation", "disk quota default",
+              "TA §7.2 'Default task disk quota' must state '10 GB unless project policy overrides' (BS §26.3 owns the default)")
+    # (b) IPC transport: production SupervisorConnection is named pipes (TA §2);
+    # no decision table may present WebSocket as a production alternative.
+    m22_ipc = re.search(r"^\| Local IPC \|([^|]*)\|", ta, re.M)
+    if not m22_ipc or "named pipes" not in m22_ipc.group(1) or re.search(r"WebSocket or named", m22_ipc.group(1)):
+        D.add("semantic documentation", "IPC transport",
+              "TA §14 'Local IPC' row must name authenticated named pipes as the production transport, never WebSocket as an alternative")
+    # (c) previewMode enumeration is declared on the PreviewRevision field in
+    # both canonical blocks and includes CONSERVATIVE_FULL_REINSTALL (TA §73.11).
+    m22_modes = ("RN_EXPO_FAST_REFRESH", "COMPOSE_RELOAD", "INCREMENTAL_APK_INSTALL", "FULL_APK_REINSTALL",
+                 "CONSERVATIVE_FULL_REINSTALL", "HEADLESS_SMOKE", "DIAGNOSTIC_SOURCE_ONLY", "USER_REQUIRED", "BLOCKED")
+    for label, text, where in (("build spec", bs, "BS §69.4"), ("technical architecture", ta, "TA §73.3")):
+        pm = re.search(r"^- previewMode:([^\n]*)$", text, re.M)
+        values = tuple(v.strip() for v in pm.group(1).split("|")) if pm else ()
+        if values != m22_modes:
+            D.add("semantic documentation", "previewMode enumeration",
+                  f"{where} PreviewRevision.previewMode must enumerate exactly {' | '.join(m22_modes)}")
+    # (d) Exactly one ChangeReportRecord per transaction: §87.5 regeneration
+    # may not create a second record.
+    if "Regeneration never creates a second record" not in ta or "Regeneration creates a new projection version" in ta:
+        D.add("semantic documentation", "change report regeneration",
+              "TA §87.5 must state that regeneration replaces the single record's report (CLAUSE.CHANGE.EXACTLY_ONE_REPORT), never a second ChangeReportRecord")
+    # (e) Ledger completeness: every §36.1 record persisted by the later
+    # contracts has a §57.5 table.
+    m22_ledger = re.search(r"### 57\.5 SQLite execution ledger.*?```text\n(.*?)```", ta, re.S)
+    m22_tables = set(re.split(r"[,\s]+", m22_ledger.group(1).strip())) if m22_ledger else set()
+    for table in ("change_report_records", "conversations", "conversation_rebase_records", "content_revisions",
+                  "export_verification_records", "environment_capability_records", "skill_invocation_records",
+                  "skill_admissions", "construction_transactions"):
+        if table not in m22_tables:
+            D.add("semantic documentation", "ledger completeness", f"TA §57.5 ledger lacks table {table}")
+    # (f) Quality metrics: BS §28.3 and TA §29.2 list the same eleven metrics.
+    m22_start = ta.find("### 29.2 Runtime quality metrics")
+    m22_end = ta.find("### 29.3", max(m22_start, 0))
+    m22_rows = [r for r in ta[m22_start:m22_end].split("\n")
+                if r.startswith("| ") and "---" not in r and not r.startswith("| Metric")] if 0 <= m22_start < m22_end else []
+    if len(m22_rows) != 11 or "attention reliability (§53.11)" not in bs or "the eleven metrics of TA §29.2" not in bs:
+        D.add("semantic documentation", "quality metrics parity",
+              f"TA §29.2 lists {len(m22_rows)} metrics; BS §28.3 must name the same eleven including attention reliability (§53.11)")
+    # (g) Provider failure taxonomy: TA §38 defers to the eight §24.6 classes.
+    if "classified into the eight retry classes of §24.6" not in ta or "provider-unavailable categories" in ta:
+        D.add("semantic documentation", "provider failure taxonomy",
+              "TA §38 must classify provider failures into the eight retry classes of §24.6, not a second taxonomy")
+    # (h) §79 capability vocabulary: DEGRADED is not a §79.4 capability state.
+    m22_s79_start = bs.find("## 79. Platform and Target Environment Contract")
+    m22_s79_end = bs.find("## 80. Agent-Buildability Contract", max(m22_s79_start, 0))
+    m22_s79 = bs[m22_s79_start:m22_s79_end] if m22_s79_start >= 0 and m22_s79_end > m22_s79_start else "DEGRADED"
+    if "DEGRADED" in m22_s79:
+        D.add("semantic documentation", "capability vocabulary",
+              "BS §79 uses DEGRADED, which is not a §79.4 capability state (AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE)")
     # Clause coverage (audit M21): every registered contract owns at least
     # one sealed §67.12 clause, otherwise its normative content is invisible
     # to the contradiction and override checks.

@@ -298,7 +298,7 @@ Initial defaults should be configurable and conservative:
 | Worker heartbeat | 10 seconds |
 | Worker stale threshold | 60 seconds |
 | Default task time policy | No autonomous-goal completion deadline. Liveness timeouts MAY exist for hung operations and process containment but MUST NOT terminate a healthy goal for elapsed time |
-| Default task disk quota | Android-profile-based; emulator, device, build, cache, and checkpoint storage are computed together |
+| Default task disk quota | 10 GB unless project policy overrides (build spec §26.3, §80.3 range 1–100 GB); emulator, build, cache, and checkpoint storage are charged against the same quota |
 | Default repair strategy changes | 3 |
 
 ### 7.3 Background approval notifications
@@ -789,7 +789,7 @@ The engineering team must decide the following before implementing the control p
 
 | Decision | Recommended default |
 |---|---|
-| Local IPC | Authenticated loopback WebSocket or named-pipe abstraction |
+| Local IPC | Authenticated named pipes (`SupervisorConnection`, §57.3); a loopback HTTP/WebSocket endpoint is permitted only for development and debugging behind a per-installation secret (§2) and never carries the production `SupervisorConnection` |
 | Metadata storage | SQLite with migrations and WAL mode where appropriate |
 | Task logs | Append-only files referenced from SQLite |
 | Worktree management | Git worktrees with temporary copy fallback |
@@ -2425,7 +2425,7 @@ The gateway never gives a provider direct filesystem, process, emulator, or cred
 
 Before any project context leaves the host, the provider gateway constructs a `ProviderContextEnvelope` containing `dataClassification`, `providerPolicyId`, `selectedContextIds`, `redactionPolicyId`, `userApprovalPolicyId`, `allowedPurpose`, `retentionPolicy`, `transmissionDecision`, and `providerRequestId`. Only the minimum context required for the declared purpose may be transmitted. Secrets, private reasoning, unrelated personal data, protected credentials, and excluded paths are withheld. Provider responses cannot broaden the envelope or authorize tools, permissions, mutations, or completion.
 
-Provider-specific failures are classified into authentication, rate limiting, context overflow, unsupported capability, transport, timeout, cancellation, and provider-unavailable categories. Recovery policy chooses retry, fallback, context reduction, model change, or safe waiting according to the configured provider policy.
+Provider-specific failures are classified into the eight retry classes of §24.6 — authentication errors, invalid requests, rate limits, transient network failures (including transport faults and timeouts), provider overload or unavailability, context overflow, unsupported capabilities, and content-policy responses — with user cancellation recorded as a request outcome rather than a failure class. Recovery policy chooses retry, fallback, context reduction, model change, or safe waiting per class according to the configured provider policy.
 
 ## 39. Sandbox and Process Separation
 
@@ -2549,6 +2549,8 @@ Rust Control Plane Supervisor
 ```
 
 No UI command may bypass the control plane to invoke a terminal, edit a file, launch an emulator, contact a provider, install a package, or promote an artifact.
+
+This graph and the §57.2 process topology describe the same `NirmanSupervisor.exe`: §57.2 lists the authority services by their canonical names (`LifecycleAuthority` = `SessionReducer` + `EventStore`, `ToolBroker`, `TaskScheduler`, `CheckpointManager`, `AndroidWorkflowCoordinator`), while this graph additionally shows the internal modules those authorities compose (`ConstructionTransactionManager`, `LeaseManager`, `ToolchainAuthority`, `AndroidCodeIntelligence`, `RequirementAuthority`, `ProjectMemoryStore`) and the external processes they supervise. Neither graph introduces a component absent from the other's authority set; a module named in only one graph is composed by an authority named in both.
 
 ---
 
@@ -3304,8 +3306,15 @@ checkpoints, recovery_records, provider_profiles,
 provider_capabilities, terminal_sessions, process_records,
 preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
-project_locks, decision_records, reasoning_stream_events
+project_locks, decision_records, reasoning_stream_events,
+construction_transactions, change_report_records, conversations,
+conversation_messages, conversation_rebase_records, content_revisions,
+export_verification_records, environment_capability_records,
+build_gate_records, skill_admissions, skill_invocation_records,
+resource_integrity_records, background_continuity_records
 ```
+
+The added table groups persist, respectively, the §36.1 records of the construction/change-intelligence (§87), conversation (§86), content (§85), export (§83), platform capability (§84), skill (§19.1), resource integrity (§77), and background continuity (§82) contracts; a registered record with no ledger table is a defect of this section.
 
 Large logs, screenshots, diffs, patches, crash dumps, build output, and APK files remain in the filesystem artifact store with content hashes, revision references, and retention metadata. All durable records use migrations, atomic writes, schema versions, and integrity checks.
 
@@ -5210,7 +5219,7 @@ PreviewRevision
 - deviceStateFingerprint
 - applicationStateFingerprint
 - environmentStateFingerprint
-- previewMode
+- previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD | INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY | USER_REQUIRED | BLOCKED
 - executionTruth
 - buildStatus
 - installStatus
@@ -5438,7 +5447,7 @@ PreviewModeResolverOutput
 - invalidationSet
 ```
 
-The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the existing `PreviewRevision.previewMode` enumeration introduced in §73.3. `CONSERVATIVE_FULL_REINSTALL` is added to that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
+The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in build spec §69.4 and §73.3. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
 
 Canonical predicates (typed, evidence-bound, not free-form):
 
@@ -5508,7 +5517,7 @@ Canonical rule table (applied in order; first match wins):
 
 The "unknown" outcome and the "known unsafe" outcome are explicitly distinct: rule 7a is recorded with reason `KNOWN_UNSAFE_TO_FAST_REFRESH`; rule 7b is recorded with reason `INSUFFICIENT_IMPACT_INFORMATION`. The resolver MUST distinguish them in the `decisionReason` field so that the `PreviewRequest` decision trace and downstream repair logic do not conflate them.
 
-A resolver output is recorded as part of the `PreviewRequest` decision trace. The mode returned is one of the `PreviewRevision.previewMode` values enumerated in §73.3 (now including `CONSERVATIVE_FULL_REINSTALL`); introducing new mode identifiers requires a versioned contract update through ADR-195. The resolver MUST NOT mutate authoritative state; it returns a decision, and `PreviewCoordinator` owns the resulting lifecycle transition.
+A resolver output is recorded as part of the `PreviewRequest` decision trace. The mode returned is one of the `PreviewRevision.previewMode` values enumerated on the field in §73.3 and build spec §69.4; introducing new mode identifiers requires a versioned contract update through ADR-195. The resolver MUST NOT mutate authoritative state; it returns a decision, and `PreviewCoordinator` owns the resulting lifecycle transition.
 
 ### 73.12 Android device adapter contract
 
@@ -6681,7 +6690,7 @@ The projector MUST expose source, asset, toolchain, preview, test, integration, 
 
 A `ChangeReportRecord` and its associated `ChangeImpactReport` (when `status == COMPLETE`) are persisted durably by `ChangeIntelligenceStore` in SQLite by `recordId` + `transactionId` + project revision, survive restart, and are revision-addressable.
 
-`ChangeIntelligenceStore` persists report records in the durable SQLite task/project ledger, keyed by `recordId` and `transactionId`. Regeneration creates a new projection version linked to the same transaction and source revision. Reports survive UI and supervisor restart and remain addressable through the project revision history.
+`ChangeIntelligenceStore` persists report records in the durable SQLite task/project ledger, keyed by `recordId` and `transactionId`; `transactionId` is unique, because exactly one `ChangeReportRecord` exists per committed `ConstructionTransaction` (§87.1, CLAUSE.CHANGE.EXACTLY_ONE_REPORT). Regeneration never creates a second record: it replaces the record's `report` with a new `ChangeImpactReport` carrying a higher `projectionVersion` for the same `transactionId` and source revision, and the superseded report is retained as an artifact-store copy referenced from the record's history. Reports survive UI and supervisor restart and remain addressable through the project revision history.
 
 The `ChangeReportRecord` obligation is coupled to the durable commit through the existing transaction/outbox mechanism: the `ConstructionTransactionManager` writes the initial `ChangeReportRecord` obligation (`status: INCOMPLETE`, `report: null`) in the same SQLite transaction that commits the parent `ConstructionTransaction`, so a committed transaction and its initial record obligation become durable atomically. `transactionId` is unique in `ChangeIntelligenceStore`; a second record for the same `transactionId` is rejected at write.
 
