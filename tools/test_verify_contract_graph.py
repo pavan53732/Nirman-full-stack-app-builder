@@ -763,6 +763,10 @@ CASES = {
         DEC, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
+    "References labels skip a number": (
+        TA, '[7]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
+        '[9]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"',
+        "structure"),
     "duplicate contract registry identity": (
         BS,
         "| CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |",

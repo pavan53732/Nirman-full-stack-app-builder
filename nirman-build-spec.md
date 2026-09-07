@@ -5000,31 +5000,6 @@ A skill for a data-layer migration may require DEEP effort with schema analysis,
 
 The deliberation contract is satisfied only when an agent request for a higher effort level is granted, downgraded, or denied by the runtime and never self-granted; when each additional pass records a reason for continuation; when an observation-free pass raises an evidence-acquisition trigger and the following pass acquires evidence or changes approach rather than reasoning again over the same observations; when no deliberation is terminated, paused, throttled, or downgraded because of token, request, monetary, reasoning-token, pass-count, or elapsed-duration usage while progress remains possible; when a high-risk change cannot proceed on stated confidence while a required evidence element is missing; when competing hypotheses are refuted by discriminating tests rather than confirmed by preference; when an adversarial critique produces findings without mutating the project; when no project mutation occurs anywhere between deliberation entry and the authorization grant; when every escalation records the observed condition that caused it; when a stronger model inherits the identical permission ceiling; when a deliberation session survives context compaction with its hypotheses and rejected strategies intact; when diminishing returns force a change of approach rather than further reasoning; and when a deliberation that ends without sufficiency never presents its leading strategy as validated.
 
-## References
-
-[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
-
-[2]: https://react.dev/ "React Documentation"
-
-[3]: https://www.typescriptlang.org/docs/ "TypeScript Documentation"
-
-[4]: https://docs.expo.dev/ "Expo Documentation"
-
-[5]: https://reactnative.dev/docs/getting-started "React Native Documentation"
-
-[6]: https://git-scm.com/doc "Git Documentation"
-
-[7]: https://www.electronjs.org/docs/latest/ "Electron Documentation"
-
----
-
-**Document owner:** Nirman product team  
-**Recommended application name:** Nirman  
-**Recommended first release:** Windows desktop application for local Android application generation, Nirman-managed local Android emulator preview, testing, repair, packaging, and APK export
-
-
-
-
 ## 69. Intent-Driven Android Synthesis and Truthful Live Preview Contract
 
 **ContractId:** `CONTRACT.RUNTIME.PROMPT_CONTRACT`  
@@ -7892,3 +7867,20 @@ The presentation client displays these structured dimensions with clickable file
 ### 83.4 Acceptance
 
 Every committed `ConstructionTransaction` exposes exactly one durable `ChangeReportRecord`. The record may initially be `INCOMPLETE` or become `UNRESOLVED` during recovery. The owning task may claim completion only when the record is `COMPLETE` and its `ChangeImpactReport` passes all declared validity checks. A report referencing stale revision state, nonexistent files, unsupported verification, or missing invalidation relationships MUST be rejected.
+
+---
+
+## References
+
+[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
+[2]: https://react.dev/ "React Documentation"
+[3]: https://www.typescriptlang.org/docs/ "TypeScript Documentation"
+[4]: https://docs.expo.dev/ "Expo Documentation"
+[5]: https://reactnative.dev/docs/getting-started "React Native Documentation"
+[6]: https://git-scm.com/doc "Git Documentation"
+
+---
+
+**Document owner:** Nirman product team  
+**Recommended application name:** Nirman  
+**Recommended first release:** Windows desktop application for local Android application generation, Nirman-managed local Android emulator preview, testing, repair, packaging, and APK export

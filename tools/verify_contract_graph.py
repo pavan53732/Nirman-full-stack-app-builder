@@ -2738,6 +2738,21 @@ def check_structure(docs, R, D):
         nrefs = len(re.findall(r"^#{1,3}\s+References", text, re.M))
         if nrefs != 1:
             D.add("structure", label, f"has {nrefs} References sections, expected exactly 1")
+        # The References block is terminal: no numbered section may follow
+        # it (a mid-document block splits the contract sections in two), its
+        # labels are contiguous from [1], and it links no excluded stack
+        # (Electron/Tauri/Playwright are not part of the product).
+        ref_pos = text.find("\n## References\n")
+        if ref_pos >= 0:
+            tail = text[ref_pos:]
+            if re.search(r"^##\s+\d+\.\s", tail, re.M):
+                D.add("structure", label, "numbered sections follow the References block; References must be the last section")
+            labels = [int(n) for n in re.findall(r'^\[(\d+)\]: \S+ "', tail, re.M)]
+            if labels != list(range(1, len(labels) + 1)):
+                D.add("structure", label, f"References labels {labels} are not contiguous from [1]")
+            for excluded in ("electronjs.org", "tauri.app", "playwright.dev"):
+                if excluded in tail:
+                    D.add("structure", label, f"References links the excluded stack {excluded}")
         # orphan subsections: child number must match nearest preceding parent
         cur = None
         for line in text.split("\n"):

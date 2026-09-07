@@ -1328,7 +1328,7 @@ The first implementation should support three request surfaces:
 
 The adapters must preserve provider-specific data in a raw-response envelope while also producing a normalized internal response. Nirman should never discard tool-call IDs, refusal information, reasoning metadata when available, streaming event types, finish reasons, request IDs, or provider error details.
 
-The official API reference distinguishes a response-oriented surface for direct model requests, tool use, multimodal inputs, and stateful interactions from a chat-completion surface based on conversation messages.[7] Nirman should support both without assuming that every configured endpoint supports the same capabilities.
+The official API reference distinguishes a response-oriented surface for direct model requests, tool use, multimodal inputs, and stateful interactions from a chat-completion surface based on conversation messages.[5] Nirman should support both without assuming that every configured endpoint supports the same capabilities.
 
 ### 24.2 Provider profile
 
@@ -5102,30 +5102,6 @@ The runtime is correct only when an agent request for EXHAUSTIVE under a policy 
 
 The threshold is configuration, not a runtime constant. No component may hardcode a pass count for `NO_PROGRESS`: the classification is a function of the configured threshold, the measured per-pass movement, and consecutive-pass semantics. A test fixture supplies its own threshold value, and a runtime that behaves identically regardless of the configured value has not implemented the detector.
 
-## References
-
-[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
-
-[2]: https://sqlite.org/docs.html "SQLite Documentation"
-
-[3]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects "Windows Job Objects"
-
-[4]: https://git-scm.com/docs/git-worktree "Git Worktree Documentation"
-
-[5]: https://playwright.dev/docs/intro "Playwright Documentation"
-
-
-[7]: https://developers.openai.com/api/reference/overview "OpenAI API Reference Overview"
-
-[8]: https://platform.openai.com/docs/api-reference/responses/create "Responses API Create Reference"
-
-[9]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"
-
-
----
-
-
-
 ## 73. IntentSynthesisPromptContract and Truthful Preview Architecture
 
 **Implements:** build spec §69 and `CONTRACT.RUNTIME.PROMPT_CONTRACT` (the build spec section is the authority)
@@ -6815,3 +6791,14 @@ A losing candidate's validation is never cited as completion evidence, and a los
 
 `TEST-SPEC-001` proves, against an Android fixture with two comparable approaches: parallel candidates leave the primary workspace untouched; the winner is selected only from identical validation evidence; a tie and a universal failure both escalate instead of selecting; a losing candidate's code is absent from the promoted artifact while its failure signature is present in memory; a restart during speculation replays every candidate to a consistent state; and an admission denial results in exactly one executed approach. Its evidence artifact is `EV-SPEC-001`, the milestone-level (M92) constituent of the capability evidence `EV-VER-001` that `CAP.ANDROID.QUALITY_GATE` resolves through build spec §67.15; `EV-VER-001` is not complete for that capability while `EV-SPEC-001` is missing.
 
+---
+
+## References
+
+[1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
+[2]: https://sqlite.org/docs.html "SQLite Documentation"
+[3]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects "Windows Job Objects"
+[4]: https://git-scm.com/docs/git-worktree "Git Worktree Documentation"
+[5]: https://developers.openai.com/api/reference/overview "OpenAI API Reference Overview"
+[6]: https://platform.openai.com/docs/api-reference/responses/create "Responses API Create Reference"
+[7]: https://platform.openai.com/docs/api-reference/chat/create "Chat Completions Create Reference"
