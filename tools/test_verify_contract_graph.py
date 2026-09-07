@@ -28,14 +28,15 @@ CERTIFIED_RE = re.compile(
     r"^CERTIFICATION: DOCUMENTATION_CERTIFIED(_WITH_RUNTIME_SOURCE_SKIPS)?$", re.M)
 TOOL = os.path.join(HERE, "verify_contract_graph.py")
 DOCS = ("nirman-build-spec.md", "nirman-technical-architecture.md",
-        "nirman-decisions.md", "nirman-development-plan.md")
+        "nirman-decisions.md", "nirman-milestones.md")
 BS, TA, DEC, DEV = DOCS
 # ADR-220 documents. Every root document present in the repository is copied
 # into each fixture so verifier rules that read them are exercised; the tuple
 # below names the ones that may not exist yet while the migration lands.
-ADR220_DOCS = ("nirman-schemas.md", "nirman-adrs.md", "nirman-milestones.md",
+ADR220_DOCS = ("nirman-schemas.md", "nirman-adrs.md",
                "INDEX.md", "GLOSSARY.md", "AGENTS.md", "README.md")
-SCHEMAS, ADRS, MILESTONES, INDEX, GLOSSARY, AGENTS_MD, README_MD = ADR220_DOCS
+SCHEMAS, ADRS, INDEX, GLOSSARY, AGENTS_MD, README_MD = ADR220_DOCS
+MILESTONES = DEV
 
 # Extra (relpath, abspath) pairs the mutation battery needs to copy into the
 # temp root so the new command-payload-coverage check can resolve Rust sources
@@ -364,6 +365,12 @@ CASES = {
         "structure"),
     "nirman-decisions.md loses its pointer to nirman-adrs.md": (
         DEC, "live in `nirman-adrs.md`, in numeric order", "live in the decision records document, in numeric order",
+        "structure"),
+    "README refers to the retired nirman-development-plan.md filename": (
+        README_MD, "[3]: nirman-milestones.md", "[3]: nirman-development-plan.md",
+        "structure"),
+    "a milestone block appears outside nirman-milestones.md": (
+        BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
     "ADR-220 no longer fixes the root document count at ten": (
         ADRS, "The repository root holds exactly ten Markdown documents:",

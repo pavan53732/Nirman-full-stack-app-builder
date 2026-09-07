@@ -45,7 +45,7 @@ DOC_REGISTRY = {
     "bs": ("nirman-build-spec.md", "canonical", True),
     "ta": ("nirman-technical-architecture.md", "canonical", True),
     "dec": ("nirman-decisions.md", "process", True),
-    "dev": ("nirman-development-plan.md", "canonical", True),
+    "dev": ("nirman-milestones.md", "canonical", True),
     "schemas": ("nirman-schemas.md", "canonical", False),
     "adrs": ("nirman-adrs.md", "canonical", False),
     "agents": ("AGENTS.md", "process", True),
@@ -2994,6 +2994,18 @@ def check_document_topology(docs, D, root):
             markers.append("an upper-case requirement statement")
         for m in markers:
             D.add("structure", name, f"{role} document carries {m}; ADR-220 denies it authority")
+    # The development plan was renamed whole to nirman-milestones.md (ADR-220):
+    # the old filename may survive only in the ADR that records the rename,
+    # and milestone blocks may exist in no other root document.
+    for key in DOC_REGISTRY:
+        text = docs.get(key, "")
+        if key != "adrs" and "nirman-development-plan.md" in text:
+            D.add("structure", DOCS[key], "refers to nirman-development-plan.md, which ADR-220 renamed to nirman-milestones.md")
+    for key in DOC_REGISTRY:
+        if key in ("dev", "adrs"):
+            continue
+        if re.search(r"^## (?:\d+\. )?M\d+\b", docs.get(key, ""), re.M):
+            D.add("structure", DOCS[key], "carries a milestone block; nirman-milestones.md is the only home of milestone records (ADR-220)")
     schemas = docs.get("schemas", "")
     fence_re = re.compile(r"```text[ \t]*\n([A-Z][A-Za-z0-9]+)[ \t]*\n- ")
     fence_homes = {}

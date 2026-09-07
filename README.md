@@ -323,7 +323,7 @@ Host environment, target platform, validation platform, and certification status
 | [`AGENTS.md`](AGENTS.md) | Binding rules for all agents and implementation work |
 | [`nirman-build-spec.md`](nirman-build-spec.md) | Product requirements, scope, contracts, evidence, delivery policy, and invariants |
 | [`nirman-technical-architecture.md`](nirman-technical-architecture.md) | Implementation architecture, schemas, protocols, authorities, adapters, and runtime boundaries |
-| [`nirman-development-plan.md`](nirman-development-plan.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
+| [`nirman-milestones.md`](nirman-milestones.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
 | [`nirman-adrs.md`](nirman-adrs.md) | Every architecture decision record (ADR): decision, rationale, consequences, supersession history, and reversal triggers |
 | [`nirman-decisions.md`](nirman-decisions.md) | The decision process: status values, ADR format, and review rules |
 | [`crates/nirman-skills/skills/`](crates/nirman-skills/skills/) | Six v1 skill instruction bodies (`SKILL.md`) with their `skill.json` manifests (BS §79.7); the skill runtime itself is not implemented |
@@ -379,7 +379,7 @@ The canonical sources for this guide are the repository documents listed in the 
 
 [1]: nirman-build-spec.md
 [2]: nirman-technical-architecture.md
-[3]: nirman-development-plan.md
+[3]: nirman-milestones.md
 [4]: nirman-decisions.md
 [5]: nirman-adrs.md
 [6]: AGENTS.md

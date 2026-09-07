@@ -1,4 +1,4 @@
-# Nirman Engineering Development Plan
+# Nirman Milestones and Development Plan
 
 ## Ordered Build Plan for the Desktop Application
 

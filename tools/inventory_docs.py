@@ -25,8 +25,9 @@ DOCS = [
     "AGENTS.md",
     "nirman-build-spec.md",
     "nirman-technical-architecture.md",
-    "nirman-development-plan.md",
+    "nirman-milestones.md",
     "nirman-decisions.md",
+    "nirman-adrs.md",
 ]
 
 RE_CONTRACT = re.compile(r"\bCONTRACT\.[A-Z][A-Z0-9_]*(?:\.[A-Z0-9_]+)*")
