@@ -6,7 +6,7 @@
 
 **Android-only target** — Every generated application targets Android alone; `Project.targetPlatforms` is invariantly `["android"]` and the rule is machine-checked. — BS §5; ADR-180.
 
-**Embedded emulator preview** — The generated app renders inside Nirman's own window through a Nirman-managed local Android emulator; no physical device plays any role. — BS §69; TA §10.
+**Embedded emulator preview** — The generated app renders inside Nirman's own window through a Nirman-managed local Android emulator (the Google Android Emulator, provisioned by Nirman on first launch, never bundled or built by Nirman); no physical device plays any role. — BS §69; TA §10; TA §49.4; ADR-221.
 
 **Nirman** — A Windows desktop application that autonomously plans, builds, previews, tests, repairs, packages, and exports Android applications from product intent using a user-configured cloud AI provider. — BS §1; BS §20.
 
@@ -110,11 +110,15 @@
 
 **ReasoningArtifact / Hypothesis / CapabilityInvocation / DelegationGrant** — The records of the agent reasoning runtime: what was reasoned, hypothesised, invoked, and delegated under which grant. — BS §66; TA §71; SCHEMAS §1.27.
 
+**RenderTransport** — The supervisor-owned, per-emulator-session frame transport: loopback gRPC control channel, stamped frames in a shared-memory ring with drop-oldest backpressure, presented by PreviewHost on a `SwapChainPanel`. — TA §10.7; SCHEMAS §2.89.
+
 **SigningIdentityBinding** — The binding between a capability promotion and the signing identity that produced its evidence. — BS §5.7.9; SCHEMAS §1.5.
 
 **SkillPackage / SkillInvocationRecord / SkillAdmission** — A registered platform skill (six v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
 
 **TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13.
+
+**ToolchainProvisioningManifest / ToolchainProvisioningRecord** — The pinned, signed component list Nirman downloads on first launch, and the evidence record of one provisioning run with its state, licence acceptance, hypervisor action, and readiness frame. — TA §49.4; SCHEMAS §2.87; SCHEMAS §2.88.
 
 **UICommandEnvelope / UIResponseEnvelope / UIErrorEnvelope / ProjectionSnapshot** — The typed frontend–control-plane protocol: command, response, error, and snapshot-plus-event replay. — BS §76; TA §81; ADR-201.
 
@@ -149,6 +153,8 @@
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
+
+**ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
 
 **WorkflowCoordinator (also `IntegratedAndroidWorkflowCoordinator`, `AndroidWorkflowCoordinator`)** — The single control-plane service connecting the autonomous Android workflow to the quality-intelligence services. — TA §53; BS §47.
 
