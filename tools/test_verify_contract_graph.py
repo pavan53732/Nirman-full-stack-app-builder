@@ -1667,12 +1667,14 @@ def main():
                         p.returncode == 0 and before == after and rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"emit={p.returncode} identical={before == after} exit={rc}"))
 
-    def _extra_root_file(tmp):
-        for name in (INDEX, GLOSSARY, ADRS, MILESTONES, SCHEMAS):
-            if not os.path.exists(os.path.join(tmp, name)):
-                _rw(tmp, name, lambda _t: "# placeholder\n")
-        _rw(tmp, "NOTES.md", lambda _t: "# scratch\n")
-    _topology_case("an eleventh root Markdown file once the ADR-220 set is complete", _extra_root_file)
+    _topology_case("an eleventh root Markdown file", lambda tmp: _rw(tmp, "NOTES.md", lambda _t: "# scratch\n"))
+    _topology_case("a root document is missing from the ten", lambda tmp: os.remove(os.path.join(tmp, GLOSSARY)))
+    _topology_case("GLOSSARY.md cites a Build Spec section that does not exist",
+                   lambda tmp: _rw(tmp, GLOSSARY, lambda t: t.replace("— BS §5; ADR-180.", "— BS §5.99; ADR-180.", 1)),
+                   expect="semantic documentation")
+    _topology_case("GLOSSARY.md entry gains an upper-case requirement",
+                   lambda tmp: _rw(tmp, GLOSSARY, lambda t: t.replace("no physical device plays any role.",
+                                                                      "no physical device plays any role; agents MUST NOT add one.", 1)))
 
     _topology_case("a SCHEMAS § citation names a heading nirman-schemas.md lacks",
                    lambda tmp: _rw(tmp, TA, lambda t: t + "\nSee SCHEMAS §9.9 for the field list.\n"),
@@ -1693,6 +1695,9 @@ def main():
         tpath = os.path.join(tmp, TA)
         ttext = open(tpath, encoding="utf-8").read()
         open(tpath, "w", encoding="utf-8").write(re.sub(r"(build spec §)67\.15(?!\d)", r"\g<1>67.99", ttext))
+        # GLOSSARY.md cites the heading too; a real renumber updates it, and
+        # INDEX.md is regenerated (both are checked, so neither may be stale).
+        _rw(tmp, GLOSSARY, lambda t: re.sub(r"(BS §)67\.15(?!\d)", r"\g<1>67.99", t))
         subprocess.run([sys.executable, TOOL, tmp, "--emit-index"], capture_output=True, text=True, timeout=180)
         rc, out = run(tmp)
         results.append(("positive: registry found after heading renumber",

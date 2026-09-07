@@ -39,9 +39,9 @@ EXT_TYPES = ("adds_clauses", "adds_schema", "adds_component", "adds_verification
 #   canonical  : holds product/architecture/milestone authority or ADR records
 #   process    : governs how documents or agents work; no product authority
 #   reference  : navigation/terminology; must never carry authority markers
-# `required=False` entries are documents the ADR-220 migration introduces one
-# gated commit at a time; a missing optional document is not a defect until
-# the topology rule is armed (see check_structure, "root document set").
+# `required=False` entries are reported as a "root document set" structure
+# defect when absent instead of aborting the run, so a partial tree still
+# yields a full report (check_document_topology).
 DOC_REGISTRY = {
     "bs": ("nirman-build-spec.md", "canonical", True),
     "ta": ("nirman-technical-architecture.md", "canonical", True),
@@ -2604,9 +2604,9 @@ def check_semantic_documentation(docs, R, D, root="."):
     # qualify it ("build spec §", "BS §", "technical architecture §", "TA §",
     # or a comma-continued list after such a qualifier). Development-plan
     # references are not resolved (its sections are milestone-numbered).
-    m22_schemas = docs.get("schemas", "")
+    m22_schemas, m22_glossary = docs.get("schemas", ""), docs.get("glossary", "")
     m22_heads = {k: set(m.group(1) for m in re.finditer(r"^#{2,4}\s+(\d+(?:\.\d+)*)\b", t, re.M))
-                 for k, t in (("bs", bs), ("ta", ta), ("schemas", m22_schemas))}
+                 for k, t in (("bs", bs), ("ta", ta), ("schemas", m22_schemas), ("glossary", m22_glossary))}
     # ADR-220 qualifiers: SCHEMAS §/schemas § resolve against nirman-schemas.md;
     # MILESTONES §/milestones § are aliases of development plan §/DP § (the
     # milestone document is milestone-numbered and is not resolved).
@@ -2620,9 +2620,11 @@ def check_semantic_documentation(docs, R, D, root="."):
     m22_doc_of = {"build spec": "bs", "BS": "bs", "technical architecture": "ta", "TA": "ta",
                   "development plan": "dev", "DP": "dev", "SCHEMAS": "schemas", "schemas": "schemas",
                   "MILESTONES": "dev", "milestones": "dev"}
-    m22_names = {"bs": "build spec", "ta": "technical architecture", "schemas": "schema document"}
+    m22_names = {"bs": "build spec", "ta": "technical architecture", "schemas": "schema document", "glossary": "glossary"}
+    # GLOSSARY.md is hand-written (ADR-220): its citations must resolve like
+    # any other; a bare § there resolves against the glossary's own headings.
     for label, key, text in (("build spec", "bs", bs), ("technical architecture", "ta", ta),
-                             ("schema document", "schemas", m22_schemas)):
+                             ("schema document", "schemas", m22_schemas), ("glossary", "glossary", m22_glossary)):
         seen = set()
         for m in re.finditer(r"§\s*(\d+(?:\.\d+)*)", text):
             num = m.group(1)
@@ -3099,9 +3101,9 @@ def check_index_drift(docs, R, D):
 def check_document_topology(docs, D, root):
     """ADR-220 document topology (reported under check 13 "structure").
 
-    (a) Root document set: once every ADR-220 document exists, the root holds
-        exactly ROOT_DOC_SET and nothing else. Before that the rule is not
-        armed, so the migration can land one document per commit.
+    (a) Root document set: the root holds exactly ROOT_DOC_SET — a missing
+        document and an extra document are both defects (the migration that
+        introduced the set one commit at a time is complete).
     (b) Reference documents (INDEX.md, GLOSSARY.md) and the process document
         nirman-decisions.md may not carry authority markers: ADR blocks,
         milestone blocks, Locks fields, fenced schemas, contract-authority
@@ -3111,12 +3113,12 @@ def check_document_topology(docs, D, root):
         sits in, and every schema name has exactly one fence across the root.
     """
     present = sorted(f for f in os.listdir(root) if f.endswith(".md") and os.path.isfile(os.path.join(root, f)))
-    if all(f in present for f in ROOT_DOC_SET):
-        extra = sorted(set(present) - set(ROOT_DOC_SET))
-        if extra:
-            D.add("structure", "root document set",
-                  f"root holds {len(present)} Markdown documents; ADR-220 fixes the set at the ten named documents "
-                  f"(unexpected: {extra})")
+    extra = sorted(set(present) - set(ROOT_DOC_SET))
+    missing = [f for f in ROOT_DOC_SET if f not in present]
+    if extra or missing:
+        D.add("structure", "root document set",
+              f"root holds {len(present)} Markdown documents; ADR-220 fixes the set at the ten named documents "
+              f"(unexpected: {extra}; missing: {missing})")
     for key in ("index", "glossary", "dec"):
         text = docs.get(key, "")
         if not text:

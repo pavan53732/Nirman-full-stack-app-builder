@@ -327,6 +327,7 @@ Host environment, target platform, validation platform, and certification status
 | [`nirman-milestones.md`](nirman-milestones.md) | Milestones, fixture IDs, acceptance gates, sequencing, and implementation status |
 | [`nirman-adrs.md`](nirman-adrs.md) | Every architecture decision record (ADR): decision, rationale, consequences, supersession history, and reversal triggers |
 | [`nirman-decisions.md`](nirman-decisions.md) | The decision process: status values, ADR format, and review rules |
+| [`GLOSSARY.md`](GLOSSARY.md) | Terminology with a pointer to each term's defining section; reference only |
 | [`INDEX.md`](INDEX.md) | Generated navigation (section map, contract → authority, schema → location, milestone → section, ADR ranges); regenerate with `python3 tools/verify_contract_graph.py --emit-index` |
 | [`crates/nirman-skills/skills/`](crates/nirman-skills/skills/) | Six v1 skill instruction bodies (`SKILL.md`) with their `skill.json` manifests (BS §79.7); the skill runtime itself is not implemented |
 | [`tools/verify_contract_graph.py`](tools/verify_contract_graph.py) | Documentation contract-graph and semantic certification tool |

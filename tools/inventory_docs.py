@@ -27,6 +27,7 @@ DOCS = [
     "nirman-technical-architecture.md",
     "nirman-schemas.md",
     "INDEX.md",
+    "GLOSSARY.md",
     "nirman-milestones.md",
     "nirman-decisions.md",
     "nirman-adrs.md",
