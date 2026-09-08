@@ -14,6 +14,10 @@
 
 **NirmanSupervisor.exe** — The Rust/Tokio control-plane process that owns durable truth, process supervision, worker leases, checkpoints, recovery, evidence, and preview and artifact promotion. — TA §57; ADR-111.
 
+**NirmanWorker.exe** — The Rust reasoning host the supervisor spawns once per worker lease: an AppContainer process in its own Job Object with no authority, credential, file, socket, or child, whose only input and output is its `WorkerConnection`. — TA §3.5; TA §57.11; ADR-222.
+
+**WorkerConnection** — The per-lease authenticated named pipe between the supervisor's `WorkerRuntime` and one `NirmanWorker.exe`, carrying `MODEL_CALL`, `PROPOSAL`, results, artifacts, heartbeats, and cancellation. — TA §57.11; SCHEMAS §2.90; ADR-222.
+
 **SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; ADR-117.
 
 ## 2. Registries and document machinery

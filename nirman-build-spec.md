@@ -522,11 +522,12 @@ Nirman has exactly one user-facing product/application identity.
 Production deployment consists of:
 - `Nirman.exe` — visible Windows desktop client
 - `NirmanSupervisor.exe` — headless local runtime
+- `NirmanWorker.exe` — the reasoning host the supervisor spawns for each worker lease; a disposable internal process with no authority, no window, no credential, and no file, network, or process access of its own (TA §3.5; ADR-222)
 
-These are not separate user-facing applications.
+These are not separate user-facing applications. Exactly these three executables exist; every other process Nirman runs is an external tool it supervises.
 
 Required invariants:
-1. One installer/package installs both.
+1. One installer/package installs all three executables.
 2. One product identity is presented to the user.
 3. Supervisor has no normal user-facing window.
 4. Supervisor requires no manual launch/configuration.
@@ -536,7 +537,8 @@ Required invariants:
 8. Supervisor and UI versions must remain compatibility-bound.
 9. Supervisor lifecycle failures must be recoverable and visible through Nirman.
 10. The user must never need to operate the supervisor independently.
-11. The stable launcher/controller of the self-development loop (ADR-039) is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable; it owns the active-version pointer and update lock, and `Nirman.exe` never promotes or rolls back versions (TA §25.2, §57.4).
+11. The stable launcher/controller of the self-development loop (ADR-039) is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a separate executable; it owns the active-version pointer and update lock, and `Nirman.exe` never promotes or rolls back versions (TA §25.2, §57.4).
+12. Every worker is a `NirmanWorker.exe` process, one per worker lease, that reaches the model, the workspace, tools, and the emulator only through the supervisor; a worker is never a thread or task inside `Nirman.exe` or `NirmanSupervisor.exe`, and the supervisor never hosts worker reasoning in-process (TA §3.5).
 
 ### 6.2 Frontend interface
 
@@ -2726,7 +2728,7 @@ The following stack is the implementation baseline for Nirman. It does not chang
 | Editor | Native WinUI editor surface (AvalonEdit or equivalent) |
 | Terminal renderer | Native WinUI terminal surface |
 | Windows terminal runtime | Native ConPTY supervised by Rust |
-| Worker execution | Rust-supervised child processes with leases and scoped capabilities |
+| Worker execution | One Rust `NirmanWorker.exe` child process per worker lease — restricted AppContainer token, own Job Object, no network, no workspace access — reaching the model and every tool through the supervisor's `WorkerConnection` (TA §3.5, §57.11) |
 | Windows isolation | Restricted tokens, Job Objects, ACL workspaces, environment filtering, process supervision, quotas |
 | Credentials | Windows Credential Manager and DPAPI-backed secure storage |
 | Version control | Git and Git worktrees |
@@ -2738,7 +2740,7 @@ Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP,
 
 ### 51.2 Two-executable production architecture
 
-The first vertical slice may host the Rust control plane in-process inside `Nirman.exe` alongside the WinUI 3 shell, rather than running it as a separate `NirmanSupervisor.exe`, to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The production durable-autonomy architecture separates presentation from the long-running supervisor:
+The first vertical slice may host the Rust control plane in-process inside `Nirman.exe` alongside the WinUI 3 shell, rather than running it as a separate `NirmanSupervisor.exe`, to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The allowance never extends to workers: from M5 onward every worker is a `NirmanWorker.exe` process (technical architecture §3.5), whichever process hosts the control plane. The production durable-autonomy architecture separates presentation from the long-running supervisor:
 
 ```text
 Nirman.exe
@@ -2767,7 +2769,12 @@ NirmanSupervisor.exe
 ├── TerminalSupervisor
 ├── AndroidWorkflowCoordinator
 ├── PreviewCoordinator
+├── WorkerRuntime
 └── SQLite execution ledger
+              │ WorkerConnection (one named pipe per worker lease)
+              ▼
+NirmanWorker.exe × N
+└── reasoning engine and deliberation runtime of one worker; no authority
 ```
 
 `Nirman.exe` is a reconnectable client. It must not own authoritative task state, credentials, lifecycle, worker leases, filesystem authority, process supervision, recovery, evidence, or artifact promotion. `NirmanSupervisor.exe` starts with Windows user login when eligible work exists, survives UI closure, scans SQLite after reboot or sleep/resume, and allows the UI to reconnect later.
@@ -5797,6 +5804,7 @@ Every "configurable" parameter in the specification has a default value defined 
 | Concurrent write-capable workers per task | 3 | 1-5 | Per project |
 | Concurrent read-only workers per task | 5 | 1-10 | Per project |
 | Total active workers | 8 | 4-16 | Per project |
+| Worker process memory limit (Job Object limit of one `NirmanWorker.exe`, TA §3.5) | 2 GB | 1-8 GB | Per project |
 | Default task wall-clock policy | No artificial completion limit | N/A | Per task |
 | Default token usage policy | Unlimited by Nirman | N/A | Per task |
 | Default provider request policy | Unlimited by Nirman | N/A | Per task |

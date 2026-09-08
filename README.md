@@ -116,12 +116,13 @@ The preview panel is not a simulated code canvas. It must represent the actual p
 
 The desktop interface is a client of the local control plane. It displays chat, task progress, plans, diffs, terminals, workers, checkpoints, approvals, preview, evidence, artifacts, and recovery state. It does not directly execute arbitrary commands, write authoritative state, grant permissions, promote artifacts, or mark a task complete.
 
-## One Nirman application, two internal processes
+## One Nirman application, three internal executables
 
-Nirman is installed and used as one Windows desktop application. Internally, it uses two cooperating processes for reliability:
+Nirman is installed and used as one Windows desktop application. Internally, it uses two long-lived cooperating processes for reliability, plus a disposable reasoning process per AI worker:
 
 - **Nirman.exe** — the visible WinUI 3 application you interact with.
-- **NirmanSupervisor.exe** — the invisible background runtime that continues autonomous work.
+- **NirmanSupervisor.exe** — the invisible background runtime that continues autonomous work and holds every authority, credential, and file.
+- **NirmanWorker.exe** — one short-lived sandboxed process per AI worker, spawned by the supervisor; it reasons and proposes, and can reach the model, the project, tools, and the emulator only through the supervisor (ADR-222).
 
 You do not run or manage these as separate applications. The Nirman installer installs both components together, Nirman starts or reconnects to the supervisor automatically, and their versions/lifecycle are managed together.
 
@@ -145,7 +146,7 @@ Open Nirman again
 Reconnect → existing task state restored
 ```
 
-The second executable is an internal runtime component, not a second Nirman application.
+The second and third executables are internal runtime components, not additional Nirman applications.
 
 ## Architecture overview
 
@@ -159,7 +160,7 @@ Rust/Tokio NirmanSupervisor
         │
         ├── SQLite ledger
         ├── scheduler/lifecycle
-        ├── workers/leases
+        ├── workers/leases → NirmanWorker.exe × N (sandboxed reasoning processes)
         ├── policy/tool broker
         ├── ModelGateway
         ├── recovery/evidence

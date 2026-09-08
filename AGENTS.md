@@ -155,7 +155,7 @@ Delegation is bounded. Child capabilities cannot exceed their parent capability 
 
 Skills, plugins, MCP-compatible tools, and instruction files are untrusted input until admitted by the agent trust boundary. Before execution, record provenance, version, content hash, requested permissions, declared capabilities, instruction scan results, policy decision, and revocation state. Untrusted instructions cannot override repository rules, request hidden secrets, expand permissions, or execute before trust assessment.
 
-Tool execution must pass through the tool gateway or broker. Workers and models must not invoke the operating system directly, bypass filesystem restrictions, invent command results, or write authoritative state outside the control-plane transaction.
+Tool execution must pass through the tool gateway or broker. Workers and models must not invoke the operating system directly, bypass filesystem restrictions, invent command results, or write authoritative state outside the control-plane transaction. Every worker is its own `NirmanWorker.exe` process with no authority, credential, file, socket, or child; it reasons over its `WorkerConnection` and nothing else (TA §3.5; ADR-222). Do not host a worker as a thread or task inside the supervisor or the UI, and do not give a worker process a provider key, a workspace handle, or a network path.
 
 ## 6. Workspace, source, and mutation rules
 
@@ -429,7 +429,8 @@ An agent must not:
 - remove the optional declared-AAB policy without a superseding decision;
 - silently narrow Android technology intent to a fixed template or framework;
 - introduce an AI token, provider-request, monetary, reasoning, or autonomous-goal-duration budget as an execution control, or terminate, throttle, degrade, or pause valid work on usage telemetry;
-- introduce Tauri, Electron, React, TypeScript, Vite, WebView-based Nirman UI, or another web-wrapper desktop shell; or
+- introduce Tauri, Electron, React, TypeScript, Vite, WebView-based Nirman UI, or another web-wrapper desktop shell;
+- run a worker as a thread or task inside `NirmanSupervisor.exe` or `Nirman.exe`, or let a `NirmanWorker.exe` process hold a provider credential, open a workspace or toolchain file, open a socket, or spawn a process (TA §3.5; ADR-222); or
 - commit or push changes that were not requested or reviewed.
 
 ## 18. Completion standard

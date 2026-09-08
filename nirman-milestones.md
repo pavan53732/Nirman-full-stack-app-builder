@@ -76,7 +76,7 @@ Create the source repository and define the code-quality baseline before impleme
 
 | Work item | Acceptance condition |
 |---|---|
-| Repository layout | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits; the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge |
+| Repository layout | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits and exactly two Rust binaries, `NirmanSupervisor.exe` and `NirmanWorker.exe`, each linking only the crates its §57.1 row allows (`NirmanWorker.exe`: `nirman-domain`, `nirman-worker-ipc`, `nirman-agents` — no ledger, policy, adapter, or provider crate); the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge or a binary that links outside its row (TA §3.5; ADR-222) |
 | C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command |
 | Configuration model | Development, test, and production settings are separate |
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |
@@ -207,6 +207,7 @@ Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch
 7. Add failure classification, injected-failure fixtures, and focused repair prompts.
 8. Add the `recoveryAttemptPolicy` bound on materially different repairs per failure fingerprint (BS §26.3) and graduated escalation when the worker is stuck or the environment is unavailable; identical retries do not count as attempts, and reaching the bound changes strategy or escalates rather than ending the task.
 9. Add a final structured task result and evidence summary linked to the source revision and checkpoint.
+10. Run the single worker as a `NirmanWorker.exe` process spawned by `WorkerRuntime` from a committed lease and launch intent, connected over its `WorkerConnection` (TA §3.5, §57.11): every model call is a `MODEL_CALL` the supervisor fulfils and every action a `PROPOSAL` the supervisor authorizes and executes; the worker process is inside its own Job Object under the worker-host profile, and the fixture kills it mid-cycle and observes the lease requeued and the loop resumed by a fresh process from durable state.
 
 ### Exit gate
 
@@ -232,10 +233,11 @@ Make execution safe before enabling autonomous background work.
 8. Add repeated-action and doom-loop detection.
 9. **Open contract-gap work item — ArtifactExport/PreviewStart portable policy metadata:** ArtifactExport currently exposes only source revision and destination path at the command boundary, while the durable implementation does not yet expose the canonical export-verification record containing packaging profile, verified artifact identity, source/destination identities, request fingerprint, and `UNKNOWN`/`RECONCILING` copy state. PreviewStart currently exposes task, project revision, checkpoint, source fingerprint, emulator identity, and changed paths, but not an authoritative workspace root or build identity. Do not apply broad or guessed M6 authorization to either schema. Close this gap only by wiring the canonical export record and preview event identity into the policy boundary; rules requiring a real emulator session or raw signing material remain deferred to their owning milestones. This is an open contract/integration dependency and is not an M6 completion claim.
 10. **Historical partial closure of work item 9 — command-payload field extensions (source no longer present):** an earlier implementation pass extended the ArtifactExport command payload with the six fields the M6 policy needs on the command boundary (`packaging_profile_id`, `artifact_kind`, `request_fingerprint`, `idempotency_key`, `deployment_delivery`, `destination_kind`) and the PreviewStart command payload with optional `workspace_root` and `build_identity`, while the remaining 22 `ExportVerificationRecord` fields stayed reachable only through durable observation. That source was removed when the repository was reduced to documentation only; no command payload, crate, or struct exists in the current tree, so this item records history, not present capability. The obligation is restated as a required outcome: the `ArtifactExportCommandPayload` MUST carry those six request-side fields, the preview start payload MUST carry `workspace_root` and `build_identity`, and the response envelope MUST embed the complete `ExportVerificationRecord` (technical architecture §74.3 and §83.2; M117). The verifier's command payload coverage check (build spec §67.11) compares each canonical field list with its Rust struct whenever `crates/` source exists and reports the case as unevaluated until then.
+11. Prove the worker-host profile of technical architecture §3.5 on a running `NirmanWorker.exe`: a socket open is refused, a file open in the worker's own workspace and in the toolchain root is refused, a process spawn is refused by the Job Object, and an allocation past the §80.3 worker process memory limit terminates only that worker; the four refusals are recorded as the active capabilities of the §9.2 sandbox report, and no provider credential is readable from the worker process.
 
 ### Exit gate
 
-A restricted worker cannot read protected files, write outside its workspace, execute denied commands, exceed its quota without a durable event, or bypass an explicit deny rule through autonomous mode.
+A restricted worker cannot read protected files, write outside its workspace, execute denied commands, exceed its quota without a durable event, or bypass an explicit deny rule through autonomous mode; and the `NirmanWorker.exe` process itself cannot open a socket, a workspace or toolchain file, or a child process, and its death takes no other process with it.
 
 ---
 
@@ -245,7 +247,7 @@ A restricted worker cannot read protected files, write outside its workspace, ex
 
 Allow tasks to continue when the Nirman.exe UI is minimized or closed and recover safely after control-plane or operating-system restart. The NirmanSupervisor.exe process must survive UI closure and continue eligible autonomous tasks.
 
-M7 implements the one-product-two-processes contract: Nirman.exe may close while NirmanSupervisor.exe continues background work. M7 also ends the in-process hosting allowance of build spec §51.2 and technical architecture §57.2: from this milestone onward `NirmanSupervisor.exe` is a distinct process, and no in-process build may pass this exit gate or claim `CAP.ANDROID.BACKGROUND_CONTINUITY`.
+M7 implements the one-product contract of ADR-002A as amended by ADR-222: Nirman.exe may close while NirmanSupervisor.exe and its `NirmanWorker.exe` processes continue background work. M7 also ends the in-process hosting allowance of build spec §51.2 and technical architecture §57.2: from this milestone onward `NirmanSupervisor.exe` is a distinct process, and no in-process build may pass this exit gate or claim `CAP.ANDROID.BACKGROUND_CONTINUITY`.
 
 ### Work items
 
@@ -277,14 +279,14 @@ Add specialized workers and isolated parallel execution only after the single-wo
 3. Implement the shared task ledger in the SQLite execution ledger with atomic task claims (ADR-110); any workspace task-ledger file is a derived projection, never state.
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
-6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements.
+6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery is proven by terminating one of three running worker processes while the other two continue (TA §3.5).
 7. Implement review, test, debug, and reconciliation worker chains.
 8. Implement changed-file and changed-symbol conflict detection.
 9. Add transactional integration checkpoints.
 
 ### Exit gate
 
-Three independent workers can work on isolated tasks, return structured handoffs, and integrate without changing the main workspace until reconciliation and validation succeed. A forced conflict must be detected and presented rather than silently overwritten.
+Three independent workers — three `NirmanWorker.exe` processes — can work on isolated tasks, return structured handoffs, and integrate without changing the main workspace until reconciliation and validation succeed. A forced conflict must be detected and presented rather than silently overwritten, and terminating one worker process leaves the other two and the supervisor running.
 
 ---
 
@@ -546,7 +548,7 @@ Provider capability detection must distinguish native reasoning support, support
 
 ### M23: Controlled self-development loop
 
-Implement the stable launcher/controller as the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (technical architecture §25.2 and §57.4, ADR-039; no third executable), the isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
+Implement the stable launcher/controller as the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (technical architecture §25.2 and §57.4, ADR-039; no separate launcher executable), the isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
 
 **Exit gate:** Nirman can modify its own source in isolation, build a candidate, launch it separately, run static/unit/integration/provider/sandbox/recovery/smoke checks, promote it through the controller, and roll back after an injected startup, migration, IPC, or health-check failure.
 

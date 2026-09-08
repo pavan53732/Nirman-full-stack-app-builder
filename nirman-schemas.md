@@ -3609,6 +3609,41 @@ RenderTransport
 - closedAt
 ```
 
+### 2.90 WorkerConnection
+
+**Owner:** TA §57.11 · **Contract:** — · **Projected at:** —
+
+```text
+WorkerConnection
+- workerConnectionId
+- protocolVersion
+- workerId
+- workerLeaseId
+- attemptId
+- taskId
+- nodeId
+- workerRole
+- executionProfile: TRUSTED_LOCAL | RESTRICTED_PROCESS | HIGH_RISK_RESTRICTED_PROCESS | DISPOSABLE_ISOLATED | REVIEW_ONLY
+- modelProfileId
+- pipeName
+- launchTokenDigest
+- workerProcessId
+- jobObjectName
+- containerSid
+- memoryLimitBytes
+- heartbeatIntervalMs
+- staleThresholdMs
+- state: LAUNCHING | HANDSHAKING | CONNECTED | PAUSED | CANCELLING | CLOSED
+- lastHeartbeatSequence
+- lastHeartbeatAt
+- workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
+- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
+- exitKind: COMPLETED | FAILED | TIMED_OUT | CANCELLED | CRASHED | STALE_TERMINATED
+- exitCode
+- openedAt
+- closedAt
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry

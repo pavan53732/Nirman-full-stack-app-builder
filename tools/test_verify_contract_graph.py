@@ -452,6 +452,21 @@ CASES = {
     "the ToolchainProvisioningRecord loses hostArchitecture": (
         SCHEMAS, "- hostArchitecture: X64 | ARM64\n", "",
         "semantic documentation"),
+    "TA §3.5 lets a worker run as a Tokio task inside the supervisor": (
+        TA, "A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`.",
+        "A worker runs as a Tokio task inside `NirmanSupervisor.exe` when its profile is Trusted local.",
+        "semantic documentation"),
+    "TA §3.5 lets the worker process hold the provider credential": (
+        TA, "The worker holds no provider credential, opens no network connection, opens no file in any workspace or toolchain directory, and spawns no process.",
+        "The worker holds the provider credential for the duration of its lease and calls the provider directly.",
+        "semantic documentation"),
+    "TA §57.1 lets NirmanWorker.exe link the control-plane crates": (
+        TA, "`NirmanWorker.exe` links `nirman-domain`, `nirman-worker-ipc`, and `nirman-agents` and nothing else",
+        "`NirmanWorker.exe` links every crate of this table",
+        "semantic documentation"),
+    "the WorkerConnection block loses its launch token digest": (
+        SCHEMAS, "- launchTokenDigest\n", "",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
@@ -561,8 +576,8 @@ CASES = {
     "specialist gate invents a worker role": (
         TA, "| Schema/type consistency | Reconciliation Worker |", "| Schema/type consistency | Consistency worker |",
         "semantic documentation"),
-    "update controller becomes a third executable": (
-        TA, "The stable launcher/controller is not a third executable.", "The stable launcher/controller is a third executable, `NirmanLauncher.exe`.",
+    "update controller becomes a separate executable": (
+        TA, "The stable launcher/controller is not a separate executable.", "The stable launcher/controller is a separate executable, `NirmanLauncher.exe`.",
         "semantic documentation"),
     "Continue loses its registered command kind": (
         BS, "| `conversation.continue` | Resolve the durable conversation", "| `conversation.resume` | Resolve the durable conversation",

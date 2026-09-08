@@ -1439,13 +1439,13 @@ def check_semantic_documentation(docs, R, D, root="."):
                       f"{label} must forbid an in-process build from claiming the M7 exit gate or background continuity")
     # ADR-039's stable launcher/controller must be placed inside the
     # two-process product (ADR-002A): the bootstrap stage of the supervisor,
-    # never a third executable.
-    if "bootstrap stage of `NirmanSupervisor.exe`" not in ta or "not a third executable" not in ta:
+    # never a separate executable.
+    if "bootstrap stage of `NirmanSupervisor.exe`" not in ta or "not a separate executable" not in ta:
         D.add("semantic documentation", "update controller placement",
               "TA §25.2 must place the stable launcher/controller as the bootstrap stage of NirmanSupervisor.exe (ADR-039 within ADR-002A)")
-    if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a third executable" not in bs:
+    if "is the update-controller bootstrap stage of `NirmanSupervisor.exe`, not a separate executable" not in bs:
         D.add("semantic documentation", "update controller placement",
-              "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a third executable")
+              "BS §6.1.1 host process contract must state that the update controller is NirmanSupervisor.exe's bootstrap stage, not a separate executable")
     # Orphan component names (audit M20): every named component must exist
     # somewhere as a defined record, table row, or field.
     tolerated = (
@@ -1693,6 +1693,67 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_221 and "Google publishes a Windows ARM64 build of the Android Emulator" not in m_221:
         D.add("semantic documentation", "host architecture",
               "ADR-221's reversal trigger must name the publication of a Windows ARM64 emulator (BS §79.17)")
+    # Process model (TA §3.5; ADR-222): every worker is its own NirmanWorker.exe
+    # process with no authority, credential, file, socket, or child; the
+    # supervisor fulfils every model call and executes every proposal. A
+    # worker described as a task or thread, a worker that reaches the
+    # provider or a file directly, or a crate table without the three-way
+    # split re-opens the "child process or isolated runtime task" ambiguity.
+    m_pm = _section_text(ta, "3.5")
+    if m_pm is None:
+        D.add("semantic documentation", "process model",
+              "TA §3.5 (Process inventory and inter-process edges; ADR-222) is missing")
+    else:
+        for needle, why in (
+                ("A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`",
+                 "state that a worker is never a thread, task, or module inside the supervisor or the UI"),
+                ("The worker holds no provider credential, opens no network connection, opens no file in any workspace or toolchain directory, and spawns no process",
+                 "deny the worker process credentials, network, workspace files, and child processes"),
+                ("`ModelGateway` resolves the credential and makes the provider request",
+                 "route every model call through the supervisor's ModelGateway"),
+                ("No edge exists between `Nirman.exe` and a worker, between two workers, or between a worker and the emulator, a tool process, a workspace, or the provider",
+                 "fix the star topology with the supervisor at the centre"),
+                ("from M5, the first milestone that runs one, every worker is a `NirmanWorker.exe` process",
+                 "exclude workers from the pre-M7 in-process allowance")):
+            if needle not in m_pm:
+                D.add("semantic documentation", "process model", f"TA §3.5 must {why} (ADR-222)")
+    for text, label in ((ta, "TA"), (bs, "BS"), (dev, "development plan")):
+        if re.search(r"child process or isolated runtime task|worker (?:runs|executes) as a (?:Tokio )?task|worker thread", text):
+            D.add("semantic documentation", "process model",
+                  f"{label} describes a worker as a task or thread; every worker is a NirmanWorker.exe process (TA §3.5; ADR-222)")
+    m_crates = ta.split("### 57.1 Implementation stack", 1)[-1].split("### 57.2", 1)[0]
+    for crate in ("`nirman-worker-ipc`", "`nirman-kernel`", "`nirman-agents`"):
+        if f"| {crate} |" not in m_crates:
+            D.add("semantic documentation", "process model",
+                  f"TA §57.1 crate table must carry a {crate} row (ADR-222 three-way split)")
+    if "`NirmanWorker.exe` links `nirman-domain`, `nirman-worker-ipc`, and `nirman-agents` and nothing else" not in m_crates:
+        D.add("semantic documentation", "process model",
+              "TA §57.1 must state which crates NirmanWorker.exe links and that it links nothing else (ADR-222)")
+    m_wc = _section_text(ta, "57.11")
+    if m_wc is None or "`WorkerConnection` is defined in `nirman-schemas.md` §2.90." not in m_wc:
+        D.add("semantic documentation", "process model",
+              "TA §57.11 must own WorkerConnection and project it to nirman-schemas.md §2.90 (ADR-222)")
+    if sch:
+        m_wcb = re.search(r"\nWorkerConnection\n((?:- .*\n|[ \t]+.*\n)+)", sch)
+        if not m_wcb or "- launchTokenDigest\n" not in m_wcb.group(1) or "MODEL_CALL" not in m_wcb.group(1) \
+                or "PROPOSAL_RESULT" not in m_wcb.group(1):
+            D.add("semantic documentation", "process model",
+                  "WorkerConnection must carry launchTokenDigest and the MODEL_CALL / PROPOSAL_RESULT message kinds (TA §57.11; ADR-222)")
+    if "`NirmanWorker.exe` — the reasoning host the supervisor spawns for each worker lease" not in bs:
+        D.add("semantic documentation", "process model",
+              "BS §6.1.1 must list NirmanWorker.exe as the third executable (ADR-222)")
+    m_222 = adr_blocks(dec).get(222, "")
+    if not m_222:
+        D.add("semantic documentation", "process model", "ADR-222 (worker process model) is missing")
+    else:
+        for needle, why in (
+                ("exactly three executables", "fix the executable count at three"),
+                ("never a thread or Tokio task inside the supervisor or the UI", "forbid task- or thread-hosted workers"),
+                ("holds no provider credential", "deny the worker the provider credential"),
+                ("**Locks:** `CONTRACT.RUNTIME.AUTHORITY`", "lock CONTRACT.RUNTIME.AUTHORITY"),
+                ("**Reversal trigger:**", "carry a Reversal trigger")):
+            if needle not in m_222:
+                D.add("semantic documentation", "process model", f"ADR-222 must {why}")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:

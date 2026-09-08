@@ -48,7 +48,7 @@ The control plane should communicate with the user interface through a local aut
 
 ## 3. Process Model
 
-Nirman is one user-facing Windows application implemented by two cooperating processes. This is an implementation boundary, not a product boundary.
+Nirman is one user-facing Windows application implemented by two long-lived cooperating processes — `Nirman.exe` and `NirmanSupervisor.exe` — and the short-lived `NirmanWorker.exe` processes the supervisor spawns, one per worker lease (§3.5; ADR-222). This is an implementation boundary, not a product boundary.
 
 ```
                     ONE NIRMAN PRODUCT
@@ -59,9 +59,13 @@ Nirman is one user-facing Windows application implemented by two cooperating pro
         visible UI                headless runtime
               │                         │
               └──── authenticated IPC ──┘
+                                        │ spawns, one per worker lease
+                                        ▼
+                                NirmanWorker.exe × N
+                                reasoning host, no authority
 ```
 
-`Nirman.exe` is the visible client. `NirmanSupervisor.exe` is the durable local runtime authority.
+`Nirman.exe` is the visible client. `NirmanSupervisor.exe` is the durable local runtime authority. `NirmanWorker.exe` is a disposable reasoning host with no authority of its own.
 
 The supervisor is never a separately operated application. It has no normal user workflow, no independent configuration surface, and no requirement for manual launch. The installer packages both components as one Nirman installation and maintains compatible versions together.
 
@@ -83,9 +87,9 @@ The control plane should start on user login whenever an active Goal Mode task e
 
 ### 3.3 Worker processes
 
-Every worker runs as a child process or isolated runtime task with a declared role, model profile, workspace, permissions, limits, and task contract. A worker must not decide its own isolation profile or expand its own permissions.
+Every worker runs as its own `NirmanWorker.exe` child process, one per worker lease (§3.5), with a declared role, model profile, workspace, permissions, limits, and task contract. A worker must not decide its own isolation profile or expand its own permissions.
 
-A worker may use the provider router to call a model and the tool gateway to request filesystem, process, preview, browser, or external-tool actions. It cannot invoke the operating system directly outside those gateways.
+A worker may request a model call through the supervisor's `ModelGateway` and request filesystem, process, preview, browser, or external-tool actions through the supervisor's `ToolBroker`, both over its `WorkerConnection` (§57.11). It holds no provider credential, no file handle, no socket, and no child process, and it cannot invoke the operating system directly outside those gateways.
 
 ### 3.4 Runtime processes
 
@@ -94,6 +98,35 @@ Development servers, test runners, package managers, emulators, browsers, and bu
 The process manager must support cancellation of the whole process tree, not only the parent process. It must capture stdout and stderr separately, enforce output limits, and preserve the final diagnostic output when a process is terminated.
 
 Job handles MUST be created with handle inheritance DISABLED. If a child inherits the handle, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE does not reap the tree when the parent exits, because an open handle keeps the job alive. Termination MUST NOT rely on parent-child process-tree walking alone. A grandchild assigned to its own nested job, or reparented after its parent exits, is missed. Assignment to the supervisor job at spawn is the only durable containment. Every spawned build, emulator, Android-runtime, and package-manager process MUST be assigned to the job BEFORE it is resumed. The gradlew.bat → java.exe and Metro/Expo → node.exe shapes are the cases that leak. A leaked Gradle daemon holds file locks and corrupts the next run; supervisor restart MUST reconcile orphaned descendants from the ledger before starting new work.
+
+### 3.5 Process inventory and inter-process edges
+
+Nirman's production installation consists of exactly three executables (ADR-222). Every other process Nirman runs — the emulator, Gradle and the JDK, adb, ConPTY shells, Node when a project declares it — is an external tool spawned and supervised by the supervisor under §3.4, never a Nirman executable.
+
+| Executable | Language | Instances | Started by | Holds |
+|---|---|---|---|---|
+| `Nirman.exe` | C#/.NET, WinUI 3 | one per interactive session | the user | presentation state only (§57.6), the `SupervisorConnection` client, and PreviewHost (§10.8), which is a surface inside this process, not a process |
+| `NirmanSupervisor.exe` | Rust/Tokio | one per user (§57.4 singleton) | Windows user login or `Nirman.exe` | every authority of §57.2, the SQLite ledger, the provider credential references and `ModelGateway`, `ToolBroker`, `ContextOrchestrator`, the emulator manager and `RenderTransport`, and every Job Object |
+| `NirmanWorker.exe` | Rust | one per active worker lease, at most the "Global active workers" value of §7.2 | `WorkerRuntime` in the supervisor, from a persisted launch intent (§27.3) | the reasoning engine (§71) and deliberation runtime (§72) of one worker; no authority, no credential, no file, no socket, no child process |
+
+**Worker host.** A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`. `WorkerRuntime` spawns one `NirmanWorker.exe` per worker lease after the lease and its launch intent are committed, assigns the process to its own Job Object before it is resumed — `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, an active-process limit of 1 so the worker cannot spawn, and the worker process memory limit of build spec §80.3 (default 2 GB) — and starts it as an AppContainer process with a filtered environment: a LowBox token created with no network capability, so the kernel refuses every socket, and with a per-lease container SID, so the kernel refuses every file that carries no access-control entry for that SID — the supervisor never writes one on a workspace, the toolchain root, or the ledger, and only the versioned application directory carries the read-and-execute entry for `ALL APPLICATION PACKAGES` that lets the worker binary load. The sandbox capability report of §9.2 marks the worker host's filesystem isolation, network restriction, process limit, and memory limit active only after the M6 worker-host fixture has observed each refusal. The worker holds no provider credential, opens no network connection, opens no file in any workspace or toolchain directory, and spawns no process. Everything it knows arrives over its `WorkerConnection` (§57.11) and everything it wants leaves the same way. A `MODEL_CALL` names the purpose of the request and the context items it needs by reference — files, symbols, observations, memory entries, and its own hypotheses, rejected strategies, effort grant, and pending evidence triggers as the constraint-class content of §72.9; the supervisor's `ContextOrchestrator` assembles the `ContextPackage` (§59.6), `ModelGateway` resolves the credential and makes the provider request (§48), and the worker receives the normalized response events and the context manifest — never the assembled package, the raw provider request, or the key. A `PROPOSAL` is an `AgentProposal` (§58.3) that the kernel's AUTHORIZE step (§58.2) passes to `PolicyAuthority` and `ToolBroker`; the outcome returns as a `PROPOSAL_RESULT` carrying the decision and, for an executed action, the observation identity and content the worker cites in its next request. The declared execution profile of build spec §26.5 governs those tool executions — the workspace paths, network category, and process quota of the Gradle, adb, or shell processes the supervisor runs on the worker's behalf; the worker host process itself always runs under the fixed profile above, whatever profile its contract declares, and the pre-M7 allowance of §57.2 to host the control-plane modules inside `Nirman.exe` never extends to a worker: from M5, the first milestone that runs one, every worker is a `NirmanWorker.exe` process spawned by whichever process hosts the control plane.
+
+**Placement rule.** A component of §58, §71, or §72 is worker-hosted when its only inputs and outputs are messages: `PrivateReasoningRuntime`, `AgentReasoningEngine`, `HypothesisManager`, `StrategySelector`, `ReflectionEngine`, `StructuredReasoningSummarizer`, and every §72.2 component except the three that grant, persist, or store. A component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted: the whole of §58 including `AgentLoopReducer`, `WorkerRuntime`, `SwarmPlanner`, and `DelegationProtocol`, together with `CapabilityRegistry`, `CapabilityBroker`, `DelegationManager`, `SwarmGraphManager`, `ReasoningStreamFilter`, `ReasoningEffortSelector`, `DeliberationContinuationManager`, `DeliberationRecordStore`, `ContextOrchestrator`, `ModelGateway`, and `ToolBroker`. A worker-hosted component that needs one of these — a capability query, an effort grant, a model escalation chosen by `DeliberationModelRouter`, a record to persist — sends the corresponding `WorkerConnection` message and receives the supervisor's answer; the effort level and the model profile a `MODEL_CALL` names are requests the supervisor admits or reduces under the worker's unchanged permission ceiling. The kernel's OBSERVE, UNDERSTAND, PLAN, and SELECT_ACTION stages are filled by the worker's `ReasoningArtifact`s and proposed action (§71.1); AUTHORIZE through EVALUATE_PROGRESS run in the supervisor, and `AgentLoopRecord` (§58.3) is written only there. ADR-119's separation of loop state from process lifecycle state is therefore a process boundary: the loop state lives in the supervisor's ledger and survives the worker, and the worker process is disposable.
+
+**Lifecycle.** A worker process lives for one lease attempt: launched when the lease is granted, exited when the worker reaches `COMPLETED`, `FAILED`, `TIMED_OUT`, or `CANCELLED` (§5.2), never pooled or reused across leases. Its one-time launch token is delivered on its standard input, never on the command line or in the environment; it connects to the per-lease pipe named in that token, completes the `WorkerConnection` handshake, and sends a heartbeat every worker heartbeat interval (build spec §26.3, 10 seconds). The supervisor declares a worker dead only from both signals of §5.2 — the process handle and heartbeat freshness: a process exit is a worker crash (§32; §27.4: preserve the workspace, record the interruption, requeue or recover), and a live process past the stale threshold (60 seconds) is terminated through `TerminateJobObject` and follows the same path. Cancellation (§58.11) is cooperative first — a `CANCEL` message the worker acknowledges after sending its last artifact — then forced through the Job Object. Resumption never depends on a paused process being alive: every artifact a worker produced is already in the ledger, so the supervisor terminates a paused worker whenever the resource policy of build spec §26.3 needs the memory and relaunches a fresh process from durable state on resume. Workers do not outlive the supervisor — closing the supervisor closes every worker Job Object — and the recovery scan of §57.4 treats a lease whose process is gone as a worker crash. A worker that exits, hangs, leaks, or is replaced never takes another worker, the supervisor, or the UI with it, and never leaves a descendant: it has none.
+
+**Edges.** Every inter-process edge terminates at the supervisor; the topology is a star.
+
+| Edge | Transport | Authentication | Carries |
+|---|---|---|---|
+| `Nirman.exe` ↔ supervisor | `SupervisorConnection` named pipe (§57.3) | protocol handshake, installation identity, user and project scope | `UICommandEnvelope`, `UIResponseEnvelope`, `ProjectionSnapshot`, durable events, `FrameNotice` |
+| supervisor → PreviewHost | shared-memory ring announced by `FrameNotice` (§10.7) | ring mapped read-only into `Nirman.exe` | frame pixels only |
+| supervisor ↔ `NirmanWorker.exe` | `WorkerConnection` named pipe, one per lease (§57.11) | one-time launch token on standard input; pipe ACL naming the invoking account only | `MODEL_CALL`, `PROPOSAL`, results, artifacts, records, heartbeats, cancellation |
+| supervisor ↔ emulator | loopback gRPC with a per-session token, and adb (§10.7) | token held by the supervisor only | screenshot stream, input, device control |
+| supervisor ↔ build, shell, and tool processes | standard streams and ConPTY under the session Job Object (§3.4; §57.7) | restricted token per execution profile | commands, output, exit codes |
+| supervisor ↔ AI provider | HTTPS (§48) | credential resolved from the OS credential store at request time | `ProviderRequest` and the normalized response |
+
+No edge exists between `Nirman.exe` and a worker, between two workers, or between a worker and the emulator, a tool process, a workspace, or the provider: all such traffic passes through the supervisor. A design, crate, or fixture that introduces such an edge violates this section and ADR-222.
 
 ---
 
@@ -629,7 +662,7 @@ The engineering team must decide the following before implementing the control p
 | Metadata storage | SQLite with migrations and WAL mode where appropriate |
 | Task logs | Append-only files referenced from SQLite |
 | Worktree management | Git worktrees with temporary copy fallback |
-| Worker process | Child process with declared runtime profile |
+| Worker process | One `NirmanWorker.exe` child process per worker lease under the fixed worker-host profile of §3.5; the declared execution profile governs the tool executions the supervisor runs for it |
 | Scheduler | Single authoritative local scheduler process |
 | Event delivery | Durable event log with sequence-based replay |
 | Initial sandbox | Restricted Windows process plus workspace policy |
@@ -1131,7 +1164,7 @@ Replaceable Nirman application
 
 The controller should not be replaced during an ordinary self-update. This gives the system a stable recovery path if the candidate application fails to start, crashes during migration, or cannot connect to the local database.
 
-The stable launcher/controller is not a third executable. It is the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (§57.4): the supervisor binary that Windows starts at user login owns the update lock and the active-version pointer, and the "replaceable Nirman application" is the versioned application directory it launches — `Nirman.exe` together with the supervisor's own control-plane modules loaded from that directory. The bootstrap stage is versioned and shipped separately from the application directory, is replaced only by an explicit controller-update path that ADR-039 and §25.3 escalate to a higher review level, and never loads the candidate's code before the candidate has passed compatibility checks. This keeps ADR-002A's one-product-two-processes contract intact: there is no launcher the user sees, and no process beyond `Nirman.exe` and `NirmanSupervisor.exe`. `Nirman.exe` never performs promotion or rollback; it only shows the §25.7 status projection.
+The stable launcher/controller is not a separate executable. It is the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (§57.4): the supervisor binary that Windows starts at user login owns the update lock and the active-version pointer, and the "replaceable Nirman application" is the versioned application directory it launches — `Nirman.exe` together with the supervisor's own control-plane modules loaded from that directory. The bootstrap stage is versioned and shipped separately from the application directory, is replaced only by an explicit controller-update path that ADR-039 and §25.3 escalate to a higher review level, and never loads the candidate's code before the candidate has passed compatibility checks. This keeps ADR-002A's one-product contract intact: there is no launcher the user sees, and no executable beyond the three of §3.5 — `Nirman.exe`, `NirmanSupervisor.exe`, and the supervisor-spawned `NirmanWorker.exe`, none of which is a launcher. `Nirman.exe` never performs promotion or rollback; it only shows the §25.7 status projection.
 
 ### 25.3 Self-development task contract
 
@@ -1718,7 +1751,7 @@ The host is divided into explicit process domains:
 |---|---|---|
 | Desktop shell | Chat, project navigation, preview framing, settings | IPC only; no direct project filesystem |
 | Control-plane supervisor | Lifecycle, leases, task graph, permissions, persistence | Authority services and approved worker control |
-| Worker process | Planning, coding, debugging, testing, visual QA | Isolated workspace and declared tools |
+| Worker process (`NirmanWorker.exe`) | Planning, coding, debugging, testing, and visual-QA reasoning for one lease | Its `WorkerConnection` only; workspace, tools, and model are reached through the supervisor (§3.5) |
 | Build process | Gradle, SDK, package manager, compiler | Project workspace, toolchain, declared network |
 | Emulator manager | Emulator lifecycle, install, capture, Logcat | Emulator APIs only |
 | Preview application | Runs generated Android app | Disposable app/emulator profile |
@@ -1824,7 +1857,7 @@ Rust Control Plane Supervisor
 ├── ProjectMemoryStore
 └── ContextOrchestrator
         │
-        ├── isolated worker processes
+        ├── NirmanWorker.exe reasoning processes, one per lease (§3.5)
         ├── persistent PTY terminals
         ├── Android SDK/JDK/Gradle/ADB/emulator processes
         ├── provider bridge or direct provider adapters
@@ -2499,13 +2532,15 @@ The Rust side is one Cargo workspace under `crates/`. The crate boundaries follo
 | `nirman-policy` | `PolicyAuthority`, permission profiles (build spec §26.5), operation capabilities | `nirman-domain` |
 | `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc` | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
 | `nirman-evidence` | `EvidenceAuthority`, evidence dependency graph, `ExportVerificationRecord` verification | `nirman-domain` |
-| `nirman-agents` | Agent loop kernel, deliberation runtime (§72), worker roles | `nirman-domain`, `nirman-policy`, `nirman-control-plane` |
+| `nirman-worker-ipc` | The `WorkerConnection` protocol (§57.11; §3.5): launch-token handshake, heartbeat, and the worker and supervisor message kinds | `nirman-domain` |
+| `nirman-kernel` | `AgentExecutionKernel` (§58): the AUTHORIZE through EVALUATE_PROGRESS stages, `AgentLoopReducer`, `WorkerRuntime` (spawns and supervises one `NirmanWorker.exe` per lease), `SwarmPlanner`, `DelegationProtocol`, `CapabilityBroker`, the supervisor end of `WorkerConnection` | `nirman-domain`, `nirman-policy`, `nirman-control-plane`, `nirman-worker-ipc` |
+| `nirman-agents` | `AgentReasoningEngine` (§71), `DeepDeliberationRuntime` (§72), `PrivateReasoningRuntime`, worker-role reasoning profiles, the worker end of `WorkerConnection`; linked by `NirmanWorker.exe` only | `nirman-domain`, `nirman-worker-ipc` |
 | `nirman-android` | `AndroidWorkflowCoordinator`, technology adapters (§73.10), build and device adapters, toolchain authority | `nirman-domain`, `nirman-policy`, `nirman-evidence` |
 | `nirman-preview` | `PreviewCoordinator`, `PreviewProjectionReducer`, `PreviewRequest` | `nirman-domain`, `nirman-android`, `nirman-evidence` |
 | `nirman-artifacts` | `ArtifactAuthority`, `PackagingProfile` admission, local export handler (§83) | `nirman-domain`, `nirman-evidence`, `nirman-policy` |
 | `nirman-skills` | Skill registry, `SkillAdmission`/`SkillInvocationRecord` persistence (§19.1), built-in bodies and manifests under `skills/` | `nirman-domain`, `nirman-policy` |
 
-`NirmanSupervisor.exe` is the binary that links these crates; `Nirman.exe` links only the generated `nirman-ipc` client bindings. A crate that reaches across this table (for example `nirman-preview` writing the ledger directly, or `nirman-ipc` containing domain logic) violates §57.2 and is rejected at code review by the M0 module-boundary check (development plan M0, "Repository layout").
+`NirmanSupervisor.exe` links every crate of this table except `nirman-agents`; `NirmanWorker.exe` links `nirman-domain`, `nirman-worker-ipc`, and `nirman-agents` and nothing else — no ledger, no policy engine, no adapter, no provider client (§3.5); `Nirman.exe` links only the generated `nirman-ipc` client bindings. A crate that reaches across this table (for example `nirman-preview` writing the ledger directly, `nirman-ipc` containing domain logic, or `nirman-agents` depending on `nirman-control-plane`) or a binary that links outside its row violates §57.2 and §3.5 and is rejected at code review by the M0 module-boundary check (development plan M0, "Repository layout").
 
 ### 57.2 Process topology
 
@@ -2538,10 +2573,17 @@ NirmanSupervisor.exe
 ├── AndroidWorkflowCoordinator
 ├── PreviewCoordinator
 ├── ContextOrchestrator
+├── WorkerRuntime
 └── SQLite execution ledger
+              │ WorkerConnection: one named pipe per worker lease (§57.11)
+              ▼
+NirmanWorker.exe × N   (one per active worker lease; restricted token, own Job Object, no network, no workspace ACL — §3.5)
+├── AgentReasoningEngine (§71)
+├── DeepDeliberationRuntime (§72)
+└── PrivateReasoningRuntime
 ```
 
-The first implementation may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The production durable-autonomy architecture separates Nirman.exe from NirmanSupervisor.exe.
+The first implementation may host the Rust control-plane modules in-process with the WinUI 3 application to reduce initial process complexity. This allowance is bounded: it applies only to the pre-M7 vertical slice (M1–M6), every UI call MUST still cross the `SupervisorConnection` protocol boundary (ADR-117) so that extraction changes the transport and nothing else, and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes. An in-process build MUST NOT claim the M7 exit gate, `CAP.ANDROID.BACKGROUND_CONTINUITY`, or `CLAUSE.CONTINUITY.NO_UI_DEPENDENCY`. The allowance never extends to workers: from M5 onward every worker is a `NirmanWorker.exe` process (§3.5), spawned by whichever process hosts the control-plane modules. The production durable-autonomy architecture separates Nirman.exe from NirmanSupervisor.exe.
 
 ### 57.3 SupervisorConnection
 
@@ -2677,6 +2719,12 @@ The architecture acceptance criteria are the conditions that must be met for the
 
 The architecture acceptance criteria are satisfied when the UI can restart while the supervisor continues a task; the supervisor can start after Windows reboot and recover eligible sessions; SQLite reconstructs the same state after event replay; ConPTY terminals survive reconnect; stale UI projections cannot mutate authority; provider proposals cannot bypass ToolBroker or PolicyAuthority; the native WinUI editor and terminal surfaces remain presentation components; Android toolchains are supervised locally; and the final APK remains bound to source revision, toolchain lock, preview, evidence, and artifact checksums.
 
+### 57.11 WorkerConnection
+
+> **Schema projection:** `WorkerConnection` is defined in `nirman-schemas.md` §2.90. Owner: TA §57.11.
+
+The supervisor end is `WorkerRuntime` (§58.1); the worker end is the only input and output `NirmanWorker.exe` has (§3.5). The supervisor creates one pipe per lease with an ACL naming the invoking account only; the worker authenticates with the one-time launch token it read from standard input, and the handshake binds protocol version, worker ID, lease ID, attempt ID, role, declared execution profile, model profile ID, and limits. A token presented twice, a lease that is not active, or a mismatched attempt closes the pipe. Worker-to-supervisor kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`. Every worker-originated message carries the lease ID and attempt ID and is rejected once the lease is fenced (§46); nothing a worker sends is authoritative until an authority commits it (§27.1). Pipe traffic is not a durable event: the durable record of a worker's work is what the supervisor commits — `ReasoningArtifact`s, `DeliberationRecord`s, `AgentProposal`s, `AgentLoopRecord`s, and evidence — and the worker keeps no local file.
+
 
 ---
 
@@ -2718,7 +2766,7 @@ AgentExecutionKernel
       └── ExecutionHistoryManager
 ```
 
-These modules produce proposals and state transitions, but LifecycleAuthority, PolicyAuthority, ToolBroker, ConstructionTransactionManager, EvidenceAuthority, and ArtifactAuthority remain the non-delegable authorities.
+These modules produce proposals and state transitions, but LifecycleAuthority, PolicyAuthority, ToolBroker, ConstructionTransactionManager, EvidenceAuthority, and ArtifactAuthority remain the non-delegable authorities. The kernel runs in `NirmanSupervisor.exe`; the reasoning it drives runs in the worker's own `NirmanWorker.exe` process and reaches the kernel only as messages over the `WorkerConnection` (§3.5; §57.11).
 
 ### 58.2 AgentExecutionKernel contract
 
@@ -3678,7 +3726,7 @@ CapabilityLayer -> skill | tool | worker | swarm | session
 EvidenceStore (§23.3) -> ReflectionEngine -> next cycle
 ```
 
-The reasoning engine sits above the kernel and below nothing. It cannot reach the capability layer except through the kernel, and the kernel cannot execute except through the authorities.
+The reasoning engine sits above the kernel and below nothing. It cannot reach the capability layer except through the kernel, and the kernel cannot execute except through the authorities. The arrow from `AgentReasoningEngine` to `AgentExecutionKernel` is also the process boundary of §3.5: `PrivateReasoningRuntime`, `AgentReasoningEngine`, and the deliberation runtime of §72 run in the worker's `NirmanWorker.exe`; the kernel and everything beneath it run in `NirmanSupervisor.exe`, and the provider's response reaches `PrivateReasoningRuntime` only through the supervisor's `ModelGateway` and the `WorkerConnection`.
 
 ### 71.2 Components
 
