@@ -3528,6 +3528,7 @@ ToolchainProvisioningRecord
 - manifestVersion
 - environmentId
 - windowsAccountSid
+- hostArchitecture: X64 | ARM64
 - state: NOT_PROVISIONED | CONSENT_REQUIRED | WAITING_NETWORK | DOWNLOADING | VERIFYING | INSTALLING | HYPERVISOR_REQUIRED | AVD_CREATING | FIRST_BOOT | SNAPSHOT_SAVED | READY | PROVISIONED_UNVERIFIED | FAILED_INTEGRITY | FAILED_DISK | USER_REQUIRED | UNAVAILABLE
 - capabilityClassification: AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
 - componentResults
@@ -3536,7 +3537,7 @@ ToolchainProvisioningRecord
   - expectedSha256
   - observedSha256
   - installedPath
-  - result: INSTALLED | FAILED_INTEGRITY | SKIPPED_PRESENT | FAILED
+  - result: INSTALLED | FAILED_INTEGRITY | SKIPPED_PRESENT | HOST_UNSUPPORTED | FAILED
 - licenseAcceptance
   - licenseHash
   - manifestVersion

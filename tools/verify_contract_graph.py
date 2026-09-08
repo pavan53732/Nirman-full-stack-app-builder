@@ -1663,6 +1663,36 @@ def check_semantic_documentation(docs, R, D, root="."):
                 ("**Reversal trigger:**", "carry a Reversal trigger")):
             if needle not in m_221:
                 D.add("semantic documentation", "toolchain provisioning", f"ADR-221 must {why}")
+    # Host CPU architecture (BS §79.17; ADR-221): Nirman installs and builds on
+    # x86-64 and ARM64 Windows, but the SDK repository publishes no Windows
+    # ARM64 emulator, so the emulator capability on an ARM64 host is
+    # UNAVAILABLE with a stated reason — never a substitute, never a spinner.
+    m_arch = _section_text(bs, "79.17")
+    if m_arch is None:
+        D.add("semantic documentation", "host architecture",
+              "BS §79.17 (Host CPU architecture; ADR-221) is missing")
+    else:
+        for needle, why in (
+                ("no Windows ARM64 build of the Android Emulator is published", "state the ARM64 unavailability reason verbatim"),
+                ("MUST NOT attempt to download or run an emulator or system image whose host architecture does not match",
+                 "forbid provisioning a mismatched-architecture emulator"),
+                ("MUST NOT present an x86-64 emulator running under the emulation layer, a container, a VM, WSL, a remote machine, or a physical device as a substitute",
+                 "forbid every substitute runtime on an ARM64 host"),
+                ("at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`", "cap completion on an ARM64 host"),
+                ("MUST prefer dependencies that ship x86_64 native libraries", "make the resolver prefer x86_64 native dependencies")):
+            if needle not in m_arch:
+                D.add("semantic documentation", "host architecture", f"BS §79.17 must {why} (ADR-221)")
+    if m_prov is not None and "`HOST_UNSUPPORTED`" not in m_prov:
+        D.add("semantic documentation", "host architecture",
+              "TA §49.4 preflight must resolve the emulator and system image to HOST_UNSUPPORTED on a Windows ARM64 host (BS §79.17)")
+    if sch:
+        m_tpr = re.search(r"\nToolchainProvisioningRecord\n((?:- .*\n|[ \t]+.*\n)+)", sch)
+        if not m_tpr or "- hostArchitecture: X64 | ARM64\n" not in m_tpr.group(1) or "HOST_UNSUPPORTED" not in m_tpr.group(1):
+            D.add("semantic documentation", "host architecture",
+                  "ToolchainProvisioningRecord must carry hostArchitecture: X64 | ARM64 and a HOST_UNSUPPORTED component result (BS §79.17)")
+    if m_221 and "Google publishes a Windows ARM64 build of the Android Emulator" not in m_221:
+        D.add("semantic documentation", "host architecture",
+              "ADR-221's reversal trigger must name the publication of a Windows ARM64 emulator (BS §79.17)")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:

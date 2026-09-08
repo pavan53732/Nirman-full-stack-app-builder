@@ -439,6 +439,19 @@ CASES = {
     "the RenderTransport block loses its frameNotice field": (
         SCHEMAS, "- frameNotice\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
         "semantic documentation"),
+    # BS §79.17: a Windows ARM64 host gets an honest UNAVAILABLE emulator, not
+    # a substitute runtime and not a mismatched download.
+    "BS §79.17 lets an ARM64 host run the x86-64 emulator under the emulation layer as a substitute": (
+        BS, "MUST NOT present an x86-64 emulator running under the emulation layer, a container, a VM, WSL, a remote machine, or a physical device as a substitute",
+        "MAY present an x86-64 emulator running under the emulation layer as a substitute",
+        "semantic documentation"),
+    "TA §49.4 downloads the emulator regardless of host architecture": (
+        TA, "resolve to `HOST_UNSUPPORTED` because the SDK repository publishes no Windows ARM64 emulator",
+        "resolve normally on every host",
+        "semantic documentation"),
+    "the ToolchainProvisioningRecord loses hostArchitecture": (
+        SCHEMAS, "- hostArchitecture: X64 | ARM64\n", "",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
