@@ -30,6 +30,8 @@
 
 **ClauseId / Clause Registry** — A stable identifier for one normative clause, with its owning contract, authority section, value, and seal state. — BS §67.12.
 
+**Component and authority registry** — The TA §57.12 table that gives every authority and every cross-document component name its kind, crate, owned decisions, committed records, and defining section; alias rows name the owner they stand for and carry no crate. — TA §57.12; ADR-223.
+
 **ContractId / Contract Authority Registry** — A stable identifier for one normative contract with exactly one authoritative section; every other section that addresses it is a declared extension. — BS §67.7; BS §67.8.
 
 **Documentation certification** — The terminal status of `tools/verify_contract_graph.py`: `FAIL`, `DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS`, or `DOCUMENTATION_CERTIFIED`; never a runtime or completion claim. — BS §67.6; BS §67.11; TA §74.5.

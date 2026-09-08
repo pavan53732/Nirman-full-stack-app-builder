@@ -467,6 +467,27 @@ CASES = {
     "the WorkerConnection block loses its launch token digest": (
         SCHEMAS, "- launchTokenDigest\n", "",
         "semantic documentation"),
+    # ---- ADR-223 component and authority registry (TA §57.12)
+    "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
+        TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",
+        "",
+        "semantic documentation"),
+    "TA prose names an authority that nothing defines": (
+        TA, "Each row is realised by the named components of the §57.12 component and authority registry",
+        "Each row is realised by the named components of the §57.12 component and authority registry, and `FooAuthority` admits the rest",
+        "semantic documentation"),
+    "a BS fenced diagram names a component that nothing defines": (
+        BS, "BrandAssetCompletionGate\n```", "BrandAssetCompletionGate\n        ↓\nReleaseGateOrchestrator\n```",
+        "semantic documentation"),
+    "a TA §57.12 registry row has a blank crate cell": (
+        TA, "| `TaskScheduler` | service | `nirman-control-plane` |", "| `TaskScheduler` | service | — |",
+        "semantic documentation"),
+    "a TA §57.12 registry row names a crate absent from §57.1": (
+        TA, "| `CheckpointManager` | service | `nirman-control-plane` |", "| `CheckpointManager` | service | `nirman-checkpoints` |",
+        "semantic documentation"),
+    "a TA §57.12 alias row claims a crate of its own": (
+        TA, "| `SigningAuthority` | alias | — |", "| `SigningAuthority` | alias | `nirman-artifacts` |",
+        "semantic documentation"),
     "a milestone block appears outside nirman-milestones.md": (
         BS, "## 80. Agent-Buildability Contract", "## M999 — Stray milestone\n\nText.\n\n## 80. Agent-Buildability Contract",
         "structure"),
@@ -1837,6 +1858,22 @@ def main():
         results.append(("positive: Unicode explanatory text is inert",
                         rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE (ADR-223): a component name that is defined by a
+    # heading, a component-table first cell, a list entry, or a registry row
+    # is not an undefined name, and a lower-case word ending in a component
+    # suffix (a "scheduler", the "evidence ledger") is never a component name.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-registry-pos-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        path = os.path.join(tmp, TA)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("\n### 88.7 FixtureSeedPlanner\n\nThe `FixtureSeedPlanner` plans seed data; the scheduler and the evidence ledger are named in prose only.\n\n")
+            fh.write("| Component | Responsibility |\n|---|---|\n| FixtureSeedRegistry | Holds fixture seeds |\n\n")
+            fh.write("- `FixtureSeedValidator`: validates a seed against the `FixtureSeedRegistry` and the `TaskScheduler`.\n")
+        rc, out = run(tmp)
+        results.append(("positive: heading, table, list, and registry definitions satisfy the component-registry rule",
+                        rc == 0 and CERTIFIED_RE.search(out) is not None,
+                        f"exit={rc} got={sorted(failed_checks(out))}"))
 
     with tempfile.TemporaryDirectory(prefix="hermes-cg-ctl-") as tmp:
         _copy_fixture(tmp, RUST_SOURCES)

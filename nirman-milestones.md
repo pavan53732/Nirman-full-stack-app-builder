@@ -77,6 +77,7 @@ Create the source repository and define the code-quality baseline before impleme
 | Work item | Acceptance condition |
 |---|---|
 | Repository layout | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits and exactly two Rust binaries, `NirmanSupervisor.exe` and `NirmanWorker.exe`, each linking only the crates its §57.1 row allows (`NirmanWorker.exe`: `nirman-domain`, `nirman-worker-ipc`, `nirman-agents` — no ledger, policy, adapter, or provider crate); the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge or a binary that links outside its row (TA §3.5; ADR-222) |
+| Component registry parity | Every non-alias row of technical architecture §57.12 names a crate that exists in the workspace, and the module-boundary check fails the local gate when a registered component's Rust item lives in a crate other than the one its row declares (ADR-223) |
 | C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command |
 | Configuration model | Development, test, and production settings are separate |
 | Logging standard | Structured logs include task, worker, project, and correlation IDs |

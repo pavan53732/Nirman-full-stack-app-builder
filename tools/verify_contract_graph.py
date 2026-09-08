@@ -1754,6 +1754,100 @@ def check_semantic_documentation(docs, R, D, root="."):
                 ("**Reversal trigger:**", "carry a Reversal trigger")):
             if needle not in m_222:
                 D.add("semantic documentation", "process model", f"ADR-222 must {why}")
+    # Component and authority registry (ADR-223, TA §57.12): every PascalCase
+    # component name that BS or TA uses as an identifier — in backticks, inside
+    # a fenced diagram, or in a table row — must have a definition site: a
+    # heading spelling it, a component-table first cell, a `- `Name`:` list
+    # entry, a paragraph opening with it, a nirman-schemas.md heading, or a
+    # registry row. Registry rows must be well formed, agree with the §57.1
+    # crate table, and alias rows must name their owner and carry no crate.
+    m_reg = _section_text(ta, "57.12")
+    m_reg_rows = {}
+    if m_reg is None:
+        D.add("semantic documentation", "component registry",
+              "TA §57.12 component and authority registry is missing (ADR-223)")
+    else:
+        for row in re.findall(r"^\| `([A-Za-z][A-Za-z0-9]*)` \|(.*)$", m_reg, re.M):
+            cells = [c.strip() for c in row[1].strip().strip("|").split("|")]
+            if len(cells) != 5:
+                D.add("semantic documentation", "component registry",
+                      f"TA §57.12 row `{row[0]}` must have six cells: name, kind, crate, owns, commits, defined in")
+                continue
+            m_reg_rows[row[0]] = cells
+        m_crate_names = set(re.findall(r"^\| `(nirman-[a-z-]+)` \|", ta.split("### 57.1 Implementation stack", 1)[-1].split("### 57.2", 1)[0], re.M))
+        for name, (kind, crate, owns, commits, defined) in m_reg_rows.items():
+            if kind not in ("authority", "service", "module", "alias", "decision point"):
+                D.add("semantic documentation", "component registry",
+                      f"TA §57.12 row `{name}` has kind {kind!r}; allowed: authority, service, module, alias, decision point")
+            if kind == "alias":
+                if crate != "—" or not owns.startswith("alias of "):
+                    D.add("semantic documentation", "component registry",
+                          f"TA §57.12 alias row `{name}` must carry no crate (—) and open its Owns cell with 'alias of' (ADR-223)")
+            else:
+                m_crate = re.fullmatch(r"`(nirman-[a-z-]+)`", crate)
+                if m_crate is None:
+                    D.add("semantic documentation", "component registry",
+                          f"TA §57.12 row `{name}` must name exactly one backticked crate in its Crate cell")
+                elif m_crate.group(1) not in m_crate_names:
+                    D.add("semantic documentation", "component registry",
+                          f"TA §57.12 row `{name}` names crate `{m_crate.group(1)}`, which the §57.1 crate table does not define")
+            if not defined or defined == "—":
+                D.add("semantic documentation", "component registry", f"TA §57.12 row `{name}` has no defining section")
+    m_suffixes = ("Authority", "Manager", "Store", "Registry", "Detector", "Service", "Adapter", "Planner", "Coordinator",
+                  "Resolver", "Controller", "Runtime", "Retriever", "Engine", "Validator", "Selector", "Evaluator",
+                  "Compiler", "Reducer", "Provisioner", "Analyzer", "Executor", "Broker", "Ledger", "Supervisor",
+                  "Filter", "Kernel", "Assembler", "Orchestrator", "Protocol", "Router", "Interpreter", "Gateway",
+                  "Governor", "Critic", "Summarizer", "Blackboard", "Scheduler", "Gate")
+    m_name_re = re.compile(r"\b([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)*(?:%s))\b(?!\.exe)" % "|".join(m_suffixes))
+    m_library_names = {"WorkManager", "DataStore"}  # Android Jetpack libraries named in generated-app content
+    m_banned = {"ProviderContextDecision", "ContextStore", "RequirementStore", "DecisionStore", "ProviderCapabilityProfile"}
+    m_defs = set(m_reg_rows) | set(re.findall(r"^### \d+\.\d+ (\S+)\s*$", sch, re.M))
+    for text in (bs, ta):
+        clean = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+        for head in re.findall(r"^#{2,4}\s+(.+)$", clean, re.M):
+            words = [w.lower() for w in re.findall(r"[A-Za-z0-9]+", head)]
+            for a in range(len(words)):
+                joined = ""
+                for b in range(a, len(words)):
+                    joined += words[b]
+                    m_defs.add(joined)
+        m_defs.update(re.findall(r"^\|\s*`?([A-Za-z][A-Za-z0-9]*)`?\s*(?:\(|\|)", clean, re.M))
+        m_defs.update(re.findall(r"^\s*[-*]\s+\*{0,2}`([A-Za-z][A-Za-z0-9]*)`\*{0,2}\s*[:—-]", clean, re.M))
+        m_defs.update(re.findall(r"^`([A-Za-z][A-Za-z0-9]*)`", clean, re.M))
+    m_lower_defs = {d.lower() for d in m_defs}
+    m_reported = set()
+    for label, text in (("build spec", bs), ("technical architecture", ta)):
+        clean = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+        in_fence = False
+        for lineno, line in enumerate(clean.split("\n"), 1):
+            if line.startswith("```"):
+                in_fence = not in_fence
+                continue
+            found = set()
+            if in_fence or line.startswith("|"):
+                found.update(m_name_re.findall(line))
+            for span in re.findall(r"`([^`\n]+)`", line):
+                found.update(m_name_re.findall(span))
+            for name in found:
+                if name in m_defs or name.lower() in m_lower_defs or name in m_library_names or name in m_banned or name in m_reported:
+                    continue
+                m_reported.add(name)
+                D.add("semantic documentation", "component registry",
+                      f"{label} line {lineno} uses component name `{name}`, which no heading, component table, list entry, "
+                      f"schema heading, or TA §57.12 registry row defines (ADR-223)")
+    if m_reg is not None:
+        m_57 = ta.split("### 57.1 Implementation stack", 1)[-1].split("### 57.2", 1)[0]
+        for crate in ("`nirman-provider`", "`nirman-context`"):
+            if f"| {crate} |" not in m_57:
+                D.add("semantic documentation", "component registry",
+                      f"TA §57.1 crate table must carry a {crate} row (ADR-223)")
+        m_223 = re.search(r"## ADR-223:.*?(?=\n## ADR-|\Z)", dec, re.S)
+        m_223 = m_223.group(0) if m_223 else ""
+        for needle, why in (("**Locks:** `CONTRACT.RUNTIME.AUTHORITY`", "lock CONTRACT.RUNTIME.AUTHORITY"),
+                            ("**Reversal trigger:**", "carry a Reversal trigger"),
+                            ("fails documentation certification", "state that an undefined component name fails certification")):
+            if needle not in m_223:
+                D.add("semantic documentation", "component registry", f"ADR-223 must {why}")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:
