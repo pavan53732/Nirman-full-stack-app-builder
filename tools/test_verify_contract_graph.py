@@ -467,6 +467,13 @@ CASES = {
     "the WorkerConnection block loses its launch token digest": (
         SCHEMAS, "- launchTokenDigest\n", "",
         "semantic documentation"),
+    "TA §49.4 lets the provisioner prompt for proxy credentials": (
+        TA, "never prompts for proxy credentials, and never stores them",
+        "prompts for proxy credentials when the proxy requires them and stores them for later runs",
+        "semantic documentation"),
+    "the ToolchainProvisioningRecord loses its networkPath field": (
+        SCHEMAS, "- networkPath: DIRECT | SYSTEM_PROXY | PAC\n", "",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",

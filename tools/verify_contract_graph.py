@@ -1581,7 +1581,9 @@ def check_semantic_documentation(docs, R, D, root="."):
                 ("Readiness is proven only by that frame", "prove readiness by an observed frame in PreviewHost"),
                 ("`PROVISIONED_UNVERIFIED`, never `READY`", "distinguish PROVISIONED_UNVERIFIED from READY"),
                 ("`ToolchainProvisioningRecord` is defined in `nirman-schemas.md`", "project the ToolchainProvisioningRecord schema"),
-                ("`ToolchainProvisioningManifest` is defined in `nirman-schemas.md`", "project the ToolchainProvisioningManifest schema")):
+                ("`ToolchainProvisioningManifest` is defined in `nirman-schemas.md`", "project the ToolchainProvisioningManifest schema"),
+                ("The downloader honours the Windows system proxy", "route provisioning downloads through the Windows system proxy"),
+                ("never prompts for proxy credentials", "forbid prompting for proxy credentials")):
             if needle not in m_prov:
                 D.add("semantic documentation", "toolchain provisioning", f"TA §49.4 must {why} (ADR-221)")
         if re.search(r"HAXM", m_prov) and "HAXM is never provisioned" not in m_prov:
@@ -1687,9 +1689,10 @@ def check_semantic_documentation(docs, R, D, root="."):
               "TA §49.4 preflight must resolve the emulator and system image to HOST_UNSUPPORTED on a Windows ARM64 host (BS §79.17)")
     if sch:
         m_tpr = re.search(r"\nToolchainProvisioningRecord\n((?:- .*\n|[ \t]+.*\n)+)", sch)
-        if not m_tpr or "- hostArchitecture: X64 | ARM64\n" not in m_tpr.group(1) or "HOST_UNSUPPORTED" not in m_tpr.group(1):
+        if not m_tpr or "- hostArchitecture: X64 | ARM64\n" not in m_tpr.group(1) or "HOST_UNSUPPORTED" not in m_tpr.group(1) \
+                or "- networkPath: DIRECT | SYSTEM_PROXY | PAC\n" not in m_tpr.group(1):
             D.add("semantic documentation", "host architecture",
-                  "ToolchainProvisioningRecord must carry hostArchitecture: X64 | ARM64 and a HOST_UNSUPPORTED component result (BS §79.17)")
+                  "ToolchainProvisioningRecord must carry hostArchitecture: X64 | ARM64, a HOST_UNSUPPORTED component result (BS §79.17), and networkPath: DIRECT | SYSTEM_PROXY | PAC (TA §49.4)")
     if m_221 and "Google publishes a Windows ARM64 build of the Android Emulator" not in m_221:
         D.add("semantic documentation", "host architecture",
               "ADR-221's reversal trigger must name the publication of a Windows ARM64 emulator (BS §79.17)")
