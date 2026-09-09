@@ -316,6 +316,7 @@
 | `ChangeImpactReport` | §1.75 | BS §83.1 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TA §87.1 |
 | `ClarificationRecord` | §1.76 | BS §69.11 | CONTRACT.RUNTIME.PROMPT_CONTRACT | — |
 | `SharedSurfaceChangeRequest` | §1.77 | BS §54.2 | CONTRACT.RUNTIME.RESERVATION | — |
+| `LoopHeartbeat` | §1.78 | BS §29.4 | CONTRACT.RUNTIME.AUTHORITY | TA §57.4 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -493,8 +494,8 @@ ADR records live in `nirman-adrs.md` in ascending order.
 
 | Range | Count | Statuses |
 |---|---|---|
-| ADR-001–ADR-049 | 50 | (no Status line) 1, Accepted 49 |
+| ADR-001–ADR-049 | 50 | (no Status line) 1, Accepted 48, Superseded 1 |
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-225 | 26 | Accepted 26 |
+| ADR-200–ADR-226 | 27 | Accepted 27 |

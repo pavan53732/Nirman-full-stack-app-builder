@@ -45,7 +45,7 @@ The team should keep the master specification stable as the product contract, up
 | M18 | Durable task graph and execution tree | Nested live progress, worker nodes, evidence links |
 | M19 | Evidence-backed status and telemetry | Event ledger, heartbeats, resource and validation telemetry |
 | M20 | Autonomous validation coordinator | Dependency-aware checks, affected tests, regression sharding |
-| M21 | Policy-boundary approvals and termination | Unattended profile, truthful termination, hard safety boundaries |
+| M21 | Policy-boundary approvals and termination | Autonomous-build policy, truthful termination, hard safety boundaries |
 | M22 | Provider-neutral AI settings and model gateway | Chat, response-item, message protocols, tools, streaming |
 | M23 | Controlled self-development loop | Candidate build, health checks, promotion, rollback |
 | M24 | Adaptive long-horizon provider execution | Context compaction, routing, continuation, provider recovery |
@@ -55,7 +55,7 @@ The team should keep the master specification stable as the product contract, up
 | M28 | Self-improvement proposal manager | Improvement hypotheses, scoped candidates, test plans |
 | M29 | Candidate canary, promotion, and rollback | Baselines, canaries, post-promotion monitoring |
 | M30 | Canonical documentation and worker registry | Renumbered sections, one role taxonomy, roadmap crosswalk |
-| M31 | Unattended / Full Autonomy profile | Routine in-workspace actions allowed; deployment and signing gated |
+| M31 | Autonomous-build policy and never-pause loop | Routine in-workspace actions allowed; deployment and signing gated; stalls recover, never pause |
 | M32 | Persistent terminal subsystem | PTYs, interactive prompts, shell profiles, multi-terminal logs |
 | M33 | Skills registry and invocation contract | Skill schema, scanning, permissions, versioning, rollback |
 | M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
@@ -666,9 +666,11 @@ M30 MUST establish the canonical semantic identity graph before any further spec
 
 **Exit gate:** All cross-document references resolve to one section or milestone, all worker names match exactly, the Performance Worker has a contract, a registry test rejects undefined or duplicate roles, and the canonical identity verifier (INVARIANT.DOCUMENTATION.CANONICAL_IDENTITY) passes with 0 defects. A release MUST fail if two objects claim one canonical identity, one reference resolves to the wrong semantic object, a reverse edge does not return to its source, or a reference resolves only because of a stale section number.
 
-### M31: Unattended / Full Autonomy policy profile
+### M31: Autonomous-build policy and never-pause loop
 
-Implement a named project-scoped profile for Goal Mode background tasks. It allows routine reversible actions inside the workspace, including dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair. It denies external-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission.
+Implement the single Autonomous-build policy (BS §23.3, §23.7; TA §16.2.1; ADR-226) as the only execution policy: no mode selector, no profile picker, no autonomy level anywhere in the UI, the IPC command registry, or the ledger. It allows routine reversible actions inside the workspace, including dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair. It denies external-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission.
+
+Implement the never-pause rules of ADR-226: the repeated-action guard (BS §23.7) routes to `RecoveryAuthority` and never issues `task.pause`; `LoopHeartbeat` (BS §29.4; SCHEMAS §1.78) is stamped on every kernel transition and scanned by `SupervisorLifecycle` (TA §57.4); a `RUNNING` task without a transition inside the stall detection window is retired and re-leased with fingerprint `LOOP_HUNG`; a worker rejected `EVIDENCE_NOT_ACQUIRED` for the configured consecutive count is recycled; a level-8/9 requirement records its decision while independent requirements continue and the goal reports `PARTIALLY_BLOCKED` only when nothing independent remains. Fixtures: a fixture worker that repeats one failing command is moved up the ladder within one stall window and the task never enters `PAUSED`; a fixture worker whose process heartbeats but whose kernel emits no transition is retired at the window and the task resumes on a fresh lease; a two-requirement fixture with one requirement blocked at level 8 completes the other and reports `PARTIALLY_BLOCKED` with the decision attached.
 
 Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the session-scoped `ContractDouble` (BS §76.5; TA §74.1; SCHEMAS §2.95). Fixtures: a MUST-ask question left unanswered past the wait policy yields `PROCEEDED_ON_DEFAULT`, `ASSUMED` dependent requirements, and an unblocked build; a late answer replans through a `refocus` directive without a restart; an application declaring an integration with no backend completes its offline and error scenarios `DOUBLE_BACKED` while the real service stays `SPECIFIED`; the double is unreachable from any non-loopback address.
 
@@ -678,7 +680,7 @@ Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the sessio
 
 Implement per-worker PTY or equivalent terminal sessions with persistent working directory and environment state, explicit Windows shell profiles, controlled stdin, interactive-prompt detection, unattended prompt policy, long-running process registration, multi-terminal UI, rolling log storage, rotation, compression, and raw evidence retention.
 
-**Exit gate:** An unattended fixture can activate an environment, install dependencies, start a dev server, respond to a declared safe prompt, detect an unsafe prompt, preserve the terminal session after UI disconnect, and reconnect with searchable logs.
+**Exit gate:** A background fixture can activate an environment, install dependencies, start a dev server, respond to a declared safe prompt, detect an unsafe prompt, preserve the terminal session after UI disconnect, and reconnect with searchable logs.
 
 ### M33: Skills registry and invocation contract
 
@@ -813,7 +815,7 @@ The battery is not a milestone. It is run as part of existing milestone group ex
 
 ## 36. No-Routine-Intervention Gate
 
-The Unattended / Full Autonomy profile must allow routine project-local actions to continue without approval pauses while preserving deterministic authority boundaries.
+The Autonomous-build policy must allow routine project-local actions to continue without approval pauses while preserving deterministic authority boundaries.
 
 ### Acceptance criteria
 
@@ -1536,7 +1538,7 @@ Extend each Android capability profile with stable profile identity, technology 
 
 Add adversarial fixtures for interactive terminal prompts, provider login, expired credentials, device unlock, emulator dialogs, package-manager confirmation, signing selection, missing environment variables, GUI-only installers, external-service approval, and suppressed notifications. Add separate runtime-certification jobs for schema compilation, reducer transitions, transactions, leases, Windows process and IPC behavior, provider fixtures, Android builds, Nirman-managed local Android emulator execution, preview truth, APK inspection, failure injection, restart recovery, and self-development rollback.
 
-**Exit gate:** an unattended task either completes through an explicitly authorized automatic path, creates a durable `USER_REQUIRED` decision, or reaches a truthful blocked state. It must never remain silently running. Documentation graph certification is reported separately from runtime and artifact certification.
+**Exit gate:** a task either completes through an explicitly authorized automatic path, creates a durable `USER_REQUIRED` decision, or reaches a truthful blocked state. It must never remain silently running. Documentation graph certification is reported separately from runtime and artifact certification.
 
 ## M105 — Schema parity and cross-document conformance
 
@@ -1672,6 +1674,8 @@ Add specialist-gate fixtures for security scanning, schema/type consistency, dif
 **Exit gate:** file-save, build-completion, failure, dependency, promotion/export, and reconnect events continue the task without another chat click; every continuation is durable and replayable; specialist handoffs reconcile against one shared contract; real failure context reaches repair; failed gates preserve last-known-good; and no model, worker, or UI message can substitute for security, validation, runtime, signing, or export evidence.
 
 ## M111 — Runtime resource integrity and adaptive execution
+
+Implement mandatory operation-scoped liveness containment (BS §72; ADR-226): every provider request, tool invocation, build step, ADB command, and emulator operation runs under the §80.3 liveness timeout of its class; a `HUNG` operation is contained under its Job Object, fingerprinted, and handed to `RecoveryAuthority`. Fixture: an injected never-returning ADB command is contained at its timeout, the goal continues, and the fingerprint enters the Android runtime sub-ladder; an injected silent build exceeding the silence window is contained while a noisy long build of greater duration is not.
 
 Implement `ResourceIntegrityAuthority` and `ResourceIntegrityRecord` (BS §72, TA §77): physical admission against declared `resourceRequirements`, adaptive concurrency, backpressure and queueing, scheduling, checkpointing, work serialization, cache and resource reclamation, process and emulator protection, liveness containment of hung operations, recovery when capacity returns, and provider-usage telemetry recorded for observability only. No token, request-count, monetary, reasoning, or autonomous-goal-duration budget is implemented anywhere; provider context window is handled as technical capacity by `ContextCapacityPlanner`.
 

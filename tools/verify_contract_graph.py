@@ -1980,6 +1980,55 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "`frontierDelta`" not in m_344 or "`remainingUnproven`" not in m_344:
         D.add("semantic documentation", "autonomous loop",
               "TA §34.4 must require frontierDelta and remainingUnproven in every handoff (ADR-225)")
+    # ADR-226: one mode (Autonomous-build) and a loop that cannot stop on its
+    # own. The withdrawn mode/profile vocabulary must not return as a choice,
+    # and each never-pause rule must stay in its owner section.
+    m_233 = _section_text(bs, "23.3") or ""
+    for needle, why in (("exactly one operating mode", "state that exactly one operating mode exists"),
+                        ("no attended mode, no unattended profile, and no autonomy level to choose", "withdraw attended modes, unattended profiles, and autonomy levels as choices")):
+        if needle not in m_233:
+            D.add("semantic documentation", "single mode", f"BS §23.3 must {why} (ADR-226)")
+    m_237 = _section_text(bs, "23.7") or ""
+    for needle, why in (("The guard never pauses the task and never waits for the user", "route the repeated-action guard to recovery, never to a pause"),
+                        ("`task.pause` is a user command that no runtime component issues", "reserve task.pause for the user")):
+        if needle not in m_237:
+            D.add("semantic documentation", "single mode", f"BS §23.7 must {why} (ADR-226)")
+    m_294 = _section_text(bs, "29.4") or ""
+    for needle, why in (("`LoopHeartbeat` is defined in `nirman-schemas.md`", "project the LoopHeartbeat schema"),
+                        ("is a hung loop", "define a RUNNING task without a transition inside the stall window as a hung loop"),
+                        ("three consecutive times is retired", "recycle a worker after consecutive EVIDENCE_NOT_ACQUIRED rejections"),
+                        ("every requirement that does not depend on it continues immediately", "continue independent requirements around a level-8/9 decision"),
+                        ("never presented as completion and never as a pause", "report PARTIALLY_BLOCKED truthfully")):
+        if needle not in m_294:
+            D.add("semantic documentation", "single mode", f"BS §29.4 must {why} (ADR-226)")
+    m_72 = _section_text(bs, "72") or ""
+    for needle, why in (("Liveness protection is part of resource integrity and is mandatory", "make liveness containment mandatory"),
+                        ("A liveness timeout MUST NOT terminate a healthy goal for elapsed time", "keep the no-goal-deadline rule (ADR-218)")):
+        if needle not in m_72:
+            D.add("semantic documentation", "single mode", f"BS §72 must {why} (ADR-226)")
+    m_574 = _section_text(ta, "57.4") or ""
+    for needle, why in (("records fingerprint `LOOP_HUNG`", "record the LOOP_HUNG fingerprint on a hung loop"),
+                        ("both count the absence of a transition", "count transitions, never tokens or elapsed goal time")):
+        if needle not in m_574:
+            D.add("semantic documentation", "single mode", f"TA §57.4 must {why} (ADR-226)")
+    m_lh = re.search(r"```text\nLoopHeartbeat\n(.*?)```", sch, re.S)
+    if m_lh is None or "- progressDelta" not in m_lh.group(1) or "- consecutiveEvidenceNotAcquired" not in m_lh.group(1):
+        D.add("semantic documentation", "single mode",
+              "nirman-schemas.md LoopHeartbeat block must carry `progressDelta` and `consecutiveEvidenceNotAcquired` (ADR-226)")
+    for token, why in (("| Autonomy profile |", "a selectable autonomy profile"),
+                       ("`Interactive / Review`", "an attended approval profile"),
+                       ("Ask in assisted mode", "a mode-conditional policy outcome"),
+                       ("MUST pause and explain", "a pause resolution for the repeated-action guard")):
+        for label, text in (("build spec", bs), ("architecture", ta)):
+            if token in text:
+                D.add("semantic documentation", "single mode", f"{label} reintroduces {why} ({token!r}); ADR-226 admits one mode")
+    m_226 = re.search(r"## ADR-226:.*?(?=\n## ADR-|\Z)", dec, re.S)
+    m_226 = m_226.group(0) if m_226 else ""
+    for needle, why in (("**Locks:** `CONTRACT.RUNTIME.AUTHORITY`", "lock CONTRACT.RUNTIME.AUTHORITY"),
+                        ("**Reversal trigger:**", "carry a Reversal trigger"),
+                        ("A stall is a recovery event, never a pause", "state the never-pause rule")):
+        if needle not in m_226:
+            D.add("semantic documentation", "single mode", f"ADR-226 must {why}")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),
@@ -2206,9 +2255,10 @@ def check_semantic_documentation(docs, R, D, root="."):
             break
         milestone_titles[title] = m.group(1)
 
-    if "### 16.2.1 Execution profiles and approval precedence" not in ta:
+    if "### 16.2.1 The Autonomous-build policy and approval precedence" not in ta \
+            or "| Autonomous-build (the only policy) |" not in ta:
         D.add("semantic documentation", "approval precedence",
-              "execution-profile approval precedence is not canonically defined")
+              "approval precedence is not canonically defined as the single Autonomous-build policy (ADR-226)")
 
     # Cross-entity contract lint. These predicates intentionally remain narrow:
     # they confirm that the canonical owner and required vocabulary exist, while

@@ -361,7 +361,7 @@ The recommended build sequence is deliberately vertical and evidence-driven:
 
 1. M0–M2 — Windows shell, authenticated supervisor, and durable control plane.
 2. M3–M7 — Provider runtime, Android synthesis foundation, single-worker execution, permissions, sandboxing, and background recovery.
-3. M30–M38 — Documentation identity, autonomy profile, terminal/lifecycle foundations, Android target contract, and certified profile foundations.
+3. M30–M38 — Documentation identity, the single Autonomous-build policy, terminal/lifecycle foundations, Android target contract, and certified profile foundations.
 4. M39–M64 — Construction transaction, leases, toolchain, provider bridge, mutation, repair, preview, validation, and resource governance.
 5. M65–M80 — Autonomous execution kernel and first end-to-end runtime certification.
 6. M81–M122 — Long-horizon intelligence, contract certification, preview synchronization, continuity, frontend/control-plane certification, APK export, platform capabilities, skills, writing intelligence, durable conversation context, and change intelligence.

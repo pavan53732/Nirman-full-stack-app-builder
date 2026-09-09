@@ -150,7 +150,7 @@ Project
 - updatedAt
 - activeCheckpointId
 - providerProfileId
-- autonomyPolicyId
+- policyId                 # the project's Autonomous-build policy instance (BS §23.7; ADR-226)
 ```
 
 ### 1.8 AgentTask
@@ -1740,6 +1740,24 @@ SharedSurfaceChangeRequest
 - resolvedAt
 ```
 
+### 1.78 LoopHeartbeat
+
+**Owner:** BS §29.4 · **Contract:** CONTRACT.RUNTIME.AUTHORITY · **Projected at:** TA §57.4
+
+```text
+LoopHeartbeat
+- heartbeatId
+- taskId
+- sessionId
+- agentInstanceId
+- loopId
+- stateEntered: OBSERVE | UNDERSTAND | PLAN | SELECT_ACTION | AUTHORIZE | EXECUTE | OBSERVE_RESULT | UPDATE_STATE | EVALUATE_PROGRESS
+- eventSequence
+- progressDelta
+- consecutiveEvidenceNotAcquired
+- stampedAt
+```
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -1942,7 +1960,6 @@ GoalContract
 - completionConditions
 - validationPlan
 - scope
-- autonomyPolicy
 - resourceRequirements
 - stopConditions
 - progressSummary
@@ -2644,7 +2661,6 @@ AgentProfile
 - skill_ids
 - tool_capabilities
 - permission_profile
-- autonomy_level
 - generation_parameters
 - max_children
 - resource_policy
@@ -3976,6 +3992,7 @@ ClarificationRecord
 ContractDouble
 RepairPattern
 SharedSurfaceChangeRequest
+LoopHeartbeat
 ```
 
 ## References

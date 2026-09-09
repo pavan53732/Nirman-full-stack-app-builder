@@ -189,7 +189,7 @@ Validation results
 Summary and remaining issues
 ```
 
-When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, emulator access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the configured execution profile and must not require repeated prompts in `Unattended / Full Autonomy` mode.
+When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, emulator access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the Autonomous-build policy (§23.7) and must not require repeated prompts.
 
 A request may include one or more screenshots as visual references. Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content. It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the Nirman-managed local Android emulator.
 
@@ -1171,21 +1171,11 @@ The context engine should first provide the model with a small map of the releva
 
 This should be capacity-aware. The context engine must fit the selected provider's actual context capacity, track what was included, and explain when content was summarized or excluded for capacity. Large logs should be compressed into error-focused summaries, while source code needed for an edit should remain available at full fidelity.
 
-### 23.3 Explicit operating modes
+### 23.3 One operating mode: Autonomous-build
 
-Nirman should make the agent’s authority visible through explicit operating modes. The user should be able to change the mode per task or per project.
+Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one (ADR-226). The user states a goal; the runtime plans, builds, previews, tests, recovers, and packages under the authority hierarchy of technical architecture §21 without a per-task or per-project mode selection. There is no attended mode, no unattended profile, and no autonomy level to choose: authority is visible per action through the three-outcome policy engine of §23.7, the hard gates of §23.17, and the approval cards of §7, never through a mode switch.
 
-| Mode | Read access | File changes | Commands | Best use |
-|---|---|---|---|---|
-| Plan | Allowed | Denied | Denied or read-only | Requirements, architecture, and task planning |
-| Explore | Allowed | Denied | Limited read-only commands | Codebase discovery and dependency research |
-| Assisted build | Allowed | Allowed after review | Ask or allow by policy | Normal feature development |
-| Autonomous build | Allowed | Allowed in workspace | Allow safe commands, ask for risky actions | Long-running implementation tasks |
-| Review | Allowed | Denied | Read-only validation | Diff, security, performance, and quality review |
-| Debug | Allowed | Limited to approved files | Allowed within project policy | Diagnosing and repairing a known failure |
-| Release | Allowed | Approved build files | Explicit approval required | Packaging and release preparation |
-
-The application should display the current mode in the toolbar and in every task record. Switching to a less restrictive mode should be an explicit user action.
+What other tools expose as modes is expressed here as worker roles and policy: planning, exploration, review, security, performance, and adversarial critique are read-only worker roles of §23.4, and diagnosis and repair are the Debugging Worker and the recovery ladder of §28.2. A model, worker, or component cannot narrow the loop into an attended one, because no attended state exists to narrow into. The toolbar and every task record display the single mode name and the current worker role, so the absence of a choice is itself visible.
 
 ### 23.4 Specialized worker architecture
 
@@ -1262,7 +1252,7 @@ The user should be able to view each worker session, inspect its logs, pause it,
 
 ### 23.7 Permission policy engine
 
-Nirman should implement a three-outcome policy engine: **allow**, **ask**, and **deny**. Policies should be evaluated against the tool, command, path, project, worker role, network destination, and current operating mode.
+Nirman should implement a three-outcome policy engine: **allow**, **ask**, and **deny**. Policies should be evaluated against the tool, command, path, project, worker role, network destination, and action risk class; there is no operating-mode dimension because there is one mode (§23.3; ADR-226).
 
 Example policy behavior is shown below.
 
@@ -1270,20 +1260,20 @@ Example policy behavior is shown below.
 |---|---|
 | Read source file inside workspace | Allow |
 | Read environment secret file | Deny or ask |
-| Edit source file inside workspace | Ask in assisted mode; allow in autonomous mode if approved |
+| Edit source file inside workspace | Allow |
 | Run formatter or test command | Allow |
-| Install a project dependency inside the workspace | Allow in Autonomous and Unattended profiles; ask otherwise |
-| Access an external directory | Deny in Unattended profile; ask in Assisted mode |
+| Install a project dependency inside the workspace | Allow from the approved dependency sources of technical architecture §9.3; deny otherwise |
+| Access an external directory | Deny; an explicit per-directory user grant is the only exception |
 | Run a destructive command | Deny by default |
 | Use a cloud provider with project context | Allow only after a project-level privacy policy has been explicitly configured; otherwise ask when sensitive files are included |
-| Commit changes inside the project repository | Allow in Autonomous and Unattended profiles when the task policy permits it |
+| Commit changes inside the project repository | Allow when the task policy permits it |
 | Push changes or publish artifacts | Always ask |
 
-Policies should support wildcard patterns, project-specific overrides, worker-specific restrictions, session-wide approvals, one-time approvals, and explicit deny rules that cannot be bypassed by automatic mode.
+Policies should support wildcard patterns, project-specific overrides, worker-specific restrictions, session-wide approvals, one-time approvals, and explicit deny rules that cannot be bypassed by any worker, model, or recovery action.
 
-Nirman must provide a named `Unattended / Full Autonomy` policy profile for Goal Mode background tasks. Within the project workspace, this profile allows routine reversible actions such as dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair without pausing for a human. It denies external-directory access, raw credential use, destructive commands, operating-system changes, remote pushes, publishing, release signing, and unapproved sensitive-data transmission. A user configures the project privacy and network policy once; the runtime then applies it without asking again for every ordinary action. The profile must be visible, auditable, project-scoped, and easy to disable.
+The Autonomous-build policy is the only policy (ADR-226; formerly the `Unattended / Full Autonomy` profile of ADR-048). Within the project workspace it allows routine reversible actions such as dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair without pausing for a human. It denies external-directory access, raw credential use, destructive commands, operating-system changes, remote pushes, publishing, release signing, and unapproved sensitive-data transmission. A user configures the project privacy and network policy once; the runtime then applies it without asking again for every ordinary action. The policy must be visible and auditable per project; it cannot be disabled, because there is no other policy to fall back to.
 
-A repeated-action guard should detect when the same tool call, command, or failed repair is repeated without progress. Nirman should pause with a “possible loop” explanation instead of allowing an agent to continue indefinitely.
+A repeated-action guard should detect when the same tool call, command, or failed repair is repeated without progress. A detected repetition is a stall in the sense of §29.4: it is handed to `RecoveryAuthority`, which ascends the §28.2 ladder, and it is explained in the task record as a “possible loop” finding with the fingerprint and the rung selected. The guard never pauses the task and never waits for the user (ADR-226); `task.pause` is a user command that no runtime component issues.
 
 ### 23.8 Background tasks and session control
 
@@ -1612,7 +1602,7 @@ This is the canonical **task-execution state set** (`TaskExecutionState`). It is
 The initial architecture is not complete until it can demonstrate the following behavior:
 
 1. A background task survives closing the Nirman window and continues through the control plane.
-2. An active Unattended / Full Autonomy task starts the control plane at user login after reboot and resumes from its last validated checkpoint without requiring the UI to be opened.
+2. An active task starts the control plane at user login after reboot and resumes from its last validated checkpoint without requiring the UI to be opened.
 3. Suspend, resume, and hibernate transitions leave a durable event and eligible processes, ports, emulators, and provider requests are revalidated before continuation.
 4. Two independent workers can run in isolated workspaces without changing the main project.
 5. A worker timeout or crash produces a durable failure record and a recovery decision.
@@ -1645,10 +1635,9 @@ A Goal Mode task must contain:
 | Completion conditions | Testable conditions that determine whether the goal is complete |
 | Scope | Project, folders, files, routes, modules, or platform targets included |
 | Resource policy | Live telemetry of time, turns, tokens, and estimated cost for observability; adaptive runtime management of CPU, memory, disk, process, emulator, concurrency, and liveness signals only |
-| Autonomy profile | Named allow/ask/deny policy such as Unattended / Full Autonomy |
 | Resource requirements | Physical resources the goal needs (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency), evaluated by runtime resource integrity (§72); AI usage is telemetry only and there is no completion lock |
-| Allowed autonomy | Permitted operating mode, tools, network, workers, and schedules |
-| Stop conditions | Conditions that require pause or escalation |
+| Allowed autonomy | Permitted tools, network categories, worker roles, and schedules under the single Autonomous-build policy (§23.3) |
+| Stop conditions | User-declared policy stop conditions and the safe terminal states of §33.2; never a runtime-created pause |
 | Progress state | Completed work, active work, blocked work, and next strategy |
 | Validation plan | Tests, builds, screenshots, device checks, and review gates |
 
@@ -1656,7 +1645,7 @@ The completion condition must be stored as a durable task contract and evaluated
 
 Goal Mode should support a user instruction such as “continue until the application builds, the required tests pass, the preview has no runtime errors, and all acceptance criteria are satisfied.” The mode should continue working across multiple agent turns and worker handoffs. Physical resource signals trigger adaptation rather than termination, and AI usage is telemetry only; only an explicit user-declared policy stop condition, safety stop conditions, provider or environment unavailability, cancellation, or unrecoverable failure may end execution.
 
-For unattended background work, the user should be able to select the named `Unattended / Full Autonomy` profile. It allows routine reversible operations inside the approved workspace without repeated prompts while keeping deployment, signing, credential access, remote pushes, destructive commands, protected paths, and unapproved sensitive-data transmission hard-gated.
+Background work runs under the single Autonomous-build policy of §23.7 (ADR-226): routine reversible operations inside the approved workspace proceed without prompts, while deployment, signing, credential access, remote pushes, destructive commands, protected paths, and unapproved sensitive-data transmission stay hard-gated. Nothing is selected, because there is nothing else to select.
 
 ### 27.2 Non-blocking background tasks
 
@@ -1696,7 +1685,7 @@ Every hook invocation must have a timeout, permission scope, correlation ID, and
 
 ### 27.5 Scheduled automations
 
-Nirman must support recurring local automations independently of chat sessions. A scheduled automation must define a trigger, project, goal, operating mode, resource requirements, workspace policy, approval behavior, notification policy, and retention policy.
+Nirman must support recurring local automations independently of chat sessions. A scheduled automation must define a trigger, project, goal, resource requirements, workspace policy, approval behavior, notification policy, and retention policy.
 
 Supported trigger types should include a fixed interval, a local calendar schedule, project-file change, failed validation, new checkpoint, and user-defined manual trigger. Scheduled tasks should initially be limited to safe local activities such as running tests, checking dependencies, refreshing documentation, generating reports, and preparing review summaries.
 
@@ -1882,13 +1871,13 @@ Nirman should identify recurring failure patterns, provider incompatibilities, r
 
 ### 28.5 Autonomy-level capability ladder
 
-Autonomy is a capability ladder, not a model personality claim. Each level is achieved only when the listed capability rows and evidence gates pass:
+Autonomy is a capability ladder, not a model personality claim and not a mode: the levels below are *observed* evidence states that the runtime reports for a session, never options a user selects (§23.3; ADR-226). Each level is achieved only when the listed capability rows and evidence gates pass:
 
 | Level | Runtime meaning | Required capability evidence |
 |---|---|---|
-| `ASSISTED` | The system proposes plans and changes while the user initiates each meaningful action | Intent, authority, workspace, and validation records |
+| `ASSISTED` | The observed floor: only intent, authority, workspace, and validation records exist yet; the runtime is still in Autonomous-build and does not wait for the user to initiate actions | Intent, authority, workspace, and validation records |
 | `SUPERVISED` | The system executes approved local work continuously while policy boundaries remain visible | Background execution, worker, trigger, and evidence records |
-| `UNATTENDED_LOCAL` | The system continues routine Android work without per-step clicks under an explicit policy profile | Resource-aware autonomy, trusted extensions, context governance, and recovery evidence |
+| `UNATTENDED_LOCAL` | The system continues routine Android work without per-step clicks under the Autonomous-build policy | Resource-aware autonomy, trusted extensions, context governance, and recovery evidence |
 | `ADAPTIVE_RECOVERY` | The system diagnoses failures, changes strategy, repairs, and revalidates without blind retries | Failure fingerprints, specialist gates, reconciliation, and runtime evidence |
 | `CERTIFIED_AUTONOMY` | The system satisfies the declared Android goal and delivery conditions with complete provenance | Runtime integrity, preview, validation, signing, artifact, and completion decisions |
 
@@ -1956,7 +1945,13 @@ Preview and validation MUST NOT fight over one emulator (ADR-225). When resource
 
 The runtime must maintain a progress ledger recording changed files, new evidence, preview revision movement, test transitions, worker handoffs, strategy changes, and validated requirements. A stall detector must identify repeated commands, repeated patches, repeated failure fingerprints, unchanged workspaces, unchanged previews, missing evidence, unresponsive processes, and heartbeats without useful progress.
 
-When a stall is detected, the runtime must refresh context, change strategy, change technology, delegate diagnosis, repair the environment, restore a checkpoint, or construct an isolated alternative. It must not repeat the same action indefinitely.
+When a stall is detected, the runtime must refresh context, change strategy, change technology, delegate diagnosis, repair the environment, restore a checkpoint, or construct an isolated alternative. It must not repeat the same action indefinitely, and it must not pause: a stall is a recovery event owned by `RecoveryAuthority`, never a waiting state (ADR-226).
+
+**The loop watches itself (ADR-226).** Worker heartbeats prove that a process is alive; they do not prove that the loop is moving. Every kernel transition of §52.2 therefore stamps a `LoopHeartbeat` — task, agent instance, the state entered, the `progressDelta` the transition carried, and the event sequence — and `SupervisorLifecycle` (technical architecture §57.4) scans them on the same schedule as worker staleness. A `RUNNING` task whose newest `LoopHeartbeat` is older than the stall detection window of §80.3 is a hung loop: the supervisor retires the worker lease, records the fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` (§52.3) three consecutive times is retired the same way, with the three rejected proposals attached, so a worker that cannot find the frontier is replaced rather than left proposing.
+
+> **Schema projection:** `LoopHeartbeat` is defined in `nirman-schemas.md` §1.78. Owner: BS §29.4.
+
+**Blocked requirements never idle the goal (ADR-226).** When one requirement reaches recovery level 8 or 9 of technical architecture §28.1, its `USER_REQUIRED` or `BLOCKED` decision is recorded on that requirement and every requirement that does not depend on it continues immediately, exactly as §69.11 continues around an unanswered question. The goal reports `PARTIALLY_BLOCKED` only when no independent requirement remains, and that report names the blocked requirements, their decisions, and the automatic paths attempted; it is never presented as completion and never as a pause.
 
 ### 29.5 Swarm handoff and reconciliation
 
@@ -1968,7 +1963,7 @@ A task is complete only when its applicable completion conditions are proven. Fo
 
 ### 29.7 No-routine-intervention policy
 
-Routine project-local actions may continue automatically under the configured Unattended / Full Autonomy policy, including editing, dependency installation, terminal commands, emulator launches, builds, tests, screenshots, repair attempts, checkpoints, worker handoffs, and local artifact creation. Only protected credentials, destructive operations, external publishing, signing policy, protected paths, missing required information, hard safety violations, or unrecoverable technical blockers may interrupt the session.
+Routine project-local actions continue automatically under the Autonomous-build policy of §23.7, including editing, dependency installation, terminal commands, emulator launches, builds, tests, screenshots, repair attempts, checkpoints, worker handoffs, and local artifact creation. Only protected credentials, destructive operations, external publishing, signing policy, protected paths, missing required information, hard safety violations, or unrecoverable technical blockers may interrupt the session.
 
 ### 29.8 Full Android capability acceptance
 
@@ -2889,7 +2884,7 @@ EVALUATE_PROGRESS
    └── COMPLETE
 ```
 
-Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition. Impossible transitions must be rejected and recorded as runtime faults.
+Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition, and every transition stamps a `LoopHeartbeat` (§29.4) so the supervisor can distinguish a moving loop from a live process. Impossible transitions must be rejected and recorded as runtime faults.
 
 ### 52.3 Progress evaluation
 
@@ -2945,7 +2940,6 @@ AgentProfile
 ├── skill set
 ├── tool set
 ├── permission profile
-├── autonomy level
 ├── generation parameters
 ├── maximum child count
 ├── resource policy
@@ -3852,22 +3846,22 @@ A swarm is a live execution graph the agent may revise, not a fixed job queue. O
 
 Every such revision is a proposal subject to the same authority path as any other action, and every reservation change respects the reservation contract of §54 and the backpressure controls of §52.12. Cross-worker review may inform reconciliation but never substitutes for evidence: one worker's approval of another's output is not evidence, per §54.4.
 
-### 66.10 Execution mode selection
+### 66.10 Execution strategy selection
 
-The agent selects the execution strategy for a goal, within policy:
+The agent selects the execution strategy for a goal, within policy. These are kernel-internal strategies inside the one Autonomous-build mode (§23.3; ADR-226), not user-visible modes:
 
-| Mode | Applies when |
+| Strategy | Applies when |
 |---|---|
 | INTERACTIVE | The user is present and iterating |
 | BACKGROUND | Work proceeds without attention but is bounded |
 | LONG_HORIZON | Work spans sessions and requires durable continuation |
 | DEEP_EXECUTION | Many iterations with repeated validation are required |
 | SWARM | Independent parallel workstreams are decomposable |
-| UNATTENDED | No user is available to answer decisions |
+| UNATTENDED | No user is present; decisions are recorded and independent work continues (§69.11) |
 | RECOVERY | The runtime is repairing a failed or interrupted state |
 | VERIFICATION | Only validation and evidence collection remain |
 
-Mode selection is a proposal. It never raises a permission ceiling, never suppresses an evidence requirement, and never converts a decision node into an assumption. In `UNATTENDED` mode a required decision produces `WAITING` or `ESCALATED` rather than a guess.
+Strategy selection is a proposal. It never raises a permission ceiling, never suppresses an evidence requirement, and never converts a decision node into an assumption. Under `UNATTENDED` a required decision is never guessed: it is recorded as a `ClarificationRecord` or a `USER_REQUIRED` decision on the requirement it governs, and every requirement that does not depend on it continues (§29.4, §69.11; ADR-226) — the strategy never produces a waiting goal.
 
 ### 66.11 Acceptance criteria
 
@@ -4156,7 +4150,7 @@ Contradiction cannot be detected by reading prose. Every authoritative clause th
 | CLAUSE.REASONING.CHILD_CAPABILITY_CEILING | CONTRACT.RUNTIME.REASONING | §66 | a child capability ceiling is a subset of its parent ceiling | SEALED |
 | CLAUSE.REASONING.CHILD_RESOURCE_CEILING | CONTRACT.RUNTIME.REASONING | §66 | child resource requirements never exceed the parent's currently admissible resource capacity | SEALED |
 | CLAUSE.REASONING.HYPOTHESIS_EVIDENCE | CONTRACT.RUNTIME.REASONING | §66 | a rejected hypothesis is retained with its refuting evidence | SEALED |
-| CLAUSE.REASONING.MODE_WITHIN_POLICY | CONTRACT.RUNTIME.REASONING | §66 | execution mode is agent-selected and never raises a permission ceiling | SEALED |
+| CLAUSE.REASONING.MODE_WITHIN_POLICY | CONTRACT.RUNTIME.REASONING | §66 | execution strategy is agent-selected and never raises a permission ceiling | SEALED |
 | CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | no app archetype, framework, or template is presented as a required user-facing choice; the resolver infers the Android implementation from evidence | SEALED |
 | CLAUSE.PROMPT_CONTRACT.NO_FAKE_EXECUTION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | prompt and UI layers never label PREDICTED, SIMULATED, REQUESTED, STALE, or INVALIDATED states as VERIFIED, OBSERVED, running, passed, completed, or verified | SEALED |
 | CLAUSE.PROMPT_CONTRACT.VERIFIED_ONLY_COMPLETION | CONTRACT.RUNTIME.PROMPT_CONTRACT | §69 | only an independent validator or a supervised observation may produce completion evidence; model statements, predictions, and simulations are proposals | SEALED |
@@ -4668,7 +4662,7 @@ The documentation contract and its verifier certify documentation identity, auth
 
 Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and Nirman-managed local Android emulator fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
 
-A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. A dialog raised by the Nirman-managed local Android emulator or by the application running in it — runtime permission, crash, ANR, keyguard, setup wizard, intent chooser — is not a hidden-human dependency: the device adapter handles it under the session's `DeviceHygienePolicy` (technical architecture §73.12; ADR-225), and a dialog no rule matches is a classified failure, not a `USER_REQUIRED` decision. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
+A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. A dialog raised by the Nirman-managed local Android emulator or by the application running in it — runtime permission, crash, ANR, keyguard, setup wizard, intent chooser — is not a hidden-human dependency: the device adapter handles it under the session's `DeviceHygienePolicy` (technical architecture §73.12; ADR-225), and a dialog no rule matches is a classified failure, not a `USER_REQUIRED` decision. A task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision on the affected requirement while independent requirements continue (§29.4), or enter a truthful blocked state; it MUST NOT remain silently running.
 
 ### 69.11 Clarification gate and assumption recording
 
@@ -4702,7 +4696,7 @@ A domain term whose meaning materially changes the data model — "streak", "act
 
 > **Schema projection:** `ClarificationRecord` is defined in `nirman-schemas.md` §1.76. Owner: BS §69.11.
 
-A question with nobody to answer it does not stall the goal (ADR-225). Every MUST-ask question is a `ClarificationRecord` that carries a `recordedDefault` at the moment it is asked — the conservative option for the security, authentication, and personal-data category (no accounts, no sensitive data, local storage), the conventional Android structure otherwise — and the `dependentRequirementIds` the answer governs. In an `Unattended / Full Autonomy` session the runtime continues every requirement that does not depend on the answer immediately; when the session's answer-wait policy elapses without an answer, the runtime proceeds on the `recordedDefault`, marks the record `PROCEEDED_ON_DEFAULT`, sets the dependent requirements `ASSUMED` in the uncertainty registry (§52.13), and shows the assumption in the intent model exactly like a silent default. An answer that arrives later is a `refocus` runtime directive (§61) that replans the dependent requirements without a restart. Only a primary-goal ambiguity whose default would produce a different application — not a different variant of the same application — remains `USER_REQUIRED`, and that decision names the `ClarificationRecord` and the automatic paths that did not apply (`automaticPathsAttempted`).
+A question with nobody to answer it does not stall the goal (ADR-225). Every MUST-ask question is a `ClarificationRecord` that carries a `recordedDefault` at the moment it is asked — the conservative option for the security, authentication, and personal-data category (no accounts, no sensitive data, local storage), the conventional Android structure otherwise — and the `dependentRequirementIds` the answer governs. The runtime continues every requirement that does not depend on the answer immediately; when the session's answer-wait policy elapses without an answer, the runtime proceeds on the `recordedDefault`, marks the record `PROCEEDED_ON_DEFAULT`, sets the dependent requirements `ASSUMED` in the uncertainty registry (§52.13), and shows the assumption in the intent model exactly like a silent default. An answer that arrives later is a `refocus` runtime directive (§61) that replans the dependent requirements without a restart. Only a primary-goal ambiguity whose default would produce a different application — not a different variant of the same application — remains `USER_REQUIRED`, and that decision names the `ClarificationRecord` and the automatic paths that did not apply (`automaticPathsAttempted`).
 
 ## 70. Integration Boundary Contract
 
@@ -4875,7 +4869,7 @@ The canonical `ResourceIntegrityRecord` contains `integrityRecordId`, `taskId`, 
 
 Admission is physical: work is admitted when its `resourceRequirements` fit currently admissible capacity, and it waits, is rescheduled, or runs at reduced concurrency when they do not. Under physical pressure the authority MUST apply responses in this order before any blocking outcome: queueing → concurrency reduction → scheduling → checkpointing → work serialization → cache and resource reclamation → recovery. Physical exhaustion blocks work only when no safe path remains, and `BLOCKED_NO_SAFE_PATH` is recorded with the exhausted dimension, the responses attempted, and the preserved checkpoint. A blocked task retains its last checkpoint and event log and resumes when capacity returns; blocking is never reported as completion, never widens permission, and never discards required evidence.
 
-Liveness protection is part of resource integrity. A hung provider request, tool, build, or emulator operation MAY be contained or restarted by a liveness timeout scoped to that operation; a liveness timeout MUST NOT terminate a healthy goal for elapsed time. Provider concurrency limits are external technical capacity and are handled as capacity, not as an AI-usage quota.
+Liveness protection is part of resource integrity and is mandatory (ADR-226). Every provider request, tool invocation, build step, ADB command, and emulator operation runs under a liveness timeout scoped to that operation, taken from the per-operation-class defaults of §80.3; an operation that exceeds it is `HUNG`, is contained (its process tree is stopped under the Job Object, its lease released), is fingerprinted, and is handed to `RecoveryAuthority` — the Android runtime sub-ladder of §28.2 for emulator and ADB operations, the recovery ladder otherwise. A liveness timeout MUST NOT terminate a healthy goal for elapsed time, and no liveness rule counts tokens, requests, or passes. Provider concurrency limits are external technical capacity and are handled as capacity, not as an AI-usage quota.
 
 ### 72.1 Acceptance criteria
 
@@ -5273,7 +5267,7 @@ Development work on the Windows host without the target's validation environment
 
 ### 79.11 Unavailable Validation Environment as a Hidden Human Dependency
 
-An absent or unrecoverable target validation environment is a hidden human dependency in the sense of §69.10. An unattended task MUST resolve it by exactly one of: (a) an explicitly authorized automatic action that provisions or reattaches the environment, (b) a durable `USER_REQUIRED` decision naming the required environment and the reason, or (c) a truthful blocked state. The pending node MUST state both lists:
+An absent or unrecoverable target validation environment is a hidden human dependency in the sense of §69.10. A task MUST resolve it by exactly one of: (a) an explicitly authorized automatic action that provisions or reattaches the environment, (b) a durable `USER_REQUIRED` decision naming the required environment and the reason, or (c) a truthful blocked state. The pending node MUST state both lists:
 
 ```text
 WAITING / USER_REQUIRED
@@ -5478,10 +5472,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.2 | "This should be capacity-aware" | MUST fit the provider's actual context capacity | Context compaction triggers at 80% of the provider context limit per §80.3; capacity is technical, never a usage budget |
 | BS §23.2 | "Large logs should be compressed into error-focused summaries" | MUST compress logs | Retain error lines, surrounding 10 lines of context, and exit status; discard routine progress output |
 | BS §23.2 | "source code needed for an edit should remain available at full fidelity" | MUST NOT summarise code under edit | Files targeted for mutation are always provided verbatim |
-| BS §23.3 | "Nirman should make the agent’s authority visible through explicit operating modes" | MUST implement all seven modes | Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release — per the §23.3 table |
-| BS §23.3 | "The user should be able to change the mode per task or per project" | MUST support both scopes | Task-level mode overrides project-level for that task only |
-| BS §23.3 | "The application should display the current mode in the toolbar and in every task record" | MUST display in both places | Mode is never implicit |
-| BS §23.3 | "Switching to a less restrictive mode should be an explicit user action" | MUST require explicit user action | Nirman, a model, or a worker MUST NOT widen mode automatically. Narrowing may be automatic |
 | BS §23.4 | "The main Nirman agent should not perform every task itself" | MUST delegate | The Primary Orchestrator holds task-graph and delegation permission only, never direct edit permission |
 | BS §23.4 | "It should delegate focused work to specialized workers with independent context, role instructions, tool permissions, model preferences, memory policy, and physical resource requirements" | MUST give each worker all six | A worker launched without any of the six is an illegal state |
 | BS §23.4 | "A worker should return a structured handoff rather than injecting all of its raw logs into the main chat" | MUST return a structured handoff | Raw logs go to evidence records, never to the main chat |
@@ -5497,10 +5487,10 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.6 | "The user should be able to view each worker session, inspect its logs, pause it, cancel it, or open its isolated workspace" | MUST provide all five controls | Per worker session, at any time while it is active |
 | BS §23.6 | "Nirman should show the additional disk, token, and time cost of parallel execution" | MUST show all three | Before starting parallel work and continuously during it |
 | BS §23.7 | "should implement a three-outcome policy engine: allow, ask, and deny" | MUST implement exactly three outcomes | No fourth outcome. Absence of a matching policy resolves to `ask`, never to `allow` |
-| BS §23.7 | "Policies should be evaluated against the tool, command, path, project, worker role, network destination, and current operating mode" | MUST evaluate all seven dimensions | Every dimension participates in every decision |
+| BS §23.7 | "Policies should be evaluated against the tool, command, path, project, worker role, network destination, and action risk class" | MUST evaluate all seven dimensions | Every dimension participates in every decision; there is no mode dimension (ADR-226) |
 | BS §23.7 | "Policies should support wildcard patterns, project-specific overrides, worker-specific restrictions, session-wide approvals, one-time approvals, and explicit deny rules" | MUST support all six | An explicit deny rule MUST NOT be overridable by any mode, profile, or approval |
 | BS §23.7 | "A repeated-action guard should detect when the same tool call, command, or failed repair is repeated without progress" | MUST detect repetition | Three identical action signatures with no change in workspace hash or error fingerprint |
-| BS §23.7 | "Nirman should pause with a “possible loop” explanation instead of allowing an agent to continue indefinitely" | MUST pause and explain | Pause is durable and requires user action or a changed strategy to resume |
+| BS §23.7 | "The guard never pauses the task and never waits for the user" | MUST recover, never pause | The finding is explained in the task record with fingerprint and rung; no runtime component issues `task.pause` (ADR-226) |
 | BS §23.8 | "Long-running work should continue in the background" | MUST continue | Independent of UI state, per §77 background continuity |
 | BS §23.8 | "The activity panel should show task status, elapsed time, current worker, current step, last output, token usage, estimated cost, and required approvals" | MUST show all eight | Fields with no provider data show `unavailable`, never a fabricated value |
 | BS §23.8 | "Every task should support pause, resume, cancel, retry from checkpoint, fork into an alternative approach, and open in a focused session" | MUST support all six | Available in every non-terminal task state |
@@ -5540,7 +5530,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.17 | "should include a review-only workflow that analyzes a diff, branch, checkpoint, or pull request without modifying the project" | MUST provide review-only | Zero write permission for the duration |
 | BS §23.17 | "The review should prioritize correctness, security, performance, maintainability, test coverage, accessibility, and release risk" | MUST cover all seven dimensions | A dimension not assessed is reported as not assessed |
 | BS §23.17 | "A release workflow should run a clean validation pass, confirm that required metadata exists, verify that secrets are absent from the artifact, record dependency versions, generate checksums where appropriate, and provide a release report" | MUST perform all six | Checksums are required for every delivered artifact, not conditional |
-| BS §23.17 | "Publishing, signing, uploading, or submitting the artifact should require explicit confirmation" | MUST require explicit confirmation | Per action, never session-wide. `Unattended / Full Autonomy` does not waive this |
+| BS §23.17 | "Publishing, signing, uploading, or submitting the artifact should require explicit confirmation" | MUST require explicit confirmation | Per action, never session-wide. The Autonomous-build policy does not waive this (ADR-226) |
 | BS §23.18 | "The expanded runtime should use the following internal components" | MUST implement all twelve | Per the §23.18 component tree |
 | BS §23.18 | "The Tool Gateway should be the only component allowed to invoke filesystem, terminal, browser, external-tool, or build actions" | MUST be the sole invoker | Any other component performing these actions is an architectural violation |
 | BS §23.18 | "The Task Controller should decide what work is needed, while the Policy Engine decides whether a proposed action is permitted" | MUST separate the two decisions | One component performing both is prohibited; this separation is what prevents a model response becoming an uncontrolled system action |
@@ -5599,7 +5589,6 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §27.1 | "Goal Mode should support a user instruction such as “continue until the application builds, the required tests pass, the preview has no runtime errors, and all acceptance criteria are satisfied.”" | MUST support goal-until-done instructions | Across multiple agent turns and worker handoffs |
 | BS §27.1 | "The mode should continue working across multiple agent turns and worker handoffs" | MUST continue across turns | A turn boundary is never a stop condition |
 | BS §27.1 | "Physical resource signals trigger adaptation rather than termination, and AI usage is telemetry only" | MUST adapt to physical pressure, MUST NOT terminate on usage | Only an explicit user-declared policy stop condition, safety stops, provider policy, or OS protection may end a goal |
-| BS §27.1 | "the user should be able to select the named `Unattended / Full Autonomy` profile" | MUST provide the named profile | Visible, auditable, project-scoped, easy to disable, per §23.7 |
 | BS §27.2 | "The user should be able to start a background task, continue editing another project or task, inspect progress without taking focus, pause or cancel it, approve a pending action, and open the task’s isolated workspace" | MUST support all three concurrently | Inspection never suspends the task |
 | BS §27.2 | "the application should use an in-app notification and an optional operating-system notification" | MUST notify in-app; MAY notify at OS level | OS notification requires user enablement; in-app is unconditional |
 | BS §27.2 | "The task should also appear in a tray badge, durable task queue, and startup summary after reboot" | MUST appear in all three | Durable across reboot per §77 |
@@ -5649,10 +5638,10 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §7.4 | "Scheduled tasks should be implemented only after reliable background execution exists" | MUST NOT ship before background execution is proven | Scheduled tasks are gated behind the background-execution acceptance evidence; until that evidence exists the feature is absent from the UI rather than present and disabled |
 | TA §7.4 | "A schedule record should contain a local cron-like expression or interval, project ID, task prompt, allowed mode, resource requirements, notification policy, and whether approval is required" | MUST contain all eight fields | A schedule record missing any of the eight is rejected at creation; there is no default that fills a missing field silently |
 | TA §7.4 | "Scheduled tasks should never automatically publish, push, spend money, or use personal credentials" | MUST NOT publish, push, spend, or use personal credentials | A scheduled task's policy context denies the four categories unconditionally; the deny is unoverridable by mode, profile, or stored approval, consistent with the BS §23 rule that an explicit deny cannot be widened |
-| TA §7.5 | "The stable supervisor should register a per-user startup entry for projects with active unattended tasks" | MUST register the entry when at least one unattended task is active; MUST remove it when none remain | The entry is per-user, never machine-wide; its presence is derived from live task state rather than a one-time install action |
+| TA §7.5 | "The stable supervisor should register a per-user startup entry for projects with active tasks" | MUST register the entry when at least one task is active; MUST remove it when none remain | The entry is per-user, never machine-wide; its presence is derived from live task state rather than a one-time install action |
 | TA §7.5 | "the runtime should request an operating-system execution power policy where supported" | MUST request it during active Goal Mode work where the OS supports it; the user MAY disable it (default enabled) | The request is made only while a build, test, emulator, or provider operation is active and released when the last one ends; the setting is visible in the UI; where the OS does not support it the runtime records `unsupported` rather than claiming it was applied |
 | TA §7.5 | "the control plane should record the pending decision and show it on the next connection" | MUST record and re-present | A suppressed notification never results in a silently parked task; the pending decision is visible in the in-app queue regardless of notification state |
-| TA §7.5 | "Unattended profiles should avoid routine approval states by policy" | MUST pre-resolve routine approvals by policy in unattended profiles; MUST NOT waive hard-gated decisions | Routine reviewable actions are decided by the profile's standing policy; the BS §23 per-action confirmations for publish, sign, and upload remain and are not waived by any unattended setting |
+| TA §7.5 | "The Autonomous-build policy should resolve routine approval states by policy" | MUST pre-resolve routine approvals by policy; MUST NOT waive hard-gated decisions | Routine reviewable actions are decided by the standing policy; the BS §23 per-action confirmations for publish, sign, and upload remain and are not waived by any setting |
 | TA §9.1 | "Nirman should implement the five execution profiles of build spec §26.5" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, and Review-only exist and are selectable; a sixth profile is a change to BS §26.5 rather than a runtime addition |
 | TA §9.1 | "The interface should explain when a requested operation requires a stronger profile" | MUST state the required profile and the reason | The message names the current profile, the required profile, and the specific capability that is missing; a bare refusal without the three is a defect |
 | TA §9.2 | "The Windows runtime should use process-tree management and resource accounting through Windows Job Objects where available" | MUST use Job Objects, unconditionally | Every spawned process tree is assigned to a Job Object before it is resumed (technical architecture §3.4). "Where available" is vacuous: the host is always Windows x64 (§79.1) and Job Objects exist on every supported Windows; a spawn that cannot be assigned to the job does not start and is recorded as a process-containment failure, never as a degraded-but-running state |
@@ -5720,7 +5709,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §3.2 | "A lightweight per-user startup entry should launch the stable supervisor/control-plane process without running a system service by default" | MUST use a per-user startup entry; MUST NOT install a system service by default | No machine-wide service, no elevated install step, for the default configuration |
 | TA §4.1 | "Nirman should use SQLite for structured metadata and ordinary files for large logs, screenshots, diffs, and build artifacts" | MUST split storage this way | Large binary and log content is never stored as SQLite blobs; the database holds the reference and the file holds the bytes |
 | TA §4.2 | "Every event should have a monotonically increasing sequence number per task" | MUST assign a strictly increasing per-task sequence number | A reconnecting UI requests only events after its last sequence number; gaps and reuse are both defects; transactions cover task-state transitions, worker claims, sequence numbers, approvals, and checkpoint creation |
-| TA §4.3 | "On control-plane startup, Nirman should run a recovery scan" | MUST run the nine-step recovery scan at every control-plane start | Open database → validate schema and integrity → find RUNNING or WAITING tasks → check worker process and workspace liveness → mark missing workers interrupted → verify last checkpoint and event sequence → determine an eligible recovery strategy → apply automatically under unattended policy → expose the strategy or escalate at a hard gate; the scan runs before any new work is admitted |
+| TA §4.3 | "On control-plane startup, Nirman should run a recovery scan" | MUST run the nine-step recovery scan at every control-plane start | Open database → validate schema and integrity → find RUNNING or WAITING tasks → check worker process and workspace liveness → mark missing workers interrupted → verify last checkpoint and event sequence → determine an eligible recovery strategy → apply it automatically → expose the strategy or escalate at a hard gate; the scan runs before any new work is admitted |
 | TA §4.3 | "A task should never resume from an unverified partial filesystem state" | MUST NOT resume from unverified partial state | The task either continues from a validated checkpoint or a recovery branch is created holding the partial state for inspection; there is no third path |
 | TA §5.1 | "Every transition should include a reason, actor, timestamp, task revision, and event ID" | MUST include all five | A transition missing any of the five is rejected by the transition function, alongside structurally invalid transitions such as cancelled → completed without a new retry decision |
 | TA §5.2 | "Workers should emit heartbeats while active" | MUST emit heartbeats on the TA §7.2 interval while active | Absence of a heartbeat past the stale threshold marks the worker stale; heartbeats are persisted independently of model output so a slow provider response is never mistaken for a dead worker |
@@ -5747,12 +5736,12 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §11.2 | "Diagnostics should distinguish missing, incompatible, inaccessible, unverified, and healthy tools" | MUST classify every tool into exactly one of the five | A failed build names the missing executable or incompatible version and states the next action; "build failed" without the classification is a defect |
 | TA §11.3 | "The runtime should expose Android-focused interfaces for" the fourteen listed concerns | MUST expose all fourteen | Process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts; the Windows host supplies the process and sandbox implementation while the generated-project contract stays Android-specific and technology-neutral |
 | TA §11.4 | "The runtime should expose a `TerminalSession` abstraction instead of treating every command as a one-shot shell call" | MUST use `TerminalSession` for all command execution | The fifteen tabled fields are populated per session; state that depends on working directory, environment variables, virtual-environment activation, package-manager state, or a running dev server is preserved across commands; session environment changes are explicit and recorded, never inferred from shell output |
-| TA §11.4 | "In unattended mode, it should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision" | MUST answer only prompts the task policy declares safe; MUST otherwise terminate safely and request a decision | An undeclared prompt is never answered by inference or by the model; dev servers and emulators are registered as long-running processes and are never classified as hung commands |
+| TA §11.4 | "It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision" | MUST answer only prompts the task policy declares safe; MUST otherwise terminate safely and request a decision | An undeclared prompt is never answered by inference or by the model; dev servers and emulators are registered as long-running processes and are never classified as hung commands |
 | TA §12.1 | "The control plane should emit events such as `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, and `task_completed`" | MUST emit at least the twelve named event types | `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, `task_completed`; "such as" is not an invitation to omit any of the twelve, and additional types are permitted |
 | TA §12.2 | "Nirman should expose health checks for" the nine listed subsystems | MUST expose all nine health checks | Control plane, database, provider connection, worker registry, process manager, workspace storage, toolchain, preview manager, notification service; each reports healthy, degraded, or failed, never a bare boolean |
 | TA §12.3 | "The engineering test suite should include" the ten listed test kinds | MUST include all ten | Database recovery, event replay, duplicate-message, worker heartbeat, quota, path-boundary, process-tree cancellation, reconciliation conflict, preview rollback, and toolchain isolation tests; an absent kind blocks the architecture completion criteria of TA §15 |
 | TA §15 | "A system that can generate code but cannot reconstruct what happened after a crash should not be considered autonomous-ready" | MUST NOT declare autonomous-readiness without proven crash reconstruction | Readiness requires the TA §12.3 database-recovery and event-replay tests passing; code generation capability alone never satisfies the criterion |
-| TA §16.1 | "Goal Mode should be represented by a durable `GoalContract` attached to a task" | MUST attach a durable `GoalContract` with all twelve fields | `goalId`, `taskId`, `statement`, `completionConditions`, `validationPlan`, `scope`, `autonomyPolicy`, `resourceRequirements`, `stopConditions`, `progressSummary`, `lastEvaluatedAt`, `status`; the contract survives restart |
+| TA §16.1 | "Goal Mode should be represented by a durable `GoalContract` attached to a task" | MUST attach a durable `GoalContract` with all eleven fields | `goalId`, `taskId`, `statement`, `completionConditions`, `validationPlan`, `scope`, `resourceRequirements`, `stopConditions`, `progressSummary`, `lastEvaluatedAt`, `status`; the contract survives restart |
 | TA §16.1 | "Completion conditions should be evaluable by the validation engine, not only by the model" | MUST be machine-evaluable | Each condition is expressible as a successful build, a test expression returning success, a route responding without runtime errors, a screenshot meeting a visual threshold, or an artifact existing with a recorded checksum; a condition only a model can judge is rejected at goal creation |
 | TA §16.2 | "The goal evaluator must record each condition result and should not rely on a final model statement" | MUST record every condition result; MUST NOT accept a model completion claim as proof | A task continues after a worker reports completion whenever objective validation is incomplete; this is the TA-layer statement of the BS §23 rule that a claim is not evidence |
 | TA §16.3 | "The control plane should manage background tasks independently from the UI event loop" | MUST run background tasks independently of the UI | Task progress is unaffected by UI disconnection; the UI resubscribes with a task ID and event sequence number and receives only the missing events |
@@ -5858,6 +5847,12 @@ Every "configurable" parameter in the specification has a default value defined 
 | Uncertainty threshold (low risk) | 0.4 | 0.2-0.7 | Per task |
 | Stall detection window | 300 seconds | 60-1800 seconds | Per project |
 | Stall detection min progress | 1 event | 0-5 events | Per project |
+| Liveness timeout — provider request | 300 seconds | 60-1800 seconds | Per project |
+| Liveness timeout — tool invocation | 120 seconds | 10-1800 seconds | Per project |
+| Liveness timeout — build step (silence, not duration) | 600 seconds | 60-3600 seconds | Per project |
+| Liveness timeout — ADB command | 60 seconds | 10-600 seconds | Per project |
+| Liveness timeout — emulator operation | 300 seconds | 60-1800 seconds | Per project |
+| Consecutive `EVIDENCE_NOT_ACQUIRED` rejections before worker recycle | 3 | 2-10 | Per project |
 | Approval expiry | 24 hours | 1-168 hours | Per project |
 | Notification cooldown | 60 seconds | 5-600 seconds | Per project |
 | Log retention | 30 days | 7-365 days | Per project |
@@ -6464,11 +6459,11 @@ The unit of coverage is the §80.2 resolution row. One row resolves one "should"
 
 | Scope | Resolution rows | Resolved | Status |
 |---|---|---|---|
-| Build spec (all sections) | 284 | 284 | Complete |
+| Build spec (all sections) | 279 | 279 | Complete |
 | Technical architecture | 157 | 157 | Complete |
 | Development plan | 16 | 16 | Complete |
 | AGENTS.md | 2 | 2 | Complete |
-| **Total** | **459** | **459** | **100%** |
+| **Total** | **454** | **454** | **100%** |
 
 Earlier revisions of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 49 rows.
 

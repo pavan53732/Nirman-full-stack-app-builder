@@ -148,6 +148,10 @@
 
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
 
+**Autonomous-build (the one mode)** — Nirman's only operating mode and only execution policy: the user states a goal, the runtime proceeds under per-action authority, and nothing pauses the loop except a user command or a safe terminal state. Former modes are worker roles; the former `Unattended / Full Autonomy` profile is this policy. — BS §23.3; BS §23.7; TA §16.2.1; ADR-226.
+
+**LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
+
 **Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
 
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.

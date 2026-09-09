@@ -558,7 +558,9 @@ The following decisions remain intentionally open:
 
 ## ADR-048: Add an explicit Unattended / Full Autonomy profile
 
-**Status:** Accepted  
+**Status:** Superseded
+**Superseded by:** ADR-226
+**Amended by ADR-226:** the routine-allowed and hard-gated action sets of this decision survive unchanged as the single Autonomous-build policy; what is withdrawn is the existence of a *named selectable profile* beside other profiles. Historical text follows.  
 **Decision:** Goal Mode background tasks use a named project-scoped profile that allows routine reversible actions inside the workspace, including dependency installation, local commits, builds, preview restarts, and approved environment repair. External-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission remain denied or hard-gated.
 
 **Reasoning:** Asking for routine project-local actions defeats unattended execution, while allowing privileged or irreversible actions would weaken safety.
@@ -2104,6 +2106,8 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 **Consequences:** A mode request exceeding policy is downgraded to the highest permitted mode and recorded, so the user can see that the runtime wanted more latitude than policy allowed.
 
+**Amended by ADR-226:** the eight values are *execution strategies* the kernel selects inside the one Autonomous-build mode, not user-visible modes, and `UNATTENDED` no longer produces `WAITING` for a required decision: the runtime records the decision and continues every requirement that does not depend on it (build spec §66.10, §69.11).
+
 ---
 
 ## ADR-172: Treat deliberation computation as a first-class runtime resource
@@ -2905,5 +2909,28 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Amendment (kernel binding):** The presumption is bound into the kernel loop itself. `SELECT_ACTION` is frontier-first (build spec §52.3; technical architecture §58.2): while the active requirement has an unobserved or contradicted frontier item or an untested discriminating test, only observation actions are admissible and a mutation proposal is rejected `EVIDENCE_NOT_ACQUIRED`; every admitted mutation names the frontier item it targets. Recovery gains an ordered Android runtime sub-ladder (build spec §28.2) that `RecoveryAuthority` selects from the failure family — reload, reseed from the golden snapshot, relaunch, reinstall, re-boot the emulator, re-provision the toolchain — before any strategy change. `AndroidDeviceAdapter` gains the operations the required scenario events already presuppose: `setOrientation`, `setNetworkState`, `sendToBackground`, `waitFor`, and long-press, scroll, back, and home inputs. Worker handoffs carry `frontierDelta` and `remainingUnproven` so that every worker is an evidence producer, not only a code producer. No new component is introduced; the responsibilities named in each rule already belong to `AgentExecutionKernel`, `RecoveryAuthority`, `AndroidDeviceAdapter`, and the reconciliation worker.
 
 **Reversal trigger:** A frozen-battery run in which one of the nine mechanisms, rather than the model, causes an incorrect completion claim that the evidence chain does not expose; the mechanism is then narrowed by a superseding ADR, never the presumption.
+
+---
+
+## ADR-226: One mode — Autonomous-build — and a control loop that cannot stop on its own
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+
+**Decision:** Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one. The seven user-selectable operating modes of the former build spec §23.3 (Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release) and the two approval profiles of the former technical architecture §16.2.1 (`Interactive / Review`, `Unattended / Full Autonomy`) are withdrawn as user-facing choices. What they encoded survives in two places only: the *read-only* modes are worker roles with read-only mutation authority (`Repository Scout`, `Requirements Planner`, `Architecture Worker`, `Security Worker`, `Visual QA Worker`, `Performance Worker`, `Critic Worker`), and the *approval* profiles collapse into the one Autonomous-build policy, whose routine-allowed and hard-gated action sets are exactly those of ADR-048. The user never selects an autonomy level; the user states a goal.
+
+Under the one mode, the control loop has no self-inflicted stopping state. Five rules bind it (build spec §23.7, §28.2, §29.4, §52.2, §72; technical architecture §16.2, §28.1, §57.4):
+
+1. **A stall is a recovery event, never a pause.** The repeated-action guard of build spec §23.7 feeds `RecoveryAuthority`, which ascends the §28.2 ladder; `task.pause` remains a user command, and no runtime component issues it.
+2. **Liveness containment is mandatory.** Every provider request, tool invocation, build step, ADB command, and emulator operation runs under an operation-scoped liveness timeout; a hung operation is contained, fingerprinted, and handed to the Android runtime sub-ladder or the recovery ladder. There is still no goal deadline (ADR-218 unchanged).
+3. **The loop watches itself.** Every kernel transition stamps a `LoopHeartbeat` in the ledger; `SupervisorLifecycle` treats a `RUNNING` task with no transition inside the stall detection window as a hung loop and forces `RECOVER` with a fresh worker lease, exactly as it treats a stale worker.
+4. **Blocked requirements never idle the goal.** A requirement that reaches recovery level 8 or 9 records its `USER_REQUIRED` or `BLOCKED` decision and the goal continues every requirement that does not depend on it; the goal is `PARTIALLY_BLOCKED` only when nothing independent remains, and that state is reported truthfully, never as completion.
+5. **Recycled workers, not spinning workers.** A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` three consecutive times, or whose lease reaches the stale threshold without a transition, is retired by `WorkerRuntime` and its task re-leased with a fresh context and the failure fingerprint attached.
+
+**Rationale:** The mode table existed to make authority visible, but the authority hierarchy (technical architecture §21), the three-outcome policy engine, and the hard gates already make it visible per action; a per-task mode switch was a second, coarser authority surface that let a model or a user "narrow" the loop into an attended one. Every pause-for-human state in the loop was a hang with a friendly name: the ladder (§28.2), the answer-or-proceed rule (ADR-225), and the sub-ladder already give the runtime a next action in every situation the guard could detect, so a durable pause added nothing but idleness.
+
+**Consequences:** Build spec §23.3 becomes the single-mode statement; §23.7's example policy loses its mode column and its pause sentence; §26.15, §27.1, §27.5, §28.5, §29.7, §52.2, §66.10, §69.10, §69.11, §72, and §79.11 drop attended/unattended conditionals; technical architecture §4.3, §6.5, §7.5, §10.2, §11.4, §16.2, §16.2.1, §16.2.2, §34.5, and §57.4 follow; `AgentProfile.autonomy_level` and `GoalContract.autonomyPolicy` are removed; `LoopHeartbeat` is added to nirman-schemas.md; the §80.2 rows quoting the withdrawn sentences are replaced; M21 and M31 are retitled; ADR-048 is superseded and ADR-171 amended in place. No new executable, authority, or budget is introduced.
+
+**Reversal trigger:** A frozen-battery run in which the never-pause rule causes the runtime to consume an irreversible action (publish, sign, delete outside the workspace, spend a credential) that the former attended mode would have gated — that is a hard-gate defect, and the repair is the gate, never the reintroduction of a mode.
 
 ---

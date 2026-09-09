@@ -310,10 +310,10 @@ CASES = {
 
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
-        BS, "| Build spec (all sections) | 284 | 284 | Complete |", "| Build spec (all sections) | 320 | 320 | Complete |",
+        BS, "| Build spec (all sections) | 279 | 279 | Complete |", "| Build spec (all sections) | 320 | 320 | Complete |",
         "semantic documentation"),
     "§80.10 total overstated": (
-        BS, "| **Total** | **459** | **459** | **100%** |", "| **Total** | **512** | **512** | **100%** |",
+        BS, "| **Total** | **454** | **454** | **100%** |", "| **Total** | **512** | **512** | **100%** |",
         "semantic documentation"),
     "§80.2 row deleted without updating §80.10": (
         BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",
@@ -532,6 +532,18 @@ CASES = {
     "the AndroidDeviceAdapter loses setNetworkState": (
         SCHEMAS, "- setNetworkState(state: ONLINE | OFFLINE | AIRPLANE | THROTTLED) -> DeviceNetworkStateResult\n  - params: state\n  - returns: state, appliedAt\n  - errors: DeviceNetworkStateError\n", "",
         "semantic documentation"),
+    "BS §23.7 lets the repeated-action guard pause the task": (
+        BS, "The guard never pauses the task and never waits for the user (ADR-226);",
+        "The guard pauses the task with a durable explanation until the user resumes it;", "semantic documentation"),
+    "BS §72 makes liveness containment optional again": (
+        BS, "Liveness protection is part of resource integrity and is mandatory (ADR-226).",
+        "Liveness protection is part of resource integrity and MAY be enabled per project.", "semantic documentation"),
+    "TA §16.2.1 reintroduces an attended approval profile": (
+        TA, "| Autonomous-build (the only policy) | Automatically executes",
+        "| `Interactive / Review` | May request approval according to review settings. | Declared hard gates. |\n| Autonomous-build (the only policy) | Automatically executes", "semantic documentation"),
+    "the LoopHeartbeat loses its progressDelta": (
+        SCHEMAS, "- eventSequence\n- progressDelta\n- consecutiveEvidenceNotAcquired",
+        "- eventSequence\n- consecutiveEvidenceNotAcquired", "semantic documentation"),
     "the TaskResult loses its frontierDelta": (
         SCHEMAS, "- frontierDelta: list of { frontierItemId, fromState, toState, evidenceId }\n", "",
         "semantic documentation"),
@@ -1114,7 +1126,7 @@ CASES = {
         "| M38 | Android capability registry and representative profile coverage |",
         "semantic documentation"),
     "semantic missing approval precedence": (
-        TA, "### 16.2.1 Execution profiles and approval precedence",
+        TA, "### 16.2.1 The Autonomous-build policy and approval precedence",
         "### 16.2.1 Execution policy details", "semantic documentation"),
     "semantic supported row without profile": (
         BS, "| CAP.ANDROID.GENERATE | Generate a working Android application from product intent | CONTRACT.RUNTIME.SCOPE, CONTRACT.RUNTIME.PROMPT_CONTRACT, CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE, CONTRACT.RUNTIME.WORKSPACE, CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TEST-GEN-001 | EV-GEN-001 | PLANNED |",

@@ -170,12 +170,12 @@ Verify last checkpoint and event sequence
   ↓
 Determine an eligible recovery strategy
   ↓
-Apply automatically under unattended policy
+Apply it automatically
   ↓
 Expose the selected strategy or escalate at a hard gate
 ```
 
-Under the `Unattended / Full Autonomy` profile, the runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, the recovery-attempt policy, risk policy, and current evidence. The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or emulator gate is reached. A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
+The runtime must select and apply an eligible deterministic recovery strategy using failure classification, checkpoint validity, the recovery-attempt policy, risk policy, and current evidence; there is no attended variant of this scan (ADR-226). The UI exposes the selected strategy but is not required for routine recovery. A user decision is required only when policy returns `USER_REQUIRED`, `BLOCKED`, or `ESCALATED`, or when a declared hard safety, credential, signing, destructive, or emulator gate is reached, and that decision is recorded on the affected requirement while independent requirements resume (build spec §29.4). A task should never resume from an unverified partial filesystem state. It should either continue from a validated checkpoint or create a recovery branch containing the partial state for inspection.
 
 ---
 
@@ -316,11 +316,11 @@ Scheduled tasks should never automatically publish, push, spend money, or use pe
 
 ### 7.5 Reboot, sleep, and notification resilience
 
-The stable supervisor should register a per-user startup entry for projects with active unattended tasks. It must detect boot, login, suspend, resume, hibernate, and shutdown transitions and write those transitions to the task event ledger.
+The stable supervisor should register a per-user startup entry for projects with active tasks. It must detect boot, login, suspend, resume, hibernate, and shutdown transitions and write those transitions to the task event ledger.
 
 During active Goal Mode work, the runtime should request an operating-system execution power policy where supported so the machine does not enter sleep while a build, test, emulator, or provider operation is active. The user must see this setting and may disable it. If sleep or hibernation still occurs, the supervisor must mark active processes stale, revalidate provider requests, restart eligible local processes, restore ports and emulator state where possible, and resume from the last validated checkpoint.
 
-Approval and warning events must have multiple delivery paths: in-app queue, tray badge, operating-system notification, task history, and startup summary after reboot. If notifications are suppressed, the task must not remain invisibly parked; the control plane should record the pending decision and show it on the next connection. Unattended profiles should avoid routine approval states by policy, while genuine hard-gated decisions remain visible and durable.
+Approval and warning events must have multiple delivery paths: in-app queue, tray badge, operating-system notification, task history, and startup summary after reboot. If notifications are suppressed, the task must not remain invisibly parked; the control plane should record the pending decision and show it on the next connection. The Autonomous-build policy should resolve routine approval states by policy, while genuine hard-gated decisions remain visible and durable.
 
 ---
 
@@ -577,7 +577,7 @@ The runtime should expose a `TerminalSession` abstraction instead of treating ev
 
 A worker can reuse a terminal session for commands that depend on working directory, environment variables, virtual-environment activation, package-manager state, or a long-running development server. Session environment changes must be explicit and recorded rather than inferred from arbitrary shell output.
 
-The terminal manager must detect interactive prompts through known prompt signatures, stdin readiness, process activity, and configurable prompt classifiers. In unattended mode, it should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision. Dev servers and emulators must be registered as long-running processes rather than mistaken for hung commands.
+The terminal manager must detect interactive prompts through known prompt signatures, stdin readiness, process activity, and configurable prompt classifiers. It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision. Dev servers and emulators must be registered as long-running processes rather than mistaken for hung commands.
 
 Shell selection must be explicit on Windows. Supported profiles may include PowerShell, `cmd.exe`, Git Bash, or another approved native-Windows shell. The selected profile, executable path, version, encoding, and environment fingerprint belong in task evidence.
 
@@ -716,20 +716,19 @@ Evaluate completion conditions
     ├── All pass → complete
     ├── Some fail → plan next strategy
     ├── Physical resource unavailable → wait, reschedule, reduce concurrency, reclaim resources, checkpoint, or recover
-    ├── Safety stop → pause and request approval
+    ├── Hard gate reached → record the decision on the affected requirement; independent requirements continue
     └── Repeated failure → backtrack or escalate
 ```
 
 The goal evaluator must record each condition result and should not rely on a final model statement. A task may continue after a worker reports completion if objective validation is still incomplete.
 
-### 16.2.1 Execution profiles and approval precedence
+### 16.2.1 The Autonomous-build policy and approval precedence
 
-Nirman must define approval behavior through an explicit execution profile rather than through isolated UI wording. The profile is authoritative for routine approval behavior, while safety and authority gates remain mandatory in every profile.
+Nirman defines approval behavior through one explicit policy rather than through isolated UI wording or a selectable profile (build spec §23.3; ADR-226). The policy is authoritative for routine approval behavior, while safety and authority gates remain mandatory.
 
-| Profile | Routine policy-allowed actions | Hard-gated actions |
+| Policy | Routine policy-allowed actions | Hard-gated actions |
 |---|---|---|
-| `Interactive / Review` | May request or require approval according to the project policy and review settings. | Protected paths, credentials, signing, destructive actions, external-emulator access, publishing, and other declared hard gates. |
-| `Unattended / Full Autonomy` | Automatically executes routine reversible actions inside the approved workspace, including local dependency installation, formatting, tests, builds, preview restarts, checkpoints, and authorized environment repair. | The same hard gates; it pauses or escalates instead of bypassing them. |
+| Autonomous-build (the only policy) | Automatically executes routine reversible actions inside the approved workspace, including local dependency installation, formatting, tests, builds, preview restarts, checkpoints, and authorized environment repair. | Protected paths, credentials, signing, destructive actions, external-emulator access, publishing, and other declared hard gates; a reached gate records a decision on the affected requirement and never pauses the goal (build spec §29.4). |
 
 Routine approval prompts must not be required merely because the UI is disconnected or a task is running in the background. Every approval request is bound to the exact action fingerprint, policy, worker, workspace, and risk. User approval authorizes only the requested policy-bound action; it never promotes a preview or artifact without deterministic evidence.
 
@@ -739,8 +738,7 @@ Nirman uses multiple profile concepts. Each has an explicit namespace, ID prefix
 
 | Concept | Namespace | ID prefix | Canonical owner | Purpose |
 |---|---|---|---|---|
-| Execution profile | `profile.execution` | `exec-profile` | PolicyAuthority | Approval behavior for routine actions |
-| Autonomy profile | `profile.autonomy` | `autonomy-profile` | PolicyAuthority | Unattended vs interactive execution policy |
+| Execution profile | `profile.execution` | `exec-profile` | PolicyAuthority | Approval behavior for routine actions; exactly one instance exists, the Autonomous-build policy (§16.2.1) |
 | Sandbox profile | `profile.sandbox` | `sandbox-profile` | Sandbox/workspace authority | Process isolation and resource limits |
 | Capability profile | `profile.capability` | `capability-profile` | EvidenceAuthority | Android technology composition identity |
 | Device profile | `profile.device` | `device-profile` | DeviceAuthority | Android device/ emulator test matrix |
@@ -1556,7 +1554,7 @@ Each recovery attempt records:
 - `progressDelta`: measured improvement (passing tests, error reduction, conflict reduction, artifact validity)
 - `recoveryAttemptId`: unique identity for this attempt
 
-The stall detector identifies repeated commands, repeated patches, repeated failure fingerprints, repeated strategy fingerprints, unchanged workspaces, absent evidence, unresponsive processes, stale emulators, and heartbeats without useful progress. A detected stall causes a controlled strategy transition: refresh context, repair the environment, change technology, delegate diagnosis, restore a checkpoint, reduce scope to a safe subtask, or construct an isolated alternative. The scheduler must reject identical retries that do not provide a new strategy fingerprint, new causal fingerprint, or positive progress delta.
+The stall detector identifies repeated commands, repeated patches, repeated failure fingerprints, repeated strategy fingerprints, unchanged workspaces, absent evidence, unresponsive processes, stale emulators, and heartbeats without useful progress. A detected stall causes a controlled strategy transition: refresh context, repair the environment, change technology, delegate diagnosis, restore a checkpoint, reduce scope to a safe subtask, or construct an isolated alternative. The scheduler must reject identical retries that do not provide a new strategy fingerprint, new causal fingerprint, or positive progress delta. A stall never produces a paused task: the detector's finding is a `RecoveryAuthority` input, and the only waiting states a task may enter are `WAITING_APPROVAL` for a hard gate and `WAITING_RESOURCE` for physical capacity (build spec §26.14), both scoped to the affected requirement while independent requirements continue (build spec §29.4; ADR-226).
 
 ### 34.4 Swarm handoff and reconciliation contract
 
@@ -1566,7 +1564,7 @@ Parallel workers receive explicit contracts, isolated workspaces, allowed tools,
 
 For applicable Android delivery, the validation coordinator must prove build success, APK existence, checksum, artifact scan, installation or launch, main-flow execution, visual comparison, permission behavior, and absence of unresolved fatal runtime errors. The artifact is complete only when it is linked to the project revision and evidence ledger.
 
-Routine project-local actions are allowed under the project’s Unattended / Full Autonomy policy. The runtime may edit, install dependencies, run terminals, launch devices, build, test, capture screenshots, repair, checkpoint, delegate, reconcile, and create local artifacts without repeated approval. Protected credentials, destructive actions, publishing, signing policy, protected paths, hard safety violations, and unrecoverable blockers remain deterministic authority boundaries.
+Routine project-local actions are allowed under the Autonomous-build policy (build spec §23.7). The runtime may edit, install dependencies, run terminals, launch devices, build, test, capture screenshots, repair, checkpoint, delegate, reconcile, and create local artifacts without repeated approval. Protected credentials, destructive actions, publishing, signing policy, protected paths, hard safety violations, and unrecoverable blockers remain deterministic authority boundaries.
 
 ## 35. Complete Android Capability Fixture Contract
 
@@ -2654,6 +2652,8 @@ Accept UI connections
 ```
 
 The supervisor must remain useful when the UI is closed. The UI reconnects to the existing authoritative state rather than recreating tasks from client memory.
+
+**Loop liveness scan (ADR-226).** On the worker-staleness schedule of §7.2, `SupervisorLifecycle` also reads the newest `LoopHeartbeat` (build spec §29.4; SCHEMAS §1.78) of every `RUNNING` task. A task whose newest heartbeat is older than the stall detection window is a hung loop, whatever its worker heartbeat says: the supervisor retires the lease through `WorkerRuntime`, records fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. `WorkerRuntime` applies the same retirement to a worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` for the configured consecutive count (§80.3 of the build spec), attaching the rejected proposals to the new lease. Neither rule counts tokens, requests, or elapsed goal time; both count the absence of a transition.
 
 ### 57.5 SQLite execution ledger
 
