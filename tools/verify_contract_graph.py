@@ -1937,6 +1937,16 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_cr is None or "- outcome: ANSWERED | PROCEEDED_ON_DEFAULT | USER_REQUIRED | WITHDRAWN" not in m_cr.group(1):
         D.add("semantic documentation", "autonomous loop",
               "nirman-schemas.md ClarificationRecord block must carry the outcome enumeration with PROCEEDED_ON_DEFAULT (ADR-225)")
+    m_542 = _section_text(bs, "54.2") or ""
+    for needle, why in (("`SharedSurfaceChangeRequest` is defined in `nirman-schemas.md`", "project the SharedSurfaceChangeRequest schema"),
+                        ("never by textual merge", "apply shared-surface requests semantically, never by textual merge"),
+                        ("No swarm worker holds a `modify` reservation on them", "make the shared Android surfaces single-writer")):
+        if needle not in m_542:
+            D.add("semantic documentation", "autonomous loop", f"BS §54.2 must {why} (ADR-225)")
+    m_ss = re.search(r"```text\nSharedSurfaceChangeRequest\n(.*?)```", sch, re.S)
+    if m_ss is None or "VERSION_CATALOG | SETTINGS_GRADLE | MODULE_BUILD_FILE | ANDROID_MANIFEST" not in m_ss.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md SharedSurfaceChangeRequest block must enumerate the shared surfaces (ADR-225)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

@@ -3281,6 +3281,7 @@ Implements build spec §54. Extends §8 (Workspace Isolation and Reconciliation)
 | ConflictDetector | Evaluates requested reservations against held reservations |
 | StaleContractInvalidator | Invalidates read_stable holders when a surface changes |
 | CommitBarrier | Serializes proposal merges and revalidates freshness |
+| SharedSurfaceApplier | Applies `SharedSurfaceChangeRequest`s to the single-writer Android surfaces semantically and in dependency order on behalf of the reconciliation worker (build spec §54.2; ADR-225) |
 
 ### 60.2 Reservation state machine
 

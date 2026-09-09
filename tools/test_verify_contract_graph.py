@@ -517,6 +517,10 @@ CASES = {
         TA, "applies the pattern before any model reasoning",
         "offers the pattern to the model as a suggestion",
         "semantic documentation"),
+    "BS §54.2 lets swarm workers modify the shared Android surfaces": (
+        BS, "No swarm worker holds a `modify` reservation on them;",
+        "Any swarm worker may hold a `modify` reservation on them;",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",

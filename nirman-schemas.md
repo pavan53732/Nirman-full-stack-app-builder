@@ -1716,6 +1716,28 @@ ClarificationRecord
 - createdAt
 ```
 
+### 1.77 SharedSurfaceChangeRequest
+
+**Owner:** BS §54.2 · **Contract:** CONTRACT.RUNTIME.RESERVATION · **Projected at:** —
+
+```text
+SharedSurfaceChangeRequest
+- changeRequestId
+- taskId
+- requestingWorkerId
+- sharedSurface: VERSION_CATALOG | SETTINGS_GRADLE | MODULE_BUILD_FILE | ANDROID_MANIFEST | NAVIGATION_GRAPH | DI_GRAPH | THEME | STRING_RESOURCES | PROGUARD_RULES
+- changeKind: ADD_DEPENDENCY | BUMP_DEPENDENCY | ADD_MODULE | ADD_PERMISSION | ADD_COMPONENT | ADD_INTENT_FILTER | ADD_DESTINATION | ADD_BINDING | ADD_THEME_TOKEN | ADD_STRING | ADD_KEEP_RULE
+- payload
+- justification
+- dependsOnChangeRequestIds
+- state: REQUESTED | APPLIED | REJECTED | SUPERSEDED
+- appliedByWorkerId
+- appliedInTransactionId
+- rejectionReason
+- createdAt
+- resolvedAt
+```
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -3933,6 +3955,7 @@ GoldenSnapshot
 ClarificationRecord
 ContractDouble
 RepairPattern
+SharedSurfaceChangeRequest
 ```
 
 ## References

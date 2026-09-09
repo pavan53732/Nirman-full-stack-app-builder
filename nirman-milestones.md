@@ -1237,7 +1237,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 | Milestone | Focus | Required result |
 |---|---|---|
 | M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService, AttentionProfiler, PlacementPlanner, RecallProbeService |
-| M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks |
+| M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks; single-writer shared Android surfaces with `SharedSurfaceChangeRequest` applied semantically by SharedSurfaceApplier (BS §54.2; TA §60.1; ADR-225) — fixture: two workers adding different dependencies and one permission each integrate without a textual conflict, and a contradicting request is rejected with a reason |
 | M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
 | M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all eight required scenario classes, determinism quarantine |
 | M85 | Advanced Verification | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection |

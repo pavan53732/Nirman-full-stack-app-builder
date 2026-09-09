@@ -3253,6 +3253,10 @@ A worker must reserve the semantic surfaces it intends to change before mutating
 
 A `modify` or `delete` reservation conflicts with any other reservation on the same surface. A `read_stable` reservation means the holder has generated code that depends on the surface remaining unchanged.
 
+> **Schema projection:** `SharedSurfaceChangeRequest` is defined in `nirman-schemas.md` §1.77. Owner: BS §54.2.
+
+The shared Android surfaces are single-writer (ADR-225): the version catalog (`libs.versions.toml`), `settings.gradle.kts`, every module build file, `AndroidManifest.xml`, the navigation graph, the dependency-injection graph, the theme, the string resources, and the ProGuard/R8 rules. No swarm worker holds a `modify` reservation on them; a worker that needs a dependency, permission, component, destination, binding, theme token, string, or keep rule files a typed `SharedSurfaceChangeRequest` and continues with its own workspace on the assumption that the request is applied. The reconciliation worker (§26.4, §29.5) is the single writer: it applies requests semantically — a dependency is merged into the catalog by coordinate, a permission by name, a destination by route — never by textual merge, applies them in dependency order, rejects a request that contradicts an applied one with a reason the requesting worker receives, and records every application in the `ConstructionTransaction` that integrates the slice. A slice whose requests were rejected is re-validated against the integrated surfaces before its evidence counts.
+
 ### 54.3 Stale-contract invalidation
 
 When a surface changes, every `read_stable` reservation on that surface must be invalidated. Each holder must be notified, its affected work marked unvalidated, and its output revalidated before it may be promoted. Silent acceptance of work built against an invalidated contract is prohibited.
