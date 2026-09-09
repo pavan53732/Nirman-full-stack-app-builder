@@ -1691,6 +1691,31 @@ ChangeImpactReport
 - projectionVersion
 ```
 
+### 1.76 ClarificationRecord
+
+**Owner:** BS §69.11 · **Contract:** CONTRACT.RUNTIME.PROMPT_CONTRACT · **Projected at:** —
+
+```text
+ClarificationRecord
+- clarificationId
+- sessionId
+- taskId
+- category: PRIMARY_GOAL | NAVIGATION_STRUCTURE | DISTINGUISHING_BEHAVIOR | SECURITY_OR_PERSONAL_DATA
+- question
+- options
+- recordedDefault
+- defaultBasis: CONSERVATIVE | CONVENTIONAL | DERIVED_FROM_REFERENCE
+- dependentRequirementIds
+- askedAt
+- answerWaitPolicyId
+- answeredAt
+- answer
+- outcome: ANSWERED | PROCEEDED_ON_DEFAULT | USER_REQUIRED | WITHDRAWN
+- proceededAt
+- replanDirectiveId
+- createdAt
+```
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -3768,6 +3793,60 @@ GoldenSnapshot
 - status: TAKING | READY | STALE | INVALID
 ```
 
+### 2.95 ContractDouble
+
+**Owner:** TA §74.1 · **Contract:** CONTRACT.RUNTIME.INTEGRATION_BOUNDARY · **Projected at:** —
+
+```text
+ContractDouble
+- contractDoubleId
+- sessionId
+- taskId
+- integrationId
+- requestSchemaRef
+- responseSchemaRef
+- errorSchemaRef
+- listenAddress: loopback only
+- listenPort
+- guestEndpoint
+- fixtureSetRef
+- recordedExchangeCount
+- evidenceLabel: DOUBLE_BACKED
+- status: STARTING | SERVING | STOPPED | FAILED
+- startedAt
+- stoppedAt
+```
+
+### 2.96 RepairPattern
+
+**Owner:** TA §51.1 · **Contract:** CONTRACT.RUNTIME.VERIFICATION · **Projected at:** —
+
+```text
+RepairPattern
+- repairPatternId
+- patternVersion
+- failureFamily
+- fingerprintMatcher
+- classifier
+- severity
+- likelyCause
+- allowedScope
+- preconditions
+- operationType
+- repairSteps
+- recoveryAttemptPolicy
+- checkpointRule
+- validationCommand
+- evidenceRequirements
+- trust: BUILT_IN | PROMOTED | CANDIDATE
+- promotionEvidenceRefs
+- sourceImprovementProposalId
+- successCount
+- failureCount
+- createdAt
+- updatedAt
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -3851,6 +3930,9 @@ ScreenModel
 ScreenGraph
 DeviceHygienePolicy
 GoldenSnapshot
+ClarificationRecord
+ContractDouble
+RepairPattern
 ```
 
 ## References

@@ -314,6 +314,7 @@
 | `ConversationAttachment` | §1.73 | BS §82 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | TA §86.1 |
 | `ChangeReportRecord` | §1.74 | BS §83.1 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TA §87.1 |
 | `ChangeImpactReport` | §1.75 | BS §83.1 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TA §87.1 |
+| `ClarificationRecord` | §1.76 | BS §69.11 | CONTRACT.RUNTIME.PROMPT_CONTRACT | — |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -408,6 +409,8 @@
 | `ScreenGraph` | §2.92 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
 | `DeviceHygienePolicy` | §2.93 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
 | `GoldenSnapshot` | §2.94 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
+| `ContractDouble` | §2.95 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
+| `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

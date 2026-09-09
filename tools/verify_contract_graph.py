@@ -1907,6 +1907,36 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_ps is None or "- drivenBy: USER | SCENARIO | EXPLORATION | RESTORE" not in m_ps.group(1):
         D.add("semantic documentation", "autonomous loop",
               "nirman-schemas.md PreviewSurface block must carry `drivenBy: USER | SCENARIO | EXPLORATION | RESTORE` (ADR-225)")
+    m_6911 = _section_text(bs, "69.11") or ""
+    for needle, why in (("`ClarificationRecord` is defined in `nirman-schemas.md`", "project the ClarificationRecord schema"),
+                        ("proceeds on the `recordedDefault`", "proceed on the recorded default when the answer-wait policy elapses"),
+                        ("continues every requirement that does not depend on the answer immediately", "continue independent requirements while a question is outstanding")):
+        if needle not in m_6911:
+            D.add("semantic documentation", "autonomous loop", f"BS §69.11 must {why} (ADR-225)")
+    m_765 = _section_text(bs, "76.5") or ""
+    for needle, why in (("`ContractDouble`", "name the ContractDouble"),
+                        ("never promotes `IntegrationState` past `SPECIFIED` for the real service", "forbid double-backed evidence from promoting the real service past SPECIFIED")):
+        if needle not in m_765:
+            D.add("semantic documentation", "autonomous loop", f"BS §76.5 must {why} (ADR-225)")
+    m_741 = _section_text(ta, "74.1") or ""
+    for needle, why in (("`ContractDouble` is defined in `nirman-schemas.md`", "project the ContractDouble schema"),
+                        ("Workers never open it and never reach it", "keep workers away from the double (worker network rule of TA §3.5)")):
+        if needle not in m_741:
+            D.add("semantic documentation", "autonomous loop", f"TA §74.1 must {why} (ADR-225)")
+    m_511 = _section_text(ta, "51.1") or ""
+    for needle, why in (("`RepairPattern` is defined in `nirman-schemas.md`", "project the RepairPattern schema"),
+                        ("applies the pattern before any model reasoning", "apply a matching built-in or promoted pattern before model reasoning"),
+                        ("never past `CANDIDATE` without independent-fixture evidence", "keep learned patterns at CANDIDATE until independent-fixture evidence")):
+        if needle not in m_511:
+            D.add("semantic documentation", "autonomous loop", f"TA §51.1 must {why} (ADR-225)")
+    m_cd = re.search(r"```text\nContractDouble\n(.*?)```", sch, re.S)
+    if m_cd is None or "- listenAddress: loopback only" not in m_cd.group(1) or "- evidenceLabel: DOUBLE_BACKED" not in m_cd.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md ContractDouble block must carry `listenAddress: loopback only` and `evidenceLabel: DOUBLE_BACKED` (ADR-225)")
+    m_cr = re.search(r"```text\nClarificationRecord\n(.*?)```", sch, re.S)
+    if m_cr is None or "- outcome: ANSWERED | PROCEEDED_ON_DEFAULT | USER_REQUIRED | WITHDRAWN" not in m_cr.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md ClarificationRecord block must carry the outcome enumeration with PROCEEDED_ON_DEFAULT (ADR-225)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

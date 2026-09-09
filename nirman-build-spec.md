@@ -4692,6 +4692,10 @@ A clarifying question is a proposal, not an authority act. The model proposes th
 
 A domain term whose meaning materially changes the data model — "streak", "active user", "recent", "nearby", "archived" — is a primary-goal ambiguity, not a labeling detail, and belongs in the MUST-ask set.
 
+> **Schema projection:** `ClarificationRecord` is defined in `nirman-schemas.md` §1.76. Owner: BS §69.11.
+
+A question with nobody to answer it does not stall the goal (ADR-225). Every MUST-ask question is a `ClarificationRecord` that carries a `recordedDefault` at the moment it is asked — the conservative option for the security, authentication, and personal-data category (no accounts, no sensitive data, local storage), the conventional Android structure otherwise — and the `dependentRequirementIds` the answer governs. In an `Unattended / Full Autonomy` session the runtime continues every requirement that does not depend on the answer immediately; when the session's answer-wait policy elapses without an answer, the runtime proceeds on the `recordedDefault`, marks the record `PROCEEDED_ON_DEFAULT`, sets the dependent requirements `ASSUMED` in the uncertainty registry (§52.13), and shows the assumption in the intent model exactly like a silent default. An answer that arrives later is a `refocus` runtime directive (§61) that replans the dependent requirements without a restart. Only a primary-goal ambiguity whose default would produce a different application — not a different variant of the same application — remains `USER_REQUIRED`, and that decision names the `ClarificationRecord` and the automatic paths that did not apply (`automaticPathsAttempted`).
+
 ## 70. Integration Boundary Contract
 
 **ContractId:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
@@ -4998,6 +5002,8 @@ The transaction owner is the backend use-case handler. Local task, checkpoint, p
 ### 76.5 Android service-integration adapter
 
 A generated Android application that uses a supporting API, authentication service, or datastore must declare `AndroidServiceIntegration` with `requestSchemaRef`, `responseSchemaRef`, `errorSchemaRef`, `authState`, `credentialReference`, `baseEndpointIdentity`, `datastoreOwner`, `offlinePolicy`, `retryPolicy`, `timeoutPolicy`, `idempotencyPolicy`, `tokenRefreshPolicy`, `privacyPolicy`, `networkPolicy`, and functional scenario IDs. Its generated API client and adapter are separate from Nirman’s desktop IPC client. Android integration failures become application evidence or declared blockers; they cannot mutate Nirman’s control-plane authority.
+
+A declared integration whose backend is absent, unreachable, or credential-gated does not block the loop (ADR-225). The supervisor starts a session-scoped `ContractDouble` (technical architecture §74.1): a loopback-only stub generated from `requestSchemaRef`, `responseSchemaRef`, and `errorSchemaRef`, reached from the guest through the emulator's host alias, serving declared fixtures and recording every exchange. Evidence produced against a double is labeled `DOUBLE_BACKED`; it proves the application's handling of the declared contract, including its error and offline paths, and never promotes `IntegrationState` past `SPECIFIED` for the real service — that promotion still requires the real endpoint or a `USER_REQUIRED` credential decision. A double is not a hosted service (§1.5), is never reachable off the host, and is stopped with the session.
 
 ### 76.6 Acceptance criteria
 

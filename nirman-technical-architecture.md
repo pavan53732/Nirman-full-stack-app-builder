@@ -2114,6 +2114,10 @@ Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle
 
 A learned repair can be promoted into the trusted registry only after repeated successful validation across independent fixtures. Model suggestions remain untrusted until promoted by deterministic evidence.
 
+> **Schema projection:** `RepairPattern` is defined in `nirman-schemas.md` §2.96. Owner: TA §51.1.
+
+Repairs get cheaper over time (ADR-225). Each registry entry is a `RepairPattern`; the `BUILT_IN` set ships with the deterministic first-line fixes for the failure families above — missing SDK component → provision through `ToolchainProvisioner` (§49.4); AGP, Gradle, Kotlin, or JDK mismatch → re-pin from the toolchain lock; manifest merge conflict → declared resolution; duplicate class → dependency exclusion; missing `INTERNET` or runtime permission → manifest and request-flow addition; cleartext-traffic failure → network security configuration; main-thread network call → dispatcher move; R8 stripping → keep rule. When a failure fingerprint matches a `BUILT_IN` or `PROMOTED` pattern whose preconditions hold, the runtime applies the pattern before any model reasoning; the attempt counts toward `recoveryAttemptPolicy` like any other, and a pattern that fails twice on the same fingerprint is demoted to `CANDIDATE` for that project. The self-improvement manager (§30) is the only writer of new patterns, from `ImprovementProposal`s backed by repeated successful repairs, and never past `CANDIDATE` without independent-fixture evidence.
+
 ### 51.2 DecisionTrace service
 
 The service records concise decision summaries without hidden chain-of-thought. It stores inputs, constraints, candidate actions, selected action, policy checks, provider/model provenance, confidence, outcome, and evidence references. The UI can show why a technology, worker, repair, checkpoint, preview mode, or provider was selected.
@@ -4483,6 +4487,10 @@ The projection is valid only when `specializedStateRef` resolves to the state ma
 ### 74.1 Android service integration
 
 > **Schema projection:** `AndroidServiceIntegration` is defined in `nirman-schemas.md` §2.72. Owner: TA §74.1.
+
+> **Schema projection:** `ContractDouble` is defined in `nirman-schemas.md` §2.95. Owner: TA §74.1.
+
+`ContractDouble` is owned and run by the supervisor inside `nirman-android`, bound to a loopback address only, and torn down with the session (ADR-225; build spec §76.5). Workers never open it and never reach it — the worker network rule of §3.5 is unchanged — and the emulator reaches it only through the host alias. Its request, response, and error bodies are generated from the integration's schema references and its fixtures from the integration's declared scenarios; a response the schema cannot produce is a double failure, not application evidence. Every exchange is recorded, and the evidence it yields carries `DOUBLE_BACKED` so that `EvidenceAuthority` never counts it toward `FUNCTIONAL` for the real service.
 
 An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone. `requiredOperationality` is the build spec §5.7.5 minimum: the integration satisfies its boundary only when the current `IntegrationOperationality.aggregateState` for `integrationId` meets or exceeds `requiredOperationality` in the build spec §5.7.5 order (`CONFIGURED` < `REACHABLE` < `FUNCTIONAL`; `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, and `UNKNOWN` never satisfy a `requiredOperationality` of `CONFIGURED` or above), and the comparison is made by `PolicyAuthority` from the recorded operationality evidence, never from the model's report.
 

@@ -600,6 +600,8 @@ Implement the stable supervisor, control-plane ownership, idempotent runtime tic
 
 Implement transient retry, focused diagnostics, context/index refresh, strategy change, checkpoint backtracking, model or worker escalation, specialist delegation, isolated alternative solutions, and precise escalation. Add failure fingerprints, progress-quality measurement, and duplicate-strategy detection.
 
+Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225): the `BUILT_IN` first-line set, fingerprint matching before model reasoning, demotion to `CANDIDATE` after two failures on one fingerprint, and promotion only through `ImprovementProposal` evidence. Fixture: a missing-permission crash is repaired by the built-in pattern with no model call in the trajectory; a pattern that fails twice is absent from the third attempt.
+
 **Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
 
 ### M27: Self-observation and episode evaluation
@@ -664,6 +666,8 @@ M30 MUST establish the canonical semantic identity graph before any further spec
 ### M31: Unattended / Full Autonomy policy profile
 
 Implement a named project-scoped profile for Goal Mode background tasks. It allows routine reversible actions inside the workspace, including dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair. It denies external-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission.
+
+Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the session-scoped `ContractDouble` (BS §76.5; TA §74.1; SCHEMAS §2.95). Fixtures: a MUST-ask question left unanswered past the wait policy yields `PROCEEDED_ON_DEFAULT`, `ASSUMED` dependent requirements, and an unblocked build; a late answer replans through a `refocus` directive without a restart; an application declaring an integration with no backend completes its offline and error scenarios `DOUBLE_BACKED` while the real service stays `SPECIFIED`; the double is unreachable from any non-loopback address.
 
 **Exit gate:** A background fixture task completes a dependency install, local commit, build, preview restart, and repair without approval pauses, while deployment, signing, credential access, destructive commands, and remote pushes remain hard-gated.
 

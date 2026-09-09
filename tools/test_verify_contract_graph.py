@@ -502,6 +502,21 @@ CASES = {
         BS, "user input is queued rather than injected into the running scenario",
         "user input is injected into the running scenario so the user never waits",
         "semantic documentation"),
+    "BS §69.11 stalls the goal until a clarifying question is answered": (
+        BS, "the runtime proceeds on the `recordedDefault`, marks the record `PROCEEDED_ON_DEFAULT`",
+        "the runtime waits for the answer and marks the record `USER_REQUIRED`",
+        "semantic documentation"),
+    "BS §76.5 lets double-backed evidence promote the real service": (
+        BS, "never promotes `IntegrationState` past `SPECIFIED` for the real service",
+        "may promote `IntegrationState` to `FUNCTIONAL` for the real service when the double matches the schema",
+        "semantic documentation"),
+    "the ContractDouble is allowed off loopback": (
+        SCHEMAS, "- listenAddress: loopback only\n", "- listenAddress\n",
+        "semantic documentation"),
+    "TA §51.1 runs model reasoning before a matching repair pattern": (
+        TA, "applies the pattern before any model reasoning",
+        "offers the pattern to the model as a suggestion",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",
