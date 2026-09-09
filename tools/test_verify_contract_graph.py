@@ -532,6 +532,15 @@ CASES = {
     "the AndroidDeviceAdapter loses setNetworkState": (
         SCHEMAS, "- setNetworkState(state: ONLINE | OFFLINE | AIRPLANE | THROTTLED) -> DeviceNetworkStateResult\n  - params: state\n  - returns: state, appliedAt\n  - errors: DeviceNetworkStateError\n", "",
         "semantic documentation"),
+    "TA §6.5 drops the Critic Worker from the taxonomy": (
+        TA, "| Critic Worker | Hosts `StrategyCritic` (§72.7) and independent pre-promotion review; findings and evidence requests only | Read-only |\n",
+        "", "semantic documentation"),
+    "BS §23.4 names an unregistered Backend Worker": (
+        BS, "| Critic Worker | Attack plans, strategies, and completion claims;",
+        "| Backend Worker | Build the server the application talks to | Assigned workspace |\n| Critic Worker | Attack plans, strategies, and completion claims;", "semantic documentation"),
+    "BS §23.4 shrinks nesting back to two levels": (
+        BS, "Worker nesting is limited to three levels by default (ADR-227):",
+        "Worker nesting is limited to two levels by default:", "semantic documentation"),
     "BS §23.7 lets the repeated-action guard pause the task": (
         BS, "The guard never pauses the task and never waits for the user (ADR-226);",
         "The guard pauses the task with a durable explanation until the user resumes it;", "semantic documentation"),

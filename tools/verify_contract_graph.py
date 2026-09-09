@@ -1980,6 +1980,47 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "`frontierDelta`" not in m_344 or "`remainingUnproven`" not in m_344:
         D.add("semantic documentation", "autonomous loop",
               "TA §34.4 must require frontierDelta and remainingUnproven in every handoff (ADR-225)")
+    # ADR-227: one worker taxonomy of nineteen roles. The three role tables
+    # (BS §22.1, BS §23.4, TA §6.5) must carry the identical set, the set must
+    # be the ADR-227 nineteen, and no capitalised "<Name> Worker" phrase may
+    # name a role outside it. Lower-case descriptive phrases ("a worker", "the
+    # owning worker") are prose, not roles, and are not checked.
+    ROLES_227 = {"Primary Orchestrator", "Repository Scout", "Requirements Planner", "Architecture Worker",
+                 "UI Worker", "Android Data and Integration Worker", "Test and QA Worker", "Debugging Worker",
+                 "Security Worker", "Visual QA Worker", "Performance Worker", "Documentation Worker",
+                 "Release Worker", "Reconciliation Worker", "Emulator Driver Worker", "Diagnostic Worker",
+                 "Content Worker", "Integration Double Worker", "Critic Worker"}
+    def _role_table(text, heading_num):
+        body = _section_text(text, heading_num) or ""
+        return {r.strip() for r in re.findall(r"^\| ([A-Z][A-Za-z ]+?) \| ", body, re.M)} - {"Canonical worker role", "Canonical worker", "Worker role"}
+    tables = {"BS §22.1": _role_table(bs, "22.1"), "BS §23.4": _role_table(bs, "23.4"), "TA §6.5": _role_table(ta, "6.5")}
+    for label, roles in tables.items():
+        if roles != ROLES_227:
+            D.add("semantic documentation", "worker taxonomy",
+                  f"{label} role table is not the ADR-227 nineteen (missing {sorted(ROLES_227 - roles)}, extra {sorted(roles - ROLES_227)})")
+    for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev)):
+        prose = "\n".join(l for l in text.splitlines() if not l.startswith("#"))
+        found = set(re.findall(r"\b((?:(?:[A-Z][A-Za-z]+|and) ){1,5}Worker)\b(?! [A-Z])", prose))
+        def _canon(p):
+            words = p.split()
+            while words and words[0] in ("The", "A", "An", "Each", "Every", "No", "One", "Per", "Canonical", "Its", "This", "That", "Any", "Both"):
+                words = words[1:]
+            return " ".join(words)
+        stray = sorted({_canon(p) for p in found} - ROLES_227 - {"Worker", "and Worker"})
+        stray = [p for p in stray if not p.startswith("and ") and p not in ROLES_227]
+        for p in stray:
+            D.add("semantic documentation", "worker taxonomy", f"{label} names an unregistered worker role {p!r}; the taxonomy is the ADR-227 nineteen")
+    for token in ("two levels by default",):
+        for label, text in (("build spec", bs), ("architecture", ta)):
+            if token in text:
+                D.add("semantic documentation", "worker taxonomy", f"{label} still limits nesting to {token!r}; ADR-227 fixes three levels")
+    m_227 = re.search(r"## ADR-227:.*?(?=\n## ADR-|\Z)", dec, re.S)
+    m_227 = m_227.group(0) if m_227 else ""
+    for needle, why in (("**Locks:** `CONTRACT.RUNTIME.AUTHORITY`", "lock CONTRACT.RUNTIME.AUTHORITY"),
+                        ("**Reversal trigger:**", "carry a Reversal trigger"),
+                        ("A probe child cannot create children", "bound the probe child")):
+        if needle not in m_227:
+            D.add("semantic documentation", "worker taxonomy", f"ADR-227 must {why}")
     # ADR-226: one mode (Autonomous-build) and a loop that cannot stop on its
     # own. The withdrawn mode/profile vocabulary must not return as a choice,
     # and each never-pause rule must stay in its owner section.

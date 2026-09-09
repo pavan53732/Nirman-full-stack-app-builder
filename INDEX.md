@@ -498,4 +498,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-226 | 27 | Accepted 27 |
+| ADR-200–ADR-227 | 28 | Accepted 28 |

@@ -268,12 +268,17 @@ The worker registry must use one canonical role taxonomy across the product, arc
 | Documentation Worker | Documentation, decisions, release notes | Documentation paths |
 | Release Worker | Builds, packaging, checksums, release reports | Build and artifact paths |
 | Reconciliation Worker | Conflict analysis and integration validation | No direct mutation until integration |
+| Emulator Driver Worker | Install, launch, scenario execution, `ScreenGraph` exploration, device hygiene, runtime evidence capture (§10.2, §62.1, §73.12) | Device adapter operations only |
+| Diagnostic Worker | Root-cause localization (§63.2) and `FailureContextPackage` production for a parent worker | Read-only; one probe child |
+| Content Worker | `ContentMutation` proposals for copy, localization, and accessibility text (§85.2) | Proposal only |
+| Integration Double Worker | `ContractDouble` fixtures and schema conformance (§74.1) | Double fixtures only |
+| Critic Worker | Hosts `StrategyCritic` (§72.7) and independent pre-promotion review; findings and evidence requests only | Read-only |
 
 The orchestrator should select swarm size from task complexity, dependency coupling, changed-file boundaries, target platforms, interface agreements, expected validation cost, and available resources. It should prefer one worker for tightly coupled work, parallel read-only workers for exploration and review, and isolated write-capable workers only when file and interface boundaries are explicit.
 
 For coupled work, the orchestrator must create an interface agreement before parallel implementation. The agreement may contain API shapes, shared types, route contracts, database schemas, event formats, design tokens, or artifact contracts. Workers validate against it before reconciliation.
 
-Worker nesting is limited to two levels by default: the Primary Orchestrator may delegate to workers, and a worker may request one narrowly scoped diagnostic child. A child cannot create further workers, change the parent contract, expand permissions, or integrate changes. All worker handoffs remain attached to the parent task graph.
+Worker nesting is limited to three levels by default (build spec §23.4; ADR-227): the Primary Orchestrator delegates to workers; a worker may request one Diagnostic Worker child; a Diagnostic Worker may request one probe child (a Repository Scout or Emulator Driver Worker instance restricted to observation actions). A probe child cannot create children; no child changes the parent contract, expands permissions, or integrates changes; every `DelegationGrant` (§71.7) carries `depth ≤ maxDepth = 3`. All worker handoffs remain attached to the parent task graph. The read-only roles — Repository Scout, Requirements Planner, Architecture Worker, Security Worker, Performance Worker, Critic Worker — may fan out in parallel against one revision without reservations; write-capable roles remain reservation-bound (§60).
 
 ## 7. Scheduler and Background Execution
 
@@ -409,7 +414,7 @@ A preview test can define multiple Android emulator profiles:
 
 > **Schema projection:** `AndroidDeviceProfile` is defined in `nirman-schemas.md` §2.2. Owner: TA §10.2.
 
-The emulator worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
+The Emulator Driver Worker (§6.5; ADR-227) should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report.
 
 The emulator validation subsystem MUST expose an authoritative `InteractionExecutor`.
 
@@ -443,7 +448,7 @@ The input manager should accept screenshots, image sets, annotated references, a
 
 > **Schema projection:** `VisualReference` is defined in `nirman-schemas.md` §2.5. Owner: TA §10.4.
 
-The visual worker converts references into an editable visual specification rather than directly copying pixels. The specification records screens, navigation states, layout regions, component roles, spacing, typography, colors, assets, interactions, responsive behavior across Android emulator profiles, and unresolved uncertainties. The implementation worker uses that specification to synthesize Android code, while the validation worker compares Nirman-managed local Android emulator screenshots against the reference and reports visual differences with evidence.
+The Visual QA Worker (§6.5) converts references into an editable visual specification rather than directly copying pixels. The specification records screens, navigation states, layout regions, component roles, spacing, typography, colors, assets, interactions, responsive behavior across Android emulator profiles, and unresolved uncertainties. The UI Worker uses that specification to synthesize Android code, while the Visual QA Worker compares Nirman-managed local Android emulator screenshots against the reference and reports visual differences with evidence.
 
 Screenshots sent to a cloud model must pass the project privacy policy. The system must redact or warn about sensitive text and identify the provider receiving the image. A visual reference is never treated as executable instruction; it is input data interpreted through the task contract.
 
@@ -1213,7 +1218,7 @@ PROMOTION_REVIEW
     └── ROLLED_BACK
 ```
 
-The self-development worker may continue autonomously through implementation, tests, rebuilds, candidate launches, and repair cycles. It must stop for promotion only when the promotion policy requires approval or when a hard safety, compatibility, migration, or health condition fails.
+Self-development work — carried by the ordinary roles of §6.5 inside the candidate worktree, not by a distinct worker role — may continue autonomously through implementation, tests, rebuilds, candidate launches, and repair cycles. It must stop for promotion only when the promotion policy requires approval or when a hard safety, compatibility, migration, or health condition fails.
 
 ### 25.5 Candidate validation
 
@@ -4614,10 +4619,12 @@ Specialist gates are responsibilities assigned to the canonical worker roles of 
 | Security scanning | Security Worker | Detect secrets, unsafe configuration, dependency vulnerabilities, license violations, provenance gaps, and client-bundle exposure | Security and dependency evidence before commit or artifact promotion |
 | Schema/type consistency | Reconciliation Worker | Compare schemas, types, UI/control-plane messages, Android service contracts, and persisted records for drift | Schema compatibility and contract-parity result |
 | Diff-aware patching | Debugging Worker (repairs) or the owning implementation worker (UI Worker, Android Data and Integration Worker) | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
-| Diagnostics | Debugging Worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
-| Validation | Test and QA Worker, with Visual QA Worker for visual/accessibility checks | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
+| Diagnostics | Diagnostic Worker (as the child of the failing worker) or Debugging Worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
+| Validation | Test and QA Worker, with Emulator Driver Worker for scenario execution and Visual QA Worker for visual/accessibility checks | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
 | Memory/index update | Documentation Worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
 | Release preparation | Release Worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
+| Adversarial critique | Critic Worker | Search for the counterexample that would make the selected strategy or completion claim wrong; request the discriminating evidence | A critique finding blocks authorization until answered with evidence (build spec §68.10) |
+| Integration doubles | Integration Double Worker | Author and conform `ContractDouble` fixtures for every declared integration without a reachable backend | Double conformance evidence; `IntegrationState` never passes `SPECIFIED` on its account |
 
 The orchestrator reconciles specialist handoffs against one shared contract and the current project revision. A worker report cannot mark a task complete, promote a preview, approve a dependency, or authorize an external effect. A specialist may recommend a result only through its typed operation and evidence contract.
 
@@ -4874,7 +4881,7 @@ The Content Intelligence runtime comprises deterministic authorities, coordinato
 - `ContentStore`: canonical persistence implementation for Content records; `ContentAuthority` remains authoritative for state admission and lifecycle; durable SQLite persistence; atomically stores content revisions with respect to parent construction transactions, surviving restart and compaction.
 - `ContentValidator`: validation only; verifies terminology consistency, locale completeness, accessibility suitability, placeholder preservation, and interpolation correctness.
 
-No content worker may directly mark content complete. `ContentWorker` proposes mutations; `ContentTransactionCoordinator` validates and admits the mutation through `ContentValidator` and `ContentAuthority`; the transaction commits; and `EvidenceAuthority` generates authoritative evidence.
+No Content Worker (§6.5; ADR-227) may directly mark content complete. `ContentWorker` is its runtime component and proposes mutations; `ContentTransactionCoordinator` validates and admits the mutation through `ContentValidator` and `ContentAuthority`; the transaction commits; and `EvidenceAuthority` generates authoritative evidence.
 
 ### 85.3 Persistence and retention
 
@@ -4884,7 +4891,7 @@ No content worker may directly mark content complete. `ContentWorker` proposes m
 
 ### 85.4 Failure, dependency graph, and recovery
 
-Content worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation.
+Content Worker failure rolls back the partial `ConstructionTransaction` and records a `failureEvidenceId`. Content recovery MUST NOT produce partial or inconsistent content state. Content recovery MUST NOT bypass validation.
 
 Content dependencies are modeled as typed edges into the project `ImpactGraph`:
 ```text

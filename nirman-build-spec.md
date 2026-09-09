@@ -1103,6 +1103,11 @@ To prevent the latency and scalability bottlenecks of traditional sequential too
 | Documentation Worker | Documentation, decisions, and release notes | Documentation paths |
 | Release Worker | Builds, packaging, and release reports | Build and artifact paths |
 | Reconciliation Worker | Conflict analysis and integration validation | No direct mutation until integration |
+| Emulator Driver Worker | Install, launch, scenario execution, `ScreenGraph` exploration, device hygiene, runtime evidence capture | Device adapter operations on the leased emulator; no source mutation |
+| Diagnostic Worker | Root-cause localization and `FailureContextPackage` production for a parent worker | Read-only; one probe child |
+| Content Worker | Product copy, localization, and accessibility text as `ContentMutation` proposals | Proposal only; content transaction commits |
+| Integration Double Worker | `ContractDouble` fixtures and schema conformance for declared integrations | Double fixtures only; never the real service |
+| Critic Worker | Adversarial critique of plans, strategies, and evidence claims before authorization and promotion | Read-only; findings and evidence requests only |
 
 The orchestrator manages these workers through structured task contracts and merges their results using an automated **Reconciliation Worker** that checks for file conflicts and integration errors before applying changes to the main workspace.
 
@@ -1199,6 +1204,11 @@ Recommended built-in workers are shown below.
 | Release Worker | Create local build artifacts, packaging metadata, checksums, and release reports | Build commands; release files |
 | Reconciliation Worker | Compare independent changes and prepare a validated integration plan | Read-only until integration |
 | Primary Orchestrator | Decompose goals, select workers, coordinate dependencies, and synthesize evidence | Task graph and delegation only |
+| Emulator Driver Worker | Install and launch builds, run scenarios and `ScreenGraph` exploration, handle device dialogs under `DeviceHygienePolicy`, capture runtime evidence | Device adapter; no source edits |
+| Diagnostic Worker | Localize a parent worker's failure to a cause surface and package the evidence | Read-only; diagnostics |
+| Content Worker | Write and revise product copy, localization strings, and accessibility text | Content proposals only |
+| Integration Double Worker | Build and conform `ContractDouble` fixtures for declared external integrations | Double fixtures only |
+| Critic Worker | Attack plans, strategies, and completion claims; request the evidence that would refute them | Read-only; no approvals |
 
 A worker should return a structured handoff rather than injecting all of its raw logs into the main chat. The handoff should include a concise summary, evidence, files inspected, files changed, tests run, unresolved questions, and recommended next action.
 
@@ -1206,7 +1216,7 @@ The orchestrator should choose swarm size using task complexity, dependency coup
 
 For genuinely interdependent work, the orchestrator must create an interface agreement before parallel implementation. The agreement may include API shapes, shared types, route contracts, database schemas, event formats, or design tokens. Workers validate against this agreement before reconciliation.
 
-Worker nesting is limited to two levels by default: the Primary Orchestrator may delegate to workers, and a worker may request a narrowly scoped diagnostic child worker. A child worker cannot create further workers, change the parent contract, expand permissions, or integrate changes. Deeper nesting requires an explicit future policy because unrestricted delegation makes ownership, evidence, and recovery ambiguous.
+Worker nesting is limited to three levels by default (ADR-227): the Primary Orchestrator may delegate to workers; a worker may request one Diagnostic Worker child; and a Diagnostic Worker may request one probe child — a Repository Scout or Emulator Driver Worker instance restricted to observation actions, spawned to acquire the single piece of evidence the diagnosis is missing. No child may change the parent contract, expand permissions, or integrate changes; a probe child cannot create children; and every level satisfies the ceilings of §66.8 inside the worker limits of technical architecture §7.2, so depth adds observation and never authority. Unrestricted delegation would make ownership, evidence, and recovery ambiguous, which is why the depth is fixed here rather than left to policy.
 
 ### 23.5 Worker chains and quality gates
 
@@ -1349,7 +1359,7 @@ Visual verification should compare screenshots against the requested design requ
 
 Testing should be treated as part of implementation rather than as a final optional step. Nirman should infer relevant checks from the project and task, including formatting, linting, type checking, unit tests, integration tests, build validation, smoke tests, and visual checks.
 
-When a check fails, the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint. It should attempt the smallest reasonable repair, rerun the failed check, and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached (§26.3; technical architecture §76.2), hand the failure to the graduated recovery ladder (§28.2) — change strategy, backtrack, delegate, escalate, or report a truthful blocker — rather than repeating the same repair.
+When a check fails, the Debugging Worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint. It should attempt the smallest reasonable repair, rerun the failed check, and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached (§26.3; technical architecture §76.2), hand the failure to the graduated recovery ladder (§28.2) — change strategy, backtrack, delegate, escalate, or report a truthful blocker — rather than repeating the same repair.
 
 The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run. “No test command was available” must not be presented as “tests passed.”
 
@@ -1535,7 +1545,7 @@ Browser automation is optional and external to the Android validation path. It m
 
 When enabled, browser automation should use a dedicated Nirman-managed browser profile, separate from the user’s personal browser profile, cookies, extensions, saved passwords, and downloads. Test sessions should use synthetic data and disposable storage by default.
 
-The browser worker should expose only approved routes and local development origins. External navigation should be controlled by the network policy. Screenshots, console logs, network failures, accessibility findings, and interaction traces should be attached to the task record.
+The browser automation `ToolSession` — a tool used by the Repository Scout or Visual QA Worker, not a worker role — should expose only approved routes and local development origins. External navigation should be controlled by the network policy. Screenshots, console logs, network failures, accessibility findings, and interaction traces should be attached to the task record.
 
 ### 26.9 Preview state, checkpoints, and rollback
 
@@ -2469,7 +2479,7 @@ Each risk records severity, probability, affected phase, evidence, mitigation, f
 
 ### 47.3 AndroidQualityGate
 
-Before artifact promotion, independent review workers MUST evaluate correctness, architecture, security, dependencies, runtime behavior, visual fidelity, accessibility, performance, test coverage, and release integrity.
+Before artifact promotion, independent read-only workers — the Critic Worker with the Security, Performance, and Visual QA Workers (§23.4; ADR-227) — MUST evaluate correctness, architecture, security, dependencies, runtime behavior, visual fidelity, accessibility, performance, test coverage, and release integrity.
 
 | Finding class | Completion behavior |
 |---|---|
@@ -3842,7 +3852,7 @@ Depth and fan-out are bounded. A grant exceeding `maxDepth`, exceeding the confi
 
 ### 66.9 Swarm evolution
 
-A swarm is a live execution graph the agent may revise, not a fixed job queue. On observing that a worker is blocked, has finished, or has produced a conflicting result, the agent may propose spawning a diagnostic worker, cancelling obsolete work, adding a dependency edge, rerouting a task, or adjusting a resource reservation.
+A swarm is a live execution graph the agent may revise, not a fixed job queue. On observing that a worker is blocked, has finished, or has produced a conflicting result, the agent may propose spawning a Diagnostic Worker, cancelling obsolete work, adding a dependency edge, rerouting a task, or adjusting a resource reservation.
 
 Every such revision is a proposal subject to the same authority path as any other action, and every reservation change respects the reservation contract of §54 and the backpressure controls of §52.12. Cross-worker review may inform reconciliation but never substitutes for evidence: one worker's approval of another's output is not evidence, per §54.4.
 
@@ -5433,7 +5443,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.7 | "Release reports should record scan results and unresolved warnings" | MUST record both | Including checks that could not run and why |
 | BS §26.8 | "browser automation should use a dedicated Nirman-managed browser profile" | MUST use a dedicated profile | Separate profile directory. MUST NOT access the user's cookies, extensions, saved passwords, or downloads |
 | BS §26.8 | "Test sessions should use synthetic data and disposable storage by default" | MUST default to synthetic and disposable | Real credentials require explicit per-session user approval |
-| BS §26.8 | "The browser worker should expose only approved routes and local development origins" | MUST restrict to approved origins | Default-deny. Any origin not explicitly approved is blocked |
+| BS §26.8 | "should expose only approved routes and local development origins" | MUST restrict to approved origins | Default-deny. Any origin not explicitly approved is blocked |
 | BS §26.8 | "External navigation should be controlled by the network policy" | MUST enforce network policy | The active profile's network policy governs. No browser-specific bypass exists |
 | BS §26.8 | "Screenshots, console logs, network failures, accessibility findings, and interaction traces should be attached to the task record" | MUST attach all five | As evidence records. Browser evidence MUST NOT be cited as Android behavioural evidence (§26.8 opening paragraph) |
 | BS §26.9 | "preview manager should associate every running preview with a project revision and checkpoint ID" | MUST bind both | An unbound preview is labelled `STALE` and cannot satisfy completion |
@@ -5520,7 +5530,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.14 | "A visual finding should include the screen or navigation state, emulator profile, screenshot, observed issue, confidence, and recommended change" | MUST include all six | A finding missing any field is incomplete evidence |
 | BS §23.15 | "Testing should be treated as part of implementation rather than as a final optional step" | MUST run within implementation | Implementation cannot be marked complete with untested changes |
 | BS §23.15 | "Nirman should infer relevant checks from the project and task" | MUST infer | Formatting, linting, type checking, unit, integration, build validation, smoke, visual — those the project actually defines |
-| BS §23.15 | "the debugger worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint" | MUST receive all four | A repair attempted without all four inputs is prohibited |
+| BS §23.15 | "the Debugging Worker should receive the focused failure output, the relevant changed files, the task acceptance criteria, and the latest checkpoint" | MUST receive all four | A repair attempted without all four inputs is prohibited |
 | BS §23.15 | "It should attempt the smallest reasonable repair, rerun the failed check, and, when the `recoveryAttemptPolicy` bound of materially different repairs for that failure fingerprint is reached" | MUST do all three and MUST escalate through the recovery ladder at the bound | The bound is the `recoveryAttemptPolicy` default of 3 materially different repairs per failure fingerprint (§26.3); reaching it changes strategy, backtracks, delegates, or escalates — it never terminates the goal and is not an AI-usage budget (ADR-218) |
 | BS §23.15 | "The final result should distinguish between passed checks, skipped checks, failed checks, environment failures, and checks that could not be run" | MUST distinguish all five | "No test command was available" MUST NOT be reported as "tests passed" |
 | BS §23.16 | "should show token usage, request count, model selection, estimated cost, duration, process time, and disk usage" | MUST show all seven when the provider exposes them | An unexposed metric shows `unavailable`; it is never estimated and presented as reported |
@@ -5722,7 +5732,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §6.5 | "The orchestrator should select swarm size from" the seven listed inputs | MUST derive swarm size from all seven | Task complexity, dependency coupling, changed-file boundaries, target platforms, interface agreements, expected validation cost, and available resources; swarm size is never a fixed constant or a model's free choice |
 | TA §6.5 | "It should prefer one worker for tightly coupled work, parallel read-only workers for exploration and review, and isolated write-capable workers only when file and interface boundaries are explicit" | MUST follow the three preferences | Concurrent write-capable workers are admitted only when their `allowedPaths` sets are disjoint and the interface between them is stated in the contracts; otherwise the work runs single-worker |
 | TA §8.3 | "The reconciliation worker should" perform the eight listed steps | MUST perform all eight steps in order | Compare parent revision to integration revision → build changed-file and changed-symbol graph → apply non-overlapping changes deterministically → identify overlapping files, dependency changes, route conflicts, schema conflicts, and incompatible assumptions → request a reviewer patch → apply in the integration workspace → run formatting, linting, type checks, tests, and builds → create the integration checkpoint only after required gates pass; on failure the integration workspace is preserved and the main workspace is untouched |
-| TA §10.2 | "The emulator worker should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report" | MUST perform all seven and return a structured report | A missing step is reported as not performed rather than omitted from the report; the report is structured data, never prose, and per BS §56 a visual report alone never establishes behavioral correctness |
+| TA §10.2 | "The Emulator Driver Worker (§6.5; ADR-227) should install the build, launch activities, execute synthetic interactions, capture screenshots, record Logcat and crash output, verify permissions and orientation, and return a structured visual report" | MUST perform all seven and return a structured report | A missing step is reported as not performed rather than omitted from the report; the report is structured data, never prose, and per BS §56 a visual report alone never establishes behavioral correctness |
 | TA §10.3 | "The Android emulator manager should provide a normalized interface" | MUST expose the tabled `Device` shape for every managed emulator | `id`, `name`, `kind`, `platformVersion`, `architecture`, `connectionState`, `availableStorage`, `hotReloadState`, `logStream`, `installState`; the same shape is returned regardless of emulator backend |
 | TA §10.3 | "the interface should not assume that limitation" (one active device) | MUST NOT encode a single-device assumption | `Device` is addressed by `id` throughout; no code path assumes a singleton; the first release may run one active device as a runtime limit, not an interface limit |
 | TA §10.3 | "Device logs, installation results, reload failures, and build artifacts should be attached to the task record" | MUST attach all four to the task record | Each is attached as an evidence record with the TA §23.3 fields; an emulator session that produced no attached artifacts is treated as having produced no evidence |
@@ -5814,6 +5824,8 @@ Every "configurable" parameter in the specification has a default value defined 
 | Worker heartbeat interval | 10 seconds | 5-30 seconds | Per project |
 | Concurrent write-capable workers per task | 3 | 1-5 | Per project |
 | Concurrent read-only workers per task | 5 | 1-10 | Per project |
+| Worker nesting depth (orchestrator → worker → diagnostic child → probe child) | 3 | 2-3 | Per project |
+| Probe children per Diagnostic Worker | 1 | 0-1 | Per project |
 | Total active workers | 8 | 4-16 | Per project |
 | Worker process memory limit (Job Object limit of one `NirmanWorker.exe`, TA §3.5) | 2 GB | 1-8 GB | Per project |
 | Default task wall-clock policy | No artificial completion limit | N/A | Per task |
@@ -5870,7 +5882,7 @@ When the runtime has multiple options, it MUST choose using these explicit crite
 When a failure occurs, the runtime MUST select a recovery strategy using this ordered priority:
 
 1. **Transient retry** — If the failure is transient (network timeout, rate limit, temporary lock), retry with exponential backoff
-2. **Focused diagnostic** — If the failure is localized, spawn a diagnostic worker to isolate the cause
+2. **Focused diagnostic** — If the failure is localized, spawn a Diagnostic Worker to isolate the cause
 3. **Context refresh** — If the failure may be due to stale context, compact and refresh context
 4. **Strategy change** — If the current strategy has failed twice, switch to a different strategy
 5. **Worker role change** — If the current worker role is inappropriate, delegate to a different role
