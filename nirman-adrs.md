@@ -2875,3 +2875,18 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Reversal trigger:** The Rust workspace of M0–M2 shows that a registered component cannot live in its declared crate without a dependency cycle, or the number of alias rows grows past the number of authority rows — either means the registry describes a structure the code does not have, and the superseding ADR re-cuts the crate graph rather than loosening the closure rule.
 
 ---
+
+## ADR-224: Nirman's authority and involvement terminate at the certified local build artifact
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.SCOPE`
+
+**Decision:** Nirman's product scope ends at producing a certified, evidence-backed local build artifact (APK, or AAB when the packaging profile requires it, with checksums, environment snapshot, validation evidence, and provenance per build spec §78 and technical architecture §83). Nirman holds no capability, service, schema, or contract for observing, monitoring, or receiving telemetry, crash reports, ANRs, or user feedback from a published or installed instance of a generated application once it leaves Nirman's local workspace; for ingesting field or usage data of any kind; or for proposing, generating, or auto-applying spec or code changes to a generated project based on such data. The Self-Improvement Manager (technical architecture §30) and its `ImprovementProposal` targets remain scoped exclusively to Nirman's own internal components (prompts, routing, tool schemas, worker roles, runtime code) and never to a generated project's post-publish behavior.
+
+**Rationale:** Nirman has no backend, hosted service, or channel by which a published application could report back to it, and none is being added — same reasoning as ADR-020 (external side effects requiring a policy and audit model this product does not implement). Leaving this unstated invites an agent to infer a feedback-ingestion capability from similar-looking constructs (`ImprovementProposal`, `RuntimeTraceAnalyzer`, the evidence ledger, the ANR and crash signals of `CONTRACT.RUNTIME.ANDROID_INTEGRITY`) that in fact never reach past the local build, test, and repair loop on the Nirman-managed emulator.
+
+**Consequences:** Build spec §1.4 gains this boundary alongside the existing publish/sign/spend-money boundary. Build spec §46 (Non-Goals) gains a paragraph naming store submission, post-publish monitoring, field-feedback ingestion, and usage-driven spec evolution as excluded. Technical architecture §30.1's improvement-sources list is annotated as Nirman-internal-only. No milestone, schema, or existing capability changes — nothing in M0–M122 or `nirman-schemas.md` assumes this capability (the usage and resource telemetry of M3, M19, and M113 is Nirman's own), so this is a clarifying record, not a corrective one.
+
+**Reversal trigger:** None foreseeable — reversing this would require Nirman to acquire a hosted service or backend channel, which contradicts the no-hosted-platform-dependency invariant of build spec §1.5; a superseding ADR would first have to supersede that invariant.
+
+---

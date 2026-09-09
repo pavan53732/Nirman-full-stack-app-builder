@@ -1405,7 +1405,7 @@ The evaluation engine should include ordinary feature tasks, multi-file refactor
 
 ### 30.1 Improvement sources
 
-The self-improvement manager may create improvement proposals from recurring failure patterns, regression clusters, provider incompatibilities, task-intervention categories, benchmark results, user corrections, stale instructions, tool failures, and observed performance degradation.
+The self-improvement manager may create improvement proposals from recurring failure patterns, regression clusters, provider incompatibilities, task-intervention categories, benchmark results, user corrections, stale instructions, tool failures, and observed performance degradation. All sources are Nirman-internal: this loop improves Nirman's own prompts, routing, tool schemas, worker roles, and runtime code, never a generated project's behavior after publish (ADR-224).
 
 It must not automatically convert a single unusual failure into a permanent rule. An improvement proposal should include evidence frequency, affected task classes, confidence, expected benefit, possible regressions, scope, and rollback plan.
 

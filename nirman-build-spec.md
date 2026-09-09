@@ -47,7 +47,7 @@ The application should combine the most useful characteristics of conversational
 
 ### 1.4 Important feasibility boundary
 
-Nirman can become highly autonomous, but “fully autonomous” must be defined carefully. It should be capable of planning, implementing, running, testing, inspecting, and repairing a project within a permissioned local workspace. It should not silently access arbitrary files, publish software, spend money, sign release builds, or transmit private information without user approval.
+Nirman can become highly autonomous, but “fully autonomous” must be defined carefully. It should be capable of planning, implementing, running, testing, inspecting, and repairing a project within a permissioned local workspace. It should not silently access arbitrary files, publish software, spend money, sign release builds, or transmit private information without user approval. Nirman's involvement with a project ends at the certified local build artifact: it has no channel to a published or installed application and does not observe, monitor, or ingest data from it after it leaves Nirman's workspace (ADR-224).
 
 ### 1.5 Distribution and licensing model
 
@@ -2392,6 +2392,8 @@ Every substantial build, recovery cycle, and final artifact MUST include an envi
 The following remain explicitly outside Nirman’s generated-target scope: Windows application generation; web application generation; WinUI, WPF, WinForms, Win32, WinRT, MSBuild, MSIX, MSI, or Windows-manifest target generation; Roslyn, XAML, or EF Core as mandatory implementation technologies; a user-facing framework or template catalog; direct model writes to files; unrestricted model shell authority; unauthenticated local provider access; uncontrolled infinite mutation retries; and completion based solely on model claims.
 
 Internal bootstrap scaffolding is permitted only when required to create a valid Android project; it is not a user-facing template limitation and does not constrain the AI’s technology selection.
+
+Also explicitly outside Nirman's scope: submission to app stores or external distribution services; monitoring, telemetry, or crash/ANR collection from a published or installed application; ingestion of field or usage data of any kind; and generation or auto-application of spec or code changes based on such data. Nirman's product boundary is the certified local build artifact, not the application's post-publish lifecycle (ADR-020, ADR-224).
 
 ### 46.1 Product Acceptance Additions
 
