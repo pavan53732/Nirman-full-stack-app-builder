@@ -404,6 +404,8 @@
 | `ToolchainProvisioningRecord` | §2.88 | TA §49.4 | — | — |
 | `RenderTransport` | §2.89 | TA §10.7 | — | — |
 | `WorkerConnection` | §2.90 | TA §57.11 | — | — |
+| `ScreenModel` | §2.91 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
+| `ScreenGraph` | §2.92 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -489,4 +491,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-224 | 25 | Accepted 25 |
+| ADR-200–ADR-225 | 26 | Accepted 26 |

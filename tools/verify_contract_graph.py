@@ -1851,6 +1851,41 @@ def check_semantic_documentation(docs, R, D, root="."):
                             ("fails documentation certification", "state that an undefined component name fails certification")):
             if needle not in m_223:
                 D.add("semantic documentation", "component registry", f"ADR-223 must {why}")
+    # ADR-225 machine-answerable loop. The autonomous emulator loop must have a
+    # text-native perception channel (ScreenModel, TA §74.2), runtime-produced
+    # scenarios with requirement coverage (ScreenGraph/ScenarioSynthesizer,
+    # TA §62.1; BS §56.2), and the ADR itself must carry the justification
+    # field for any human decision raised inside the loop.
+    m_742 = _section_text(ta, "74.2") or ""
+    for needle, why in (("`ScreenModel` is defined in `nirman-schemas.md`", "project the ScreenModel schema"),
+                        ("never on pixels", "state that workers act on the ScreenModel, never on pixels"),
+                        ("never blocks functional completion", "state that a missing vision model never blocks functional completion")):
+        if needle not in m_742:
+            D.add("semantic documentation", "autonomous loop", f"TA §74.2 must {why} (ADR-225)")
+    m_621 = _section_text(ta, "62.1") or ""
+    for needle, why in (("`ScreenGraph` is defined in `nirman-schemas.md`", "project the ScreenGraph schema"),
+                        ("ScreenGraphExplorer", "name ScreenGraphExplorer"),
+                        ("ScenarioSynthesizer", "name ScenarioSynthesizer"),
+                        ("rather than silently dropped", "report an uncovered requirement to the planner rather than silently dropping it")):
+        if needle not in m_621:
+            D.add("semantic documentation", "autonomous loop", f"TA §62.1 must {why} (ADR-225)")
+    m_562 = _section_text(bs, "56.2") or ""
+    if "A requirement with no executed scenario is not validated" not in m_562:
+        D.add("semantic documentation", "autonomous loop",
+              "BS §56.2 must state that a requirement with no executed scenario is not validated (ADR-225)")
+    for name, field in (("ScreenModel", "- windowKind: APP | SYSTEM_DIALOG | KEYGUARD | LAUNCHER | INPUT_METHOD"),
+                        ("ScreenGraph", "- uncoveredRequirementIds")):
+        m_blk = re.search(r"```text\n" + name + r"\n(.*?)```", sch, re.S)
+        if m_blk is None or field not in m_blk.group(1):
+            D.add("semantic documentation", "autonomous loop",
+                  f"nirman-schemas.md {name} block must carry `{field.lstrip('- ').split(':')[0]}` (ADR-225)")
+    m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
+    m_225 = m_225.group(0) if m_225 else ""
+    for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),
+                        ("**Reversal trigger:**", "carry a Reversal trigger"),
+                        ("automaticPathsAttempted", "require automaticPathsAttempted on every USER_REQUIRED decision raised inside the loop")):
+        if needle not in m_225:
+            D.add("semantic documentation", "autonomous loop", f"ADR-225 must {why}")
     # Approval expiry has exactly two rules (BS §26.13); every statement of it
     # must carry both so no document reads as clock-only or context-only.
     if "A pending approval request expires in exactly two ways, whichever comes first" not in bs:

@@ -3337,6 +3337,8 @@ Launching an app and screenshotting the first screen does not prove the app work
 
 A scenario must be deterministic. Non-deterministic scenarios must be marked and must not be used as completion evidence.
 
+Scenarios are produced by the runtime, not awaited from a human. After the first successful install, the runtime explores the application into a `ScreenGraph` and `ScenarioSynthesizer` derives an `E2EScenario` for every acceptance criterion and every required class of §56.3 (technical architecture §62.1; ADR-225). A requirement with no executed scenario is not validated: it MUST appear in `uncoveredRequirementIds`, MUST be reported to the planner, and MUST NOT be counted toward completion. Every `steps` entry and every assertion MUST name a `ScreenModel` element identity or observable property (technical architecture §74.2); a step that names screen coordinates only is not a scenario step.
+
 ### 56.3 Required scenario classes
 
 | Class | Must verify |

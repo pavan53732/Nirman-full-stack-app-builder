@@ -3646,6 +3646,78 @@ WorkerConnection
 - closedAt
 ```
 
+### 2.91 ScreenModel
+
+**Owner:** TA §74.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+ScreenModel
+- screenModelId
+- observationId
+- deviceSessionId
+- previewRevisionId
+- applicationStateFingerprint
+- packageId
+- activityName
+- windowKind: APP | SYSTEM_DIALOG | KEYGUARD | LAUNCHER | INPUT_METHOD
+- elements: ordered list of ScreenElement
+  - elementIndex
+  - resourceId
+  - className
+  - text
+  - contentDescription
+  - bounds
+  - clickable: true | false
+  - longClickable: true | false
+  - scrollable: true | false
+  - editable: true | false
+  - checkable: true | false
+  - checked: true | false
+  - enabled: true | false
+  - focused: true | false
+  - depth
+  - parentIndex
+- actionableElementCount
+- screenFingerprint
+- redactionPolicyId
+- capturedAt
+```
+
+### 2.92 ScreenGraph
+
+**Owner:** TA §62.1 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+ScreenGraph
+- screenGraphId
+- taskId
+- projectRevisionId
+- artifactFingerprint
+- deviceSessionId
+- goldenSnapshotId
+- explorationPolicyId
+- maxDepth
+- maxActionsPerScreen
+- nodes: list of ScreenGraphNode
+  - screenFingerprint
+  - screenModelId
+  - activityName
+  - firstReachedAt
+  - unexploredActionCount
+- edges: list of ScreenGraphEdge
+  - fromScreenFingerprint
+  - action
+  - targetIdentity
+  - toScreenFingerprint
+  - observedResult: NAVIGATED | UNCHANGED | DIALOG | CRASHED | ANR | EXTERNAL_INTENT
+  - interactionId
+- coveredRequirementIds
+- uncoveredRequirementIds
+- status: EXPLORING | COMPLETE | BOUNDED | ABORTED
+- createdAt
+- completedAt
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -3725,6 +3797,8 @@ ConversationDecisionIndex
 ConversationRebaseRecord
 ChangeReportRecord
 ChangeImpactReport
+ScreenModel
+ScreenGraph
 ```
 
 ## References

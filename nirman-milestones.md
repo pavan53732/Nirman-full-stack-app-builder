@@ -313,6 +313,7 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 12. Prove provisioning readiness end to end: from an empty toolchain root, `ToolchainProvisioner` reaches `READY` only when one stamped frame is observed inside PreviewHost, and a run that installs every component but delivers no frame is recorded as `PROVISIONED_UNVERIFIED`.
 13. Prove emulator launch → render surface → embedded viewport → interaction → runtime observation.
 14. Prove detached emulator-window and screenshot-only paths cannot satisfy primary preview completion.
+15. Implement `ScreenModel` normalization from `AndroidDeviceAdapter.captureUiHierarchy` (TA §74.2; SCHEMAS §2.91; ADR-225) with a stable `screenFingerprint`, and `ScreenGraphExplorer` bounded exploration into a `ScreenGraph` (TA §62.1; SCHEMAS §2.92). Fixture: the same screen captured twice yields the same fingerprint; a five-screen fixture application is fully explored within the declared bounds; a crash met during exploration is recorded as a `CRASHED` edge and a failure fingerprint, not as a hung run.
 
 ### Exit gate
 
@@ -510,7 +511,9 @@ Add an evidence ledger for command results, test reports, build artifacts, scree
 
 Implement the default validation loop: Nirman-managed local Android emulator preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
 
-**Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation.
+Implement `ScenarioSynthesizer` (TA §62.1; ADR-225): derive an `E2EScenario` for every acceptance criterion and every build spec §56.3 class from the `ScreenGraph`, register it through `ScenarioRegistry`, and write `coveredRequirementIds` and `uncoveredRequirementIds`. Fixture: a requirement no graph path can reach is reported to the planner as a `REPLAN` input and is absent from completion evidence; a synthesized scenario that flips between runs is quarantined by the TA §62.3 determinism rule exactly like an authored one.
+
+**Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation. No requirement is counted validated without an executed scenario, and no scenario waits for a human author.
 
 Every required behavioral acceptance condition must execute through `CONTRACT.RUNTIME.E2E`. A validation run that builds or launches the application but does not execute its required interaction scenarios cannot produce `COMPLETED`.
 

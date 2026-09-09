@@ -30,6 +30,8 @@
 
 **ClauseId / Clause Registry** — A stable identifier for one normative clause, with its owning contract, authority section, value, and seal state. — BS §67.12.
 
+**ScreenModel / ScreenGraph** — The text-native perception channel of the autonomous loop: a normalized, fingerprinted element list derived from the running application's UI hierarchy, and the bounded exploration graph built from it, from which `ScenarioSynthesizer` derives scenarios so no validation waits for a human author. — TA §74.2; TA §62.1; ADR-225.
+
 **Component and authority registry** — The TA §57.12 table that gives every authority and every cross-document component name its kind, crate, owned decisions, committed records, and defining section; alias rows name the owner they stand for and carry no crate. — TA §57.12; ADR-223.
 
 **ContractId / Contract Authority Registry** — A stable identifier for one normative contract with exactly one authoritative section; every other section that addresses it is a declared extension. — BS §67.7; BS §67.8.

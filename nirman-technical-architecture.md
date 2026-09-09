@@ -419,6 +419,8 @@ The InteractionExecutor operates only against the running generated Android appl
 
 Every interaction produces an observed result that enters the normal Evidence → ValidationResult → CompletionDecision chain.
 
+A synthetic interaction is an `InteractionExecutor` action whose target is a `ScreenModel` element identity (§74.2) and whose steps come from an `E2EScenario` — authored, or synthesized by `ScenarioSynthesizer` from the `ScreenGraph` (§62.1; ADR-225). The emulator worker does not improvise taps against pixels.
+
 ### 10.3 Android emulator manager
 
 The Android emulator manager should provide a normalized interface for Nirman-managed Android emulators:
@@ -457,7 +459,7 @@ The `interactionClues` field records hypotheses only. A hypothesis in that field
 
 Spacing, typography, and color derived from an image are estimates, not measurements. They MUST be recorded as assumptions with their derivation noted, and MUST yield to any explicitly stated value.
 
-Visual comparison of a Nirman-managed local Android emulator screenshot against a reference is a visual observation only. It contributes evidence about appearance; it never establishes that behavior, state, or navigation is correct. Behavioral proof comes from the stateful scenarios of BS §56 (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
+The primary perception channel of the autonomous loop is the `ScreenModel` derived from the running application's UI hierarchy (§74.2; ADR-225), not the screenshot: a configured vision model is optional, and its absence marks visual criteria `NOT_OBSERVED` without blocking functional completion. Visual comparison of a Nirman-managed local Android emulator screenshot against a reference is a visual observation only. It contributes evidence about appearance; it never establishes that behavior, state, or navigation is correct. Behavioral proof comes from the stateful scenarios of BS §56 (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
 
 ### 10.5 Dynamic Android project synthesis
 
@@ -2784,6 +2786,8 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `CrossCompilationAuthority` | decision point | `nirman-policy` | The cross-build admission decision inside `ToolBroker`/`PolicyAuthority`, fed by the `EnvironmentCapabilityPlanner` classification (§84.3) | `BuildGateRecord` (§84.1) | §84.3 |
 | `NativeRuntimeValidationAuthority` | decision point | `nirman-evidence` | The native-runtime validation gate inside `EvidenceAuthority` and the completion evaluator (§84.3) | gate closure on `BuildGateRecord` | §84.3 |
 | `BrandAssetCompletionGate` | decision point | `nirman-evidence` | The asset completion rules of build spec §50.4 applied by `EvidenceAuthority` to the built APK through `ArtifactAssetInspector` (§56.6): a requested asset that is missing, unpackaged, stale, failing format checks, or unverified in the preview blocks completion | asset gate evidence | build spec §50.2, §56.6 |
+| `ScreenGraphExplorer` | module | `nirman-android` | Bounded exploration of the installed application into a `ScreenGraph` on a golden-snapshot device (§62.1; ADR-225) | `ScreenGraph` | §62.1 |
+| `ScenarioSynthesizer` | module | `nirman-android` | Derivation of `E2EScenario` steps and assertions for acceptance criteria and the build spec §56.3 classes from the `ScreenGraph`; coverage bookkeeping (§62.1; ADR-225) | `E2EScenario` via `ScenarioRegistry` | §62.1 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -3371,6 +3375,12 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | ScenarioExecutor | Runs steps against an emulator session and records results |
 | StateProbe | Verifies persisted state after process death or restart |
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
+| ScreenGraphExplorer | Explores the installed application from the launcher into a `ScreenGraph` (ADR-225) |
+| ScenarioSynthesizer | Derives `E2EScenario` steps for acceptance criteria and the eight scenario classes of build spec §56.3 from the `ScreenGraph` |
+
+> **Schema projection:** `ScreenGraph` is defined in `nirman-schemas.md` §2.92. Owner: TA §62.1.
+
+`ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` then maps each acceptance criterion and each required scenario class to a path in the graph and emits an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.3 exactly like authored ones.
 
 ### 62.2 Step and assertion schema
 
@@ -4473,6 +4483,10 @@ An Android service integration is a supporting dependency of the generated Andro
 > **Schema projection:** `UiHierarchyObservation` is defined in `nirman-schemas.md` §2.73. Owner: TA §74.2.
 
 UI-hierarchy evidence may support accessibility, navigation, state, and visual checks. It cannot replace supervised Nirman-managed local Android emulator execution and cannot satisfy validation while requested, predicted, simulated, stale, or invalidated.
+
+> **Schema projection:** `ScreenModel` is defined in `nirman-schemas.md` §2.91. Owner: TA §74.2.
+
+`ScreenModel` is the text-native perception channel of the autonomous loop (ADR-225). `AndroidDeviceAdapter.captureUiHierarchy` produces the raw hierarchy; the device layer normalizes it into a `ScreenModel` whose elements carry identity, text, bounds, and actionability, and whose `screenFingerprint` is stable across captures of the same screen state. Workers and `ScenarioSynthesizer` act on the `ScreenModel`, never on pixels: a tap targets an element identity, an assertion names an element property, and a screen is recognized by its fingerprint. Screenshots remain evidence for humans and for visual criteria; a vision model (`visionModelId`) is optional and its absence marks visual criteria `NOT_OBSERVED` — it never blocks functional completion and never substitutes for a `ScreenModel`. A `ScreenModel` whose `windowKind` is not `APP` is a system surface handled by the device adapter (§73.12), not by a worker.
 
 ### 74.3 Signing and export verification
 

@@ -474,6 +474,18 @@ CASES = {
     "the ToolchainProvisioningRecord loses its networkPath field": (
         SCHEMAS, "- networkPath: DIRECT | SYSTEM_PROXY | PAC\n", "",
         "semantic documentation"),
+    # ---- ADR-225 machine-answerable loop (perception and scenario synthesis)
+    "TA §74.2 lets workers act on pixels instead of the ScreenModel": (
+        TA, "act on the `ScreenModel`, never on pixels",
+        "act on the `ScreenModel` or on pixels as convenient",
+        "semantic documentation"),
+    "BS §56.2 counts a requirement without an executed scenario as validated": (
+        BS, "A requirement with no executed scenario is not validated:",
+        "A requirement with no executed scenario may be validated by source inspection:",
+        "semantic documentation"),
+    "the ScreenGraph loses its uncoveredRequirementIds field": (
+        SCHEMAS, "- uncoveredRequirementIds\n", "",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",
