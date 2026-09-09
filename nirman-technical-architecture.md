@@ -431,6 +431,12 @@ In Nirman's Android runtime contracts, a Device represents a Nirman-managed Andr
 
 The first release may support one active device, but the interface should not assume that limitation. Device logs, installation results, reload failures, and build artifacts should be attached to the task record.
 
+> **Schema projection:** `DeviceHygienePolicy` is defined in `nirman-schemas.md` §2.93. Owner: TA §10.3.
+
+> **Schema projection:** `GoldenSnapshot` is defined in `nirman-schemas.md` §2.94. Owner: TA §10.3.
+
+Determinism is a mechanism, not an aspiration (ADR-225). After `boot()` and before any application is installed, the emulator manager applies the session's `DeviceHygienePolicy` through the device adapter — animation scales zero, keyguard disabled, stay-awake on, setup wizard skipped, locale, timezone, font scale, and density pinned, auto-rotate off — verifies each setting by reading it back, and records the result; a policy that cannot be verified leaves the device `PROVISIONED_UNVERIFIED` for validation purposes. It then takes one `GoldenSnapshot` per device session. Every scenario run, and the first exploration pass of §62.1, begins with `restore(goldenSnapshotId)` followed by a fresh install and the scenario's `seedData`; a scenario that starts from any other state is not deterministic evidence. The golden snapshot is invalidated by a system-image, hygiene-policy, or device-profile change and is retaken, never patched. The user-facing preview surface (§10.8) is never restored underneath the user without a visible `DRIVEN_BY_SCENARIO` state (build spec §29.3).
+
 ### 10.4 Screenshot and visual-specification pipeline
 
 The input manager should accept screenshots, image sets, annotated references, and optional user assets as first-class project inputs. It should create a durable `VisualReference` record:
@@ -4387,6 +4393,8 @@ A resolver output is recorded as part of the `PreviewRequest` decision trace. Th
 The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Every Nirman-managed local Android emulator implementation MUST satisfy this interface; the interface is an execution contract, not an authority.
 
 > **Schema projection:** `AndroidDeviceAdapter` is defined in `nirman-schemas.md` §2.68. Owner: TA §73.12.
+
+System surfaces are the adapter's job, not a worker's and not a human's (ADR-225). When a captured `ScreenModel` (§74.2) has a `windowKind` other than `APP`, the adapter applies the matching `SystemDialogRule` of the session's `DeviceHygienePolicy` before the interaction result is returned: a runtime-permission dialog is answered as the running scenario's permission path declares (grant or deny — build spec §56.3 requires both), an application-crash or ANR dialog is captured as crash evidence through `collectCrash()` and dismissed, a keyguard or setup-wizard surface is a hygiene failure that invalidates the golden snapshot, and an external-intent chooser is cancelled and recorded as an `EXTERNAL_INTENT` edge. Every handled dialog is an observation in the evidence chain with its rule identity; a dialog no rule matches is a `failureClassification`, never a `USER_REQUIRED` decision, because the emulator holds no state a human must supply.
 
 Every operation returns a typed observation that carries `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, and `invalidationDependencies`. Operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state; those remain with the existing specialized authorities. A revision, toolchain update, environment fingerprint change, emulator identity change, or capability revocation invalidates dependent observations and completion claims unless the dependency graph proves independence.
 

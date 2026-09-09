@@ -1815,6 +1815,9 @@ PreviewSurface
 - renderTransportVersion
 - inputChannelId
 - viewportStateFingerprint
+- drivenBy: USER | SCENARIO | EXPLORATION | RESTORE
+- drivenByScenarioId
+- queuedUserInputCount
 - status
 - createdAt
 ```
@@ -3718,6 +3721,53 @@ ScreenGraph
 - completedAt
 ```
 
+### 2.93 DeviceHygienePolicy
+
+**Owner:** TA §10.3 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+DeviceHygienePolicy
+- deviceHygienePolicyId
+- policyVersion
+- deviceSessionId
+- animationScale: 0
+- keyguardDisabled: true
+- stayAwake: true
+- setupWizardSkipped: true
+- locale
+- timezone
+- fontScale
+- densityOverride
+- autoRotateDisabled: true
+- systemDialogHandling: list of SystemDialogRule
+  - dialogKind: RUNTIME_PERMISSION | APP_CRASH | ANR | KEYGUARD | SETUP_WIZARD | SYSTEM_UPDATE | EXTERNAL_INTENT_CHOOSER
+  - handling: ANSWER_PER_SCENARIO | CAPTURE_AND_DISMISS | DISMISS | CANCEL
+  - evidenceRequired: true | false
+- appliedAt
+- verificationFingerprint
+- status: PENDING | APPLIED | VERIFIED | FAILED
+```
+
+### 2.94 GoldenSnapshot
+
+**Owner:** TA §10.3 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+GoldenSnapshot
+- goldenSnapshotId
+- deviceSessionId
+- deviceProfileId
+- systemImageDigest
+- deviceHygienePolicyId
+- snapshotRef
+- deviceStateFingerprint
+- takenAt
+- restoreCount
+- lastRestoredAt
+- lastRestoreDurationMs
+- status: TAKING | READY | STALE | INVALID
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -3799,6 +3849,8 @@ ChangeReportRecord
 ChangeImpactReport
 ScreenModel
 ScreenGraph
+DeviceHygienePolicy
+GoldenSnapshot
 ```
 
 ## References

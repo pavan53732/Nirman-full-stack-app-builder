@@ -406,6 +406,8 @@
 | `WorkerConnection` | §2.90 | TA §57.11 | — | — |
 | `ScreenModel` | §2.91 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
 | `ScreenGraph` | §2.92 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
+| `DeviceHygienePolicy` | §2.93 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
+| `GoldenSnapshot` | §2.94 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

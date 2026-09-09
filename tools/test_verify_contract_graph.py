@@ -486,6 +486,22 @@ CASES = {
     "the ScreenGraph loses its uncoveredRequirementIds field": (
         SCHEMAS, "- uncoveredRequirementIds\n", "",
         "semantic documentation"),
+    "BS §69.10 keeps emulator dialogs in the hidden-human-dependency list": (
+        BS, "device unlock, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. A dialog raised",
+        "device unlock, emulator dialog, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. A dialog raised",
+        "semantic documentation"),
+    "TA §73.12 lets an unmatched emulator dialog become a USER_REQUIRED decision": (
+        TA, "never a `USER_REQUIRED` decision, because the emulator holds no state a human must supply",
+        "a `USER_REQUIRED` decision so the user can dismiss it",
+        "semantic documentation"),
+    "TA §10.3 lets a scenario start from a dirty device": (
+        TA, "a scenario that starts from any other state is not deterministic evidence",
+        "a scenario may start from the current device state when a restore would be slow",
+        "semantic documentation"),
+    "BS §29.3 injects user input into a running scenario": (
+        BS, "user input is queued rather than injected into the running scenario",
+        "user input is injected into the running scenario so the user never waits",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",

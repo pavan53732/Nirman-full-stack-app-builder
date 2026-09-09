@@ -1879,6 +1879,34 @@ def check_semantic_documentation(docs, R, D, root="."):
         if m_blk is None or field not in m_blk.group(1):
             D.add("semantic documentation", "autonomous loop",
                   f"nirman-schemas.md {name} block must carry `{field.lstrip('- ').split(':')[0]}` (ADR-225)")
+    m_103 = _section_text(ta, "10.3") or ""
+    for needle, why in (("`DeviceHygienePolicy` is defined in `nirman-schemas.md`", "project the DeviceHygienePolicy schema"),
+                        ("`GoldenSnapshot` is defined in `nirman-schemas.md`", "project the GoldenSnapshot schema"),
+                        ("is not deterministic evidence", "state that a run not started from the golden snapshot is not deterministic evidence"),
+                        ("retaken, never patched", "state that an invalidated golden snapshot is retaken, never patched")):
+        if needle not in m_103:
+            D.add("semantic documentation", "autonomous loop", f"TA §10.3 must {why} (ADR-225)")
+    m_7312 = _section_text(ta, "73.12") or ""
+    if "never a `USER_REQUIRED` decision, because the emulator holds no state a human must supply" not in m_7312:
+        D.add("semantic documentation", "autonomous loop",
+              "TA §73.12 must state that an unmatched emulator dialog is a classified failure, never a USER_REQUIRED decision (ADR-225)")
+    m_6910 = _section_text(bs, "69.10") or ""
+    if re.search(r"hidden-human dependency includes[^.]*emulator dialog", m_6910) or "is not a hidden-human dependency" not in m_6910:
+        D.add("semantic documentation", "autonomous loop",
+              "BS §69.10 must exclude emulator and application dialogs from the hidden-human-dependency list (ADR-225)")
+    m_dhp = re.search(r"```text\nDeviceHygienePolicy\n(.*?)```", sch, re.S)
+    if m_dhp is None or "RUNTIME_PERMISSION | APP_CRASH | ANR | KEYGUARD | SETUP_WIZARD" not in m_dhp.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md DeviceHygienePolicy block must enumerate the system dialog kinds (ADR-225)")
+    m_293 = _section_text(bs, "29.3") or ""
+    for needle, why in (("`DRIVEN_BY_SCENARIO`", "define the DRIVEN_BY_SCENARIO preview state"),
+                        ("user input is queued rather than injected", "queue user input during a scenario rather than inject it")):
+        if needle not in m_293:
+            D.add("semantic documentation", "autonomous loop", f"BS §29.3 must {why} (ADR-225)")
+    m_ps = re.search(r"```text\nPreviewSurface\n(.*?)```", sch, re.S)
+    if m_ps is None or "- drivenBy: USER | SCENARIO | EXPLORATION | RESTORE" not in m_ps.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md PreviewSurface block must carry `drivenBy: USER | SCENARIO | EXPLORATION | RESTORE` (ADR-225)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

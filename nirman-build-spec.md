@@ -1948,6 +1948,8 @@ The live Nirman-managed local Android emulator is a first-class execution surfac
 
 If a candidate change breaks the application, the preview must show the last valid revision and identify the failed candidate. The execution tree and preview must share a revision identifier so the user can see exactly which work produced the running application.
 
+Preview and validation MUST NOT fight over one emulator (ADR-225). When resource integrity (§72) admits one emulator slot, the preview panel is a viewer of the validation device: while a scenario or exploration pass is running, the preview carries a visible `DRIVEN_BY_SCENARIO` state naming the scenario, user input is queued rather than injected into the running scenario, and a golden-snapshot restore is announced in that state before it happens; the user regains the device when the run ends or on an explicit stop. When resource integrity admits a second slot, validation runs on its own device and the preview device is the user's alone. In neither case is a user interaction silently mixed into scenario evidence, and in neither case does the user wait for validation to finish before seeing the last valid revision.
+
 ### 29.4 Progress ledger and stall detection
 
 The runtime must maintain a progress ledger recording changed files, new evidence, preview revision movement, test transitions, worker handoffs, strategy changes, and validated requirements. A stall detector must identify repeated commands, repeated patches, repeated failure fingerprints, unchanged workspaces, unchanged previews, missing evidence, unresponsive processes, and heartbeats without useful progress.
@@ -3337,6 +3339,8 @@ Launching an app and screenshotting the first screen does not prove the app work
 
 A scenario must be deterministic. Non-deterministic scenarios must be marked and must not be used as completion evidence.
 
+Every scenario run begins from the session's `GoldenSnapshot` followed by a fresh install and the scenario's `seedData` (technical architecture §10.3; ADR-225); a run that begins from any other device state is not deterministic evidence.
+
 Scenarios are produced by the runtime, not awaited from a human. After the first successful install, the runtime explores the application into a `ScreenGraph` and `ScenarioSynthesizer` derives an `E2EScenario` for every acceptance criterion and every required class of §56.3 (technical architecture §62.1; ADR-225). A requirement with no executed scenario is not validated: it MUST appear in `uncoveredRequirementIds`, MUST be reported to the planner, and MUST NOT be counted toward completion. Every `steps` entry and every assertion MUST name a `ScreenModel` element identity or observable property (technical architecture §74.2); a step that names screen coordinates only is not a scenario step.
 
 ### 56.3 Required scenario classes
@@ -4656,7 +4660,7 @@ The documentation contract and its verifier certify documentation identity, auth
 
 Runtime certification is a separate evidence class. It MUST include schema and migration tests, reducer and illegal-state tests, transaction and lease tests, Windows process and IPC tests, provider fixtures, Android build and Nirman-managed local Android emulator fixtures, preview truth tests, APK inspection, failure injection, restart recovery, self-development rollback, and hidden-human-dependency fixtures.
 
-A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, emulator dialog, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
+A hidden-human dependency includes an unclassified terminal prompt, provider login, device unlock, package-manager confirmation, signing selection, missing environment variable, GUI-only installer, external-service acceptance, or suppressed approval notification. A dialog raised by the Nirman-managed local Android emulator or by the application running in it — runtime permission, crash, ANR, keyguard, setup wizard, intent chooser — is not a hidden-human dependency: the device adapter handles it under the session's `DeviceHygienePolicy` (technical architecture §73.12; ADR-225), and a dialog no rule matches is a classified failure, not a `USER_REQUIRED` decision. An unattended task MUST complete through an explicitly authorized automatic action, create a durable `USER_REQUIRED` decision, or enter a truthful blocked state; it MUST NOT remain silently running.
 
 ### 69.11 Clarification gate and assumption recording
 
