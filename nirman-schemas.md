@@ -238,6 +238,8 @@ TaskResult
 - checkpoints
 - warnings
 - unresolvedIssues
+- frontierDelta: list of { frontierItemId, fromState, toState, evidenceId }
+- remainingUnproven: list of frontierItemId
 - workerHandoffs
 - providerAndModel
 - tokenUsage
@@ -2619,6 +2621,8 @@ AgentProposal
 - action_type
 - action_arguments
 - expected_observation
+- target_frontier_item_id
+- motivating_evidence_id
 - required_capabilities
 - risk_class
 - schema_status
@@ -3139,9 +3143,25 @@ AndroidDeviceAdapter operations
   - returns: reloaded: bool, reloadTimestamp
   - errors: DeviceReloadError
 - interact(input: InteractionInput) -> DeviceInteractionResult
-  - params: input: InteractionInput (tap, swipe, text, key)
+  - params: input: InteractionInput (tap, longPress, swipe, scroll, text, key, back, home)
   - returns: interactionId, result: bool, screenshotRef, uiHierarchyRef
   - errors: DeviceInteractionError, InteractionTimeoutError
+- setOrientation(orientation: PORTRAIT | LANDSCAPE) -> DeviceOrientationResult
+  - params: orientation
+  - returns: orientation, configurationChangeObserved: bool, screenshotRef, uiHierarchyRef
+  - errors: DeviceOrientationError
+- setNetworkState(state: ONLINE | OFFLINE | AIRPLANE | THROTTLED) -> DeviceNetworkStateResult
+  - params: state
+  - returns: state, appliedAt
+  - errors: DeviceNetworkStateError
+- sendToBackground(packageId: str, durationMs: int) -> DeviceBackgroundResult
+  - params: packageId, durationMs
+  - returns: processSurvived: bool, resumedActivity, screenshotRef
+  - errors: DeviceBackgroundError
+- waitFor(condition: WaitCondition, timeoutMs: int) -> DeviceWaitResult
+  - params: condition: WaitCondition (element present, element absent, text present, activity resumed, idle)
+  - returns: satisfied: bool, elapsedMs, screenModelId
+  - errors: DeviceWaitTimeout
 - captureScreenshot() -> ScreenshotResult
   - params: none
   - returns: screenshotId, screenshotRef, capturedAt, deviceStateFingerprint

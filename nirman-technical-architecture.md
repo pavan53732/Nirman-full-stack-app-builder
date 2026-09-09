@@ -1560,7 +1560,7 @@ The stall detector identifies repeated commands, repeated patches, repeated fail
 
 ### 34.4 Swarm handoff and reconciliation contract
 
-Parallel workers receive explicit contracts, isolated workspaces, allowed tools, expected outputs, and validation rules. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the preview revision, and commits the next checkpoint.
+Parallel workers receive explicit contracts, isolated workspaces, allowed tools, expected outputs, and validation rules. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. A handoff also answers what the worker proved: its `frontierDelta` lists every `EvidenceFrontier` claim it moved and the evidence that moved it, and `remainingUnproven` lists the claims of its contract still `UNRESOLVED` (build spec §52.3; ADR-225); the reconciliation worker integrates a slice whose `frontierDelta` is empty only as an unvalidated candidate, and `remainingUnproven` becomes the next cycle's frontier input. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the preview revision, and commits the next checkpoint.
 
 ### 34.5 Autonomous validation and artifact gate
 
@@ -2875,6 +2875,8 @@ EVALUATE_PROGRESS
   └── COMPLETE
 ```
 
+`SELECT_ACTION` applies the frontier-first rule of build spec §52.3 (ADR-225): the kernel reads the `EvidenceFrontier` slice for the active requirement and the open hypotheses from `HypothesisManager` (§71.5); while an `UNRESOLVED`, `CONTRADICTED`, or `REQUIRED_VALIDATION` item or an untested discriminating test exists, only observation proposals are admissible, and a mutation proposal is answered `EVIDENCE_NOT_ACQUIRED` without reaching `PolicyAuthority`. Every admitted mutation `AgentProposal` carries `targetFrontierItemId` and `motivatingEvidenceId`; `ProgressEvaluator` treats a cycle that acquired evidence as progress even when no file changed, and a cycle that changed files against an unobserved frontier as none.
+
 `AgentLoopReducer` is the kernel's deterministic step function: it folds a cycle outcome (§71.4) into the next proposed task-execution state and emits that proposal as a validated kernel event. It commits nothing. The only committer of a lifecycle transition is `LifecycleAuthority`, the `SessionReducer` of §45.1 (build spec §33.2; ADR-159), which accepts or rejects the kernel's proposal like any other event. A provider delta, partial stream, worker message, or UI action may request a transition but cannot apply one directly.
 
 ### 58.3 Durable schemas
@@ -3397,7 +3399,7 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 
 > **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
 
-System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses.
+System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.3).
 
 ### 62.3 Determinism enforcement
 

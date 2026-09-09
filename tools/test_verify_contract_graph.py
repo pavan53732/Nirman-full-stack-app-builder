@@ -521,6 +521,20 @@ CASES = {
         BS, "No swarm worker holds a `modify` reservation on them;",
         "Any swarm worker may hold a `modify` reservation on them;",
         "semantic documentation"),
+    "BS §52.3 lets the model choose mutation over observation": (
+        BS, "only the kernel decides which kind is admissible in the current frontier state",
+        "the model decides which kind is appropriate in the current frontier state",
+        "semantic documentation"),
+    "BS §28.2 lets the model pick the runtime recovery rung": (
+        BS, "selects deterministically from the failure family of the fingerprint — never the model",
+        "selects with the model's guidance from the failure family of the fingerprint",
+        "semantic documentation"),
+    "the AndroidDeviceAdapter loses setNetworkState": (
+        SCHEMAS, "- setNetworkState(state: ONLINE | OFFLINE | AIRPLANE | THROTTLED) -> DeviceNetworkStateResult\n  - params: state\n  - returns: state, appliedAt\n  - errors: DeviceNetworkStateError\n", "",
+        "semantic documentation"),
+    "the TaskResult loses its frontierDelta": (
+        SCHEMAS, "- frontierDelta: list of { frontierItemId, fromState, toState, evidenceId }\n", "",
+        "semantic documentation"),
     # ---- ADR-223 component and authority registry (TA §57.12)
     "a TA §57.12 registry row is dropped while the name stays in the BS §51.2 tree": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |\n",

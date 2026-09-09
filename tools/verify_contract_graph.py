@@ -1947,6 +1947,39 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_ss is None or "VERSION_CATALOG | SETTINGS_GRADLE | MODULE_BUILD_FILE | ANDROID_MANIFEST" not in m_ss.group(1):
         D.add("semantic documentation", "autonomous loop",
               "nirman-schemas.md SharedSurfaceChangeRequest block must enumerate the shared surfaces (ADR-225)")
+    m_523 = _section_text(bs, "52.3") or ""
+    for needle, why in (("`EVIDENCE_NOT_ACQUIRED`", "reject an unmotivated mutation proposal as EVIDENCE_NOT_ACQUIRED"),
+                        ("MUST select an observation action", "require an observation action before mutation while the frontier is open"),
+                        ("only the kernel decides which kind is admissible", "keep the observation-versus-mutation decision with the kernel, not the model")):
+        if needle not in m_523:
+            D.add("semantic documentation", "autonomous loop", f"BS §52.3 must {why} (ADR-225)")
+    m_582 = _section_text(ta, "58.2") or ""
+    if "only observation proposals are admissible" not in m_582 or "`targetFrontierItemId`" not in m_582:
+        D.add("semantic documentation", "autonomous loop",
+              "TA §58.2 must bind SELECT_ACTION to the frontier-first rule and carry targetFrontierItemId (ADR-225)")
+    m_ap = re.search(r"```text\nAgentProposal\n(.*?)```", sch, re.S)
+    if m_ap is None or "- target_frontier_item_id" not in m_ap.group(1) or "- motivating_evidence_id" not in m_ap.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md AgentProposal block must carry target_frontier_item_id and motivating_evidence_id (ADR-225)")
+    m_282 = _section_text(bs, "28.2") or ""
+    for needle, why in (("Android runtime sub-ladder", "define the Android runtime sub-ladder"),
+                        ("selects deterministically from the failure family of the fingerprint — never the model", "have RecoveryAuthority, never the model, select the rung"),
+                        ("skips the sub-ladder entirely, because no runtime action can repair a build", "skip the sub-ladder for build-time failure families")):
+        if needle not in m_282:
+            D.add("semantic documentation", "autonomous loop", f"BS §28.2 must {why} (ADR-225)")
+    m_ada = re.search(r"```text\nAndroidDeviceAdapter\n(.*?)```", sch, re.S)
+    for op in ("setOrientation(", "setNetworkState(", "sendToBackground(", "waitFor("):
+        if m_ada is None or f"- {op}" not in m_ada.group(1):
+            D.add("semantic documentation", "autonomous loop",
+                  f"nirman-schemas.md AndroidDeviceAdapter block must expose `{op[:-1]}` — TA §62.2 requires the scenario event it drives (ADR-225)")
+    m_tr = re.search(r"```text\nTaskResult\n(.*?)```", sch, re.S)
+    if m_tr is None or "- frontierDelta" not in m_tr.group(1) or "- remainingUnproven" not in m_tr.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md TaskResult block must carry frontierDelta and remainingUnproven (ADR-225)")
+    m_344 = _section_text(ta, "34.4") or ""
+    if "`frontierDelta`" not in m_344 or "`remainingUnproven`" not in m_344:
+        D.add("semantic documentation", "autonomous loop",
+              "TA §34.4 must require frontierDelta and remainingUnproven in every handoff (ADR-225)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),
