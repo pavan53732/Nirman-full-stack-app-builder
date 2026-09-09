@@ -305,7 +305,8 @@ Initial defaults should be configurable and conservative:
 | Worker stale threshold | 60 seconds |
 | Default task time policy | No autonomous-goal completion deadline. Liveness timeouts MAY exist for hung operations and process containment but MUST NOT terminate a healthy goal for elapsed time |
 | Default task disk quota | 10 GB unless project policy overrides (build spec §26.3, §80.3 range 1–100 GB); emulator, build, cache, and checkpoint storage are charged against the same quota |
-| Default repair strategy changes | 3 |
+|| Default repair strategy changes | 3 |
+|| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. |
 
 ### 7.3 Background approval notifications
 
@@ -4607,7 +4608,9 @@ source or runtime event
   → evidence update or materially different recovery strategy
 ```
 
-The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded: it caps materially different recovery attempts per failure fingerprint. It is an anti-thrashing and liveness constraint rather than an AI token, request, monetary, reasoning, or duration budget (BS §72). Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When the policy's bound is reached or safe strategies are exhausted, the runtime changes strategy, backtracks, delegates, escalates, degrades, pauses for a required decision, or reports a truthful blocker.
+The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded: it caps materially different recovery attempts per failure fingerprint. It is an anti-thrashing and liveness constraint rather than an AI token, request, monetary, reasoning, or duration budget (BS §72). Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When the policy's bound is reached or safe strategies are exhausted, the runtime changes strategy, backtracks, delegates, escalates, degrades, pauses for a required decision, or reports a truthful blocker. Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal.
+
+AndroidWorkflowCoordinator MUST route every Android construction and runtime failure through RecoveryAuthority and AgentExecutionKernel. The Android loop MUST NOT implement an independent retry or termination policy.
 
 ### 76.3 Specialist worker responsibilities
 

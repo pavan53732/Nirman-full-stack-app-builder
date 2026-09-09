@@ -487,6 +487,7 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M120 | Content and Writing Intelligence |
 | M121 | Durable Conversation Context |
 | M122 | Change Intelligence |
+| M123 | Recovery-first autonomous continuity certification |
 
 ## 5. ADR ranges
 

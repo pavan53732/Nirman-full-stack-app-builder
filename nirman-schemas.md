@@ -2027,11 +2027,19 @@ RecoveryAttempt
 - attemptId
 - taskId
 - failureFingerprint
+- strategyFingerprint
+- recoveryLevel
+- checkpointId: string (uuid)?
 - checkpointRestored
 - strategyDescription
 - workerRole
 - modelProfile
 - actionsTaken
+- evidenceBefore: string[]
+- evidenceAfter: string[]
+- outcome: SUCCESS | PARTIAL | FAILURE | ESCALATED
+- nextStrategy
+- continuationDecision: CONTINUE | DELEGATE | BACKTRACK | BRANCH | ESCALATE | TERMINATE
 - validationResult
 - createdAt
 ```

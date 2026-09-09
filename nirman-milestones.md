@@ -1904,6 +1904,45 @@ J. projector failure and recovery lifecycle:
 K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
 L. crash immediately after parent commit and before projection: after restart exactly one ChangeReportRecord exists for the transaction with status INCOMPLETE, recovery reconstructs it, and a repeated recovery scan creates no duplicate record
 
+---
+
+## M123 — Recovery-first autonomous continuity certification
+
+Implements the recovery-first autonomous continuity contract across the existing `RecoveryAuthority`, `AgentExecutionKernel`, `AndroidWorkflowCoordinator`, and `LifecycleAuthority`. It does not create a new authority, a new autonomous loop, or a second recovery system. It certifies that the existing architecture satisfies: recovery-first autonomous continuity, non-blocking notification, strategy-exhaustion without artificial goal termination, autonomous Android/kernel recovery binding, continued independent work while one dependency is blocked, anti-loop/anti-stall guarantees, and no AI-token/cost-based completion control.
+
+Deliver:
+- RecoveryAttempt schema fields: `strategyFingerprint`, `recoveryLevel`, `checkpointId`, `evidenceBefore`, `evidenceAfter`, `outcome`, `nextStrategy`, `continuationDecision` (nirman-schemas.md §2.14)
+- ADR-226 rule 4 amendment: blocked requirements at any recovery level continue independent work
+- BS §23.7 anti-loop: detected repetition forces materially different strategy class
+- BS §23.8 notification separation: notification is presentation, not execution authority
+- BS §69.10 USER_REQUIRED boundary: recovery failure alone does not justify USER_REQUIRED
+- BS §80.3 exhaustion semantics: exhaustion triggers strategy transformation, not goal termination
+- TA §7.2 exhaustion semantics: same as BS §80.3
+- TA §76 Android recovery binding: AndroidWorkflowCoordinator routes through RecoveryAuthority/AgentExecutionKernel
+
+Exit gate:
+The fixture suite must inject: compiler/build failure, provider outage, stale worker, hung kernel, emulator crash, preview failure, repeated identical repair, contradictory requirement, user decision, UI disconnect, host restart. It must prove: recover → change strategy → continue independent work → notify without blocking → preserve evidence → eventually certify. Documentation graph certification is reported separately from runtime certification.
+
+TEST-RECOVERY-FIRST-001 MUST prove:
+A. a compiler failure enters RecoveryAuthority, changes strategy, and continues independent requirements
+B. a provider outage is contained by liveness timeout and routed to recovery without pausing unrelated work
+C. a stale worker is recycled and its task re-leased with a fresh context
+D. a hung kernel is detected by LoopHeartbeat and forces RECOVER with a fresh worker lease
+E. an emulator crash enters the Android runtime sub-ladder before strategy change
+F. a preview failure routes through RecoveryAuthority rather than terminating the goal
+G. a repeated identical repair is detected by the repeated-action guard and forces a materially different strategy
+H. a contradictory requirement is recorded as BLOCKED while independent requirements continue
+I. a user decision is requested only when automaticPathsAttempted is complete and records why each path was unavailable
+J. a UI disconnect does not cancel eligible work and notification is delivered without blocking execution
+K. a host restart reloads from the last validated checkpoint and resumes from the last known-good state
+L. no AI token, request, monetary cost, reasoning pass, or autonomous-goal duration terminates a healthy goal
+M. the Android loop routes every construction/runtime failure through RecoveryAuthority and AgentExecutionKernel
+N. the Android loop does not implement an independent retry or termination policy
+O. a notification does not transition a task into USER_REQUIRED
+P. a notification does not pause autonomous execution
+Q. exhaustion of materially equivalent attempts triggers strategy transformation, delegation, backtracking, branching, or escalation
+R. exhaustion of materially equivalent attempts does not itself terminate the goal
+
 
 ---
 
