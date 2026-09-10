@@ -5236,10 +5236,19 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-gradle-expert` | Android Gradle build system: version catalogs (libs.versions.toml), convention plugins, build variants (debug/release/staging), signing config, ProGuard/R8 rules, dependency resolution, build optimization | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-quality-expert` | Android code quality: Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, coding standard compliance | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-accessibility-expert` | Android accessibility: TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, accessibility test automation | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-firebase-expert` | Firebase integration: Authentication, Cloud Firestore, Cloud Messaging, Analytics, Crashlytics, Cloud Functions, Cloud Storage | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-maps-expert` | Google Maps integration: Maps SDK, location services, geofencing, custom map styling | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-payments-expert` | Google Play Billing: in-app purchases, subscription management, purchase flow, purchase verification | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-notifications-expert` | Android notifications: notification channels, rich notifications, notification groups, notification permissions | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-widgets-expert` | Android app widgets: home screen widgets, widget layouts, widget configuration, widget update strategies | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-wear-expert` | Wear OS development: Wear OS UI, watch faces, complications, tiles, health services | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-camera-ml-expert` | Android camera and ML Kit: CameraX, barcode scanning, face detection, text recognition, TensorFlow Lite | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-bluetooth-nfc-expert` | Android Bluetooth and NFC: BLE GATT, Classic Bluetooth, NFC NDEF, HCE, Nearby Connections | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-dynamic-delivery-expert` | Android dynamic delivery: dynamic feature modules, Play Feature Delivery, Play Asset Delivery, app bundles | `ANDROID_BUILD_TOOLCHAIN` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the nineteen built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the twenty-eight built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5272,6 +5281,15 @@ The `requiredCapabilities` of the nineteen built-in skills are drawn from this c
 | `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

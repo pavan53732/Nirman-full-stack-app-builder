@@ -1,0 +1,27 @@
+{
+  "skillId": "android-payments-expert",
+  "name": "Android Payments Expert",
+  "description": "Google Play Billing: in-app purchases, subscription management, purchase flow, purchase verification (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "in_app_purchases",
+    "subscription_required",
+    "payment_flow_required"
+  ],
+  "requiredTools": [
+    "billing_client",
+    "google_play_billing",
+    "purchase_verification"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PaymentsIntegrationRequest",
+  "outputSchema": "PaymentsIntegrationResult",
+  "sourcePath": "SKILL.md"
+}

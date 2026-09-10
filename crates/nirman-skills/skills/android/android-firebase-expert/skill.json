@@ -1,0 +1,28 @@
+{
+  "skillId": "android-firebase-expert",
+  "name": "Android Firebase Expert",
+  "description": "Firebase integration: Authentication, Cloud Firestore, Cloud Messaging, Analytics, Crashlytics, Cloud Functions, Cloud Storage (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "firebase_integration",
+    "authentication_required",
+    "push_notifications_required"
+  ],
+  "requiredTools": [
+    "firebase_sdk",
+    "firebase_auth",
+    "cloud_firestore",
+    "cloud_messaging"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "FirebaseIntegrationRequest",
+  "outputSchema": "FirebaseIntegrationResult",
+  "sourcePath": "SKILL.md"
+}

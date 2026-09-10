@@ -70,7 +70,7 @@ None of this runs today. It is the specified behavior, written down so it can be
 
 ## Current status
 
-This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, the nineteen v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
+This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, the twenty-eight v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
 
 The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108 as superseded, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
 

@@ -1,0 +1,28 @@
+{
+  "skillId": "android-bluetooth-nfc-expert",
+  "name": "Android Bluetooth NFC Expert",
+  "description": "Android Bluetooth and NFC: BLE GATT, Classic Bluetooth, NFC NDEF, HCE, Nearby Connections (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "bluetooth_integration",
+    "nfc_integration",
+    "ble_required",
+    "nfc_required"
+  ],
+  "requiredTools": [
+    "bluetooth_adapter",
+    "nfc_adapter",
+    "gatt_server"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "BluetoothNFCRequest",
+  "outputSchema": "BluetoothNFCResult",
+  "sourcePath": "SKILL.md"
+}

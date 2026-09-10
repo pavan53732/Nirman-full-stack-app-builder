@@ -1,0 +1,28 @@
+{
+  "skillId": "android-wear-expert",
+  "name": "Android Wear OS Expert",
+  "description": "Wear OS development: Wear OS UI, watch faces, complications, tiles, health services (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker"
+  ],
+  "triggerConditions": [
+    "wear_os_app",
+    "watch_face",
+    "complications",
+    "tiles"
+  ],
+  "requiredTools": [
+    "wear_os_sdk",
+    "compose_for_wear",
+    "health_services"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "WearOSRequest",
+  "outputSchema": "WearOSResult",
+  "sourcePath": "SKILL.md"
+}
