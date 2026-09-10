@@ -305,8 +305,8 @@ Initial defaults should be configurable and conservative:
 | Worker stale threshold | 60 seconds |
 | Default task time policy | No autonomous-goal completion deadline. Liveness timeouts MAY exist for hung operations and process containment but MUST NOT terminate a healthy goal for elapsed time |
 | Default task disk quota | 10 GB unless project policy overrides (build spec §26.3, §80.3 range 1–100 GB); emulator, build, cache, and checkpoint storage are charged against the same quota |
-|| Default repair strategy changes | 3 |
-|| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. |
+| Default repair strategy changes | 3 |
+| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. |
 
 ### 7.3 Background approval notifications
 
@@ -4089,7 +4089,7 @@ DeliberationContinuationManager checkpoints session state on every pass boundary
 | Strategy repeated against unchanged evidence | RepeatedFailureDetector raises StrategyChangeRequired; strategy change, evidence acquisition, delegation, branch, or escalation forced |
 | Physical resource pressure during deliberation | ResourceIntegrityAuthority queues, reschedules, reduces concurrency, or checkpoints the pass per BS §72; deliberation resumes from the checkpoint; no deliberation outcome is produced by pressure |
 | Diminishing returns detected | Approach change forced; a further plain pass is refused |
-| All hypotheses refuted | Terminate NO_PROGRESS; escalate or branch |
+| All hypotheses refuted | Mark NO_PROGRESS for the current deliberation cycle; acquire new evidence, transform strategy, escalate, or branch |
 | Critic finds a counterexample | Strategy rejected; return to STRATEGIZE with the finding as a constraint |
 | Escalated model unavailable | Continue at the available model and record the capability gap |
 | Compaction drops session state | Restore from the last pass checkpoint; report the compaction defect |

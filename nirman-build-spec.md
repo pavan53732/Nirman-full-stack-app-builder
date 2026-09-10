@@ -360,7 +360,7 @@ Capability status is not sufficient to identify the exact Android environment in
 
 `toolchainLock` defines the concrete Android toolchain versions pinned for this profile: AGP, Gradle wrapper, JDK vendor + major, compileSdk, targetSdk, minSdk, Build Tools, Kotlin, Compose BOM, and NDK when applicable. The lock MUST be resolved and recorded per project revision and MUST contribute to the environment fingerprint that binds preview and evidence currentness (CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH). A pinned JDK MUST be used with a per-process JAVA_HOME; Nirman MUST NOT depend on or mutate the machine-wide JAVA_HOME. These versions have hard mutual constraints — a given AGP requires a minimum Gradle and a specific JDK major and caps usable compileSdk. Incompatible combinations MUST be rejected at preflight naming the violated constraint, before any build starts. Record concrete versions as the CURRENT lock with an explicit revision date, not as permanent truth.
 
-A profile may describe an internally selected composition of Java, Kotlin, Compose, Views, React Native/Expo, native modules, device APIs, or mixed technologies. It is an implementation identity, not a user-facing template, archetype, starter project, or framework picker. `SUPPORTED` or `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` may be reported only for the declared profile and its evidence; support must not be generalized to every possible Android project.
+A profile may describe an internally selected composition of Java, Kotlin, Compose, Views, React Native/Expo, native modules, device APIs, or mixed technologies. It is an implementation identity, not a user-facing template, archetype, starter project, or framework picker. Android technologies and frameworks are implementation mechanisms; certification occurs against capability profiles, not individual framework names. `SUPPORTED` or `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` may be reported only for the declared profile and its evidence; support must not be generalized to every possible Android project.
 
 ### 5.7.2 Canonical maturity and operational state separation
 
@@ -5906,8 +5906,8 @@ Every "configurable" parameter in the specification has a default value defined 
 | Context compaction threshold | 80% of context limit | 60-95% | Per project |
 | Context compaction minimum retention | 20% of context limit | 10-40% | Per project |
 | Telemetry sampling interval | 30 seconds | 5-300 seconds | Per project |
-|| Recovery-attempt policy: materially different attempts per failure fingerprint (transient failures) | 3 | 1-10 | Per task |
-|| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. | N/A | N/A | Per task |
+| Recovery-attempt policy: materially different attempts per failure fingerprint (transient failures) | 3 | 1-10 | Per task |
+| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. | N/A | N/A | Per task |
 | Retry backoff initial | 1 second | 0.1-10 seconds | Per project |
 | Retry backoff max | 60 seconds | 10-300 seconds | Per project |
 | Retry backoff multiplier | 2.0 | 1.1-3.0 | Per project |
