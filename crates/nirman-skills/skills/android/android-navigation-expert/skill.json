@@ -1,7 +1,7 @@
 {
   "skillId": "android-navigation-expert",
   "name": "Android Navigation Expert",
-  "description": "Android navigation: Navigation Component for Compose, type-safe navigation with Serialization, deep links, nested navigation graphs, back stack management (BS §79.7).",
+  "description": "Android navigation: Navigation Component for Compose, type-safe navigation with Serialization, deep links, nested navigation graphs, back stack management (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -18,7 +18,9 @@
     "deep_link_handler"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_INTERACTION_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "NavigationDesignRequest",

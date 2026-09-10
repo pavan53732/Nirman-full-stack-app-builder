@@ -1,7 +1,7 @@
 {
   "skillId": "android-performance-expert",
   "name": "Android Performance Expert",
-  "description": "Android performance optimization: Baseline Profiles, Macrobenchmark, startup optimization, memory profiling, layout performance, network performance (BS §79.7).",
+  "description": "Android performance optimization: Baseline Profiles, Macrobenchmark, startup optimization, memory profiling, layout performance, network performance (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,9 @@
     "android_profiler"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_PERFORMANCE_VALIDATION"
   ],
   "permissionRequests": [],
   "inputSchema": "PerformanceOptimizationRequest",

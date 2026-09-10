@@ -1,7 +1,7 @@
 {
   "skillId": "android-maps-expert",
   "name": "Android Maps Expert",
-  "description": "Google Maps integration: Maps SDK, location services, geofencing, custom map styling (BS §79.7).",
+  "description": "Google Maps integration: Maps SDK, location services, geofencing, custom map styling (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -18,7 +18,9 @@
     "geofencing_client"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_NETWORK_INTEGRATION",
+    "ANDROID_NATIVE_DEVICE_CAPABILITIES"
   ],
   "permissionRequests": [],
   "inputSchema": "MapsIntegrationRequest",

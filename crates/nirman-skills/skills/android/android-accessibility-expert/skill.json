@@ -1,7 +1,7 @@
 {
   "skillId": "android-accessibility-expert",
   "name": "Android Accessibility Expert",
-  "description": "Android accessibility: TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, accessibility test automation (BS §79.7).",
+  "description": "Android accessibility: TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, accessibility test automation (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,9 @@
     "color_contrast_analyzer"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_ACCESSIBILITY_VALIDATION"
   ],
   "permissionRequests": [],
   "inputSchema": "AccessibilityImplementationRequest",

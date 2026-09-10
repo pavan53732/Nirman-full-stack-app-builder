@@ -1,7 +1,7 @@
 {
   "skillId": "android-testing-expert",
   "name": "Android Testing Expert",
-  "description": "Android testing: JUnit 5, Compose UI Test, Espresso, Paparazzi screenshot testing, Roborazzi, MockK, Turbine, test fixture management (BS §79.7).",
+  "description": "Android testing: JUnit 5, Compose UI Test, Espresso, Paparazzi screenshot testing, Roborazzi, MockK, Turbine, test fixture management (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -20,7 +20,10 @@
     "mockk"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_INTERACTION_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "TestingStrategyRequest",

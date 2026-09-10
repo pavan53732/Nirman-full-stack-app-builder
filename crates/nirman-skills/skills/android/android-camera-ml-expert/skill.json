@@ -1,7 +1,7 @@
 {
   "skillId": "android-camera-ml-expert",
   "name": "Android Camera ML Expert",
-  "description": "Android camera and ML Kit: CameraX, barcode scanning, face detection, text recognition, image labeling, TensorFlow Lite (BS §79.7).",
+  "description": "Android camera and ML Kit: CameraX, barcode scanning, face detection, text recognition, image labeling, TensorFlow Lite (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,9 @@
     "tensorflow_lite"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_NATIVE_DEVICE_CAPABILITIES",
+    "ANDROID_UI_OBSERVATION"
   ],
   "permissionRequests": [],
   "inputSchema": "CameraMLRequest",

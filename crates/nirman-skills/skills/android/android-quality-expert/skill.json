@@ -1,7 +1,7 @@
 {
   "skillId": "android-quality-expert",
   "name": "Android Quality Expert",
-  "description": "Android code quality: Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, coding standard compliance (BS §79.7).",
+  "description": "Android code quality: Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, coding standard compliance (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,9 @@
     "ktlint"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING",
+    "ANDROID_RELEASE_VALIDATION"
   ],
   "permissionRequests": [],
   "inputSchema": "QualityConfigurationRequest",

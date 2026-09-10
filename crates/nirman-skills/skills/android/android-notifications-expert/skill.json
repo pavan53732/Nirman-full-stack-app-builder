@@ -1,7 +1,7 @@
 {
   "skillId": "android-notifications-expert",
   "name": "Android Notifications Expert",
-  "description": "Android notifications: notification channels, rich notifications, notification groups, notification permissions (BS §79.7).",
+  "description": "Android notifications: notification channels, rich notifications, notification groups, notification permissions (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -18,7 +18,8 @@
     "notification_channels"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_INTERACTION_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "NotificationsRequest",

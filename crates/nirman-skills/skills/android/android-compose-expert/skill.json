@@ -1,7 +1,7 @@
 {
   "skillId": "android-compose-expert",
   "name": "Android Compose Expert",
-  "description": "Jetpack Compose UI building: recomposition-aware state management, Modifier composition, Material3 theming, custom layouts, animations, semantic testing annotations (BS §79.7).",
+  "description": "Jetpack Compose UI building: recomposition-aware state management, Modifier composition, Material3 theming, custom layouts, animations, semantic testing annotations (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,9 @@
     "material3_library"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_INTERACTION_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "ComposeBuildRequest",

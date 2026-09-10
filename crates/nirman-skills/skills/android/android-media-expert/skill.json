@@ -1,7 +1,7 @@
 {
   "skillId": "android-media-expert",
   "name": "Android Media Expert",
-  "description": "Android media and camera: CameraX (preview, image capture, video), Media3/ExoPlayer (audio/video playback), Coil (image loading), MediaSession, picture-in-picture, media notifications (BS §79.7).",
+  "description": "Android media and camera: CameraX (preview, image capture, video), Media3/ExoPlayer (audio/video playback), Coil (image loading), MediaSession, picture-in-picture, media notifications (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -19,7 +19,8 @@
     "coil_library"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_NATIVE_DEVICE_CAPABILITIES"
   ],
   "permissionRequests": [],
   "inputSchema": "MediaImplementationRequest",

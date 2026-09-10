@@ -4801,8 +4801,25 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 | `ANDROID_BUILD_TOOLCHAIN` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, android_toolchain_manifest_lock, gradle_build_observation | 1 |
 | `ANDROID_EMULATOR_EXECUTION` | windows | environment_dependent | android_emulator, hypervisor_acceleration | windows_host_fingerprint, hypervisor_availability_result, emulator_boot_observation_with_session_id | 1 |
 | `DESIGN_IMPORT` | windows | environment_dependent | figma_access_token_or_local_design_file | windows_host_fingerprint, figma_connectivity_or_file_presence, design_token_extraction_observation, compose_translation_fidelity_observation | 1 |
+| `ANDROID_SOURCE_ENGINEERING` | windows | environment_dependent | jdk, gradle, android_sdk | windows_host_fingerprint, android_toolchain_manifest_lock, source_code_generation_observation | 1 |
+| `ANDROID_BUILD` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, gradle_build_observation, apk_production_observation | 1 |
+| `ANDROID_INSTALL_LAUNCH` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, apk_install_observation, app_launch_observation | 1 |
+| `ANDROID_UI_OBSERVATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, ui_hierarchy_capture_observation | 1 |
+| `ANDROID_INTERACTION_EXECUTION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, input_injection_observation | 1 |
+| `ANDROID_LOGCAT_DIAGNOSTICS` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, logcat_capture_observation | 1 |
+| `ANDROID_VISUAL_VALIDATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, screenshot_capture_observation, design_comparison_observation | 1 |
+| `ANDROID_ACCESSIBILITY_VALIDATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, accessibility_scan_observation | 1 |
+| `ANDROID_PERFORMANCE_VALIDATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, startup_timing_observation, memory_profile_observation, frame_timing_observation | 1 |
+| `ANDROID_BACKGROUND_EXECUTION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, workmanager_execution_observation | 1 |
+| `ANDROID_NATIVE_DEVICE_CAPABILITIES` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, camera_observation, ble_observation, nfc_observation, location_observation | 1 |
+| `ANDROID_NETWORK_INTEGRATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, api_integration_observation | 1 |
+| `ANDROID_AUTHENTICATION` | windows | environment_dependent | android_emulator | windows_host_fingerprint, emulator_boot_observation, auth_flow_observation | 1 |
+| `ANDROID_PACKAGING` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, bundle_production_observation, asset_pack_observation | 1 |
+| `ANDROID_ARTIFACT_INSPECTION` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, apk_inspection_observation, aab_inspection_observation | 1 |
+| `ANDROID_SIGNING_INSPECTION` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, signing_config_observation, certificate_fingerprint_observation | 1 |
+| `ANDROID_RELEASE_VALIDATION` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, lint_observation, quality_gate_observation, performance_gate_observation | 1 |
 
-The seven upper-case rows are the closed skill capability-id vocabulary of build spec §79.7: they are the only ids a `SkillPackage.requiredCapabilities` may name, and each is classified per environment by `EnvironmentCapabilityPlanner` from the listed evidence, never asserted by a skill or a model. `HOST_TOOL_OBSERVATION` is the one capability whose expected result is `available`, because the preflight skill that produces every other classification must not be gated by a classification it has not yet produced.
+The twenty upper-case rows are the closed skill capability-id vocabulary of build spec §79.7: they are the only ids a `SkillPackage.requiredCapabilities` may name, and each is classified per environment by `EnvironmentCapabilityPlanner` from the listed evidence, never asserted by a skill or a model. `HOST_TOOL_OBSERVATION` is the one capability whose expected result is `available`, because the preflight skill that produces every other classification must not be gated by a classification it has not yet produced.
 
 Job Object containment is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 

@@ -5259,6 +5259,23 @@ The `requiredCapabilities` of the twenty-eight built-in skills are drawn from th
 | `ANDROID_BUILD_TOOLCHAIN` | JDK, Gradle, Android SDK, platform tools, and (when selected) Node and package manager are present and locked (`AndroidToolchainManifest`, TA §49) | Android toolchain authority |
 | `ANDROID_EMULATOR_EXECUTION` | An accelerated Nirman-managed local emulator session can be leased (§79.16) | hypervisor and emulator preflight; `UNAVAILABLE` without acceleration; no physical-device substitutes (§4.4) |
 | `DESIGN_IMPORT` | A Figma access token or local design file is available for extracting design tokens and UI structure | Figma API connectivity or local file presence |
+| `ANDROID_SOURCE_ENGINEERING` | Android source code can be generated, edited, and statically analyzed | build toolchain observation |
+| `ANDROID_BUILD` | Android projects can be compiled, packaged, and produce APK or optional AAB artifacts | Gradle build observation |
+| `ANDROID_INSTALL_LAUNCH` | APK artifacts can be installed and launched on the target runtime | emulator or device observation |
+| `ANDROID_UI_OBSERVATION` | The running application UI hierarchy can be captured and analyzed | emulator or device observation |
+| `ANDROID_INTERACTION_EXECUTION` | User interactions (tap, scroll, input) can be executed on the running application | emulator or device observation |
+| `ANDROID_LOGCAT_DIAGNOSTICS` | Logcat and runtime diagnostics can be captured from the target | emulator or device observation |
+| `ANDROID_VISUAL_VALIDATION` | Screenshots can be captured and compared against design specifications | emulator or device observation |
+| `ANDROID_ACCESSIBILITY_VALIDATION` | Accessibility properties (TalkBack, contrast, touch targets) can be verified | emulator or device observation |
+| `ANDROID_PERFORMANCE_VALIDATION` | Performance metrics (startup, memory, frame timing) can be measured | emulator or device observation |
+| `ANDROID_BACKGROUND_EXECUTION` | Background work (WorkManager, services) can be executed and observed | emulator or device observation |
+| `ANDROID_NATIVE_DEVICE_CAPABILITIES` | Native device capabilities (camera, BLE, NFC, location, sensors) can be accessed | emulator or device observation |
+| `ANDROID_NETWORK_INTEGRATION` | Network integrations (Firebase, Maps, Payments, APIs) can be executed and verified | emulator or device observation |
+| `ANDROID_AUTHENTICATION` | Authentication flows (biometric, OAuth, Firebase Auth) can be executed | emulator or device observation |
+| `ANDROID_PACKAGING` | App packaging (bundles, dynamic delivery, asset packs) can be produced and inspected | build toolchain observation |
+| `ANDROID_ARTIFACT_INSPECTION` | Produced artifacts (APK, AAB) can be inspected for content and structure | build toolchain observation |
+| `ANDROID_SIGNING_INSPECTION` | Signing configuration and certificate fingerprints can be verified | build toolchain observation |
+| `ANDROID_RELEASE_VALIDATION` | Release readiness (lint, quality, performance gates) can be verified | build toolchain observation |
 
 | Skill | `requiredCapabilities` |
 |---|---|
@@ -5269,27 +5286,27 @@ The `requiredCapabilities` of the twenty-eight built-in skills are drawn from th
 | `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
 | `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
 | `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
-| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BACKGROUND_EXECUTION` |
+| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_SIGNING_INSPECTION` |
+| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
+| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_PACKAGING` |
+| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
+| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_AUTHENTICATION` |
+| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
+| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
+| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
+| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

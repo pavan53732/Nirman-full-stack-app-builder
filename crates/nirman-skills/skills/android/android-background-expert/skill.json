@@ -1,7 +1,7 @@
 {
   "skillId": "android-background-expert",
   "name": "Android Background Expert",
-  "description": "Android background execution: WorkManager, foreground services, AlarmManager, Doze/App Standby awareness, broadcast receivers (BS §79.7).",
+  "description": "Android background execution: WorkManager, foreground services, AlarmManager, Doze/App Standby awareness, broadcast receivers (BS \u00a779.7).",
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
@@ -18,7 +18,8 @@
     "broadcast_receiver"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_BACKGROUND_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "BackgroundWorkRequest",
