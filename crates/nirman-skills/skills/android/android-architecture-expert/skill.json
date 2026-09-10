@@ -1,0 +1,27 @@
+{
+  "skillId": "android-architecture-expert",
+  "name": "Android Architecture Expert",
+  "description": "Android app architecture patterns: MVI/MVVM separation, unidirectional data flow, domain/data/UI layering, dependency injection, modularization (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "architecture_design",
+    "pattern_selection",
+    "module_boundary_definition"
+  ],
+  "requiredTools": [
+    "architecture_documentation",
+    "di_framework_selector"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ArchitectureDesignRequest",
+  "outputSchema": "ArchitectureDesignResult",
+  "sourcePath": "SKILL.md"
+}

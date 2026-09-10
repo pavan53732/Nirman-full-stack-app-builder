@@ -1,0 +1,31 @@
+{
+  "skillId": "android-design-import",
+  "name": "Android Design Import",
+  "description": "Figma-to-Compose translation: parse Figma design files, extract design tokens, map to Compose equivalents, generate pixel-flavored Compose UI code, validate translation fidelity (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Visual QA Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "design_import_requested",
+    "figma_file_provided",
+    "brand_intent_extraction"
+  ],
+  "requiredTools": [
+    "figma_api_or_local_file_parser",
+    "vision_model_for_design_analysis",
+    "compose_code_generator",
+    "preview_renderer"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "DESIGN_IMPORT"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "DesignImportRequest",
+  "outputSchema": "DesignImportResult",
+  "sourcePath": "SKILL.md"
+}

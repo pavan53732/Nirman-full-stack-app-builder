@@ -1,0 +1,27 @@
+{
+  "skillId": "android-security-expert",
+  "name": "Android Security Expert",
+  "description": "Android security implementation: AndroidKeyStore, BiometricPrompt, EncryptedSharedPreferences, network security config, certificate pinning, app signing (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "security_implementation",
+    "biometric_authentication",
+    "secure_storage_required"
+  ],
+  "requiredTools": [
+    "android_keystore",
+    "biometric_prompt",
+    "network_security_config"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "SecurityImplementationRequest",
+  "outputSchema": "SecurityImplementationResult",
+  "sourcePath": "SKILL.md"
+}

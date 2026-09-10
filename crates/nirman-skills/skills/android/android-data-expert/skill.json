@@ -1,0 +1,27 @@
+{
+  "skillId": "android-data-expert",
+  "name": "Android Data Expert",
+  "description": "Android data persistence and synchronization: Room database, DataStore, offline-first patterns, repository pattern, data sync strategies (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "data_layer_design",
+    "room_schema_design",
+    "offline_first_implementation"
+  ],
+  "requiredTools": [
+    "room_compiler",
+    "datastore_library",
+    "migration_tester"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "DataLayerRequest",
+  "outputSchema": "DataLayerResult",
+  "sourcePath": "SKILL.md"
+}

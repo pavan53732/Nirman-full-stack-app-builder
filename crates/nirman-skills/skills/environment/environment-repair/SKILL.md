@@ -4,7 +4,7 @@ Scope: authorized repairs — missing tool, wrong tool version, missing
 target, broken PATH, missing SDK or dependency, incorrect configuration
 (BS §79.7).
 
-Gated by `HOST_TOOL_OBSERVATION` and `ENVIRONMENT_REPAIR` plus policy
+Gated by HOST_TOOL_OBSERVATION and ENVIRONMENT_REPAIR plus policy
 approval through the normal transaction path. The repair request is
 evaluated by the policy engine (BS §26.11); loading this skill never
 grants it.

@@ -1,0 +1,27 @@
+{
+  "skillId": "android-gradle-expert",
+  "name": "Android Gradle Expert",
+  "description": "Android Gradle build system: version catalogs (libs.versions.toml), convention plugins, build variants (debug/release/staging), signing config, ProGuard/R8 rules, dependency resolution, build optimization (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "build_system_configuration",
+    "version_catalog_setup",
+    "build_variant_definition"
+  ],
+  "requiredTools": [
+    "gradle_build_system",
+    "android_gradle_plugin",
+    "proguard_r8"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "BuildSystemConfigurationRequest",
+  "outputSchema": "BuildSystemConfigurationResult",
+  "sourcePath": "SKILL.md"
+}

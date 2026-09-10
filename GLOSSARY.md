@@ -124,7 +124,7 @@
 
 **SigningIdentityBinding** — The binding between a capability promotion and the signing identity that produced its evidence. — BS §5.7.9; SCHEMAS §1.5.
 
-**SkillPackage / SkillInvocationRecord / SkillAdmission** — A registered platform skill (six v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
+**SkillPackage / SkillInvocationRecord / SkillAdmission** — A registered platform skill (nineteen v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
 
 **TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13.
 

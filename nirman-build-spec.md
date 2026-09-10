@@ -5148,7 +5148,7 @@ Host and target are explicit fields of the record. No worker, skill, or model ma
 
 The runtime maintains a canonical platform capability matrix (`PlatformCapabilityEntry` in TA §84.1) mapping (host platform, capability) to an expected result class. The matrix is a prior for preflight, not a truth source: the environment preflight observes the actual environment, and the observed classification wins. Cells that depend on the concrete environment MUST be recorded as `environment_dependent` and MUST be classified from observation at preflight time. The matrix MUST NOT hard-code a tool or capability as universally unavailable on a host platform when an authorized toolchain can make it available — for example, Windows cross-compilation from Linux with a proven Rust target, linker, and Windows SDK is `environment_dependent`, not a fixed `unavailable_by_platform`.
 
-At minimum the matrix covers, for each host platform: source compilation; dependency installation; static analysis; host-native test execution; cross-compilation to each declared target; target installer generation; artifact inspection; target native execution; target-specific runtime facilities (for the Windows host target: ConPTY, Job Objects, restricted tokens, ACL workspaces, Credential Manager/DPAPI, native IPC); process supervision and recovery validation; and emulator-dependent validation (Android Nirman-managed local Android emulator, per TA §49 and §50).
+At minimum the matrix covers, for each host platform: source compilation; dependency installation; static analysis; host-native test execution; cross-compilation to each declared target; target installer generation; artifact inspection; target native execution; target-specific runtime facilities (for the Windows host target: ConPTY, Job Objects, restricted tokens, ACL workspaces, Credential Manager/DPAPI, native IPC); process supervision and recovery validation; emulator-dependent validation (Android Nirman-managed local Android emulator, per TA §49 and §50); and design-import validation (Figma-to-Compose translation fidelity, asset extraction correctness).
 
 ### 79.4 Environment Capability Resolution
 
@@ -5223,10 +5223,23 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `windows-runtime-validation` | Nirman.exe and NirmanSupervisor startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior | `target_platform = windows` AND `native_execution = AVAILABLE`; otherwise `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
 | `cross-platform-build-diagnostics` | Determine what can be cross-built, which artifacts can be produced, and which validation evidence necessarily remains missing for a host→target pair | host toolchain observation |
 | `android-toolchain` | Node, package manager, Java, Gradle, Android SDK, platform tools, emulator, native dependencies, signing | Android toolchain authority (TA §49); independent of host-target build capability |
+| `android-design-import` | Figma-to-Compose translation: parse Figma design files (nodes, components, styles, constraints, assets), extract design tokens (colors, typography, spacing, corner radius), map to Compose equivalents (Modifier, Box, Row, Column, Text, theme, Material3), generate pixel-flavored Compose UI code with proper semantics, validate translation fidelity against the original design | `ANDROID_BUILD_TOOLCHAIN`; `DESIGN_IMPORT`; requires valid Figma access token or local design file |
+| `android-compose-expert` | Jetpack Compose UI building: recomposition-aware state management, Modifier composition, Material3 theming, custom layouts, animations, semantic testing annotations, Compose-specific performance patterns | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-architecture-expert` | Android app architecture patterns: MVI/MVVM separation, unidirectional data flow, domain/data/UI layering, dependency injection (Hilt/Koin/manual), modularization strategy, repository pattern | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-data-expert` | Android data persistence and synchronization: Room database (entities, DAOs, migrations, relationships), DataStore (Preferences and Proto), offline-first patterns, repository pattern, data sync strategies, background data operations | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-background-expert` | Android background execution: WorkManager (deferred, expedited, periodic, chained), foreground services (media, location, data sync), the Android alarm service for exact alarms, Doze/App Standby awareness, broadcast receivers, background execution limits (API 30+) | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-security-expert` | Android security implementation: the Android key store system, BiometricPrompt, EncryptedSharedPreferences, EncryptedFile, network security config, certificate pinning, app signing (debug/release), Play App Signing, security best practices | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-testing-expert` | Android testing: JUnit 5, Compose UI Test, Espresso, Paparazzi screenshot testing, Roborazzi, MockK, Turbine (Flow testing), test fixture management | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-performance-expert` | Android performance optimization: Baseline Profiles, Macrobenchmark, startup optimization, memory profiling (LeakCanary, Android Studio Profiler), layout performance, RecyclerView/Compose lazy list optimization, network performance | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-navigation-expert` | Android navigation: Navigation Component for Compose, type-safe navigation with Serialization, deep links, nested navigation graphs, back stack management, multi-module navigation | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-media-expert` | Android media and camera: CameraX (preview, image capture, video), Media3/ExoPlayer (audio/video playback), Coil (image loading), MediaSession, picture-in-picture, media notifications | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-gradle-expert` | Android Gradle build system: version catalogs (libs.versions.toml), convention plugins, build variants (debug/release/staging), signing config, ProGuard/R8 rules, dependency resolution, build optimization | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-quality-expert` | Android code quality: Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, coding standard compliance | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-accessibility-expert` | Android accessibility: TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, accessibility test automation | `ANDROID_BUILD_TOOLCHAIN` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the six built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the nineteen built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5235,7 +5248,8 @@ The `requiredCapabilities` of the six built-in skills are drawn from this closed
 | `WINDOWS_HOST_TOOLCHAIN` | .NET SDK, Windows App SDK, MSBuild, and the Rust toolchain for Windows x64 are present | toolchain preflight |
 | `WINDOWS_NATIVE_EXECUTION` | A leased Windows `ValidationEnvironment` (§79.8) can launch and observe Nirman's own executables | lease acquisition plus observation; `UNAVAILABLE` without a lease |
 | `ANDROID_BUILD_TOOLCHAIN` | JDK, Gradle, Android SDK, platform tools, and (when selected) Node and package manager are present and locked (`AndroidToolchainManifest`, TA §49) | Android toolchain authority |
-| `ANDROID_EMULATOR_EXECUTION` | An accelerated Nirman-managed local emulator session can be leased (§79.16) | hypervisor and emulator preflight; `UNAVAILABLE` without acceleration; no physical device substitutes (§4.4) |
+| `ANDROID_EMULATOR_EXECUTION` | An accelerated Nirman-managed local emulator session can be leased (§79.16) | hypervisor and emulator preflight; `UNAVAILABLE` without acceleration; no physical-device substitutes (§4.4) |
+| `DESIGN_IMPORT` | A Figma access token or local design file is available for extracting design tokens and UI structure | Figma API connectivity or local file presence |
 
 | Skill | `requiredCapabilities` |
 |---|---|
@@ -5245,6 +5259,19 @@ The `requiredCapabilities` of the six built-in skills are drawn from this closed
 | `windows-runtime-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
 | `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
+| `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
+| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 
