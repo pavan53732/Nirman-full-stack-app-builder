@@ -6,13 +6,36 @@ plural and gendered grammar, locale-correct date, number, and currency
 formatting, per-locale app resources, and pseudo-locale verification (BS §79.7). This skill provides the domain knowledge
 that the `UI Worker` and `Android Data and Integration Worker` consume.
 
-Gated by ANDROID_BUILD_TOOLCHAIN and ANDROID_SOURCE_ENGINEERING. When it resolves to UNAVAILABLE or USER_REQUIRED,
-the gated steps MUST NOT execute and the blocked state MUST be
-reported. This skill does not replace a worker role — it provides
-domain-specific instruction that the worker executes within its
-scoped asset transaction (BS §50).
+## Trigger
+This skill is requested when making an app correct in more than one language — string resource externalization, locale and region qualification, right-to-left mirroring, plural and gendered grammar, locale-correct date, number, and currency formatting, per-locale app resources, and pseudo-locale verification (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume.. It does not replace a worker role — it supplies the domain
+instruction the worker executes inside its scoped asset
+transaction (BS §50).
 
-## Workflow
+## Required capabilities
+- `ANDROID_BUILD_TOOLCHAIN`
+- `ANDROID_SOURCE_ENGINEERING`
+
+## Preconditions
+- The current EnvironmentCapabilityRecord is available and is not stale;
+  capability is read from the record, never assumed.
+- Every capability listed above resolves to AVAILABLE. When any
+  resolves to UNAVAILABLE or USER_REQUIRED, the gated steps MUST NOT
+  execute and the blocked state MUST be reported.
+- The source revision and, where one exists, the artifact digest are
+  known, so every record this skill emits can be bound to them.
+
+## Context requirements
+- The task this skill was invoked for, and the outcome the caller expects.
+- Revision, and artifact digest where an artifact exists, plus the
+  environment fingerprint of the session.
+- The evidence identifiers this run must bind to, so results attach to
+  the same evidence graph as the work that preceded them.
+
+## Allowed tools
+- resource_merger
+- managed_emulator
+
+## Procedure
 1. Externalize every user-visible string into string resources; no
    literal text remains in layout or composable code that a translator
    cannot reach.
@@ -35,16 +58,69 @@ scoped asset transaction (BS §50).
    confirm that no screen clips, overlaps, or shows an untranslated
    literal.
 
-## Invariants
-- No user-visible string is concatenated at runtime; a sentence is one
-  message with placeholders, never fragments joined in code.
-- Directional layout uses start and end; absolute left and right in a
-  user-facing layout is a defect.
-- Formatting is locale-driven; a hard-coded date, number, or currency
-  pattern is a defect.
-- A locale the app does not ship is reported as unsupported, never
-  silently rendered in the fallback language.
-- Every localized screen is verified, not assumed: an unverified locale
-  is reported as unverified.
-- The skill is permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every
-  execution still passes through ToolBroker and PolicyAuthority.
+## Evidence
+- A record of each procedure step that executed, with the outcome observed,
+  bound to the source revision and the environment fingerprint.
+- The emitted `LocalizationResult` (§23 SkillPackage contract), carrying its
+  classification and its evidence references.
+- Invariant claims this skill must leave observable, each of which is a
+  statement the evidence above has to support:
+
+  * No user-visible string is concatenated at runtime; a sentence is one
+  *   message with placeholders, never fragments joined in code.
+  * Directional layout uses start and end; absolute left and right in a
+  *   user-facing layout is a defect.
+  * Formatting is locale-driven; a hard-coded date, number, or currency
+  *   pattern is a defect.
+  * A locale the app does not ship is reported as unsupported, never
+  *   silently rendered in the fallback language.
+  * Every localized screen is verified, not assumed: an unverified locale
+  *   is reported as unverified.
+- Every claim reduced to an observable: what was seen, on which device or
+  host, at which revision — never a statement of intent.
+
+## Failure classification
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+  the gated steps MUST NOT execute and the blocked state MUST be reported.
+- PRECONDITION_UNMET — a precondition below was not satisfied; the skill
+  does not proceed past it.
+- ACTION_FAILED — a procedure step was attempted and did not produce its
+  expected outcome.
+- INVARIANT_VIOLATED — the work completed but one of the invariant claims
+  this skill must leave observable does not hold.
+- TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
+  slow step.
+
+## Recovery
+- A blocked capability resumes when the capability record changes; the blocked
+  node names its resume condition and is never reported as a failure of the
+  goal.
+- One retry is permitted after a repair that materially changed the input. An
+  identical action is never re-run against unchanged evidence, and the
+  recoveryAttemptPolicy bound escalates rather than terminating the goal.
+- An invariant violation is repaired at its cause, never by relaxing the check
+  that detected it.
+- Nothing unverified is reported as verified; an unverified outcome is
+  reported as unverified.
+
+## Output contract
+Emits `LocalizationResult` from `LocalizationResultRequest` (§23 SkillPackage contract):
+
+- classification: one of the failure classes above, null on success
+- evidenceRefs: identifiers of the evidence this run captured
+- revision and, where one exists, artifactDigest: what the evidence is bound to
+- unverified: outcomes this run could not verify, named rather than assumed
+
+## Fixtures
+- Step 1 produces its expected outcome — Externalize every user-visible string into string resources; no
+- Step 2 produces its expected outcome — Qualify resources by locale and region: values-b+es+419 for regional
+- Step 3 produces its expected outcome — Use ICU message format for plurals, gender, and selects so the
+- Step 4 produces its expected outcome — Mirror the layout for RTL: prefer start and end over left and right,
+- Step 5 produces its expected outcome — Format through the platform locale: dates, times, numbers, and
+- Step 6 produces its expected outcome — Handle text expansion: German and Finnish routinely exceed English by
+- Step 7 produces its expected outcome — Verify with pseudo-locales: run the app in the accented and
+- A required capability is UNAVAILABLE — blocked, nothing attempted
+- An invariant of this skill is violated and is reported, not absorbed
+
+This skill is permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every
+execution still passes through ToolBroker and PolicyAuthority.

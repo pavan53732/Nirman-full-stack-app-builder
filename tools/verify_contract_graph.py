@@ -3364,6 +3364,12 @@ SKILL_BODY_BANNED = (
 )
 
 
+CONTRACT_SECTIONS = ("Trigger", "Required capabilities", "Preconditions",
+                    "Context requirements", "Allowed tools", "Procedure",
+                    "Evidence", "Failure classification", "Recovery",
+                    "Output contract", "Fixtures")
+
+
 def check_skill_bodies(docs, D, repo_root):
     """Check 15, skill part (reported under "semantic documentation"): skill
     instruction bodies (BS §79.7) exist for every registered platform
@@ -3431,6 +3437,18 @@ def check_skill_bodies(docs, D, repo_root):
         if path is None:
             continue
         mpath = os.path.join(os.path.dirname(path), "skill.json")
+        stext = open(path, encoding="utf-8").read() if path else ""
+        heads = re.findall(r"^## (.+)$", stext, re.M)
+        pos = -1
+        for sec in CONTRACT_SECTIONS:
+            try:
+                nxt = heads.index(sec, pos + 1)
+            except ValueError:
+                D.add("semantic documentation", f"skill {name}",
+                      "body must carry the eleven sections of the §79.7 skill "
+                      f"contract in order; missing or out of order: {sec}")
+                break
+            pos = nxt
         if not os.path.exists(mpath):
             D.add("semantic documentation", f"skill {name}", "no skill.json manifest beside SKILL.md (BS §79.7)")
             continue
