@@ -44,10 +44,24 @@ continues rather than being blocked with it.
 
 ## Procedure
 1. Consume the current EnvironmentCapabilityRecord; verify
-   WINDOWS_HOST_TOOLCHAIN is AVAILABLE.
-2. Build Nirman.exe and NirmanSupervisor.exe natively, bundle, and
-   generate the installer.
-3. Emit build-gate evidence bound to the environment fingerprint.
+   WINDOWS_HOST_TOOLCHAIN is AVAILABLE and bind the build to the environment
+   fingerprint before any compiler runs.
+2. Resolve the toolchain identities actually in use — the .NET SDK version,
+   the MSBuild version, and the Rust toolchain — and record each observed
+   version rather than trusting the manifest that requested them.
+3. Build the Rust control-plane crates for the x64 target and confirm each
+   expected artifact was produced, so a partially built control plane is
+   never bundled.
+4. Build Nirman.exe and NirmanSupervisor.exe against the Windows App SDK, and
+   confirm the packaged host is the stack those ADRs lock, with no
+   web-wrapper desktop shell introduced.
+5. Verify the named-pipe SupervisorConnection is wired between the two
+   executables: the pipe name each side expects, and that the supervisor binds
+   and the desktop application connects.
+6. Bundle the outputs and generate the installer, then confirm the bundle
+   contains every component the manifest declares and nothing it does not.
+7. Emit build-gate evidence bound to the environment fingerprint, with
+   runtimeValidationClaimed fixed to false.
 
 ## Evidence
 - A record of each procedure step that executed, with the outcome observed,
@@ -106,8 +120,12 @@ Emits `BuildGateRecord` from `WindowsDesktopBuildRequest` (§23 SkillPackage con
 
 ## Fixtures
 - Step 1 produces its expected outcome — Consume the current EnvironmentCapabilityRecord; verify
-- Step 2 produces its expected outcome — Build Nirman.exe and NirmanSupervisor.exe natively, bundle, and
-- Step 3 produces its expected outcome — Emit build-gate evidence bound to the environment fingerprint.
+- Step 2 produces its expected outcome — Resolve the toolchain identities actually in use — the .NET SDK version,
+- Step 3 produces its expected outcome — Build the Rust control-plane crates for the x64 target and confirm each
+- Step 4 produces its expected outcome — Build Nirman.exe and NirmanSupervisor.exe against the Windows App SDK, and
+- Step 5 produces its expected outcome — Verify the named-pipe SupervisorConnection is wired between the two
+- Step 6 produces its expected outcome — Bundle the outputs and generate the installer, then confirm the bundle
+- Step 7 produces its expected outcome — Emit build-gate evidence bound to the environment fingerprint, with
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 
