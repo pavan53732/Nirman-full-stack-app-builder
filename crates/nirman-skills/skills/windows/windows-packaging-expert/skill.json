@@ -1,0 +1,29 @@
+{
+  "skillId": "windows-packaging-expert",
+  "name": "Windows Packaging Expert",
+  "description": "Windows packaging and delivery: MSIX package authoring and manifest capability declaration, code signing and signature verification, installer and uninstaller behavior, version and update semantics, and package verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "msix_packaging",
+    "code_signing",
+    "installer_verification"
+  ],
+  "requiredTools": [
+    "msbuild",
+    "msix_tooling",
+    "signtool"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PackagingResultRequest",
+  "outputSchema": "PackagingResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,29 @@
+{
+  "skillId": "rust-control-plane-expert",
+  "name": "Rust Control Plane Expert",
+  "description": "Rust control-plane engineering: crate layout and workspace boundaries, async runtime discipline, typed error handling, named-pipe interprocess communication, structured logging, and Rust test and static-analysis practice (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "rust_crate_layout",
+    "async_task_discipline",
+    "ipc_named_pipe",
+    "rust_diagnostics"
+  ],
+  "requiredTools": [
+    "cargo",
+    "rustc",
+    "clippy"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ControlPlaneResultRequest",
+  "outputSchema": "ControlPlaneResult",
+  "sourcePath": "SKILL.md"
+}

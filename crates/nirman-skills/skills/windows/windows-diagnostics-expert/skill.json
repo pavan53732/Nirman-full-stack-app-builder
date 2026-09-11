@@ -1,0 +1,29 @@
+{
+  "skillId": "windows-diagnostics-expert",
+  "name": "Windows Diagnostics Expert",
+  "description": "Windows runtime diagnostics: ConPTY console hosting and stream capture, Job Object isolation and resource limits, named-pipe transport failures, process supervision and restart behavior, and collecting event-log and crash-dump evidence (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "windows_runtime_fault",
+    "ipc_transport_failure",
+    "process_supervision_fault"
+  ],
+  "requiredTools": [
+    "conpty_probe",
+    "job_object_probe",
+    "event_log"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "DiagnosticsResultRequest",
+  "outputSchema": "DiagnosticsResult",
+  "sourcePath": "SKILL.md"
+}

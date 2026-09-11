@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-ui-expert",
+  "name": "Windows UI Expert",
+  "description": "WinUI 3 and Windows App SDK desktop UI: XAML markup and data binding, MVVM structure, Fluent design and theming, navigation and window lifecycle, accessibility and keyboard access, and WinUI verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Visual QA Worker"
+  ],
+  "triggerConditions": [
+    "winui_view_build",
+    "fluent_theming",
+    "desktop_accessibility"
+  ],
+  "requiredTools": [
+    "dotnet_sdk",
+    "windows_app_sdk",
+    "msbuild"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "WindowsUiResultRequest",
+  "outputSchema": "WindowsUiResult",
+  "sourcePath": "SKILL.md"
+}

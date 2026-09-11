@@ -5221,6 +5221,10 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `environment-repair` | Authorized repairs: missing tool, wrong tool version, missing target, broken PATH, missing SDK or dependency, incorrect configuration | repair capability + policy approval through the normal transaction path |
 | `windows-desktop-build` | C#/.NET / WinUI 3 / Windows App SDK / XAML + Rust control-plane integration; Nirman.exe packaging, NirmanSupervisor.exe packaging, named-pipe SupervisorConnection, native Windows runtime integration | cross-compilation capability or Windows host; **never claims runtime validation** |
 | `windows-runtime-validation` | Nirman.exe and NirmanSupervisor startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior | `target_platform = windows` AND `native_execution = AVAILABLE`; otherwise `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
+| `windows-ui-expert` | WinUI 3 and Windows App SDK desktop UI: XAML markup and data binding, MVVM structure, Fluent design and theming, navigation and window lifecycle, accessibility and keyboard access, and WinUI verification | `WINDOWS_HOST_TOOLCHAIN` |
+| `rust-control-plane-expert` | Rust control-plane engineering: crate layout and workspace boundaries, async runtime discipline, typed error handling, named-pipe interprocess communication, structured logging, and Rust test and static-analysis practice | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-packaging-expert` | Windows packaging and delivery: MSIX package authoring and manifest capability declaration, code signing and signature verification, installer and uninstaller behavior, version and update semantics, and package verification | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-diagnostics-expert` | Windows runtime diagnostics: ConPTY console hosting and stream capture, Job Object isolation and resource limits, named-pipe transport failures, process supervision and restart behavior, and collecting event-log and crash-dump evidence | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `cross-platform-build-diagnostics` | Determine what can be cross-built, which artifacts can be produced, and which validation evidence necessarily remains missing for a host→target pair | host toolchain observation |
 | `android-toolchain` | Node, package manager, Java, Gradle, Android SDK, platform tools, emulator, native dependencies, signing | Android toolchain authority (TA §49); independent of host-target build capability |
 | `android-design-import` | Figma-to-Compose translation: parse Figma design files (nodes, components, styles, constraints, assets), extract design tokens (colors, typography, spacing, corner radius), map to Compose equivalents (Modifier, Box, Row, Column, Text, theme, Material3), generate pixel-flavored Compose UI code with proper semantics, validate translation fidelity against the original design | `ANDROID_BUILD_TOOLCHAIN`; `DESIGN_IMPORT`; requires valid Figma access token or local design file |
@@ -5258,7 +5262,7 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the thirty-eight built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the forty-two built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5293,6 +5297,10 @@ The `requiredCapabilities` of the thirty-eight built-in skills are drawn from th
 | `environment-repair` | `HOST_TOOL_OBSERVATION`, `ENVIRONMENT_REPAIR` |
 | `windows-desktop-build` | `WINDOWS_HOST_TOOLCHAIN` |
 | `windows-runtime-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-ui-expert` | `WINDOWS_HOST_TOOLCHAIN` |
+| `rust-control-plane-expert` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-packaging-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-diagnostics-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
 | `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
 | `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
