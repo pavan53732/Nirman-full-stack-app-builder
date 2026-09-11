@@ -1,0 +1,29 @@
+{
+  "skillId": "android-health-expert",
+  "name": "Android Health Services Expert",
+  "description": "Health and fitness: Health Connect read and write, Health Services exercise tracking on Wear OS, sensor and heart-rate data, granular health permissions and their disclosure, and background health data sync (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker",
+    "UI Worker"
+  ],
+  "triggerConditions": [
+    "health_connect",
+    "exercise_tracking",
+    "health_permissions"
+  ],
+  "requiredTools": [
+    "health_connect_client",
+    "health_services",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_NATIVE_DEVICE_CAPABILITIES"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "HealthIntegrationResultRequest",
+  "outputSchema": "HealthIntegrationResult",
+  "sourcePath": "SKILL.md"
+}

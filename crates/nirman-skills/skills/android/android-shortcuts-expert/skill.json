@@ -1,0 +1,29 @@
+{
+  "skillId": "android-shortcuts-expert",
+  "name": "Android App Shortcuts Expert",
+  "description": "App shortcuts and entry points: static dynamic and pinned shortcuts through ShortcutManager, capability-based voice and assistant entry, deep-link targets, shortcut limits and ranking, and shortcut verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "app_shortcuts",
+    "shortcut_deep_link",
+    "assistant_capability_entry"
+  ],
+  "requiredTools": [
+    "shortcut_manager",
+    "app_actions",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ShortcutResultRequest",
+  "outputSchema": "ShortcutResult",
+  "sourcePath": "SKILL.md"
+}

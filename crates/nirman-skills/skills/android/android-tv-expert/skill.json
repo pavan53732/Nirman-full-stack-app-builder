@@ -1,0 +1,31 @@
+{
+  "skillId": "android-tv-expert",
+  "name": "Android TV Expert",
+  "description": "Android TV and Google TV: D-pad focus navigation, Compose for TV and Leanback surfaces, home screen channel and row presentation, ten-foot layout and typography, media playback and playback controls (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Visual QA Worker"
+  ],
+  "triggerConditions": [
+    "tv_app",
+    "dpad_focus_navigation",
+    "ten_foot_ui",
+    "tv_media_playback"
+  ],
+  "requiredTools": [
+    "compose_for_tv",
+    "leanback",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_INTERACTION_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "TvAppResultRequest",
+  "outputSchema": "TvAppResult",
+  "sourcePath": "SKILL.md"
+}

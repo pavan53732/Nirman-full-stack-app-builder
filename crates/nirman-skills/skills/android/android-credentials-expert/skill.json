@@ -1,0 +1,28 @@
+{
+  "skillId": "android-credentials-expert",
+  "name": "Android Credential Manager and Passkeys Expert",
+  "description": "Credential Manager and passkeys: passkey creation and assertion, Sign in with Google, password and federated credential handling, autofill integration, and credential recovery (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker",
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "passkey_creation",
+    "credential_sign_in",
+    "credential_recovery"
+  ],
+  "requiredTools": [
+    "credential_manager",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_AUTHENTICATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "CredentialFlowResultRequest",
+  "outputSchema": "CredentialFlowResult",
+  "sourcePath": "SKILL.md"
+}

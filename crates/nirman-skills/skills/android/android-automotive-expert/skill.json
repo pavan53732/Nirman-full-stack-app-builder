@@ -1,0 +1,28 @@
+{
+  "skillId": "android-automotive-expert",
+  "name": "Android Automotive Expert",
+  "description": "Android Automotive OS and Android Auto: the Car App Library, template-based UI, driver-distraction constraints, step-by-step navigation, media and messaging templates, and automotive quality gates (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "automotive_app",
+    "car_app_template",
+    "driver_safety_constraints"
+  ],
+  "requiredTools": [
+    "car_app_library",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_UI_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AutomotiveAppResultRequest",
+  "outputSchema": "AutomotiveAppResult",
+  "sourcePath": "SKILL.md"
+}

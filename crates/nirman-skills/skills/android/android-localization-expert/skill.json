@@ -1,0 +1,29 @@
+{
+  "skillId": "android-localization-expert",
+  "name": "Android Localization Expert",
+  "description": "Localization and internationalization: resource qualification by locale and region, RTL mirroring, plurals and gender, date number and currency formatting, per-locale app resources, and pseudo-locale testing (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "localization_setup",
+    "rtl_layout",
+    "locale_formatting",
+    "translation_handoff"
+  ],
+  "requiredTools": [
+    "resource_merger",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "LocalizationResultRequest",
+  "outputSchema": "LocalizationResult",
+  "sourcePath": "SKILL.md"
+}

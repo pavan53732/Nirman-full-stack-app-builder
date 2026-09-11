@@ -1,0 +1,29 @@
+{
+  "skillId": "android-ads-expert",
+  "name": "Android Ads and Monetization Expert",
+  "description": "Ad monetization: Google Mobile Ads and AdMob integration, banner interstitial rewarded and native ad formats, mediation, consent and privacy signalling, ad labeling, and test-ad verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "admob_integration",
+    "ad_format_selection",
+    "consent_management"
+  ],
+  "requiredTools": [
+    "google_mobile_ads",
+    "ump_consent_sdk",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_NETWORK_INTEGRATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AdsIntegrationResultRequest",
+  "outputSchema": "AdsIntegrationResult",
+  "sourcePath": "SKILL.md"
+}

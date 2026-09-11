@@ -5245,10 +5245,20 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-camera-ml-expert` | Android camera and ML Kit: CameraX, barcode scanning, face detection, text recognition, TensorFlow Lite | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-bluetooth-nfc-expert` | Android Bluetooth and NFC: BLE GATT, Classic Bluetooth, NFC NDEF, HCE, Nearby Connections | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-dynamic-delivery-expert` | Android dynamic delivery: dynamic feature modules, Play Feature Delivery, Play Asset Delivery, app bundles | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-large-screens-expert` | Large screens, tablets, foldables, and multi-window: WindowSizeClass adaptive layouts, foldable postures and hinges, activity embedding, drag and drop, multi-resume, and large-screen quality gates | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-credentials-expert` | Credential Manager and passkeys: passkey creation and assertion, Sign in with Google, password and federated credential handling, autofill integration, and credential recovery | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-localization-expert` | Localization and internationalization: resource qualification by locale and region, RTL mirroring, plurals and gender, date number and currency formatting, per-locale app resources, and pseudo-locale testing | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-automotive-expert` | Android Automotive OS and Android Auto: the Car App Library, template-based UI, driver-distraction constraints, step-by-step navigation, media and messaging templates, and automotive quality gates | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-tv-expert` | Android TV and Google TV: D-pad focus navigation, Compose for TV and Leanback surfaces, home screen channel and row presentation, ten-foot layout and typography, media playback and playback controls | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-ads-expert` | Ad monetization: Google Mobile Ads and AdMob integration, banner interstitial rewarded and native ad formats, mediation, consent and privacy signalling, ad labeling, and test-ad verification | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-printing-expert` | Android printing: the print framework and its print job APIs, document and photo print adapters, PDF generation, custom print options and page ranges, print preview, and print service discovery | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-health-expert` | Health and fitness: Health Connect read and write, Health Services exercise tracking on Wear OS, sensor and heart-rate data, granular health permissions and their disclosure, and background health data sync | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-instant-apps-expert` | Google Play Instant: instant-enabled app bundles, URL mapping and app links, the instant size budget and its module split, instant-to-installed state handover, and instant verification | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-shortcuts-expert` | App shortcuts and entry points: static dynamic and pinned shortcuts through the platform shortcut manager, capability-based voice and assistant entry, deep-link targets, shortcut limits and ranking, and shortcut verification | `ANDROID_BUILD_TOOLCHAIN` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the twenty-eight built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the thirty-eight built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5307,6 +5317,16 @@ The `requiredCapabilities` of the twenty-eight built-in skills are drawn from th
 | `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
 | `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
 | `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
+| `android-large-screens-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-credentials-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION` |
+| `android-localization-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-automotive-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
+| `android-tv-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-ads-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
+| `android-printing-expert` | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-health-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-instant-apps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING` |
+| `android-shortcuts-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

@@ -1,0 +1,28 @@
+{
+  "skillId": "android-printing-expert",
+  "name": "Android Printing Expert",
+  "description": "Android printing: the print framework and PrintManager, document and photo print adapters, PDF generation, custom print options and page ranges, print preview, and print service discovery (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Data and Integration Worker",
+    "UI Worker"
+  ],
+  "triggerConditions": [
+    "print_document",
+    "pdf_generation",
+    "print_preview"
+  ],
+  "requiredTools": [
+    "print_framework",
+    "pdf_renderer",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PrintJobResultRequest",
+  "outputSchema": "PrintJobResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,29 @@
+{
+  "skillId": "android-instant-apps-expert",
+  "name": "Android Instant Apps Expert",
+  "description": "Google Play Instant: instant-enabled app bundles, URL mapping and app links, the instant size budget and its module split, instant-to-installed state handover, and instant verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "instant_app_enable",
+    "instant_size_budget",
+    "instant_state_handover"
+  ],
+  "requiredTools": [
+    "bundle_tool",
+    "play_instant_sdk",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_PACKAGING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "InstantAppResultRequest",
+  "outputSchema": "InstantAppResult",
+  "sourcePath": "SKILL.md"
+}
