@@ -24,6 +24,12 @@ transaction (BS §50).
 - The source revision and, where one exists, the artifact digest are
   known, so every record this skill emits can be bound to them.
 
+- Gated by the Windows host toolchain. When `WINDOWS_HOST_TOOLCHAIN`
+resolves to UNAVAILABLE or USER_REQUIRED, the gated steps MUST NOT
+execute and the blocked state MUST be reported — the independent work
+(source, static analysis, host-native tests, artifact inspection)
+continues rather than being blocked with it.
+
 ## Context requirements
 - The task this skill was invoked for, and the outcome the caller expects.
 - Revision, and artifact digest where an artifact exists, plus the

@@ -22,6 +22,12 @@ transaction (BS §50).
 - The source revision and, where one exists, the artifact digest are
   known, so every record this skill emits can be bound to them.
 
+- Gated by the Android toolchain authority (TA §49), independent of the
+host toolchain capability. When `ANDROID_BUILD_TOOLCHAIN` (or, for the
+emulator steps, `ANDROID_EMULATOR_EXECUTION`) resolves to UNAVAILABLE or
+USER_REQUIRED, the gated steps MUST NOT execute and the blocked state
+MUST be reported.
+
 ## Context requirements
 - The task this skill was invoked for, and the outcome the caller expects.
 - Revision, and artifact digest where an artifact exists, plus the
