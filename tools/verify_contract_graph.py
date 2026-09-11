@@ -3425,6 +3425,7 @@ def check_skill_bodies(docs, D, repo_root):
         declared[row[0]] = set(re.findall(r"`([A-Z][A-Z_]+)`", row[1]))
     if not vocab or not declared:
         D.add("semantic documentation", "BS §79.7", "capability-id vocabulary or per-skill requiredCapabilities table not found")
+    consumed = set()
     for name in names:
         path = bodies.get(name)
         if path is None:
@@ -3450,6 +3451,7 @@ def check_skill_bodies(docs, D, repo_root):
         caps = set(man.get("requiredCapabilities") or [])
         for extra in man.get("conditionalCapabilities", {}).values():
             caps |= set(extra)
+        consumed |= caps
         # Body gates (BS §79.7): the prose names its gates only in the closed
         # capability-id vocabulary, and only the ids of the skill's own row;
         # legacy lowercase gate ids (android_build, cross_build_windows,
@@ -3479,6 +3481,17 @@ def check_skill_bodies(docs, D, repo_root):
         for fld in ("name", "description", "version", "compatibleWorkerRoles", "triggerConditions", "requiredTools", "inputSchema", "outputSchema"):
             if fld not in man:
                 D.add("semantic documentation", f"skill {name}", f"manifest lacks SkillPackage field {fld}")
+
+    # Capability consumption (BS §79.7): every id in the closed vocabulary
+    # must have at least one consuming skill. An id that no skill requires is
+    # a declared capability the skill graph cannot exercise -- the orphan
+    # capability this rule exists to catch. The converse direction is already
+    # enforced above: a manifest may name no id outside this vocabulary.
+    for cid in sorted(vocab - consumed):
+        D.add("semantic documentation", f"capability id {cid}",
+              "declared in the BS §79.7 capability vocabulary but no built-in "
+              "skill requires it; every capability must have at least one "
+              "consuming skill")
 
 
 def check_section_ownership(R, D):

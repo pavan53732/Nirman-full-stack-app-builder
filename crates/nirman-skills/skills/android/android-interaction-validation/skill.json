@@ -1,0 +1,31 @@
+{
+  "skillId": "android-interaction-validation",
+  "name": "Android Interaction Validation",
+  "description": "Drive and verify user interactions on the Nirman-managed emulator: element resolution by identity, action execution with settle waits, state assertion from the observed hierarchy, and classification of interaction and assertion failures (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Test and QA Worker",
+    "UI Worker"
+  ],
+  "triggerConditions": [
+    "interaction_execution",
+    "e2e_scenario_step",
+    "assertion_failure_diagnosis"
+  ],
+  "requiredTools": [
+    "managed_emulator",
+    "adb",
+    "ui_hierarchy_probe"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_INTERACTION_EXECUTION",
+    "ANDROID_UI_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "InteractionValidationRequest",
+  "outputSchema": "InteractionValidationResult",
+  "sourcePath": "SKILL.md"
+}

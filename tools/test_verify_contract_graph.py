@@ -1027,6 +1027,11 @@ CASES = {
         "crates/nirman-skills/skills/android/android-toolchain/SKILL.md",
         "emulator steps, `ANDROID_EMULATOR_EXECUTION`)", "emulator steps, `WINDOWS_NATIVE_EXECUTION`)",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "capability with no consuming skill": (
+        BS,
+        '| `android-install-launch` | Install and launch the built artifact on the Nirman-managed emulator: artifact and target compatibility, install verification, cold and warm launch, first-frame evidence, and install and launch failure classification | `ANDROID_BUILD_TOOLCHAIN` |',
+        "",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "CandidateBranch schema dropped from the architecture": (
         SCHEMAS, "```text\nCandidateBranch\n- branchId\n- parentRevision",
         "```text\nCandidateBranchX\n- branchId\n- parentRevision",

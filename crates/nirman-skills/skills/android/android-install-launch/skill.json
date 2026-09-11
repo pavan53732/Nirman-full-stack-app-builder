@@ -1,0 +1,30 @@
+{
+  "skillId": "android-install-launch",
+  "name": "Android Install and Launch",
+  "description": "Install and launch the built artifact on the Nirman-managed emulator: artifact and target compatibility, install verification, cold and warm launch, first-frame evidence, and install and launch failure classification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "artifact_install_required",
+    "cold_launch_evidence",
+    "install_failure_diagnosis"
+  ],
+  "requiredTools": [
+    "adb",
+    "managed_emulator",
+    "bundle_tool"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_INSTALL_LAUNCH"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "InstallLaunchRequest",
+  "outputSchema": "InstallLaunchResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,32 @@
+{
+  "skillId": "android-accessibility-validation",
+  "name": "Android Accessibility Validation",
+  "description": "Verify accessibility properties on the Nirman-managed emulator: semantic labelling, touch target sizing, contrast, traversal order and focus, screen reader announcement, and reporting each criterion as verified or unobserved (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Visual QA Worker",
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "accessibility_audit",
+    "touch_target_check",
+    "contrast_check",
+    "screen_reader_traversal"
+  ],
+  "requiredTools": [
+    "managed_emulator",
+    "accessibility_probe",
+    "ui_hierarchy_probe"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_ACCESSIBILITY_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AccessibilityValidationRequest",
+  "outputSchema": "AccessibilityValidationResult",
+  "sourcePath": "SKILL.md"
+}

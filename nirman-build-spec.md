@@ -5259,10 +5259,15 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-health-expert` | Health and fitness: Health Connect read and write, Health Services exercise tracking on Wear OS, sensor and heart-rate data, granular health permissions and their disclosure, and background health data sync | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-instant-apps-expert` | Google Play Instant: instant-enabled app bundles, URL mapping and app links, the instant size budget and its module split, instant-to-installed state handover, and instant verification | `ANDROID_BUILD_TOOLCHAIN` |
 | `android-shortcuts-expert` | App shortcuts and entry points: static dynamic and pinned shortcuts through the platform shortcut manager, capability-based voice and assistant entry, deep-link targets, shortcut limits and ranking, and shortcut verification | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-install-launch` | Install and launch the built artifact on the Nirman-managed emulator: artifact and target compatibility, install verification, cold and warm launch, first-frame evidence, and install and launch failure classification | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-runtime-diagnostics` | Capture and interpret runtime diagnostics from the Nirman-managed emulator: bounded logcat capture, crash and ANR classification, structured log correlation, component health probes, and evidence-bound fault attribution | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-visual-validation` | Capture and compare rendered screens against the design specification: screenshot capture bound to revision and device, golden image comparison with a defined difference policy, design token fidelity, and honest reporting of unobservable visual criteria | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-interaction-validation` | Drive and verify user interactions on the Nirman-managed emulator: element resolution by identity, action execution with settle waits, state assertion from the observed hierarchy, and classification of interaction and assertion failures | `ANDROID_BUILD_TOOLCHAIN` |
+| `android-accessibility-validation` | Verify accessibility properties on the Nirman-managed emulator: semantic labelling, touch target sizing, contrast, traversal order and focus, screen reader announcement, and reporting each criterion as verified or unobserved | `ANDROID_BUILD_TOOLCHAIN` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the forty-two built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the forty-seven built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5335,6 +5340,11 @@ The `requiredCapabilities` of the forty-two built-in skills are drawn from this 
 | `android-health-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
 | `android-instant-apps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING` |
 | `android-shortcuts-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-install-launch` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_INSTALL_LAUNCH` |
+| `android-runtime-diagnostics` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_LOGCAT_DIAGNOSTICS`, `ANDROID_UI_OBSERVATION` |
+| `android-visual-validation` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION` |
+| `android-interaction-validation` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_UI_OBSERVATION` |
+| `android-accessibility-validation` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

@@ -1,0 +1,31 @@
+{
+  "skillId": "android-visual-validation",
+  "name": "Android Visual Validation",
+  "description": "Capture and compare rendered screens against the design specification: screenshot capture bound to revision and device, golden image comparison with a defined difference policy, design token fidelity, and honest reporting of unobservable visual criteria (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Visual QA Worker",
+    "UI Worker"
+  ],
+  "triggerConditions": [
+    "screenshot_comparison",
+    "design_fidelity_check",
+    "visual_regression_check"
+  ],
+  "requiredTools": [
+    "managed_emulator",
+    "screenshot_capture",
+    "image_diff"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_VISUAL_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "VisualValidationRequest",
+  "outputSchema": "VisualValidationResult",
+  "sourcePath": "SKILL.md"
+}

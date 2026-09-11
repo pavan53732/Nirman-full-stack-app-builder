@@ -1,0 +1,32 @@
+{
+  "skillId": "android-runtime-diagnostics",
+  "name": "Android Runtime Diagnostics",
+  "description": "Capture and interpret runtime diagnostics from the Nirman-managed emulator: bounded logcat capture, crash and ANR classification, structured log correlation, component health probes, and evidence-bound fault attribution (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "runtime_fault_diagnosis",
+    "crash_classification",
+    "anr_investigation",
+    "logcat_evidence_required"
+  ],
+  "requiredTools": [
+    "adb",
+    "managed_emulator",
+    "logcat_probe"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_LOGCAT_DIAGNOSTICS",
+    "ANDROID_UI_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "RuntimeDiagnosticsRequest",
+  "outputSchema": "RuntimeDiagnosticsResult",
+  "sourcePath": "SKILL.md"
+}
