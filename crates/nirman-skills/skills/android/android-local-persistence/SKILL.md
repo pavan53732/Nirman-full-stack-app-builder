@@ -50,6 +50,19 @@ without bound on device.
 - Cache growth against the declared bound, with eviction observed at the bound.
 - Sensitive-value placement, and the scan of plain stores, backups, and logs.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - A committed write is readable in full after a crash, and an uncommitted one is not readable at all.
+  - No sensitive value exists outside secure storage, including in backups and logs.
+  - Cache size stays within its declared bound, and eviction is observable at that bound.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

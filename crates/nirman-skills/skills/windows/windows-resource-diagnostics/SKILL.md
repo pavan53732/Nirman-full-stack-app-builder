@@ -51,6 +51,19 @@ session and the attributing process must be named.
 - Growth samples across the session, showing plateau or unbounded growth.
 - Disk attribution by directory, and the contention sources named.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Resource use is attributed to a named process, not reported as a system-wide figure.
+  - Memory either plateaus or is shown to grow without bound; a plateau is not a leak.
+  - Growth or exhaustion is attributed to a specific consumer, not reported as a slow host.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

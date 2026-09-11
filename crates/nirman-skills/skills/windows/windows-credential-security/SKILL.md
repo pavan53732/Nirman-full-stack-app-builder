@@ -49,6 +49,19 @@ handling of secrets must be reviewed before a trust boundary is relied on.
 - Rotation result: replaced, and the old credential confirmed inert.
 - Leak scan results across every surface in scope.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Every credential lives in its intended store, with no copy in a file, an environment variable, or a source tree.
+  - No credential value, nor its distinctive shape, appears in any log, artifact, or dump in scope.
+  - A rotated credential replaces the old one, and the old one is confirmed inert.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

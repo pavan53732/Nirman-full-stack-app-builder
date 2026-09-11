@@ -52,6 +52,19 @@ stuck in a refresh loop, or left in a state where the app looks signed in but is
 - Rotation behaviour on a reused token.
 - UI states for expiry and revocation.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - No credential is present in a log, a plain store, or a URL.
+  - An expired or revoked session signs the user out and says why, never leaving requests failing silently.
+  - A refresh that fails exhausts a bounded number of attempts before signing out; it never retries indefinitely.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

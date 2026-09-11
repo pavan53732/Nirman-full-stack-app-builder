@@ -53,6 +53,19 @@ duplicated, restarting repeatedly, or outliving its owner.
 - Shutdown trace: order, exit codes, and any process that failed to exit.
 - Every record bound to revision and host environment fingerprint.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The running inventory matches the expected inventory, or each discrepancy is named.
+  - Every process is owned by the supervisor; none runs unmanaged.
+  - A coordinated shutdown leaves no orphan and kills nothing denied a bounded chance to flush.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

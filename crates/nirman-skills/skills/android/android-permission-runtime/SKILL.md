@@ -61,6 +61,19 @@ one use.
   path, with the UI hierarchy observed at each step.
 - Every record bound to revision, package identifier, and session.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Every dangerous permission requested at runtime is declared in the manifest first.
+  - A denied permission leaves its gated feature unavailable with a stated reason, never silently degraded.
+  - The don't-ask-again state is detected and routed to settings rather than re-prompted into a dead end.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

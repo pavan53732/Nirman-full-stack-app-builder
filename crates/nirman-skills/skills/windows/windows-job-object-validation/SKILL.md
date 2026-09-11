@@ -54,6 +54,19 @@ job it was assigned to.
 - Accounting counters, corroborated against observed behaviour.
 - Every record bound to revision and host environment fingerprint.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Every declared limit is present on the job object and read from it, not from the configuration that set it.
+  - No process that belongs inside the job is found outside it.
+  - A termination caused by a limit is recorded as a limit kill, never as a plain exit.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

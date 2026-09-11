@@ -58,6 +58,19 @@ classified and repaired at its cause rather than worked around.
 - A clean-build comparison where incremental corruption was suspected.
 - Every record bound to revision and to the toolchain manifest.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The failing task and its verbatim output are captured before any repair is attempted.
+  - A repair changes one thing, and the build is re-run to prove that change had the effect claimed.
+  - A clean build succeeding where incremental failed is recorded as incremental corruption, not as a fix.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

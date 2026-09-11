@@ -53,6 +53,19 @@ something outside its grant.
 - Network policy results: allowed and denied, each observed.
 - Escape attempts and their outcomes, each logged.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The worker reaches nothing outside its declared grant.
+  - No host credential is readable from inside the sandbox.
+  - Every deliberate escape attempt fails and is logged; untested is not the same as impossible.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

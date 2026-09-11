@@ -52,6 +52,19 @@ back, that data survives, and that the rollback itself works.
 - Rollback result, with a post-rollback launch proving the install works.
 - Data and settings comparison before and after, per item.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - A retained known-good package exists before anything is changed.
+  - The new package is validated before it is applied.
+  - A rollback is proven by relaunching the restored version, not by the rollback completing.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

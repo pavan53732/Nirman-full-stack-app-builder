@@ -51,6 +51,19 @@ that do not say what is wrong, or a submit button that is disabled with no expla
 - Server-error mapping results, including unmapped errors.
 - Disabled-state reason, and focus and announcement behaviour on failed submit.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Every rule is enforced on the server, not only on the client.
+  - Every server error maps to a field or is surfaced at the form level; none is dropped.
+  - Values the user entered survive a failed submit.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

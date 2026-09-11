@@ -54,6 +54,19 @@ is relied on.
 - Exit propagation: the exit code the caller received versus the child's.
 - For a stall, the layer the diagnosis landed on.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Output is consumed at least as fast as the child produces it, so the buffer never fills.
+  - The child's exit code reaches the caller intact, including non-zero and signal-terminated exits.
+  - Characters and escape sequences survive end to end without a code-page mangling.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

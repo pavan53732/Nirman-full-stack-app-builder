@@ -50,6 +50,19 @@ state and the cause is in how state is held rather than in how it is rendered.
 - Configuration-change survival results per state.
 - For a stale read, the traced cause.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - No derived value is stored; anything computable from other state is computed.
+  - Each piece of owned state has exactly one owner.
+  - State the contract preserves survives a configuration change; state it does not is never resurrected.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

@@ -56,6 +56,19 @@ that cannot be reproduced.
   target, and each reconciliation action taken with its outcome.
 - Every record bound to the environment fingerprint and the session.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The declared target and the observed device agree on ABI, API level, and locale, or every divergence is listed with its reconciliation.
+  - No claim about the device carries forward from a previous session's fingerprint.
+  - A state that could not be read is reported as unread, never inferred from the AVD configuration.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

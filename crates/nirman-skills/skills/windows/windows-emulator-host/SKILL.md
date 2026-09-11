@@ -56,6 +56,19 @@ starves the host — or the host must be assessed before a device-dependent run.
 - Resource measurements against the declared host budget.
 - Preview stream state, including any gap and how it was reported.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - Acceleration is confirmed usable before the emulator starts; it is never started unaccelerated without saying so.
+  - The system image matches the host architecture, or provisioning is refused.
+  - Boot completion is observed, not assumed from a launch command that returned.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

@@ -58,6 +58,19 @@ memory budget a screen must stay within.
 - Process importance observed under memory pressure, and what survived.
 - Every record bound to revision, artifact digest, and device identity.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The heap returns to its baseline after a full collection cycle, or growth is attributed to a named retaining path.
+  - No allocation is retained by a scope that has already been destroyed.
+  - An out-of-memory is attributed to the allocation that failed, not to the process as a whole.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

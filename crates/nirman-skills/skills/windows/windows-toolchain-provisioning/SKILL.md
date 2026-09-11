@@ -56,6 +56,19 @@ or failed integrity and the reason must be established rather than guessed.
 - The install location used, and the per-user access control applied to it.
 - Every record bound to revision and host environment fingerprint.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - The network path is classified from the host's own configuration, and credentials are never prompted for nor read from an environment variable.
+  - Every archive is verified against its expected digest before it is unpacked.
+  - Provisioning installs to the configured per-user root, never into a profile or a synced folder.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.

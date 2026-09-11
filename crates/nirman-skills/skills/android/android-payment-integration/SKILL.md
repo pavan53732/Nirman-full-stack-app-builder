@@ -52,6 +52,19 @@ or provider and local records disagree.
   out-of-order event.
 - Reconciliation outcome: local versus provider per charge, with disagreements named.
 
+- A record of each procedure step that executed, with the outcome observed and
+  the step that produced it, bound to the source revision and the environment
+  fingerprint; a step that ran and recorded nothing is not evidence that it
+  succeeded.
+- Invariant claims this skill must leave observable, each a statement the
+  evidence above has to support:
+  - One purchase intent produces exactly one charge, across retries and replays alike.
+  - No webhook is acted on before its signature verifies.
+  - Local and provider state agree after reconciliation, or every disagreement is named.
+- Every claim reduced to an observable: what was seen, on which device or host,
+  at which revision; never a statement of intent, and never an inference about
+  target behaviour drawn from a host observation.
+
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
