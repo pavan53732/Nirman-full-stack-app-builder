@@ -1,0 +1,27 @@
+{
+  "skillId": "local-persistence",
+  "name": "Local Persistence",
+  "description": "On-device persistence for Nirman apps: store selection, transactional writes, schema version and integrity, cache bounds and eviction, and secure storage for sensitive values (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Backend Worker"
+  ],
+  "triggerConditions": [
+    "persistence_store_selection",
+    "cache_bound_check",
+    "secure_storage_review"
+  ],
+  "requiredTools": [
+    "storage_probe",
+    "static_analyzer"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PersistenceRequest",
+  "outputSchema": "PersistenceResult",
+  "sourcePath": "SKILL.md"
+}

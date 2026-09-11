@@ -1,0 +1,27 @@
+{
+  "skillId": "backend-api-design",
+  "name": "Backend API Design",
+  "description": "Design and review of the HTTP surface a Nirman app consumes or exposes: resource modelling and naming, versioning, error semantics, pagination, idempotency, and auth boundaries (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Backend Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "api_design_review",
+    "api_contract_change",
+    "error_semantics_review"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "contract_linter"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ApiDesignRequest",
+  "outputSchema": "ApiDesignResult",
+  "sourcePath": "SKILL.md"
+}

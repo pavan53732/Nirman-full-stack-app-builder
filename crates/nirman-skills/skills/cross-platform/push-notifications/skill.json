@@ -1,0 +1,27 @@
+{
+  "skillId": "push-notifications",
+  "name": "Push Notifications",
+  "description": "Push notification delivery for Nirman apps: token lifecycle and refresh, delivery reliability and retry, payload limits and structure, and user-visible permission states (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Backend Worker"
+  ],
+  "triggerConditions": [
+    "push_token_lifecycle",
+    "notification_delivery_failure",
+    "push_payload_review"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "push_probe"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PushNotificationRequest",
+  "outputSchema": "PushNotificationResult",
+  "sourcePath": "SKILL.md"
+}

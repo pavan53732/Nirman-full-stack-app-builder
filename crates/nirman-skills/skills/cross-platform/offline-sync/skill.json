@@ -1,0 +1,27 @@
+{
+  "skillId": "offline-sync",
+  "name": "Offline Sync",
+  "description": "Offline-first data in Nirman apps: local write queueing, conflict detection and resolution, replay ordering and idempotency, and reconciling local state with a server after a partition (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Backend Worker",
+    "Frontend Worker"
+  ],
+  "triggerConditions": [
+    "offline_sync_review",
+    "conflict_resolution_review",
+    "replay_ordering_check"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "sync_simulator"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "OfflineSyncRequest",
+  "outputSchema": "OfflineSyncResult",
+  "sourcePath": "SKILL.md"
+}

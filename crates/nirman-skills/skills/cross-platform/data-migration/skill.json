@@ -1,0 +1,27 @@
+{
+  "skillId": "data-migration",
+  "name": "Data Migration",
+  "description": "Schema and data migrations for Nirman apps: migration ordering and versioning, backward compatibility, reversible versus destructive steps, and verifying data integrity after a migration (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Backend Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "migration_review",
+    "data_integrity_after_migration",
+    "migration_rollback_check"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "migration_runner"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "MigrationRequest",
+  "outputSchema": "MigrationResult",
+  "sourcePath": "SKILL.md"
+}

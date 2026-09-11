@@ -1,0 +1,27 @@
+{
+  "skillId": "ui-list-performance",
+  "name": "UI List Performance",
+  "description": "List and scroll performance in Nirman surfaces: view recycling and stable keys, item work kept off the scroll path, image loading and decode cost, and measured frame health under scroll (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Performance Worker"
+  ],
+  "triggerConditions": [
+    "list_performance_review",
+    "scroll_jank_diagnosis",
+    "recycling_key_check"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "frame_profiler"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ListPerformanceRequest",
+  "outputSchema": "ListPerformanceResult",
+  "sourcePath": "SKILL.md"
+}

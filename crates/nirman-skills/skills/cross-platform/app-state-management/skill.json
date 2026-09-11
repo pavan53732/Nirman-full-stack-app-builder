@@ -1,0 +1,27 @@
+{
+  "skillId": "app-state-management",
+  "name": "Application State Management",
+  "description": "State management in Nirman apps: owned versus derived state, mutation discipline and single source of truth, scope and lifetime, and avoiding stale reads and duplicated state (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "state_model_review",
+    "stale_state_diagnosis",
+    "state_scope_review"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "state_tracer"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "StateManagementRequest",
+  "outputSchema": "StateManagementResult",
+  "sourcePath": "SKILL.md"
+}
