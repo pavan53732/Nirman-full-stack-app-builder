@@ -2044,6 +2044,19 @@ RecoveryAttempt
 - createdAt
 ```
 
+`continuationDecision` is closed and each value has exactly one legal precondition set:
+
+| Value | Legal only when |
+|---|---|
+| `CONTINUE` | The recovery produced new evidence or a materially different strategy and the requirement can advance |
+| `DELEGATE` | TA §28.1 level 6 applies and a different review or specialist role is required |
+| `BACKTRACK` | TA §28.1 level 4 applies and a known-good checkpoint exists in the task's lineage |
+| `BRANCH` | TA §28.1 level 7 applies and the workspace permits an isolated alternative |
+| `ESCALATE` | TA §28.1 level 8 or 9 applies; records `USER_REQUIRED` or `BLOCKED` per build spec §27.10 and the goal continues independent work |
+| `TERMINATE` | The attempt records **one of the five goal-level terminal conditions of build spec §27.10**, and only that |
+
+`TERMINATE` MUST NOT be selected because materially equivalent recovery attempts were exhausted, because a provider failed, because an environment capability is missing, because a human decision is required, or because a retry or `recoveryAttemptPolicy` bound was reached. Those cases select `ESCALATE`, `DELEGATE`, `BACKTRACK`, `BRANCH`, or `CONTINUE` and record a requirement-level decision. A `TERMINATE` maps onto exactly one technical architecture §71.4 terminal cycle outcome: goal-level condition 1 maps to `COMPLETED`; condition 2 maps to `SAFELY_FAILED`; condition 3 maps to `ESCALATED`, or `SAFELY_FAILED` where the limit forced a safe halt; condition 4 maps to `SAFELY_FAILED`; condition 5 maps to `BLOCKED` or `ESCALATED` with the goal reporting `PARTIALLY_BLOCKED` per build spec §29.4. A `RecoveryAttempt` whose `continuationDecision` is `TERMINATE` and whose recorded terminal condition is absent from build spec §27.10 is a defect, not a recovery.
+
 ### 2.15 SkillAdmission
 
 **Owner:** TA §19.1 · **Contract:** CONTRACT.RUNTIME.SKILL · **Projected at:** —
@@ -2619,7 +2632,10 @@ AgentLoopRecord
 - session_id
 - task_id
 - agent_instance_id
-- state
+- state: OBSERVE | UNDERSTAND | HYPOTHESIZE | STRATEGIZE | SELECT |
+          AUTHORIZE | EXECUTE | OBSERVE_RESULT | REFLECT | UPDATE |
+          DECIDE | DELEGATE | SPECULATE | COMPLETED | BLOCKED |
+          WAITING | RECOVERED | SAFELY_FAILED | ESCALATED
 - state_version
 - goal_revision
 - plan_revision
@@ -2632,6 +2648,8 @@ AgentLoopRecord
 - created_at
 - updated_at
 ```
+
+`state` is the durable projection of the technical architecture §71.4 cycle state machine and carries exactly that section's thirteen cycle states plus its six terminal cycle outcomes. It introduces no new vocabulary: the first thirteen values are the technical architecture §71.4 states and the last six are the technical architecture §71.4 kernel cycle outcomes that build spec §26.14 already names. Transitions are legal only along technical architecture §71.4 edges, so `EXECUTE` is reachable only from a granted `AUTHORIZE`. `state` is neither a `TaskExecutionState` (build spec §26.14) nor a `ProductLifecycleState` (build spec §33.2); the build spec §33.2 mapping table fixes how each terminal value projects onto those sets.
 
 ### 2.43 AgentProposal
 

@@ -1740,7 +1740,7 @@ Run validation again
 Continue, pause, or escalate with evidence
 ```
 
-Nirman must distinguish between a new strategy and a repeated variation of the same failed action. The recovery record should explain what changed between attempts. A task should continue through additional strategies and adaptive resource management. It should stop only when it reaches an explicit hard safety or policy limit, an unresolvable requirement, a required user decision, an unavailable environment/provider, user cancellation, or no safe recovery path remains. Ordinary usage thresholds are guardrails, not automatic completion locks.
+Nirman must distinguish between a new strategy and a repeated variation of the same failed action. The recovery record should explain what changed between attempts. A task should continue through additional strategies and adaptive resource management. It should stop only on one of the five goal-level terminal conditions of §27.10; a missing requirement, a required user decision, or an unavailable environment or provider is a requirement-level `BLOCKED` or `USER_REQUIRED` decision under §27.10, which the goal continues around rather than a reason to end it. Ordinary usage thresholds are guardrails, not automatic completion locks.
 
 ### 27.8 Context-scaling modes
 
@@ -1765,7 +1765,28 @@ MCP-compatible tools must not bypass Nirman’s permission engine. A tool reques
 
 ### 27.10 Completion and continuous-work contract
 
-Nirman should continue working until the goal is complete **or until a defined stop condition is reached**. Defined stop conditions include completed acceptance criteria, an explicit hard safety or policy limit, unrecoverable repeated strategy failure, missing environment capability, required human decision, safety policy denial, provider failure, user cancellation, or no safe recovery path. Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal; physical resource pressure triggers adaptation per §72, and the runtime may show an informational notice.
+Nirman should continue working until the goal is complete **or until a defined stop condition is reached**. Nirman separates two vocabularies that earlier revisions conflated into one stop list, and this section is the canonical owner of both. No other section restates either list; §27.7 and §27.11 cite this section.
+
+**Requirement-level decisions** are recorded on one requirement and never end the goal. When a requirement cannot advance, the runtime records exactly one of:
+
+| Decision | Meaning |
+|---|---|
+| `BLOCKED` | A dependency, environment capability, permission, or external fact is missing at the current recovery level |
+| `USER_REQUIRED` | The requirement reached recovery level 8 or 9 of technical architecture §28.1, and the requirement, permission, or external fact is genuinely missing |
+
+After either decision the goal continues every requirement that does not depend on it (ADR-226 rule 4; §29.4; §69.11). **Provider failure, a missing environment capability, a required human decision, and repeated strategy failure are requirement-level blockers, never goal stop conditions.** Provider failure routes to provider failover and context reconstruction; a missing capability routes to environment preflight and repair; a required decision is recorded as `USER_REQUIRED`; repeated strategy failure routes to `RecoveryAuthority` and the technical architecture §28.1 ladder.
+
+**Goal-level terminal conditions** are the only ways a goal ends. There are exactly five, and the set is closed:
+
+| # | Condition | Derived classification |
+|---|---|---|
+| 1 | All required completion conditions pass | Completed, or Completed with warnings |
+| 2 | The user or policy cancels the goal | Cancelled |
+| 3 | An explicit hard safety or policy limit is reached, including a safety policy denial | Escalated, or Failed |
+| 4 | An unresponsive or dangerous process must be stopped to protect the computer | Failed |
+| 5 | Every remaining requirement carries `BLOCKED` or `USER_REQUIRED` and no independent work remains | Reported as `PARTIALLY_BLOCKED` per §29.4, classified Blocked or Escalated |
+
+Exhaustion of materially equivalent recovery attempts is not itself a goal stop condition: reaching the `recoveryAttemptPolicy` bound triggers strategy change, backtracking, delegation, degradation, or a truthful requirement-level blocker (§26.3, §27.7), and only condition 5 ends the goal. Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal; physical resource pressure triggers adaptation per §72, and the runtime may show an informational notice. No document may introduce a further stop-condition vocabulary (AGENTS.md: one canonical lifecycle).
 
 The application must never claim that it “worked until complete” if it stopped because of a limit or error. It should present a completion classification:
 
@@ -1777,6 +1798,9 @@ The application must never claim that it “worked until complete” if it stopp
 | Escalated | Automated strategies were exhausted and user input is required |
 | Cancelled | The user or policy stopped the task |
 | Failed | The task ended without satisfying the goal and without a recoverable next step |
+| `PARTIALLY_BLOCKED` | Independent work is exhausted while at least one requirement carries `BLOCKED` or `USER_REQUIRED`; reported per §29.4, naming the blocked requirements, their decisions, and the automatic paths attempted |
+
+`PARTIALLY_BLOCKED` is a member of this completion-classification vocabulary and of no other. It is **not** a `TaskExecutionState` (§26.14), **not** a `ProductLifecycleState` (§33.2), and **not** a kernel cycle outcome (technical architecture §71.4): it is the user-facing report derived from goal-level terminal condition 5 above, and it is never presented as completion and never as a pause (ADR-226 rule 4; §29.4). A goal reporting `PARTIALLY_BLOCKED` projects onto `TaskExecutionState.ESCALATED` for each blocked requirement and onto `COMPLETED` for each requirement that finished, exactly as the §33.2 mapping table requires. No document may promote `PARTIALLY_BLOCKED` into a task or session state vocabulary (AGENTS.md: one canonical lifecycle).
 
 ### 27.11 Execution surface, evidence, and continuous validation
 
@@ -1849,7 +1873,7 @@ Browser automation is never a required or authoritative completion stage for an 
 
 Nirman should not ask for approval for every small, reversible operation inside an approved workspace. It should request a decision only at defined policy boundaries, including protected-file access, risky dependency installation, external-service access, credential use, destructive operations, publishing, release signing, or any action outside the current workspace and policy scope. The approval request must identify the exact action, reason, worker, workspace, policy, risk, and available choices.
 
-A task must terminate only when one of the following conditions is true: all required completion conditions pass; a required user decision is reached; an explicit hard safety or policy limit is reached; the environment or provider is unavailable; the user cancels the task; an unresponsive or dangerous process must be stopped to protect the computer; or an unrecoverable failure occurs. A routine event such as a saved file, completed build, captured error, dependency change, or successful worker response must not end the task; it must advance the applicable continuation trigger and validation path. Physical process, memory, disk, and concurrency pressure causes adaptation, throttling, or checkpointing per §72; token, cost, request, and elapsed-time telemetry is informational and causes no execution change; retry thresholds are policy—none is a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
+A task must terminate only on one of the five goal-level terminal conditions of §27.10: all required completion conditions pass; the user or policy cancels the task; an explicit hard safety or policy limit is reached; an unresponsive or dangerous process must be stopped to protect the computer; or every remaining requirement carries `BLOCKED` or `USER_REQUIRED` with no independent work left. A required user decision and an unavailable environment or provider are requirement-level decisions under §27.10, not terminations, and an unrecoverable failure on one requirement is recorded on that requirement while independent work continues. A routine event such as a saved file, completed build, captured error, dependency change, or successful worker response must not end the task; it must advance the applicable continuation trigger and validation path. Physical process, memory, disk, and concurrency pressure causes adaptation, throttling, or checkpointing per §72; token, cost, request, and elapsed-time telemetry is informational and causes no execution change; retry thresholds are policy—none is a fixed completion lock. If the screenshot or task view shows extended activity, that demonstrates persistent execution, not a guarantee that every goal can be completed without intervention.
 
 The final task result must expose the requested goal, changed files, checkpoints, worker activity, commands, validation evidence, tests, builds, screenshots or device results where relevant, warnings, blockers, unresolved conditions, resource usage, and the final completion classification. The user should be able to reopen each evidence item from the result.
 
@@ -5785,7 +5809,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §27.7 | "A recovery cycle should follow this pattern" | MUST follow the §27.7 cycle | The stage sequence is binding |
 | BS §27.7 | "The recovery record should explain what changed between attempts" | MUST record the delta | An attempt with no recorded change is a repeat, not a new strategy |
 | BS §27.7 | "A task should continue through additional strategies and adaptive resource management" | MUST continue while safe strategies remain | Per §26.3, three distinct strategies, not three identical retries |
-| BS §27.7 | "It should stop only when it reaches an explicit hard safety or policy limit, an unresolvable requirement, a required user decision, an unavailable environment/provider, user cancellation, or no safe recovery path remains" | MUST stop only on those four conditions | Each stop is classified per §27.10 |
+| BS §27.7 | "It should stop only on one of the five goal-level terminal conditions of §27.10" | MUST stop only on those five conditions | The set is closed and owned by §27.10; a missing requirement, decision, environment, or provider is a requirement-level decision, not a stop. Each stop is classified per §27.10 |
 | BS §27.8 | "The context planner should select a mode based on provider capability, project size, task type, provider context capacity, privacy policy, and user preference" | MUST consider all six | User preference and privacy policy are overriding, not advisory |
 | BS §27.10 | "Nirman should continue working until the goal is complete or until a defined stop condition is reached" | MUST continue to goal or defined stop | No implicit stop exists |
 | BS §27.10 | "Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal" | MUST treat usage as telemetry; MUST NOT auto-end, pause, throttle, or degrade on it | Consistent with §22.2 and CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY; physical pressure adapts per §72 |
@@ -6054,20 +6078,24 @@ When the runtime has multiple options, it MUST choose using these explicit crite
 
 #### 80.4.1 Recovery strategy selection
 
-When a failure occurs, the runtime MUST select a recovery strategy using this ordered priority:
+The canonical recovery ladder is technical architecture §28.1, levels 0 through 9. This subsection does not restate a second ordering; it fixes the **applicability precondition** for each level so that ascending the ladder is deterministic. Level numbers used anywhere in these documents — including "recovery level 8 or 9" in ADR-226 rule 4, §27.10, and §29.4 — always mean §28.1 levels.
 
-1. **Transient retry** — If the failure is transient (network timeout, rate limit, temporary lock), retry with exponential backoff
-2. **Focused diagnostic** — If the failure is localized, spawn a Diagnostic Worker to isolate the cause
-3. **Context refresh** — If the failure may be due to stale context, compact and refresh context
-4. **Strategy change** — If the current strategy has failed twice, switch to a different strategy
-5. **Worker role change** — If the current worker role is inappropriate, delegate to a different role
-6. **Checkpoint restore** — If the failure is structural, restore last known-good checkpoint
-7. **Model change** — If the model is incapable, route to a different model
-8. **Specialist delegation** — If the failure is domain-specific, delegate to a specialist
-9. **Isolated alternative** — If the current approach is fundamentally flawed, create an isolated alternative
-10. **User escalation** — If all automated strategies are exhausted, escalate to user
+| Level | Recovery action (verbatim TA §28.1) | Applicable when | Inapplicable when |
+|---|---|---|---|
+| 0 | Re-run a transient network or process operation once with deduplication | Failure fingerprint class is transient network, rate limit, or temporary lock, and no deduplicated run of the identical operation is already recorded for this fingerprint | Fingerprint class is not transient, or an identical operation is already recorded |
+| 1 | Re-read focused diagnostics and retry a minimal repair | The failure output is localised to one file, target, or check and no prior attempt at this level exists for this fingerprint | Failure spans multiple subsystems, or this level was already attempted for this fingerprint |
+| 2 | Refresh repository context, project index, or environment diagnostics | `EvidenceFrontier` staleness is possible: the project index, environment fingerprint, or repository revision changed since the last observation | Frontier is already current at this revision |
+| 3 | Change implementation strategy or use a different worker role | The current strategy has failed twice against this fingerprint, or the assigned worker role does not match the task type | Fewer than two distinct attempts, and the role matches |
+| 4 | Restore a known-good checkpoint and try an alternative design | The failure is structural — a known-good checkpoint exists in the task's lineage and the failing mutation is attributable to it | No known-good checkpoint exists in the lineage |
+| 5 | Route to a stronger or more suitable configured model | A different configured model satisfies §80.4.3 routing criteria for this task, and routing is permitted by policy | No alternative configured model qualifies, or policy denies the route |
+| 6 | Delegate to a diagnostic, security, or architecture reviewer | The failure requires a read-only review role that is not the failing worker's role | The required review role is already the active worker |
+| 7 | Create an isolated alternative branch and compare solutions | Levels 3 through 6 were each attempted or recorded inapplicable, and the workspace permits an isolated branch | An isolated alternative already exists for this fingerprint |
+| 8 | Ask for a decision only when the requirement, permission, or external fact is genuinely missing | The blocking input is genuinely absent and cannot be produced by any automated level; records `USER_REQUIRED` per §27.10 | The input is obtainable by an automated level |
+| 9 | Preserve state and escalate when no safe recovery path remains | No level 0 through 8 is applicable or unattempted, and no safe recovery path remains; records `BLOCKED` or `USER_REQUIRED` per §27.10 | Any lower level remains applicable or unattempted |
 
-The runtime MUST attempt each strategy in order. It MAY skip a strategy if the failure class is clearly incompatible with that strategy. The runtime MUST record which strategies were attempted and why each was selected or skipped.
+The runtime MUST ascend levels in numeric order and MUST NOT execute a higher applicable level while a lower one is applicable and unattempted. The runtime MAY skip a level only when that level's "Inapplicable when" column holds for the current failure fingerprint. A skipped level is recorded as inapplicable with the reason and **does not count as an attempted strategy**; only an executed level counts toward the `recoveryAttemptPolicy` bound of §26.3. The runtime MUST record, for every level, whether it was executed, skipped, or not reached, and the fingerprint evidence that justified it.
+
+Levels 8 and 9 never end the goal by themselves: they record a requirement-level decision under §27.10 and the goal continues every requirement that does not depend on it. Only §27.10 goal-level terminal condition 5 ends a goal in that situation.
 
 #### 80.4.2 Worker selection
 
@@ -6439,7 +6467,7 @@ You MUST:
 2. Identify files to change and commands to run
 3. Specify acceptance criteria for each step
 4. Cite evidence for every claim
-5. Stop and escalate if blocked
+5. For any requirement you cannot advance, record it as a `BLOCKED` or `USER_REQUIRED` requirement-level decision with the missing input named, and plan every requirement that does not depend on it. Do not stop the plan and do not wait for the user
 
 You MUST NOT:
 1. Execute any action without authorization
@@ -6526,7 +6554,7 @@ You MUST:
 1. Run all specified checks
 2. Report pass/fail for each check
 3. Include evidence for each result
-4. Stop and report if a check fails
+4. Report every failed check as a failure fingerprint for `RecoveryAuthority` with its evidence attached, then run the remaining checks. Do not stop the validation run and do not wait for the user
 5. NOT claim success without evidence
 
 You MUST NOT:
@@ -6576,7 +6604,7 @@ You MUST:
 2. Propose a minimal repair
 3. Explain why the repair addresses the cause
 4. NOT repeat a failed strategy
-5. Escalate if the cause is unclear
+5. If the cause is unclear after the available evidence, say so explicitly and hand the failure fingerprint to `RecoveryAuthority` for the next applicable technical architecture §28.1 level. Do not stop, do not guess a cause, and do not wait for the user
 
 You MUST NOT:
 1. Regenerate the entire file without cause

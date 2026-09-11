@@ -1663,6 +1663,42 @@ CASES = {
         "| `android-ghost` | placeholder | none |\n| `android-toolchain` | Node, package manager,",
         "semantic documentation",
         SKILL_SOURCES + SKILL_MANIFESTS),
+
+    # ---- stop-condition closure (ADR-226 rule 4): §27.10 owns the only stop
+    # vocabulary, §27.7/§27.11 cite it, and no canonical prompt says "stop".
+    "§27.10 drops the closed goal-level terminal set": (
+        BS,
+        "There are exactly five, and the set is closed:",
+        "Defined stop conditions include provider failure, missing environment "
+        "capability, and required human decision:",
+        "semantic documentation"),
+    "§27.7 restates a withdrawn stop list instead of citing §27.10": (
+        BS,
+        "It should stop only on one of the five goal-level terminal conditions of §27.10",
+        "It should stop only when it reaches an unavailable environment/provider "
+        "or user cancellation",
+        "semantic documentation"),
+    "a canonical prompt tells the model to stop and escalate": (
+        BS,
+        "5. For any requirement you cannot advance, record it as a `BLOCKED` or "
+        "`USER_REQUIRED` requirement-level decision with the missing input named, "
+        "and plan every requirement that does not depend on it. Do not stop the "
+        "plan and do not wait for the user",
+        "5. Stop and escalate if blocked",
+        "semantic documentation"),
+
+    # ---- recovery ladder ownership: TA §28.1 is canonical and BS §80.4.1 must
+    # mirror every level verbatim, so "level 8 or 9" cannot mean two actions.
+    "§80.4.1 restates a §28.1 level action differently": (
+        BS,
+        "| 4 | Restore a known-good checkpoint and try an alternative design |",
+        "| 4 | Restore the last checkpoint |",
+        "semantic documentation"),
+    "TA §28.1 stops declaring itself the canonical ladder": (
+        TA,
+        "This table is the **canonical recovery ladder**",
+        "This table lists recovery levels",
+        "semantic documentation"),
 }
 
 

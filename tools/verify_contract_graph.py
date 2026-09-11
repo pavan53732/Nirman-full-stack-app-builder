@@ -2070,6 +2070,78 @@ def check_semantic_documentation(docs, R, D, root="."):
                         ("A stall is a recovery event, never a pause", "state the never-pause rule")):
         if needle not in m_226:
             D.add("semantic documentation", "single mode", f"ADR-226 must {why}")
+    # Stop-condition closure (ADR-226 rule 4). BS §27.10 owns the only stop
+    # vocabulary, split into requirement-level decisions and a closed set of
+    # goal-level terminal conditions; §27.7 and §27.11 must cite it rather than
+    # restate a competing list. An earlier revision carried three different
+    # stop lists (six, nine, and seven items) and a §80.2 row that resolved the
+    # six-item list as "those four conditions", none of which the graph could
+    # see; these rules make that regression a defect.
+    m_2710 = _section_text(bs, "27.10") or ""
+    for needle, why in (
+            ("**Requirement-level decisions** are recorded on one requirement and never end the goal",
+             "separate requirement-level decisions from goal-level stops"),
+            ("**Goal-level terminal conditions** are the only ways a goal ends",
+             "define the goal-level terminal conditions"),
+            ("There are exactly five, and the set is closed",
+             "state that the goal-level terminal set is closed at five"),
+            ("Provider failure, a missing environment capability, a required human decision, "
+             "and repeated strategy failure are requirement-level blockers, never goal stop conditions",
+             "classify provider failure, missing capability, required decision, and repeated "
+             "strategy failure as requirement-level blockers"),
+            ("`PARTIALLY_BLOCKED` is a member of this completion-classification vocabulary and of no other",
+             "confine `PARTIALLY_BLOCKED` to the completion-classification vocabulary")):
+        if needle not in m_2710:
+            D.add("semantic documentation", "stop-condition closure",
+                  f"BS §27.10 must {why} (ADR-226 rule 4)")
+    for _sec in ("27.7", "27.11"):
+        _body = _section_text(bs, _sec) or ""
+        if "five goal-level terminal conditions of §27.10" not in _body:
+            D.add("semantic documentation", "stop-condition closure",
+                  f"BS §{_sec} must cite the five goal-level terminal conditions of §27.10 "
+                  "instead of restating a stop list (ADR-226 rule 4)")
+        for _token in ("an unavailable environment/provider", "or an unrecoverable failure occurs"):
+            if _token in _body:
+                D.add("semantic documentation", "stop-condition closure",
+                      f"BS §{_sec} restates a withdrawn stop condition ({_token!r}); "
+                      "BS §27.10 owns the only stop vocabulary")
+    # Prompt-template stop language (ADR-226 rule 4). A canonical prompt that
+    # tells the model to stop or escalate-and-wait contradicts the runtime's
+    # never-stop contract even though runtime authority overrides the model,
+    # because the prompt is the worker's only description of its own duty.
+    m_808 = _section_text(bs, "80.8") or ""
+    for _token in ("Stop and escalate", "Stop and report", "Escalate if the cause is unclear"):
+        if _token in m_808:
+            D.add("semantic documentation", "prompt stop language",
+                  f"BS §80.8 prompt template instructs the model to stop or wait ({_token!r}); "
+                  "ADR-226 rule 4 requires recording a requirement-level decision and "
+                  "continuing independent work")
+    # Recovery-ladder single ownership. TA §28.1 is the canonical ladder; BS
+    # §80.4.1 fixes applicability preconditions and must carry every §28.1
+    # action verbatim at the same level number, so "recovery level 8 or 9" in
+    # ADR-226 rule 4 cannot mean two different actions in two documents.
+    m_8041 = _section_text(bs, "80.4.1") or ""
+    for needle, why in (
+            ("The canonical recovery ladder is technical architecture §28.1",
+             "name technical architecture §28.1 as the canonical ladder"),
+            ("Applicable when", "fix an applicability precondition for every level"),
+            ("Inapplicable when", "fix an inapplicability precondition for every level"),
+            ("MUST ascend levels in numeric order", "require ascent in numeric level order"),
+            ("does not count as an attempted strategy",
+             "exclude a skipped level from the recoveryAttemptPolicy bound")):
+        if needle not in m_8041:
+            D.add("semantic documentation", "recovery ladder ownership", f"BS §80.4.1 must {why}")
+    m_281 = _section_text(ta, "28.1") or ""
+    if "This table is the **canonical recovery ladder**" not in m_281:
+        D.add("semantic documentation", "recovery ladder ownership",
+              "TA §28.1 must declare itself the canonical recovery ladder and the single "
+              "owner of recovery level numbers")
+    for _lvl, _action in re.findall(r"^\| (\d) \| ([^|]+?) \|", m_281, re.M):
+        _want = "| " + _lvl + " | " + _action.strip() + " |"
+        if _want not in m_8041:
+            D.add("semantic documentation", "recovery ladder ownership",
+                  f"BS §80.4.1 must carry TA §28.1 level {_lvl} ({_action.strip()!r}) "
+                  "verbatim at the same level number")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

@@ -1352,6 +1352,8 @@ When a lease expires, the supervisor should inspect process liveness, preserve t
 
 Nirman should use a graduated recovery ladder. It should not jump immediately to a new model or ask the user for help.
 
+This table is the **canonical recovery ladder** and the single owner of recovery level numbers, and build spec §80.4.1 fixes the applicability precondition for each level without restating an ordering; every "recovery level N" reference in any document, including ADR-226 rule 4, build spec §27.10, and build spec §29.4, means a level of this table. No document may introduce a second recovery ordering (AGENTS.md: one canonical lifecycle).
+
 | Level | Recovery action | Continue automatically? |
 |---|---|---|
 | 0 | Re-run a transient network or process operation once with deduplication | Yes |
