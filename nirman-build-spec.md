@@ -5287,19 +5287,19 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `windows-accessibility` | accessibility of Nirman's desktop surface — keyboard reachability and focus order, screen reader equivalents for every control and every status, contrast and visual dependency, and support for high contrast and scaling (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-signing` | code signing for release packages — whether a signature is valid and its chain trusted, whether a timestamp is present and valid, whether the digest and publisher identity match, and verifying every binary the installer ships (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
 | `windows-installer-validation` | validating the installer end to end — clean and in-place install paths, repair, how cleanly uninstall removes the product, per-user install without elevation, and upgrading across versions (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
-| `backend-api-design` | the HTTP surface a Nirman app consumes or exposes — resource modelling and naming, versioning, error semantics, pagination, idempotency, and where authentication is enforced (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `database-schema-design` | schema design for Nirman persistence — table and column modelling, key and relationship choices, constraints and defaults, indexing against the queries actually run, and whether a change is migration-safe (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `app-state-management` | state management in Nirman apps — which state is owned and which is derived, how mutations are disciplined around a single source of truth, how long state lives, and how stale reads and duplicated state are avoided (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `offline-sync` | offline-first data in Nirman apps — queueing local writes while disconnected, detecting and resolving conflicts, replaying queued operations in a correct and idempotent order, and reconciling local state with the server after a partition (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `local-persistence` | on-device persistence for Nirman apps — choosing the right store, writing transactionally, versioning the schema and checking integrity, bounding a cache and evidencing eviction, and keeping sensitive values in secure storage (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `data-migration` | schema and data migrations for Nirman apps — ordering and versioning migrations, staying backward compatible across a release, deciding what is reversible, and verifying data integrity after a migration runs (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `authentication-flows` | authentication and session flows for Nirman apps — how credentials are handled, how tokens are acquired and refreshed, how a session expires and is revoked, and what the user sees when any of it fails (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `payment-integration` | payment flows in Nirman apps — selecting a provider and confirming what it can do, creating charges idempotently, verifying and de-duplicating webhooks, and reconciling provider state against local records (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `push-notifications` | push notification delivery for Nirman apps — the token lifecycle and its refresh, how reliably delivery is retried, payload limits and structure, and the permission states a user actually sees (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `ui-design-system` | design system consistency across Nirman app surfaces — tokens used instead of literal values, components reused rather than re-implemented, spacing and typography on the declared scale, and themes and dark mode correct (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `ui-form-validation` | form validation in Nirman apps — when validation fires, whether messages are specific and correctly placed, how server errors map back to fields, and whether a disabled submission states why (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `ui-navigation-routing` | navigation and routing in Nirman surfaces — route structure and deep linking, back and up behaviour, state preserved across navigation, and guards on destinations that require a condition (BS §79.7). | `HOST_TOOL_OBSERVATION` |
-| `ui-list-performance` | list and scroll performance in Nirman surfaces — recycling views and keeping keys stable, keeping per-item work off the scroll path, the cost of loading and decoding images, and frame health measured while scrolling (BS §79.7). | `HOST_TOOL_OBSERVATION` |
+| `android-backend-api-design` | the HTTP surface a generated Android application consumes, when a supporting backend is required by the application — resource modelling and naming, versioning, error semantics, pagination, idempotency, and auth boundaries | `HOST_TOOL_OBSERVATION` |
+| `android-database-schema-design` | on-device database schema in a generated Android application — entity modelling, key stability, relationships and referential behaviour, constraints, indexing against real query patterns, and migration safety | `HOST_TOOL_OBSERVATION` |
+| `android-app-state-management` | state management in a generated Android application — owned versus derived state, mutation discipline around a single source of truth, scope and lifetime across configuration changes, and stale reads and update races | `HOST_TOOL_OBSERVATION` |
+| `android-offline-sync` | offline-first data in a generated Android application — queueing local writes while disconnected, detecting and resolving conflicts, replaying queued operations in a correct and idempotent order, and reconciling local state after a partition | `HOST_TOOL_OBSERVATION` |
+| `android-local-persistence` | on-device persistence in a generated Android application — choosing between Room, SQLite, and DataStore, transactional writes, schema version and integrity, cache bounds and eviction, and secure storage for sensitive values | `HOST_TOOL_OBSERVATION` |
+| `android-data-migration` | schema and data migrations for a generated Android application's on-device database — chain ordering and versioning, backward compatibility, reversible versus destructive steps, and verifying integrity after a migration | `HOST_TOOL_OBSERVATION` |
+| `android-authentication-flows` | authentication and session flows in a generated Android application — credential handling, token acquisition and refresh, session expiry and revocation, and the failure states a user actually sees | `HOST_TOOL_OBSERVATION` |
+| `android-payment-integration` | payment flows in a generated Android application — Play Billing capability confirmation, purchase acknowledgement that is idempotent, real-time developer notification verification and de-duplication, and reconciling provider state against local records | `HOST_TOOL_OBSERVATION` |
+| `android-push-notifications` | push notification delivery for a generated Android application — the Firebase Cloud Messaging token lifecycle and its refresh, delivery treated as best-effort, payload limits, de-duplication, and the permission states a user actually sees | `HOST_TOOL_OBSERVATION` |
+| `android-ui-design-system` | design system consistency across a generated Android application's surfaces — tokens over literals, component reuse, spacing and typography on the declared scale, and theme and dark mode correctness | `HOST_TOOL_OBSERVATION` |
+| `android-ui-form-validation` | form validation in a generated Android application — when validation fires, message quality and placement, server errors mapped back to fields, and disabled states with a stated reason | `HOST_TOOL_OBSERVATION` |
+| `android-ui-navigation-routing` | navigation and routing in a generated Android application — route structure and deep linking, back and up behaviour, state preserved across navigation, and guards on restricted destinations | `HOST_TOOL_OBSERVATION` |
+| `android-ui-list-performance` | list and scroll performance in a generated Android application — view recycling and stable keys, item work kept off the scroll path, image loading and decode cost, and frame health measured under scroll | `HOST_TOOL_OBSERVATION` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
@@ -5404,19 +5404,19 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `windows-accessibility` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-signing` | `WINDOWS_HOST_TOOLCHAIN` |
 | `windows-installer-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
-| `backend-api-design` | `HOST_TOOL_OBSERVATION` |
-| `database-schema-design` | `HOST_TOOL_OBSERVATION` |
-| `app-state-management` | `HOST_TOOL_OBSERVATION` |
-| `offline-sync` | `HOST_TOOL_OBSERVATION` |
-| `local-persistence` | `HOST_TOOL_OBSERVATION` |
-| `data-migration` | `HOST_TOOL_OBSERVATION` |
-| `authentication-flows` | `HOST_TOOL_OBSERVATION` |
-| `payment-integration` | `HOST_TOOL_OBSERVATION` |
-| `push-notifications` | `HOST_TOOL_OBSERVATION` |
-| `ui-design-system` | `HOST_TOOL_OBSERVATION` |
-| `ui-form-validation` | `HOST_TOOL_OBSERVATION` |
-| `ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
-| `ui-list-performance` | `HOST_TOOL_OBSERVATION` |
+| `android-backend-api-design` | `HOST_TOOL_OBSERVATION` |
+| `android-database-schema-design` | `HOST_TOOL_OBSERVATION` |
+| `android-app-state-management` | `HOST_TOOL_OBSERVATION` |
+| `android-offline-sync` | `HOST_TOOL_OBSERVATION` |
+| `android-local-persistence` | `HOST_TOOL_OBSERVATION` |
+| `android-data-migration` | `HOST_TOOL_OBSERVATION` |
+| `android-authentication-flows` | `HOST_TOOL_OBSERVATION` |
+| `android-payment-integration` | `HOST_TOOL_OBSERVATION` |
+| `android-push-notifications` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-design-system` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-form-validation` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

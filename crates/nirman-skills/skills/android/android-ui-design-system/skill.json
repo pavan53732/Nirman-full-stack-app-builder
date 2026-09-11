@@ -1,0 +1,27 @@
+{
+  "skillId": "android-ui-design-system",
+  "name": "Android UI Design System",
+  "description": "Design system consistency for generated Nirman Android surfaces: token usage over literals, component reuse, spacing and typography scale, and theme and dark mode correctness (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Quality Worker"
+  ],
+  "triggerConditions": [
+    "design_system_review",
+    "token_usage_check",
+    "theme_consistency_check"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "ui_inspector"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "DesignSystemRequest",
+  "outputSchema": "DesignSystemResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,27 @@
+{
+  "skillId": "android-payment-integration",
+  "name": "Android Payment Integration",
+  "description": "Payment flows in generated Nirman Android applications: provider selection and capability discovery, idempotent charge creation, webhook verification and replay handling, and reconciliation of provider state with local records (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Backend Worker",
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "payment_flow_review",
+    "webhook_verification_check",
+    "payment_reconciliation"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "webhook_probe"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PaymentRequest",
+  "outputSchema": "PaymentResult",
+  "sourcePath": "SKILL.md"
+}

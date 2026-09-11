@@ -1,0 +1,27 @@
+{
+  "skillId": "android-ui-form-validation",
+  "name": "Android UI Form Validation",
+  "description": "Form validation in generated Nirman Android applications: when validation fires, message quality and placement, server error mapping back to fields, and disabled states with a stated reason (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Quality Worker"
+  ],
+  "triggerConditions": [
+    "form_validation_review",
+    "server_error_mapping",
+    "form_accessibility_check"
+  ],
+  "requiredTools": [
+    "static_analyzer",
+    "ui_inspector"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "FormValidationRequest",
+  "outputSchema": "FormValidationResult",
+  "sourcePath": "SKILL.md"
+}
