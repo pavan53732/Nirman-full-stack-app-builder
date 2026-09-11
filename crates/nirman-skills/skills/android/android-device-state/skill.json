@@ -1,0 +1,30 @@
+{
+  "skillId": "android-device-state",
+  "name": "Android Device State",
+  "description": "Observe and reconcile target device and application state: device and application fingerprints, install and session state, orientation and configuration, connectivity and power state, and restoring a known state before a run (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Test and QA Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "device_state_reconcile",
+    "pre_run_state_reset",
+    "configuration_change_check"
+  ],
+  "requiredTools": [
+    "adb",
+    "managed_emulator",
+    "device_state_probe"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_UI_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "DeviceStateRequest",
+  "outputSchema": "DeviceStateResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,30 @@
+{
+  "skillId": "android-build-repair",
+  "name": "Android Build Repair",
+  "description": "Diagnose and repair failing Android builds: Gradle and plugin errors, dependency and version-catalog resolution, resource and manifest merge conflicts, R8 and ProGuard configuration, and incremental build corruption (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "build_failure_diagnosis",
+    "dependency_resolution_failure",
+    "incremental_build_corruption"
+  ],
+  "requiredTools": [
+    "gradle",
+    "dependency_inspector",
+    "static_analyzer"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_BUILD",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "BuildRepairRequest",
+  "outputSchema": "BuildRepairResult",
+  "sourcePath": "SKILL.md"
+}

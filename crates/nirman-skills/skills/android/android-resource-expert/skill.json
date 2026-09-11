@@ -1,0 +1,30 @@
+{
+  "skillId": "android-resource-expert",
+  "name": "Android Resource Expert",
+  "description": "Android resources: resource qualification and resolution, drawables and vectors, themes and styles, string and plural resources, resource shrinking, and resolving resource merge and qualification conflicts (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "UI Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "resource_qualification",
+    "theme_and_style_work",
+    "resource_shrinking_check"
+  ],
+  "requiredTools": [
+    "resource_merger",
+    "static_analyzer",
+    "managed_emulator"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING",
+    "ANDROID_RELEASE_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ResourceRequest",
+  "outputSchema": "ResourceResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,30 @@
+{
+  "skillId": "android-process-memory-expert",
+  "name": "Android Process and Memory Expert",
+  "description": "Process and memory health: heap growth and leak detection, out-of-memory classification, process importance and the low-memory killer, background execution limits, and memory regression measurement (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Performance Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "memory_leak_investigation",
+    "oom_classification",
+    "process_survival_check"
+  ],
+  "requiredTools": [
+    "managed_emulator",
+    "memory_profiler",
+    "adb"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_PERFORMANCE_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "MemoryHealthRequest",
+  "outputSchema": "MemoryHealthResult",
+  "sourcePath": "SKILL.md"
+}

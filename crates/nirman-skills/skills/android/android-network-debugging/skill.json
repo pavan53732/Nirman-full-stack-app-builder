@@ -1,0 +1,30 @@
+{
+  "skillId": "android-network-debugging",
+  "name": "Android Network Debugging",
+  "description": "Network-layer debugging on the Nirman-managed emulator: request and response capture, TLS and certificate pinning failures, offline and degraded-network simulation, latency and failure injection, and API contract verification (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "network_failure_diagnosis",
+    "api_contract_verification",
+    "offline_behaviour_check"
+  ],
+  "requiredTools": [
+    "managed_emulator",
+    "traffic_capture",
+    "network_conditioner"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_NETWORK_INTEGRATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "NetworkDiagnosticsRequest",
+  "outputSchema": "NetworkDiagnosticsResult",
+  "sourcePath": "SKILL.md"
+}

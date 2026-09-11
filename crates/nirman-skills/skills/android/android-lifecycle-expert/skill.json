@@ -1,0 +1,29 @@
+{
+  "skillId": "android-lifecycle-expert",
+  "name": "Android Lifecycle Expert",
+  "description": "Component and process lifecycle: configuration change and recreation, state save and restore, process death and restoration, lifecycle-aware collection, foreground and background transitions, and lifecycle regression testing (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "lifecycle_state_restoration",
+    "process_death_recovery",
+    "configuration_change_handling"
+  ],
+  "requiredTools": [
+    "adb",
+    "managed_emulator",
+    "static_analyzer"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "LifecycleRequest",
+  "outputSchema": "LifecycleResult",
+  "sourcePath": "SKILL.md"
+}

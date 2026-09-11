@@ -1,0 +1,31 @@
+{
+  "skillId": "android-permission-runtime",
+  "name": "Android Runtime Permissions",
+  "description": "Runtime permission handling: declaration versus request, permission groups and one-time grants, rationale and denial paths, special permissions, permission state verification, and permission-aware interaction flows (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Test and QA Worker",
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "runtime_permission_flow",
+    "permission_denial_path",
+    "special_permission_request"
+  ],
+  "requiredTools": [
+    "adb",
+    "managed_emulator",
+    "ui_hierarchy_probe"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_INTERACTION_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PermissionFlowRequest",
+  "outputSchema": "PermissionFlowResult",
+  "sourcePath": "SKILL.md"
+}
