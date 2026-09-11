@@ -7,7 +7,7 @@ Windows runtime integration, and installer generation (BS §79.7, ADR-108,
 ADR-117). The host stack is exactly the one those ADRs lock; no web-wrapper
 desktop shell is part of this skill's scope (AGENTS.md §17).
 
-Gated by the Windows host toolchain. When WINDOWS_HOST_TOOLCHAIN
+Gated by the Windows host toolchain. When `WINDOWS_HOST_TOOLCHAIN`
 resolves to UNAVAILABLE or USER_REQUIRED, the gated steps MUST NOT
 execute and the blocked state MUST be reported — the independent work
 (source, static analysis, host-native tests, artifact inspection)

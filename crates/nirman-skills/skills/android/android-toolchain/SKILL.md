@@ -6,9 +6,9 @@ the Nirman-managed local Android emulator, native dependencies, and signing
 only runtime surface (BS §4.4).
 
 Gated by the Android toolchain authority (TA §49), independent of the
-host toolchain capability. When ANDROID_BUILD_TOOLCHAIN — or, for the
-emulator steps only, ANDROID_EMULATOR_EXECUTION — resolves to UNAVAILABLE
-or USER_REQUIRED, the gated steps MUST NOT execute and the blocked state
+host toolchain capability. When `ANDROID_BUILD_TOOLCHAIN` (or, for the
+emulator steps, `ANDROID_EMULATOR_EXECUTION`) resolves to UNAVAILABLE or
+USER_REQUIRED, the gated steps MUST NOT execute and the blocked state
 MUST be reported.
 
 ## Workflow
