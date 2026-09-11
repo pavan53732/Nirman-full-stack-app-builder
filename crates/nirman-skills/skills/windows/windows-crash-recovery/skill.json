@@ -1,0 +1,29 @@
+{
+  "skillId": "windows-crash-recovery",
+  "name": "Windows Crash Recovery",
+  "description": "Crash handling and recovery on the Windows host: crash detection and classification, dump capture with retention rules, state reconciliation after an unclean exit, and restart without repeating or losing work (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "crash_detected",
+    "dump_capture_review",
+    "unclean_exit_recovery"
+  ],
+  "requiredTools": [
+    "crash_probe",
+    "event_log",
+    "dump_analyzer"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "CrashRecoveryRequest",
+  "outputSchema": "CrashRecoveryResult",
+  "sourcePath": "SKILL.md"
+}

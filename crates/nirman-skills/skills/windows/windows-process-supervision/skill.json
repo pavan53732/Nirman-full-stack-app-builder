@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-process-supervision",
+  "name": "Windows Process Supervision",
+  "description": "Supervise Nirman's own processes: expected process inventory, start and stop ordering, restart policy and its reason recording, orphan detection, and coordinated shutdown (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "process_inventory_check",
+    "restart_policy_validation",
+    "shutdown_coordination_check"
+  ],
+  "requiredTools": [
+    "process_probe",
+    "event_log"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "SupervisionRequest",
+  "outputSchema": "SupervisionResult",
+  "sourcePath": "SKILL.md"
+}

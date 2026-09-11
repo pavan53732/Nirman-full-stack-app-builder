@@ -1,0 +1,29 @@
+{
+  "skillId": "windows-emulator-host",
+  "name": "Windows Emulator Host",
+  "description": "Host-side support for the Nirman-managed Android emulator: hypervisor availability and acceleration, host architecture constraints, emulator provisioning and lifecycle, resource budget, and the preview surface (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Performance Worker"
+  ],
+  "triggerConditions": [
+    "emulator_host_readiness",
+    "acceleration_check",
+    "emulator_resource_budget"
+  ],
+  "requiredTools": [
+    "hypervisor_probe",
+    "emulator_probe",
+    "resource_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "EmulatorHostRequest",
+  "outputSchema": "EmulatorHostResult",
+  "sourcePath": "SKILL.md"
+}

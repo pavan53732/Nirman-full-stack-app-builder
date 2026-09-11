@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-ipc-validation",
+  "name": "Windows IPC Validation",
+  "description": "Validate Nirman's named-pipe interprocess communication: connection establishment and teardown, framed message integrity, version negotiation, peer disconnection, and backpressure under load (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "ipc_transport_validation",
+    "named_pipe_failure",
+    "ipc_version_negotiation"
+  ],
+  "requiredTools": [
+    "named_pipe_probe",
+    "process_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "IpcValidationRequest",
+  "outputSchema": "IpcValidationResult",
+  "sourcePath": "SKILL.md"
+}

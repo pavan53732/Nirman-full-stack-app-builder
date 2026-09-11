@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-installer-validation",
+  "name": "Windows Installer Validation",
+  "description": "Validate the installer end to end: clean and in-place install paths, repair, uninstall cleanliness, per-user install without elevation, and upgrade across versions (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Quality Worker"
+  ],
+  "triggerConditions": [
+    "installer_validation",
+    "uninstall_cleanliness_check",
+    "per_user_install_check"
+  ],
+  "requiredTools": [
+    "installer_probe",
+    "filesystem_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "InstallerValidationRequest",
+  "outputSchema": "InstallerValidationResult",
+  "sourcePath": "SKILL.md"
+}

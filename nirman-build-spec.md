@@ -5271,10 +5271,26 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-network-debugging` | debugging the network layer on the Nirman-managed emulator — traffic capture, TLS and certificate pinning failures, offline and degraded-network behaviour, latency and failure injection, and verifying the app against the API contract it actually depends on (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_NETWORK_INTEGRATION` |
 | `android-build-repair` | diagnosing and repairing a failing Android build — Gradle and plugin errors, dependency and version-catalog resolution, resource and manifest merge conflicts, shrinker configuration, and incremental build corruption (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-resource-expert` | the Android resource system — how resources are qualified and resolved, drawables and vectors, themes and styles, string and plural resources, resource shrinking, and resolving merge and qualification conflicts (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `windows-ipc-validation` | Nirman's named-pipe transport — connection establishment and teardown, framed message integrity, version negotiation between peers, peer disconnection behaviour, and backpressure under load (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-process-supervision` | supervision of Nirman's own processes — the expected process inventory, start and stop ordering, restart policy and the reason each restart records, orphan detection, and coordinated shutdown (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-job-object-validation` | Job Object isolation for Nirman's worker processes — the limits configured, what happens when a limit is hit, whether processes stay contained, the accounting counters, and the rules for nested job assignment (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-sandbox-validation` | the isolation boundary around a Nirman worker — what a sandboxed worker can and cannot reach, credential and handle isolation, filesystem and network reach, and proving an escape fails rather than leaving it untested (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-credential-security` | credential handling on the Windows host — where a credential is stored and who can read it, encryption at rest, retrieval and lifetime, provider API keys, and proving no credential reaches a log, artifact, or diagnostic capture (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-conpty-terminal` | Nirman's ConPTY console hosting — session creation and attachment, output stream draining and buffer health, resize and encoding, exit code and error propagation, and diagnosing a console that stalls or garbles (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-file-system` | host filesystem behaviour for Nirman workspaces — path handling and length limits, the per-user workspace root and its access control, long-path and Unicode handling, write atomicity and file locking, and path hygiene (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-emulator-host` | the host side of the Nirman-managed Android emulator — hypervisor availability and acceleration, the host architecture constraint, provisioning and lifecycle, the resource budget the host can spare, and the surface the preview renders into (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-toolchain-provisioning` | provisioning the host toolchain — downloader behaviour and integrity verification, proxy discovery and classification, archive validation, the per-user install location, and resuming an interrupted download (BS §79.7). | `HOST_TOOL_OBSERVATION`, `ENVIRONMENT_REPAIR`, `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-update-recovery` | recovering from a failed Nirman update — staging and validation before an update is applied, rolling back to the last known-good version, preserving user data and settings, and proving the rollback restores a working install (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-crash-recovery` | crash handling and recovery on the Windows host — detecting and classifying a crash, capturing a dump under a retention rule, reconciling state after an unclean exit, and restarting without repeating or losing work (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-resource-diagnostics` | diagnosing host resource problems — CPU, memory, and disk attributed by process, unbounded growth across a session, disk exhaustion, and naming the contention source rather than reporting that the host is slow (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-preview-rendering` | preview rendering on the Windows host — the health of the frame stream and the staleness contract, resize and DPI handling, recovering a detached or lost surface, and telling a frozen frame apart from a live surface (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-accessibility` | accessibility of Nirman's desktop surface — keyboard reachability and focus order, screen reader equivalents for every control and every status, contrast and visual dependency, and support for high contrast and scaling (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-signing` | code signing for release packages — whether a signature is valid and its chain trusted, whether a timestamp is present and valid, whether the digest and publisher identity match, and verifying every binary the installer ships (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-installer-validation` | validating the installer end to end — clean and in-place install paths, repair, how cleanly uninstall removes the product, per-user install without elevation, and upgrading across versions (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the fifty-four built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the seventy built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -5359,6 +5375,22 @@ The `requiredCapabilities` of the fifty-four built-in skills are drawn from this
 | `android-network-debugging` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_NETWORK_INTEGRATION` |
 | `android-build-repair` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-resource-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `windows-ipc-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-process-supervision` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-job-object-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-sandbox-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-credential-security` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-conpty-terminal` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-file-system` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-emulator-host` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-toolchain-provisioning` | `HOST_TOOL_OBSERVATION`, `ENVIRONMENT_REPAIR`, `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-update-recovery` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-crash-recovery` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-resource-diagnostics` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-preview-rendering` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-accessibility` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
+| `windows-signing` | `WINDOWS_HOST_TOOLCHAIN` |
+| `windows-installer-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

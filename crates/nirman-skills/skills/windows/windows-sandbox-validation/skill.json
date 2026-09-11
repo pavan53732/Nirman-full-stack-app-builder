@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-sandbox-validation",
+  "name": "Windows Sandbox Validation",
+  "description": "Validate worker isolation boundaries: what a sandboxed worker can and cannot reach, credential and handle isolation, filesystem and network reach, and proof that an escape is impossible rather than untested (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Security Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "sandbox_boundary_check",
+    "isolation_escape_test",
+    "credential_isolation_check"
+  ],
+  "requiredTools": [
+    "sandbox_probe",
+    "process_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "SandboxRequest",
+  "outputSchema": "SandboxResult",
+  "sourcePath": "SKILL.md"
+}

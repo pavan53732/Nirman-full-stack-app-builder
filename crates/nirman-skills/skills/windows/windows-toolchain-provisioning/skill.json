@@ -1,0 +1,30 @@
+{
+  "skillId": "windows-toolchain-provisioning",
+  "name": "Windows Toolchain Provisioning",
+  "description": "Provision the host toolchain: downloader behaviour and integrity verification, proxy discovery and classification, archive validation, per-user install location, and resuming an interrupted download (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "toolchain_provision",
+    "proxy_classification",
+    "provisioning_integrity_check"
+  ],
+  "requiredTools": [
+    "downloader",
+    "hash_verifier",
+    "proxy_probe"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION",
+    "ENVIRONMENT_REPAIR",
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ProvisioningRequest",
+  "outputSchema": "ProvisioningResult",
+  "sourcePath": "SKILL.md"
+}

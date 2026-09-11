@@ -1,0 +1,27 @@
+{
+  "skillId": "windows-resource-diagnostics",
+  "name": "Windows Resource Diagnostics",
+  "description": "Diagnose host resource problems: CPU, memory, and disk attribution by process, unbounded growth across a session, disk exhaustion, and identifying what a contention source is rather than that the host is slow (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Performance Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "host_resource_attribution",
+    "memory_growth_check",
+    "disk_exhaustion_diagnosis"
+  ],
+  "requiredTools": [
+    "resource_probe",
+    "process_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ResourceDiagnosticsRequest",
+  "outputSchema": "ResourceDiagnosticsResult",
+  "sourcePath": "SKILL.md"
+}

@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-accessibility",
+  "name": "Windows Accessibility",
+  "description": "Accessibility of Nirman's desktop surface: keyboard reachability and focus order, screen reader equivalents for every control and status, contrast and visual dependency, and high contrast and scaling support (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Quality Worker"
+  ],
+  "triggerConditions": [
+    "accessibility_review",
+    "keyboard_trap_detection",
+    "screen_reader_equivalence_check"
+  ],
+  "requiredTools": [
+    "accessibility_probe",
+    "ui_inspector"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AccessibilityRequest",
+  "outputSchema": "AccessibilityResult",
+  "sourcePath": "SKILL.md"
+}

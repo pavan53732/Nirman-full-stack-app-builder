@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-job-object-validation",
+  "name": "Windows Job Object Validation",
+  "description": "Validate Job Object isolation: configured limits, limit violation and kill behaviour, process containment, accounting counters, and nested job assignment rules (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "job_object_limit_check",
+    "isolation_containment_check",
+    "resource_limit_kill"
+  ],
+  "requiredTools": [
+    "job_object_probe",
+    "process_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "JobObjectRequest",
+  "outputSchema": "JobObjectResult",
+  "sourcePath": "SKILL.md"
+}

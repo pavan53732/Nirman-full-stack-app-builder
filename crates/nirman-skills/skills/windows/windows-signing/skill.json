@@ -1,0 +1,27 @@
+{
+  "skillId": "windows-signing",
+  "name": "Windows Signing",
+  "description": "Code signing for release packages: signature validity and chain trust, timestamp presence, digest and publisher identity match, and verification of every binary the installer ships (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Security Worker"
+  ],
+  "triggerConditions": [
+    "signature_verification",
+    "signing_chain_review",
+    "timestamp_validation"
+  ],
+  "requiredTools": [
+    "signing_probe",
+    "hash_verifier"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "SigningRequest",
+  "outputSchema": "SigningResult",
+  "sourcePath": "SKILL.md"
+}

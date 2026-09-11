@@ -1,0 +1,27 @@
+{
+  "skillId": "windows-credential-security",
+  "name": "Windows Credential Security",
+  "description": "Credential handling on the Windows host: storage location and access control, encryption at rest, retrieval and lifetime, provider API keys, and proving no credential reaches a log, artifact, or diagnostic capture (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Security Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "credential_storage_review",
+    "secret_leak_check",
+    "credential_rotation_check"
+  ],
+  "requiredTools": [
+    "credential_store_probe",
+    "static_analyzer"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "CredentialSecurityRequest",
+  "outputSchema": "CredentialSecurityResult",
+  "sourcePath": "SKILL.md"
+}

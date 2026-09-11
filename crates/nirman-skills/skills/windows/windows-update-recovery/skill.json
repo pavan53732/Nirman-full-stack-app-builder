@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-update-recovery",
+  "name": "Windows Update Recovery",
+  "description": "Recover from a failed Nirman update: update staging and validation, rollback to the last known-good version, data and settings preservation, and proving the rollback actually restores a working install (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "update_failure_recovery",
+    "rollback_validation",
+    "update_data_preservation"
+  ],
+  "requiredTools": [
+    "installer_probe",
+    "filesystem_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "UpdateRecoveryRequest",
+  "outputSchema": "UpdateRecoveryResult",
+  "sourcePath": "SKILL.md"
+}

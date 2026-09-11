@@ -1,0 +1,27 @@
+{
+  "skillId": "windows-file-system",
+  "name": "Windows File System",
+  "description": "Host filesystem behaviour for Nirman workspaces: path handling and length limits, per-user workspace layout and access control, long-path and Unicode handling, write atomicity and file locking, and path hygiene (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Architecture Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "workspace_layout_check",
+    "path_length_diagnosis",
+    "file_locking_conflict"
+  ],
+  "requiredTools": [
+    "filesystem_probe",
+    "path_analyzer"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "FileSystemRequest",
+  "outputSchema": "FileSystemResult",
+  "sourcePath": "SKILL.md"
+}

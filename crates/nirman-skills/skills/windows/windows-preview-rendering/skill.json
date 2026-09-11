@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-preview-rendering",
+  "name": "Windows Preview Rendering",
+  "description": "Preview rendering on the Windows host: frame stream health and the staleness contract, resize and DPI handling, detached surface recovery, and distinguishing a frozen frame from a live surface (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Frontend Worker",
+    "Debugging Worker"
+  ],
+  "triggerConditions": [
+    "preview_stream_health",
+    "stale_frame_detection",
+    "detached_surface_recovery"
+  ],
+  "requiredTools": [
+    "preview_probe",
+    "resource_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "PreviewRenderingRequest",
+  "outputSchema": "PreviewRenderingResult",
+  "sourcePath": "SKILL.md"
+}

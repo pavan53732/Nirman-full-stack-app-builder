@@ -1,0 +1,28 @@
+{
+  "skillId": "windows-conpty-terminal",
+  "name": "Windows ConPTY Terminal",
+  "description": "Nirman's ConPTY terminal hosting: session creation and attachment, stream draining and buffer health, resize and encoding, exit and error propagation, and diagnosing a stalled or garbled console (BS 79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Debugging Worker",
+    "Architecture Worker"
+  ],
+  "triggerConditions": [
+    "conpty_session_check",
+    "terminal_stall_diagnosis",
+    "console_output_garbled"
+  ],
+  "requiredTools": [
+    "conpty_probe",
+    "process_probe"
+  ],
+  "requiredCapabilities": [
+    "WINDOWS_HOST_TOOLCHAIN",
+    "WINDOWS_NATIVE_EXECUTION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ConPtyRequest",
+  "outputSchema": "ConPtyResult",
+  "sourcePath": "SKILL.md"
+}
