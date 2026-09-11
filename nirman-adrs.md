@@ -768,7 +768,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-066: Use deterministic lifecycle authority
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted  
 **Decision:** The lifecycle authority owns session transitions from creation through planning, synthesis, implementation, preview, validation, recovery, packaging, completion, and safe terminal states. Models and workers may propose transitions but cannot commit them.
@@ -792,7 +792,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-068: Use Android-aware project ingestion and revision integrity
 
-**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
+**Lock:** `CONTRACT.RUNTIME.WORKSPACE`
 
 **Status:** Accepted  
 **Decision:** Project ingestion understands Android and Gradle structures, resources, manifests, native modules, devices, generated outputs, secrets, signing material, and repository state. Reconciliation, preview installation, packaging, and promotion require current project and scope fingerprints.
@@ -827,7 +827,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-071: Separate model claims, runtime events, and evidence
 
-**Locks:** `CONTRACT.RUNTIME.EVIDENCE`
+**Lock:** `CONTRACT.RUNTIME.EVIDENCE`
 
 **Status:** Accepted  
 **Decision:** A model claim never completes a requirement. Completion requires evidence records produced by deterministic validation services and linked to a project revision, checkpoint, and artifact where applicable.
@@ -1656,7 +1656,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-140: Classify every memory write and require source evidence
 
-**Locks:** `CONTRACT.RUNTIME.MEMORY`
+**Lock:** `CONTRACT.RUNTIME.MEMORY`
 
 **Status:** Accepted
 
@@ -1670,7 +1670,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-141: Never evict constraints or locked decisions for token budget
 
-**Locks:** `CONTRACT.RUNTIME.CONTEXT`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT`
 
 **Status:** Accepted
 
@@ -1686,7 +1686,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-142: Workers coordinate but hold no authority over each other
 
-**Locks:** `CONTRACT.RUNTIME.RESERVATION`
+**Lock:** `CONTRACT.RUNTIME.RESERVATION`
 
 **Status:** Accepted
 
@@ -1700,7 +1700,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-143: Reserve semantic surfaces and invalidate stale contracts
 
-**Locks:** `CONTRACT.RUNTIME.RESERVATION`
+**Lock:** `CONTRACT.RUNTIME.RESERVATION`
 
 **Status:** Accepted
 
@@ -1714,7 +1714,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-144: Treat user edits as authoritative and never overwrite them
 
-**Locks:** `CONTRACT.RUNTIME.RECONCILIATION`
+**Lock:** `CONTRACT.RUNTIME.RECONCILIATION`
 
 **Status:** Accepted
 
@@ -1728,7 +1728,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-145: Apply runtime directives at decision boundaries with bounded authority
 
-**Locks:** `CONTRACT.RUNTIME.DIRECTIVE`
+**Lock:** `CONTRACT.RUNTIME.DIRECTIVE`
 
 **Status:** Accepted
 
@@ -1742,7 +1742,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-146: Require deterministic stateful scenarios with declared seed provenance
 
-**Locks:** `CONTRACT.RUNTIME.E2E`
+**Lock:** `CONTRACT.RUNTIME.E2E`
 
 **Status:** Accepted
 
@@ -1756,7 +1756,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-147: Localize regressions before repairing and confine repair to the cause
 
-**Locks:** `CONTRACT.RUNTIME.LOCALIZATION`
+**Lock:** `CONTRACT.RUNTIME.LOCALIZATION`
 
 **Status:** Accepted
 
@@ -1770,7 +1770,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-148: Verify inside the loop and reject vacuous assertions
 
-**Locks:** `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -1784,7 +1784,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-149: Verify the generated application and its supply chain, not only the host
 
-**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
+**Lock:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
 
 **Status:** Accepted
 
@@ -1798,7 +1798,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-150: Report multi-device coverage explicitly and treat divergence as a defect
 
-**Locks:** `CONTRACT.RUNTIME.DEVICE_MATRIX`
+**Lock:** `CONTRACT.RUNTIME.DEVICE_MATRIX`
 
 **Status:** Accepted
 
@@ -1812,7 +1812,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-151: Disable external network triggers by default and cap their authority
 
-**Locks:** `CONTRACT.RUNTIME.TRIGGER`
+**Lock:** `CONTRACT.RUNTIME.TRIGGER`
 
 **Status:** Accepted
 
@@ -1826,7 +1826,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-152: Provide operator-grade runtime inspection without exposing private reasoning
 
-**Locks:** `CONTRACT.RUNTIME.DEBUGGER`
+**Lock:** `CONTRACT.RUNTIME.DEBUGGER`
 
 **Status:** Accepted
 
@@ -1840,7 +1840,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-153: Estimate from measured history and label unprofiled operations honestly
 
-**Locks:** `CONTRACT.RUNTIME.PROFILING`
+**Lock:** `CONTRACT.RUNTIME.PROFILING`
 
 **Status:** Accepted
 
@@ -1856,7 +1856,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-154: Pin skill versions for the duration of an active session
 
-**Locks:** `CONTRACT.RUNTIME.SKILL`
+**Lock:** `CONTRACT.RUNTIME.SKILL`
 
 **Status:** Accepted
 
@@ -1870,7 +1870,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-155: Isolate project memory and anonymize cross-project learning
 
-**Locks:** `CONTRACT.RUNTIME.MEMORY`
+**Lock:** `CONTRACT.RUNTIME.MEMORY`
 
 **Status:** Accepted
 
@@ -1884,7 +1884,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-156: Permit speculative candidate branches only under declared conditions
 
-**Locks:** `CONTRACT.RUNTIME.SPECULATION`
+**Lock:** `CONTRACT.RUNTIME.SPECULATION`
 
 **Status:** Accepted
 
@@ -1898,7 +1898,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-157: Verify runtime invariants from the event ledger as a release gate
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`
 
 **Status:** Accepted
 
@@ -1912,7 +1912,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-158: Canonical AndroidConstructionContract
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -1926,7 +1926,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-159: Pure reducer as lifecycle authority
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -1940,7 +1940,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-160: ConstructionTransaction as the atomic autonomous unit
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -1954,7 +1954,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-161: Parallel proposals with serialized commit barriers
 
-**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
+**Lock:** `CONTRACT.RUNTIME.WORKSPACE`
 
 **Status:** Accepted
 
@@ -1968,7 +1968,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-162: Renewable session leases plus single-use operation capabilities
 
-**Locks:** `CONTRACT.RUNTIME.WORKSPACE`
+**Lock:** `CONTRACT.RUNTIME.WORKSPACE`
 
 **Status:** Accepted
 
@@ -1982,7 +1982,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-163: Android toolchain manifest and project lock
 
-**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
+**Lock:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
 
 **Status:** Accepted
 
@@ -1996,7 +1996,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-164: Language-neutral AndroidCodeIntelligence
 
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
+**Lock:** `CONTRACT.RUNTIME.SCOPE`
 
 **Status:** Accepted
 
@@ -2012,7 +2012,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-165: Structured mutation broker with validated whole-file fallback
 
-**Locks:** `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2026,7 +2026,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-166: Authenticated supervised provider bridge
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -2040,7 +2040,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-167: Drive execution from a recorded reasoning cycle with cited selection basis
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 
@@ -2054,7 +2054,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-168: Persist structured reasoning artifacts and never verbatim private reasoning
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 
@@ -2068,7 +2068,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-169: Make every autonomous capability agent-invocable and discoverable at runtime
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 
@@ -2082,7 +2082,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-170: Bound recursive delegation by capability and resource ceilings
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 
@@ -2098,7 +2098,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-171: Let the agent select execution mode within policy bounds
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 
@@ -2114,7 +2114,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-172: Treat deliberation computation as a first-class runtime resource
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2130,7 +2130,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-173: Escalate reasoning effort through declared levels on recorded conditions
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2144,7 +2144,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-174: Require deliberation passes to produce evidence, not only reasoning
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2158,7 +2158,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-175: Compete hypotheses and critique strategies adversarially at DEEP effort
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2172,7 +2172,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-176: Preserve deliberation state across provider requests and context compaction
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2188,7 +2188,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-177: Terminate deliberation on diminishing returns rather than reasoning further
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2202,7 +2202,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-178: Escalate the model without escalating authority
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2216,7 +2216,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-179: Require skills to declare their reasoning and evidence requirements
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2230,7 +2230,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-180: Enforce the Android-only generated target as a machine-checked invariant
 
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
+**Lock:** `CONTRACT.RUNTIME.SCOPE`
 
 **Status:** Accepted
 
@@ -2244,7 +2244,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-181: Enforce intent-driven Android synthesis without user-facing templates
 
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
+**Lock:** `CONTRACT.RUNTIME.SCOPE`
 
 **Status:** Accepted
 
@@ -2258,7 +2258,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-182: Make the live preview a revision- and checkpoint-bound evidence projection
 
-**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2272,7 +2272,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-183: Keep prompt and presentation layers subordinate to execution evidence
 
-**Locks:** `CONTRACT.RUNTIME.REASONING`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.REASONING`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2286,7 +2286,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 ## ADR-184: Normalize provider-native reasoning without exposing or delegating runtime authority
 
-**Locks:** `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.DELIBERATION`
 
 **Status:** Accepted
 
@@ -2306,7 +2306,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-185: Make APK mandatory and AAB explicitly optional
 
-**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2320,7 +2320,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-186: Separate lifecycle, assurance, capability, and delivery state
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
 
 **Status:** Accepted
 
@@ -2334,7 +2334,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-187: Make evidence dependencies and external operationality canonical
 
-**Locks:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.SUPPLY_CHAIN`
+**Lock:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.SUPPLY_CHAIN`
 
 **Status:** Accepted
 
@@ -2348,7 +2348,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-188: Separate documentation certification from runtime certification
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2362,7 +2362,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-189: Establish one canonical machine-readable schema registry
 
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
 
 **Status:** Accepted
 
@@ -2376,7 +2376,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-190: Model integration operationality as independent dimensions
 
-**Locks:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -2390,7 +2390,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-191: Bind preview currency to branch and runtime-state fingerprints
 
-**Locks:** `CONTRACT.RUNTIME.EVIDENCE`
+**Lock:** `CONTRACT.RUNTIME.EVIDENCE`
 
 **Status:** Accepted
 
@@ -2404,7 +2404,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-192: Separate local, device, and external-effect transactions
 
-**Locks:** `CONTRACT.RUNTIME.RECONCILIATION`
+**Lock:** `CONTRACT.RUNTIME.RECONCILIATION`
 
 **Status:** Accepted
 
@@ -2418,7 +2418,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-193: Require deterministic capability promotion and signing identity binding
 
-**Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2432,7 +2432,7 @@ No provider-native reasoning stream containing private model reasoning may be pe
 
 ## ADR-194: Establish one canonical integration-boundary contract
 
-**Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.RECONCILIATION`
+**Lock:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.RECONCILIATION`
 
 **Status:** Accepted
 
@@ -2450,7 +2450,7 @@ The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE 
 
 ## ADR-195: Make preview synchronization event- and reducer-bound
 
-**Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.PREVIEW_SYNC`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
 
 **Status:** Accepted
 
@@ -2470,7 +2470,7 @@ The event authority class limits the projection dimensions that an event may adv
 
 ## ADR-196: Continue autonomous work from durable events with specialist gates
 
-**Locks:** `CONTRACT.RUNTIME.TRIGGER`
+**Lock:** `CONTRACT.RUNTIME.TRIGGER`
 
 **Status:** Accepted
 
@@ -2488,7 +2488,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-197: Make cost governance a deterministic resource authority
 
-**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
+**Lock:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
 
 **Status:** Superseded
 **Superseded by:** ADR-218
@@ -2503,7 +2503,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-198: Scan and revoke agent-layer extension content
 
-**Locks:** `CONTRACT.RUNTIME.AGENT_TRUST`
+**Lock:** `CONTRACT.RUNTIME.AGENT_TRUST`
 
 **Status:** Accepted
 
@@ -2517,7 +2517,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-199: Govern context compaction and provider cache reuse
 
-**Locks:** `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
 
 **Status:** Accepted
 
@@ -2533,7 +2533,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-200: Report Android runtime integrity as independent applicable signals
 
-**Locks:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
+**Lock:** `CONTRACT.RUNTIME.ANDROID_INTEGRITY`
 
 **Status:** Accepted
 
@@ -2547,7 +2547,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-201: Make the frontend a typed projection client of the control plane
 
-**Locks:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
+**Lock:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 
 **Status:** Accepted
 
@@ -2560,7 +2560,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 ---
 
 ## ADR-202: Canonical background continuity state machine
-**Locks:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
+**Lock:** `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`
 **Status:** Accepted
 **Decision:** Background autonomy is represented by one durable, versioned continuity record with independently persisted UI, host, device, provider, lease, and reconciliation dimensions. Its aggregate state is derived by deterministic precedence and is an orthogonal substate of the existing product lifecycle; it cannot replace `ProductLifecycleState`, own `CompletionDecision`, or create a second recovery authority. UI closure never cancels eligible work. Recovery must reload durable checkpoints, fence stale leases, reconcile unknown outcomes, and preserve truthful evidence and last-known-good state. The frontend receives continuity only through the typed projection and cannot resume, complete, or clear continuity states.
 **Rationale:** Continuity behavior already spans several authorities; orthogonal dimensions and an aggregate precedence rule prevent concurrent host, device, provider, lease, and UI conditions from overwriting one another without transferring authority to the model. Existing lifecycle, recovery, lease, device-session, and provider-operationality authorities remain canonical; continuity names are aliases only.
@@ -2569,7 +2569,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 ---
 
 ## ADR-203: Make local deployment export profile-bound and provenance-complete
-**Locks:** `CONTRACT.RUNTIME.APK_EXPORT`
+**Lock:** `CONTRACT.RUNTIME.APK_EXPORT`
 **Status:** Accepted
 **Decision:** `ExportVerificationRecord` is strengthened with packaging-profile, artifact-kind, source-revision, checkpoint, source/destination identity, request-fingerprint, idempotency, signing, validation, promotion, reconciliation, failure-evidence, delivery-kind, and destination-kind references. Its copy lifecycle includes `UNKNOWN` and `RECONCILING`, and uncertain copies cannot be retried until destination inspection and identity/hash reconciliation resolve them. Local deployment is restricted to verified declared artifacts on the approved Windows filesystem. The required local deliverable remains APK; AAB remains optional only under an explicitly declared `PackagingProfile`. Workspace, ZIP, and Git access remains available as `SOURCE_ACCESS_ONLY` and never satisfies deployment completion.
 **Rationale:** A durable post-copy record must prove not just byte copying but the identity and policy lineage of the delivered artifact, while source access and deployment delivery are distinct user needs.
@@ -2579,7 +2579,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-204: Make local certification authoritative and hosted CI optional
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`
 **Status:** Accepted
 **Decision:** Under the existing invariants contract, Nirman’s local certification commands are the authoritative engineering validation path. The repository must provide equivalent Unix-like and Windows entry points that run documentation certification, M0 foundation checks, Rust formatting and tests, frontend checks/build, and fixture validation without requiring GitHub, GitHub Actions, hosted CI, or network access to a repository host. Git hosting and hosted CI may be used as optional source-control or convenience services, but they are not runtime authorities, certification authorities, build dependencies, or prerequisites for Nirman to build, test, certify, run, recover, or produce a local Android artifact.
 **Rationale:** Nirman is a Windows-first local application whose control plane, execution, evidence, recovery, and delivery must remain functional when GitHub or any hosted CI service is unavailable. A local certification command makes the engineering gate reproducible on the developer machine and keeps hosted automation from becoming an accidental product dependency.
@@ -2589,7 +2589,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-205: Nirman requires no account, subscription, license fee, or hosted platform
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`
 **Status:** Accepted
 **Decision:** Nirman itself will never require a user account, login, subscription, license fee, recurring payment, or mandatory hosted platform/cloud dependency for local use. Distribution consists of a Windows `.exe` installer built from source or obtained from a trusted source. AI provider access (API keys, base URLs, model IDs) is supplied and paid for by the user directly with their chosen provider; Nirman does not proxy, resell, or charge for provider usage. Full source remains available for local build and permitted redistribution per the eventual license.
 **Rationale:** Nirman's core distinction is a local desktop application that builds applications on the user's own computer. Introducing a mandatory account, subscription, or hosted dependency would contradict ADR-001 (desktop, not hosted platform), the local-first principle in §3.1, and user ownership of source, builds, and credentials. Provider cost is a separate commercial relationship between the user and their provider(s), not a Nirman product constraint.
@@ -2599,7 +2599,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-206: Cross-compilation does not establish native target-runtime support or certification
 
-**Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
+**Lock:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
 **Status:** Accepted
 **Decision:** Host environment, target platform, validation platform, and certification status are four distinct state values and must never be collapsed into one build, validation, or completion result. Cross-compilation (or any host-platform compilation) establishes artifact-production capability only. Native target-runtime capability, target-specific validation, and certification require authoritative observation from a matching validation environment held under a durable lease, with evidence bound to the environment fingerprint, target platform, and source revision. Platform capability classification (`AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, `UNAVAILABLE`) is decided by the deterministic `EnvironmentCapabilityPlanner` from observed preflight; a model, worker, or skill may never set or raise it. The names `CrossCompilationAuthority` and `NativeRuntimeValidationAuthority` denote existing decision points (the `ToolBroker`/`PolicyAuthority` admission decision point and the `EvidenceAuthority`/completion-evaluator gate, respectively), not new authorities. No container, VM, WSL, or simulated environment may substitute for the declared target platform's native validation.
 **Rationale:** Without this distinction, an agent operating on a non-target host can honestly complete a cross-build and then represent it as target-runtime validation — "I launched Nirman and verified Windows ConPTY" — producing certification claims with no underlying observation. The existing invariants (model proposes, authorities decide; evidence is bound to source, toolchain, device, and environment state and invalidates on change; hidden-human dependencies resolve to an authorized action, `USER_REQUIRED`, or a truthful block) already forbid each piece of this behavior in isolation. This ADR locks their combination into one sealed platform capability contract (Build Spec §79, Technical Architecture §84) and makes the four-state invariant machine-checkable by the contract-graph verifier and the runtime fixtures.
@@ -2609,7 +2609,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-207: Nirman supports cloud AI providers only
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`
 **Status:** Accepted
 **Decision:** Nirman supports only cloud-hosted, network-reachable AI providers configured by the user with an API key, base URL, and model ID. Local, offline, on-device, and self-hosted model runtimes are out of scope. A provider base URL resolving to localhost, 127.0.0.0/8, ::1, or an RFC-1918 private range MUST be rejected at configuration time. This does not restrict Nirman's own local control plane, supervisor, build tooling, or Android development servers, which remain local by design.
 **Rationale:** Local model runtimes have materially different context limits, tool-calling fidelity, structured-output reliability, and vision support. Supporting them as a first-class path would mean every capability claim carries an unstated "depending on your local model" qualifier, which conflicts with the evidence and capability-truth model. A single cloud provider contract keeps capability claims checkable.
@@ -2621,7 +2621,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-208: Two named provider compatibility modes with test-gated save
 
-**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+**Lock:** `CONTRACT.RUNTIME.INVARIANTS`
 **Status:** Accepted
 **Decision:** The AI Settings surface exposes exactly two provider compatibility modes: `OPENAI_COMPATIBLE` and `ANTHROPIC_COMPATIBLE`. Each profile declares its mode plus API key, base URL, and model ID. The `ModelGateway` maps `OPENAI_COMPATIBLE` to the Chat Completions / Responses-style request families and `ANTHROPIC_COMPATIBLE` to the message-oriented family, normalizing both into the existing single internal envelope. A profile MUST NOT be saved until a connection Test against the configured endpoint and model returns a successful validated response. Save is disabled while a profile is untested, and any edit to key, base URL, model ID, or mode invalidates a prior pass and re-disables Save.
 **Rationale:** A free-form protocol picker pushes protocol archaeology onto a single user who only wants to paste a key. Two named modes cover the overwhelming majority of cloud providers, since most third-party endpoints advertise compatibility with one of the two. Test-gated save converts a class of silent runtime failures — wrong base URL, wrong model ID, revoked key — into one deterministic setup-time failure with a visible cause.
@@ -2633,7 +2633,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-209: Runtime interaction is mandatory behavioral evidence
 
-**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Status:** Accepted
 
@@ -2649,7 +2649,7 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 
 ## ADR-210: Nirman-managed local emulator is the canonical primary preview runtime
 
-**Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`
+**Lock:** `CONTRACT.RUNTIME.PREVIEW_SYNC`
 
 **Status:** Accepted
 
@@ -2670,7 +2670,7 @@ The embedded preview is a projection of the actual running Android runtime, not 
 ## ADR-211: Make product content a first-class autonomous capability
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`
+**Lock:** `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.VERIFICATION`
 
 **Decision:** Product content is first-class development state and must participate in the unified revision, transaction, validation, evidence, invalidation, preview, and completion lifecycle. `ContentDependency` and `ContentRevision` schemas are governed normatively by BS §81, and TA §85 must implement them exactly. Content dependencies are modeled as explicit edges into the project `ImpactGraph` (`ContentRevision -> ContentDependency* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence`), enabling generalized cascading invalidation rather than closed lists.
 
@@ -2685,7 +2685,7 @@ The embedded preview is a projection of the actual running Android runtime, not 
 ## ADR-212: Make Conversation a durable development aggregate
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.CONTEXT`
+**Lock:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.CONTEXT`
 
 **Decision:** Conversation is a durable product aggregate connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage. Continue resolves this aggregate rather than treating continuation as a new prompt. Conversation consistency is governed by the triple revision invariant `ConversationRevision ↕ ProjectRevision ↕ TaskRevision` with the strict `MATCH/MISMATCH/USER_REQUIRED` Continue state machine (`MATCH -> CONTINUE`, `MISMATCH + safely reconcilable -> RECONCILE / REBASE`, `MISMATCH + unresolved contradiction -> USER_REQUIRED`). Attachment transmission delegates to `ContextGovernance`. Conversation continuation integrates with `BackgroundContinuity` to form unified resume semantics (`Conversation continuation + Background continuity = resume semantics`).
 
@@ -2700,7 +2700,7 @@ The embedded preview is a projection of the actual running Android runtime, not 
 ## ADR-213: Standardize post-mutation change intelligence
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.PREVIEW_SYNC`
+**Lock:** `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.PREVIEW_SYNC`
 
 **Decision:** Every committed ConstructionTransaction produces a canonical ChangeReportRecord and ChangeImpactReport derived from authoritative transaction, impact, validation, preview, and evidence state. The canonical reporting unit is strictly defined as `MutationReportUnit = committed ConstructionTransaction`. There is exactly one ChangeReportRecord per committed ConstructionTransaction. ChangeReportRecord is the durable lifecycle record. ChangeImpactReport is its immutable COMPLETE projection. Projector failure does not fail or roll back the committed parent transaction; failed reports record `ChangeReportRecord.status = INCOMPLETE` in `ChangeIntelligenceStore` and are reconstructed asynchronously by `ChangeIntelligenceRecoveryJob` under `RecoveryAuthority`. The report projects into WinUI 3 across Calm, Inspect, and Developer modes without inferring mutation facts from model prose.
 
@@ -2723,7 +2723,7 @@ The projector cannot invent authoritative facts.
 ## ADR-214: Authoritative World State / Derived Context
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONTEXT`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT`
 
 **Decision:** The runtime establishes an absolute separation between authoritative world state and model context packages: `Authoritative world state != model ContextPackage`. A `ContextPackage` is strictly a derived, revision-bound projection of authoritative project, task, evidence, and memory state; it is never authoritative state itself. Context assembly is orchestrated dynamically across six normative retrieval modes (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`) and twelve selection dimensions. This extends ADR-141 by establishing that `requiredItems` (active constraints, locked decisions, target-platform invariants) can never be evicted.
 
@@ -2738,7 +2738,7 @@ The projector cannot invent authoritative facts.
 ## ADR-215: Hierarchical Context Fidelity
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONTEXT`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT`
 
 **Decision:** Context items within a `ContextPackage` are governed by explicit hierarchical fidelity levels (`EXACT`, `STRUCTURAL`, `SEMANTIC`, `SUMMARY`, `HISTORICAL`) mapped via `fidelityMap`. Edited regions and active interface definitions must always be provided at `EXACT` fidelity (verbatim byte-for-byte source); direct dependencies at `STRUCTURAL` fidelity (complete symbol signatures and type declarations); related distant code at `SEMANTIC` fidelity; and historical transactions at `SUMMARY` or `HISTORICAL` fidelity. Under context capacity constraints, semantic summaries cannot replace exact source code required for mutation or line-level reasoning.
 
@@ -2753,7 +2753,7 @@ The projector cannot invent authoritative facts.
 ## ADR-216: Retrieval Completeness Before Consequential Mutation
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.AUTHORITY`
 
 **Decision:** Before any model invocation proposing code mutations, tool executions, or state transactions, the runtime enforces a mandatory two-stage sufficiency gate:
 ```text
@@ -2774,7 +2774,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-217: Runtime Resource Integrity and Adaptive Execution Continuity
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`
+**Lock:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`
 
 **Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
 
@@ -2788,7 +2788,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 ## ADR-218: AI usage telemetry is observational and has no execution-authority semantics
 
-**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`, `CONTRACT.RUNTIME.REASONING`
+**Lock:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`, `CONTRACT.RUNTIME.REASONING`
 
 **Status:** Accepted
 **Supersedes:** ADR-197
@@ -2806,7 +2806,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-219: Attention reliability is measured per model and context is placed, gated, and verified against it
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+**Lock:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
 **Amends:** ADR-199, ADR-216 (builds on ADR-214 and ADR-215)
 
 **Decision:** A provider model's ability to attend to context is a measured, per-model `AttentionReliabilityProfile` (`DECLARED`, `PROBED`, `LEARNED`, or `UNPROFILED`), distinct from its declared context capacity. Context assembly places required items and mutation-target `EXACT` items inside the measured reliable recall span in a fixed layout — cache-stable prefix, SPARSE breadth, DENSE precision block, state digest, instruction — recorded in `placementPlan`; the sufficiency gate evaluates `attentionReliability` as a seventh confidence dimension; the mutation broker rejects a proposal whose anchors or premises do not match the originating `ContextPackage` with `PREMISE_MISMATCH` before any transaction opens; and compaction output never carries active constraints, locked decisions, acceptance criteria, or revision identity, which are re-projected from durable state after every compaction and verified by a recall probe. Reliability evidence derives only from deterministic recall probes and premise mismatches, never from model self-report.
@@ -2822,7 +2822,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-220: Ten root documents with declared authority, a single schema location, and non-authoritative navigation
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
 **Amends:** ADR-189
 
 **Decision:** The repository root holds exactly ten Markdown documents: `README.md`, `AGENTS.md`, `INDEX.md`, `GLOSSARY.md`, `nirman-build-spec.md`, `nirman-technical-architecture.md`, `nirman-schemas.md`, `nirman-milestones.md`, `nirman-decisions.md`, and `nirman-adrs.md`. Authority does not move with text: the Build Spec remains the owner of product contracts, invariants, and the capability, contract, clause, and twelve-edge registries (§67 stays in the Build Spec); the Technical Architecture remains the owner of implementation architecture, protocols, and module boundaries; `nirman-milestones.md` is `nirman-development-plan.md` renamed whole and is the only home of every milestone identifier, matrix, mapping, fixture, and gate (its strategy sections stay with it because they cite milestones); `nirman-adrs.md` holds every ADR block byte-identical to its prior text and in the same order, and `nirman-decisions.md` keeps only the decision process (purpose, status values, ADR format, review rules); `nirman-schemas.md` is the single location of every fenced field-list schema previously carried by the Build Spec or the Technical Architecture together with the `CanonicalSchemaRegistry` list — each block is preceded by an owner line naming its owning Build Spec or Technical Architecture section and, where registered, its ContractId, and the block inherits the precedence of that owner section rather than holding authority of its own; enumeration, vocabulary, diagram, and flow fences do not move. Every former fence site is replaced by one projection line (a block quote beginning **Schema projection:** that names the schema, its `nirman-schemas.md` section, and its owner section), and a schema name has exactly one fence across all root documents. Where the Build Spec and the Technical Architecture both carried a fence for one name, the merged block is the Technical Architecture field set (the superset under the parity rule of §67.11) with the Build Spec's normative comments preserved and the owner already named by §67.7 or §67.11. Section addressing is unchanged (`§N.k`, `ADR-nnn`, `Mnn`); citations into the new documents use the qualifiers `SCHEMAS §` and `MILESTONES §`, while `development plan §` and `DP §` remain valid aliases for `nirman-milestones.md`. A bare `§N` inside historical ADR text is read against the Build Spec. `INDEX.md` is generated by the verifier (`--emit-index`) and fails certification when it drifts; `GLOSSARY.md` is hand-written reference; neither may carry a Locks field, an ADR or milestone block, a fenced schema, a contract-authority row, or an upper-case requirement statement. Precedence is: accepted ADRs in `nirman-adrs.md`, then `nirman-build-spec.md`, then `nirman-technical-architecture.md`, then `nirman-milestones.md`, then `README.md` (explanatory only); `AGENTS.md` binds agent process and never product or architecture content.
@@ -2838,7 +2838,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-221: The Android toolchain and emulator are provisioned by Nirman on first launch, never bundled and never built by Nirman
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
+**Lock:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
 **Amends:** ADR-210 (builds on ADR-206)
 
 **Decision:** The Nirman-managed local Android emulator is the Google Android Emulator distributed through the Android SDK repository, running Google APIs x86_64 system images. On first launch, before any project exists and without waiting for an AI provider, the supervisor's `ToolchainProvisioner` (TA §49.4) downloads the pinned JDK, command-line tools, platform-tools, build-tools, platform, emulator, and system image into Nirman's own toolchain root, verifies every digest, creates the Nirman emulator device, boots it once, saves its snapshot, and proves readiness by delivering one frame through the `RenderTransport` (TA §10.7) into the Preview panel. The user performs at most three actions — accepting the Android SDK License Agreement together with the download and disk figures, confirming one elevation prompt for hypervisor enablement, and, only when firmware virtualization is disabled, changing that one UEFI/BIOS setting — each a durable `USER_REQUIRED` decision, never an installation guide. Nirman MUST NOT bundle, fork, patch, rebuild, or redistribute the emulator, a system image, or any Android SDK component, whether inside its installer or through a Nirman-operated server; MUST NOT accept the SDK licence on the user's behalf; MUST NOT write `ANDROID_HOME`, `JAVA_HOME`, or the user's `PATH`; and MUST NOT adopt an SDK or JDK already on the machine unless the user configures its path explicitly. The frame path is fixed as supervisor-owned: one loopback gRPC channel per emulator session opened by the supervisor, frames stamped with the revision binding and delivered to PreviewHost through a shared-memory ring (30 frames per second, drop-oldest) announced by volatile `FrameNotice` messages that are never logged or replayed — frames are pixels, `PreviewSyncEvent`s mark only stream-state changes and evidence captures — presented on a WinUI 3 `SwapChainPanel` with a `WriteableBitmap` fallback and painted as live only under a `CONNECTED` projection with a bound stamp, input returning through `PreviewInteraction`; WebRTC is the permitted upgrade under the same stamps and gate. The per-user root of every Nirman path is the fixed literal `C:\Nirman\<sid8>\` (BS §79.14).
@@ -2854,7 +2854,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-222: Every worker is a NirmanWorker.exe process that reasons over a WorkerConnection and holds no authority, credential, file, socket, or child
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 **Amends:** ADR-002A, ADR-111, ADR-119
 
 **Decision:** Nirman's production installation consists of exactly three executables: `Nirman.exe` (WinUI 3 presentation), `NirmanSupervisor.exe` (the Rust/Tokio control plane and every authority), and `NirmanWorker.exe` (a Rust reasoning host). Every worker runs as its own `NirmanWorker.exe` process, spawned by the supervisor's `WorkerRuntime` from a committed lease and launch intent, one process per lease attempt, never pooled, never a thread or Tokio task inside the supervisor or the UI. The worker process is an AppContainer process with a per-lease container SID and no network capability, inside its own Job Object with an active-process limit of one and the memory limit of build spec §80.3; it holds no provider credential, opens no file in a workspace, toolchain, or ledger, opens no socket, and spawns no process. Its only input and output is the `WorkerConnection` (TA §57.11; SCHEMAS §2.90): one named pipe per lease, authenticated by a one-time launch token delivered on standard input. A model call is a `MODEL_CALL` message the supervisor's `ContextOrchestrator` and `ModelGateway` fulfil — the worker names the purpose and the context items it needs by reference and receives the normalized response, never the assembled `ContextPackage`, the raw request, or the key; an action is a `PROPOSAL` the kernel's AUTHORIZE step passes to `PolicyAuthority` and `ToolBroker`, executed by the supervisor under the worker's declared execution profile, its result returned as a `PROPOSAL_RESULT`. The placement rule of TA §3.5 decides where every component of TA §58, §71, and §72 runs: a component whose only inputs and outputs are messages is worker-hosted; a component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted. The topology is a star centred on the supervisor: no edge exists between the UI and a worker, between two workers, or between a worker and the emulator, a tool process, a workspace, or the provider. A worker process lives for one lease attempt and is declared dead only from both the process handle and heartbeat freshness; a paused worker may be terminated and relaunched from durable state because every artifact it produced is already in the ledger. The pre-M7 in-process allowance of ADR-111 never applies to workers: from M5, the first milestone that runs a worker, every worker is a `NirmanWorker.exe` process.
@@ -2870,7 +2870,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-223: One component and authority registry; a component name without a definition site is a defect
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Decision:** Technical architecture §57.12 is the single registry of Nirman's authorities and of every component name that the build spec or the architecture uses without a heading, component table, or list definition of its own. Each row fixes the name's kind (authority, service, module, alias, or decision point), its crate in the §57.1 workspace, what it owns, what it commits to the ledger, and the section that defines it; alias rows name the owner they stand for and carry no crate. A PascalCase component name used in backticks, inside a fenced diagram, or in a table row of either document without one of those definition sites fails documentation certification. So that every registered component has a crate, the §57.1 workspace gains `nirman-provider` (`ModelGateway` and the provider adapters) and `nirman-context` (`ContextOrchestrator` and memory), and `nirman-control-plane` names the transaction-manager, lease, checkpoint, tool-broker, terminal, and update services it previously only implied.
 
@@ -2885,7 +2885,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-224: Nirman's authority and involvement terminate at the certified local build artifact
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.SCOPE`
+**Lock:** `CONTRACT.RUNTIME.SCOPE`
 
 **Decision:** Nirman's product scope ends at producing a certified, evidence-backed local build artifact (APK, or AAB when the packaging profile requires it, with checksums, environment snapshot, validation evidence, and provenance per build spec §78 and technical architecture §83). Nirman holds no capability, service, schema, or contract for observing, monitoring, or receiving telemetry, crash reports, ANRs, or user feedback from a published or installed instance of a generated application once it leaves Nirman's local workspace; for ingesting field or usage data of any kind; or for proposing, generating, or auto-applying spec or code changes to a generated project based on such data. The Self-Improvement Manager (technical architecture §30) and its `ImprovementProposal` targets remain scoped exclusively to Nirman's own internal components (prompts, routing, tool schemas, worker roles, runtime code) and never to a generated project's post-publish behavior.
 
@@ -2900,7 +2900,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-225: Machine-answerable by default — the emulator loop is autonomous unless proven otherwise
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.E2E`
+**Lock:** `CONTRACT.RUNTIME.E2E`
 
 **Decision:** Every situation the autonomous Android loop can reach is presumed answerable by the runtime; a human decision is the exception that must be justified, not the default. Nine mechanisms make the presumption concrete: (1) a text-native perception channel, `ScreenModel`, derived from the UI hierarchy of the running application, so workers act on structure and a vision model is optional; (2) bounded exploration of the installed application into a `ScreenGraph` and derivation of `E2EScenario` steps from acceptance criteria by `ScenarioSynthesizer`, so validation never waits for hand-written scenarios; (3) a `DeviceHygienePolicy` applied at boot and system-dialog handling inside the device adapter, so permission, crash, ANR, keyguard, and setup-wizard dialogs are runtime behavior rather than a hidden human dependency; (4) a per-session `GoldenSnapshot` restored before every scenario, so determinism is a mechanism rather than an aspiration; (5) answer-or-proceed for outstanding clarifying questions in unattended sessions; (6) a supervisor-owned, loopback-only `ContractDouble` for declared service integrations whose backend is absent; (7) a deterministic `RepairPattern` step in `AndroidRepairRegistry` tried before model reasoning; (8) single-writer shared Android surfaces with typed `SharedSurfaceChangeRequest`s in the swarm; (9) an explicit preview-versus-validation device rule. A `USER_REQUIRED` decision raised inside the loop MUST record which of the automatic paths were attempted and why none applied (`automaticPathsAttempted`); a decision without that record is a defect.
 
@@ -2917,7 +2917,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 ## ADR-226: One mode — Autonomous-build — and a control loop that cannot stop on its own
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Decision:** Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one. The seven user-selectable operating modes of the former build spec §23.3 (Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release) and the two approval profiles of the former technical architecture §16.2.1 (`Interactive / Review`, `Unattended / Full Autonomy`) are withdrawn as user-facing choices. What they encoded survives in two places only: the *read-only* modes are worker roles with read-only mutation authority (`Repository Scout`, `Requirements Planner`, `Architecture Worker`, `Security Worker`, `Visual QA Worker`, `Performance Worker`, `Critic Worker`), and the *approval* profiles collapse into the one Autonomous-build policy, whose routine-allowed and hard-gated action sets are exactly those of ADR-048. The user never selects an autonomy level; the user states a goal.
 
@@ -2940,7 +2940,7 @@ Under the one mode, the control loop has no self-inflicted stopping state. Five 
 ## ADR-227: Complete agent taxonomy — nineteen canonical roles, three-level delegation, and the read-only critic pair
 
 **Status:** Accepted
-**Locks:** `CONTRACT.RUNTIME.AUTHORITY`
+**Lock:** `CONTRACT.RUNTIME.AUTHORITY`
 
 **Decision:** The canonical worker taxonomy of ADR-049 grows from fourteen roles to nineteen, and the growth is closure, not invention: every role added is one the build spec or the architecture already *uses* without a registry row. The five added roles are (1) **Emulator Driver Worker** — the "emulator worker" of technical architecture §10.2: installs, launches, drives scenarios and `ScreenGraph` exploration through `AndroidDeviceAdapter`, applies `DeviceHygienePolicy`, and returns structured runtime evidence; (2) **Diagnostic Worker** — the "narrowly scoped diagnostic child" every worker may spawn: read-only root-cause localization (§63.2) producing a `FailureContextPackage`; (3) **Content Worker** — the `ContentWorker` of §85.2: product copy, localization, and accessibility text as `ContentMutation` proposals; (4) **Integration Double Worker** — authors and conforms `ContractDouble` fixtures (§74.1) so integration-heavy applications keep executing offline scenarios; (5) **Critic Worker** — the read-only adversarial reviewer that hosts `StrategyCritic` (§72.7) and the independent pre-promotion review of build spec §47.3; it emits findings and evidence requests only. The three role tables (build spec §22.1, §23.4; technical architecture §6.5) list exactly these nineteen names, and a worker phrase in either document that is not one of them is a documentation defect.
 
@@ -2954,4 +2954,19 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Reversal trigger:** A frozen-battery run in which two of the nineteen roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
 
+---
+
+## ADR-228: Evidence-Driven Cognitive Development Loop (loop authority split)
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** Nirman implements intelligence as a deterministic, evidence-bound cognitive development loop. The model layer proposes interpretations, candidate strategies, and hypotheses. The deterministic runtime services — `LifecycleAuthority`, `EvidenceAuthority`, `SupervisorAuthority`, `CompletionEvaluator` — own evidence state (`EvidenceFrontier`), action selection via `ReasoningArtifact` (§1.27), authorization, observation (`VisualObservation`), validation, memory admission, repair selection via `RepairPattern` (§2.96, extended), and completion decisions. No model proposal becomes authoritative state without passing the promotion gate.
+
+**Reversal trigger:** If an implementation allows model confidence, pixel similarity alone, compilation success alone, or unverified predictions to advance the loop, or creates a second decision authority separate from the supervisor/evidence/completion authorities, this ADR is reversed.
+
+**Rationale:** ADR-225, ADR-216, AgentExecutionKernel (§57.1), ReasoningArtifact (§1.27), Hypothesis (§1.29), HypothesisManager (TA §71.5), EvidenceFrontier (§53.6), RecoveryAuthority (§87), and DecisionNodeManager (§58.12) already provide loop surfaces. ADR-228 is the cross-document invariant/reconciliation contract binding them; it does NOT create CognitiveDevelopmentEngine or a second authority (`SupervisorAuthority` is an existing alias). Model proposes; deterministic runtime decides.
+
+**Consequences:** Every cycle references its evidence-frontier state; repair records counterfactual hypotheses (RepairPattern extension) without promotion; interpreted observations use VisualObservation (not pixel similarity); M20 adds normative frontier rules; no new milestone, no new engine, no new authority.
+
+**Lock:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / CompletionEvaluator (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
 ---

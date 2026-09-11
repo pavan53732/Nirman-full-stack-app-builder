@@ -518,6 +518,7 @@ Implement the default validation loop: Nirman-managed local Android emulator pre
 Implement `ScenarioSynthesizer` (TA §62.1; ADR-225): derive an `E2EScenario` for every acceptance criterion and every build spec §56.3 class from the `ScreenGraph`, register it through `ScenarioRegistry`, and write `coveredRequirementIds` and `uncoveredRequirementIds`. Fixture: a requirement no graph path can reach is reported to the planner as a `REPLAN` input and is absent from completion evidence; a synthesized scenario that flips between runs is quarantined by the TA §62.3 determinism rule exactly like an authored one.
 
 **Exit gate:** A required but unavailable validation stage blocks completion, while optional stages are clearly labeled as skipped or unavailable. A regression after repair triggers backtracking or escalation. No requirement is counted validated without an executed scenario, and no scenario waits for a human author.
+Every required acceptance criterion must expose its evidence frontier (verified, unresolved, required validation) before a validation claim advances. Visual comparison of the running application contributes appearance evidence only; pixel similarity alone never establishes behavioral or accessibility correctness (TA §474; BS §79.5).
 
 Every required behavioral acceptance condition must execute through `CONTRACT.RUNTIME.E2E`. A validation run that builds or launches the application but does not execute its required interaction scenarios cannot produce `COMPLETED`.
 

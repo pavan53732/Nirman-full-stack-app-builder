@@ -3911,6 +3911,40 @@ RepairPattern
 - failureCount
 - createdAt
 - updatedAt
+- hypotheses: list<string>
+- predictedObservations: list<string>
+- discriminatingTests: list<string>
+- selectedHypothesis: string | null
+- rejectedHypotheses: list<string>
+- repairOutcomeEvidenceIds: list<string>
+- repairSuccessInvariant: "successful repair does not confirm causal hypothesis; promotion requires validated evidence and regression/evaluation gates"
+```
+
+### 2.97 VisualObservation
+
+**Owner:** TA §74.2 supplement · **Contract:** CONTRACT.RUNTIME.PREVIEW.TRUTH · **Projected at:** —
+
+```text
+VisualObservation
+- observationId
+- screenshotId / frameIdentity
+- sourceRevision
+- buildFingerprint
+- artifactFingerprint
+- installIdentity
+- runtimeSessionId
+- deviceStateFingerprint
+- textElements: list
+- componentCandidates: list
+- geometry: map
+- semanticRoles: map
+- visualStates: map
+- interactionAffordances: map
+- hierarchy: map
+- accessibilitySemantics: map
+- confidence: float
+- truthStatus: UNTRUSTED | OBSERVED | VERIFIED
+- evidenceIds: list<string>
 ```
 
 ## 3. Canonical schema registry
@@ -3994,6 +4028,7 @@ ChangeReportRecord
 ChangeImpactReport
 ScreenModel
 ScreenGraph
+VisualObservation
 DeviceHygienePolicy
 GoldenSnapshot
 ClarificationRecord

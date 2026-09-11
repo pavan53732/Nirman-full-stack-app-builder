@@ -413,6 +413,7 @@
 | `GoldenSnapshot` | §2.94 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
 | `ContractDouble` | §2.95 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
+| `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.PREVIEW.TRUTH | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -499,4 +500,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-227 | 28 | Accepted 28 |
+| ADR-200–ADR-228 | 29 | Accepted 29 |
