@@ -413,7 +413,7 @@
 | `GoldenSnapshot` | §2.94 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
 | `ContractDouble` | §2.95 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
-| `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.PREVIEW.TRUTH | — |
+| `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

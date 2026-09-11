@@ -36,9 +36,9 @@ MUST be reported.
    identity and the previous manifest no longer describes it.
 
 ## Invariants
-- Runtime evidence requires an emulator observation bound to the
-  environment fingerprint; a missing or unstartable emulator is
-  USER_REQUIRED, never a simulated device and never a substitute runtime.
+- Runtime evidence requires an emulator observation bound to the environment fingerprint.
+  A missing or unstartable emulator is USER_REQUIRED, never a simulated
+  device and never a substitute runtime.
 - Versions are observed, never taken from the project's declaration; a
   declared version is a request, not a fact.
 - A version mismatch is reported as USER_REQUIRED or REPAIRABLE — the

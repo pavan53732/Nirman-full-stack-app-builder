@@ -4512,7 +4512,7 @@ UI-hierarchy evidence may support accessibility, navigation, state, and visual c
 > **Schema projection:** `ScreenModel` is defined in `nirman-schemas.md` §2.91. Owner: TA §74.2.
 > **Schema projection:** `VisualObservation` is defined in `nirman-schemas.md` §2.97. Owner: TA §74.2.
 
-`VisualObservation` is the visual supplement to the primary `ScreenModel` perception of §74.2 and carries contract `CONTRACT.RUNTIME.PREVIEW.TRUTH`.
+`VisualObservation` is the visual supplement to the primary `ScreenModel` perception of §74.2 and carries contract `CONTRACT.RUNTIME.E2E`.
 
 `ScreenModel` is the text-native perception channel of the autonomous loop (ADR-225). `AndroidDeviceAdapter.captureUiHierarchy` produces the raw hierarchy; the device layer normalizes it into a `ScreenModel` whose elements carry identity, text, bounds, and actionability, and whose `screenFingerprint` is stable across captures of the same screen state. Workers and `ScenarioSynthesizer` act on the `ScreenModel`, never on pixels: a tap targets an element identity, an assertion names an element property, and a screen is recognized by its fingerprint. Screenshots remain evidence for humans and for visual criteria; a vision model (`visionModelId`) is optional and its absence marks visual criteria `NOT_OBSERVED` — it never blocks functional completion and never substitutes for a `ScreenModel`. A `ScreenModel` whose `windowKind` is not `APP` is a system surface handled by the device adapter (§73.12), not by a worker.
 

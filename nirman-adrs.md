@@ -2968,5 +2968,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Consequences:** Every cycle references its evidence-frontier state; repair records counterfactual hypotheses (RepairPattern extension) without promotion; interpreted observations use VisualObservation (not pixel similarity); M20 adds normative frontier rules; no new milestone, no new engine, no new authority.
 
-**Locks:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / CompletionEvaluator (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
+**Locks:** `CONTRACT.RUNTIME.E2E`
+
+**Locked surfaces:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / CompletionEvaluator (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
 ---
