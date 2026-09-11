@@ -1531,6 +1531,22 @@ This table is the canonical execution-profile set: exactly these five profiles e
 
 The runtime should monitor CPU, memory, disk, process-count, output-size, elapsed time, and network usage. Ordinary usage thresholds should trigger telemetry, throttling, concurrency reduction, context compaction, or an approval request when the user has configured one. Windows Job Objects should be used where appropriate for process-tree accounting and termination. Hard operating-system safety limits, unresponsive-process watchdogs, Windows Job Object limits, restricted-token boundaries, and sandbox protection limits may terminate a process when necessary to protect the computer or workspace.
 
+The graduated quota-response thresholds and the constrained-host predicate are **owner-approved canonical values** (ADR-229). This section is their single normative authority; no other section, table, or registry restates them, and a citation elsewhere resolves here. For each monitored resource dimension, measured against that dimension's configured quota, the runtime MUST apply:
+
+| Threshold | Owner-approved canonical response |
+|---|---|
+| 70% of quota | **Telemetry response.** Record the measured pressure in `ResourceIntegrityRecord.observedPressure` and surface it in the task telemetry of §27.11. `pressureResponse` remains `NONE`: no work is queued, throttled, delayed, denied, degraded, or ended |
+| 85% of quota | **Throttling response.** Begin the ordered responses of §72 for newly arriving work — queueing, then scheduling. Already-running work continues undisturbed |
+| 95% of quota | **Worker-admission response.** Stop admitting additional workers against `ResourceIntegrityRecord.admittedCapacity`. Already-admitted workers continue to completion |
+
+The constrained-host predicate is deterministic and total; it has no discretionary form:
+
+`CONSTRAINED_HOST := (free_memory < 15%) OR (free_disk < 10 GB)`
+
+Both operands are host-level measurements taken at the same observation: `free_memory` is the percentage of host memory currently free, and `free_disk` is the absolute quantity of free disk on the volume backing the active task workspace. The predicate is true when either disjunct holds and false only when both fail, so an implementation cannot resolve it by judgement.
+
+Crossing any threshold, or entering `CONSTRAINED_HOST`, MUST NOT terminate an autonomous goal, cancel a task, or kill a running worker merely because the threshold was crossed. These are resource and concurrency controls and nothing else: the responses above are the §72 ordered responses applied before any blocking outcome, `BLOCKED_NO_SAFE_PATH` remains reachable only when no safe path remains, and goal termination stays governed exclusively by the five goal-level terminal conditions of §27.10. These thresholds carry no AI-usage, token, request, cost, or elapsed-time semantics (§72; ADR-218).
+
 A quota event should pause the worker, capture diagnostics, and explain whether the task can resume with a larger limit. It should not kill the process without preserving the latest checkpoint and event log.
 
 ### 26.7 Dependency and artifact safety scanning
@@ -5619,7 +5635,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.3 | "The scheduler should enforce global and per-task limits" | MUST enforce | Both scopes checked before launch. Either limit reached blocks launch; the request queues rather than failing |
 | BS §26.3 | "scheduler should reserve resources before launching a worker" | MUST reserve first | Reserve CPU, memory, and disk before process creation. Launch without a successful reservation is prohibited |
 | BS §26.3 | "release them after completion" | MUST release | On any terminal worker state including crash and timeout. Release is driven by supervisor observation, never by worker self-report |
-| BS §26.3 | "reduce parallelism when the system becomes constrained" | MUST reduce | Stop admitting new workers when free memory is below 15% or free disk below the 10 GB per-task quota (§26.3). Active workers continue; nothing is killed to reclaim capacity |
+| BS §26.3 | "reduce parallelism when the system becomes constrained" | MUST reduce | The constrained-host predicate and the graduated quota-response thresholds are owner-approved and normatively owned by §26.6 (ADR-229); this row restates no value. Active workers continue; nothing is killed to reclaim capacity |
 | BS §26.3 | "A user should be able to pause new workers" | MUST provide pause | Pause admission while active workers run to completion. Distinct from cancel, which stops active work |
 | BS §26.4 | "Each write-capable worker should operate in a dedicated worktree or copy-on-write workspace" | MUST use an isolated workspace | Every write-capable worker gets its own worktree from a named parent checkpoint. Direct writes to the main workspace are prohibited |
 | BS §26.4 | "The reconciliation process should follow these stages" | MUST follow all nine stages in order | The stage list is a required sequence. Skipping a stage is prohibited; a stage may be a no-op only when it has no applicable input |
@@ -5629,7 +5645,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.4 | "Nirman should roll back to the parent checkpoint or keep the result isolated" | MUST roll back or isolate | Roll back when the parent checkpoint is intact; isolate when rollback would lose validated work. Never leave main half-merged |
 | BS §26.5 | "Nirman should implement multiple execution profiles" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only. Restricted process is the default for autonomous execution; TA §9.1 restates the same five |
 | BS §26.6 | "runtime should monitor CPU, memory, disk, process-count, output-size, elapsed time, and network usage" | MUST monitor all seven | Sampled at the §80.3 telemetry interval of 30 seconds |
-| BS §26.6 | "Ordinary usage thresholds should trigger telemetry, throttling, concurrency reduction, context compaction, or an approval request" | MUST trigger the graduated response | Context compaction at 80% of context limit (§80.3). Other dimensions: telemetry at 70% of quota, throttle at 85%, stop admitting new workers at 95%. Approval request only when the user configured one |
+| BS §26.6 | "Ordinary usage thresholds should trigger telemetry, throttling, concurrency reduction, context compaction, or an approval request" | MUST trigger the graduated response | The three graduated thresholds and the constrained-host predicate are owner-approved and normatively defined in §26.6 (ADR-229); this row resolves the "should" and restates no value. Context compaction at 80% of context limit is a separate parameter owned by §80.3. Approval request only when the user configured one |
 | BS §26.6 | "Windows Job Objects should be used where appropriate" | MUST use Job Objects | For every supervised process tree, for accounting and termination. "Where appropriate" means wherever a child process is created |
 | BS §26.6 | "A quota event should pause the worker, capture diagnostics, and explain whether the task can resume" | MUST pause, capture, and explain | All three, in that order, before any other action |
 | BS §26.6 | "It should not kill the process without preserving the latest checkpoint and event log" | MUST NOT kill before preserving | Checkpoint and event log flushed to the ledger before termination. Exception: OS-level hard safety limits, which are recorded as such |
@@ -6688,7 +6704,7 @@ Coverage is 100 percent as of this revision. Any "should" subsequently added to 
 
 An unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
 
-Four values in the §80.2 table were not derived from any existing section and are marked as owner-pending: the §26.6 graduated quota-response thresholds (telemetry at 70 percent, throttle at 85 percent, stop admitting workers at 95 percent) and the definition of a constrained host as under 15 percent free memory or under 10 GB free disk. They are stated so the runtime is buildable, but they are proposals awaiting owner confirmation, not derived requirements.
+No value in the §80.2 table is owner-pending. Four values were formerly recorded here as owner-pending — the three §26.6 graduated quota-response thresholds (telemetry, throttle, and worker-admission) and the constrained-host predicate — because none was derived from an earlier section. The owner has approved all four, so they are now canonical derived requirements rather than proposals, recorded by ADR-229 and normatively defined in §26.6 as their single authority. No open buildability decision and no owner-pending value remains in this table.
 
 ---
 

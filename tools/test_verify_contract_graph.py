@@ -1699,6 +1699,26 @@ CASES = {
         "This table is the **canonical recovery ladder**",
         "This table lists recovery levels",
         "semantic documentation"),
+
+    # ---- resource threshold ownership (ADR-229): §26.6 is the single owner of
+    # the four owner-approved values, and they must not regress to owner-pending
+    # or be restated as a competing number in a §80.2 row.
+    "§26.6 loses the owner-approved throttling threshold": (
+        BS,
+        "| 85% of quota |",
+        "| 86% of quota |",
+        "semantic documentation"),
+    "§80.10 regresses to awaiting owner confirmation": (
+        BS,
+        "The owner has approved all four, so they are now canonical derived "
+        "requirements rather than proposals",
+        "They are proposals awaiting owner confirmation, not derived requirements",
+        "semantic documentation"),
+    "a §80.2 row restates an owner-approved threshold": (
+        BS,
+        "restates no value. Context compaction at 80%",
+        "restates telemetry at 70% of quota. Context compaction at 80%",
+        "semantic documentation"),
 }
 
 

@@ -2142,6 +2142,42 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", "recovery ladder ownership",
                   f"BS §80.4.1 must carry TA §28.1 level {_lvl} ({_action.strip()!r}) "
                   "verbatim at the same level number")
+    # Owner-approved resource thresholds (ADR-229). BS §26.6 is the single
+    # normative owner of the four values the owner approved; they must not
+    # regress to owner-pending, lose a value, lose the non-terminal boundary,
+    # or be restated as a competing number in a §80.2 row.
+    m_266 = _section_text(bs, "26.6") or ""
+    for needle, why in (
+            ("owner-approved canonical values",
+             "state that the thresholds are owner-approved canonical values"),
+            ("70% of quota", "fix the telemetry threshold at 70% of quota"),
+            ("85% of quota", "fix the throttling threshold at 85% of quota"),
+            ("95% of quota", "fix the worker-admission threshold at 95% of quota"),
+            ("`CONSTRAINED_HOST := (free_memory < 15%) OR (free_disk < 10 GB)`",
+             "define the constrained-host predicate deterministically"),
+            ("MUST NOT terminate an autonomous goal",
+             "keep a threshold crossing non-terminal for the goal")):
+        if needle not in m_266:
+            D.add("semantic documentation", "resource threshold ownership",
+                  f"BS §26.6 must {why} (ADR-229)")
+    if "awaiting owner confirmation" in bs:
+        D.add("semantic documentation", "resource threshold ownership",
+              "build spec still describes a value as awaiting owner confirmation; "
+              "ADR-229 approved all four and BS §26.6 owns them")
+    m_229 = re.search(r"## ADR-229:.*?(?=\n## ADR-|\Z)", dec, re.S)
+    m_229 = m_229.group(0) if m_229 else ""
+    for needle, why in (("**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`",
+                         "lock CONTRACT.RUNTIME.RESOURCE_INTEGRITY"),
+                        ("**Reversal trigger:**", "carry a Reversal trigger")):
+        if needle not in m_229:
+            D.add("semantic documentation", "resource threshold ownership", f"ADR-229 must {why}")
+    m_802q = bs.split('### 80.2 "Should" resolution table', 1)[-1].split("### 80.3", 1)[0]
+    for _row in re.findall(r"^\| BS §26\.(?:3|6) \|.*$", m_802q, re.M):
+        for _val in ("70%", "85%", "95%", "15%", "10 GB"):
+            if _val in _row:
+                D.add("semantic documentation", "resource threshold ownership",
+                      f"§80.2 row restates an owner-approved threshold ({_val!r}); "
+                      "BS §26.6 is the single normative owner (ADR-229)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

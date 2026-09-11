@@ -2775,6 +2775,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`
+**Amended by ADR-229:** the ordered physical-pressure responses of this decision survive unchanged as the only response to physical pressure; what ADR-229 adds is the owner-approved set of numeric thresholds that trigger them and the single normative owner of those thresholds at build spec §26.6. No response order, authority, or continuation rule here is altered. Historical text follows.  
 
 **Decision:** The runtime clarifies that cost governance operates as runtime resource integrity protecting physical host, workspace, process, and emulator stability, rather than imposing artificial completion ceilings. Tasks are not terminated, degraded, or blocked because of cumulative token consumption, provider request count, monetary expenditure, or elapsed task duration. Instead, `ResourceIntegrityAuthority` evaluates physical host memory pressure, disk free-space, process health, emulator slot contention, concurrency, and operating-system stability. When physical resource pressure occurs, the runtime must prefer queueing, concurrency reduction, worker scheduling, checkpointing, work serialization, resource reclamation, and recovery before considering task failure. Deliberation continues while progress is possible; diminishing returns trigger strategy changes rather than hard stops.
 
@@ -2973,4 +2974,21 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 **Locks:** `CONTRACT.RUNTIME.E2E`
 
 **Locked surfaces:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / CompletionEvaluator (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
+---
+
+## ADR-229: Owner-approved resource thresholds — the four §26.6 values are canonical
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** The owner has approved the four values that build spec §80.10 formerly recorded as owner-pending, and they are now owner-approved canonical values rather than proposals. They are: the §26.6 graduated quota-response threshold for telemetry at 70 percent of quota; the §26.6 throttling threshold at 85 percent of quota; the §26.6 worker-admission reduction threshold at 95 percent of quota; and the constrained-host predicate `CONSTRAINED_HOST := (free_memory < 15%) OR (free_disk < 10 GB)`. Build spec §26.6 is the single normative authority for all four; no other section, table, schema, registry, or milestone restates a value, and a citation elsewhere resolves to §26.6.
+
+**Rationale:** §80.1 states that an agent building Nirman MUST never have to guess a default value that is not specified, and §80.10 existed so that no reader mistakes partial resolution for full resolution. The four values were stated so the runtime was buildable but were honestly labelled proposals awaiting owner confirmation, which left §80's own buildability invariant satisfied only by disclosure. Owner approval converts them from disclosed gaps into derived requirements and closes the last open buildability decision in the §80.2 table. Keeping the definition in one section rather than repeating it in the §80.2 rows removes the second failure mode: two copies of a threshold that drift apart.
+
+**Consequences:** §26.6 gains the normative threshold table, the constrained-host predicate, and the semantic boundary; the §80.2 rows for §26.3 and §26.6 resolve their "should" statements and restate no value; §80.10 records that no owner-pending value remains. §80.3 gains no row, because a row would require an override range the owner has not specified and §80.1 forbids inventing one. The boundary is preserved unchanged: these are resource and concurrency controls, so 70 percent is a telemetry response, 85 percent is a throttling response, and 95 percent stops admitting additional workers while already-admitted workers continue. Crossing a threshold or entering `CONSTRAINED_HOST` never terminates an autonomous goal, never cancels a task, and never kills a running worker merely because the threshold was crossed; goal termination remains governed exclusively by the five goal-level terminal conditions of §27.10, and the responses are the ordered responses of §72 applied before any blocking outcome. These thresholds carry no AI-usage, token, request, cost, or elapsed-time semantics (ADR-218 unchanged). No new authority, schema field, contract, clause, milestone, budget, hysteresis value, recovery timing, or resource policy is introduced.
+
+**Reversal trigger:** If a threshold crossing is found to terminate an autonomous goal, cancel a task, or kill a running worker on the threshold alone, or if a second definition of any of the four values appears outside §26.6, this ADR is reversed and the repair is the boundary or the single-owner rule, never a new threshold.
+
+**Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`
+
+**Locked surfaces:** §26.6 graduated quota-response thresholds and constrained-host predicate; §80.2 rows for §26.3 and §26.6; §80.10 resolution coverage status; `ResourceIntegrityRecord.observedPressure` and `admittedCapacity` (§72) as the recording surfaces.
 ---
