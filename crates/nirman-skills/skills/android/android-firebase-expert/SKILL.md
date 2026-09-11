@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- FIREBASE_CONFIG_MISSING — the project configuration is absent or does not match the registered application.
+- FIRESTORE_PERMISSION_DENIED — security rules rejected the operation and the app reported it as a data error.
+- MESSAGING_TOKEN_UNAVAILABLE — a messaging token could not be obtained, so delivery cannot be addressed to this install.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

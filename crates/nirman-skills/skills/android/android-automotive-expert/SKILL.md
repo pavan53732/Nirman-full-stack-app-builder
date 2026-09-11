@@ -88,6 +88,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- UNSUPPORTED_APP_CATEGORY — the app requests a category the automotive platform does not permit.
+- DISTRACTION_LIMIT_EXCEEDED — more items are shown while driving than the distraction constraints allow.
+- PARKED_CONTENT_WHILE_DRIVING — content gated on the parked state is reachable while driving.
+- TEMPLATE_NOT_AVAILABLE — a required template is absent from the host, and no fallback surface is defined.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

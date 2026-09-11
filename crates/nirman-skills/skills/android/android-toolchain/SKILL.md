@@ -108,6 +108,11 @@ MUST be reported.
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- SDK_LICENSE_UNACCEPTED — a licence is unaccepted, which makes the component unusable rather than merely unconfigured.
+- TOOL_VERSION_MISMATCH — an observed version differs from the declared target for a component in scope.
+- EMULATOR_IMAGE_MISMATCH — the system image does not match the declared ABI and API level of the target.
+- SIGNING_MATERIAL_MISSING — release signing material is absent, and the build was presented as a release build regardless.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

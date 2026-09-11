@@ -86,6 +86,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- LAYER_VIOLATION — a dependency crosses a layer boundary in the wrong direction, such as domain importing UI.
+- MODULE_CYCLE — two or more modules depend on each other, so neither can be built or tested alone.
+- UNBOUNDED_SCOPE — an object is held in a scope that outlives the component that needs it.
+- UNDOCUMENTED_ARCHITECTURE_DECISION — the pattern and layer structure were chosen without a recorded decision and its rationale.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

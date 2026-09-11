@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- MODULE_REQUEST_FAILED — an on-demand module was requested and the install did not complete, with the split-install state recorded.
+- ASSET_PACK_UNAVAILABLE — an asset pack never reached a usable state, and no fallback content is defined.
+- DELIVERY_TYPE_MISMATCH — content that must be present at install time was configured as on-demand or fast-follow.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

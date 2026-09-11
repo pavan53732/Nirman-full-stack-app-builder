@@ -90,6 +90,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- ORIGIN_UNVERIFIED — the relying-party origin is not bound, so a credential cannot be trusted to this app.
+- CREDENTIAL_FAILURE_MISREPORTED — a cancelled or absent credential was reported as an error, or an error as a cancellation.
+- AUTOFILL_UNBOUND — sign-in fields are not annotated, so Credential Manager cannot fill them.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

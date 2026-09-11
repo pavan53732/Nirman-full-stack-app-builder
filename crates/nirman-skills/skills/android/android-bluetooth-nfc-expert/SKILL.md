@@ -90,6 +90,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- SCAN_FAILED — scanning did not begin or produced no results, with the reason recorded from the scan callback.
+- GATT_DISCONNECTED — a GATT connection dropped mid-operation and the operation was not resumed or retried deliberately.
+- NFC_UNSUPPORTED — the device reports no NFC hardware, or the tag type is not one the app handles.
+- BLUETOOTH_PERMISSION_DENIED — a required runtime permission was denied and the failure was reported as a transport error instead.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

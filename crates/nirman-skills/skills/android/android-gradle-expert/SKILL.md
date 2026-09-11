@@ -87,6 +87,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- DEPENDENCY_CONFLICT — two components resolve to incompatible versions and the resolution was not made explicit.
+- VARIANT_CONFIG_INVALID — a build variant declares a configuration that does not hold for its own dimension.
+- SHRINKING_BROKE_REFLECTION — a release build fails where debug succeeds because a reflective path was removed.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

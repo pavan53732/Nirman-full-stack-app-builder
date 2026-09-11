@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- FLAKY_TEST — a test passes and fails on identical input, so its result cannot be cited as evidence.
+- TEST_ISOLATION_BROKEN — a test depends on state another test leaves behind, or on the order of execution.
+- COVERAGE_CLAIM_UNSUPPORTED — a coverage figure is reported without the run, the scope, or the excluded surfaces.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

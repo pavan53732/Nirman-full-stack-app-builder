@@ -91,6 +91,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- RECOMPOSITION_ERROR — recomposition does not converge, or a state read during composition is not observable to it.
+- LAYOUT_OVERFLOW — content exceeds its measured bounds instead of being measured to fit.
+- SIDE_EFFECT_LEAKED — an effect outlives the composition it belongs to, or is launched from a render path rather than an effect handler.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

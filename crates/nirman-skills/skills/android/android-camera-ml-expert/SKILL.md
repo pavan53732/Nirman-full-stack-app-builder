@@ -91,6 +91,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- CAMERA_BIND_FAILED — the camera did not bind to a lifecycle, so frames never arrive.
+- MODEL_UNAVAILABLE — the model is absent, not yet downloaded, or incompatible with the delegate selected.
+- INFERENCE_FAILED — inference ran and produced no usable result, or produced one below the accuracy bar.
+- CAMERA_PERMISSION_DENIED — camera access was denied and the app degraded silently rather than saying so.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

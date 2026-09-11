@@ -92,6 +92,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- AD_LOAD_FAILED — the SDK reported a failed load and the surface has no defined behaviour for it.
+- CONSENT_UNRESOLVED — personalized ads were requested before consent was collected, or consent was ignored.
+- FUNCTIONAL_OUTCOME_GATED_ON_AD — a functional outcome depends on an ad loading, being watched, or earning revenue.
+- TEST_UNIT_IN_RELEASE — a test ad unit identifier is present in a release build.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

@@ -89,6 +89,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- MIGRATION_MISSING — a schema change was made without a Migration, so existing data cannot be opened.
+- DESTRUCTIVE_MIGRATION_ENABLED — a destructive fallback is active on a path that must preserve user data.
+- SINGLE_SOURCE_VIOLATION — an entity has more than one source of truth, so local and remote can disagree.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

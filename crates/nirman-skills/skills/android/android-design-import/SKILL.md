@@ -94,6 +94,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- DESIGN_SOURCE_UNREADABLE — the design could not be fetched or parsed, and generation proceeded from a stale copy.
+- TOKEN_EXTRACTION_INCOMPLETE — tokens were extracted for only some of the themes or states the design declares.
+- FIDELITY_OUT_OF_TOLERANCE — the rendered result differs from the design beyond the defined tolerance, per component.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

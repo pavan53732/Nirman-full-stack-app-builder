@@ -87,6 +87,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- DPAD_UNREACHABLE — a destination cannot be reached by directional movement alone.
+- FOCUS_AMBIGUOUS — no element, or more than one element, holds focus at some point in traversal.
+- FOCUS_MEMORY_LOST — returning to a browse row does not restore the row and item that were last focused.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

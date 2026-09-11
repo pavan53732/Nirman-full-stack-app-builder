@@ -88,6 +88,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- MISSING_CONTENT_DESCRIPTION — a non-text element carries no description, so a screen reader announces nothing for it.
+- TOUCH_TARGET_TOO_SMALL — an interactive element is under 48dp in either dimension.
+- CONTRAST_BELOW_THRESHOLD — measured contrast is under 4.5:1 for normal text or 3:1 for large text.
+- TALKBACK_UNREACHABLE — a screen or action cannot be reached or announced with TalkBack enabled.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

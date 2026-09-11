@@ -89,6 +89,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- WORK_TOOL_MISMATCH — the work type does not match the tool chosen; deferrable work on a foreground service, or long-running work on a one-shot request.
+- CONSTRAINT_NEVER_SATISFIED — the declared constraints cannot all hold, so the work never runs.
+- FOREGROUND_SERVICE_TYPE_UNDECLARED — a foreground service runs without its type declared in the manifest.
+- WORK_LOST — work was enqueued and did not survive a process death or a restart.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

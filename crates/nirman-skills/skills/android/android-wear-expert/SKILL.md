@@ -91,6 +91,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- COMPLICATION_UNAVAILABLE — a complication provides no data, and the watch face has no defined empty state.
+- TILE_RENDER_FAILED — a tile failed to render, or rendered outside its time or layout budget.
+- HEALTH_PERMISSION_DENIED — health data was requested without the permission, or the denial was not surfaced.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the
