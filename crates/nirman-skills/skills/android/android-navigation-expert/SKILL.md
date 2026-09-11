@@ -89,6 +89,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- DEEP_LINK_UNRESOLVED — a deep link pattern does not resolve to a declared destination.
+- BACK_STACK_CORRUPT — pop-up-to or single-top is misconfigured, so the stack does not behave as declared.
+- ARGUMENT_TYPE_MISMATCH — a navigation argument arrives with a type other than the one the route declares.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

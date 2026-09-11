@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- PROCESS_UNSEPARATED — a symptom was attributed to the wrong process among desktop application, supervisor, and workers.
+- CORRELATION_BROKEN — evidence was collected without the correlation identifiers that tie it to the run.
+- DIAGNOSED_VS_CORRELATED — a correlation was reported as a diagnosed cause.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

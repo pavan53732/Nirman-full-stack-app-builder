@@ -89,6 +89,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- CHANNEL_MISCONFIGURED — a notification is posted to a channel whose importance does not match its purpose.
+- NOTIFICATION_PERMISSION_DENIED — posting was attempted after POST_NOTIFICATIONS was denied.
+- GROUP_SUMMARY_MISSING — grouped notifications are posted without a summary, so the group cannot be collapsed.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

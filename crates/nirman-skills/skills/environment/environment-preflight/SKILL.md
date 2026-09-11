@@ -98,6 +98,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- TOOL_VERSION_UNREAD — a required tool was probed and produced no observed version string.
+- CAPABILITY_UNCLASSIFIED — a declared capability was left without a classification and without a reason.
+- FINGERPRINT_UNPUBLISHED — the record was persisted but the fingerprint was not published for later binding.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

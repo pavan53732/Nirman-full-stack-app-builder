@@ -90,6 +90,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- CRATE_BOUNDARY_VIOLATION — a dependency points the wrong way, or two crates share one responsibility.
+- UNBOUNDED_TASK — a spawned task is not joinable, or a wait has no bound.
+- FRAMING_ERROR — an IPC message was truncated, oversized, or mis-framed.
+- UNTYPED_ERROR — a failure surfaced as a string, so a caller cannot distinguish retryable from terminal.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

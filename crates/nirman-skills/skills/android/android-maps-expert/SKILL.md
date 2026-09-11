@@ -90,6 +90,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- MAPS_KEY_INVALID — the API key is missing, restricted, or not enabled for the Maps SDK.
+- LOCATION_PERMISSION_DENIED — location was requested without permission, or the denial was not surfaced.
+- GEOFENCE_LIMIT_EXCEEDED — more geofences are registered than the platform honours, or transitions are dropped.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

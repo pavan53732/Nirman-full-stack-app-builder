@@ -90,6 +90,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- HEALTH_CONNECT_UNAVAILABLE — Health Connect is absent or outdated and the app proceeded without saying so.
+- HEALTH_PERMISSION_DENIED — a record-type permission was denied and the denial path was not exercised.
+- NON_IDEMPOTENT_HEALTH_WRITE — a record was written without a client id and deterministic range, so a retry duplicates it.
+- UNBOUNDED_HISTORY_READ — an entire history was fetched into memory instead of aggregating over a time range.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

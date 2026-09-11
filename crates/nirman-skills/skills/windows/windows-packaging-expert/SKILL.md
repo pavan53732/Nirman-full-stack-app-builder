@@ -91,6 +91,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- PUBLISHER_MISMATCH — the signing certificate subject does not match the declared publisher.
+- VERSION_REGRESSION — a package version goes backwards, or identical content is given a new version.
+- UPDATE_PATH_UNTESTED — the upgrade from the previous version to the new one was not exercised.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

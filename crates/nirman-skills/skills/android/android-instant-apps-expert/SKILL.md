@@ -88,6 +88,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- URL_VERIFICATION_FAILED — the asset links JSON is absent or wrong, so app links do not resolve to the app.
+- INSTANT_RUNTIME_VIOLATION — the instant path uses background services or persistent device identifiers.
+- STATE_LOST_ON_INSTALL — state created in the instant experience is not readable by the installed app.
+- INSTANT_BUNDLE_TOO_LARGE — the instant path exceeds the size the instant runtime permits.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

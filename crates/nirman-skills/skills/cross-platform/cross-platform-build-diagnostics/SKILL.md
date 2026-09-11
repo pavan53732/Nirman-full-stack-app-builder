@@ -86,6 +86,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- CROSS_BUILD_MISREAD — the artifact compiling was treated as the artifact running on the target.
+- ABSENT_EVIDENCE_UNNAMED — the diagnosis did not state which validation evidence necessarily remains absent.
+- STALE_FINGERPRINT_REPORT — a diagnosis was reused after the environment fingerprint changed.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

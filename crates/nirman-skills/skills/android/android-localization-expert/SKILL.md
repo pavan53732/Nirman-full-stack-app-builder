@@ -91,6 +91,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- HARDCODED_STRING — a user-visible string remains outside string resources.
+- LAYOUT_NOT_MIRRORED — the layout uses left and right rather than start and end, so it does not mirror for RTL.
+- TEXT_CLIPPED_ON_EXPANSION — a translated string expands past its layout and is clipped.
+- PLURAL_RULE_WRONG — plurals are not ICU-formatted, so the target language's plural rules are not honoured.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

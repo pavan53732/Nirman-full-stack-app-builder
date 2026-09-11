@@ -69,6 +69,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- NO_VALIDATION_LEASE — a native run was attempted without a durable ValidationEnvironment lease.
+- OBSERVATION_SET_INCOMPLETE — launch succeeded but the observation set was not captured.
+- GATE_UPDATED_WITHOUT_EVIDENCE — the validation gate was updated with no evidence bound to it.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

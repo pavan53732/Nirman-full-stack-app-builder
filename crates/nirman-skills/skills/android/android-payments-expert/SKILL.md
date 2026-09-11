@@ -90,6 +90,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- UNACKNOWLEDGED_PURCHASE — a purchase was not acknowledged within the window, so the platform refunds it.
+- PURCHASE_UNVERIFIED — a purchase was granted without server-side verification.
+- BILLING_UNAVAILABLE — the billing service is unavailable and purchase attempts were not blocked.
+- SUBSCRIPTION_STATE_UNKNOWN — active subscription state could not be queried, and entitlement defaulted to granted.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

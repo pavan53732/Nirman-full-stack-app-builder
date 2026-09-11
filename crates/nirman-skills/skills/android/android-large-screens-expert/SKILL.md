@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- SIZE_CLASS_IGNORED — the layout does not branch on the window size class, so it stretches instead of reflowing.
+- HINGE_CONTROL_PLACED — an interactive control spans the fold hinge while the device is half-opened.
+- MULTI_WINDOW_UNHANDLED — the app assumes focus while merely visible, so it does not pause what must pause.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

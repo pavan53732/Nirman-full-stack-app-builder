@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- REPAIR_NOT_ADMITTED — a repair was executed before policy admission, or despite a rejection.
+- REPAIR_INEFFECTIVE — the repair ran and the capability did not change classification.
+- REPAIR_EXCEEDED_SCOPE — a repair larger than the smallest one that restores the capability was applied.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

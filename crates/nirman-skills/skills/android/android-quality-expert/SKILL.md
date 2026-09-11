@@ -85,6 +85,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- GATE_DISABLED — lint or a static analysis gate was disabled without a recorded reason.
+- THRESHOLD_BREACHED — a complexity or length threshold was exceeded without failing the build.
+- RULE_SUPPRESSED_UNRECORDED — a suppression exists with no recorded justification.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

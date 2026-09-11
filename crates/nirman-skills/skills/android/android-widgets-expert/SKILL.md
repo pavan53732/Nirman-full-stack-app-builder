@@ -88,6 +88,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- UNSUPPORTED_REMOTE_VIEW — a view that RemoteViews does not permit was used, so the widget fails to inflate.
+- WIDGET_UPDATE_STALLED — scheduled updates do not refresh the widget, or the refresh is not observable.
+- COLLECTION_ADAPTER_MISSING — a collection widget has no RemoteViewsService bound to supply its items.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

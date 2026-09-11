@@ -92,6 +92,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- STARTUP_REGRESSION — startup time regressed against the recorded baseline for its cold, warm, or hot case.
+- JANK_OVER_BUDGET — frame times exceed the 16ms budget over the measured scroll.
+- UNATTRIBUTED_LEAK — a retained reference was found and no owning scope was named for it.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

@@ -80,6 +80,10 @@ continues rather than being blocked with it.
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- BUILD_ARTIFACT_MISSING — a declared executable was not produced by the build.
+- BUNDLE_INCOMPLETE — the bundle or installer is missing a component the manifest declares.
+- EVIDENCE_UNBOUND — build-gate evidence was emitted without the environment fingerprint.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

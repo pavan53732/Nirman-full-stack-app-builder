@@ -90,6 +90,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- SECRET_IN_SOURCE — a credential or key was found in source or in a resource file.
+- CLEARTEXT_ALLOWED — cleartext traffic is permitted where the network policy forbids it.
+- UNENCRYPTED_SENSITIVE_STORE — sensitive data is stored without the platform's encryption.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

@@ -91,6 +91,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- PRINT_ADAPTER_MISMATCH — the adapter does not match the content type, so pagination is wrong.
+- PRINT_OPTION_DISHONESTED — an option is offered that the print service cannot honour.
+- JOB_STATE_UNKNOWN — the job's state could not be observed, so success was assumed from submission.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

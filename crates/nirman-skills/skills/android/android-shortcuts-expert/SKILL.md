@@ -91,6 +91,11 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- SHORTCUT_UNSTABLE_ID — a shortcut's identifier changes, so it cannot be updated or removed reliably.
+- SHORTCUT_STALE — a dynamic shortcut points at data that no longer exists.
+- SHORTCUT_LIMIT_EXCEEDED — more shortcuts are published than the launcher will show.
+- SHORTCUT_DESTINATION_MISSING — a shortcut's deep link does not resolve to a real destination.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

@@ -87,6 +87,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- PLAYBACK_FAILED — the player could not render the media, and the player's own error was not surfaced.
+- MEDIA_PERMISSION_DENIED — a media permission was denied and the app degraded silently rather than saying so.
+- SESSION_NOT_RESUMABLE — background playback stops and cannot resume because no media session is declared.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the

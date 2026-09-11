@@ -90,6 +90,10 @@ transaction (BS §50).
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
 
+- CODE_BEHIND_BINDING — data is assigned in code-behind rather than bound, so it does not track its source.
+- ACCESSIBLE_NAME_MISSING — a control has no accessible name, so it cannot be announced.
+- WINDOW_STATE_LOST — window size and position are not restored, or a theme change is not honoured.
+
 ## Recovery
 - A blocked capability resumes when the capability record changes; the blocked
   node names its resume condition and is never reported as a failure of the
