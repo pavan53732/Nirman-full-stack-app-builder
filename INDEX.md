@@ -91,6 +91,7 @@
 | §81 | Content and Writing Intelligence Contract |
 | §82 | Durable Conversation Context Contract |
 | §83 | Change Intelligence Contract |
+| §84 | Orchestration Wiring Matrix |
 
 ### Technical Architecture (`nirman-technical-architecture.md`)
 
@@ -415,6 +416,7 @@
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
 | `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
+| `OrchestrationWiringMatrix` | §2.98 | BS §84 | — | — |
 
 ## 4. Milestone → section
 
@@ -489,6 +491,7 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M121 | Durable Conversation Context |
 | M122 | Change Intelligence |
 | M123 | Recovery-first autonomous continuity certification |
+| M124 | Orchestration wiring matrix and end-to-end pipeline certification |
 
 ## 5. ADR ranges
 

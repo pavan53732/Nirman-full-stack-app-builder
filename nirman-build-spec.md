@@ -7138,6 +7138,71 @@ Every committed `ConstructionTransaction` exposes exactly one durable `ChangeRep
 
 ---
 
+## 84. Orchestration Wiring Matrix
+
+### 84.1 Canonical pipeline
+
+The Nirman autonomous loop is a single deterministic causal pipeline. Every boundary between components is mechanically enumerated with its producer, consumer, schema, identities, authority, persistence, transitions, and failure modes. The canonical pipeline is:
+
+```text
+User message
+  → normalized goal (GoalInterpreter, §58)
+  → requirements/frontier (ConstraintRegistry, §59; MemoryStore, §59)
+  → AndroidConstructionContract (BS §69.4)
+  → preflight (PreflightService, BS §5.7)
+  → technology plan (AndroidTechnologyResolver, technical architecture §73.2)
+  → compiled TaskGraph (TaskGraphCompiler, BS §58)
+  → dependency analysis (TaskScheduler, BS §7)
+  → worker selection (SwarmPlanner, BS §6.5)
+  → lease (WorkspaceLeaseManager, technical architecture §58.7)
+  → worker reasoning (AgentReasoningEngine, BS §71)
+  → proposal (Schema-validated, BS §69.2)
+  → authorization (PolicyAuthority, BS §23.7)
+  → tool execution (ToolBroker, BS §49)
+  → observation (AndroidDeviceAdapter, technical architecture §73.12)
+  → state update (AgentLoopReducer, BS §58)
+  → progress evaluation (ProgressEvaluator, BS §58)
+  → next-node scheduling (TaskScheduler, BS §7)
+  → reconciliation (Reconciliation Worker, BS §6.5)
+  → build (AndroidBuildAdapter, technical architecture §73.13)
+  → artifact (ArtifactAuthority, BS §49)
+  → emulator install (Emulator Driver Worker, BS §6.5)
+  → launch (AndroidDeviceAdapter, technical architecture §73.12)
+  → ScreenGraph/ScreenModel (technical architecture §74.2)
+  → E2E validation (ValidationPlanner, BS §64)
+  → visual validation (Visual QA Worker, BS §6.5)
+  → evidence promotion (EvidenceAuthority, BS §23.3)
+  → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
+  → CompletionDecision (build spec §5.7.7)
+```
+
+### 84.2 OrchestrationWiringMatrix schema
+
+> **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84.
+
+Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, and stale/duplicate/cancel/restart behavior.
+
+### 84.3 Boundary contracts
+
+Every boundary handoff MUST be:
+- **Deterministic** — same inputs produce same outputs
+- **Schema-validated** — input and output conform to the named schema block
+- **Revision-bound** — every record carries a `revisionId`
+- **Correlation-safe** — `correlationId` and `causationId` trace the causal chain
+- **Authority-checked** — the named authority component makes the decision
+- **Evidence-linked** — observations produce `evidenceRef`
+- **Recoverable** — failure routes through `RecoveryAuthority`
+- **Idempotent** — duplicate events cannot corrupt state
+- **Restart-safe** — resume from last validated checkpoint
+
+### 84.4 M124 certification
+
+M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, and final completion.
+
+---
+
+
+
 ## References
 
 [1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"

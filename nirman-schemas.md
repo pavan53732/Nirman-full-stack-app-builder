@@ -4074,6 +4074,31 @@ SharedSurfaceChangeRequest
 LoopHeartbeat
 ```
 
+### 2.98 OrchestrationWiringMatrix
+
+**Owner:** BS §84 · **Contract:** — · **Projected at:** —
+
+```text
+OrchestrationWiringMatrix
+- producer: string (component name)
+- consumer: string (component name)
+- schema: string (schema block reference)
+- revisionId: uuid
+- taskId: uuid
+- workerId: uuid (optional; null for non-worker boundaries)
+- correlationId: uuid
+- causationId: uuid
+- authority: string (authority component name)
+- persistenceEvent: string (event type)
+- evidenceRef: string (evidence ID; optional)
+- successTransition: string (state transition)
+- failureTransition: string (state transition)
+- recoveryTransition: string (state transition)
+- staleBehavior: STALE | IGNORE | REJECT
+- cancelBehavior: PRESERVE_CHECKPOINT | ROLLBACK | ABANDON
+- restartBehavior: RESUME_FROM_CHECKPOINT | RECONCILE | FAIL_SAFE
+```
+
 ## References
 
 [1]: nirman-build-spec.md

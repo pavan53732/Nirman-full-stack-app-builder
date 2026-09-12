@@ -1944,6 +1944,78 @@ P. a notification does not pause autonomous execution
 Q. exhaustion of materially equivalent attempts triggers strategy transformation, delegation, backtracking, branching, or escalation
 R. exhaustion of materially equivalent attempts does not itself terminate the goal
 
+---
+
+## M124 — Orchestration wiring matrix and end-to-end pipeline certification
+
+Implements the canonical orchestration wiring contract that proves every coordinator, kernel, scheduler, worker, tool, emulator, evidence system and UI projection form one deterministic causal pipeline. It does not create a new authority or a new autonomous loop. It certifies that the existing architecture satisfies the complete boundary-to-boundary handoff chain from user message to completion decision.
+
+The matrix mechanically enumerates every boundary in the autonomous loop:
+
+```text
+User message
+  → normalized goal (GoalInterpreter)
+  → requirements/frontier (ConstraintRegistry, MemoryStore)
+  → AndroidConstructionContract (§69.4)
+  → preflight (PreflightService, §5.7)
+  → technology plan (AndroidTechnologyResolver, §73.2)
+  → compiled TaskGraph (TaskGraphCompiler, §58)
+  → dependency analysis (TaskScheduler, §7)
+  → worker selection (SwarmPlanner, §6.5)
+  → lease (WorkspaceLeaseManager, §58.7)
+  → worker reasoning (AgentReasoningEngine, §71)
+  → proposal (Schema-validated, §69.2)
+  → authorization (PolicyAuthority, §23.7)
+  → tool execution (ToolBroker, §49)
+  → observation (AndroidDeviceAdapter, §73.12)
+  → state update (AgentLoopReducer, §58)
+  → progress evaluation (ProgressEvaluator, §58)
+  → next-node scheduling (TaskScheduler, §7)
+  → reconciliation (Reconciliation Worker, §6.5)
+  → build (AndroidBuildAdapter, §73.13)
+  → artifact (ArtifactAuthority, §49)
+  → emulator install (Emulator Driver Worker, §6.5)
+  → launch (AndroidDeviceAdapter, §73.12)
+  → ScreenGraph/ScreenModel (§74.2)
+  → E2E validation (ValidationPlanner, §64)
+  → visual validation (Visual QA Worker, §6.5)
+  → evidence promotion (EvidenceAuthority, §23.3)
+  → PreviewRevision promotion (PreviewPromotionGate, §73.5.1)
+  → CompletionDecision (CompletionEvaluator, §23.7)
+```
+
+Every arrow in the matrix carries: producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, observation/evidence, success transition, failure transition, recovery transition, stale/duplicate behavior, cancellation behavior, and restart behavior.
+
+Deliver:
+- OrchestrationWiringMatrix schema block (nirman-schemas.md §2.98): producer, consumer, schema, revisionId, taskId, workerId, correlationId, causationId, authority, persistenceEvent, evidenceRef, successTransition, failureTransition, recoveryTransition, staleBehavior, cancelBehavior, restartBehavior
+- One adversarial fixture (TEST-ORCH-WIRING-001) proving the entire chain in one run, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, and final completion
+- M51, M108, M109, M110, M123 updated to reference the wiring matrix as their cross-cutting contract
+
+Exit gate:
+The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, and evidence-linked. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
+
+TEST-ORCH-WIRING-001 MUST prove:
+A. user message normalizes to a durable goal with acceptance criteria
+B. preflight classifies environment capabilities before expensive work
+C. technology plan resolves to locked build/device adapters
+D. task graph compiles with explicit dependency order
+E. worker selection matches role, capability, and resource constraints
+F. worker lease grants isolated workspace with bounded permissions
+G. worker proposal is schema-validated before authorization
+H. policy authority gates every tool execution
+I. observation produces revision-bound evidence
+J. state update is deterministic and idempotent
+K. progress evaluation routes failures to RecoveryAuthority
+L. reconciliation detects and resolves conflicts before integration
+M. build produces artifact with provenance
+N. emulator install/launch produces runtime observation
+O. preview promotion passes PreviewPromotionGate with evidence
+P. completion decision is evidence-backed, not model-claimed
+Q. worker replacement resumes from last validated checkpoint
+R. stale/duplicate events cannot overwrite current state
+S. cancellation preserves checkpoint and evidence
+T. restart reloads from last known-good state
+
 
 ---
 
