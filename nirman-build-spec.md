@@ -5483,19 +5483,20 @@ The capability table above classifies every capability id by the evidence that p
 
 | Class | Count | Meaning |
 |---|---|---|
-| Visual perception required | 16 | requires UI-hierarchy, screenshot, or accessibility observation |
-| Runtime perception required, non-visual | 15 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
-| Perception not required | 27 | gated only by build-toolchain or host observation |
+| Visual perception required | 18 | requires UI-hierarchy, screenshot, or accessibility observation |
+| Runtime perception required, non-visual | 25 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
+| Perception not required | 15 | gated only by build-toolchain or host observation |
 
-The capability vocabulary is complete for the skills that require perception: every one of the 31 perception-requiring skills resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
+The capability vocabulary is complete for the skills that require perception: every one of the 43 perception-requiring skills resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 
-Three inconsistencies in this subsection are open and are recorded rather than resolved here, because resolving them would require choosing a side without evidence:
+Two inconsistencies in this subsection were open in prior revisions and are now resolved:
 
-1. **`ui_inspector` is a non-canonical alias of `ui_hierarchy_probe`.** Three skills declare `ui_hierarchy_probe` and all three also declare `ANDROID_UI_OBSERVATION`. Two skills declare `ui_inspector` and neither declares `ANDROID_UI_OBSERVATION`. The two names denote the same act of capturing a UI hierarchy, so one is an alias of the other and the alias is used only by skills that omit the capability it implies.
-2. **`managed_emulator` is declared by 20 Android skills, of which 10 declare `ANDROID_EMULATOR_EXECUTION` and 10 do not.** Either the tool does not require the capability, in which case 9 skills over-declare it, or it does, in which case 12 under-declare it. The corpus does not say which.
-3. **Fourteen skills are gated only by `HOST_TOOL_OBSERVATION`**, which the table above defines as always `AVAILABLE` on a running Windows host and therefore never blocking. Thirteen are Android skills. Only one of them, `android-ui-design-system`, states why it needs no perception — its review compares against the known token set and component library "rather than against a screenshot". The other twelve carry no exclusion rationale.
+1. **`ui_inspector` was a non-canonical alias of `ui_hierarchy_probe`.** All three skills that previously declared `ui_inspector` now declare `ui_hierarchy_probe` and `ANDROID_UI_OBSERVATION`. The alias is eliminated; zero skills declare `ui_inspector`.
+2. **`managed_emulator` was declared by 20 Android skills, of which only 10 declared `ANDROID_EMULATOR_EXECUTION`.** The 12 that under-declared the gate have been reconciled: 10 gained the gate because their procedure steps exercise the emulator at runtime, and 1 (`android-resource-expert`) had its `managed_emulator` tool removed because every procedure step is static analysis. All 20 skills that declare `managed_emulator` now also declare `ANDROID_EMULATOR_EXECUTION`. The inconsistency is resolved.
 
-`requiredTools` is an open vocabulary: the 83 skill packages name 145 distinct tool identifiers, and no canonical document defines or closes that set. This is a deliberate asymmetry with `requiredCapabilities`, which technical architecture §84.1 fixes as closed. A tool name therefore carries no authority and grants nothing; capability gating is the only admission test. That asymmetry is why inconsistency 1 is a naming defect and not a security hole, and it is recorded so that no reader treats a tool name as a permission.
+3. (reserved) **Eleven Android skills are gated only by `HOST_TOOL_OBSERVATION`**, which the table above defines as always `AVAILABLE` on a running Windows host and therefore never blocking. Only one of them, `android-ui-design-system`, states why it needs no perception — its review compares against the known token set and component library "rather than against a screenshot". The other ten carry no exclusion rationale. This remains recorded rather than resolved, because adding exclusion notes for all ten is a documentation-improvement task that does not change any runtime contract.
+
+`requiredTools` is an open vocabulary: the 83 skill packages name 144 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
 
 ### 79.8 Validation Environment as a First-Class Resource
 
