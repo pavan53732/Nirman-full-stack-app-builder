@@ -273,6 +273,8 @@ The worker registry must use one canonical role taxonomy across the product, arc
 | Content Worker | `ContentMutation` proposals for copy, localization, and accessibility text (§85.2) | Proposal only |
 | Integration Double Worker | `ContractDouble` fixtures and schema conformance (§74.1) | Double fixtures only |
 | Critic Worker | Hosts `StrategyCritic` (§72.7) and independent pre-promotion review; findings and evidence requests only | Read-only |
+| Android Platform Worker | Android SDK/platform APIs, Kotlin/Java interop, JNI/native modules, Gradle/plugin integration, lifecycle/process/background execution, permissions, services, device APIs (BLE/NFC/camera/sensors), widgets, OS-version compatibility, platform-specific diagnostics | Assigned workspace; platform tooling |
+| Backend & Service Engineering Worker | REST/GraphQL API implementation, server-side business logic, database/server schema, authentication/authorization backend, webhooks, server-side validation, background jobs/queues, cloud functions/serverless, API versioning, backend integration tests, deployment configuration for the user's external backend | Assigned workspace; backend tooling |
 
 The orchestrator should select swarm size from task complexity, dependency coupling, changed-file boundaries, target platforms, interface agreements, expected validation cost, and available resources. It should prefer one worker for tightly coupled work, parallel read-only workers for exploration and review, and isolated write-capable workers only when file and interface boundaries are explicit.
 

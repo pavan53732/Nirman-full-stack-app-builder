@@ -1107,7 +1107,9 @@ To prevent the latency and scalability bottlenecks of traditional sequential too
 | Diagnostic Worker | Root-cause localization and `FailureContextPackage` production for a parent worker | Read-only; one probe child |
 | Content Worker | Product copy, localization, and accessibility text as `ContentMutation` proposals | Proposal only; content transaction commits |
 | Integration Double Worker | `ContractDouble` fixtures and schema conformance for declared integrations | Double fixtures only; never the real service |
-| Critic Worker | Adversarial critique of plans, strategies, and evidence claims before authorization and promotion | Read-only; findings and evidence requests only |
+|| Critic Worker | Adversarial critique of plans, strategies, and evidence claims before authorization and promotion | Read-only; findings and evidence requests only |
+| Android Platform Worker | Android SDK/platform APIs, Kotlin/Java interop, JNI/native modules, Gradle/plugin integration, lifecycle/process/background execution, permissions, services, device APIs (BLE/NFC/camera/sensors), widgets, OS-version compatibility, platform-specific diagnostics | Assigned workspace; platform tooling |
+| Backend & Service Engineering Worker | REST/GraphQL API implementation, server-side business logic, database/server schema, authentication/authorization backend, webhooks, server-side validation, background jobs/queues, cloud functions/serverless, API versioning, backend integration tests, deployment configuration for the user's external backend | Assigned workspace; backend tooling |
 
 The orchestrator manages these workers through structured task contracts and merges their results using an automated **Reconciliation Worker** that checks for file conflicts and integration errors before applying changes to the main workspace.
 
@@ -1208,7 +1210,9 @@ Recommended built-in workers are shown below.
 | Diagnostic Worker | Localize a parent worker's failure to a cause surface and package the evidence | Read-only; diagnostics |
 | Content Worker | Write and revise product copy, localization strings, and accessibility text | Content proposals only |
 | Integration Double Worker | Build and conform `ContractDouble` fixtures for declared external integrations | Double fixtures only |
-| Critic Worker | Attack plans, strategies, and completion claims; request the evidence that would refute them | Read-only; no approvals |
+|| Critic Worker | Attack plans, strategies, and completion claims; request the evidence that would refute them | Read-only; no approvals |
+| Android Platform Worker | Engineer Android platform functionality: SDK/platform APIs, Kotlin/Java interop, JNI/native modules, Gradle/plugin integration, lifecycle/process/background execution, permissions, services, device APIs (BLE/NFC/camera/sensors), widgets, OS-version compatibility, platform-specific diagnostics | Approved file edits; platform tooling |
+| Backend & Service Engineering Worker | Build the supporting backend/service layer the Android app consumes: REST/GraphQL API implementation, server-side business logic, database/server schema, authentication/authorization backend, webhooks, server-side validation, background jobs/queues, cloud functions/serverless, API versioning, backend integration tests, deployment configuration for the user's external backend | Approved file edits; backend tooling |
 
 A worker should return a structured handoff rather than injecting all of its raw logs into the main chat. The handoff should include a concise summary, evidence, files inspected, files changed, tests run, unresolved questions, and recommended next action.
 
