@@ -2407,30 +2407,25 @@ ReasoningStreamEvent
 ├── evidence_ids
 ├── redaction_flags
 ├── created_at
-└── supersedes_event_id?
+└── supersedes_event_id
 ```
 
 Allowed event types are `UNDERSTANDING`, `CONSTRAINT`, `PLAN`, `ALTERNATIVE`, `DECISION`, `ACTION`, `OBSERVATION`, `RECOVERY`, `EVIDENCE`, `NEXT_STEP`, `WAITING`, and `COMPLETION`. Runtime events remain distinct from reasoning events. A reasoning event can explain a proposed action, but only a validated runtime event can authorize or prove that action.
 
 ### 55.3 Stream pipeline
 
-```text
-Provider response or worker result
-        ↓
-Schema validation
-        ↓
-Summarize into allowed event type
-        ↓
-Redact secrets, private data, source content, and hidden instructions
-        ↓
-Bind to session/task/worker/revision
-        ↓
-Append atomically with monotonic sequence
-        ↓
-Publish over authenticated local event channel
-        ↓
-Acknowledge and checkpoint delivery
-```
+Provider delta / worker reasoning result
+→ schema validation
+→ normalization
+→ structured reasoning classification
+→ deterministic redaction
+→ causal binding
+→ durable event append
+→ authenticated publication
+→ UI projection
+→ acknowledgement/replay
+
+Runtime execution events and reasoning events share correlation/causation identity but remain separate authority classes. Every visible reasoning event must resolve to its source model request, worker cycle, task, project revision, and associated runtime event where one exists.
 
 The stream publisher must be back-pressure aware. If the UI is disconnected or slow, events remain durable and are replayed from the last acknowledged sequence. Stream delivery cannot block the autonomous runtime indefinitely.
 
@@ -2797,6 +2792,10 @@ Rust owns working directory, environment snapshot, shell profile, process group,
 
 ### 57.8 Provider authority chain
 
+### 57.8.1 ProviderAdapter interface
+
+> **Schema projection:** `ProviderAdapter` is defined in `nirman-schemas.md` §2.40. Owner: TA §57.8.1.
+
 ```text
 ProviderProfile
       ↓
@@ -2817,9 +2816,27 @@ Filesystem / terminal / emulator / build / artifact
 
 Provider adapters normalize configured Chat Completions, Responses-style, message-oriented, local-compatible, vision, tool-call, structured-output, cancellation, streaming, capability, and retry behavior. Partial provider output never executes. Complete structured proposals still require scope, schema, policy, revision, capability, and transaction validation.
 
-### 57.8.1 ProviderAdapter interface
+### 57.8.2 Canonical AI request/stream lifecycle
 
-> **Schema projection:** `ProviderAdapter` is defined in `nirman-schemas.md` §2.40. Owner: TA §57.8.1.
+Every model invocation follows:
+
+ContextPackage
+→ ModelRequest
+→ ProviderRequest
+→ provider stream
+→ StreamEvent accumulation
+→ schema/response validation
+→ NormalizedResponse
+→ ReasoningArtifact / AgentProposal
+→ WorkerConnection
+→ AgentExecutionKernel
+
+Streaming is incremental transport only. No delta is authoritative.
+A completed normalized response is required before proposal execution.
+Cancellation terminates the provider stream and returns control to the
+kernel without committing a partial proposal.
+Provider failure, stream truncation, schema failure, or disconnect creates
+a typed runtime outcome and enters the existing recovery path.
 
 ### 57.9 Git and worktree subsystem
 

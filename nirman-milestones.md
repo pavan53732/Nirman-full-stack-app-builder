@@ -561,7 +561,7 @@ The ModelGateway must normalize Chat Completions, Responses-style, message-orien
 
 Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
 
-**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, stream or emulate events, cancel a request, and inspect normalized usage and request IDs without exposing the key.
+**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage and request IDs without exposing the key.
 
 ## M23: Controlled self-development loop
 
@@ -1956,7 +1956,7 @@ R. exhaustion of materially equivalent attempts does not itself terminate the go
 
 ## M124 — Orchestration wiring matrix and end-to-end pipeline certification
 
-Implements the canonical orchestration wiring contract that proves every coordinator, kernel, scheduler, worker, tool, emulator, evidence system and UI projection form one deterministic causal pipeline. It does not create a new authority or a new autonomous loop. It certifies that the existing architecture satisfies the complete boundary-to-boundary handoff chain from user message to completion decision.
+Implements the canonical orchestration wiring contract that proves every coordinator, kernel, scheduler, worker, tool, emulator, evidence system and UI projection form one deterministic causal pipeline. It does not create a new authority or a new autonomous loop. It certifies that the existing architecture satisfies the complete boundary-to-boundary handoff chain from user request through reasoning, provider streaming, authorized construction, build, artifact, emulator install/launch, runtime observation, validation, repair/rebuild, preview promotion, export verification, and completion decision. A single fixture proves the canonical causal chain USER_REQUEST → REQUIREMENTS/GOAL_CONTRACT → CAPABILITY + TECHNOLOGY PLAN → ENVIRONMENT PREFLIGHT → CONTEXT ASSEMBLY + INTEGRITY GATE → REASONING CYCLE → PROVIDER REQUEST → PROVIDER STREAM / NORMALIZED RESPONSE → STRUCTURED REASONING SUMMARY → AGENT PROPOSAL → POLICY AUTHORIZATION → CONSTRUCTION TRANSACTION → CHECKPOINT → SOURCE VALIDATION → BUILD REQUEST → BUILD OBSERVATION → ARTIFACT VALIDATION → EMULATOR INSTALL → LAUNCH → RUNTIME OBSERVATION → INTERACTION/E2E VALIDATION → VISUAL/ACCESSIBILITY VALIDATION → FAILURE CLASSIFICATION → REPAIR/REPLAN/RECOVERY → REBUILD → REVALIDATE → PREVIEW PROMOTION → PACKAGING/SIGNING GATES → EXPORT VERIFICATION → COMPLETION EVALUATION; every boundary emits durable correlation/causation and evidence. No phase may be skipped, simulated, inferred from a later phase, or reported complete from model text.
 
 The matrix mechanically enumerates every boundary in the autonomous loop:
 

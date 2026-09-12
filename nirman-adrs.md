@@ -3170,8 +3170,42 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 - Causal surface identification: on failure, the smallest responsible surface
 
 **4. ProofSynthesis schema (SCHEMAS §2.105)**
+- Output: what is proven, unproven, blocked, and eligible for completion
+- Linked to RequirementCoverageService and TaskResult.frontierDelta
+
+**5. ReasoningStreamEvent schema (SCHEMAS §2.41)**
+- Event identity: event_id, sequence, session_id, task_id, worker_id, trace_id, project_revision
+- Content: event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category
+- Governance: policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
+- Causal binding: every visible reasoning event resolves to its source model request, worker cycle, task, project revision, and associated runtime event
+- Schema projection at TA §55.2; the inline field block at TA §55.2 is retained as the authoritative field list; this registry entry ensures canonical schema discovery
+
+**6. ReasoningStreamEvent fields (SCHEMAS §2.41)**
+- event_id, sequence, session_id, task_id, worker_id, trace_id, project_revision, event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category, policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
+
+**7. Closure**
+
+ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.41 is the canonical schema identity for the AI reasoning stream within that pipeline. The inline field block at TA §55.2 remains the authoritative field list for ReasoningStreamEvent; this registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from TA §55.2 into the registry verbatim; no schema field is invented here.
+
+**8. AndroidSemanticState schema (SCHEMAS §2.102)**
+- Screen → component → semantic role → current UI state → available actions
+- Resulting state → persisted effect → lifecycle dependency → permission dependency
+- Each ScreenGraph node references an AndroidSemanticState snapshot
+
+**9. StateSpaceCoverageModel schema (SCHEMAS §2.103)**
+- Required dimensions: empty/loading/error/success, invalid input, process death, config change, background/foreground, permission denial, offline/online, deep-link entry, migration states
+- Coverage matrix tracks which dimensions have been exercised per requirement
+- Risk-driven expansion: when a requirement touches a dimension (e.g., camera + rotation), expand testing automatically
+
+**10. RequirementToImplementationGraph schema (SCHEMAS §2.104)**
+- Requirement → behavior contract → UI state transition → implementation symbols → dependencies → scenario → observed state → evidence → artifact
+- Causal surface identification: on failure, the smallest responsible surface
+
+**11. ProofSynthesis schema (SCHEMAS §2.105)**
+- Output: what is proven, unproven, blocked, and eligible for completion
+- Linked to RequirementCoverageService and TaskResult.frontierDelta
 - Per requirement: claim, required proof, acquired evidence, independent validation, remaining uncertainty, completion eligibility
-- Aggregated view: proven/17/19, unproven, blocked, NOT COMPLETE
+- Aggregated view: proven/unproven/blocked, NOT COMPLETE
 
 **Reversal trigger:** If any of these four components become authority-granting (auto-completing tasks, auto-blocking requirements, auto-promoting repairs) or replace deterministic evidence with predictions, this ADR is reversed.
 

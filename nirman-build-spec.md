@@ -7266,32 +7266,38 @@ and GoalContract completion predicates.
 
 The mandatory causal spine is:
 
-User message
-→ normalized goal
-→ requirements/frontier
-→ AndroidConstructionContract
-→ preflight
-→ AndroidTechnologyPlan
-→ TaskGraph
-→ dependency analysis
-→ worker selection
-→ lease
-→ worker reasoning
-→ ContextOrchestrator/ContextPackage
-→ ModelGateway/provider
-→ normalized response
-→ proposal
-→ PolicyAuthority
-→ ToolBroker
-→ mutation
-→ checkpoint
-→ build/artifact
-→ emulator install/launch
-→ runtime observation
-→ E2E/visual validation
-→ evidence validation/promotion
-→ PreviewRevision promotion where applicable
-→ deterministic CompletionDecision.
+USER_REQUEST
+→ REQUIREMENTS/GOAL_CONTRACT
+→ CAPABILITY + TECHNOLOGY PLAN
+→ ENVIRONMENT PREFLIGHT
+→ CONTEXT ASSEMBLY + INTEGRITY GATE
+→ REASONING CYCLE
+→ PROVIDER REQUEST
+→ PROVIDER STREAM / NORMALIZED RESPONSE
+→ STRUCTURED REASONING SUMMARY
+→ AGENT PROPOSAL
+→ POLICY AUTHORIZATION
+→ CONSTRUCTION TRANSACTION
+→ CHECKPOINT
+→ SOURCE VALIDATION
+→ BUILD REQUEST
+→ BUILD OBSERVATION
+→ ARTIFACT VALIDATION
+→ EMULATOR INSTALL
+→ LAUNCH
+→ RUNTIME OBSERVATION
+→ INTERACTION/E2E VALIDATION
+→ VISUAL/ACCESSIBILITY VALIDATION
+→ FAILURE CLASSIFICATION
+→ REPAIR/REPLAN/RECOVERY
+→ REBUILD
+→ REVALIDATE
+→ PREVIEW PROMOTION
+→ PACKAGING/SIGNING GATES
+→ EXPORT VERIFICATION
+→ COMPLETION EVALUATION
+
+Each arrow is a canonical executable boundary. No phase may be skipped, simulated, inferred from a later phase, or reported complete from model text. Repair re-enters at the earliest invalidated phase and invalidates downstream evidence.
 
 Reconciliation, recovery, provider failure, worker replacement, checkpoint
 restoration, evidence invalidation, preview synchronization, artifact export,

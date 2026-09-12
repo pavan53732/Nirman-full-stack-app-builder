@@ -4114,6 +4114,34 @@ ContractDouble
 RepairPattern
 SharedSurfaceChangeRequest
 LoopHeartbeat
+ReasoningStreamEvent
+```
+
+### 2.97.1 ReasoningStreamEvent field schema
+
+> **Schema projection:** ReasoningStreamEvent fields are projected verbatim from TA §55.2; the inline field block at TA §55.2 remains the authoritative field list. Owner: TA §55.2.
+
+```text
+ReasoningStreamEvent
+- event_id
+- sequence
+- session_id
+- task_id
+- worker_id
+- trace_id
+- project_revision
+- event_type
+- status
+- title
+- summary
+- rationale_summary
+- uncertainty_summary
+- action_category
+- policy_reference_ids
+- evidence_ids
+- redaction_flags
+- created_at
+- supersedes_event_id
 ```
 
 ### 2.98 OrchestrationWiringMatrix
