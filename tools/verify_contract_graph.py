@@ -20,6 +20,7 @@ Registries consumed:
 
 Usage: python3 tools/verify_contract_graph.py [repo_root]
 """
+import json
 import os
 import re
 import sys
@@ -3501,6 +3502,119 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "§80.6 fixture scope",
               "§80.6 still carries the withdrawn unscoped claim covering the whole "
               "specification rather than the build spec")
+    # §79.7 skill/capability closure. The capability vocabulary is closed, so
+    # three relations are computable and were previously unchecked: the count TA
+    # §84.1 states must equal the §79.7 table; every capability a skill package
+    # declares must resolve to that vocabulary; and every vocabulary id must
+    # have a consumer, or it is an orphan. Skill identity must also agree across
+    # the two §79.7 tables and the packages on disk.
+    _s797 = re.search(r"^#{2,5} 79\.7.*$", bs, re.M)
+    if _s797:
+        _b797 = bs[_s797.end():]
+        _n797 = re.search(r"^#{2,5} 79\.8", _b797, re.M)
+        _b797 = _b797[:_n797.start()] if _n797 else _b797
+        _tabs, _cur = [], []
+        for _ln in _b797.split("\n"):
+            if _ln.startswith("|"):
+                _cur.append([c.strip().strip("`") for c in _ln.strip("|").split("|")])
+            elif _cur:
+                _tabs.append(_cur); _cur = []
+        if _cur:
+            _tabs.append(_cur)
+        _vocab = {r[0] for t in _tabs for r in t[2:]
+                  if r and re.fullmatch(r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+", r[0])}
+        _m841 = re.search(r"\b([a-z-]+|twenty|thirty)\s+upper-case rows", ta)
+        _words = {"twenty": 20, "twenty-four": 24, "thirty": 30}
+        if _m841:
+            _claim = _words.get(_m841.group(1))
+            if _claim is None:
+                _claim = int(_m841.group(1)) if _m841.group(1).isdigit() else None
+            if _claim is not None and _claim != len(_vocab):
+                D.add("semantic documentation", "§79.7 capability vocabulary",
+                      f"TA §84.1 states {_claim} upper-case rows but §79.7 declares {len(_vocab)}")
+        if not _vocab:
+            D.add("semantic documentation", "§79.7 capability vocabulary",
+                  "no capability ids parsed from §79.7; closure cannot be derived")
+        _skill_root = os.path.join(root, "crates", "nirman-skills", "skills")
+        if os.path.isdir(_skill_root):
+            _used, _ondisk = set(), set()
+            for _dirpath, _dirs, _files in os.walk(_skill_root):
+                if "skill.json" not in _files:
+                    continue
+                try:
+                    with open(os.path.join(_dirpath, "skill.json"), encoding="utf-8") as _fh:
+                        _sk = json.load(_fh)
+                except (OSError, ValueError) as _e:
+                    D.add("semantic documentation", "§79.7 skill closure",
+                          f"skill.json unreadable at {_dirpath}: {_e}")
+                    continue
+                _ondisk.add(_sk.get("skillId", os.path.basename(_dirpath)))
+                for _c in list(_sk.get("requiredCapabilities") or []):
+                    _used.add(_c)
+                    if _c not in _vocab:
+                        D.add("semantic documentation", "§79.7 skill closure",
+                              f"skill {_sk.get('skillId')!r} requires {_c}, which the closed "
+                              f"§79.7 vocabulary does not declare")
+                for _grp in (_sk.get("conditionalCapabilities") or {}).values():
+                    for _c in _grp:
+                        _used.add(_c)
+                        if _c not in _vocab:
+                            D.add("semantic documentation", "§79.7 skill closure",
+                                  f"skill {_sk.get('skillId')!r} conditionally requires {_c}, "
+                                  f"which the closed §79.7 vocabulary does not declare")
+            for _c in sorted(_vocab - _used):
+                D.add("semantic documentation", "§79.7 skill closure",
+                      f"capability {_c} is declared but no skill package consumes it; it is an "
+                      f"orphan unless classified as reserved surface")
+            # Compare against each §79.7 table separately: a skill missing from
+            # either one is a defect, so pooling the tables would hide a row
+            # deleted from only one of them.
+            for _t in _tabs:
+                if not _t or not _t[0] or not _t[0][0].startswith("Skill"):
+                    continue
+                _label = _t[0][1] if len(_t[0]) > 1 else "?"
+                _listed = {r[0] for r in _t[2:]
+                           if r and re.fullmatch(r"[a-z0-9][a-z0-9-]*", r[0])}
+                for _k in sorted(_ondisk - _listed):
+                    D.add("semantic documentation", "§79.7 skill closure",
+                          f"skill package {_k} exists on disk but the §79.7 "
+                          f"'{_label}' table does not list it")
+                for _k in sorted(_listed - _ondisk):
+                    D.add("semantic documentation", "§79.7 skill closure",
+                          f"the §79.7 '{_label}' table lists skill {_k} but no skill "
+                          f"package exists for it")
+    # §80.3 parameter count: §80.9 criterion 2 states a figure, so it must equal
+    # the table it summarizes.
+    _s803 = re.search(r"^#{2,5} 80\.3.*$", bs, re.M)
+    if _s803:
+        _b803 = bs[_s803.end():]
+        _b803 = _b803[:re.search(r"^#{2,5} 80\.4", _b803, re.M).start()]
+        _n803 = max(0, len([l for l in _b803.split("\n") if l.startswith("|")]) - 2)
+        _claim803 = re.search(r"§80\.3 declares (\d+)\s*\n?\s*parameters", bs)
+        if _claim803 and int(_claim803.group(1)) != _n803:
+            D.add("semantic documentation", "§80.3 parameter count",
+                  f"§80.9 states {_claim803.group(1)} parameters but §80.3 has {_n803} rows")
+    # SkillPackage field count: the §80.2 row states a figure that must equal
+    # the schema block, which is how the conditionalCapabilities addition was
+    # caught when the row still said eighteen.
+    _sp = re.search(r"(?ms)^SkillPackage\n(.*?)^```", sch)
+    if _sp:
+        _nsp = len([l for l in _sp.group(1).split("\n") if l.startswith("- ")])
+        _claimsp = re.search(r"all ([a-z]+) `SkillPackage` fields", bs)
+        _numword = {"eighteen": 18, "nineteen": 19, "twenty": 20}
+        if _claimsp:
+            _want = _numword.get(_claimsp.group(1))
+            if _want is not None and _want != _nsp:
+                D.add("semantic documentation", "SkillPackage field count",
+                      f"§80.2 states {_want} `SkillPackage` fields but the schema defines {_nsp}")
+    # §80.6 release-evaluation derivation: §80.8 derives the fixed release prompt
+    # set from the FIX-PROG fixtures, so every one of them must carry a prompt.
+    for _fx in sorted(set(re.findall(r"FIX-PROG-\d+", bs))):
+        _blk = bs.split(f"#### 80.6.", 1)
+        if not re.search(r"Fixture: " + _fx + r"\b[\s\S]{0,400}?^Prompt:", bs, re.M):
+            D.add("semantic documentation", "§80.6 fixture scope",
+                  f"{_fx} carries no Prompt line, so it cannot serve the derived "
+                  f"release-evaluation prompt set of §80.8")
     # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
     # number of §80.2 rows carrying that scope prefix, and the total MUST be
     # their sum. A hand-maintained figure that drifts from the table it

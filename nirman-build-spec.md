@@ -5477,6 +5477,26 @@ Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/ski
 
 Every skill registered in this table MUST have an instruction body at `crates/nirman-skills/skills/<group>/<skill>/SKILL.md` and a manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json`, and no body may name the excluded host stack (ADR-108, ADR-117, AGENTS.md §17) or a physical-device path (§4.4). A body states its gates only in the capability-id vocabulary above: every backticked `UPPER_SNAKE` identifier in a body that is a capability id MUST be one of the ids in the skill's own row (including the conditional ids named there), and no body may gate on a legacy lowercase id such as `android_build` or `cross_build_windows`. The contract-graph verifier (§67.11) enforces the body rules and the manifest rules (present, `scope: built_in`, `requiredCapabilities` equal to the table, empty `permissionRequests`, `sourcePath` naming the sibling body, no ledger-state field) whenever the skill tree is present in the working tree and records a skip, never a pass, when it is absent.
 
+#### 79.7.1 Perception classification of the platform skill set
+
+The capability table above classifies every capability id by the evidence that produces it. That column is the authoritative test for whether a skill requires perception: a skill requires runtime perception exactly when one of its `requiredCapabilities` is classified `emulator or device observation`, and it requires *visual* perception when that capability is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`. Applying that test to the 58 Android skill packages yields:
+
+| Class | Count | Meaning |
+|---|---|---|
+| Visual perception required | 16 | requires UI-hierarchy, screenshot, or accessibility observation |
+| Runtime perception required, non-visual | 15 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
+| Perception not required | 27 | gated only by build-toolchain or host observation |
+
+The capability vocabulary is complete for the skills that require perception: every one of the 31 perception-requiring skills resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
+
+Three inconsistencies in this subsection are open and are recorded rather than resolved here, because resolving them would require choosing a side without evidence:
+
+1. **`ui_inspector` is a non-canonical alias of `ui_hierarchy_probe`.** Three skills declare `ui_hierarchy_probe` and all three also declare `ANDROID_UI_OBSERVATION`. Two skills declare `ui_inspector` and neither declares `ANDROID_UI_OBSERVATION`. The two names denote the same act of capturing a UI hierarchy, so one is an alias of the other and the alias is used only by skills that omit the capability it implies.
+2. **`managed_emulator` is declared by 21 Android skills, of which 9 declare `ANDROID_EMULATOR_EXECUTION` and 12 do not.** Either the tool does not require the capability, in which case 9 skills over-declare it, or it does, in which case 12 under-declare it. The corpus does not say which.
+3. **Fourteen skills are gated only by `HOST_TOOL_OBSERVATION`**, which the table above defines as always `AVAILABLE` on a running Windows host and therefore never blocking. Thirteen are Android skills. Only one of them, `android-ui-design-system`, states why it needs no perception — its review compares against the known token set and component library "rather than against a screenshot". The other twelve carry no exclusion rationale.
+
+`requiredTools` is an open vocabulary: the 83 skill packages name 145 distinct tool identifiers, and no canonical document defines or closes that set. This is a deliberate asymmetry with `requiredCapabilities`, which technical architecture §84.1 fixes as closed. A tool name therefore carries no authority and grants nothing; capability gating is the only admission test. That asymmetry is why inconsistency 1 is a naming defect and not a security hole, and it is recorded so that no reader treats a tool name as a permission.
+
 ### 79.8 Validation Environment as a First-Class Resource
 
 Native target validation consumes a `ValidationEnvironment` (schema: TA §84.1) as a first-class resource:
@@ -6042,7 +6062,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §19 | "It updates changed files and affected dependency regions instead of rebuilding the entire map after every action" | MUST update incrementally | A full rebuild after every action is prohibited; correctness of the incremental path is proven by comparing an incrementally-updated map against a full rebuild on the same revision |
 | TA §19 | "Large projects use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction" | MUST apply all five above the configured large-project threshold | Below the threshold the simple path is permitted; the threshold is a §80.3 configurable default |
 | TA §19 | "The map manager exposes freshness, shard size, rebuild progress, and stale-region warnings to the task runtime" | MUST expose all four | A planner reading a stale region receives the warning with the content; silently serving stale map data is a defect |
-| TA §19.1 | "The skill registry should store" the tabled fields | MUST store all eighteen `SkillPackage` fields | Loading a skill adds instructions and schemas only and never grants permissions; skill tool calls pass through the policy engine as ordinary tool calls; user or shared skills are scanned for prompt injection, unsafe commands, secret access, hidden network behavior, and dependency changes before activation |
+| TA §19.1 | "The skill registry should store" the tabled fields | MUST store all nineteen `SkillPackage` fields | Loading a skill adds instructions and schemas only and never grants permissions; skill tool calls pass through the policy engine as ordinary tool calls; user or shared skills are scanned for prompt injection, unsafe commands, secret access, hidden network behavior, and dependency changes before activation |
 | TA §19.1 | "Skills should be testable through fixture tasks and should declare the minimum tools, worker roles, and project profiles they require" | MUST ship a fixture task and MUST declare all three minimums | A skill without a passing fixture is not activatable; declared minimums are enforced at selection, and built-in capabilities take precedence when both provide the same function |
 | TA §20 | "The adapter should translate external tool calls into Nirman policy requests before execution" | MUST translate before execution | No external tool call reaches a resource without passing the policy engine; the internal Tool Gateway remains the sole authority, per BS §23 |
 | TA §20 | "External tools should be capability-discovered, permission-scoped, health-checked, and auditable" | MUST satisfy all four | The `ExternalToolConnection` record's ten fields are populated; a tool requesting local file access still passes filesystem policy; a tool causing an external side effect creates an approval request unless project policy explicitly allows it |
@@ -6089,6 +6109,8 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 ### 80.3 Default values for all configurable parameters
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
+
+**One known omission is open and is not resolved by this table.** Technical architecture §11.4 requires the terminal manager to detect interactive prompts through "configurable prompt classifiers", and no row below and no inline default anywhere in the canonical documents fixes their value, count, or matching semantics. Under CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS that is a shortfall against this section's own claim, and it is recorded here rather than papered over: the default is **owner-pending**. An agent implementing interactive-prompt detection MUST stop at this point and request the value rather than choose one, because §80.1 rule 2 forbids guessing an unspecified default. No other "configurable" mention in the canonical documents is unresolved.
 
 | Parameter | Default | Range | Override |
 |---|---|---|---|
@@ -6517,11 +6539,20 @@ Every system prompt template that this section provides is defined here, and an 
 | skill | §69.2; technical architecture §73.1 | **no** |
 | deliberation | §69.2; technical architecture §73.1 | **no** |
 | review | technical architecture §73.1 | **no** |
-| release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **no** |
+| release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **yes** — derived, see below |
 
 Five templates are provided below: planning, code generation, validation, repair, and context compaction. They are complete in themselves and each MUST be used verbatim for the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
 
-**Owner-pending.** The templates for the coordinator, worker, skill, deliberation, and review classes, and the fixed release-evaluation prompt set, are recorded here as owner-pending. They are not derived from any earlier section, so writing them would require inventing prompt content, which §80.1 rule 5 forbids an agent to do. What is *not* owner-pending is their contract: every prompt in those classes MUST conform to the `IntentSynthesisPromptContract` of §69.2 as implemented by technical architecture §73.1, and MUST observe the placement layout below. An agent implementing the runtime therefore has a binding contract and a bounded surface for those classes, but no template text, and MUST stop rather than compose one.
+**What is recovered from the corpus.** The classes are not inventions of this table; each is named authoritatively, and for four of them the surrounding structure is derivable:
+
+- **release-evaluation prompt set — fully derived, no longer owner-pending.** The set is fixed by development plan §16.3, which requires every release to run "a fixed set of prompts" and score seven dimensions. That set is the eight `Prompt:` lines of §80.6.1–§80.6.8 (`FIX-PROG-01`–`FIX-PROG-08`), and the seven scored dimensions are the ones the §80.2 row for DP §16.3 already lists. Nothing further is needed to execute it.
+- **worker — payload fully specified.** §69.2 fixes the seven items a worker prompt MUST receive: contract version, project revision, checkpoint, relevant evidence, assigned scope, allowed capabilities, unresolved questions.
+- **deliberation — outcome vocabulary closed.** Every deliberation prompt must terminate in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`, with `BRANCH` routing to speculative branching. No usage-based outcome exists.
+- **review — role vocabulary closed.** The reviewer roles are diagnostic, security, and architecture, plus the integration reviewer that proposes an integration patch during reconciliation.
+- **skill — composition rule fixed.** A skill prompt is the loaded `SKILL.md` plus the contract wrapper; loading a skill adds instructions and schemas only and never grants permissions.
+- **coordinator — UNKNOWN.** No section fixes what a coordinator prompt must carry beyond the general contract. This is the one class whose required contents are not derivable.
+
+**Owner-pending, narrowed.** What remains owner-pending is the **literal template text** — the role prose of the coordinator, worker, skill, deliberation, and review prompts. The classes, their required contents (except coordinator), their output vocabularies, and the release-evaluation set are now derived. Writing the prose itself would require inventing prompt content, which §80.1 rule 5 forbids an agent to do. Every prompt in these classes MUST conform to the `IntentSynthesisPromptContract` of §69.2 as implemented by technical architecture §73.1 and MUST observe the placement layout below, so the surface is bounded; an agent implementing the runtime MUST stop at the missing prose rather than compose it, and MUST request the coordinator's required contents as a decision.
 
 §80.9 criterion 5 is read against this subsection and is satisfied only for the templates this subsection provides.
 
@@ -6750,7 +6781,15 @@ The agent-buildability contract is satisfied only when:
    is satisfied for the statements currently enumerated in §80.2. Any
    "should" subsequently added to a canonical document is an immediate
    shortfall against this criterion until it appears in §80.2 (§80.10).
-2. Every "configurable" parameter has a default value
+2. Every "configurable" parameter has a default value. §80.3 declares 53
+   parameters and CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS requires this. One
+   omission is known and open: technical architecture §11.4 requires
+   "configurable prompt classifiers" for interactive-prompt detection, and no
+   §80.3 row and no inline default exists for them. §80.3 records the gap.
+   Every other "configurable" mention in the canonical documents resolves to a
+   §80.3 row — including `recoveryAttemptPolicy` (row 23), checkpoint retention
+   (rows 17–19), and the telemetry sampling interval of technical architecture
+   §23.4 (row 22).
 3. Every vague procedure has a concrete step-by-step replacement
 4. Every referenced schema has a complete field definition
 5. Every system prompt has a defined template. This criterion is satisfied
@@ -6760,8 +6799,28 @@ The agent-buildability contract is satisfied only when:
    contract but not templated, and §80.8 records them as owner-pending. The
    criterion is therefore met for the templated surface and openly unmet for
    the rest; it is not met corpus-wide.
-6. Every runtime decision has explicit criteria
-7. Every adapter has a complete method signature
+6. Every runtime decision has explicit criteria. §80.4 supplies ordered
+   criteria for five decision classes — recovery strategy selection (§80.4.1,
+   bound to the technical architecture §28.1 ladder), worker selection
+   (§80.4.2), model routing (§80.4.3), context compaction (§80.4.4), and
+   checkpoint selection (§80.4.5). This criterion is **not mechanically
+   reproducible**, because the corpus never enumerates the set of runtime
+   decision points, so there is no closed universe to check the five against.
+   What is missing is that enumeration; it is recorded as an open owner
+   decision rather than inferred here.
+7. Every adapter has a complete method signature. This criterion is **unmet**.
+   No method signature of any form exists in any canonical document — a search
+   for `fn name(args) -> T` returns zero matches across the build spec,
+   technical architecture, and schemas, and no §80 subsection is dedicated to
+   adapters. What the corpus does supply is a behavioural contract: §8.2
+   enumerates what the provider adapter must support and fixes the normalized
+   result it returns (model ID, response text, tool calls, structured output,
+   reasoning usage when available, capability metadata, usage information,
+   finish reason, request duration, provider warning). The missing decision is
+   whether adapters are to be specified by signature at all, and if so in which
+   language or interface-definition form, given that the runtime spans a Rust
+   supervisor and a C#/.NET host. This is recorded as an open owner decision;
+   the criterion is left as written rather than narrowed to match the corpus.
 8. Every test fixture has a concrete definition. This criterion is met by the
    `FIX-PROG-01`–`FIX-PROG-08` definitions in §80.6 together with the
    `FIX-DEL-01`–`FIX-DEL-07` definitions in milestones §M95; a fixture defined
@@ -6793,7 +6852,7 @@ An unresolved "should" means the behavior is not yet specified with criteria. An
 
 No value in the §80.2 table is owner-pending. Four values were formerly recorded here as owner-pending — the three §26.6 graduated quota-response thresholds (telemetry, throttle, and worker-admission) and the constrained-host predicate — because none was derived from an earlier section. The owner has approved all four, so they are now canonical derived requirements rather than proposals, recorded by ADR-229 and normatively defined in §26.6 as their single authority. No open buildability decision and no owner-pending value remains in this table.
 
-That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the coordinator, worker, skill, deliberation, and review prompt templates and the fixed release-evaluation prompt set as owner-pending, because they are not derivable from any earlier section and §80.1 rule 5 forbids inventing them. Those are prompt-content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
+That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the literal template text of the coordinator, worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it. §80.3 separately records the interactive prompt-classifier default of technical architecture §11.4 as owner-pending, because §80.1 rule 2 forbids guessing an unspecified default. §80.9 criteria 6 and 7 each record a missing enumeration as an open owner decision. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
 
 ---
 

@@ -263,6 +263,7 @@ SkillPackage
 - triggerConditions
 - requiredTools
 - requiredCapabilities
+- conditionalCapabilities: (optional; capabilities required only for a named subset of the skill's steps, keyed by that subset — build spec §79.7)
 - permissionRequests
 - inputSchema
 - outputSchema

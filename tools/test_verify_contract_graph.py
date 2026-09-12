@@ -60,6 +60,27 @@ SKILL_DIRS = (
     "environment/environment-repair",
     "windows/windows-desktop-build",
     "windows/windows-runtime-validation",
+) + tuple(
+    # The §79.7 skill-closure rule compares the spec's skill list against the
+    # packages present on disk, so a fixture carrying only the six above would
+    # make the rule report every other registered skill as missing. The
+    # remainder is discovered rather than listed so the fixture tracks the
+    # repository. The six above stay first and in order because ANDROID_SKILL
+    # and WIN_BUILD_SKILL index into SKILL_SOURCES positionally.
+    d for d in sorted(
+        f"{env}/{name}"
+        for env in os.listdir(os.path.join(REPO, "crates/nirman-skills/skills"))
+        if os.path.isdir(os.path.join(REPO, "crates/nirman-skills/skills", env))
+        for name in os.listdir(os.path.join(REPO, "crates/nirman-skills/skills", env))
+        if os.path.isfile(os.path.join(REPO, "crates/nirman-skills/skills", env,
+                                       name, "skill.json")))
+    if d not in (
+        "android/android-toolchain",
+        "cross-platform/cross-platform-build-diagnostics",
+        "environment/environment-preflight",
+        "environment/environment-repair",
+        "windows/windows-desktop-build",
+        "windows/windows-runtime-validation")
 )
 SKILL_SOURCES = tuple(
     (f"crates/nirman-skills/skills/{d}/SKILL.md",
@@ -1787,7 +1808,7 @@ CASES = {
     "the release-evaluation prompt set row is dropped from §80.8": (
         BS,
         "| release-evaluation prompt set | milestones §M30 development plan §16.3, "
-        "via the §80.2 row for DP §16.3 | **no** |\n",
+        "via the §80.2 row for DP §16.3 | **yes** — derived, see below |\n",
         "",
         "semantic documentation"),
     "a fixture is referenced with no §80.6 definition or attribution": (
@@ -1799,6 +1820,37 @@ CASES = {
         BS,
         "Every test fixture referenced in the build spec is defined here",
         "Every test fixture referenced in the specification is defined here",
+        "semantic documentation"),
+
+    # ---- §79.7 closure, §80.3 count, SkillPackage count, and the derived
+    # release-evaluation prompt set. Each of these was a stated figure or a
+    # closed vocabulary with nothing recomputing it: TA §84.1 said "twenty"
+    # upper-case capability rows against 24 actual, and the §80.2 row said
+    # eighteen SkillPackage fields after a nineteenth was added.
+    "TA §84.1 capability count drifts from §79.7": (
+        TA,
+        "twenty-four upper-case rows",
+        "twenty upper-case rows",
+        "semantic documentation"),
+    "§80.2 SkillPackage field count drifts from the schema": (
+        BS,
+        "MUST store all nineteen `SkillPackage` fields",
+        "MUST store all eighteen `SkillPackage` fields",
+        "semantic documentation"),
+    "§80.9 parameter count drifts from §80.3": (
+        BS,
+        "§80.3 declares 53",
+        "§80.3 declares 60",
+        "semantic documentation"),
+    "a skill requires a capability the closed vocabulary does not declare": (
+        "crates/nirman-skills/skills/android/android-compose-expert/skill.json",
+        '"ANDROID_UI_OBSERVATION"',
+        '"ANDROID_NOT_A_REAL_CAPABILITY"',
+        "semantic documentation"),
+    "a FIX-PROG fixture loses the prompt the release set is derived from": (
+        BS,
+        'Prompt: "A tip calculator"\n',
+        "",
         "semantic documentation"),
 }
 

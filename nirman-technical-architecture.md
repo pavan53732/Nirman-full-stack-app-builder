@@ -4826,7 +4826,7 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 | `ANDROID_SIGNING_INSPECTION` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, signing_config_observation, certificate_fingerprint_observation | 1 |
 | `ANDROID_RELEASE_VALIDATION` | windows | environment_dependent | jdk, gradle, android_sdk, platform_tools | windows_host_fingerprint, lint_observation, quality_gate_observation, performance_gate_observation | 1 |
 
-The twenty upper-case rows are the closed skill capability-id vocabulary of build spec §79.7: they are the only ids a `SkillPackage.requiredCapabilities` may name, and each is classified per environment by `EnvironmentCapabilityPlanner` from the listed evidence, never asserted by a skill or a model. `HOST_TOOL_OBSERVATION` is the one capability whose expected result is `available`, because the preflight skill that produces every other classification must not be gated by a classification it has not yet produced.
+The twenty-four upper-case rows are the closed skill capability-id vocabulary of build spec §79.7: they are the only ids a `SkillPackage.requiredCapabilities` may name, and each is classified per environment by `EnvironmentCapabilityPlanner` from the listed evidence, never asserted by a skill or a model. `HOST_TOOL_OBSERVATION` is the one capability whose expected result is `available`, because the preflight skill that produces every other classification must not be gated by a classification it has not yet produced.
 
 Job Object containment is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 
