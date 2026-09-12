@@ -574,7 +574,7 @@ The following decisions remain intentionally open:
 **Status:** Accepted  
 **Decision:** All documents and runtime components use one worker taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker.
 
-**Amended by ADR-227:** the taxonomy is nineteen roles — the nineteen canonical roles plus Android Platform Worker and Backend & Service Engineering Worker. The one-taxonomy rule is unchanged; only the list grew, by closure over roles the documents already used.
+**Amended by ADR-227:** the taxonomy is twenty-one roles — the original fourteen canonical roles plus the seven roles added by ADR-227: Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, and Backend & Service Engineering Worker. The one-taxonomy rule is unchanged; only the list grew by closure over roles already used by the documents.
 
 **Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests. The data-layer role is named "Android Data and Integration Worker" so it cannot be mistaken for a separate server-side generator. The role builds the generated Android application's data layer, persistence, and outbound integrations; it never produces a server-side deployable.
 
@@ -2955,7 +2955,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Consequences:** Build spec §22.1, §23.4, and technical architecture §6.5 gain five rows and the three-level nesting rule; technical architecture §10.2, §10.4, §76.3, and §85.2 name the registered role where they used a lowercase phrase; build spec §47.3 and §66.9 do likewise; §80.3 gains the probe-child default; M8 and M30 gain the registry work; the verifier checks the three tables for identical role sets and rejects unregistered worker phrases. Skill packages already declare `compatibleWorkerRoles` against this list and need no change. ADR-049 is amended in place.
 
-**Reversal trigger:** A frozen-battery run in which two of the nineteen roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
+**Reversal trigger:** A frozen-battery run in which two of the twenty-one roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
 
 ---
 
@@ -3047,6 +3047,135 @@ Nirman uses a chat-first request model. The user describes the Android applicati
 **Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`
 
 **Locked surfaces:** build spec §84 Orchestration Wiring Matrix; technical architecture §74.6; M124 milestone; `OrchestrationWiringMatrix` schema block (§2.98); `IntegrationBoundaryContract` schema block (§1.36).
+
+---
+
+## ADR-233: Intelligence services for closed-loop Android engineering
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** Nirman will implement three intelligence services that transform raw runtime data into actionable analysis:
+
+1.  **ScreenGraph Analysis Service (§62.2)** - Computes reachability, identifies dead ends, suggests targeted tests
+2.  **Requirement Coverage Service (§56.6)** - Maps requirements to scenarios/evidence, computes unproven gaps
+3.  **Project Memory Learning Service (§31.3)** - Extracts cross-revision patterns, prevents recurring failures
+
+**Rationale:** The existing runtime collects rich data (ScreenGraph, Episodes, Requirements) but doesn't reason about it. These services turn data into intelligence - identifying unreachable states, unverified requirements, and recurring failure patterns - without changing Nirman's authority model or product boundaries.
+
+**Consequences:** Milestone M9 gains ScreenGraph analysis fixtures. M12 gains project memory learning. BS §56 gains requirement coverage gates. TA §62, TA §31 add new service sections. New schemas (`ScreenGraphAnalysisRecord`, `RequirementCoverageReport`, `ProjectMemoryEntry`) are added to SCHEMAS.
+
+**Reversal trigger:** If these services evolve into authority-granting components (e.g., auto-promoting repairs, auto-completing tasks, or auto-blocking requirements), this ADR is reversed.
+
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.MEMORY`
+
+**Locked surfaces:** BS §56.6; TA §62.2; TA §31.3; SCHEMAS §2.99/2.100/2.101; M9/M12 milestones.
+
+---
+
+## ADR-234: Android Engineering Intelligence Graph
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** Nirman will implement one canonical **Android Engineering Intelligence Graph** that orchestrates existing services into a closed-loop causal model. The graph connects:
+
+```
+User Intent → Requirements → Architecture/Technology → Code/Symbols → Runtime Screens/States → Scenarios/Observations → Failures/Hypotheses → Repairs → Evidence → Completion
+```
+
+**Rationale:** The existing runtime collects rich data (ScreenGraph, Episodes, Requirements, RepairPatterns, Evidence). What's missing is a unified reasoning layer that answers:
+
+1.  **What is this app supposed to do?** (Requirements → Behavior mapping)
+2.  **What is it actually doing?** (Runtime state → Evidence)
+3.  **Why is it different?** (Causal surface identification)
+4.  **What's the smallest reliable fix?** (Repair experimentation → validation)
+
+**Consequences:**
+
+**1. ScreenGraph becomes a semantic world model (TA §62.2 extension)**
+- Each node stores: component roles, state dependencies, lifecycle bindings
+- Each edge stores: state transitions, permission effects, persistence effects
+- Analysis identifies: unreachable features, dead-end flows, lifecycle hazards
+
+**2. State-space exploration expands beyond BFS (TA §62.1 extension)**
+- Empty/loading/error/success states
+- Invalid inputs, rotation, process death, permission denial
+- Previously unexplored branches (deep links, notifications)
+- Test generation from discovered states
+
+**3. Causal surface identification (new service §62.4)**
+- Requirement → UI → symbols → dependencies → scenario → evidence
+- On failure: identify smallest surface to inspect/repair
+- Replace broad "fix the crash" with "repair the lifecycle dependency"
+
+**4. Repair experimentation (TA §30.3 extension)**
+- Failure → hypotheses → discriminating probes → candidate repairs → isolated branches → validation → winner
+- Learn which repair *caused* improvement, not just that it happened
+- Promote repairs through evidence, not just success count
+
+**5. Predictive failure prevention (TA §51.1 extension)**
+- TechnologyPlan → risk analysis → proactively test risky surfaces
+- Turn FailureModeRegistry from reactive to preventive
+- Surface: capability → dependency → API level → permission → lifecycle hazards
+
+**6. Definition of Done becomes proof synthesis (BS §56.6 extension)**
+- Before completion: "What behavior proven? What unproven? What evidence?"
+- RequirementCoverageReport becomes completion gate
+- Unproven requirements → clarification or acceptance risk
+
+**7. Architecture fitness evaluation (new service §62.5)**
+- Post-generation: complexity, dependencies, lifecycle coupling, testability
+- Propose technology-plan revision, not endless patching
+- Continuous feedback loop to requirement synthesis
+
+**Reversal trigger:** If intelligence services become authority-granting (auto-promoting repairs, auto-completing tasks, auto-blocking requirements) or replace deterministic evidence with predictions, this ADR is reversed.
+
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Locked surfaces:** TA §62.2/62.3/62.4/62.5; TA §30.3; BS §56.6; M9/M12/M58 milestones.
+
+---
+
+## ADR-235: Android Semantic World Model
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** Nirman will implement one canonical `AndroidSemanticState` model that represents application state, lifecycle, and dependencies at a semantic level, beyond screen traversal.
+
+**Decision:** The runtime will implement one canonical `StateSpaceCoverageModel` that defines required state-space dimensions and risk-driven expansion rules.
+
+**Decision:** Nirman will implement one canonical `RequirementToImplementationGraph` that traces requirements to implementation symbols and dependencies.
+
+**Decision:** Nirman will implement one canonical `ProofSynthesis` output that answers, before completion, what is proven, unproven, blocked, and eligible for completion.
+
+**Rationale:** ScreenGraph, Repository Graph, Requirement Coverage, and Evidence services collect data but don't represent a unified application state model or causal trace from requirement to implementation. These four components make Nirman's Android engineering intelligence complete.
+
+**Consequences:**
+
+**1. AndroidSemanticState schema (SCHEMAS §2.102)**
+- Screen → component → semantic role → current UI state → available actions
+- Resulting state → persisted effect → lifecycle dependency → permission dependency
+- Each ScreenGraph node references an AndroidSemanticState snapshot
+
+**2. StateSpaceCoverageModel schema (SCHEMAS §2.103)**
+- Required dimensions: empty/loading/error/success, invalid input, process death, config change, background/foreground, permission denial, offline/online, deep-link entry, migration states
+- Coverage matrix tracks which dimensions have been exercised per requirement
+- Risk-driven expansion: when a requirement touches a dimension (e.g., camera + rotation), expand testing automatically
+
+**3. RequirementToImplementationGraph schema (SCHEMAS §2.104)**
+- Requirement → behavior contract → UI state transition → implementation symbols → dependencies → scenario → observed state → evidence → artifact
+- Causal surface identification: on failure, the smallest responsible surface
+
+**4. ProofSynthesis schema (SCHEMAS §2.105)**
+- Per requirement: claim, required proof, acquired evidence, independent validation, remaining uncertainty, completion eligibility
+- Aggregated view: proven/17/19, unproven, blocked, NOT COMPLETE
+
+**Reversal trigger:** If any of these four components become authority-granting (auto-completing tasks, auto-blocking requirements, auto-promoting repairs) or replace deterministic evidence with predictions, this ADR is reversed.
+
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
+
+**Locked surfaces:** SCHEMAS §2.102/2.103/2.104/2.105; TA §62.2/62.5; BS §56.6; M9/M12/M58/M90 milestones.
+
+---
 
 ---
 

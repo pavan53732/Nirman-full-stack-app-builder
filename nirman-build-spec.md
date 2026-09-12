@@ -1107,7 +1107,7 @@ To prevent the latency and scalability bottlenecks of traditional sequential too
 | Diagnostic Worker | Root-cause localization and `FailureContextPackage` production for a parent worker | Read-only; one probe child |
 | Content Worker | Product copy, localization, and accessibility text as `ContentMutation` proposals | Proposal only; content transaction commits |
 | Integration Double Worker | `ContractDouble` fixtures and schema conformance for declared integrations | Double fixtures only; never the real service |
-|| Critic Worker | Adversarial critique of plans, strategies, and evidence claims before authorization and promotion | Read-only; findings and evidence requests only |
+| Critic Worker | Adversarial critique of plans, strategies, and evidence claims before authorization and promotion | Read-only; findings and evidence requests only |
 | Android Platform Worker | Android SDK/platform APIs, Kotlin/Java interop, JNI/native modules, Gradle/plugin integration, lifecycle/process/background execution, permissions, services, device APIs (BLE/NFC/camera/sensors), widgets, OS-version compatibility, platform-specific diagnostics | Assigned workspace; platform tooling |
 | Backend & Service Engineering Worker | REST/GraphQL API implementation, server-side business logic, database/server schema, authentication/authorization backend, webhooks, server-side validation, background jobs/queues, cloud functions/serverless, API versioning, backend integration tests, deployment configuration for the user's external backend | Assigned workspace; backend tooling |
 
@@ -1210,7 +1210,7 @@ Recommended built-in workers are shown below.
 | Diagnostic Worker | Localize a parent worker's failure to a cause surface and package the evidence | Read-only; diagnostics |
 | Content Worker | Write and revise product copy, localization strings, and accessibility text | Content proposals only |
 | Integration Double Worker | Build and conform `ContractDouble` fixtures for declared external integrations | Double fixtures only |
-|| Critic Worker | Attack plans, strategies, and completion claims; request the evidence that would refute them | Read-only; no approvals |
+| Critic Worker | Attack plans, strategies, and completion claims; request the evidence that would refute them | Read-only; no approvals |
 | Android Platform Worker | Engineer Android platform functionality: SDK/platform APIs, Kotlin/Java interop, JNI/native modules, Gradle/plugin integration, lifecycle/process/background execution, permissions, services, device APIs (BLE/NFC/camera/sensors), widgets, OS-version compatibility, platform-specific diagnostics | Approved file edits; platform tooling |
 | Backend & Service Engineering Worker | Build the supporting backend/service layer the Android app consumes: REST/GraphQL API implementation, server-side business logic, database/server schema, authentication/authorization backend, webhooks, server-side validation, background jobs/queues, cloud functions/serverless, API versioning, backend integration tests, deployment configuration for the user's external backend | Approved file edits; backend tooling |
 
@@ -3451,6 +3451,22 @@ Each scenario run MUST produce:
 
 A scenario without executable interaction results and assertion results is not behavioral evidence.
 
+### 56.6 Requirement Coverage Service
+
+> **Schema projection:** `RequirementCoverageReport` is defined in `nirman-schemas.md` §2.100. Owner: BS §56.6.
+
+> **Schema projection:** `ProofSynthesis` is defined in `nirman-schemas.md` §2.105. Owner: BS §56.6.
+
+The runtime provides a deterministic service that maps requirements to scenarios and evidence, computing unproven gaps and synthesizing proof before completion.
+
+**Responsibilities:**
+
+- Maintain a `RequirementToScenario` mapping per `AndroidConstructionContract`
+- After ScreenGraph exploration, compute `coveredRequirementIds` and `uncoveredRequirementIds`
+- Triggers clarification requests when requirements have zero scenario coverage
+- Shows requirement-by-requirement completion status in evidence
+- Produces `ProofSynthesis` output: what is proven/unproven/blocked and why
+
 ### 56.6 Acceptance criteria
 
 Stateful verification is satisfied only when every functional requirement maps to at least one deterministic scenario, and when a requirement cannot be marked complete while its scenario is missing, skipped, or non-deterministic.
@@ -4637,11 +4653,55 @@ The UI MUST never render `PREDICTED`, `SIMULATED`, or `REQUESTED` as a running a
 
 ### 69.4 Revision-bound PreviewRevision
 
-Every preview panel state MUST be represented by a revision-bound `PreviewRevision` with exactly the fields of the `PreviewRevision` block named below (technical architecture §73.3 cites the same block; the technical architecture §36.4 preview-current predicate reads only these names):
-
 > **Schema projection:** `PreviewRevision` is defined in `nirman-schemas.md` §1.35. Owner: BS §69.4.
 
-A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, emulator state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. “Newest revision” is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
+Every preview panel state MUST be represented by a revision-bound `PreviewRevision` with exactly the fields of the `PreviewRevision` block named below (technical architecture §73.3 cites the same block; the technical architecture §36.4 preview-current predicate reads only these names).
+
+A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, emulator state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. "Newest revision" is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
+
+### 69.4.1 Canonical Android Preview Runtime Contract
+
+Every Android preview MUST resolve through exactly one canonical runtime chain:
+
+ConstructionRevision
+→ BuildArtifact
+→ BuildArtifactValidated
+→ InstallTransaction
+→ InstallTransactionCommitted
+→ LaunchSession
+→ LaunchTransactionCommitted
+→ AndroidApplicationProcess
+→ RuntimeStateObservation
+→ FrameCapture
+→ FrameStamp
+→ RenderTransport
+→ PreviewHost
+→ PreviewProjection
+→ EvidenceRecord
+
+No stage may substitute simulated UI, source rendering, detached emulator windows,
+synthetic screenshots, or model-generated state for the canonical live runtime.
+
+The preview MUST remain REQUESTED, BUILDING, INSTALLING, or LAUNCHING until the
+corresponding observed state exists. A successful build without a validated artifact,
+a committed install transaction, and a committed launch transaction cannot advance
+the preview beyond `INSTALLING`.
+
+A frame is displayable only when all of the following identities match:
+- projectRevisionId
+- checkpointId
+- artifactFingerprint
+- emulatorSessionId
+- deviceStateFingerprint
+- applicationStateFingerprint
+- previewRevisionId
+- frameSequence
+
+A mismatch produces STALE or INVALIDATED state and MUST NOT paint into the current
+preview surface.
+
+A frame without a corresponding runtime observation is non-authoritative and may
+only be stored as diagnostic telemetry.
 
 ### 69.5 Live preview panel layout
 
@@ -5402,33 +5462,33 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `windows-packaging-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-diagnostics-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
-|| `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
-|| `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
-|| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
-|| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
-|| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BACKGROUND_EXECUTION` |
-|| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_SIGNING_INSPECTION` |
-|| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
-|| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-|| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_PACKAGING` |
-|| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
-|| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
-|| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_AUTHENTICATION` |
-|| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-|| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
-|| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
-|| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
-|| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-|| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
-|| `android-large-screens-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-|| `android-credentials-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_EMULATOR_EXECUTION` |
-|| `android-localization-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_EMULATOR_EXECUTION` |
-|| `android-automotive-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
+| `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
+| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BACKGROUND_EXECUTION` |
+| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_SIGNING_INSPECTION` |
+| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
+| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_PACKAGING` |
+| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
+| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_AUTHENTICATION` |
+| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
+| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
+| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
+| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
+| `android-large-screens-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-credentials-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-localization-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-automotive-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_EMULATOR_EXECUTION` |
 | `android-tv-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_EMULATOR_EXECUTION` |
 | `android-ads-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_EMULATOR_EXECUTION` |
 | `android-printing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION` |
@@ -5468,14 +5528,14 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `android-app-state-management` | `HOST_TOOL_OBSERVATION` |
 | `android-offline-sync` | `HOST_TOOL_OBSERVATION` |
 | `android-local-persistence` | `HOST_TOOL_OBSERVATION` |
-|| `android-data-migration` | `HOST_TOOL_OBSERVATION` |
-|| `android-authentication-flows` | `HOST_TOOL_OBSERVATION` |
-|| `android-payment-integration` | `HOST_TOOL_OBSERVATION` |
-|| `android-push-notifications` | `HOST_TOOL_OBSERVATION` |
-|| `android-ui-design-system` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
-|| `android-ui-form-validation` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
-|| `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
-|| `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
+| `android-data-migration` | `HOST_TOOL_OBSERVATION` |
+| `android-authentication-flows` | `HOST_TOOL_OBSERVATION` |
+| `android-payment-integration` | `HOST_TOOL_OBSERVATION` |
+| `android-push-notifications` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-design-system` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
+| `android-ui-form-validation` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
+| `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
+| `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 
@@ -5483,7 +5543,7 @@ Every skill registered in this table MUST have an instruction body at `crates/ni
 
 #### 79.7.1 Perception classification of the platform skill set
 
-The capability table above classifies every capability id by the evidence that produces it. That column is the authoritative test for whether a skill requires perception: a skill requires runtime perception exactly when one of its `requiredCapabilities` is classified `emulator or device observation`, and it requires *visual* perception when that capability is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`. Applying that test to the 58 Android skill packages yields:
+The capability table above classifies every capability id by the evidence that produces it. That column is the authoritative test for whether a skill requires perception: a skill requires runtime perception exactly when one of its `requiredCapabilities` is classified `emulator or device observation`, and it requires *visual* perception when that capability is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`. Applying that test to the Android skill packages yields:
 
 | Class | Count | Meaning |
 |---|---|---|
@@ -5491,14 +5551,19 @@ The capability table above classifies every capability id by the evidence that p
 | Runtime perception required, non-visual | 25 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
 | Perception not required | 15 | gated only by build-toolchain or host observation |
 
-The capability vocabulary is complete for the skills that require perception: every one of the 43 perception-requiring skills resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
+The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 
-Two inconsistencies in this subsection were open in prior revisions and are now resolved:
+The perception classification above is closed-world. Every skill manifest and
+instruction body MUST reconcile against the capability table and canonical
+tool vocabulary.
 
-1. **`ui_inspector` was a non-canonical alias of `ui_hierarchy_probe`.** All three skills that previously declared `ui_inspector` now declare `ui_hierarchy_probe` and `ANDROID_UI_OBSERVATION`. The alias is eliminated; zero skills declare `ui_inspector`.
-2. **`managed_emulator` was declared by 20 Android skills, of which only 10 declared `ANDROID_EMULATOR_EXECUTION`.** The 12 that under-declared the gate have been reconciled: 10 gained the gate because their procedure steps exercise the emulator at runtime, and 1 (`android-resource-expert`) had its `managed_emulator` tool removed because every procedure step is static analysis. All 20 skills that declare `managed_emulator` now also declare `ANDROID_EMULATOR_EXECUTION`. The inconsistency is resolved.
+No legacy or alias capability/tool identifier may be used where a canonical
+identifier exists. Emulator execution requirements MUST match the actual
+runtime behavior of the skill. Android skills gated only by HOST_TOOL_OBSERVATION
+MUST explicitly state why runtime perception is unnecessary.
 
-3. (reserved) **Eleven Android skills are gated only by `HOST_TOOL_OBSERVATION`**, which the table above defines as always `AVAILABLE` on a running Windows host and therefore never blocking. Only one of them, `android-ui-design-system`, states why it needs no perception — its review compares against the known token set and component library "rather than against a screenshot". The other ten carry no exclusion rationale. This remains recorded rather than resolved, because adding exclusion notes for all ten is a documentation-improvement task that does not change any runtime contract.
+The verifier MUST fail on any unresolved mismatch. This section MUST contain
+zero open inconsistency records in a documentation-certified corpus.
 
 `requiredTools` is an open vocabulary: the 83 skill packages name 144 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
 
@@ -6573,10 +6638,10 @@ does not template:
 |---|---|---|
 | system | §69.2 | yes, indirectly — §80.8.1–§80.8.4 are system prompts by role |
 | coordinator | §69.2; technical architecture §73.1 | **yes, indirectly — §80.8.1 is the coordinator prompt** |
-| worker | §69.2; technical architecture §73.1 | **no** |
-| skill | §69.2; technical architecture §73.1 | **no** |
-| deliberation | §69.2; technical architecture §73.1 | **no** |
-| review | technical architecture §73.1 | **no** |
+| worker | §69.2; technical architecture §73.1 | **no** — owner-pending |
+| skill | §69.2; technical architecture §73.1 | **no** — owner-pending |
+| deliberation | §69.2; technical architecture §73.1 | **no** — owner-pending |
+| review | technical architecture §73.1 | **no** — owner-pending |
 | release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **yes** — derived, see below |
 
 Five templates are provided below: planning, code generation, validation, repair, and context compaction. Each is a normative minimum-content instruction pattern for the purpose it names. The runtime MUST use each template as the base instruction for that purpose, preserving its owning contract invariants, and MAY add role-specific material on top; it MUST NOT replace the template wholesale, and it MUST NOT use a template outside the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
@@ -7142,7 +7207,49 @@ Every committed `ConstructionTransaction` exposes exactly one durable `ChangeRep
 
 ### 84.1 Canonical pipeline (complete)
 
-The Nirman autonomous loop is a single deterministic causal pipeline. Every boundary between components is mechanically enumerated with its producer, consumer, schema, identities, authority, persistence, transitions, and failure modes. The canonical pipeline is:
+The Nirman autonomous runtime is one deterministic causal graph, not one
+total-order execution sequence. §84.1 defines the mandatory causal spine and
+its major branches; runtime traversal order is determined by TaskGraph,
+lifecycle state, dependencies, validation requirements, recovery decisions,
+and GoalContract completion predicates.
+
+The mandatory causal spine is:
+
+User message
+→ normalized goal
+→ requirements/frontier
+→ AndroidConstructionContract
+→ preflight
+→ AndroidTechnologyPlan
+→ TaskGraph
+→ dependency analysis
+→ worker selection
+→ lease
+→ worker reasoning
+→ ContextOrchestrator/ContextPackage
+→ ModelGateway/provider
+→ normalized response
+→ proposal
+→ PolicyAuthority
+→ ToolBroker
+→ mutation
+→ checkpoint
+→ build/artifact
+→ emulator install/launch
+→ runtime observation
+→ E2E/visual validation
+→ evidence validation/promotion
+→ PreviewRevision promotion where applicable
+→ deterministic CompletionDecision.
+
+Reconciliation, recovery, provider failure, worker replacement, checkpoint
+restoration, evidence invalidation, preview synchronization, artifact export,
+and delivery are graph branches governed by their owning contracts.
+
+Export/delivery MUST NOT be treated as universally preceding or following
+CompletionDecision. If export is a GoalContract requirement, its verified result
+is a completion prerequisite; otherwise DeliveryState remains a separate
+delivery concern.
 
 ```text
 WinUI 3
@@ -7198,33 +7305,51 @@ WinUI 3
 
 > **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84. Contract: `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`.
 
-Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, stale/duplicate/cancel/restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract` (nirman-schemas.md §1.36).
+Every executable cross-component edge in the canonical pipeline is represented
+by its registered IntegrationBoundaryContract and, when traversed at runtime,
+by an OrchestrationWiringMatrix instance. Internal transformations wholly
+contained within one component are not separate integration boundaries.
 
 Runtime instance identity is distinct from static boundary definition: `IntegrationBoundaryContract` defines the boundary; `OrchestrationWiringMatrix` records one runtime traversal of that boundary.
 
 ### 84.3 Boundary rules
 
-Every executable boundary has exactly one canonical `IntegrationBoundaryContract` (static definition). Every runtime traversal of that boundary has exactly one `OrchestrationWiringMatrix` instance referencing it via `boundaryId`. `wiringId` is the unique runtime-record identity.
+Every executable cross-component boundary MUST have exactly one canonical
+`IntegrationBoundaryContract`.
+
+Every runtime traversal of that boundary MUST create exactly one
+`OrchestrationWiringMatrix` instance with a unique `wiringId`.
+
+A boundary MAY have zero, one, or many runtime traversals over its lifetime.
+A wiring instance MUST NOT represent more than one traversal.
+
+Every wiring instance MUST reference exactly one `boundaryId`, and every
+`boundaryId` MUST resolve to exactly one `IntegrationBoundaryContract`.
 
 Every row MUST reference exactly one `IntegrationBoundaryContract`.
-Every referenced schema, authority, adapter, policy, and transition MUST resolve to one canonical definition.
+Every referenced schema, authority, adapter, policy, and transition MUST resolve
+to one canonical definition.
 No component may communicate around a registered boundary.
 
-Completion evaluation is itself a scheduled deterministic kernel operation. No mutation may begin while completion is being evaluated against an older revision.
+Completion evaluation is itself a scheduled deterministic kernel operation. No
+mutation may begin while completion is being evaluated against an older
+revision.
 
-A retry/recovery operation preserves the original `correlationId` and chains via `causationId`. Retries must not create a new unrelated causal chain.
+A retry/recovery operation preserves the original `correlationId` and chains
+via `causationId`. Retries must not create a new unrelated causal chain.
 
-Every boundary handoff MUST be:
-- **Deterministic** — same inputs produce same outputs
-- **Schema-validated** — input and output conform to the named schema block
-- **Revision-bound** — every record carries a `revisionId`
-- **Correlation-safe** — `correlationId` and `causationId` trace the causal chain
-- **Authority-checked** — the named authority component makes the decision
-- **Evidence-linked** — observations produce `evidenceRef`
-- **Recoverable** — failure routes through `RecoveryAuthority`
-- **Idempotent** — duplicate events cannot corrupt state
-- **Restart-safe** — resume from last validated checkpoint
-- **Integration-boundary-complete** — `boundaryId` resolves exactly one `IntegrationBoundaryContract`
+Every executable cross-component boundary MUST be:
+- schema-validated against its declared input/output schemas;
+- revision-bound where the participating state is revisioned;
+- correlation- and causation-traceable;
+- authority-checked by its declared authority;
+- governed by its declared lifecycle, timeout, cancellation, retry, duplicate,
+  stale, restart, and recovery policies;
+- evidence-producing when its contract declares an evidence requirement;
+- deterministic in its authoritative state transition for equivalent observed
+  inputs, while preserving externally nondeterministic observations verbatim;
+- integration-boundary-complete: boundaryId resolves exactly one
+  IntegrationBoundaryContract.
 
 ### 84.4 M124 certification
 

@@ -319,6 +319,12 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 18. Register the twenty-one canonical roles (BS §23.4; TA §6.5; ADR-227) in `WorkerRegistry` with per-role permission profiles: the seven ADR-227 roles carry device-adapter-only, read-only, proposal-only, double-fixture-only, read-only, assigned-workspace, and assigned-workspace authority respectively; the registry test rejects an undefined role, a duplicate role, and a `compatibleWorkerRoles` entry naming a non-registered role. Implement three-level delegation with `DelegationGrant.maxDepth = 3` and the probe-child restriction to observation actions. Fixture: a Diagnostic Worker's probe child that proposes a mutation is rejected before `PolicyAuthority`; a fourth nesting level is refused with a typed finding.
 19. Implement `ScreenModel` normalization from `AndroidDeviceAdapter.captureUiHierarchy` (TA §74.2; SCHEMAS §2.91; ADR-225) with a stable `screenFingerprint`, and `ScreenGraphExplorer` bounded exploration into a `ScreenGraph` (TA §62.1; SCHEMAS §2.92). Fixture: the same screen captured twice yields the same fingerprint; a five-screen fixture application is fully explored within the declared bounds; a crash met during exploration is recorded as a `CRASHED` edge and a failure fingerprint, not as a hung run.
 
+20. Implement `ScreenGraphAnalysisService` (TA §62.2): compute reachability, identify dead ends, flag unreachable states, and generate targeted tests for unexplored edges. Fixture: a navigation path that exists in the app but isn't discovered by exploration is identified and added to suggested tests.
+
+21. Implement semantic world model extension: enrich ScreenGraph nodes with component roles, state dependencies, and lifecycle bindings. Fixture: a screen that requires a permission shows that dependency in the graph before interaction.
+
+22. Implement StateSpaceCoverageModel: expand testing when a requirement touches risky dimensions (e.g., camera + rotation → test orientation changes). Fixture: a requirement with camera use automatically adds config change and process death tests.
+
 ### Exit gate
 
 Starting from a Windows machine with no JDK, Android SDK, emulator, or system image, Nirman provisions its own toolchain and emulator with at most the three user actions of TA §49.4, and the Nirman-managed local headless emulator can then launch the generated Android application and render its actual live surface inside the Nirman Preview panel. The user can interact with that running application inside Nirman, observe resulting runtime state, evaluate assertions, and capture revision-bound evidence without a physical Android phone.
@@ -385,6 +391,8 @@ Add reusable skills, hooks, external tools, model routing, scheduled local tasks
 6. Add bounded long-term project memory.
 7. Add scheduled safe tasks and notification policies.
 8. Add advanced native project profiles.
+9. Implement `RequirementCoverageService` (BS §56.6): compute requirement-to-scenario mapping, track uncovered requirements, and trigger clarification requests for unproven requirements. Fixture: a requirement with zero scenarios generates a planner input.
+10. Implement `ProjectMemoryLearningService` (TA §31.3): extract cross-revision failure patterns from episodes, store `ProjectMemoryEntry` records, surface findings during task initialization, support causal surface identification, and track architecture fitness patterns. Fixture: a project with a previous navigation bug suggests a defensive test for similar patterns.
 
 ### Exit gate
 
@@ -1773,7 +1781,7 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 | Skill package persistence | `SkillPackage` (BS §23.11; restated TA §19.1), `SkillAdmission`, and `SkillInvocationRecord` (TA §19.1) have `CanonicalSchemaRegistry` entries (TA §36.1) with version compatibility; packages, admissions, and invocations persist through the M2 SQLite ledger with the fields those blocks define |
 | Fail-closed selection | the skill-selection use case (the orchestrator selection of BS §23.11 / TA §19.1, implemented in the Rust control plane) resolves required skill ids against the registry and the `EnvironmentCapabilityRecord`; an admitted capability-bearing skill requires each id in its `requiredCapabilities` (the BS §79.7 capability-id vocabulary) to classify `AVAILABLE` or `REPAIRABLE` in `capability_results`; absence produces a `SkillAdmission` with decision `BLOCKED` or `NOT_FOUND`, never inferred success |
 | Capability-bearing admission | a skill whose `requiredCapabilities` intersect a capability classified `USER_REQUIRED` or `UNAVAILABLE` in the environment record is blocked fail-closed (`SkillAdmission.decision = BLOCKED`) before any tool call or instruction load |
-|| Trust and scan gating | a package whose `SkillPackage.scanStatus` is not a completed scan, or whose `trustStatus` is revoked, receives `SkillAdmission.decision = NOT_INVOCABLE`; the built-in packages are the twenty-eight v1 built-in skills, each loaded from its `skill.json` manifest with `scope: built_in` |
+|| Trust and scan gating | a package whose `SkillPackage.scanStatus` is not a completed scan, or whose `trustStatus` is revoked, receives `SkillAdmission.decision = NOT_INVOCABLE`; the built-in packages are the eighty-three v1 built-in skills, each loaded from its `skill.json` manifest with `scope: built_in` |
 | Durable invocation records | `SkillInvocationRecord` (TA §19.1) persists `invocationId`, `admissionId`, `skillVersion`, `sessionId`, `toolCallIds` with their policy outcomes, `evidenceIds`, `startedAt`/`completedAt`, and `outcome`; restart reloads records from the ledger |
 | Idempotency and versioning | re-saving the same package upserts; distinct versions coexist; `installedAt` and `lastUsedAt` are recorded |
 | Evidence binding | `SkillInvocationRecord.environmentFingerprint` and `projectRevision` bind the invocation to the same environment and revision identity as `BuildGateRecord.environment_id` and `revision`; a fingerprint or revision change sets `invalidatedBy` and invalidates dependent invocation evidence through the existing evidence dependency graph (TA §23, BS §5.7.4) |
@@ -2046,23 +2054,38 @@ AM. artifact export/verification produces byte-identical copy with hash
 AN. policy change during execution is applied at the next authorization boundary
 AO. integration-boundary version incompatibility is detected and reported before execution
 AP. evidence chain invalidation after source revision change, artifact replacement, emulator restart, toolchain change, policy change, checkpoint rollback, asset replacement, dependency lock change, signing identity change, and integration state change
-AQ. every declared boundary has exactly one matrix row and exactly one boundaryId owner
-AR. every matrix row resolves its schema, authority, adapter, policy, and transition references
-AS. restart reconstruction reproduces the same wiring graph and rejects orphaned/duplicate rows
-AT. every executable cross-component edge resolves to exactly one registered IntegrationBoundaryContract; every registered applicable boundary has at least one executable owner/test mapping; unused boundaries are explicitly classified NOT_APPLICABLE or PLANNED, never silently omitted
-AU. zero unregistered executable edges
-AV. zero boundary → multiple incompatible contracts
-AW. zero traversal → missing wiring identity
-AX. zero unresolved schema references
-AY. zero unresolved authority references
-AZ. zero unresolved transition references
-BA. zero undocumented retry/recovery edges
-BB. zero direct worker → non-supervisor edges
-BC. zero preview-frame paths bypassing PreviewCoordinator
-BD. zero completion paths bypassing EvidenceAuthority (completion evaluator)
+AQ. every executable cross-component boundary resolves to exactly one
+IntegrationBoundaryContract
+AR. every runtime traversal creates exactly one OrchestrationWiringMatrix
+instance with a unique wiringId
+AS. every matrix instance resolves its boundary, schemas, authority, policies,
+transitions, and operation
+AT. restart reconstruction reproduces the durable wiring graph
+AU. duplicate/replayed traversal records cannot corrupt authoritative state
+AV. zero unregistered executable cross-component edges
+AW. zero boundary → multiple incompatible contracts
+AX. zero traversal → missing wiring identity
+AY. zero unresolved schema references
+AZ. zero unresolved authority references
+BA. zero unresolved transition references
+BB. zero undocumented retry/recovery edges
+BC. zero direct worker → non-supervisor edges
+BD. zero preview-frame paths bypassing PreviewCoordinator
+BE. zero completion paths bypassing EvidenceAuthority
 
 Exit gate:
-The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, zero unclassified edges, zero unregistered executable edges, zero boundary→multiple-contract conflicts, zero missing wiring identities, zero undocumented retry edges, zero direct worker edges, zero preview-bypass paths, and zero completion-bypass paths. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
+The fixture must prove the §84.3 boundary contract semantics: schema validation,
+revision binding where applicable, correlation/causation continuity, authority
+enforcement, declared lifecycle/cancellation/retry/recovery/duplicate/stale/
+restart behavior, evidence production where required, deterministic
+authoritative state transitions for equivalent observations, and complete
+boundary resolution. It must also prove that externally nondeterministic
+observations are captured rather than falsely normalized as deterministic
+outputs. A failure at any boundary routes through RecoveryAuthority without
+terminating the goal. A stale or duplicate event cannot overwrite current
+state. A worker replacement resumes from the last validated checkpoint.
+Documentation graph certification is reported separately from runtime
+certification.
 
 
 ---

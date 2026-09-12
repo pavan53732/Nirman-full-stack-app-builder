@@ -290,6 +290,15 @@ SkillPackage
 - lastUsedAt
 ```
 
+**Canonical count authority.** The numbers that appear in these documents name four distinct things and MUST NOT be conflated:
+
+- `SkillInventoryCount` = the number of discoverable `/skills/*/SKILL.md` packages on disk. The v1 baseline is eighty-three; this is a runtime-loader fact, not a capability count.
+- `CapabilityRegistry` size = the number of registered capability contracts in BS §5.7 (twenty-seven). Capabilities are normative product abilities with required contracts, test identity, and evidence identity; they are not skill packages.
+- `SkillPackage` = one admitted skill (one `SKILL.md` plus its `skill.json` manifest). A skill names `requiredCapabilities` (drawn from the closed capability-id vocabulary of BS §79.7) and an open `requiredTools` vocabulary; it is a reusable worker instruction package, not a capability.
+- `SkillInvocation` = one runtime use of an admitted skill, recorded as `SkillInvocationRecord`. Invocation count is telemetry, not a count of skills or capabilities.
+
+A document that cites a count MUST name which of these four it means. "Twenty-eight" appears only as the `EvidenceRecord` field count (BS §80.2; nirman-schemas.md §2.19) and must not be read as a skill, capability, or package count.
+
 ### 1.13 WorkerMessage
 
 **Owner:** BS §26.2 · **Contract:** — · **Projected at:** TA §6.2
@@ -779,16 +788,24 @@ PreviewRevision
 - artifactFingerprint
 - deviceId
 - androidApiLevel
+- emulatorSessionId
+- applicationProcessId
+- launchSessionId
+- runtimeObservationId
 - deviceStateFingerprint
 - applicationStateFingerprint
 - environmentStateFingerprint
 - previewMode: RN_EXPO_FAST_REFRESH | COMPOSE_RELOAD | INCREMENTAL_APK_INSTALL | FULL_APK_REINSTALL | CONSERVATIVE_FULL_REINSTALL | HEADLESS_SMOKE | DIAGNOSTIC_SOURCE_ONLY | USER_REQUIRED | BLOCKED
+- previewAuthorityState: REQUESTED | BUILDING | INSTALLING | LAUNCHING | OBSERVING | CONNECTED | STALE | INVALIDATED | LOST | BLOCKED
 - executionTruth
 - buildStatus
 - installStatus
 - launchStatus
 - runtimeStatus
 - validationStatus
+- latestFrameSequence
+- latestFrameStampId
+- renderTransportGeneration
 - createdAt
 - observedAt
 - invalidatedAt
@@ -839,6 +856,34 @@ IntegrationBoundaryContract
 - applicability: required | optional | not_applicable
 - notApplicableReason
 ```
+
+### 2.90 WorkerConnection
+
+**Owner:** TA §57.11 · **Contract:** — · **Projected at:** —
+
+```text
+WorkerConnection
+- connectionId
+- workerRunId
+- leaseId
+- workerProcessId
+- pipePath
+- handshakeVersion
+- capsVersion
+- launchTokenDigest
+- workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
+- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
+- admittedAt
+- heartbeatIntervalMs
+- lastHeartbeatAt
+- state: CONNECTING | ACTIVE | STALE | ENDED
+- endedReason
+- exitCode
+- openedAt
+- closedAt
+```
+
+Worker-to-supervisor message kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`.
 
 ### 1.37 PreviewSyncEvent
 
@@ -1914,6 +1959,9 @@ PreviewSurface
 ```text
 PreviewInteraction
 - interactionId
+- previewRevisionId
+- emulatorSessionId
+- applicationProcessId
 - previewSurfaceId
 - deviceId
 - runtimeSessionId
@@ -1921,7 +1969,9 @@ PreviewInteraction
 - targetIdentity
 - inputDataClass
 - expectedObservation
-- createdAt
+- preActionApplicationStateFingerprint
+- interactionCausalityId
+- issuedAt
 ```
 
 ### 2.8 EnvironmentRecord
@@ -3704,6 +3754,7 @@ ToolchainProvisioningRecord
 RenderTransport
 - renderTransportId
 - renderTransportVersion
+- renderTransportGeneration
 - previewSurfaceId
 - deviceId
 - deviceSessionId
@@ -3723,9 +3774,24 @@ RenderTransport
 - lastFrameSequence
 - lastFrameAt
 - frameNotice
-  - previewSurfaceId
-  - ringSlot
-  - frameStamp
+  - frameNoticeId
+  - emulatorSessionId
+  - renderTransportGeneration
+  - previewRevisionId
+  - projectRevisionId
+  - artifactFingerprint
+  - deviceStateFingerprint
+  - applicationStateFingerprint
+  - frameSequence
+  - capturedAt
+  - monotonicTimestamp
+  - interactionCausalityId
+  - runtimeObservationId
+  - pixelBufferGeneration
+  - width
+  - height
+  - pixelFormat
+  - droppedFrameCount
 - frameStamp
   - frameSequence
   - capturedAt
@@ -3738,41 +3804,6 @@ RenderTransport
   - deviceStateFingerprint
   - interactionId
 - createdAt
-- closedAt
-```
-
-### 2.90 WorkerConnection
-
-**Owner:** TA §57.11 · **Contract:** — · **Projected at:** —
-
-```text
-WorkerConnection
-- workerConnectionId
-- protocolVersion
-- workerId
-- workerLeaseId
-- attemptId
-- taskId
-- nodeId
-- workerRole
-- executionProfile: TRUSTED_LOCAL | RESTRICTED_PROCESS | HIGH_RISK_RESTRICTED_PROCESS | DISPOSABLE_ISOLATED | REVIEW_ONLY
-- modelProfileId
-- pipeName
-- launchTokenDigest
-- workerProcessId
-- jobObjectName
-- containerSid
-- memoryLimitBytes
-- heartbeatIntervalMs
-- staleThresholdMs
-- state: LAUNCHING | HANDSHAKING | CONNECTED | PAUSED | CANCELLING | CLOSED
-- lastHeartbeatSequence
-- lastHeartbeatAt
-- workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
-- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
-- exitKind: COMPLETED | FAILED | TIMED_OUT | CANCELLED | CRASHED | STALE_TERMINATED
-- exitCode
-- openedAt
 - closedAt
 ```
 
@@ -4123,8 +4154,249 @@ OrchestrationWiringMatrix
 - completedAt: timestamp (optional; null until COMPLETED/FAILED/CANCELLED)
 ```
 
-## References
+### 2.99 ScreenGraphAnalysisRecord
 
-[1]: nirman-build-spec.md
-[2]: nirman-technical-architecture.md
-[3]: nirman-adrs.md
+**Owner:** TA §62.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+ScreenGraphAnalysisRecord
+- analysisId
+- screenGraphId
+- taskId
+- projectRevisionId
+- artifactFingerprint
+- maxDepth
+- maxActionsPerScreen
+- totalNodes
+- totalEdges
+- reachableNodes
+- unreachableNodes
+- deadEndNodes
+- coveragePercentage
+- uncoveredRequirementIds
+- unreachableStates: list of { screenFingerprint, reason }
+- deadEnds: list of { screenFingerprint, actionableElementCount }
+- suggestedTests: list of { targetFingerprint, pathFromLauncher, testIntent }
+- analysisAt
+```
+
+### 2.100 RequirementCoverageReport
+
+**Owner:** BS §56.6 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+RequirementCoverageReport
+- reportId
+- taskId
+- projectRevisionId
+- totalRequirements
+- coveredRequirements
+- uncoveredRequirements
+- requirementToScenario: map of { requirementId, scenarioIds[] }
+- uncoveredRequirementDetails: list of { requirementId, class, confidence, suggestion }
+- generatedAt
+```
+
+### 2.101 ProjectMemoryEntry
+
+**Owner:** TA §31.3 · **Contract:** CONTRACT.RUNTIME.MEMORY · **Projected at:** —
+
+```text
+ProjectMemoryEntry
+- entryId
+- sourceEpisodes: string[]
+- technologyPlanRef
+- failureFamily
+- failureFingerprint
+- affectedSurfaces: string[]
+- repairStrategy
+- repairOutcome: SUCCESS | PARTIAL | FAILURE
+- confidence: float
+- crossRevisionImpact: string[]
+- recommendations: string[]
+- createdAt
+- lastValidatedAt
+```
+
+### 2.102 AndroidSemanticState
+
+**Owner:** TA §62.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+AndroidSemanticState
+- semanticStateId
+- screenFingerprint
+- componentRole: INPUT | DISPLAY | NAVIGATION | FORM | DATA_LIST | DIALOG | SETUP | AUTHENTICATION | EMPTY | ERROR | SUCCESS
+- currentUiState: LOADING | EMPTY | ERROR | SUCCESS | READY | PARTIAL
+- availableActions: list of { actionKind, targetComponent, preconditions }
+- resultingState: UIState after action
+- persistedEffect: DB_WRITE | PREFERENCE_UPDATE | NETWORK_REQUEST | FILE_IO | NONE
+- lifecycleDependency: activity_lifecycle | service_lifecycle | broadcast_receiver | content_provider
+- permissionDependency: list of { permission, state: REQUIRED | GRANTED | DENIED | REQUESTED }
+- referenceSnapshot: ScreenModel reference
+- capturedAt
+```
+
+### 2.103 StateSpaceCoverageModel
+
+**Owner:** TA §62.1 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+StateSpaceCoverageModel
+- coverageId
+- taskId
+- projectRevisionId
+- artifactFingerprint
+- dimension: EMPTY_STATE | LOADING_STATE | ERROR_STATE | SUCCESS_STATE | INVALID_INPUT | PROCESS_DEATH | CONFIGURATION_CHANGE | BACKGROUND_FOREGROUND | PERMISSION_DENIAL | OFFLINE_ONLINE | DEEP_LINK_ENTRY | DATABASE_MIGRATION | AUTH_EXPIRY | DUPLICATE_TAP | STALE_NETWORK
+- requirementId: string
+- tested: boolean
+- evidenceId: string
+- riskFactor: LOW | MEDIUM | HIGH
+- expansionRequired: boolean
+- expandedDimensions: list of { dimension, rationale }
+- capturedAt
+```
+
+### 2.104 RequirementToImplementationGraph
+
+**Owner:** TA §62.4 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+RequirementToImplementationGraph
+- graphId
+- taskId
+- projectRevisionId
+- requirementId
+- behaviorContract: list of { input, expectedOutput, preconditions, postconditions }
+- uiStateTransition: { fromState, action, toState }
+- implementationSymbols: list of { symbolName, symbolKind, file, line }
+- dependencies: list of { dependencyName, kind, version }
+- scenarioId: string
+- observedState: { preState, action, postState }
+- evidenceId: string
+- artifactId: string
+- causalSurface: { component, symbol, dependency, confidence }
+- createdAt
+```
+
+### 2.105 ProofSynthesis
+
+**Owner:** BS §56.6 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+ProofSynthesis
+- proofId
+- taskId
+- projectRevisionId
+- requirementId
+- claim: string
+- requiredProof: list of { proofKind, acceptanceCriterion }
+- acquiredEvidence: list of { evidenceId, evidenceKind, result }
+- independentValidation: boolean
+- remainingUncertainty: list of { uncertaintyKind, confidence }
+- completionEligibility: ELIGIBLE | NOT_ELIGIBLE | PARTIAL | BLOCKED
+- completionReason: string
+- aggregatedProof: { totalRequirements, proven, unproven, blocked }
+- synthesizedAt
+```
+
+### 2.106 ArchitectureFitnessReport
+
+**Owner:** TA §62.8 · **Contract:** CONTRACT.RUNTIME.AGENT_BUILDABILITY · **Projected at:** —
+
+```text
+ArchitectureFitnessReport
+- reportId
+- taskId
+- projectRevisionId
+- technologyPlanId
+- complexityMetrics: { dependencyCount, nativeBridgeCrossings, lifecycleCouplingScore, testabilityScore }
+- recurringFailurePatterns: list of { patternId, frequency, technologyPlanRootCause }
+- fitnessScore: 0.0-1.0
+- proposedRevisions: list of { technologyKind, rationale, expectedImprovement }
+- feedbackLoopRecord: { requirementSynthesisId, appliedRevisionId }
+- generatedAt
+```
+
+### 2.107 RepairExperimentationRecord
+
+**Owner:** TA §30.3 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+RepairExperimentationRecord
+- experimentId
+- taskId
+- projectRevisionId
+- failureId
+- hypothesisId
+- discriminatingProbe: { probeKind, expectedOutcome, observedOutcome }
+- candidateRepairs: list of { repairId, technologySurface, isolationBranch }
+- validationResults: list of { candidateId, passed, evidenceId }
+- winner: repairId
+- winnerEvidence: evidenceId
+- learnedPattern: patternId
+- startedAt
+- completedAt
+```
+
+### 2.108 DeviceMatrixRiskProfile
+
+**Owner:** TA §59.2 · **Contract:** CONTRACT.RUNTIME.DEVICE_MATRIX · **Projected at:** —
+
+```text
+DeviceMatrixRiskProfile
+- profileId
+- requirementId
+- riskFactors: list of { factor, severity }
+- requiredDimensions: list of { dimension, rationale }
+- expandedProfiles: list of { formFactor, apiLevel, abi, orientation }
+- evidenceThreshold: { minDevices, minApis, minAbis }
+- coverageStatus: COVERED | PARTIAL | UNCOVERED
+- createdAt
+```
+
+### 2.109 AndroidRuntimeObservation
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** —
+
+```text
+AndroidRuntimeObservation
+- observationId
+- emulatorSessionId
+- applicationProcessId
+- projectRevisionId
+- artifactFingerprint
+- activityOrComponent
+- lifecycleState
+- screenFingerprint
+- applicationStateFingerprint
+- deviceStateFingerprint
+- uiHierarchyFingerprint
+- logcatWindowRef
+- capturedAt
+- causalityId
+- evidenceIds
+```
+
+### 2.110 FrameQualityObservation
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** —
+
+```text
+FrameQualityObservation
+- frameId
+- resolution
+- pixelFormat
+- blankPixelRatio
+- dominantLuma
+- edgeDensity
+- changedPixelRatioFromPrevious
+- frameAgeMs
+- captureLatencyMs
+- transportLatencyMs
+- renderLatencyMs
+- isVisuallyFrozen
+- isLikelyBlank
+- isLikelySystemSurface
+```
+|

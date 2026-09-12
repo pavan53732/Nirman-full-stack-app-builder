@@ -276,6 +276,7 @@
 | `SkillDeliberationProfile` | §1.34 | BS §68.15 | CONTRACT.RUNTIME.DELIBERATION | — |
 | `PreviewRevision` | §1.35 | BS §69.4 | CONTRACT.RUNTIME.PROMPT_CONTRACT | TA §73.3 |
 | `IntegrationBoundaryContract` | §1.36 | BS §70 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TA §74 |
+| `WorkerConnection` | §2.90 | TA §57.11 | — | — |
 | `PreviewSyncEvent` | §1.37 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `PreviewProjection` | §1.38 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `PreviewProjectionReducer` | §1.39 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
@@ -407,7 +408,6 @@
 | `ToolchainProvisioningManifest` | §2.87 | TA §49.4 | — | — |
 | `ToolchainProvisioningRecord` | §2.88 | TA §49.4 | — | — |
 | `RenderTransport` | §2.89 | TA §10.7 | — | — |
-| `WorkerConnection` | §2.90 | TA §57.11 | — | — |
 | `ScreenModel` | §2.91 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
 | `ScreenGraph` | §2.92 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
 | `DeviceHygienePolicy` | §2.93 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
@@ -417,6 +417,18 @@
 | `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 | `OrchestrationWiringMatrix` | §2.98 | BS §84 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
+| `ScreenGraphAnalysisRecord` | §2.99 | TA §62.2 | CONTRACT.RUNTIME.E2E | — |
+| `RequirementCoverageReport` | §2.100 | BS §56.6 | CONTRACT.RUNTIME.E2E | — |
+| `ProjectMemoryEntry` | §2.101 | TA §31.3 | CONTRACT.RUNTIME.MEMORY | — |
+| `AndroidSemanticState` | §2.102 | TA §62.2 | CONTRACT.RUNTIME.E2E | — |
+| `StateSpaceCoverageModel` | §2.103 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
+| `RequirementToImplementationGraph` | §2.104 | TA §62.4 | CONTRACT.RUNTIME.E2E | — |
+| `ProofSynthesis` | §2.105 | BS §56.6 | CONTRACT.RUNTIME.E2E | — |
+| `ArchitectureFitnessReport` | §2.106 | TA §62.8 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | — |
+| `RepairExperimentationRecord` | §2.107 | TA §30.3 | CONTRACT.RUNTIME.E2E | — |
+| `DeviceMatrixRiskProfile` | §2.108 | TA §59.2 | CONTRACT.RUNTIME.DEVICE_MATRIX | — |
+| `AndroidRuntimeObservation` | §2.109 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
+| `FrameQualityObservation` | §2.110 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 
 ## 4. Milestone → section
 
@@ -503,4 +515,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-232 | 33 | Accepted 33 |
+| ADR-200–ADR-235 | 36 | Accepted 36 |

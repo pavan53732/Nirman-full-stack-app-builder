@@ -493,7 +493,54 @@ Project synthesis must be incremental. It should first create a buildable Androi
 
 Android validation MUST use disposable Nirman-managed local Android emulator snapshots only. Physical Android hardware is outside product scope and MUST NOT participate in preview, validation, recovery, completion, or delivery. It must not reuse personal credentials, host-side secrets, or unapproved emulator data. Test data should be synthetic by default. Emulator sessions, installed packages, permissions, logs, screenshots, and cleanup state must be attached to the task record.
 
-### 10.7 Emulator frame transport
+### 10.7 Emulator frame transport and pipeline watchdog
+
+The Nirman-managed local Android emulator is the canonical PreviewRuntime for the primary development workflow. It MUST run headless on the Windows host and its rendering surface MUST be projected into the WinUI 3 PreviewHost. A detached emulator window is not a valid primary preview.
+
+No physical Android hardware is supported, required, or accepted as an alternative runtime. The Nirman-managed local Android emulator is the sole canonical Android preview and validation runtime.
+
+The transport is a named, versioned interface with a required baseline and a permitted upgrade:
+
+**RenderPipelineWatchdog**
+
+The supervisor owns the render pipeline watchdog and its deterministic state machine. PreviewHost does not own, start, stop, or recover the pipeline.
+
+Responsibilities:
+- detect emulator boot without frame
+- detect frame stream without preview connection
+- detect preview connection without current artifact
+- detect frame identity mismatch
+- detect frame sequence gaps
+- detect frame stagnation
+- detect application-process death
+- detect surface-size mismatch
+- detect transport generation rollover
+- detect stale frame painting
+- trigger deterministic recovery
+
+State machine:
+STARTING → WAITING_EMULATOR → WAITING_APP → WAITING_FRAME → CONNECTED → DEGRADED → LOST → RECOVERING → CONNECTED | FAILED
+
+Recovery order is deterministic and supervision-owned:
+re-observe → inspect process → inspect Logcat → inspect frame stream → verify artifact/session identity → refresh render transport → relaunch app → reinstall artifact → restore golden snapshot → rebuild → architecture-level diagnosis
+
+Failure kinds the watchdog reports:
+- PREVIEW_NO_FRAME
+- PREVIEW_BLACK_FRAME
+- PREVIEW_STALE_FRAME
+- PREVIEW_FROZEN_FRAME
+- PREVIEW_IDENTITY_MISMATCH
+- PREVIEW_STREAM_DISCONNECTED
+- PREVIEW_FRAME_GAP
+- PREVIEW_SURFACE_RESIZE_MISMATCH
+- PREVIEW_APP_PROCESS_DEAD
+- PREVIEW_RENDER_TRANSPORT_LOST
+
+> **Schema projection:** `RenderTransport` is defined in `nirman-schemas.md` §2.89. Owner: TA §10.7.
+
+> **Schema projection:** `AndroidRuntimeObservation` is defined in `nirman-schemas.md` §2.109. Owner: TA §10.7.
+
+> **Schema projection:** `FrameQualityObservation` is defined in `nirman-schemas.md` §2.110. Owner: TA §10.7.
 
 The Nirman-managed local Android emulator is the canonical PreviewRuntime for the primary development workflow. It MUST run headless on the Windows host and its rendering surface MUST be projected into the WinUI 3 PreviewHost. A detached emulator window is not a valid primary preview.
 
@@ -508,18 +555,18 @@ Every delivered frame MUST bind `deviceId`, `PreviewRevision`, `artifactFingerpr
 
 **Transport mechanics.** The `RenderTransport` is a supervisor-owned object, one per emulator session, created by the Android emulator manager (§10.3) when `AndroidDeviceAdapter.boot()` succeeds and destroyed on `release()`:
 
-- *Emulator side.* The emulator is launched by the supervisor with `-no-window`, `-grpc <port>` on `127.0.0.1` with a per-session token, and its process placed in the session Job Object (§3.4). The supervisor — never a worker, never PreviewHost — opens the single gRPC channel and subscribes to the screenshot stream (`streamScreenshot`, RGBA8888, device-native resolution, the emulator delivering a frame only when the display changes). The token, the port, and the channel are never exposed on the named pipe or to any other process.
+- *Emulator side.* The supervisor — never a worker, never PreviewHost — opens the single gRPC channel and subscribes to the screenshot stream (`streamScreenshot`, RGBA8888, device-native resolution, the emulator delivering a frame only when the display changes) per ADR-221. The token, the port, and the channel are never exposed on the named pipe or to any other process.
 - *Frame path.* Each frame is stamped by the supervisor with `frameSequence`, `capturedAt`, `width`, `height`, `pixelFormat`, `deviceId`, `previewRevisionId`, `artifactFingerprint`, and `deviceStateFingerprint` — the binding above — and written to a per-surface shared-memory ring (`transportKind: SHARED_MEMORY_RING`) of `ringDepth` slots (default 3). PreviewHost learns of the frame through a `FrameNotice` — `previewSurfaceId`, `ringSlot`, `frameStamp` — sent on the authenticated `SupervisorConnection` (§57.3) as a volatile display message: a `FrameNotice` is not a `PreviewSyncEvent`, is never appended to the durable event log, carries no `eventSequence`, is never replayed, and is dropped without record when the reader is behind. Frame pixels and frame notices never travel through the durable event log.
 - *Frames are pixels; events are meaning.* `PreviewSyncEvent`s are emitted only on a change of stream state, never per frame: `STREAM_RECONNECTED` when the first stamped frame arrives after boot or after a gap (the reducer sets `PreviewProjection.streamStatus: CONNECTED`), `STREAM_GAP` when the heartbeat fails (`STALE_STREAM`), and `OBSERVATION_CAPTURED` only when `captureScreenshot()` produces an evidence record. PreviewHost MAY paint a frame as live only when the reduced projection's `streamStatus` is `CONNECTED`, a `FrameNotice` arrived within `staleAfterMs`, and the notice's `frameStamp` binds the projection's `candidatePreviewRevisionId`, `deviceId`, and `artifactFingerprint`; a notice failing any of the three is discarded before painting, and the panel shows the last frame under a `STALE` label instead. Liveness therefore has two independent witnesses — durable stream state and a fresh bound frame — and neither the UI nor a lagging log can produce it alone (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER, CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE).
 - *Rate and backpressure.* `maxFrameRate` is 30 frames per second for the baseline transport; when PreviewHost has not consumed a slot, the oldest unconsumed frame is overwritten (`backpressurePolicy: DROP_OLDEST`), never buffered without bound and never blocking the emulator. A gap of more than `staleAfterMs` (default 2000) without a new frame while the device reports the display unchanged is `IDLE` (the last frame stays painted, no event); the same gap with a failed heartbeat is `LOST`, on which the supervisor emits one durable `STREAM_GAP` and the reducer projects `STALE_STREAM` under CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE.
 - *PreviewHost side.* PreviewHost maps the ring read-only, presents each frame on a WinUI 3 `SwapChainPanel` (Win2D/Direct2D), and falls back to a `WriteableBitmap` in `Image` when the GPU surface is unavailable; the fallback is recorded in `PreviewSurface.status`, never silent. Frames are scaled to the panel with aspect preserved; the pixel-to-device coordinate transform is derived from the frame `width`/`height` and applied to every `PreviewInteraction` before it leaves PreviewHost.
+
+PreviewHost is a pure projection sink. It MUST NOT start the emulator, install APK, call ADB, call Gradle, read project files, mutate preview state, or decide currentness. It receives projection and mapped frame, validates stamp, paints, and reports surface health only.
 - *Input path.* `PreviewInteraction` commands (tap, long-press, swipe, key, text, rotate) travel PreviewHost → `SupervisorConnection` (§57.3) → Supervisor → `AndroidDeviceAdapter.interact()`; the adapter injects them through the same gRPC channel (`sendTouch`, `sendKey`) and the resulting frame carries the interaction's `interactionId` in its stamp so evidence can pair an action with its observed post-state.
 - *GPU.* The emulator runs with host GPU acceleration when the host GPU is usable and with the SwiftShader software renderer otherwise; both are valid render sources and the choice is recorded in `RenderTransport.gpuMode`. The hypervisor has no such fallback (build spec §79.16).
 - *Upgrade.* The WebRTC path (`transportKind: WEBRTC_LOOPBACK`) replaces the ring with a loopback media stream at up to 60 frames per second under the same stamps, the same reducer, and the same `PreviewPromotionGate`; a transport upgrade never changes what counts as evidence.
 
-> **Schema projection:** `RenderTransport` is defined in `nirman-schemas.md` §2.89. Owner: TA §10.7.
-
-### 10.8 Embedded PreviewHost
+### 10.8 PreviewHost
 
 PreviewHost is the WinUI 3 presentation surface that displays the rendering projection of the Nirman-managed Android emulator.
 
@@ -550,10 +597,6 @@ The PreviewHost MUST NOT invoke ADB, Gradle, emulator APIs, or application inter
 > **Schema projection:** `PreviewInteraction` is defined in `nirman-schemas.md` §2.7. Owner: TA §10.8.
 
 These are execution and projection records, not authorities.
-
----
-
----
 
 ## 11. Toolchain and Environment Management
 
@@ -1435,6 +1478,8 @@ Changes to the supervisor, policy engine, credential handling, sandbox, updater,
 
 ### 30.3 Candidate generation loop
 
+> **Schema projection:** `RepairExperimentationRecord` is defined in `nirman-schemas.md` §2.107. Owner: TA §30.3.
+
 ```text
 Observe episodes and metrics
     ↓
@@ -1496,6 +1541,25 @@ Nirman should maintain three memory scopes:
 | Runtime improvement memory | Anonymized failure patterns, evaluation results, provider compatibility, and candidate outcomes | Runtime version lifetime, user-controlled |
 
 Memory should be written from validated events and user-confirmed decisions, not from every model statement. The user must be able to inspect, correct, export, and delete memory. Secrets, raw credentials, protected files, and unclassified private content must be excluded.
+
+### 31.3 Project Memory Learning Service
+
+The runtime provides a deterministic service that extracts cross-revision failure patterns from `EpisodeRecord` and `RepairPattern` data and uses them during planning.
+
+**Responsibilities:**
+
+- Extract causal failure signatures from episodes (task class, technology plan, failure fingerprint, recovery outcome)
+- Store signatures in `ProjectMemoryEntry` records with scope, confidence, and evidence bindings
+- During task initialization, query the ProjectMemory for matching signatures and surface findings to the PlanningWorker
+- Update technologyPlan based on learned failure patterns (e.g., "Compose + X library → navigation bug")
+
+**Schema:** `ProjectMemoryEntry` (SCHEMAS §2.101)
+
+**Contract:** `CONTRACT.RUNTIME.MEMORY`
+
+**Precedence:** Runtime intelligence, not authority - findings guide planning but cannot grant permissions, auto-complete requirements, or auto-block tasks.
+
+> **Schema projection:** `ProjectMemoryEntry` is defined in `nirman-schemas.md` §2.101. Owner: TA §31.3.
 
 ## 32. Complete Runtime and Self-Improvement Failure Modes
 
@@ -3075,6 +3139,8 @@ The architecture retains three dedicated implementation collaborators:
 
 ### 59.2 Repository Semantic Graph
 
+> **Schema projection:** `DeviceMatrixRiskProfile` is defined in `nirman-schemas.md` §2.108. Owner: TA §59.2.
+
 The workspace maintains a typed, queryable `RepositorySemanticGraph` updated incrementally on every workspace mutation. It structures code into a strict physical-to-semantic containment hierarchy:
 
 ```text
@@ -3403,31 +3469,97 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 
 > **Schema projection:** `ScreenGraph` is defined in `nirman-schemas.md` §2.92. Owner: TA §62.1.
 
+> **Schema projection:** `StateSpaceCoverageModel` is defined in `nirman-schemas.md` §2.103. Owner: TA §62.1.
+
 `ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` then maps each acceptance criterion and each required scenario class to a path in the graph and emits an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.3 exactly like authored ones.
 
-### 62.2 Step and assertion schema
+### 62.2 ScreenGraph Analysis Service
+
+> **Schema projection:** `ScreenGraphAnalysisRecord` is defined in `nirman-schemas.md` §2.99. Owner: TA §62.2.
+
+The runtime provides a deterministic service that computes reachability and analysis from the ScreenGraph.
+
+**Responsibilities:**
+
+- Compute reachability matrix from ScreenGraph (identifies unreachable screens/states)
+- Identify dead ends (screens with no actionable elements except back/exit)
+- Suggest targeted test cases for critical unexplored edges
+- Compute coverage percentage against AndroidConstructionContract requirements
+- Flag unreachable states as defects (not just untested)
+
+**Schema:** `ScreenGraphAnalysisRecord` (SCHEMAS §2.99)
+
+**Contract:** `CONTRACT.RUNTIME.E2E`
+
+**Precedence:** Runtime intelligence, not authority - findings guide testing but cannot auto-complete requirements or auto-block tasks.
+
+> **Schema projection:** `ScreenGraphAnalysisRecord` is defined in `nirman-schemas.md` §2.99. Owner: TA §62.2.
+
+> **Schema projection:** `AndroidSemanticState` is defined in `nirman-schemas.md` §2.102. Owner: TA §62.2.
 
 > **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
 
-System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.3).
+The runtime provides a deterministic service that computes reachability and analysis from the ScreenGraph.
 
-### 62.3 Determinism enforcement
+### 62.3 Step and assertion schema
+
+> **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
+
+System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.4).
+
+### 62.4 Determinism enforcement
+
+> **Schema projection:** `RequirementToImplementationGraph` is defined in `nirman-schemas.md` §2.104. Owner: TA §62.4.
 
 ScenarioExecutor must use explicit `wait_for` conditions and never fixed sleeps as synchronization. A scenario that passes and fails across repeated runs on the same revision and device must be marked `deterministic: false` and excluded from completion evidence until stabilized.
 
-### 62.4 Seed provenance
+### 62.5 Seed provenance
 
 SeedDataProvisioner records how each precondition was established. Seeded state is labeled in evidence so it cannot be mistaken for behavior the application produced, satisfying the honesty invariant of build spec §66.1.
 
-### 62.5 Persistence
+### 62.6 Persistence
 
 Scenario definitions, runs, step results, and evidence references are stored in the execution ledger and linked to requirement identifiers, enabling the traceability chain of build spec §66.3.
 
-### 62.6 Architecture tests
+### 62.7 Causal Surface Identification
+
+The runtime provides a deterministic service that traces requirements to implementation symbols and dependencies.
+
+**Responsibilities:**
+
+- Build RequirementToImplementationGraph on task initialization (requirement → behavior → UI transition → symbols → dependencies → scenario → evidence)
+- On failure, identify the smallest causal surface (component, symbol, dependency) responsible
+- Replace broad "fix the crash" with precise "repair the lifecycle dependency"
+
+**Schema:** `RequirementToImplementationGraph` (§nirman-schemas.md §2.104)
+
+**Contract:** `CONTRACT.RUNTIME.E2E`
+
+**Precedence:** Runtime intelligence, not authority - causal surfaces guide repair but cannot auto-complete requirements.
+
+### 62.8 Architecture Fitness Evaluation
+
+> **Schema projection:** `ArchitectureFitnessReport` is defined in `nirman-schemas.md` §2.106. Owner: TA §62.8.
+
+The runtime provides a deterministic service that evaluates technology plan quality after generation.
+
+**Responsibilities:**
+
+- Post-build evaluation: excessive JS/native crossings, lifecycle hazards, unnecessary complexity, testability
+- Propose technology-plan revision when the architecture itself causes recurring failures
+- Provide feedback loop to requirement synthesis
+
+**Schema:** `ArchitectureFitnessReport` (§nirman-schemas.md §2.106)
+
+**Contract:** `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Precedence:** Runtime intelligence, not authority - findings guide planning but cannot auto-change technology plans.
+
+### 62.11 Architecture tests
 
 The engine is correct only when a data-persistence scenario detects an app that loses data on process death; when a flaky scenario is quarantined rather than reported as passing; and when every requirement's scenario link resolves in the ledger.
 
-### 62.7 Adapter-side resolution
+### 62.12 Adapter-side resolution
 
 Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test.
 
@@ -4116,7 +4248,10 @@ The threshold is configuration, not a runtime constant. No component may hardcod
 
 ### 73.1 Prompt contract boundary
 
-All coordinator, worker, skill, deliberation, and review prompts that can influence Android construction must implement the `IntentSynthesisPromptContract`. The prompt builder supplies the current contract version, project revision, checkpoint, selected evidence, assigned scope, allowed capabilities, and unresolved questions. It must not inject a user-facing template or framework choice.
+Any coordinator, worker, skill, deliberation, or review prompt used for Android
+construction MUST conform to the IntentSynthesisPromptContract. The concrete
+prompt definitions remain owned by their respective prompt-class owners; this
+section defines the common contract boundary and does not imply that prompt classes are fully specified here; build spec §80.8 explicitly records the coordinator, worker, skill, deliberation, and review classes as not templated and owner-pending.
 
 The user's conversation message is not itself the provider/model prompt. The runtime normalizes it into requirements and constructs an internal model instruction from current state, context, evidence, policy constraints, and the role contract. No user-facing prompt-template entity is created. Internal model instructions are versioned and auditable by identity and hash; the user request is preserved as task provenance and is never the assembled provider instruction.
 
