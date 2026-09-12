@@ -310,10 +310,10 @@ CASES = {
 
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
-        BS, "| Build spec (all sections) | 279 | 279 | Complete |", "| Build spec (all sections) | 320 | 320 | Complete |",
+        BS, "| Build spec (all sections) | 322 | 322 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
         "semantic documentation"),
     "§80.10 total overstated": (
-        BS, "| **Total** | **454** | **454** | **100%** |", "| **Total** | **512** | **512** | **100%** |",
+        BS, "| **Total** | **497** | **497** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
         "semantic documentation"),
     "§80.2 row deleted without updating §80.10": (
         BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",
@@ -1746,6 +1746,24 @@ CASES = {
         TA,
         "This section is the **canonical cycle state machine**",
         "This section describes the cycle states",
+        "semantic documentation"),
+
+    # ---- §80.2 statement coverage: the reverse of quote fidelity. A row count
+    # alone cannot show that every "should" statement has a row, which is how 43
+    # unresolved statements survived a table reporting 100 percent.
+    "a §80.2 row is deleted, orphaning its statement": (
+        BS,
+        "| BS §9.4 | \"Generated application runtime traffic should be distinguishable "
+        "from Nirman\u2019s own provider and package-manager traffic.\" | MUST separate "
+        "generated-app traffic from Nirman traffic | Generated runtime traffic is "
+        "attributable separately from provider and package-manager traffic |\n",
+        "",
+        "semantic documentation"),
+    "a new \"should\" statement is added with no row": (
+        BS,
+        "The log should be exportable for troubleshooting.",
+        "The log should be exportable for troubleshooting. The log should also be "
+        "cryptographically signed and retained for seven years.",
         "semantic documentation"),
 }
 

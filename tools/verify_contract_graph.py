@@ -3417,6 +3417,34 @@ def check_semantic_documentation(docs, R, D, root="."):
         if not all(f in body for f in frags):
             D.add("semantic documentation", "§80.2 quote fidelity",
                   f"{doc} §{num} does not contain the quoted statement {quote[:70]!r}")
+    # §80.2 statement coverage: the reverse direction of quote fidelity. A row
+    # count proves only that every row is resolved; it does not prove that every
+    # "should" statement has a row, which is how 21 unresolved statements in BS
+    # §3-§23 survived a table that reported 100 percent. Every "should"-bearing
+    # statement in the build spec outside §80, outside fenced examples, and
+    # outside table rows MUST be matched verbatim by the quoted statement of
+    # some §80.2 row, so an added "should" without a row is a certification
+    # failure rather than a silent shortfall.
+    _no80 = re.sub(r"(?ms)^## 80\..*?(?=^## 81\.)", "", bs)
+    _prose, _fence = [], False
+    for _ln in _no80.split("\n"):
+        if _ln.startswith("```"):
+            _fence = not _fence
+            continue
+        if _fence or _ln.startswith("|"):
+            continue
+        _prose.append(_ln.replace("**", ""))
+    _quoted = set()
+    for _q in re.findall(r'^\| (?:BS|TA) §[0-9.]+ \| "([^"]+)"', quote_table, re.M):
+        for _f in re.split(r"\.\.\.|…", _q):
+            if _f.strip():
+                _quoted.add(_f.strip())
+    for _ln in _prose:
+        for _st in [x.strip() for x in re.split(r"(?<=[.!?])\s+", _ln)
+                    if re.search(r"\bshould\b", x)]:
+            if not any(_f in _st for _f in _quoted):
+                D.add("semantic documentation", "§80.2 statement coverage",
+                      f"unresolved \"should\" statement with no §80.2 row: {_st[:70]!r}")
     # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
     # number of §80.2 rows carrying that scope prefix, and the total MUST be
     # their sum. A hand-maintained figure that drifts from the table it
