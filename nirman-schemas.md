@@ -4076,10 +4076,11 @@ LoopHeartbeat
 
 ### 2.98 OrchestrationWiringMatrix
 
-**Owner:** BS §84 · **Contract:** — · **Projected at:** —
+**Owner:** BS §84 · **Contract:** CONTRACT.RUNTIME.INTEGRATION_BOUNDARY · **Projected at:** —
 
 ```text
 OrchestrationWiringMatrix
+- boundaryId: uuid (resolves exactly one IntegrationBoundaryContract)
 - producer: string (component name)
 - consumer: string (component name)
 - schema: string (schema block reference)
@@ -4097,6 +4098,20 @@ OrchestrationWiringMatrix
 - staleBehavior: STALE | IGNORE | REJECT
 - cancelBehavior: PRESERVE_CHECKPOINT | ROLLBACK | ABANDON
 - restartBehavior: RESUME_FROM_CHECKPOINT | RECONCILE | FAIL_SAFE
+- operationRef: string (operation identifier)
+- payloadSchemaRef: string (schema reference)
+- responseSchemaRef: string (schema reference)
+- protocolVersion: string
+- adapterOrBridgeRef: string (adapter/bridge reference)
+- transactionDomain: local | device | external_effect | none
+- permissionProfileRef: string (permission profile reference)
+- lifecyclePolicyRef: string (lifecycle policy reference)
+- timeoutPolicy: string (timeout policy reference)
+- cancellationPolicy: string (cancellation policy reference)
+- retryPolicy: string (retry policy reference)
+- compatibilityRef: string (compatibility reference)
+- invalidationDependencyRefs: string[] (invalidation dependency IDs)
+- downstreamEffectRefs: string[] (downstream effect IDs)
 ```
 
 ## References

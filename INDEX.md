@@ -416,7 +416,7 @@
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
 | `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
-| `OrchestrationWiringMatrix` | §2.98 | BS §84 | — | — |
+| `OrchestrationWiringMatrix` | §2.98 | BS §84 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 
 ## 4. Milestone → section
 

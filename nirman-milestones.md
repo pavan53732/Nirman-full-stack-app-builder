@@ -1963,11 +1963,18 @@ User message
   → dependency analysis (TaskScheduler, §7)
   → worker selection (SwarmPlanner, §6.5)
   → lease (WorkspaceLeaseManager, §58.7)
-  → worker reasoning (AgentReasoningEngine, §71)
+  → WorkerRuntime → NirmanWorker.exe launch-token handshake → WorkerConnection
+  → WorkerConnection → ContextOrchestrator → ContextPackage
+  → ContextPackage → ModelGateway → ProviderAdapter/provider
+  → provider response → ModelGateway → normalized response → WorkerConnection
+  → WorkerConnection → AgentReasoningEngine (§71)
+  → reasoning → CapabilityBroker → SkillRuntime/Worker/Tool/Swarm → result → AgentLoopReducer
   → proposal (Schema-validated, §69.2)
   → authorization (PolicyAuthority, §23.7)
   → tool execution (ToolBroker, §49)
+  → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
   → observation (AndroidDeviceAdapter, §73.12)
+  → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority → promotion
   → state update (AgentLoopReducer, §58)
   → progress evaluation (ProgressEvaluator, §58)
   → next-node scheduling (TaskScheduler, §7)
@@ -1976,23 +1983,25 @@ User message
   → artifact (ArtifactAuthority, §49)
   → emulator install (Emulator Driver Worker, §6.5)
   → launch (AndroidDeviceAdapter, §73.12)
+  → Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
+  → Preview UI input → SupervisorConnection → PreviewCoordinator → AndroidDeviceAdapter → emulator → resulting stamped frame
   → ScreenGraph/ScreenModel (§74.2)
   → E2E validation (ValidationPlanner, §64)
   → visual validation (Visual QA Worker, §6.5)
   → evidence promotion (EvidenceAuthority, §23.3)
   → PreviewRevision promotion (PreviewPromotionGate, §73.5.1)
-  → CompletionDecision (CompletionEvaluator, §23.7)
+  → CompletionDecision (§5.7.7)
 ```
 
-Every arrow in the matrix carries: producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, observation/evidence, success transition, failure transition, recovery transition, stale/duplicate behavior, cancellation behavior, and restart behavior.
+Every arrow in the matrix carries: producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, observation/evidence, success transition, failure transition, recovery transition, stale/duplicate behavior, cancellation behavior, restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract`.
 
 Deliver:
-- OrchestrationWiringMatrix schema block (nirman-schemas.md §2.98): producer, consumer, schema, revisionId, taskId, workerId, correlationId, causationId, authority, persistenceEvent, evidenceRef, successTransition, failureTransition, recoveryTransition, staleBehavior, cancelBehavior, restartBehavior
-- One adversarial fixture (TEST-ORCH-WIRING-001) proving the entire chain in one run, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, and final completion
+- OrchestrationWiringMatrix schema block (nirman-schemas.md §2.98): boundaryId, producer, consumer, schema, revisionId, taskId, workerId, correlationId, causationId, authority, persistenceEvent, evidenceRef, successTransition, failureTransition, recoveryTransition, staleBehavior, cancelBehavior, restartBehavior, operationRef, payloadSchemaRef, responseSchemaRef, protocolVersion, adapterOrBridgeRef, transactionDomain, permissionProfileRef, lifecyclePolicyRef, timeoutPolicy, cancellationPolicy, retryPolicy, compatibilityRef, invalidationDependencyRefs, downstreamEffectRefs
+- One adversarial fixture (TEST-ORCH-WIRING-001) proving the entire chain in one run, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, PreviewTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility
 - M51, M108, M109, M110, M123 updated to reference the wiring matrix as their cross-cutting contract
 
 Exit gate:
-The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, and evidence-linked. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
+The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
 
 TEST-ORCH-WIRING-001 MUST prove:
 A. user message normalizes to a durable goal with acceptance criteria
@@ -2001,20 +2010,41 @@ C. technology plan resolves to locked build/device adapters
 D. task graph compiles with explicit dependency order
 E. worker selection matches role, capability, and resource constraints
 F. worker lease grants isolated workspace with bounded permissions
-G. worker proposal is schema-validated before authorization
-H. policy authority gates every tool execution
-I. observation produces revision-bound evidence
-J. state update is deterministic and idempotent
-K. progress evaluation routes failures to RecoveryAuthority
-L. reconciliation detects and resolves conflicts before integration
-M. build produces artifact with provenance
-N. emulator install/launch produces runtime observation
-O. preview promotion passes PreviewPromotionGate with evidence
-P. completion decision is evidence-backed, not model-claimed
-Q. worker replacement resumes from last validated checkpoint
-R. stale/duplicate events cannot overwrite current state
-S. cancellation preserves checkpoint and evidence
-T. restart reloads from last known-good state
+G. WorkerRuntime → NirmanWorker.exe launch-token handshake → WorkerConnection
+H. WorkerConnection → ContextOrchestrator → ContextPackage → ModelGateway → ProviderAdapter
+I. provider response → ModelGateway → normalized response → WorkerConnection → AgentReasoningEngine
+J. reasoning → CapabilityBroker → SkillRuntime/Worker/Tool/Swarm → result → AgentLoopReducer
+K. worker proposal is schema-validated before authorization
+L. policy authority gates every tool execution
+M. authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
+N. observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority → promotion
+O. observation produces revision-bound evidence
+P. state update is deterministic and idempotent
+Q. progress evaluation routes failures to RecoveryAuthority
+R. reconciliation detects and resolves conflicts before integration
+S. build produces artifact with provenance
+T. emulator install/launch produces runtime observation
+U. Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
+V. Preview UI input → SupervisorConnection → PreviewCoordinator → AndroidDeviceAdapter → emulator → resulting stamped frame
+W. preview promotion passes PreviewPromotionGate with evidence
+X. completion decision is evidence-backed, not model-claimed
+Y. worker replacement resumes from last validated checkpoint
+Z. stale/duplicate events cannot overwrite current state
+AA. cancellation preserves checkpoint and evidence
+AB. restart reloads from last known-good state
+AC. provider/model failure routes through RecoveryAuthority without terminating the goal
+AD. stale ContextPackage is invalidated and reassembled
+AE. skill/capability mediation dispatches to the correct worker role
+AF. WorkerConnection fencing rejects unauthorized worker-to-worker edges
+AG. model-call cancellation preserves checkpoint and evidence
+AH. checkpoint invalidation forces revalidation before continuation
+AI. evidence invalidation after source revision change / artifact replacement / emulator restart / toolchain change / policy change / checkpoint rollback
+AJ. PreviewTransport frame loss/reordering produces identical replayed state
+AK. UI snapshot/replay gap is detected and surfaced
+AL. preview input causality is preserved through the emulator → frame chain
+AM. artifact export/verification produces byte-identical copy with hash
+AN. policy change during execution is applied at the next authorization boundary
+AO. integration-boundary version incompatibility is detected and reported before execution
 
 
 ---

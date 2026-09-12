@@ -7178,11 +7178,56 @@ User message
 
 ### 84.2 OrchestrationWiringMatrix schema
 
-> **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84.
+> **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84. Contract: `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`.
 
-Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, and stale/duplicate/cancel/restart behavior.
+Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, stale/duplicate/cancel/restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract` (nirman-schemas.md §1.36).
 
-### 84.3 Boundary contracts
+### 84.3 Canonical pipeline (complete)
+
+The Nirman autonomous loop is a single deterministic causal pipeline. Every boundary between components is mechanically enumerated with its producer, consumer, schema, identities, authority, persistence, transitions, and failure modes. The canonical pipeline is:
+
+```text
+User message
+  → normalized goal (GoalInterpreter, §58)
+  → requirements/frontier (ConstraintRegistry, §59; MemoryStore, §59)
+  → AndroidConstructionContract (BS §69.4)
+  → preflight (PreflightService, BS §5.7)
+  → technology plan (AndroidTechnologyResolver, technical architecture §73.2)
+  → compiled TaskGraph (TaskGraphCompiler, BS §58)
+  → dependency analysis (TaskScheduler, BS §7)
+  → worker selection (SwarmPlanner, BS §6.5)
+  → lease (WorkspaceLeaseManager, technical architecture §58.7)
+  → WorkerRuntime → NirmanWorker.exe launch-token handshake → WorkerConnection
+  → WorkerConnection → ContextOrchestrator → ContextPackage
+  → ContextPackage → ModelGateway → ProviderAdapter/provider
+  → provider response → ModelGateway → normalized response → WorkerConnection
+  → WorkerConnection → AgentReasoningEngine (BS §71)
+  → reasoning → CapabilityBroker → SkillRuntime/Worker/Tool/Swarm → result → AgentLoopReducer
+  → proposal (Schema-validated, BS §69.2)
+  → authorization (PolicyAuthority, BS §23.7)
+  → tool execution (ToolBroker, BS §49)
+  → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
+  → observation (AndroidDeviceAdapter, technical architecture §73.12)
+  → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority → promotion
+  → state update (AgentLoopReducer, BS §58)
+  → progress evaluation (ProgressEvaluator, BS §58)
+  → next-node scheduling (TaskScheduler, BS §7)
+  → reconciliation (Reconciliation Worker, BS §6.5)
+  → build (AndroidBuildAdapter, technical architecture §73.13)
+  → artifact (ArtifactAuthority, BS §49)
+  → emulator install (Emulator Driver Worker, BS §6.5)
+  → launch (AndroidDeviceAdapter, technical architecture §73.12)
+  → Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
+  → Preview UI input → SupervisorConnection → PreviewCoordinator → AndroidDeviceAdapter → emulator → resulting stamped frame
+  → ScreenGraph/ScreenModel (technical architecture §74.2)
+  → E2E validation (ValidationPlanner, BS §64)
+  → visual validation (Visual QA Worker, BS §6.5)
+  → evidence promotion (EvidenceAuthority, BS §23.3)
+  → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
+  → CompletionDecision (build spec §5.7.7)
+```
+
+### 84.4 Boundary contracts
 
 Every boundary handoff MUST be:
 - **Deterministic** — same inputs produce same outputs
@@ -7194,10 +7239,11 @@ Every boundary handoff MUST be:
 - **Recoverable** — failure routes through `RecoveryAuthority`
 - **Idempotent** — duplicate events cannot corrupt state
 - **Restart-safe** — resume from last validated checkpoint
+- **Integration-boundary-complete** — `boundaryId` resolves exactly one `IntegrationBoundaryContract`
 
-### 84.4 M124 certification
+### 84.5 M124 certification
 
-M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, and final completion.
+M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, PreviewTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility.
 
 ---
 
