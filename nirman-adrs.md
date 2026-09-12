@@ -2963,7 +2963,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Status:** Accepted · **Supersedes:** none · **Amended by:** none
 
-**Decision:** Nirman implements intelligence as a deterministic, evidence-bound cognitive development loop. The model layer proposes interpretations, candidate strategies, and hypotheses. The deterministic runtime services — `LifecycleAuthority`, `EvidenceAuthority`, `SupervisorAuthority`, `CompletionEvaluator` — own evidence state (`EvidenceFrontier`), action selection via `ReasoningArtifact` (§1.27), authorization, observation (`VisualObservation`), validation, memory admission, repair selection via `RepairPattern` (§2.96, extended), and completion decisions. No model proposal becomes authoritative state without passing the promotion gate.
+**Decision:** Nirman implements intelligence as a deterministic, evidence-bound cognitive development loop. The model layer proposes interpretations, candidate strategies, and hypotheses. The deterministic runtime services — `LifecycleAuthority`, `EvidenceAuthority`, `SupervisorAuthority`, `EvidenceAuthority (completion evaluator)` — own evidence state (`EvidenceFrontier`), action selection via `ReasoningArtifact` (§1.27), authorization, observation (`VisualObservation`), validation, memory admission, repair selection via `RepairPattern` (§2.96, extended), and completion decisions. No model proposal becomes authoritative state without passing the promotion gate.
 
 **Reversal trigger:** If an implementation allows model confidence, pixel similarity alone, compilation success alone, or unverified predictions to advance the loop, or creates a second decision authority separate from the supervisor/evidence/completion authorities, this ADR is reversed.
 
@@ -2973,7 +2973,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Locks:** `CONTRACT.RUNTIME.E2E`
 
-**Locked surfaces:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / CompletionEvaluator (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
+**Locked surfaces:** EvidenceFrontier (§53.6); RepairPattern (§2.96, extended); VisualObservation (§2.97); LifecycleAuthority / EvidenceAuthority / EvidenceAuthority (completion evaluator) (TA §21); M20 milestone contract; ReasoningArtifact (§1.27); Hypothesis (§1.29); ReflectionRecord (§1.28).
 ---
 
 ## ADR-229: Owner-approved resource thresholds — the four §26.6 values are canonical

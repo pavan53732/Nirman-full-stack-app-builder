@@ -1723,7 +1723,7 @@ Implement independent collection and validation for applicable Play Integrity, A
 
 Implement the authenticated command registry, typed response and error envelopes, command-to-use-case-to-authority-to-transaction mappings, projection snapshots, subscription replay, snapshot cutover, backpressure, stale-command handling, and generated Android service adapter.
 
-**Exit gate:** executable fixtures prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization.
+**Exit gate:** when implemented, executable fixtures MUST prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization.
 
 ## M116 — Background continuity and interruption recovery
 Implement orthogonal UI, host, device, provider, lease, and reconciliation dimensions plus the deterministic aggregate precedence defined by the continuity contract. Wire continuity transitions through the authoritative projection and event replay path, while preserving the existing product lifecycle and completion authorities. Cover UI closure, UI reconnect, supervisor restart, host reboot, sleep/hibernate, shutdown, emulator session loss, provider/network outage, checkpoint resume, lease fencing, unknown-outcome reconciliation, and safe failure.
@@ -2059,7 +2059,7 @@ AY. zero unresolved transition references
 AZ. zero undocumented retry/recovery edges
 BA. zero direct worker → non-supervisor edges
 BB. zero preview-frame paths bypassing PreviewCoordinator
-BC. zero completion paths bypassing CompletionEvaluator
+BC. zero completion paths bypassing EvidenceAuthority (completion evaluator)
 
 Exit gate:
 The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, zero unclassified edges, zero unregistered executable edges, zero boundary→multiple-contract conflicts, zero missing wiring identities, zero undocumented retry edges, zero direct worker edges, zero preview-bypass paths, and zero completion-bypass paths. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.

@@ -379,7 +379,7 @@ No production license or release distribution is declared yet. This repository i
 
 ## References
 
-The canonical sources for this guide are the repository documents listed in the [Repository map](#repository-map). This README summarizes their current intent and status; it does not supersede their contracts, decisions, or acceptance criteria.
+The canonical sources for this guide are the repository documents listed in the [Repository map](#nirman-readme). This README summarizes their current intent and status; it does not supersede their contracts, decisions, or acceptance criteria.
 
 [1]: nirman-build-spec.md
 [2]: nirman-technical-architecture.md
