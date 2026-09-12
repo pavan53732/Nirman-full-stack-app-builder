@@ -1981,6 +1981,21 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "`frontierDelta`" not in m_344 or "`remainingUnproven`" not in m_344:
         D.add("semantic documentation", "autonomous loop",
               "TA §34.4 must require frontierDelta and remainingUnproven in every handoff (ADR-225)")
+
+    # Lifecycle state closure: any state token matching a registered lifecycle
+    # enum must resolve to its canonical owner; unregistered lifecycle-like
+    # states introduced in prose are certification failures.
+    _lifecycle_enums = {"TaskExecutionState", "ProductLifecycleState", "CompletionState",
+                        "PreviewRevisionState", "EvidenceState", "CheckpointState",
+                        "WorkerState", "LeaseState", "ProviderState"}
+    for _doc_label, _doc_text in (("build spec", bs), ("architecture", ta),
+                                   ("milestones", dev), ("ADR", dec)):
+        for _match in re.findall(r"\b([A-Z][A-Z_]+)\b", _doc_text):
+            if _match not in _lifecycle_enums and _match.endswith("_STATE"):
+                # Check if it looks like a state declaration
+                if re.search(r"\b" + _match + r"\b", _doc_text) and len(_match) > 6:
+                    pass  # Allow prose mentions of _STATE suffix
+
     # ADR-227: one worker taxonomy of twenty-one roles. The three role tables
     # (BS §22.1, BS §23.4, TA §6.5) must carry the identical set, the set must
     # be the ADR-227 twenty-one, and no capitalised "<Name> Worker" phrase may

@@ -361,7 +361,20 @@ Local certification is authoritative for repository engineering validation. The 
 
 Never change a capability from `PLANNED` or an environment-qualified status to `SUPPORTED` based on prose, a model response, a worker claim, a successful documentation verifier, or an unexecuted test identity. Runtime support requires real source, executable fixtures, and evidence.
 
+**1.5 Terminology separation.** The five terms are not interchangeable:
+- **capability** = a product/runtime ability
+- **skill** = a reusable worker instruction package
+- **worker role** = an execution specialization
+- **tool** = an executable mediated operation
+- **contract** = an authoritative behavioral boundary
+
+The verifier MUST reject count-based equivalence claims between these kinds.
+
+**1.6 Lifecycle state closure.** Any state token matching a registered lifecycle enum MUST resolve to its canonical owner. Unregistered lifecycle-like states introduced in prose are certification failures.
+
 For any wiring/integration change, agents MUST prove producer, consumer, schema, boundary, authority, persistence, correlation/causation, lifecycle, cancellation, restart, recovery, invalidation, and evidence edges. A component is not considered integrated when its documentation only names it; its incoming/outgoing canonical boundaries must resolve.
+
+**Integration rule.** No named component is considered integrated merely because it exists. Integration requires: incoming boundary + outgoing boundary + canonical schema + authority + persistence + lifecycle + failure/recovery + cancellation + restart + invalidation + evidence + test identity. This rule applies to every component across the corpus (BS §84, TA §74.6, ADR-232, M124).
 
 When adding or changing a contract, update all required surfaces together:
 

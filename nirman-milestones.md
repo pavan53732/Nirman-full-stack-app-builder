@@ -2045,9 +2045,11 @@ AL. preview input causality is preserved through the emulator → frame chain
 AM. artifact export/verification produces byte-identical copy with hash
 AN. policy change during execution is applied at the next authorization boundary
 AO. integration-boundary version incompatibility is detected and reported before execution
+AP. evidence chain invalidation after source revision change, artifact replacement, emulator restart, toolchain change, policy change, checkpoint rollback, asset replacement, dependency lock change, signing identity change, and integration state change
 AP. every declared boundary has exactly one matrix row and exactly one boundaryId owner
 AQ. every matrix row resolves its schema, authority, adapter, policy, and transition references
 AR. restart reconstruction reproduces the same wiring graph and rejects orphaned/duplicate rows
+AS. every executable cross-component edge resolves to exactly one registered IntegrationBoundaryContract; every registered applicable boundary has at least one executable owner/test mapping; unused boundaries are explicitly classified NOT_APPLICABLE or PLANNED, never silently omitted
 
 Exit gate:
 The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, and zero unclassified edges. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
