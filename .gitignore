@@ -8,6 +8,11 @@
 __pycache__/
 *.pyc
 
+# pytest cache. The battery at tools/test_verify_contract_graph.py is standalone
+# and pytest collects no tests from it, but an exploratory `pytest` invocation
+# still writes this directory. Caches hold no provenance; git history does.
+.pytest_cache/
+
 # Rust (NirmanSupervisor.exe) build outputs.
 /target/
 **/target/
