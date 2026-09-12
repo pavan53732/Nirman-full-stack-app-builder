@@ -3036,7 +3036,7 @@ Nirman uses a chat-first request model. The user describes the Android applicati
 
 **Status:** Accepted · **Supersedes:** none · **Amended by:** none
 
-**Decision:** The autonomous runtime has one canonical causal wiring graph. Every cross-component execution boundary is explicitly represented by exactly one `IntegrationBoundaryContract` and every runtime traversal is represented by `OrchestrationWiringMatrix`. No undocumented side channel, implicit adapter, second authority, or direct worker/component edge is permitted. `IntegrationBoundaryContract` defines the static boundary; `OrchestrationWiringMatrix` records one runtime traversal of that boundary. The supervisor validates every boundary before execution and the matrix is durable in the supervisor ledger, rebuilt/reconciled after restart.
+**Decision:** The autonomous runtime has one canonical causal wiring graph. Every cross-component execution boundary is explicitly represented by exactly one `IntegrationBoundaryContract` (static definition) and every runtime traversal is represented by exactly one `OrchestrationWiringMatrix` (runtime record with unique `wiringId`). No undocumented side channel, implicit adapter, second authority, or direct worker/component edge is permitted. The supervisor validates every boundary before execution and the matrix is durable in the supervisor ledger, rebuilt/reconciled after restart.
 
 **Rationale:** The architecture has many orchestration-capable components but their exact ownership boundaries and handoff choreography must form one deterministic causal pipeline. Without a closed-world contract, undocumented edges create undefined workers, inconsistent permissions, and impossible registry tests — the exact ambiguity these documents exist to remove.
 

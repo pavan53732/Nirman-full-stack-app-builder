@@ -4582,6 +4582,8 @@ Preview UI input
   → RenderTransport
   → FrameNotice
   → PreviewHost
+
+A displayed frame is valid only when its frame identity, project revision, artifact identity, device state, application state, and causal input identity all resolve to the currently promoted PreviewRevision.
 ```
 
 **Construction/evidence path:**

@@ -4080,18 +4080,21 @@ LoopHeartbeat
 
 ```text
 OrchestrationWiringMatrix
+- wiringId: uuid (unique runtime traversal identity; one per traversal)
 - boundaryId: uuid (resolves exactly one IntegrationBoundaryContract)
+- attemptId: integer (monotonic retry counter; 1 for first attempt)
 - producer: string (component name)
 - consumer: string (component name)
 - schema: string (schema block reference)
 - revisionId: uuid
 - taskId: uuid
 - workerId: uuid (optional; null for non-worker boundaries)
-- correlationId: uuid
-- causationId: uuid
+- correlationId: uuid (preserved across retries)
+- causationId: uuid (causal parent)
 - authority: string (authority component name)
 - persistenceEvent: string (event type)
 - evidenceRef: string (evidence ID; optional)
+- status: OPEN | COMPLETED | FAILED | RECOVERING | CANCELLED | INVALIDATED
 - successTransition: string (state transition)
 - failureTransition: string (state transition)
 - recoveryTransition: string (state transition)
@@ -4104,6 +4107,7 @@ OrchestrationWiringMatrix
 - responseSchemaRef: string (schema reference)
 - protocolVersion: string
 - adapterOrBridgeRef: string (adapter/bridge reference)
+- boundaryVersion: string (explicit boundary version)
 - transactionDomain: local | device | external_effect | none
 - permissionProfileRef: string (permission profile reference)
 - lifecyclePolicyRef: string (lifecycle policy reference)
@@ -4111,8 +4115,12 @@ OrchestrationWiringMatrix
 - cancellationPolicy: string (cancellation policy reference)
 - retryPolicy: string (retry policy reference)
 - compatibilityRef: string (compatibility reference)
+- inputHash: string (hash of input payload)
+- outputHash: string (hash of output payload)
 - invalidationDependencyRefs: string[] (invalidation dependency IDs)
 - downstreamEffectRefs: string[] (downstream effect IDs)
+- createdAt: timestamp
+- completedAt: timestamp (optional; null until COMPLETED/FAILED/CANCELLED)
 ```
 
 ## References

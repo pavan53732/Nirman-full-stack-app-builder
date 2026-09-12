@@ -2050,9 +2050,19 @@ AP. every declared boundary has exactly one matrix row and exactly one boundaryI
 AQ. every matrix row resolves its schema, authority, adapter, policy, and transition references
 AR. restart reconstruction reproduces the same wiring graph and rejects orphaned/duplicate rows
 AS. every executable cross-component edge resolves to exactly one registered IntegrationBoundaryContract; every registered applicable boundary has at least one executable owner/test mapping; unused boundaries are explicitly classified NOT_APPLICABLE or PLANNED, never silently omitted
+AT. zero unregistered executable edges
+AU. zero boundary → multiple incompatible contracts
+AV. zero traversal → missing wiring identity
+AW. zero unresolved schema references
+AX. zero unresolved authority references
+AY. zero unresolved transition references
+AZ. zero undocumented retry/recovery edges
+BA. zero direct worker → non-supervisor edges
+BB. zero preview-frame paths bypassing PreviewCoordinator
+BC. zero completion paths bypassing CompletionEvaluator
 
 Exit gate:
-The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, and zero unclassified edges. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
+The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, zero unclassified edges, zero unregistered executable edges, zero boundary→multiple-contract conflicts, zero missing wiring identities, zero undocumented retry edges, zero direct worker edges, zero preview-bypass paths, and zero completion-bypass paths. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.
 
 
 ---

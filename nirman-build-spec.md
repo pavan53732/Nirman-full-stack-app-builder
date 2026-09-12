@@ -7178,11 +7178,6 @@ WinUI 3
   → reconciliation (Reconciliation Worker, BS §6.5)
   → build (AndroidBuildAdapter, technical architecture §73.13)
   → artifact (ArtifactAuthority, BS §49)
-  → artifact → Signing/validation gates
-  → ExportVerification
-  → approved local destination
-  → destination hash/identity verification
-  → CompletionDecision (build spec §5.7.7)
   → emulator install (Emulator Driver Worker, BS §6.5)
   → launch (AndroidDeviceAdapter, technical architecture §73.12)
   → Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
@@ -7190,8 +7185,13 @@ WinUI 3
   → ScreenGraph/ScreenModel (technical architecture §74.2)
   → E2E validation (ValidationPlanner, BS §64)
   → visual validation (Visual QA Worker, BS §6.5)
-  → evidence promotion (EvidenceAuthority, BS §23.3)
+  → evidence validation/promotion (EvidenceAuthority, BS §23.3)
   → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
+  → artifact → Signing/validation gates
+  → ExportVerification
+  → approved local destination
+  → destination hash/identity verification
+  → EvidenceAuthority → CompletionDecision (build spec §5.7.7)
 ```
 
 ### 84.2 OrchestrationWiringMatrix schema
@@ -7204,10 +7204,13 @@ Runtime instance identity is distinct from static boundary definition: `Integrat
 
 ### 84.3 Boundary rules
 
-Every applicable boundary MUST have exactly one `OrchestrationWiringMatrix` row.
+Every executable boundary has exactly one canonical `IntegrationBoundaryContract` (static definition). Every runtime traversal of that boundary has exactly one `OrchestrationWiringMatrix` instance referencing it via `boundaryId`. `wiringId` is the unique runtime-record identity.
+
 Every row MUST reference exactly one `IntegrationBoundaryContract`.
 Every referenced schema, authority, adapter, policy, and transition MUST resolve to one canonical definition.
 No component may communicate around a registered boundary.
+
+Completion evaluation is itself a scheduled deterministic kernel operation. No mutation may begin while completion is being evaluated against an older revision.
 
 Every boundary handoff MUST be:
 - **Deterministic** — same inputs produce same outputs
