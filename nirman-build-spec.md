@@ -1923,7 +1923,16 @@ The runtime should measure goal completion, evidence completeness, regression ra
 
 ### 28.4 Self-improvement manager
 
-Nirman should identify recurring failure patterns, provider incompatibilities, repeated user corrections, regression clusters, tool failures, and evaluation degradation. It should convert sufficiently repeated patterns into scoped improvement proposals containing evidence, hypothesis, affected components, expected benefit, risks, test plan, and rollback plan.
+Nirman must distinguish runtime improvement proposals from reusable skill learning. After a complex task reaches a successful evidence-backed completion, the runtime may extract a reusable skill candidate from the validated execution episode. Extraction MUST preserve the task's evidence lineage, generalized
+trigger conditions, required tools/capabilities, worker-role compatibility,
+validation strategy, and known limitations. A successful task does not itself
+activate a skill.
+
+A skill candidate MUST pass the same trust, security, regression, compatibility,
+validation, and promotion controls required for other self-improvement
+candidates. Promotion creates a new versioned SkillPackage only through the
+existing deterministic promotion authority and SkillRegistry path. Failed or
+unproven candidates remain non-invocable.
 
 ### 28.5 Autonomy-level capability ladder
 
@@ -5990,8 +5999,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recovery strategies, validation results, resource telemetry, user corrections, and final classification" | MUST record all nine | For every completed, failed, recovered, cancelled, or escalated task |
 | BS §28.3 | "The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, attention reliability (§53.11), and human intervention rate" | MUST measure all eleven | Visible for diagnosis |
 | BS §28.3 | "These metrics should be visible for diagnosis and should not be optimized at the expense of correctness or safety" | MUST NOT optimise metrics over correctness | A metric improvement that weakens a gate is a regression |
-| BS §28.4 | "Nirman should identify recurring failure patterns, provider incompatibilities, repeated user corrections, regression clusters, tool failures, and evaluation degradation" | MUST identify all six pattern classes | From episode records |
-| BS §28.4 | "It should convert sufficiently repeated patterns into scoped improvement proposals" | MUST propose, never self-apply | Sufficiently repeated means three or more occurrences with a common fingerprint. Proposals carry evidence and hypothesis |
+| BS §28.4 | "Nirman must distinguish runtime improvement proposals from reusable skill learning." | MUST distinguish improvement proposals from skill learning; candidates preserve evidence lineage, generalized triggers, tools/capabilities, worker-role compatibility, validation, and limitations; successful tasks do not self-activate skills | §28.4–§28.6 pipeline; EpisodeRecord lineage |
 | BS §28.6 | "Promotion should support observe-only, candidate-only, canary, trusted auto-promotion, and manual-promotion modes" | MUST support all five modes | Manual promotion is the default |
 | BS §28.7 | "Nirman should maintain separate task memory, project memory, and runtime-improvement memory" | MUST keep the three separate | Memory is generated from durable records, never from raw chain-of-thought |
 | BS §28.9 | "The runtime should continue automatically through these capabilities whenever a safe next action exists" | MUST continue automatically | Unless explicitly classified unnecessary, unavailable, or blocked with evidence |
@@ -6932,13 +6940,13 @@ The unit of coverage is the §80.2 resolution row. One row resolves one "should"
 
 | Scope | Resolution rows | Resolved | Status |
 |---|---|---|---|
-| Build spec (all sections) | 322 | 322 | Complete |
+| Build spec (all sections) | 321 | 321 | Complete |
 | Technical architecture | 157 | 157 | Complete |
 | Development plan | 16 | 16 | Complete |
 | AGENTS.md | 2 | 2 | Complete |
-| **Total** | **497** | **497** | **100%** |
+| **Total** | **496** | **496** | **100%** |
 
-Earlier revisions of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 81 rows.
+Earlier iterations of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 80 rows; the present task removed one duplicate-entry row added during the self-improvement reconciliation, bringing Build spec from 322 to 321 rows and total from 497 to 496.
 
 Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table; the verifier enforces this.
 

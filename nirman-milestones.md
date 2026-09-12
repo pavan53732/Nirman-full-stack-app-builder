@@ -694,9 +694,9 @@ Implement per-worker PTY or equivalent terminal sessions with persistent working
 
 ## M33: Skills registry and invocation contract
 
-Implement the SkillPackage schema, trigger and explicit invocation, worker compatibility, required tools, permission requests, input/output schemas, scanning, trust status, versioning, health checks, update, disable, and rollback. Loading a skill must never grant permissions automatically.
+Implement the SkillPackage schema, trigger and explicit invocation, worker compatibility, required tools, permission requests, input/output schemas, scanning, trust status, versioning, health checks, update, disable, rollback, and skill learning from validated episodes. Loading a skill must never grant permissions automatically.
 
-**Exit gate:** A safe skill can be discovered, scanned, invoked by a matching task, execute only declared tools through the policy engine, and roll back after a failed update. An unsafe or undeclared skill action must be rejected.
+**Exit gate:** A safe skill can be discovered, scanned, invoked by a matching task, execute only declared tools through the policy engine, and roll back after a failed update. An unsafe or undeclared skill action must be rejected. A completed complex fixture must be able to produce a non-invocable reusable skill candidate from its validated episode, evaluate that candidate in isolation, canary it, promote it through the existing deterministic promotion path, and subsequently discover and invoke the promoted version on a matching new task. Candidate failure must leave no invocable skill.
 
 ## M34: Windows lifecycle and multi-project resilience
 

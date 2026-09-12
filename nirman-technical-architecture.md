@@ -878,6 +878,15 @@ The skill registry should store:
 
 > **Schema projection:** `SkillPackage` is defined in `nirman-schemas.md` §1.12. Owner: BS §23.11.
 
+Skill learning follows:
+validated episode → skill candidate → isolated evaluation → admission
+→ canary → promotion → versioned SkillPackage → future discovery/invocation.
+
+A promoted learned skill is never granted authority by virtue of learning.
+Its required tools, capabilities, permissions, worker compatibility, trust,
+scan status, and environment requirements remain subject to normal admission
+and policy evaluation.
+
 A skill is selected by the orchestrator from a task requirement, explicit user request, or matching trigger condition. Loading a skill adds instructions and schemas; it never grants permissions automatically. Skill tool calls still pass through the policy engine and are logged as ordinary tool calls.
 
 User or shared skills must be scanned for prompt injection, unsafe commands, secret access, hidden network behavior, and dependency changes before activation. Updates must be versioned, health-checked, and reversible. Built-in runtime capabilities take precedence over skills when both provide the same function, while skills may add domain-specific workflow instructions around those capabilities.
@@ -1464,9 +1473,13 @@ The evaluation engine should include ordinary feature tasks, multi-file refactor
 
 ### 30.1 Improvement sources
 
-The self-improvement manager may create improvement proposals from recurring failure patterns, regression clusters, provider incompatibilities, task-intervention categories, benchmark results, user corrections, stale instructions, tool failures, and observed performance degradation. All sources are Nirman-internal: this loop improves Nirman's own prompts, routing, tool schemas, worker roles, and runtime code, never a generated project's behavior after publish (ADR-224).
+The self-improvement manager may create improvement proposals from recurring failure patterns, regression clusters, provider incompatibilities, task-intervention categories, benchmark results, user corrections, stale instructions, tool failures, observed performance degradation, and validated completed complex tasks from which reusable behavior can be extracted. All sources are Nirman-internal: this loop improves Nirman's own prompts, routing, tool schemas, worker roles, and runtime code, never a generated project's behavior after publish (ADR-224).
 
 It must not automatically convert a single unusual failure into a permanent rule. An improvement proposal should include evidence frequency, affected task classes, confidence, expected benefit, possible regressions, scope, and rollback plan.
+
+### 30.1a Skill discovery from validated episodes
+
+A successfully completed complex task is also an eligible skill-discovery source. Skill discovery MUST operate on the corresponding EpisodeRecord, TaskResult, validation evidence, and execution lineage rather than raw model prose. The discovery process identifies reusable behavior that generalizes beyond the originating task and produces a non-invocable skill candidate. Candidate creation, evaluation, and promotion follow the existing self-improvement pipeline described in build spec §28.4; discovery itself is described in build spec §28.4.
 
 ### 30.2 Improvement proposal
 
