@@ -3445,6 +3445,62 @@ def check_semantic_documentation(docs, R, D, root="."):
             if not any(_f in _st for _f in _quoted):
                 D.add("semantic documentation", "§80.2 statement coverage",
                       f"unresolved \"should\" statement with no §80.2 row: {_st[:70]!r}")
+    # §80.8 prompt-class coverage and §80.6 fixture scope: the same failure mode
+    # as §80.10's row count, applied to the other two "everything of this kind
+    # is defined here" claims. §80.8 asserted that every system prompt the
+    # runtime uses is defined there, while §69.2 and technical architecture
+    # §73.1 name prompt classes §80.8 never templates. The classes are computed
+    # from the contract sentences rather than hardcoded, so adding a class to
+    # either contract without addressing it in §80.8 fails certification.
+    _classes = set()
+    for _grp in re.findall(
+            r"\bAll ([a-z][a-z ,\-]*?)\s+prompts that can influence "
+            r"Android construction", bs + "\n" + ta):
+        for _c in re.split(r",\s*and\s+|,\s*|\s+and\s+", _grp.strip()):
+            if _c.strip():
+                _classes.add(_c.strip())
+    _p8 = bs.split("### 80.8 Prompt templates", 1)[-1].split("### 80.9", 1)[0]
+    _tabled = {m.group(1).strip().lower()
+               for m in re.finditer(r"^\| ([a-z][a-z-]*(?: [a-z-]+)*) \|", _p8, re.M)}
+    if not _classes:
+        D.add("semantic documentation", "§80.8 prompt-class coverage",
+              "no prompt classes parsed from §69.2 or TA §73.1; coverage cannot be derived")
+    for _c in sorted(_classes):
+        if _c not in _tabled:
+            D.add("semantic documentation", "§80.8 prompt-class coverage",
+                  f"prompt class {_c!r} is required by the prompt contract but §80.8 "
+                  f"does not template it or record it as owner-pending")
+    if "release-evaluation prompt set" not in _tabled:
+        D.add("semantic documentation", "§80.8 prompt-class coverage",
+              "the fixed release-evaluation prompt set of DP §16.3 is not addressed in §80.8")
+    if "Every system prompt used by the runtime is defined here" in bs:
+        D.add("semantic documentation", "§80.8 prompt-class coverage",
+              "§80.8 still carries the withdrawn unscoped claim that every runtime "
+              "system prompt is defined there")
+    # §80.6: every fixture identifier used outside §80.6 MUST have a definition
+    # inside it, and the claim MUST stay scoped to the build spec. FIX-DEL-01..07
+    # are defined in milestones §M95 and are named in §80.6's scope note, which is
+    # why the definition set is taken from the fixture headings rather than from
+    # every mention inside the subsection.
+    _p6 = bs.split("### 80.6 Concrete test fixtures", 1)[-1].split("### 80.7", 1)[0]
+    _fdef = set(re.findall(r"^#### 80\.6\.\d+ (FIX-[A-Z]+-\d+)", _p6, re.M))
+    _fdef |= set(re.findall(r"^Fixture: (FIX-[A-Z]+-\d+)", _p6, re.M))
+    # A fixture mentioned in §80.6 without a definition heading is one §80.6
+    # explicitly attributes to another location (milestones §M95 for FIX-DEL-*).
+    # Attribution is acceptable; silence is not.
+    _attributed = set(re.findall(r"FIX-[A-Z]+-\d+", _p6)) - _fdef
+    _fref = set(re.findall(r"FIX-[A-Z]+-\d+", bs.replace(_p6, "")))
+    for _f in sorted(_fref - _fdef - _attributed):
+        D.add("semantic documentation", "§80.6 fixture scope",
+              f"fixture {_f} is referenced in the build spec but neither defined in "
+              f"§80.6 nor attributed there to another location")
+    if not _fdef:
+        D.add("semantic documentation", "§80.6 fixture scope",
+              "no fixture definitions parsed from §80.6; scope cannot be derived")
+    if "Every test fixture referenced in the specification is defined here" in bs:
+        D.add("semantic documentation", "§80.6 fixture scope",
+              "§80.6 still carries the withdrawn unscoped claim covering the whole "
+              "specification rather than the build spec")
     # §80.10 coverage is machine-derived: the per-scope figures MUST equal the
     # number of §80.2 rows carrying that scope prefix, and the total MUST be
     # their sum. A hand-maintained figure that drifts from the table it

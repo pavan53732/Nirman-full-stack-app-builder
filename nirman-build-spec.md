@@ -6273,7 +6273,9 @@ This is the field-level schema of the §42.1 `AndroidConstructionContract` (ADR-
 
 ### 80.6 Concrete test fixtures
 
-Every test fixture referenced in the specification is defined here. An agent MUST implement these exact fixtures.
+Every test fixture referenced in the build spec is defined here, and an agent MUST implement these exact fixtures.
+
+The scope of that claim is the build spec, and it is deliberately narrow. The eight `FIX-PROG-*` fixtures below are the fixture set the build spec references, and the verifier confirms that no `FIX-*` identifier appears in this document without a definition in this subsection. Seven further fixtures, `FIX-DEL-01`–`FIX-DEL-07`, are defined normatively in milestones §M95 (fault-injection fixtures) and are not restated here. Both sets are in force. A fixture defined in either location satisfies §80.1 rule 7 and §80.9 criterion 8, so the earlier unqualified wording — "every test fixture referenced in the specification" — overstated this subsection's reach by seven fixtures while the underlying requirement was already met elsewhere. An agent MUST implement the milestones §M95 fixtures to the same standard: each carries an injected condition and a required observable outcome, plus the two invariants that milestones §M95 states across all of them.
 
 #### 80.6.1 FIX-PROG-01: Tip Calculator
 
@@ -6503,7 +6505,25 @@ Each milestone's work items MUST be implemented in the order listed. Dependencie
 
 ### 80.8 Prompt templates
 
-Every system prompt used by the runtime is defined here. An agent MUST use these exact templates.
+Every system prompt template that this section provides is defined here, and an agent MUST use these exact templates rather than authoring its own. An agent MUST NOT create a prompt template that is not provided (§80.1 rule 5).
+
+**This claim is scoped, and the scope is smaller than the runtime's prompt surface.** Earlier revisions read "every system prompt used by the runtime is defined here", which was not true and is withdrawn. The runtime is required by contract to hold prompts in classes this section does not template:
+
+| Prompt class | Required by | Templated in §80.8? |
+|---|---|---|
+| system | §69.2 | yes, indirectly — §80.8.1–§80.8.4 are system prompts by role |
+| coordinator | §69.2; technical architecture §73.1 | **no** |
+| worker | §69.2; technical architecture §73.1 | **no** |
+| skill | §69.2; technical architecture §73.1 | **no** |
+| deliberation | §69.2; technical architecture §73.1 | **no** |
+| review | technical architecture §73.1 | **no** |
+| release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **no** |
+
+Five templates are provided below: planning, code generation, validation, repair, and context compaction. They are complete in themselves and each MUST be used verbatim for the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
+
+**Owner-pending.** The templates for the coordinator, worker, skill, deliberation, and review classes, and the fixed release-evaluation prompt set, are recorded here as owner-pending. They are not derived from any earlier section, so writing them would require inventing prompt content, which §80.1 rule 5 forbids an agent to do. What is *not* owner-pending is their contract: every prompt in those classes MUST conform to the `IntentSynthesisPromptContract` of §69.2 as implemented by technical architecture §73.1, and MUST observe the placement layout below. An agent implementing the runtime therefore has a binding contract and a bounded surface for those classes, but no template text, and MUST stop rather than compose one.
+
+§80.9 criterion 5 is read against this subsection and is satisfied only for the templates this subsection provides.
 
 Templates follow the placement layout of §53.11: stable role and policy text first, breadth context next, then the DENSE block (constraints, locked decisions, exact targets) restated immediately before the state digest and the instruction. `{constraints}` and `{locked_decisions}` are injected by the runtime from `ConstraintRegistry` and carry their identifiers; `{state_digest}` is the runtime-built state digest; `{recall_probes}` is empty when no probe is scheduled.
 
@@ -6733,10 +6753,19 @@ The agent-buildability contract is satisfied only when:
 2. Every "configurable" parameter has a default value
 3. Every vague procedure has a concrete step-by-step replacement
 4. Every referenced schema has a complete field definition
-5. Every system prompt has a defined template
+5. Every system prompt has a defined template. This criterion is satisfied
+   only for the templates §80.8 provides. Five prompt classes named by §69.2
+   and technical architecture §73.1 — coordinator, worker, skill, deliberation,
+   and review — plus the fixed release-evaluation prompt set are bound by
+   contract but not templated, and §80.8 records them as owner-pending. The
+   criterion is therefore met for the templated surface and openly unmet for
+   the rest; it is not met corpus-wide.
 6. Every runtime decision has explicit criteria
 7. Every adapter has a complete method signature
-8. Every test fixture has a concrete definition
+8. Every test fixture has a concrete definition. This criterion is met by the
+   `FIX-PROG-01`–`FIX-PROG-08` definitions in §80.6 together with the
+   `FIX-DEL-01`–`FIX-DEL-07` definitions in milestones §M95; a fixture defined
+   in either location satisfies it.
 9. Every milestone has explicit implementation sequencing
 10. An AI agent can build Nirman from these docs without hallucination
 
@@ -6763,6 +6792,8 @@ Coverage is 100 percent as of this revision. Any "should" subsequently added to 
 An unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
 
 No value in the §80.2 table is owner-pending. Four values were formerly recorded here as owner-pending — the three §26.6 graduated quota-response thresholds (telemetry, throttle, and worker-admission) and the constrained-host predicate — because none was derived from an earlier section. The owner has approved all four, so they are now canonical derived requirements rather than proposals, recorded by ADR-229 and normatively defined in §26.6 as their single authority. No open buildability decision and no owner-pending value remains in this table.
+
+That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the coordinator, worker, skill, deliberation, and review prompt templates and the fixed release-evaluation prompt set as owner-pending, because they are not derivable from any earlier section and §80.1 rule 5 forbids inventing them. Those are prompt-content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
 
 ---
 

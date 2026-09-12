@@ -1765,6 +1765,41 @@ CASES = {
         "The log should be exportable for troubleshooting. The log should also be "
         "cryptographically signed and retained for seven years.",
         "semantic documentation"),
+
+    # ---- §80.8 prompt-class coverage and §80.6 fixture scope: the same
+    # failure mode as §80.10's row count, on the other two "everything of this
+    # kind is defined here" claims. §80.8 claimed every runtime system prompt
+    # was defined there while the prompt contract names five classes it never
+    # templates; §80.6 claimed the whole specification rather than the build
+    # spec, overstating its reach by the seven milestones §M95 fixtures.
+    "a prompt class is added to the contract without a §80.8 row": (
+        BS,
+        "All system, coordinator, worker, skill, and deliberation prompts that "
+        "can influence Android construction",
+        "All system, coordinator, worker, skill, deliberation, and audit prompts "
+        "that can influence Android construction",
+        "semantic documentation"),
+    "§80.8 restores the withdrawn unscoped prompt claim": (
+        BS,
+        "Every system prompt template that this section provides is defined here",
+        "Every system prompt used by the runtime is defined here",
+        "semantic documentation"),
+    "the release-evaluation prompt set row is dropped from §80.8": (
+        BS,
+        "| release-evaluation prompt set | milestones §M30 development plan §16.3, "
+        "via the §80.2 row for DP §16.3 | **no** |\n",
+        "",
+        "semantic documentation"),
+    "a fixture is referenced with no §80.6 definition or attribution": (
+        BS,
+        "FIX-PROG-01..08 per the development plan",
+        "FIX-PROG-01..08 and FIX-NEW-99 per the development plan",
+        "semantic documentation"),
+    "§80.6 restores the withdrawn unscoped fixture claim": (
+        BS,
+        "Every test fixture referenced in the build spec is defined here",
+        "Every test fixture referenced in the specification is defined here",
+        "semantic documentation"),
 }
 
 

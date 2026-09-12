@@ -3011,3 +3011,21 @@ The former `VALIDATE` branch of `EVALUATE_PROGRESS` is folded into `DECIDE` and 
 
 **Locked surfaces:** technical architecture §71.4 cycle state machine; build spec §52.2 coarse projection vocabulary and projection table; `LoopHeartbeat.stateEntered` (nirman-schemas.md §1.78); `AgentLoopRecord.state` (nirman-schemas.md §2.42); build spec §29.4 heartbeat attribution.
 ---
+
+## ADR-231: Exhaustiveness claims are scoped and machine-checked — §80.8 and §80.6 withdraw unqualified reach
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** A completeness claim of the form "everything of kind X is defined here" MUST state the scope it covers, and MUST be backed by a verifier rule that recomputes the claim rather than trusting it. Two such claims are withdrawn and restated. Build spec §80.8 no longer says that every system prompt used by the runtime is defined there; it says that every template the section provides is defined there, and it enumerates the prompt classes the runtime is required to hold that the section does not template — coordinator, worker, skill, deliberation, and review, from build spec §69.2 and technical architecture §73.1, plus the fixed release-evaluation prompt set of development plan §16.3. Those are recorded as owner-pending. Build spec §80.6 no longer says "every test fixture referenced in the specification"; it says "every test fixture referenced in the build spec", and attributes `FIX-DEL-01`–`FIX-DEL-07` to milestones §M95, where they are already normatively defined.
+
+**Rationale:** §80.10's coverage figure had the same defect and was fixed by the same method: the claim was true of a narrower unit than the words said, and nothing recomputed it, so the gap was invisible. §80.8 is the more serious instance. The prompt contract makes conformance mandatory for five classes of prompt, and §80.8 supplies five templates by role — planning, code generation, validation, repair, context compaction — with no mapping between the two sets. Nothing in the corpus states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class. An agent told "every system prompt used by the runtime is defined here" would have concluded the surface was closed and composed the missing prompts itself, which §80.1 rule 5 forbids. The §80.6 claim was benign by comparison: every fixture the build spec references is defined in §80.6, so the requirement was met, but the wording claimed seven more fixtures than the section contains, and an agent auditing it would have searched for definitions that do not exist there. Scoping both claims and computing both is cheaper than either failure.
+
+**Consequences:** Build spec §80.8 gains a prompt-class table with a row per contract class and an owner-pending record; §80.6 gains a scope note naming milestones §M95; §80.9 criteria 5 and 8 are annotated so neither is read as met corpus-wide; §80.10 gains a paragraph limiting its "no owner-pending" statement to the §80.2 table, so it cannot be read as contradicting §80.8. The contract-graph verifier gains a `§80.8 prompt-class coverage` rule that parses the class list out of the contract sentences in build spec §69.2 and technical architecture §73.1 — so adding a class to either contract without a §80.8 row fails certification — and a `§80.6 fixture scope` rule that requires every fixture identifier used outside §80.6 to be either defined there or attributed there to another location. Five proving mutations cover both rules. No prompt template is invented, no new schema field, authority, contract, clause, milestone, or budget is introduced, and no fixture definition moves.
+
+**Reversal trigger:** Owner provision of the coordinator, worker, skill, deliberation, and review prompt templates, and of the fixed release-evaluation prompt set. The repair is to add them as §80.8 subsections and mark the rows as templated, not to widen the §80.8 claim back to the whole runtime prompt surface.
+
+**Locks:** `CONTRACT.RUNTIME.PROMPT_CONTRACT`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Locked surfaces:** build spec §80.8 prompt-class table and owner-pending record; build spec §80.6 scope note; build spec §80.9 criteria 5 and 8; build spec §80.10 owner-pending scope paragraph.
+
+---
