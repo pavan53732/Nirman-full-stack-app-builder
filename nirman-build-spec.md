@@ -5595,7 +5595,9 @@ An AI agent building Nirman from these docs MUST NEVER have to:
 2. Guess a default value that is not specified
 3. Choose between options without explicit decision criteria
 4. Infer a procedure that is described only in vague terms
-5. Create a prompt template that is not provided
+5. Create a prompt template that is not provided, and MUST NOT create a
+   user-facing prompt-template, prompt-library, prompt-authoring, or
+   prompt-selection product layer
 6. Determine implementation sequencing without explicit ordering
 7. Define a test fixture without a concrete fixture specification
 8. Resolve a "should" without explicit criteria for when it applies
@@ -6525,11 +6527,42 @@ Each milestone's work items MUST be implemented in the order listed. Dependencie
 9. Repair (needed for recovery)
 10. Diff reporting (needed for user visibility)
 
-### 80.8 Prompt templates
+### 80.8 Internal model-instruction contract
 
-Every system prompt template that this section provides is defined here, and an agent MUST use these exact templates rather than authoring its own. An agent MUST NOT create a prompt template that is not provided (§80.1 rule 5).
+Nirman has no user-facing prompt-template, prompt-library,
+prompt-authoring, or prompt-selection product layer.
 
-**This claim is scoped, and the scope is smaller than the runtime's prompt surface.** Earlier revisions read "every system prompt used by the runtime is defined here", which was not true and is withdrawn. The runtime is required by contract to hold prompts in classes this section does not template:
+The user's natural-language conversation request is the input to
+goal/task creation. Internal model instructions are implementation
+artifacts. They MAY be composed from role instructions, the
+`IntentSynthesisPromptContract` (§69.2; technical architecture §73.1),
+policy constraints, retrieved context, task state, evidence, and
+provider/model requirements.
+
+The runtime MUST distinguish:
+- the user's request and conversation messages;
+- the normalized task and goal specification;
+- the internal model instruction assembled for the provider/model;
+- the fixed evaluation prompt used for release measurement.
+
+Internal model instructions are versioned and auditable by identity and
+hash, but are never a user-facing product entity.
+
+The runtime MUST NOT create a prompt-template product entity, a
+prompt library the user selects from, a prompt-authoring surface, or a
+prompt marketplace. The user describes the Android application in
+natural language; the runtime composes internal model instructions from
+current state, context, evidence, policy constraints, role contract, and
+provider/model requirements. The user request is preserved as task
+provenance (see `AgentTask.userRequest`, §80.9 rule 11 and the
+invariant recorded below); it is not a prompt-template object and is not
+the assembled provider instruction.
+
+**This claim is scoped, and the scope is smaller than the runtime's
+prompt surface.** Earlier revisions read "every system prompt used by
+the runtime is defined here", which was not true and is withdrawn. The
+runtime is required by contract to hold prompts in classes this section
+does not template:
 
 | Prompt class | Required by | Templated in §80.8? |
 |---|---|---|
@@ -6541,7 +6574,7 @@ Every system prompt template that this section provides is defined here, and an 
 | review | technical architecture §73.1 | **no** |
 | release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **yes** — derived, see below |
 
-Five templates are provided below: planning, code generation, validation, repair, and context compaction. They are complete in themselves and each MUST be used verbatim for the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
+Five templates are provided below: planning, code generation, validation, repair, and context compaction. Each is a normative minimum-content instruction pattern for the purpose it names. The runtime MUST use each template as the base instruction for that purpose, preserving its owning contract invariants, and MAY add role-specific material on top; it MUST NOT replace the template wholesale, and it MUST NOT use a template outside the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
 
 **What is recovered from the corpus.** The classes are not inventions of this table; each is named authoritatively, and for four of them the surrounding structure is derivable:
 
@@ -6851,6 +6884,8 @@ Coverage is 100 percent as of this revision. Any "should" subsequently added to 
 An unresolved "should" means the behavior is not yet specified with criteria. An agent encountering one MUST treat it as an open question and record it, and MUST NOT invent a threshold, default, or procedure to satisfy it. Inventing one is the hallucination §80.1 prohibits.
 
 No value in the §80.2 table is owner-pending. Four values were formerly recorded here as owner-pending — the three §26.6 graduated quota-response thresholds (telemetry, throttle, and worker-admission) and the constrained-host predicate — because none was derived from an earlier section. The owner has approved all four, so they are now canonical derived requirements rather than proposals, recorded by ADR-229 and normatively defined in §26.6 as their single authority. No open buildability decision and no owner-pending value remains in this table.
+
+This table is scoped to §80.2 values only. Content gaps that are not "should" statements do not appear here: §80.8 records the literal template text of the coordinator, worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it — and because internal model instructions are implementation artifacts, not user-facing templates (build spec §80.8; technical architecture §73.1; ADR-231). The coordinator's required contents are UNKNOWN in the corpus and are recorded as an accepted implementation-open boundary rather than silently supplied. §80.3 separately records the interactive prompt-classifier default of technical architecture §11.4 as owner-pending, because §80.1 rule 2 forbids guessing an unspecified default. §80.9 criteria 6 and 7 each record a missing enumeration as an open owner decision. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
 
 That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the literal template text of the coordinator, worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it. §80.3 separately records the interactive prompt-classifier default of technical architecture §11.4 as owner-pending, because §80.1 rule 2 forbids guessing an unspecified default. §80.9 criteria 6 and 7 each record a missing enumeration as an open owner decision. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
 

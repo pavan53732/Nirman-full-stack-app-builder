@@ -174,6 +174,21 @@ AgentTask
 - failureReason
 ```
 
+**Invariants:**
+
+- `userRequest` is the original user-authored request, captured for
+  provenance and continuation. It is **not** a prompt-template object and
+  is **not** the assembled provider/model instruction.
+- The runtime MUST preserve `userRequest` as the task's originating
+  request and MUST NOT mutate or reinterpret it as an internal model
+  instruction. Internal model instructions are separate implementation
+  artifacts assembled from role instructions, the
+  `IntentSynthesisPromptContract`, policy constraints, retrieved context,
+  task state, evidence, and provider/model requirements (build spec §80.8).
+- `specification` is the normalized task and goal specification derived
+  from `userRequest` and subsequent refinement; it is the runtime's
+  working representation, not the user's literal words.
+
 ### 1.9 ActionRecord
 
 **Owner:** BS §11.4 · **Contract:** — · **Projected at:** —

@@ -4116,6 +4116,8 @@ The threshold is configuration, not a runtime constant. No component may hardcod
 
 All coordinator, worker, skill, deliberation, and review prompts that can influence Android construction must implement the `IntentSynthesisPromptContract`. The prompt builder supplies the current contract version, project revision, checkpoint, selected evidence, assigned scope, allowed capabilities, and unresolved questions. It must not inject a user-facing template or framework choice.
 
+The user's conversation message is not itself the provider/model prompt. The runtime normalizes it into requirements and constructs an internal model instruction from current state, context, evidence, policy constraints, and the role contract. No user-facing prompt-template entity is created. Internal model instructions are versioned and auditable by identity and hash; the user request is preserved as task provenance and is never the assembled provider instruction.
+
 The prompt contract requires the model to extract product intent, screens, navigation, behavior, data, integrations, device capabilities, accessibility, branding, privacy, and release requirements; distinguish user facts from assumptions; propose an Android technology plan; identify uncertainty; propose a bounded next action; and name the evidence required to evaluate that action.
 
 The prompt contract explicitly forbids a model from claiming that predicted, simulated, requested, or proposed work was executed; treating an internal bootstrap as a product template; selecting a non-Android generated target; authorizing tools or permissions; mutating files outside a transaction; or marking requirements, previews, tests, or artifacts complete.
