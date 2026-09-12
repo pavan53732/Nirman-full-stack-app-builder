@@ -7171,7 +7171,7 @@ WinUI 3
   → tool execution (ToolBroker, BS §49)
   → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
   → observation (AndroidDeviceAdapter, technical architecture §73.12)
-  → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority → promotion
+  → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority
   → state update (AgentLoopReducer, BS §58)
   → progress evaluation (ProgressEvaluator, BS §58)
   → next-node scheduling (TaskScheduler, BS §7)
@@ -7211,6 +7211,8 @@ Every referenced schema, authority, adapter, policy, and transition MUST resolve
 No component may communicate around a registered boundary.
 
 Completion evaluation is itself a scheduled deterministic kernel operation. No mutation may begin while completion is being evaluated against an older revision.
+
+A retry/recovery operation preserves the original `correlationId` and chains via `causationId`. Retries must not create a new unrelated causal chain.
 
 Every boundary handoff MUST be:
 - **Deterministic** — same inputs produce same outputs

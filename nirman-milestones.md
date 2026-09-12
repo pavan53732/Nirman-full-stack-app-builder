@@ -2046,20 +2046,20 @@ AM. artifact export/verification produces byte-identical copy with hash
 AN. policy change during execution is applied at the next authorization boundary
 AO. integration-boundary version incompatibility is detected and reported before execution
 AP. evidence chain invalidation after source revision change, artifact replacement, emulator restart, toolchain change, policy change, checkpoint rollback, asset replacement, dependency lock change, signing identity change, and integration state change
-AP. every declared boundary has exactly one matrix row and exactly one boundaryId owner
-AQ. every matrix row resolves its schema, authority, adapter, policy, and transition references
-AR. restart reconstruction reproduces the same wiring graph and rejects orphaned/duplicate rows
-AS. every executable cross-component edge resolves to exactly one registered IntegrationBoundaryContract; every registered applicable boundary has at least one executable owner/test mapping; unused boundaries are explicitly classified NOT_APPLICABLE or PLANNED, never silently omitted
-AT. zero unregistered executable edges
-AU. zero boundary → multiple incompatible contracts
-AV. zero traversal → missing wiring identity
-AW. zero unresolved schema references
-AX. zero unresolved authority references
-AY. zero unresolved transition references
-AZ. zero undocumented retry/recovery edges
-BA. zero direct worker → non-supervisor edges
-BB. zero preview-frame paths bypassing PreviewCoordinator
-BC. zero completion paths bypassing EvidenceAuthority (completion evaluator)
+AQ. every declared boundary has exactly one matrix row and exactly one boundaryId owner
+AR. every matrix row resolves its schema, authority, adapter, policy, and transition references
+AS. restart reconstruction reproduces the same wiring graph and rejects orphaned/duplicate rows
+AT. every executable cross-component edge resolves to exactly one registered IntegrationBoundaryContract; every registered applicable boundary has at least one executable owner/test mapping; unused boundaries are explicitly classified NOT_APPLICABLE or PLANNED, never silently omitted
+AU. zero unregistered executable edges
+AV. zero boundary → multiple incompatible contracts
+AW. zero traversal → missing wiring identity
+AX. zero unresolved schema references
+AY. zero unresolved authority references
+AZ. zero unresolved transition references
+BA. zero undocumented retry/recovery edges
+BB. zero direct worker → non-supervisor edges
+BC. zero preview-frame paths bypassing PreviewCoordinator
+BD. zero completion paths bypassing EvidenceAuthority (completion evaluator)
 
 Exit gate:
 The fixture must prove that every boundary handoff is deterministic, schema-validated, revision-bound, correlation-safe, authority-checked, evidence-linked, and integration-boundary-complete, with zero orphan boundaries, zero ambiguous owners, zero unresolved schema/authority/policy references, zero unclassified edges, zero unregistered executable edges, zero boundary→multiple-contract conflicts, zero missing wiring identities, zero undocumented retry edges, zero direct worker edges, zero preview-bypass paths, and zero completion-bypass paths. A failure at any boundary routes through RecoveryAuthority without terminating the goal. A stale or duplicate event cannot overwrite current state. A worker replacement resumes from the last validated checkpoint. Documentation graph certification is reported separately from runtime certification.

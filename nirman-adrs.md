@@ -574,7 +574,7 @@ The following decisions remain intentionally open:
 **Status:** Accepted  
 **Decision:** All documents and runtime components use one worker taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, and Reconciliation Worker.
 
-**Amended by ADR-227:** the taxonomy is twenty-one roles — the nineteen canonical roles plus Android Platform Worker and Backend & Service Engineering Worker. The one-taxonomy rule is unchanged; only the list grew, by closure over roles the documents already used.
+**Amended by ADR-227:** the taxonomy is nineteen roles — the nineteen canonical roles plus Android Platform Worker and Backend & Service Engineering Worker. The one-taxonomy rule is unchanged; only the list grew, by closure over roles the documents already used.
 
 **Reasoning:** Multiple unaligned role lists create undefined workers, inconsistent permissions, and impossible registry tests. The data-layer role is named "Android Data and Integration Worker" so it cannot be mistaken for a separate server-side generator. The role builds the generated Android application's data layer, persistence, and outbound integrations; it never produces a server-side deployable.
 
@@ -2955,7 +2955,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Consequences:** Build spec §22.1, §23.4, and technical architecture §6.5 gain five rows and the three-level nesting rule; technical architecture §10.2, §10.4, §76.3, and §85.2 name the registered role where they used a lowercase phrase; build spec §47.3 and §66.9 do likewise; §80.3 gains the probe-child default; M8 and M30 gain the registry work; the verifier checks the three tables for identical role sets and rejects unregistered worker phrases. Skill packages already declare `compatibleWorkerRoles` against this list and need no change. ADR-049 is amended in place.
 
-**Reversal trigger:** A frozen-battery run in which two of the twenty-one roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
+**Reversal trigger:** A frozen-battery run in which two of the nineteen roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
 
 ---
 
