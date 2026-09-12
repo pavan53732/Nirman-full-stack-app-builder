@@ -3857,6 +3857,8 @@ DECIDE  terminate -> COMPLETED | BLOCKED | WAITING | RECOVERED | SAFELY_FAILED |
 
 Transitions are recorded as kernel events. The engine cannot enter `EXECUTE` from any state except a granted `AUTHORIZE`, which makes the authority path structural rather than procedural.
 
+This section is the **canonical cycle state machine** and the single authority over cycle transitions (ADR-230). It is the *fine-grained* machine: its thirteen states and the edges above are the only legal cycle transitions, and an implementation MUST reject and record any transition not drawn here. The build spec §52.2 vocabulary is not a second machine. It is the **coarse durable-projection vocabulary** — the nine names under which cycle states are recorded in `LoopHeartbeat.stateEntered` and reported to the supervisor — and build spec §52.2 carries the total, surjective projection from these thirteen states onto those nine. Every fine state maps to exactly one coarse state and every coarse state has at least one fine preimage, so no cycle state is unrecordable and no recorded name is unreachable. The six terminal cycle outcomes above are neither fine nor coarse cycle states; they are the kernel cycle outcomes that build spec §26.14 already names and that the build spec §33.2 mapping table projects onto task and session states.
+
 ### 71.5 HypothesisManager
 
 > **Schema projection:** `Hypothesis` is defined in `nirman-schemas.md` §1.29. Owner: BS §66.6.

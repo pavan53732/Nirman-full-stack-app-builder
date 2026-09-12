@@ -2178,6 +2178,76 @@ def check_semantic_documentation(docs, R, D, root="."):
                 D.add("semantic documentation", "resource threshold ownership",
                       f"§80.2 row restates an owner-approved threshold ({_val!r}); "
                       "BS §26.6 is the single normative owner (ADR-229)")
+    # Cycle-projection closure (ADR-230). TA §71.4 is the one canonical cycle
+    # machine; BS §52.2 is its coarse durable projection. Two closed state
+    # machines described the same object with no mapping between them, and the
+    # two records observing the cycle bound to opposite sides, so this rule
+    # computes the projection rather than needle-matching it: it must be total
+    # over the fine states and surjective onto the coarse states, and both
+    # durable records must carry the vocabulary they claim.
+    m_714 = _section_text(ta, "71.4") or ""
+    m_522 = _section_text(bs, "52.2") or ""
+    if "This section is the **canonical cycle state machine**" not in m_714:
+        D.add("semantic documentation", "cycle projection",
+              "TA §71.4 must declare itself the canonical cycle state machine (ADR-230)")
+    if "coarse durable-projection vocabulary" not in m_522:
+        D.add("semantic documentation", "cycle projection",
+              "BS §52.2 must declare itself the coarse durable-projection vocabulary, "
+              "not a second state machine (ADR-230)")
+    _fine_block = m_714.split("```text", 1)[-1].split("```", 1)[0]
+    _fine_block = _fine_block.split("terminate ->", 1)[0]
+    _fine = []
+    for _t in re.findall(r"\b[A-Z][A-Z_]{2,}\b", _fine_block):
+        if _t not in _fine:
+            _fine.append(_t)
+    _coarse = re.findall(r"^\s*([A-Z][A-Z_]{2,})\s*$", m_522.split("```text", 1)[-1]
+                         .split("```", 1)[0].split("├──", 1)[0], re.M)
+    _proj = {}
+    for _c, _fs in re.findall(r"^\| `([A-Z][A-Z_]{2,})` \| ((?:`[A-Z][A-Z_]{2,}`(?:, )?)+) \|",
+                              m_522, re.M):
+        _proj[_c] = re.findall(r"`([A-Z][A-Z_]{2,})`", _fs)
+    if _fine and _coarse and _proj:
+        _mapped = [f for _v in _proj.values() for f in _v]
+        for _f in _fine:
+            if _f not in _mapped:
+                D.add("semantic documentation", "cycle projection",
+                      f"BS §52.2 projection is not total: TA §71.4 state {_f} has no coarse target (ADR-230)")
+        for _d in set(_mapped) - set(_fine):
+            D.add("semantic documentation", "cycle projection",
+                  f"BS §52.2 projection names {_d}, which is not a TA §71.4 cycle state (ADR-230)")
+        for _c in _coarse:
+            if _c not in _proj:
+                D.add("semantic documentation", "cycle projection",
+                      f"BS §52.2 projection is not surjective: coarse state {_c} has no fine preimage (ADR-230)")
+        for _c in set(_proj) - set(_coarse):
+            D.add("semantic documentation", "cycle projection",
+                  f"BS §52.2 projection row {_c} is not one of the nine coarse states (ADR-230)")
+        _dupes = {f for f in _mapped if _mapped.count(f) > 1}
+        for _f in sorted(_dupes):
+            D.add("semantic documentation", "cycle projection",
+                  f"BS §52.2 projection maps TA §71.4 state {_f} to more than one coarse state (ADR-230)")
+    else:
+        D.add("semantic documentation", "cycle projection",
+              "BS §52.2 projection table, TA §71.4 states, or the coarse state list could not be parsed (ADR-230)")
+    if "├── VALIDATE" in m_522:
+        D.add("semantic documentation", "cycle projection",
+              "BS §52.2 still carries a VALIDATE cycle branch; ADR-230 folds it into DECIDE")
+    m_lhb = re.search(r"```text\nLoopHeartbeat\n(.*?)```", sch, re.S)
+    if m_lhb:
+        _se = re.search(r"- stateEntered: ([^\n]+)", m_lhb.group(1))
+        _se_vals = re.findall(r"[A-Z][A-Z_]{2,}", _se.group(1)) if _se else []
+        if sorted(_se_vals) != sorted(_coarse) and _coarse:
+            D.add("semantic documentation", "cycle projection",
+                  "`LoopHeartbeat.stateEntered` must carry exactly the nine BS §52.2 coarse "
+                  f"states (ADR-230); found {_se_vals}")
+    m_alr = re.search(r"```text\nAgentLoopRecord\n(.*?)```", sch, re.S)
+    if m_alr and _fine:
+        _st = re.search(r"- state: (.*?)(?:\n- |\Z)", m_alr.group(1), re.S)
+        _st_vals = re.findall(r"[A-Z][A-Z_]{2,}", _st.group(1)) if _st else []
+        for _f in _fine:
+            if _f not in _st_vals:
+                D.add("semantic documentation", "cycle projection",
+                      f"`AgentLoopRecord.state` must carry TA §71.4 state {_f} (ADR-230)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),

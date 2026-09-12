@@ -1719,6 +1719,34 @@ CASES = {
         "restates no value. Context compaction at 80%",
         "restates telemetry at 70% of quota. Context compaction at 80%",
         "semantic documentation"),
+
+    # ---- cycle projection closure (ADR-230): TA §71.4 is the one canonical
+    # cycle machine and BS §52.2 is its total, surjective coarse projection.
+    "projection loses totality — a fine state has no coarse target": (
+        BS,
+        "| `PLAN` | `STRATEGIZE`, `SPECULATE` |",
+        "| `PLAN` | `STRATEGIZE` |",
+        "semantic documentation"),
+    "projection loses surjectivity — a coarse state has no fine preimage": (
+        BS,
+        "| `UPDATE_STATE` | `UPDATE` |\n",
+        "",
+        "semantic documentation"),
+    "§52.2 reintroduces the withdrawn VALIDATE cycle branch": (
+        BS,
+        "   ├── CONTINUE\n   ├── RECOVER",
+        "   ├── CONTINUE\n   ├── VALIDATE\n   ├── RECOVER",
+        "semantic documentation"),
+    "LoopHeartbeat stops carrying the nine coarse states": (
+        SCHEMAS,
+        "- stateEntered: OBSERVE | UNDERSTAND | PLAN |",
+        "- stateEntered: OBSERVE | UNDERSTAND |",
+        "semantic documentation"),
+    "TA §71.4 stops declaring itself the canonical cycle machine": (
+        TA,
+        "This section is the **canonical cycle state machine**",
+        "This section describes the cycle states",
+        "semantic documentation"),
 }
 
 

@@ -1758,6 +1758,8 @@ LoopHeartbeat
 - stampedAt
 ```
 
+`stateEntered` carries the **coarse durable-projection vocabulary** of build spec §52.2, not the fine-grained cycle states of technical architecture §71.4. Every technical architecture §71.4 cycle state projects onto exactly one of these nine names through the total, surjective table in build spec §52.2, so a heartbeat exists for every cycle transition and `LOOP_HUNG` can always name a last coarse state. The fine state is recoverable from the accompanying kernel event, which records the technical architecture §71.4 state; the heartbeat is the supervisor's liveness projection and is deliberately coarser (ADR-230).
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -2649,7 +2651,7 @@ AgentLoopRecord
 - updated_at
 ```
 
-`state` is the durable projection of the technical architecture §71.4 cycle state machine and carries exactly that section's thirteen cycle states plus its six terminal cycle outcomes. It introduces no new vocabulary: the first thirteen values are the technical architecture §71.4 states and the last six are the technical architecture §71.4 kernel cycle outcomes that build spec §26.14 already names. Transitions are legal only along technical architecture §71.4 edges, so `EXECUTE` is reachable only from a granted `AUTHORIZE`. `state` is neither a `TaskExecutionState` (build spec §26.14) nor a `ProductLifecycleState` (build spec §33.2); the build spec §33.2 mapping table fixes how each terminal value projects onto those sets.
+`state` is the durable projection of the technical architecture §71.4 cycle state machine and carries exactly that section's thirteen cycle states plus its six terminal cycle outcomes. It introduces no new vocabulary: the first thirteen values are the technical architecture §71.4 states and the last six are the technical architecture §71.4 kernel cycle outcomes that build spec §26.14 already names. Transitions are legal only along technical architecture §71.4 edges, so `EXECUTE` is reachable only from a granted `AUTHORIZE`. `state` is neither a `TaskExecutionState` (build spec §26.14) nor a `ProductLifecycleState` (build spec §33.2); the build spec §33.2 mapping table fixes how each terminal value projects onto those sets. `state` holds the **fine-grained** technical architecture §71.4 cycle state; the coarser `LoopHeartbeat.stateEntered` of nirman-schemas.md §1.78 holds the build spec §52.2 projection of that same state, through the total, surjective table in build spec §52.2 (ADR-230). The two are one machine observed at two resolutions, never two machines: the fine value is authoritative for transitions, and the coarse value is authoritative for supervisor liveness.
 
 ### 2.43 AgentProposal
 

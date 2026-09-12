@@ -1999,7 +1999,7 @@ The runtime must maintain a progress ledger recording changed files, new evidenc
 
 When a stall is detected, the runtime must refresh context, change strategy, change technology, delegate diagnosis, repair the environment, restore a checkpoint, or construct an isolated alternative. It must not repeat the same action indefinitely, and it must not pause: a stall is a recovery event owned by `RecoveryAuthority`, never a waiting state (ADR-226).
 
-**The loop watches itself (ADR-226).** Worker heartbeats prove that a process is alive; they do not prove that the loop is moving. Every kernel transition of §52.2 therefore stamps a `LoopHeartbeat` — task, agent instance, the state entered, the `progressDelta` the transition carried, and the event sequence — and `SupervisorLifecycle` (technical architecture §57.4) scans them on the same schedule as worker staleness. A `RUNNING` task whose newest `LoopHeartbeat` is older than the stall detection window of §80.3 is a hung loop: the supervisor retires the worker lease, records the fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` (§52.3) three consecutive times is retired the same way, with the three rejected proposals attached, so a worker that cannot find the frontier is replaced rather than left proposing.
+**The loop watches itself (ADR-226).** Worker heartbeats prove that a process is alive; they do not prove that the loop is moving. Every kernel transition of the canonical cycle machine of technical architecture §71.4 therefore stamps a `LoopHeartbeat` — task, agent instance, the coarse build spec §52.2 projection of the state entered, the `progressDelta` the transition carried, and the event sequence — and `SupervisorLifecycle` (technical architecture §57.4) scans them on the same schedule as worker staleness. A `RUNNING` task whose newest `LoopHeartbeat` is older than the stall detection window of §80.3 is a hung loop: the supervisor retires the worker lease, records the fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` (§52.3) three consecutive times is retired the same way, with the three rejected proposals attached, so a worker that cannot find the frontier is replaced rather than left proposing.
 
 > **Schema projection:** `LoopHeartbeat` is defined in `nirman-schemas.md` §1.78. Owner: BS §29.4.
 
@@ -2908,7 +2908,7 @@ Nirman must never implement a direct `model → execute` path.
 
 ### 52.2 Agent loop states
 
-The kernel must maintain a separate reasoning/execution state machine from the worker-process lifecycle state machine:
+The kernel must maintain a separate reasoning/execution state machine from the worker-process lifecycle state machine. The canonical cycle machine and the only authority over cycle transitions is technical architecture §71.4 (ADR-230). This section defines the **coarse durable-projection vocabulary**: the nine names under which cycle states are recorded in `LoopHeartbeat.stateEntered` and reported to the supervisor. It is a projection of the technical architecture §71.4 machine, not a second machine, and it introduces no transition that technical architecture §71.4 does not already permit:
 
 ```text
 OBSERVE
@@ -2929,14 +2929,29 @@ UPDATE_STATE
    ↓
 EVALUATE_PROGRESS
    ├── CONTINUE
-   ├── VALIDATE
    ├── RECOVER
    ├── DELEGATE
    ├── REPLAN
    └── COMPLETE
 ```
 
-Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition, and every transition stamps a `LoopHeartbeat` (§29.4) so the supervisor can distinguish a moving loop from a live process. Impossible transitions must be rejected and recorded as runtime faults.
+The projection is **total and surjective**: every one of the thirteen technical architecture §71.4 cycle states maps to exactly one coarse state, and every coarse state has at least one fine preimage, so no cycle state is unrecordable and no recorded name is unreachable.
+
+| Coarse state (this section) | Fine states projected onto it (technical architecture §71.4) |
+|---|---|
+| `OBSERVE` | `OBSERVE` |
+| `UNDERSTAND` | `UNDERSTAND`, `HYPOTHESIZE` |
+| `PLAN` | `STRATEGIZE`, `SPECULATE` |
+| `SELECT_ACTION` | `SELECT` |
+| `AUTHORIZE` | `AUTHORIZE` |
+| `EXECUTE` | `EXECUTE` |
+| `OBSERVE_RESULT` | `OBSERVE_RESULT`, `REFLECT` |
+| `UPDATE_STATE` | `UPDATE` |
+| `EVALUATE_PROGRESS` | `DECIDE`, `DELEGATE` |
+
+The former `VALIDATE` branch of `EVALUATE_PROGRESS` is **folded into `DECIDE`** (ADR-230). Validation is not a cycle branch: it is owned by the completion evaluator and the evidence gates, and a validated goal leaves the cycle through technical architecture §71.4's `DECIDE terminate -> COMPLETED`, never through a separate validation transition. The five remaining coarse branches are the coarse view of the technical architecture §71.4 `DECIDE` edges: `CONTINUE` ← `continue`, `RECOVER` ← `repair`, `REPLAN` ← `replan`, `DELEGATE` ← `delegate`, `COMPLETE` ← `terminate` reaching `COMPLETED`; the technical architecture §71.4 `branch` edge projects onto `PLAN` through `SPECULATE`.
+
+Every transition must include the session, task, agent instance, project revision, plan revision, input evidence, output reference, policy decision, and next permitted transition, and every transition stamps a `LoopHeartbeat` (§29.4) so the supervisor can distinguish a moving loop from a live process. Impossible transitions must be rejected and recorded as runtime faults. A transition is impossible when technical architecture §71.4 draws no such edge; the coarse projection above never makes an otherwise-illegal transition legal.
 
 ### 52.3 Progress evaluation
 
