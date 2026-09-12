@@ -587,7 +587,11 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 ## ADR-050: Use bounded worker nesting and interface agreements
 
 **Status:** Accepted  
-**Decision:** The orchestrator chooses swarm size from complexity, dependencies, file boundaries, target platforms, interface agreements, validation needs, and resources. Coupled frontend/backend work requires a shared interface agreement before parallel implementation. Worker nesting is limited to two levels by default.
+**Decision:** The orchestrator chooses swarm size from complexity, dependencies, file boundaries, target platforms, interface agreements, validation needs, and resources. Coupled frontend/backend work requires a shared interface agreement before parallel implementation. Worker nesting is limited to three levels by default, as amended by ADR-227:
+the Primary Orchestrator delegates to workers; a worker may request one
+Diagnostic Worker child; a Diagnostic Worker may request one observation-only
+probe child. A probe child cannot create children, expand permissions, change
+the parent contract, or integrate changes.
 
 **Reasoning:** Post-hoc reconciliation alone is insufficient for interdependent work, and unrestricted nesting makes ownership and recovery ambiguous.
 
@@ -1974,7 +1978,7 @@ This decision supersedes every earlier worker-role taxonomy. Legacy role names a
 
 **Decision:** Long-running sessions use renewable progress-aware leases. Sensitive operations use single-use capabilities bound to session, worker, operation, scope fingerprint, base revision, and policy context.
 
-**Rationale:** A fixed short token cannot safely represent a long Android build, while unlimited authority is unsafe. The two-level model supports autonomy with bounded authority.
+**Rationale:** A fixed short token cannot safely represent a long Android build, while unlimited authority is unsafe. The three-level model, as amended by ADR-227, supports autonomy with bounded authority.
 
 **Consequences:** Expired leases revoke workers and block new work. Capabilities are consumed before external side effects and are never persisted in plaintext.
 
@@ -2953,7 +2957,7 @@ The read-only roles form the default fan-out: the orchestrator may run a Reposit
 
 **Rationale:** ADR-049 fixed one taxonomy so that no document could name an undefined worker, yet the documents kept naming "emulator worker", "content worker", "diagnostic worker", "review workers", and "visual worker" because the work exists and had to be described. A builder agent that meets an unregistered phrase must guess which registered role performs it — the exact ambiguity these documents exist to remove. Registering the five names closes the gap where it is; folding them into existing roles would have hidden distinct permission profiles (device access, content authority, read-only critique) inside roles that do not need them. Deeper diagnosis without wider authority is the same bargain ADR-225 struck for the loop: more observation, no new deciders.
 
-**Consequences:** Build spec §22.1, §23.4, and technical architecture §6.5 gain five rows and the three-level nesting rule; technical architecture §10.2, §10.4, §76.3, and §85.2 name the registered role where they used a lowercase phrase; build spec §47.3 and §66.9 do likewise; §80.3 gains the probe-child default; M8 and M30 gain the registry work; the verifier checks the three tables for identical role sets and rejects unregistered worker phrases. Skill packages already declare `compatibleWorkerRoles` against this list and need no change. ADR-049 is amended in place.
+**Consequences:** Build spec §22.1, §23.4, and technical architecture §6.5 gain seven rows and the three-level nesting rule; technical architecture §10.2, §10.4, §76.3, and §85.2 name the registered role where they used a lowercase phrase; build spec §47.3 and §66.9 do likewise; §80.3 gains the probe-child default; M8 and M30 gain the registry work; the verifier checks the three tables for identical role sets and rejects unregistered worker phrases. Skill packages already declare `compatibleWorkerRoles` against this list and need no change. ADR-049 is amended in place.
 
 **Reversal trigger:** A frozen-battery run in which two of the twenty-one roles are found to require identical permission profiles, identical evidence outputs, and identical crate placement — the roles are then merged by amending this record, not by letting the documents drift back to unregistered phrases.
 

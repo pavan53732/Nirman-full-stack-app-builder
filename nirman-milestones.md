@@ -461,31 +461,31 @@ This sequence reduces the risk of building a visually impressive chat interface 
 
 ## 20. Extension Milestones from the Advanced Autonomy Requirements
 
-### M13: Goal Mode and non-blocking background work
+## M13: Goal Mode and non-blocking background work
 
 Implement durable goal contracts, completion-condition evaluation, physical resource requirements, stop conditions, progress tracking, reconnectable task streams, background UI behavior, and operating-system notifications. The task must continue without stealing user focus and must survive a controlled UI restart.
 
 **Exit gate:** A user can define a goal once, continue working elsewhere, close and reopen the desktop interface, and inspect objective completion results rather than relying on a final model message.
 
-### M14: Lifecycle hooks
+## M14: Lifecycle hooks
 
 Implement the named hook-event table defined in the master specification. Add blocking and non-blocking hook types, timeouts, deduplication, failure policies, policy enforcement, and audit records.
 
 **Exit gate:** A pre-tool security hook can block an unsafe action, a post-tool hook can update the project index, and a worker-failure hook can start a recovery action without bypassing permissions.
 
-### M15: Scheduled automations
+## M15: Scheduled automations
 
 Implement local recurring task definitions with interval, calendar, project-change, failed-validation, and manual triggers. Add schedule persistence, duplicate-run prevention, resource requirements, inherited permissions, pause/disable controls, run history, and notifications.
 
 **Exit gate:** A safe local test or documentation task can run on a schedule, recover correctly after a control-plane restart, and never publish or use personal credentials without per-run approval.
 
-### M16: Granular checkpoints and backtracking
+## M16: Granular checkpoints and backtracking
 
 Implement file-level checkpoints alongside task-level checkpoints. Add last-known-good restoration, strategy history, failure fingerprinting, materially different recovery plans, and preview invalidation after rollback.
 
 **Exit gate:** A repeated failing implementation is restored to a known-good state, retried using a different worker or approach, and reported with a complete strategy history.
 
-### M17: Context scaling and external-tool compatibility
+## M17: Context scaling and external-tool compatibility
 
 Implement retrieval-based and large-context modes, context-package reports, secret filtering, provider-context-capacity fallback, external-tool capability discovery, scoped connections, health checks, and policy mediation.
 
@@ -507,19 +507,19 @@ Implement retrieval-based and large-context modes, context-package reports, secr
 
 ## 22. Execution-Surface Milestones
 
-### M18: Durable task graph and nested execution tree
+## M18: Durable task graph and nested execution tree
 
 Add a persisted task graph that represents the goal, extracted requirements, phases, dependencies, worker handoffs, commands, previews, tests, builds, approvals, checkpoints, recovery attempts, and final evidence. Build an expandable execution tree in the task view with node states, timestamps, owners, workspaces, heartbeats, warnings, and evidence links.
 
 **Exit gate:** A task can be inspected as a nested tree while running, after completion, and after a control-plane restart. Child events replay in order and no completed node lacks evidence.
 
-### M19: Evidence-backed status and telemetry
+## M19: Evidence-backed status and telemetry
 
 Add an evidence ledger for command results, test reports, build artifacts, screenshots, device results, security scans, review findings, approvals, and environment diagnostics. Add runtime telemetry for elapsed time, turns, provider requests, token/resource usage, active workers, last checkpoint, current blocker, and next action.
 
 **Exit gate:** A model summary alone cannot mark a task or phase complete. The final result links each completion claim to captured evidence and exposes the task’s resource and recovery history.
 
-### M20: Autonomous validation coordinator
+## M20: Autonomous validation coordinator
 
 Implement the default validation loop: Nirman-managed local Android emulator preview or launch, focused checks, Android build or package, security/dependency/reliability checks, device/accessibility/visual QA, failure classification, repair or backtracking, regression validation, and completion evaluation. Project profiles may mark stages as required, optional, or unavailable.
 
@@ -530,7 +530,7 @@ Every required acceptance criterion must expose its evidence frontier (verified,
 
 Every required behavioral acceptance condition must execute through `CONTRACT.RUNTIME.E2E`. A validation run that builds or launches the application but does not execute its required interaction scenarios cannot produce `COMPLETED`.
 
-### M21: Policy-boundary approvals and termination coordinator
+## M21: Policy-boundary approvals and termination coordinator
 
 Refine approvals so routine reversible actions in an approved workspace do not interrupt the user, while protected-file access, risky dependencies, external services, credentials, destructive actions, publishing, and signing create precise approval requests. Implement the completion classifications of build spec §27.10 (completed, completed with warnings, blocked, escalated, cancelled, failed) as reports derived from the task-execution states of build spec §26.14 and the session lifecycle of §33.2, not as a further state set.
 
@@ -553,7 +553,7 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 ## 24. Provider Runtime and Self-Development Milestones
 
-### M22: Provider-neutral AI settings and model gateway
+## M22: Provider-neutral AI settings and model gateway
 
 Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
 
@@ -563,13 +563,13 @@ Provider capability detection must distinguish native reasoning support, support
 
 **Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, stream or emulate events, cancel a request, and inspect normalized usage and request IDs without exposing the key.
 
-### M23: Controlled self-development loop
+## M23: Controlled self-development loop
 
 Implement the stable launcher/controller as the `UpdateController` bootstrap stage of `NirmanSupervisor.exe` (technical architecture §25.2 and §57.4, ADR-039; no separate launcher executable), the isolated self-development worktree, source checkpoint, self-development contract, candidate build, temporary profile, health checks, smoke task, task replay, compatibility checks, atomic promotion, and automatic rollback. The current running application must remain unchanged until the candidate passes the required validation policy.
 
 **Exit gate:** Nirman can modify its own source in isolation, build a candidate, launch it separately, run static/unit/integration/provider/sandbox/recovery/smoke checks, promote it through the controller, and roll back after an injected startup, migration, IPC, or health-check failure.
 
-### M24: Adaptive long-horizon provider execution
+## M24: Adaptive long-horizon provider execution
 
 Implement continuation across provider request boundaries without a default time or token completion lock. Add context compaction, retrieval fallback, model routing, concurrency reduction, provider retry classification, context-overflow recovery, reasoning-effort routing, reasoning-usage telemetry, provider-native reasoning normalization, provider capability gaps, and task-state persistence.
 
@@ -601,13 +601,13 @@ AI usage is telemetry only; no token, request, monetary, reasoning, or duration 
 
 ## 26. Complete Runtime and Self-Improvement Milestones
 
-### M25: Runtime supervisor and durable execution loop
+## M25: Runtime supervisor and durable execution loop
 
 Implement the stable supervisor, control-plane ownership, idempotent runtime ticks, task-graph scheduling, worker leases, launch intents, heartbeats, reconnectable events, and restart recovery. The runtime must continue after each model response and provider request rather than treating a response as the end of the task.
 
 **Exit gate:** A broad goal can run through multiple provider requests, worker handoffs, validation cycles, and application restarts while preserving the task graph, checkpoints, evidence, and next action.
 
-### M26: Graduated recovery ladder
+## M26: Graduated recovery ladder
 
 Implement transient retry, focused diagnostics, context/index refresh, strategy change, checkpoint backtracking, model or worker escalation, specialist delegation, isolated alternative solutions, and precise escalation. Add failure fingerprints, progress-quality measurement, and duplicate-strategy detection.
 
@@ -617,19 +617,19 @@ Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225): the `BUILT_IN` f
 
 **Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
 
-### M27: Self-observation and episode evaluation
+## M27: Self-observation and episode evaluation
 
 Implement episode records, validated task summaries, project-scoped memory, runtime quality metrics, fixture evaluation runs, trajectory replay, and regression comparison by runtime version, provider profile, model profile, project type, and worker role.
 
 **Exit gate:** The system can explain why a task succeeded or failed, compare two runtime candidates on the same fixture suite, and identify whether the main weakness was requirements, context, planning, tool use, editing, environment, or validation.
 
-### M28: Self-improvement proposal manager
+## M28: Self-improvement proposal manager
 
 Implement recurring-failure clustering, improvement hypotheses, proposal records, affected-component analysis, expected-metric definitions, safety impact, test plans, rollback plans, and scoped promotion policies. Restrict high-risk components such as the supervisor, sandbox, policy engine, credentials, updater, migrations, and evidence engine to the highest validation level.
 
 **Exit gate:** Nirman can create a proposal from repeated validated failures, generate an isolated candidate, and show the evidence and expected improvement before changing runtime behavior.
 
-### M29: Candidate canary, promotion, and rollback
+## M29: Candidate canary, promotion, and rollback
 
 Implement observe-only, candidate-only, canary, trusted auto-promotion, and manual-promotion modes. Run targeted tests, broad regression fixtures, provider tests, sandbox tests, migration tests, recovery tests, smoke tasks, and representative task replay before promotion. Monitor post-promotion quality and automatically roll back or disable a degraded scope.
 
@@ -668,7 +668,7 @@ A release cannot claim complete autonomous-runtime support until all seven crite
 
 ## 29. Audit Closure Milestones
 
-### M30: Canonical documentation and worker registry
+## M30: Canonical documentation and worker registry
 
 Renumber the advanced product-specification sections, remove duplicate roadmap references, create one crosswalk between roadmap phases and milestones, and make the canonical worker registry the only role taxonomy used by the product, architecture, tests, and decision records. The registry must include the Performance Worker and the five ADR-227 roles (Emulator Driver, Diagnostic, Content, Integration Double, Critic) and define every worker’s scope, tools, workspace, and mutation authority.
 
@@ -676,7 +676,7 @@ M30 MUST establish the canonical semantic identity graph before any further spec
 
 **Exit gate:** All cross-document references resolve to one section or milestone, all worker names match exactly, the Performance Worker has a contract, a registry test rejects undefined or duplicate roles, and the canonical identity verifier (INVARIANT.DOCUMENTATION.CANONICAL_IDENTITY) passes with 0 defects. A release MUST fail if two objects claim one canonical identity, one reference resolves to the wrong semantic object, a reverse edge does not return to its source, or a reference resolves only because of a stale section number.
 
-### M31: Autonomous-build policy and never-pause loop
+## M31: Autonomous-build policy and never-pause loop
 
 Implement the single Autonomous-build policy (BS §23.3, §23.7; TA §16.2.1; ADR-226) as the only execution policy: no mode selector, no profile picker, no autonomy level anywhere in the UI, the IPC command registry, or the ledger. It allows routine reversible actions inside the workspace, including dependency installation, local commits, formatting, testing, builds, preview restarts, and approved environment repair. It denies external-directory access, raw credentials, destructive commands, operating-system changes, remote pushes, publishing, signing, and unapproved sensitive-data transmission.
 
@@ -686,25 +686,25 @@ Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the sessio
 
 **Exit gate:** A background fixture task completes a dependency install, local commit, build, preview restart, and repair without approval pauses, while deployment, signing, credential access, destructive commands, and remote pushes remain hard-gated.
 
-### M32: Persistent terminal subsystem
+## M32: Persistent terminal subsystem
 
 Implement per-worker PTY or equivalent terminal sessions with persistent working directory and environment state, explicit Windows shell profiles, controlled stdin, interactive-prompt detection, unattended prompt policy, long-running process registration, multi-terminal UI, rolling log storage, rotation, compression, and raw evidence retention.
 
 **Exit gate:** A background fixture can activate an environment, install dependencies, start a dev server, respond to a declared safe prompt, detect an unsafe prompt, preserve the terminal session after UI disconnect, and reconnect with searchable logs.
 
-### M33: Skills registry and invocation contract
+## M33: Skills registry and invocation contract
 
 Implement the SkillPackage schema, trigger and explicit invocation, worker compatibility, required tools, permission requests, input/output schemas, scanning, trust status, versioning, health checks, update, disable, and rollback. Loading a skill must never grant permissions automatically.
 
 **Exit gate:** A safe skill can be discovered, scanned, invoked by a matching task, execute only declared tools through the policy engine, and roll back after a failed update. An unsafe or undeclared skill action must be rejected.
 
-### M34: Windows lifecycle and multi-project resilience
+## M34: Windows lifecycle and multi-project resilience
 
 Implement active-task login startup, boot/resume/suspend/hibernate event handling, execution power requests, process and emulator restoration, notification fallback, startup summaries, weighted fair-share scheduling, priority aging, and cross-project resource accounting.
 
 **Exit gate:** After an injected reboot, suspend/resume, suppressed notification, and competing multi-project workload, eligible tasks resume from checkpoints, hard decisions remain visible, and no project starves another.
 
-### M35: Long-horizon scale and unified execution surface
+## M35: Long-horizon scale and unified execution surface
 
 Implement incremental repository-map shards, dependency fingerprints, checkpoint retention and content-addressed compaction, Android-profile disk quotas, affected-test computation, cached results, regression sharding, architectural-drift checks, and the side-by-side Android preview plus execution-surface layout.
 
@@ -723,19 +723,19 @@ Implement incremental repository-map shards, dependency fingerprints, checkpoint
 | Swarm coordination | Decomposition heuristic, interface agreement, bounded nesting, reconciliation |
 | Preview visibility | Preview revision and nested execution tree visible together |
 
-### M36: Runtime authority and autonomous recovery invariants
+## M36: Runtime authority and autonomous recovery invariants
 
 Implement and test the rule that models propose work but deterministic lifecycle, permission, sandbox, storage, evidence, recovery, promotion, and termination authorities control execution. The runtime must recover, retry, checkpoint, repair, reconcile, degrade, or fail safely without trusting model claims or uncommitted model memory.
 
 **Exit gate:** Fault-injection tests prove that model output cannot grant permissions, bypass sandbox rules, mark tasks complete without evidence, delete recovery state, promote an unvalidated candidate, disable mandatory hooks, or suppress a hard safety termination. Recovery tests prove that the last known-good state remains restorable across worker, process, provider, UI, database, and self-update failures.
 
-### M37: Android-only target contract
+## M37: Android-only target contract
 
 Make Android project profiles, Nirman-managed local Android emulator validation, Logcat, Gradle, APK artifacts, permissions, notifications, offline behavior, and device-specific acceptance tests the only generated-project requirements. Keep the desktop shell solely as the local development host.
 
 **Exit gate:** A scope test accepts supported Android project requests, resolves the correct Android profile, launches Nirman-managed local Android emulator validation, produces Android artifact evidence, and confirms that every project-generation path resolves only to an Android profile.
 
-### M38: Complete Android technology coverage
+## M38: Complete Android technology coverage
 
 Implement the capability registry, technology planner, framework resolver, mixed-architecture project synthesis, native-module integration, device-capability resolution, and end-to-end validation for the full Android technology surface. The user must describe the application rather than select a framework or template.
 
@@ -1073,7 +1073,7 @@ Implement independent-fixture validation for learned repair patterns, bounded al
 | Repair promotion | Independent validation before trusted reuse |
 | Scope integrity | Android-only generated-target audit |
 
-# M59–M61: Reasoning Visibility and Streaming Milestones
+## M59–M61: Reasoning Visibility and Streaming Milestones
 
 ## M59 — PrivateReasoningRuntime and StructuredReasoningSummarizer
 
@@ -1106,7 +1106,7 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 | Status truthfulness | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
 | Back-pressure | UI disconnect cannot stop autonomous execution |
 
-# M62–M64: Brand and Asset Completion Milestones
+## M62–M64: Brand and Asset Completion Milestones
 
 ## M62 — BrandManifest, AssetManifest, and UI Worker asset scope
 
@@ -1188,7 +1188,7 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 
 Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
 
-# M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
+## M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.
 
@@ -1241,11 +1241,11 @@ A recorded trajectory can be replayed against a changed model or runtime without
 
 A multi-hour Android task can compact active state, move old records to warm/cold/archive tiers, restore a historical trace, and retain all required completion evidence, checkpoint parents, and artifact provenance.
 
-### M80 certification fixture
+## M80 certification fixture
 
 The certification fixture should include a user instruction and optional screenshots for an Android application with multiple screens, offline data, a device capability, branded assets, background work, and a release artifact. The fixture must inject a dependency failure, a provider interruption, a stale worker, an emulator interruption, a contradiction in requirements, and a validation failure. Nirman must recover, replan, validate, produce the APK, and retain an inspectable trajectory without routine human intervention.
 
-# M81–M93: Long-Horizon Intelligence, Verification, and Documentation Certification
+## M81–M93: Long-Horizon Intelligence, Verification, and Documentation Certification
 
 These milestones implement build spec §53–§67 and technical architecture §59–§71 and §88. They follow the AgentExecutionKernel milestones M65–M80 and must be tested against Android fixture projects with injected failures. No milestone here may begin before the single-worker and durable-supervisor gates of Stages 1–3 have passed.
 
@@ -1384,13 +1384,13 @@ Test and evidence identity follows the same rule. A contract's capability-level 
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all twelve §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure checks (which are additional to, not counted among, the twelve). It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, section-ownership violation, or structure violation.
 
-### M93 Contract-Graph Certification Regression Gate
+## M93 Contract-Graph Certification Regression Gate
 
 M93 establishes `DOCUMENTATION_CERTIFIED` status only. It runs the contract-graph verifier of build spec §67.11 across the declared contract-graph checks and document-structure checks, and verifies that every capability in the §5.6 coverage matrix resolves to its required traceability chain. It does not establish runtime certification, Android build/device certification, preview certification, APK certification, or product completion. Runtime certification remains executable and milestone-specific. The verifier's terminal status distinguishes `DOCUMENTATION_CERTIFIED` (zero defects, every check evaluated) from `DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` (zero defects, but implementation-facing field coverage unevaluated because the `crates/` source is absent); both exit with code 0, and the with-skips status lists every unevaluated subject. Until the Rust supervisor source exists in the working tree, every run of M93 carries the with-skips status, and no agent may report it as complete evaluation (BS §67.11).
 
 Any missing edge, duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, or structure violation is a documentation defect that must be recorded and resolved. No capability may be reported as supported while its required documentation chain is incomplete, and no runtime or product claim may be promoted from this gate alone.
 
-# M94: Agent Reasoning Runtime and Bounded Delegation
+## M94: Agent Reasoning Runtime and Bounded Delegation
 
 Implements build spec §66 and technical architecture §71. This milestone follows M81–M93 and must not begin before the AgentExecutionKernel milestones M65–M80 and the certification milestone M93 have passed their gates. It adds the reasoning cycle that drives the existing kernel loop; it does not introduce a second execution loop.
 
@@ -1400,7 +1400,7 @@ Implements build spec §66 and technical architecture §71. This milestone follo
 
 A goal produces a recorded ReasoningArtifact with a cited selectionBasis before any mutation occurs. An artifact submitted with an empty selectionBasis is rejected at write and the cycle returns to strategy selection. No persisted record in any reasoning table contains verbatim model reasoning. Every executed action produces a ReflectionRecord classifying the outcome as SUCCESS, PARTIAL, FAILURE, or UNKNOWN with evidence references. A hypothesis rejected with refuting evidence is retained and is not retested against unchanged evidence. An untargeted repair is not attempted while an untested discriminating test remains available. A capability invocation denied by policy returns the cycle to strategy selection with the denial present as an active constraint in the next artifact. A delegation request whose child capability ceiling exceeds its parent's, or whose resource requirements exceed currently admissible parent resource capacity after outstanding sibling reservations, is denied with a typed reason. Revoking a parent grant terminates every descendant. A newly registered capability becomes discoverable without a code change to the reasoning engine. A mode request exceeding policy is downgraded to the highest permitted mode and recorded. Every cycle terminates in exactly one of COMPLETED, BLOCKED, WAITING, RECOVERED, SAFELY_FAILED, or ESCALATED (kernel cycle outcomes, which project onto the build spec §26.14 task states through the §33.2 mapping and are committed only by LifecycleAuthority), and SAFELY_FAILED is never reported as completion.
 
-# M95: Deep Deliberation Runtime
+## M95: Deep Deliberation Runtime
 
 Implements build spec §68 and technical architecture §72. Prerequisite: M94 must pass its reasoning and delegation gate. This milestone adds the deliberation runtime that decides how much reasoning to perform inside the existing cycle; it introduces no third execution loop.
 
@@ -1437,7 +1437,7 @@ DELIBERATION_PASS*  (observations only, zero mutation events)
 
 Any mutation event carrying a deliberation pass as its originating context is a shadow execution path and fails the gate regardless of the run's outcome. This assertion covers the whole deliberation phase, not only the adversarial critic.
 
-### M95 fault-injection fixtures
+## M95 fault-injection fixtures
 
 The gate above states required behavior. These seven fixtures inject the specific
 fault each rule exists to prevent, so the rule is proven rather than asserted.
@@ -1463,7 +1463,7 @@ A fixture that passes because the runtime never entered deliberation does not
 count. Each must show a recorded `DeliberationRecord` with `passCount` greater
 than one before its outcome is evaluated.
 
-### M95 certification fixture
+## M95 certification fixture
 
 Certification requires a deliberately difficult Android fixture exercising the full loop end to end: the initial strategy fails; the agent enumerates multiple competing hypotheses; it acquires discriminating evidence; at least one hypothesis is refuted and recorded with its refuting evidence; additional deliberation passes are taken with a stated reason per pass; reasoning effort escalates on a recorded condition; the provider's capability is adapted to without lowering the required effort silently; an alternative strategy is selected on evidence rather than preference; implementation proceeds through the ordinary authority path; validation discovers a second issue; deliberation resumes with prior rejections intact; the cause is localized and repaired within its cause scope; stateful end-to-end scenarios pass on the primary device; and the final report proves completion with evidence of an applicable kind for every requirement.
 
@@ -1504,7 +1504,7 @@ Run a fixture that starts from one Android product concept and optional screensh
 
 **Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK.
 
-### M96–M99 acceptance matrix
+## M96–M99 acceptance matrix
 
 | Capability | Required proof |
 |---|---|
@@ -1556,7 +1556,7 @@ Choose one canonical owner for every machine-readable schema and make every impl
 
 **Exit gate:** a schema mutation, state-enum mutation, artifact-policy mutation, or missing dependency relation fails certification rather than being hidden by duplicate explanatory prose.
 
-### M100–M105 acceptance matrix
+## M100–M105 acceptance matrix
 
 | Capability | Required proof |
 |---|---|
@@ -1600,7 +1600,7 @@ M108 implements build spec §71 and technical architecture §75. It must follow 
 
 Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` with canonical schema registry entries, version compatibility, durable event sequences, idempotent replay, projection revisions, preview identity checks, causal lineage, authority classes, and evidence lineage. Record acceptance using `TEST-PSYNC-001` and `EV-PSYNC-001`. Connect the user chat request to intent acceptance, contract validation, agent authorization, source revision, checkpoint, Android build, APK artifact, Nirman-managed local Android emulator installation, launch, interaction, observation, validation, promotion, and panel projection.
 
-### M108 work items
+## M108 work items
 
 | Work item | Implements | Acceptance condition |
 |---|---|---|
@@ -1610,7 +1610,7 @@ Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, a
 | Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
 | Preview Panel Pipeline | TA §73.14 | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry (no `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` command namespace in BS §76.1) and by the contract-graph verifier (§67.11 semantic-documentation defect for such a registry row or for a concrete execution operation on the `AndroidTechnologyAdapter`) |
 
-### M108 acceptance chain
+## M108 acceptance chain
 
 For every certified Android profile, the durable execution path MUST resolve:
 
@@ -1635,7 +1635,7 @@ AndroidTechnologyPlan
 
 The dependency direction is unambiguous: the technology plan and toolchain lock MUST be resolved before the technology adapter can resolve the build and device adapters, because both `resolveBuildAdapter` and `resolveDeviceAdapter` are explicitly derived from the locked `AndroidTechnologyPlan` and `AndroidToolchainLock`. The technology adapter resolves the execution authorities; it does not execute their concrete operations itself. Concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, and failure-classification operations have exactly one execution surface each.
 
-### M108 parameterized fixture matrix
+## M108 parameterized fixture matrix
 
 The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event-store, reducer, projection, evidence, promotion, and replay tests over each row of the matrix. Each row is a profile instance of `AndroidCapabilityProfile` (with the new `adapterId`, `adapterVersion`, `technologyPlanHash`, `buildStrategyId`, `previewStrategyId`, `runtimeStrategyId`, `validationStrategyId` fields populated) and exercises one legal preview-mode branch from the §73.11 rule table.
 
@@ -1655,7 +1655,7 @@ The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event
 
 The matrix is one parameterized test harness. M108 MUST NOT spawn nine separate test systems; the existing M108 fixture runner, the verifier, and the conformance battery must be extended to walk the matrix with `profileId`-keyed inputs.
 
-### M108 documentation-versus-runtime status
+## M108 documentation-versus-runtime status
 
 Documentation and contracts: the contract and parameterized fixture specification cover nine Android profiles plus the §73.11 fallback branches. This is the strongest defensible claim from the documentation layer.
 
@@ -1741,7 +1741,7 @@ Implement orthogonal UI, host, device, provider, lease, and reconciliation dimen
 Implement profile-bound local deployment export using `ExportVerificationRecord` with the `APKExportRecord` view, including artifact identity, packaging profile, source revision, checkpoint, source/destination file identities, request fingerprint, idempotency key, signing binding, validation and promotion decisions, reconciliation reference, failure evidence, destination identity, source/destination hashes, byte count, and copy state. Wire export state into the authoritative delivery projection. Preserve separate source/workspace, ZIP, and Git access as `SOURCE_ACCESS_ONLY`.
 **Exit gate:** executable fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds or external deployment destinations, `UNKNOWN → RECONCILING` copy recovery, source/destination hash equality, idempotent retry protection, signing/validation/promotion linkage, delivery projection visibility, and refusal to treat source access as deployment completion.
 
-### M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
+## M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
 The historical M6 partial closure (M6 §9 work item 10; that source is no longer present) exposed six command-payload fields but left the remaining 22 `ExportVerificationRecord` fields reachable only through durable observation, not the command boundary. M117 must close this: the `ArtifactExport` command response envelope MUST surface the canonical `ExportVerificationRecord` in full at the command boundary (artifact/destination/source file identity, hashes, byte count, lifecycle state, post-copy verification, policy decision, signing/validation/promotion binding, reconciliation/failure evidence) — not merely the six request-side payload fields. This is required by ADR-203 (provenance-complete export). The `command_payload_field_coverage` verifier check added in M6 asserts response-side coverage by requiring `ArtifactExportResponsePayload` (`crates/nirman-ipc`) and the domain `ExportVerificationRecord` (`crates/nirman-domain`) to carry every field of the TA §74.3 block, so the command boundary cannot drift from the durable record. No second export record may be introduced; the command envelope references the single canonical `ExportVerificationRecord` owned by the `CanonicalSchemaRegistry`.
 
 ## M118 — Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures
@@ -1761,7 +1761,7 @@ M118 implements build spec §79 and technical architecture §84 and locks ADR-20
 
 **Exit gate:** on the Windows host with the toolchain present and the matching validation environment absent (no emulator acceleration or no `ValidationEnvironment` lease), a "build and validate" task produces a verified artifact with the runtime state (`ANDROID_RUNTIME` or `WINDOWS_RUNTIME`) `= UNVERIFIED` and a durable `USER_REQUIRED`/`UNAVAILABLE` validation node carrying the continue/cannot-continue lists; a model or worker completion claim without target observation is durably rejected with the missing evidence cited; a revision or fingerprint change invalidates prior target evidence and re-closes the certification gate; the four-state invariant holds in the ledger for every executed task; independent work continued during the wait; and no fixture passes by simulation. Documentation graph certification is reported separately from runtime certification.
 
-### M118 acceptance matrix
+## M118 acceptance matrix
 
 | Capability | Required proof |
 |---|---|

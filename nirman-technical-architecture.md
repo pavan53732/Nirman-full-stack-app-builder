@@ -4807,7 +4807,8 @@ source or runtime event
   → evidence update or materially different recovery strategy
 ```
 
-The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded: it caps materially different recovery attempts per failure fingerprint. It is an anti-thrashing and liveness constraint rather than an AI token, request, monetary, reasoning, or duration budget (BS §72). Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When the policy's bound is reached or safe strategies are exhausted, the runtime changes strategy, backtracks, delegates, escalates, degrades, pauses for a required decision, or reports a truthful blocker. Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal.
+The recovery-attempt policy (`recoveryAttemptPolicy`) is policy-configurable and bounded: it caps materially different recovery attempts per failure fingerprint. It is an anti-thrashing and liveness constraint rather than an AI token, request, monetary, reasoning, or duration budget (BS §72). Repeating the same command, patch, prompt, or provider route does not count as a new attempt. When the policy's bound is reached or safe strategies are exhausted, the runtime changes strategy, backtracks, delegates, escalates, degrades, or reports a
+truthful blocker. Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal.
 
 AndroidWorkflowCoordinator MUST route every Android construction and runtime failure through RecoveryAuthority and AgentExecutionKernel. The Android loop MUST NOT implement an independent retry or termination policy.
 

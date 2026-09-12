@@ -449,6 +449,32 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M10 | §13 Android Packaging |
 | M11 | §14 Android Capability Registry and Representative Profile Coverage |
 | M12 | §15 Advanced Extensibility |
+| M13 | Goal Mode and non-blocking background work |
+| M14 | Lifecycle hooks |
+| M15 | Scheduled automations |
+| M16 | Granular checkpoints and backtracking |
+| M17 | Context scaling and external-tool compatibility |
+| M18 | Durable task graph and nested execution tree |
+| M19 | Evidence-backed status and telemetry |
+| M20 | Autonomous validation coordinator |
+| M21 | Policy-boundary approvals and termination coordinator |
+| M22 | Provider-neutral AI settings and model gateway |
+| M23 | Controlled self-development loop |
+| M24 | Adaptive long-horizon provider execution |
+| M25 | Runtime supervisor and durable execution loop |
+| M26 | Graduated recovery ladder |
+| M27 | Self-observation and episode evaluation |
+| M28 | Self-improvement proposal manager |
+| M29 | Candidate canary, promotion, and rollback |
+| M30 | Canonical documentation and worker registry |
+| M31 | Autonomous-build policy and never-pause loop |
+| M32 | Persistent terminal subsystem |
+| M33 | Skills registry and invocation contract |
+| M34 | Windows lifecycle and multi-project resilience |
+| M35 | Long-horizon scale and unified execution surface |
+| M36 | Runtime authority and autonomous recovery invariants |
+| M37 | Android-only target contract |
+| M38 | Complete Android technology coverage |
 | M39 | AndroidConstructionContract and schema authority |
 | M40 | Pure session reducer and event replay |
 | M41 | ConstructionTransaction and commit barrier |
@@ -475,6 +501,8 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M62 | BrandManifest, AssetManifest, and UI Worker asset scope |
 | M63 | Android asset integration and validation |
 | M64 | ArtifactAssetInspector and final completion gate |
+| M94 | Agent Reasoning Runtime and Bounded Delegation |
+| M95 | Deep Deliberation Runtime |
 | M96 | IntentSynthesisPromptContract and no-template enforcement |
 | M97 | Revision-bound PreviewCoordinator |
 | M98 | Truthful stepwise preview projection |
