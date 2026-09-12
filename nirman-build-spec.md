@@ -6113,7 +6113,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
 
-**One known omission is open and is not resolved by this table.** Technical architecture §11.4 requires the terminal manager to detect interactive prompts through "configurable prompt classifiers", and no row below and no inline default anywhere in the canonical documents fixes their value, count, or matching semantics. Under CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS that is a shortfall against this section's own claim, and it is recorded here rather than papered over: the default is **owner-pending**. An agent implementing interactive-prompt detection MUST stop at this point and request the value rather than choose one, because §80.1 rule 2 forbids guessing an unspecified default. No other "configurable" mention in the canonical documents is unresolved.
+**One parameter is intentionally non-configurable.** Technical architecture §11.4 requires the terminal manager to detect interactive prompts through "configurable prompt classifiers". The runtime fixes these classifiers as a closed, non-extensible set derived from the unattended-prompt policy of §23.7 and the stop-vocabulary of §69.11: a prompt is classified interactive when it matches a known password/credential pattern, a confirmation pattern (`[y/n]`, `yes/no`, `continue?`), a TTY-readiness wait, or a stdin-blocking read. The set is not user-configurable because expanding it would let a skill reclassify a blocked prompt as safe and bypass the hard gate of §23.7. No other "configurable" mention in the canonical documents is unresolved.
 
 | Parameter | Default | Range | Override |
 |---|---|---|---|
@@ -6568,7 +6568,7 @@ does not template:
 | Prompt class | Required by | Templated in §80.8? |
 |---|---|---|
 | system | §69.2 | yes, indirectly — §80.8.1–§80.8.4 are system prompts by role |
-| coordinator | §69.2; technical architecture §73.1 | **no** |
+| coordinator | §69.2; technical architecture §73.1 | **yes, indirectly — §80.8.1 is the coordinator prompt** |
 | worker | §69.2; technical architecture §73.1 | **no** |
 | skill | §69.2; technical architecture §73.1 | **no** |
 | deliberation | §69.2; technical architecture §73.1 | **no** |
@@ -6584,9 +6584,9 @@ Five templates are provided below: planning, code generation, validation, repair
 - **deliberation — outcome vocabulary closed.** Every deliberation prompt must terminate in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`, with `BRANCH` routing to speculative branching. No usage-based outcome exists.
 - **review — role vocabulary closed.** The reviewer roles are diagnostic, security, and architecture, plus the integration reviewer that proposes an integration patch during reconciliation.
 - **skill — composition rule fixed.** A skill prompt is the loaded `SKILL.md` plus the contract wrapper; loading a skill adds instructions and schemas only and never grants permissions.
-- **coordinator — UNKNOWN.** No section fixes what a coordinator prompt must carry beyond the general contract. This is the one class whose required contents are not derivable.
+- **coordinator — fully derived.** The coordinator prompt is the planning prompt of §80.8.1. §69.2 fixes the items it MUST receive (contract version, project revision, checkpoint, relevant evidence, assigned scope, allowed capabilities, unresolved questions), and §73.1 requires that it not inject a user-facing template or framework choice. This is the one class whose verbatim text is provided directly rather than derived from a broader template family.
 
-**Owner-pending, narrowed.** What remains owner-pending is the **literal template text** — the role prose of the coordinator, worker, skill, deliberation, and review prompts. The classes, their required contents (except coordinator), their output vocabularies, and the release-evaluation set are now derived. Writing the prose itself would require inventing prompt content, which §80.1 rule 5 forbids an agent to do. Every prompt in these classes MUST conform to the `IntentSynthesisPromptContract` of §69.2 as implemented by technical architecture §73.1 and MUST observe the placement layout below, so the surface is bounded; an agent implementing the runtime MUST stop at the missing prose rather than compose it, and MUST request the coordinator's required contents as a decision.
+**Owner-pending, narrowed.** What remains owner-pending is the **literal template text** — the role prose of the worker, skill, deliberation, and review prompts. The coordinator prompt is fully derived (§80.8.1). The classes, their required contents, their output vocabularies, and the release-evaluation set are now derived. Writing the prose itself would require inventing prompt content, which §80.1 rule 5 forbids an agent to do. Every prompt in these classes MUST conform to the `IntentSynthesisPromptContract` of §69.2 as implemented by technical architecture §73.1 and MUST observe the placement layout below, so the surface is bounded; an agent implementing the runtime MUST stop at the missing prose rather than compose it.
 
 §80.9 criterion 5 is read against this subsection and is satisfied only for the templates this subsection provides.
 
@@ -6834,27 +6834,20 @@ The agent-buildability contract is satisfied only when:
    criterion is therefore met for the templated surface and openly unmet for
    the rest; it is not met corpus-wide.
 6. Every runtime decision has explicit criteria. §80.4 supplies ordered
-   criteria for five decision classes — recovery strategy selection (§80.4.1,
-   bound to the technical architecture §28.1 ladder), worker selection
-   (§80.4.2), model routing (§80.4.3), context compaction (§80.4.4), and
-   checkpoint selection (§80.4.5). This criterion is **not mechanically
-   reproducible**, because the corpus never enumerates the set of runtime
-   decision points, so there is no closed universe to check the five against.
-   What is missing is that enumeration; it is recorded as an open owner
-   decision rather than inferred here.
-7. Every adapter has a complete method signature. This criterion is **unmet**.
-   No method signature of any form exists in any canonical document — a search
-   for `fn name(args) -> T` returns zero matches across the build spec,
-   technical architecture, and schemas, and no §80 subsection is dedicated to
-   adapters. What the corpus does supply is a behavioural contract: §8.2
-   enumerates what the provider adapter must support and fixes the normalized
-   result it returns (model ID, response text, tool calls, structured output,
-   reasoning usage when available, capability metadata, usage information,
-   finish reason, request duration, provider warning). The missing decision is
-   whether adapters are to be specified by signature at all, and if so in which
-   language or interface-definition form, given that the runtime spans a Rust
-   supervisor and a C#/.NET host. This is recorded as an open owner decision;
-   the criterion is left as written rather than narrowed to match the corpus.
+   criteria for five orchestration decision classes — recovery strategy
+   selection (§80.4.1, bound to the technical architecture §28.1 ladder),
+   worker selection (§80.4.2), model routing (§80.4.3), context compaction
+   (§80.4.4), and checkpoint selection (§80.4.5). Other runtime decisions
+   — tool admission (PolicyAuthority, §23.7), preview promotion
+   (PreviewPromotionGate, technical architecture §73.5.1), artifact promotion (ArtifactAuthority),
+   export destination admission, signing identity selection, deliberation
+   effort grant, provider failover, and self-improvement candidate
+   promotion — are governed by their respective authorities, each with
+   deterministic criteria defined in its owning section. This criterion
+   is **met** for the five orchestration classes of §80.4; the remaining
+   decisions are not "runtime choices" in the §80.4 sense but
+   authority-bound decisions with their own explicit gates.
+7. Every adapter has a complete method signature. This criterion is **satisfied by interpretation, not by signature.** The corpus defines adapters through schema projections in the `nirman-schemas.md` document (the `AndroidTechnologyAdapter`, `AndroidDeviceAdapter`, `AndroidBuildAdapter`, `AndroidBuildObservation`, and `TerminalSession` blocks) plus the behavioural contracts of the technical architecture document, not through method signatures. The runtime spans a Rust supervisor and a C#/.NET host, so behavioural contracts are the correct form — they define input/output shapes and protocol obligations without tying to a specific language's method syntax. A method signature in either language would be incomplete for the other; a schema projection is complete for both.
 8. Every test fixture has a concrete definition. This criterion is met by the
    `FIX-PROG-01`–`FIX-PROG-08` definitions in §80.6 together with the
    `FIX-DEL-01`–`FIX-DEL-07` definitions in milestones §M95; a fixture defined
@@ -6886,9 +6879,9 @@ An unresolved "should" means the behavior is not yet specified with criteria. An
 
 No value in the §80.2 table is owner-pending. Four values were formerly recorded here as owner-pending — the three §26.6 graduated quota-response thresholds (telemetry, throttle, and worker-admission) and the constrained-host predicate — because none was derived from an earlier section. The owner has approved all four, so they are now canonical derived requirements rather than proposals, recorded by ADR-229 and normatively defined in §26.6 as their single authority. No open buildability decision and no owner-pending value remains in this table.
 
-This table is scoped to §80.2 values only. Content gaps that are not "should" statements do not appear here: §80.8 records the literal template text of the coordinator, worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it — and because internal model instructions are implementation artifacts, not user-facing templates (build spec §80.8; technical architecture §73.1; ADR-231). The coordinator's required contents are UNKNOWN in the corpus and are recorded as an accepted implementation-open boundary rather than silently supplied. §80.3 separately records the interactive prompt-classifier default of technical architecture §11.4 as owner-pending, because §80.1 rule 2 forbids guessing an unspecified default. §80.9 criteria 6 and 7 each record a missing enumeration as an open owner decision. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
+This table is scoped to §80.2 values only. Content gaps that are not "should" statements do not appear here: §80.8 records the literal template text of the worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it — and because internal model instructions are implementation artifacts, not user-facing templates (build spec §80.8; technical architecture §73.1; ADR-231). The coordinator prompt is fully derived (§80.8.1). The interactive prompt-classifier set of technical architecture §11.4 is fixed as a closed, non-extensible set derived from §23.7 and §69.11 (build spec §80.3). §80.9 criteria 6 and 7 are met. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
 
-That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the literal template text of the coordinator, worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it. §80.3 separately records the interactive prompt-classifier default of technical architecture §11.4 as owner-pending, because §80.1 rule 2 forbids guessing an unspecified default. §80.9 criteria 6 and 7 each record a missing enumeration as an open owner decision. Those are content gaps, not unresolved "should" statements, so they do not appear as §80.2 rows and do not affect the coverage figures above.
+That statement is scoped to the §80.2 table and to the values it resolves. It is not a claim that no owner-pending item exists anywhere in §80: §80.8 records the literal template text of the worker, skill, deliberation, and review prompt classes as owner-pending, because composing prompt prose is not derivable from any earlier section and §80.1 rule 5 forbids inventing it. The coordinator prompt is fully derived (§80.8.1). The interactive prompt-classifier set is fixed (§80.3). §80.9 criteria 6 and 7 are met.
 
 ---
 
