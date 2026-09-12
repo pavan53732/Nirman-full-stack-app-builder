@@ -4096,6 +4096,7 @@ OrchestrationWiringMatrix
 - failureTransition: string (state transition)
 - recoveryTransition: string (state transition)
 - staleBehavior: STALE | IGNORE | REJECT
+- duplicateBehavior: IDEMPOTENT | QUARANTINE | REJECT
 - cancelBehavior: PRESERVE_CHECKPOINT | ROLLBACK | ABANDON
 - restartBehavior: RESUME_FROM_CHECKPOINT | RECONCILE | FAIL_SAFE
 - operationRef: string (operation identifier)

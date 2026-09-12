@@ -4543,6 +4543,57 @@ The artifact export handler accepts a deployment request only after resolving th
 
 The report certifies documentation identity, registry resolution, graph structure, and declared semantic documentation rules only. It never certifies runtime source, Windows isolation, provider behavior, Android execution, preview truth, recovery, signing, or APK validity.
 
+### 74.6 Orchestration wiring implementation
+
+IntegrationBoundaryContract defines the static boundary; OrchestrationWiringMatrix records one runtime traversal of that boundary. The supervisor validates every boundary before execution:
+
+```text
+boundaryId
+  → IntegrationBoundaryContract (lookup)
+  → operation/schema/protocol/adapter compatibility check
+  → authority/policy check
+  → execution
+  → observation/event
+  → matrix completion (durable ledger write)
+```
+
+The matrix is durable in the supervisor ledger and rebuilt/reconciled after restart. Critical subgraphs:
+
+**Worker/context path:**
+```text
+WorkerConnection
+  → ContextOrchestrator
+  → ContextPackage
+  → ModelGateway
+  → ProviderAdapter
+  → normalized response
+  → WorkerConnection
+  → AgentReasoningEngine
+```
+
+**Preview interaction path:**
+```text
+Preview UI input
+  → SupervisorConnection
+  → PreviewCoordinator
+  → AndroidDeviceAdapter
+  → emulator
+  → resulting stamped frame
+  → RenderTransport
+  → FrameNotice
+  → PreviewHost
+```
+
+**Construction/evidence path:**
+```text
+ConstructionTransaction
+  → Checkpoint
+  → Validation
+  → EvidenceDependency validation
+  → EvidenceAuthority
+  → Promotion
+```
+
 ## 75. Preview Synchronization Implementation Contract
 
 **Implements:** build spec §71 and `CONTRACT.RUNTIME.PREVIEW_SYNC`

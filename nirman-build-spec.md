@@ -7140,55 +7140,18 @@ Every committed `ConstructionTransaction` exposes exactly one durable `ChangeRep
 
 ## 84. Orchestration Wiring Matrix
 
-### 84.1 Canonical pipeline
+### 84.1 Canonical pipeline (complete)
 
 The Nirman autonomous loop is a single deterministic causal pipeline. Every boundary between components is mechanically enumerated with its producer, consumer, schema, identities, authority, persistence, transitions, and failure modes. The canonical pipeline is:
 
 ```text
-User message
-  → normalized goal (GoalInterpreter, §58)
-  → requirements/frontier (ConstraintRegistry, §59; MemoryStore, §59)
-  → AndroidConstructionContract (BS §69.4)
-  → preflight (PreflightService, BS §5.7)
-  → technology plan (AndroidTechnologyResolver, technical architecture §73.2)
-  → compiled TaskGraph (TaskGraphCompiler, BS §58)
-  → dependency analysis (TaskScheduler, BS §7)
-  → worker selection (SwarmPlanner, BS §6.5)
-  → lease (WorkspaceLeaseManager, technical architecture §58.7)
-  → worker reasoning (AgentReasoningEngine, BS §71)
-  → proposal (Schema-validated, BS §69.2)
-  → authorization (PolicyAuthority, BS §23.7)
-  → tool execution (ToolBroker, BS §49)
-  → observation (AndroidDeviceAdapter, technical architecture §73.12)
-  → state update (AgentLoopReducer, BS §58)
-  → progress evaluation (ProgressEvaluator, BS §58)
-  → next-node scheduling (TaskScheduler, BS §7)
-  → reconciliation (Reconciliation Worker, BS §6.5)
-  → build (AndroidBuildAdapter, technical architecture §73.13)
-  → artifact (ArtifactAuthority, BS §49)
-  → emulator install (Emulator Driver Worker, BS §6.5)
-  → launch (AndroidDeviceAdapter, technical architecture §73.12)
-  → ScreenGraph/ScreenModel (technical architecture §74.2)
-  → E2E validation (ValidationPlanner, BS §64)
-  → visual validation (Visual QA Worker, BS §6.5)
-  → evidence promotion (EvidenceAuthority, BS §23.3)
-  → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
-  → CompletionDecision (build spec §5.7.7)
-```
-
-### 84.2 OrchestrationWiringMatrix schema
-
-> **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84. Contract: `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`.
-
-Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, stale/duplicate/cancel/restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract` (nirman-schemas.md §1.36).
-
-### 84.3 Canonical pipeline (complete)
-
-The Nirman autonomous loop is a single deterministic causal pipeline. Every boundary between components is mechanically enumerated with its producer, consumer, schema, identities, authority, persistence, transitions, and failure modes. The canonical pipeline is:
-
-```text
-User message
-  → normalized goal (GoalInterpreter, §58)
+WinUI 3
+  → SupervisorConnection
+  → UICommandEnvelope
+  → UICommandRegistry/schema validation
+  → application use case
+  → GoalInterpreter (§58)
+  → normalized goal
   → requirements/frontier (ConstraintRegistry, §59; MemoryStore, §59)
   → AndroidConstructionContract (BS §69.4)
   → preflight (PreflightService, BS §5.7)
@@ -7215,6 +7178,11 @@ User message
   → reconciliation (Reconciliation Worker, BS §6.5)
   → build (AndroidBuildAdapter, technical architecture §73.13)
   → artifact (ArtifactAuthority, BS §49)
+  → artifact → Signing/validation gates
+  → ExportVerification
+  → approved local destination
+  → destination hash/identity verification
+  → CompletionDecision (build spec §5.7.7)
   → emulator install (Emulator Driver Worker, BS §6.5)
   → launch (AndroidDeviceAdapter, technical architecture §73.12)
   → Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
@@ -7224,10 +7192,22 @@ User message
   → visual validation (Visual QA Worker, BS §6.5)
   → evidence promotion (EvidenceAuthority, BS §23.3)
   → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
-  → CompletionDecision (build spec §5.7.7)
 ```
 
-### 84.4 Boundary contracts
+### 84.2 OrchestrationWiringMatrix schema
+
+> **Schema projection:** `OrchestrationWiringMatrix` is defined in `nirman-schemas.md` §2.98. Owner: BS §84. Contract: `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`.
+
+Every arrow in the pipeline is documented by an `OrchestrationWiringMatrix` record. Each record carries the producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, evidence reference, success/failure/recovery transitions, stale/duplicate/cancel/restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract` (nirman-schemas.md §1.36).
+
+Runtime instance identity is distinct from static boundary definition: `IntegrationBoundaryContract` defines the boundary; `OrchestrationWiringMatrix` records one runtime traversal of that boundary.
+
+### 84.3 Boundary rules
+
+Every applicable boundary MUST have exactly one `OrchestrationWiringMatrix` row.
+Every row MUST reference exactly one `IntegrationBoundaryContract`.
+Every referenced schema, authority, adapter, policy, and transition MUST resolve to one canonical definition.
+No component may communicate around a registered boundary.
 
 Every boundary handoff MUST be:
 - **Deterministic** — same inputs produce same outputs
@@ -7241,7 +7221,7 @@ Every boundary handoff MUST be:
 - **Restart-safe** — resume from last validated checkpoint
 - **Integration-boundary-complete** — `boundaryId` resolves exactly one `IntegrationBoundaryContract`
 
-### 84.5 M124 certification
+### 84.4 M124 certification
 
 M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, PreviewTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility.
 

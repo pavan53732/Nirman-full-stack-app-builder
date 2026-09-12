@@ -3031,3 +3031,22 @@ Nirman uses a chat-first request model. The user describes the Android applicati
 **Locked surfaces:** build spec §80.8 prompt-class table and owner-pending record; build spec §80.6 scope note; build spec §80.9 criteria 5 and 8; build spec §80.10 owner-pending scope paragraph.
 
 ---
+
+## ADR-232: Orchestration wiring is a closed-world contract
+
+**Status:** Accepted · **Supersedes:** none · **Amended by:** none
+
+**Decision:** The autonomous runtime has one canonical causal wiring graph. Every cross-component execution boundary is explicitly represented by exactly one `IntegrationBoundaryContract` and every runtime traversal is represented by `OrchestrationWiringMatrix`. No undocumented side channel, implicit adapter, second authority, or direct worker/component edge is permitted. `IntegrationBoundaryContract` defines the static boundary; `OrchestrationWiringMatrix` records one runtime traversal of that boundary. The supervisor validates every boundary before execution and the matrix is durable in the supervisor ledger, rebuilt/reconciled after restart.
+
+**Rationale:** The architecture has many orchestration-capable components but their exact ownership boundaries and handoff choreography must form one deterministic causal pipeline. Without a closed-world contract, undocumented edges create undefined workers, inconsistent permissions, and impossible registry tests — the exact ambiguity these documents exist to remove.
+
+**Consequences:** Build spec §84 gains the canonical pipeline and boundary rules; technical architecture §74.6 gains the wiring implementation subsection; M124 gains end-to-end pipeline certification; the verifier checks boundary completeness, exactly-one ownership, schema resolution, authority resolution, duplicate behavior, and restart reconstruction. ADR-049 is amended in place.
+
+**Reversal trigger:** If an implementation allows an undocumented cross-component edge, a second authority, or a direct worker/component boundary that bypasses the supervisor-side boundary validation, this ADR is reversed.
+
+**Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.AUTHORITY`
+
+**Locked surfaces:** build spec §84 Orchestration Wiring Matrix; technical architecture §74.6; M124 milestone; `OrchestrationWiringMatrix` schema block (§2.98); `IntegrationBoundaryContract` schema block (§1.36).
+
+---
+

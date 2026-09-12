@@ -150,6 +150,8 @@
 
 **Autonomous-build (the one mode)** — Nirman's only operating mode and only execution policy: the user states a goal, the runtime proceeds under per-action authority, and nothing pauses the loop except a user command or a safe terminal state. Former modes are worker roles; the former `Unattended / Full Autonomy` profile is this policy. — BS §23.3; BS §23.7; TA §16.2.1; ADR-226.
 
+**OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
+
 **Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — BS §23.4; TA §6.5; ADR-049; ADR-227.
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.

@@ -361,6 +361,8 @@ Local certification is authoritative for repository engineering validation. The 
 
 Never change a capability from `PLANNED` or an environment-qualified status to `SUPPORTED` based on prose, a model response, a worker claim, a successful documentation verifier, or an unexecuted test identity. Runtime support requires real source, executable fixtures, and evidence.
 
+For any wiring/integration change, agents MUST prove producer, consumer, schema, boundary, authority, persistence, correlation/causation, lifecycle, cancellation, restart, recovery, invalidation, and evidence edges. A component is not considered integrated when its documentation only names it; its incoming/outgoing canonical boundaries must resolve.
+
 When adding or changing a contract, update all required surfaces together:
 
 ```text
