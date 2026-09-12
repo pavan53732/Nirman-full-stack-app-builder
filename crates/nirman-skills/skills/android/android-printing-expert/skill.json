@@ -19,7 +19,8 @@
     "managed_emulator"
   ],
   "requiredCapabilities": [
-    "ANDROID_BUILD_TOOLCHAIN"
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "PrintJobResultRequest",

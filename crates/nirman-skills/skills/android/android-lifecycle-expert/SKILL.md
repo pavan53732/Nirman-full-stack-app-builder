@@ -13,6 +13,7 @@ lost state, duplicated work, or work running after its scope ended.
 ## Required capabilities
 - `ANDROID_BUILD_TOOLCHAIN`
 - `ANDROID_SOURCE_ENGINEERING`
+- `ANDROID_EMULATOR_EXECUTION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and not stale; capability

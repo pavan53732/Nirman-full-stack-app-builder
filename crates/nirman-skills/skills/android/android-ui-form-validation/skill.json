@@ -15,10 +15,11 @@
   ],
   "requiredTools": [
     "static_analyzer",
-    "ui_inspector"
+    "ui_hierarchy_probe"
   ],
   "requiredCapabilities": [
-    "HOST_TOOL_OBSERVATION"
+    "HOST_TOOL_OBSERVATION",
+    "ANDROID_UI_OBSERVATION"
   ],
   "permissionRequests": [],
   "inputSchema": "FormValidationRequest",

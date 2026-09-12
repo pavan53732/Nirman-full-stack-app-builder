@@ -29,7 +29,7 @@ a task with assistive technology.
 
 ## Allowed tools
 - accessibility_probe
-- ui_inspector
+- ui_hierarchy_probe
 
 ## Procedure
 1. Walk the surface with the keyboard alone and confirm every control is reachable,

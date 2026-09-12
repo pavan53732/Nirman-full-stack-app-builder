@@ -15,8 +15,7 @@
   ],
   "requiredTools": [
     "resource_merger",
-    "static_analyzer",
-    "managed_emulator"
+    "static_analyzer"
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",

@@ -20,7 +20,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_NETWORK_INTEGRATION"
+    "ANDROID_NETWORK_INTEGRATION",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "AdsIntegrationResultRequest",

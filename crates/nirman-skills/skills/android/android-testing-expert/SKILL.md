@@ -58,8 +58,9 @@ transaction (BS §50).
    instrumented tests on the emulator.
 6. Manage test fixtures: use TestFixture pattern for reusable test
    data, TestDispatcher for controlling coroutine execution in tests.
-7. Run tests in CI: configure Gradle to run unit tests on every build,
-   instrumented tests on the emulator, screenshot tests on every PR.
+7. Run tests on every build: configure Gradle to run unit tests on every
+   build, instrumented tests on the emulator, screenshot tests before
+   artifact promotion.
 
 ## Evidence
 - A record of each procedure step that executed, with the outcome observed,

@@ -19,7 +19,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_AUTHENTICATION"
+    "ANDROID_AUTHENTICATION",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "CredentialFlowResultRequest",

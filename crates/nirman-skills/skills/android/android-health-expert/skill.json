@@ -20,7 +20,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_NATIVE_DEVICE_CAPABILITIES"
+    "ANDROID_NATIVE_DEVICE_CAPABILITIES",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "HealthIntegrationResultRequest",

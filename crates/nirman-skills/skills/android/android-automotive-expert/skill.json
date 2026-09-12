@@ -19,7 +19,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_UI_OBSERVATION"
+    "ANDROID_UI_OBSERVATION",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "AutomotiveAppResultRequest",

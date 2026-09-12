@@ -15,7 +15,7 @@
   ],
   "requiredTools": [
     "accessibility_probe",
-    "ui_inspector"
+    "ui_hierarchy_probe"
   ],
   "requiredCapabilities": [
     "WINDOWS_HOST_TOOLCHAIN",

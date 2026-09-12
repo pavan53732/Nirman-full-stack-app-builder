@@ -5398,39 +5398,39 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `windows-packaging-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-diagnostics-expert` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `cross-platform-build-diagnostics` | `HOST_TOOL_OBSERVATION` |
-| `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
-| `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
-| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
-| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
-| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BACKGROUND_EXECUTION` |
-| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_SIGNING_INSPECTION` |
-| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
-| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_PACKAGING` |
-| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
-| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
-| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_AUTHENTICATION` |
-| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
-| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
-| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
-| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
-| `android-large-screens-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-credentials-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION` |
-| `android-localization-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
-| `android-automotive-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
-| `android-tv-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-ads-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
-| `android-printing-expert` | `ANDROID_BUILD_TOOLCHAIN` |
-| `android-health-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
-| `android-instant-apps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING` |
-| `android-shortcuts-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+|| `android-toolchain` | `ANDROID_BUILD_TOOLCHAIN`; `ANDROID_EMULATOR_EXECUTION` only for its emulator steps |
+|| `android-design-import` | `ANDROID_BUILD_TOOLCHAIN`, `DESIGN_IMPORT` |
+|| `android-compose-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-architecture-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+|| `android-data-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+|| `android-background-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BACKGROUND_EXECUTION` |
+|| `android-security-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_SIGNING_INSPECTION` |
+|| `android-testing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-performance-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
+|| `android-navigation-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-media-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+|| `android-gradle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_PACKAGING` |
+|| `android-quality-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+|| `android-accessibility-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
+|| `android-firebase-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_AUTHENTICATION` |
+|| `android-maps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+|| `android-payments-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION` |
+|| `android-notifications-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-widgets-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION` |
+|| `android-wear-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-camera-ml-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_UI_OBSERVATION` |
+|| `android-bluetooth-nfc-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES` |
+|| `android-dynamic-delivery-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_ARTIFACT_INSPECTION` |
+|| `android-large-screens-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
+|| `android-credentials-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_AUTHENTICATION`, `ANDROID_EMULATOR_EXECUTION` |
+|| `android-localization-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_EMULATOR_EXECUTION` |
+|| `android-automotive-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-tv-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-ads-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NETWORK_INTEGRATION`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-printing-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-health-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_NATIVE_DEVICE_CAPABILITIES`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-instant-apps-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_PACKAGING`, `ANDROID_EMULATOR_EXECUTION` |
+| `android-shortcuts-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_EMULATOR_EXECUTION` |
 | `android-install-launch` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_INSTALL_LAUNCH` |
 | `android-runtime-diagnostics` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_LOGCAT_DIAGNOSTICS`, `ANDROID_UI_OBSERVATION` |
 | `android-visual-validation` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION` |
@@ -5438,7 +5438,7 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `android-accessibility-validation` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_ACCESSIBILITY_VALIDATION` |
 | `android-device-state` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION` |
 | `android-permission-runtime` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_UI_OBSERVATION`, `ANDROID_INTERACTION_EXECUTION` |
-| `android-lifecycle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
+| `android-lifecycle-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_EMULATOR_EXECUTION` |
 | `android-process-memory-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_PERFORMANCE_VALIDATION` |
 | `android-network-debugging` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_NETWORK_INTEGRATION` |
 | `android-build-repair` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_SOURCE_ENGINEERING` |
@@ -5464,14 +5464,14 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `android-app-state-management` | `HOST_TOOL_OBSERVATION` |
 | `android-offline-sync` | `HOST_TOOL_OBSERVATION` |
 | `android-local-persistence` | `HOST_TOOL_OBSERVATION` |
-| `android-data-migration` | `HOST_TOOL_OBSERVATION` |
-| `android-authentication-flows` | `HOST_TOOL_OBSERVATION` |
-| `android-payment-integration` | `HOST_TOOL_OBSERVATION` |
-| `android-push-notifications` | `HOST_TOOL_OBSERVATION` |
-| `android-ui-design-system` | `HOST_TOOL_OBSERVATION` |
-| `android-ui-form-validation` | `HOST_TOOL_OBSERVATION` |
-| `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
-| `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
+|| `android-data-migration` | `HOST_TOOL_OBSERVATION` |
+|| `android-authentication-flows` | `HOST_TOOL_OBSERVATION` |
+|| `android-payment-integration` | `HOST_TOOL_OBSERVATION` |
+|| `android-push-notifications` | `HOST_TOOL_OBSERVATION` |
+|| `android-ui-design-system` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
+|| `android-ui-form-validation` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
+|| `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
+|| `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 

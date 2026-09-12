@@ -15,6 +15,7 @@ transaction (BS §50).
 - `ANDROID_BUILD_TOOLCHAIN`
 - `ANDROID_UI_OBSERVATION`
 - `ANDROID_INTERACTION_EXECUTION`
+- `ANDROID_EMULATOR_EXECUTION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and is not stale;

@@ -31,7 +31,6 @@ merge conflict, or a shipped resource that should have been removed.
 ## Allowed tools
 - resource_merger
 - static_analyzer
-- managed_emulator
 
 ## Procedure
 1. Inventory the qualified resources and confirm each qualifier set is one the

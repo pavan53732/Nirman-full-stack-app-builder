@@ -8,6 +8,7 @@ literal values, one-off components, or a theme that breaks in dark mode.
 
 ## Required capabilities
 - `HOST_TOOL_OBSERVATION`
+- `ANDROID_UI_OBSERVATION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and not stale; capability
@@ -24,7 +25,7 @@ literal values, one-off components, or a theme that breaks in dark mode.
 
 ## Allowed tools
 - static_analyzer
-- ui_inspector
+- ui_hierarchy_probe
 
 ## Procedure
 1. Scan for literal values where a token exists, and name each one with the token that

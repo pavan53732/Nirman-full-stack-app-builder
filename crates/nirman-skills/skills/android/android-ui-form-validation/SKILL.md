@@ -8,6 +8,7 @@ that do not say what is wrong, or a submit button that is disabled with no expla
 
 ## Required capabilities
 - `HOST_TOOL_OBSERVATION`
+- `ANDROID_UI_OBSERVATION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and not stale; capability
@@ -24,7 +25,7 @@ that do not say what is wrong, or a submit button that is disabled with no expla
 
 ## Allowed tools
 - static_analyzer
-- ui_inspector
+- ui_hierarchy_probe
 
 ## Procedure
 1. Confirm each rule is enforced on the server, and treat the client check as

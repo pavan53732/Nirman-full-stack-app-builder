@@ -13,6 +13,7 @@ transaction (BS §50).
 
 ## Required capabilities
 - `ANDROID_BUILD_TOOLCHAIN`
+- `ANDROID_EMULATOR_EXECUTION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and is not stale;

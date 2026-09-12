@@ -20,7 +20,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_SOURCE_ENGINEERING"
+    "ANDROID_SOURCE_ENGINEERING",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "LocalizationResultRequest",

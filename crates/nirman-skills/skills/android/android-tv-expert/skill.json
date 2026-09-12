@@ -22,7 +22,8 @@
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
     "ANDROID_UI_OBSERVATION",
-    "ANDROID_INTERACTION_EXECUTION"
+    "ANDROID_INTERACTION_EXECUTION",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "TvAppResultRequest",

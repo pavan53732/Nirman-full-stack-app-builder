@@ -14,6 +14,7 @@ transaction (BS §50).
 ## Required capabilities
 - `ANDROID_BUILD_TOOLCHAIN`
 - `ANDROID_UI_OBSERVATION`
+- `ANDROID_EMULATOR_EXECUTION`
 
 ## Preconditions
 - The current EnvironmentCapabilityRecord is available and is not stale;
@@ -52,9 +53,7 @@ transaction (BS §50).
    navigation manager rather than a bespoke renderer.
 6. Implement media browsing and playback through the media template, so
    the car host can control playback from its own hardware controls.
-7. Verify on an automotive emulator image: exercise every template, the
-   parked and driving states, and the day and night color constraints of
-   the car host.
+7. Verify on an automotive emulator image if the Nirman-managed emulator provisions one: exercise every template, the parked and driving states, and the day and night color constraints of the car host. If the automotive system image is not available, the template structure and distraction-constraint compliance are verified by static analysis against the Car App Library contract and reported as not runtime-verified.
 
 ## Evidence
 - A record of each procedure step that executed, with the outcome observed,

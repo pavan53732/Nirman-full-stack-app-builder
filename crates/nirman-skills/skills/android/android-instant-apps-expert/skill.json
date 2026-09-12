@@ -20,7 +20,8 @@
   ],
   "requiredCapabilities": [
     "ANDROID_BUILD_TOOLCHAIN",
-    "ANDROID_PACKAGING"
+    "ANDROID_PACKAGING",
+    "ANDROID_EMULATOR_EXECUTION"
   ],
   "permissionRequests": [],
   "inputSchema": "InstantAppResultRequest",
