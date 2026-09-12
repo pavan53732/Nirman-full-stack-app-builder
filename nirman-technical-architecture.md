@@ -1423,6 +1423,15 @@ This table is the **canonical recovery ladder** and the single owner of recovery
 
 Every recovery attempt must state what new evidence or strategy differentiates it from the previous attempt. Repeating the same command, prompt, patch, or model route does not count as a new recovery strategy.
 
+A materially different recovery strategy MUST differ in at least one
+authoritative strategy dimension: recovery level, targeted evidence,
+implementation approach, worker role, model profile, context/retrieval mode,
+restored checkpoint, validation method, or environment condition. Cosmetic
+changes to wording, formatting, equivalent patches, or reordered equivalent
+actions do not constitute a new strategy. The runtime MUST record the strategy
+fingerprint used for equivalence and MUST reject an attempt classified as
+materially equivalent to a previously exhausted strategy.
+
 ### 28.2 Failure fingerprints
 
 The runtime should fingerprint failures using normalized command, exit code, error class, stack-trace structure, changed-file set, environment state, provider response class, and validation stage. Fingerprints should be stable enough to detect repeated failures but specific enough to distinguish a new cause.
@@ -4658,6 +4667,21 @@ The projection is valid only when `specializedStateRef` resolves to the state ma
 `ContractDouble` is owned and run by the supervisor inside `nirman-android`, bound to a loopback address only, and torn down with the session (ADR-225; build spec §76.5). Workers never open it and never reach it — the worker network rule of §3.5 is unchanged — and the emulator reaches it only through the host alias. Its request, response, and error bodies are generated from the integration's schema references and its fixtures from the integration's declared scenarios; a response the schema cannot produce is a double failure, not application evidence. Every exchange is recorded, and the evidence it yields carries `DOUBLE_BACKED` so that `EvidenceAuthority` never counts it toward `FUNCTIONAL` for the real service.
 
 An Android service integration is a supporting dependency of the generated Android application. It does not create a second generated target. Its functional state is promoted only from the declared integration scenario and evidence, not from local compilation, application launch, or endpoint reachability alone. `requiredOperationality` is the build spec §5.7.5 minimum: the integration satisfies its boundary only when the current `IntegrationOperationality.aggregateState` for `integrationId` meets or exceeds `requiredOperationality` in the build spec §5.7.5 order (`CONFIGURED` < `REACHABLE` < `FUNCTIONAL`; `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, and `UNKNOWN` never satisfy a `requiredOperationality` of `CONFIGURED` or above), and the comparison is made by `PolicyAuthority` from the recorded operationality evidence, never from the model's report.
+
+Credential handling for an AndroidServiceIntegration is supervisor-owned.
+The supervisor resolves credentialReference through the configured secure
+credential provider only when the declared integration operation requires it.
+Workers and generated-project processes MUST NOT receive Nirman credential
+store access. Missing, invalid, or expired credentials are classified through
+IntegrationOperationality and surfaced as USER_REQUIRED, never inferred away
+by the model.
+
+The runtime MUST distinguish safe project configuration from secret material:
+non-secret identifiers and endpoint configuration may belong to the generated
+project when required by its contract; secret values remain referenced through
+the secure credential boundary. Credential acquisition, replacement,
+validation, and invalidation MUST be attributable to the integrationId,
+operation, project revision, and evidence chain.
 
 ### 74.2 UI hierarchy observation
 

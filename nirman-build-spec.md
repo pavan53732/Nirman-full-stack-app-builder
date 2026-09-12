@@ -429,6 +429,34 @@ Operationality is multidimensional. `CONFIGURED` does not imply valid credential
 
 The minimum acceptable state is recorded as `requiredOperationality` on the integration's declaration (`AndroidServiceIntegration`, technical architecture §74.1) and is compared against `aggregateState` in this order: `CONFIGURED` < `REACHABLE` < `FUNCTIONAL`; `ACCEPTED` acceptance is expressed by `acceptanceState`, and `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, and `UNKNOWN` never satisfy a required state of `CONFIGURED` or above. For example, an endpoint returning `401 Unauthorized` may be `CONFIGURED` and `REACHABLE` while remaining unauthenticated and non-functional. When safe test access is unavailable, the runtime MUST report `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, or `UNKNOWN`; it MUST NOT report complete merely because local code compiled.
 
+### 5.7.5a External integration credential lifecycle
+
+When an Android feature requires a credential, project identifier, client
+registration, signing material, or other externally provisioned integration
+input, the runtime MUST detect that dependency from the selected
+AndroidServiceIntegration and its authenticationProfileRef/credentialReference.
+It MUST NOT invent, fabricate, or silently omit the required external
+configuration.
+
+The runtime MUST classify the dependency before attempting functional
+validation. If the required credential or external project configuration is
+absent, the integration MUST become USER_REQUIRED and the task MUST retain the
+exact missing dependency, affected integrationId, and reason. Independent
+requirements MUST continue.
+
+When the user supplies the required value, Nirman MUST store only a secure
+credential reference in durable Nirman state and project configuration; raw
+secrets MUST NOT be written to source files, logs, prompts, evidence summaries,
+or exported source unless the user explicitly supplies a non-secret project
+configuration value that is safe to persist.
+
+Nirman may provide guidance for creating or configuring the user's external
+service project, but it MUST NOT claim that Nirman created, owns, or
+authenticated an external provider project unless authoritative evidence
+proves that action. A generated application with missing external credentials
+MUST NOT be represented as FUNCTIONAL or COMPLETED merely because its local
+build, installation, or emulator execution succeeds.
+
 ### 5.7.6 External-effect reconciliation
 
 Every remote or externally visible side effect MUST be represented by an `ExternalEffectRecord` with an idempotency key, target identity, authority grant, request fingerprint, request state, response reference, compensation plan, and local transaction. The record MUST reference the applicable `IntegrationBoundaryContract`. If the response is lost after transmission may have occurred, the runtime MUST reconcile by idempotency key or read-back before retrying or declaring failure. Local rollback MUST NOT be described as undoing a remote effect unless compensation evidence proves it.
@@ -6229,6 +6257,8 @@ Every "configurable" parameter in the specification has a default value defined 
 | Unprofiled DENSE block bound | 25% of declared context | 10-50% | Per provider profile |
 | Screenshot comparison threshold | 0.95 similarity | 0.80-0.99 | Per project |
 | Visual diff threshold | 5% pixel diff | 1-20% | Per project |
+| Visual comparison normalization | Canonical emulator screenshot dimensions, orientation, density, and color-space normalization; no unrecorded preprocessing | Per project |
+| Dynamic-region policy | Explicitly declared masked regions only; undeclared dynamic content remains diffable | Per visual baseline |
 | Uncertainty threshold (high risk) | 0.1 | 0.05-0.3 | Per task |
 | Uncertainty threshold (medium risk) | 0.2 | 0.1-0.5 | Per task |
 | Uncertainty threshold (low risk) | 0.4 | 0.2-0.7 | Per task |
@@ -6247,6 +6277,19 @@ Every "configurable" parameter in the specification has a default value defined 
 | Session memory retention | Project lifetime | N/A | Until project deleted |
 | Project memory retention | Project lifetime | N/A | Until project deleted |
 | Runtime-improvement memory retention | 365 days | 30-3650 days | Per project |
+
+Visual comparison MUST operate on deterministically normalized screenshots.
+The comparison record MUST distinguish raw captured pixels from normalized
+comparison input and MUST record the normalization parameters and any masked
+regions. Dynamic regions MUST NOT be silently ignored: clocks, animations,
+loading indicators, cursors, advertisements, or other changing content may
+be masked only when the mask is explicitly declared and revision-bound.
+
+The canonical 0.95 similarity and 5% pixel-diff thresholds apply to the
+normalized, unmasked comparison surface. A visual comparison MUST NOT be
+declared passing solely because an excluded region contains the observed
+difference. If normalization or masking cannot be reproduced, the comparison
+is NOT_VALIDATED rather than treated as a pass.
 
 ### 80.4 Decision criteria for runtime choices
 
@@ -6892,7 +6935,7 @@ The agent-buildability contract is satisfied only when:
    is satisfied for the statements currently enumerated in §80.2. Any
    "should" subsequently added to a canonical document is an immediate
    shortfall against this criterion until it appears in §80.2 (§80.10).
-2. Every "configurable" parameter has a default value. §80.3 declares 53
+2. Every "configurable" parameter has a default value. §80.3 declares 55
    parameters and CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS requires this. One
    omission is known and open: technical architecture §11.4 requires
    "configurable prompt classifiers" for interactive-prompt detection, and no

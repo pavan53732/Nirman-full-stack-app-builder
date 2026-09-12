@@ -4012,7 +4012,18 @@ VisualObservation
 - confidence: float
 - truthStatus: UNTRUSTED | OBSERVED | VERIFIED
 - evidenceIds: list<string>
+- normalizationProfileRef: reference<NormalizationProfile>
+- comparisonMethod: string
+- maskedRegionRefs: list<reference<MaskedRegion>>
+- comparisonResult: PASS | FAIL | NOT_VALIDATED
+- similarityScore: float | null
+- pixelDiffRatio: float | null
 ```
+
+These fields describe the reproducible comparison operation, not the visual
+meaning of the screen. `comparisonMethod`, normalization, and masks MUST be
+revision-bound and evidence-backed. `similarityScore` and `pixelDiffRatio`
+alone MUST NOT establish behavioral correctness or completion.
 
 ## 3. Canonical schema registry
 
