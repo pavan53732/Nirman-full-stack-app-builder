@@ -1119,8 +1119,8 @@ To prevent the latency and scalability bottlenecks of traditional sequential too
 |---|---|---|
 | Primary Orchestrator | Goal decomposition, routing, synthesis, and task-graph coordination | Main session context; no direct file mutation |
 | Repository Scout | Repository, dependency, and environment mapping | Read-only background worker |
-| Requirements Planner | Requirements, assumptions, interfaces, and acceptance criteria | Planning artifacts only |
-| Architecture Worker | Architecture and integration design | Design artifacts only |
+| Requirements Planner | Requirements, assumptions, interfaces, and acceptance criteria | No source/workspace mutation; planning artifacts only |
+| Architecture Worker | Architecture and integration design | No source/workspace mutation; design artifacts only |
 | UI Worker | Frontend screens, components, styling, interactions, and branding/visual assets (§50) | Assigned isolated workspace |
 | Android Data and Integration Worker | Generated Android data layer, persistence, service integrations, and business logic | Assigned isolated workspace |
 | Test and QA Worker | Tests, fixtures, regression checks, and validation execution | Test paths and approved commands |
@@ -1221,8 +1221,8 @@ Recommended built-in workers are shown below.
 | Canonical worker | Primary responsibility | Default permissions |
 |---|---|---|
 | Repository Scout | Map files, symbols, dependencies, entry points, and environment | Read-only |
-| Requirements Planner | Convert requests into specifications, assumptions, and acceptance criteria | Read-only |
-| Architecture Worker | Design structure, interfaces, data flow, and integration choices | Read-only; design artifacts |
+| Requirements Planner | Convert requests into specifications, assumptions, and acceptance criteria | No source/workspace mutation; planning artifacts only |
+| Architecture Worker | Design structure, interfaces, data flow, and integration choices | No source/workspace mutation; design artifacts only |
 | UI Worker | Build screens, components, styling, interactions, responsive behavior, and branding/visual assets under a scoped asset transaction (§50) | Workspace edits; preview |
 | Android Data and Integration Worker | Build the Android data layer, persistence, validation, and integrations with external services | Workspace edits; approved commands |
 | Test and QA Worker | Create and run unit, integration, regression, and edge-case checks | Test files; test commands |

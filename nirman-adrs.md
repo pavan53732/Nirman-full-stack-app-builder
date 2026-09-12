@@ -2924,7 +2924,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.AUTHORITY`
 
-**Decision:** Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one. The seven user-selectable operating modes of the former build spec §23.3 (Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release) and the two approval profiles of the former technical architecture §16.2.1 (`Interactive / Review`, `Unattended / Full Autonomy`) are withdrawn as user-facing choices. What they encoded survives in two places only: the *read-only* modes are worker roles with read-only mutation authority (`Repository Scout`, `Requirements Planner`, `Architecture Worker`, `Security Worker`, `Visual QA Worker`, `Performance Worker`, `Critic Worker`), and the *approval* profiles collapse into the one Autonomous-build policy, whose routine-allowed and hard-gated action sets are exactly those of ADR-048. The user never selects an autonomy level; the user states a goal.
+**Decision:** Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one. The seven user-selectable operating modes of the former build spec §23.3 (Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release) and the two approval profiles of the former technical architecture §16.2.1 (`Interactive / Review`, `Unattended / Full Autonomy`) are withdrawn as user-facing choices. What they encoded survives in two places only: observation/review modes are represented by the observation-only worker roles (`Repository Scout`, `Security Worker`, `Visual QA Worker`, `Performance Worker`, `Critic Worker`), while planning and architecture modes are represented by `Requirements Planner` and `Architecture Worker`, which may write only their declared planning/design artifacts and may not mutate application source; the *approval* profiles collapse into the one Autonomous-build policy, whose routine-allowed and hard-gated action sets are exactly those of ADR-048. The user never selects an autonomy level; the user states a goal.
 
 Under the one mode, the control loop has no self-inflicted stopping state. Five rules bind it (build spec §23.7, §28.2, §29.4, §52.2, §72; technical architecture §16.2, §28.1, §57.4):
 
@@ -2953,9 +2953,9 @@ Under the one mode, the control loop has no self-inflicted stopping state. Five 
 
 Delegation deepens by one level. Nesting is three levels by default: the Primary Orchestrator delegates to workers; a worker may request one Diagnostic Worker child; a Diagnostic Worker may request one **probe child** — a Repository Scout or Emulator Driver Worker instance restricted to observation actions, spawned to acquire the single piece of evidence the diagnosis is missing. Every level obeys `ChildCapabilityCeiling ⊆ ParentCapabilityCeiling` and `ChildResourceRequirements ⊆ ParentAdmissibleResourceCapacity` (build spec §66.8) and the aggregate lives inside the §7.2 worker limits, so depth adds observation, never authority or unbounded fan-out. A probe child cannot create children.
 
-The read-only roles form the default fan-out: the orchestrator may run a Repository Scout, a Requirements Planner, an Architecture Worker, a Security Worker, a Performance Worker, a Critic Worker, and a Backend & Service Engineering Worker (read-only exploration) in parallel against the same revision without reservations, because none of them mutates; write-capable roles remain reservation-bound (build spec §54).
+The observation-only fan-out roles are Repository Scout, Security Worker, Visual QA Worker, Performance Worker, and Critic Worker. These roles may inspect the same revision in parallel without source/workspace mutation reservations. Requirements Planner and Architecture Worker may additionally write their permitted planning/design artifacts, but never mutate the application source workspace except through an explicitly authorized artifact path. Backend & Service Engineering Worker is write-capable and remains reservation-bound. Diagnostic Worker is a bounded child role, not a general fan-out role. No role or execution profile may bypass these mutation boundaries (build spec §22.1, §23.4, TA §6.5).
 
-**Rationale:** ADR-049 fixed one taxonomy so that no document could name an undefined worker, yet the documents kept naming "emulator worker", "content worker", "diagnostic worker", "review workers", and "visual worker" because the work exists and had to be described. A builder agent that meets an unregistered phrase must guess which registered role performs it — the exact ambiguity these documents exist to remove. Registering the five names closes the gap where it is; folding them into existing roles would have hidden distinct permission profiles (device access, content authority, read-only critique) inside roles that do not need them. Deeper diagnosis without wider authority is the same bargain ADR-225 struck for the loop: more observation, no new deciders.
+**Rationale:** ADR-049 fixed one taxonomy so that no document could name an undefined worker, yet the documents kept naming "emulator worker", "content worker", "diagnostic worker", "review workers", and "visual worker" because the work exists and had to be described. A builder agent that meets an unregistered phrase must guess which registered role performs it — the exact ambiguity these documents exist to remove. Registering the seven names closes the gap where it is; folding them into existing roles would have hidden distinct permission profiles (device access, content authority, read-only critique) inside roles that do not need them. Deeper diagnosis without wider authority is the same bargain ADR-225 struck for the loop: more observation, no new deciders.
 
 **Consequences:** Build spec §22.1, §23.4, and technical architecture §6.5 gain seven rows and the three-level nesting rule; technical architecture §10.2, §10.4, §76.3, and §85.2 name the registered role where they used a lowercase phrase; build spec §47.3 and §66.9 do likewise; §80.3 gains the probe-child default; M8 and M30 gain the registry work; the verifier checks the three tables for identical role sets and rejects unregistered worker phrases. Skill packages already declare `compatibleWorkerRoles` against this list and need no change. ADR-049 is amended in place.
 
@@ -3173,19 +3173,19 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 - Output: what is proven, unproven, blocked, and eligible for completion
 - Linked to RequirementCoverageService and TaskResult.frontierDelta
 
-**5. ReasoningStreamEvent schema (SCHEMAS §2.41)**
+**5. ReasoningStreamEvent schema (SCHEMAS §2.97.1)**
 - Event identity: event_id, sequence, session_id, task_id, worker_id, trace_id, project_revision
 - Content: event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category
 - Governance: policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
 - Causal binding: every visible reasoning event resolves to its source model request, worker cycle, task, project revision, and associated runtime event
-- Schema projection at TA §55.2; the inline field block at TA §55.2 is retained as the authoritative field list; this registry entry ensures canonical schema discovery
+- Schema projection at SCHEMAS §2.97.1; the inline field block at TA §55.2 remains the authoritative field list; this registry entry ensures canonical schema discovery
 
-**6. ReasoningStreamEvent fields (SCHEMAS §2.41)**
+**6. ReasoningStreamEvent fields (SCHEMAS §2.97.1)**
 - event_id, sequence, session_id, task_id, worker_id, trace_id, project_revision, event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category, policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
 
 **7. Closure**
 
-ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.41 is the canonical schema identity for the AI reasoning stream within that pipeline. The inline field block at TA §55.2 remains the authoritative field list for ReasoningStreamEvent; this registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from TA §55.2 into the registry verbatim; no schema field is invented here.
+ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.97.1 is the canonical schema identity for the AI reasoning stream within that pipeline. The inline field block at TA §55.2 remains the authoritative field list for ReasoningStreamEvent; this registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from TA §55.2 into the registry verbatim; no schema field is invented here.
 
 **8. AndroidSemanticState schema (SCHEMAS §2.102)**
 - Screen → component → semantic role → current UI state → available actions
@@ -3207,11 +3207,11 @@ ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema 
 - Per requirement: claim, required proof, acquired evidence, independent validation, remaining uncertainty, completion eligibility
 - Aggregated view: proven/unproven/blocked, NOT COMPLETE
 
-**Reversal trigger:** If any of these four components become authority-granting (auto-completing tasks, auto-blocking requirements, auto-promoting repairs) or replace deterministic evidence with predictions, this ADR is reversed.
+**Reversal trigger:** If any of these five components (§2.97.1/2.102/2.103/2.104/2.105) become authority-granting (auto-completing tasks, auto-blocking requirements, auto-promoting repairs) or replace deterministic evidence with predictions, this ADR is reversed.
 
 **Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`
 
-**Locked surfaces:** SCHEMAS §2.102/2.103/2.104/2.105; TA §62.2/62.5; BS §56.6; M9/M12/M58/M90 milestones.
+**Locked surfaces:** SCHEMAS §2.97.1/2.102/2.103/2.104/2.105; TA §62.2/62.5; BS §56.6; M9/M12/M58/M90 milestones.
 
 ---
 
