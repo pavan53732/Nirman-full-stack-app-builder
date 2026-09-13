@@ -890,7 +890,7 @@ the parent contract, or integrate changes.
 
 ## ADR-076: Revision-bound preview fallback hierarchy
 
-**Status:** Accepted
+**Status:** Accepted · **Amended by:** ADR-236
 
 **Decision:** PreviewCoordinator selects incremental emulator install, Compose reload, React Native/Expo refresh, APK reinstall, Nirman-managed local Android emulator execution, headless smoke test, or diagnostic preview according to the change and selected technology.
 
@@ -914,7 +914,7 @@ the parent contract, or integrate changes.
 
 ## ADR-078: Adaptive ResourceGovernor cannot weaken safety
 
-**Status:** Accepted
+**Status:** Accepted · **Amended by:** ADR-236
 
 **Decision:** ResourceGovernor may compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or choose an approved lighter provider. It may never bypass sandboxing, permission checks, evidence, signing, or artifact gates.
 
@@ -1846,7 +1846,7 @@ the parent contract, or integrate changes.
 
 **Locks:** `CONTRACT.RUNTIME.PROFILING`
 
-**Status:** Accepted
+**Status:** Accepted · **Amended by:** ADR-236
 
 **Decision:** The supervisor will measure duration, peak memory, CPU, and disk delta for each Gradle build, emulator boot, instrumentation run, packaging step, analysis pass, and provider call, keyed by project and host fingerprint. Plan cost will be estimated from these profiles, and operation classes below a minimum sample count will report `unprofiled` rather than a fabricated estimate.
 
@@ -2456,7 +2456,7 @@ The universal `SOURCE → CONTRACT → ADAPTER / BRIDGE → AUTHORITY → STATE 
 
 **Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.AUTHORITY`
 
-**Status:** Accepted
+**Status:** Accepted · **Amended by:** ADR-236
 
 **Decision:** Nirman will synchronize chat instructions, autonomous agent activity, source revisions, Android builds, artifacts, Nirman-managed local Android emulator observations, evidence, validation, promotion, and the live preview panel through one durable `PreviewSyncEvent` sequence and one deterministic `PreviewProjectionReducer`. Agents, workers, models, build processes, device callbacks, evidence producers, and UI components may emit requests or normalized observations but cannot mutate preview projection state directly.
 
@@ -2795,7 +2795,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Locks:** `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.DELIBERATION`, `CONTRACT.RUNTIME.REASONING`
 
-**Status:** Accepted
+**Status:** Accepted · **Amended by:** ADR-236
 **Supersedes:** ADR-197
 
 **Decision:** AI usage telemetry is observational and has no execution-authority semantics. Nirman does not enforce token, request-count, monetary, reasoning-token, reasoning-pass, or autonomous-goal-duration budgets. Physical runtime resource limits and provider technical capacity remain valid. The canonical model is: AI usage → telemetry only; physical resources (CPU, memory, disk, processes, emulator slots, workspace I/O, concurrency, network, liveness) → adaptive runtime authority under `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` (BS §72); provider context window → technical capacity fitted by `ContextCapacityPlanner`; policy → permission authority; evidence → truth and completion authority. The former `COST_GOVERNANCE` contract identifier is renamed `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`; `CostGovernanceRecord`, `DeliberationBudget`, `DeliberationBudgetManager`, `maxToollessPasses`, `BUDGET_EXHAUSTED`, `remainingBudget`, `budgetReservationId`, and every `resourceBudget`/`timeBudget` schema field are removed in favour of `ResourceIntegrityRecord`, `EvidenceAcquisitionTrigger`, `effortGrantId`, `resourceRequirements`, and `executionTimeout`. Deliberation continues while progress is possible; observation-free passes trigger evidence acquisition rather than termination; anti-thrash protection is `DiminishingReturnDetector`, `RepeatedFailureDetector`, and `StrategyChangeRequired`, with no fixed pass ceiling. A user MAY declare an explicit policy stop condition; it is a user decision under permission authority, off by default, and never a runtime budget.

@@ -4449,7 +4449,6 @@ FrameQualityObservation
 - isLikelyBlank
 - isLikelySystemSurface
 - droppedFrameCountDelta
-- presentationSurface: SWAPCHAIN_PANEL | WRITEABLE_BITMAP
 - surfaceHealth: HEALTHY | DEGRADED | LOST
 - sequenceGapDetected: boolean
 ```
