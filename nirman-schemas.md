@@ -3773,36 +3773,38 @@ RenderTransport
 - state: OPENING | STREAMING | IDLE | LOST | CLOSED
 - lastFrameSequence
 - lastFrameAt
+- frameNoticeRef
+  - schema: FrameNotice (§2.111)
+  - frameNoticeId
+  - previewSurfaceId
+  - ringSlot
+  - frameStamp
+  - droppedFrameCount
 - frameNotice
   - frameNoticeId
+  - previewSurfaceId
+  - ringSlot
+  - frameStamp
+  - droppedFrameCount
+- frameStamp
+  - frameSequence
+  - capturedAt
+  - monotonicTimestamp
+  - deviceId
   - emulatorSessionId
+  - runtimeSessionId
   - renderTransportGeneration
   - previewRevisionId
   - projectRevisionId
   - artifactFingerprint
   - deviceStateFingerprint
   - applicationStateFingerprint
-  - frameSequence
-  - capturedAt
-  - monotonicTimestamp
-  - interactionCausalityId
   - runtimeObservationId
+  - interactionCausalityId
+  - width
+  - height
+  - pixelFormat
   - pixelBufferGeneration
-  - width
-  - height
-  - pixelFormat
-  - droppedFrameCount
-- frameStamp
-  - frameSequence
-  - capturedAt
-  - width
-  - height
-  - pixelFormat
-  - deviceId
-  - previewRevisionId
-  - artifactFingerprint
-  - deviceStateFingerprint
-  - interactionId
 - createdAt
 - closedAt
 ```
@@ -4115,6 +4117,7 @@ RepairPattern
 SharedSurfaceChangeRequest
 LoopHeartbeat
 ReasoningStreamEvent
+FrameNotice
 ```
 
 ### 2.97.1 ReasoningStreamEvent field schema
@@ -4405,6 +4408,9 @@ AndroidRuntimeObservation
 - applicationProcessId
 - projectRevisionId
 - artifactFingerprint
+- previewRevisionId
+- launchSessionId
+- renderTransportGeneration
 - activityOrComponent
 - lifecycleState
 - screenFingerprint
@@ -4413,16 +4419,28 @@ AndroidRuntimeObservation
 - uiHierarchyFingerprint
 - logcatWindowRef
 - capturedAt
+- observedAt
+- observationSequence
 - causalityId
 - evidenceIds
 ```
 
+
+**Cross-schema binding:** `AndroidRuntimeObservation.previewRevisionId` MUST equal `PreviewRevision.previewRevisionId`. `AndroidRuntimeObservation.artifactFingerprint` MUST equal `PreviewRevision.artifactFingerprint`. `AndroidRuntimeObservation.emulatorSessionId` MUST equal `PreviewRevision.emulatorSessionId`. `AndroidRuntimeObservation.renderTransportGeneration` MUST equal `RenderTransport.renderTransportGeneration`. `AndroidRuntimeObservation.observationSequence` is monotonic per `previewRevisionId`.
 ### 2.110 FrameQualityObservation
 
 **Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** —
 
 ```text
 FrameQualityObservation
+- previewRevisionId
+- projectRevisionId
+- emulatorSessionId
+- renderTransportGeneration
+- frameSequence
+- frameStampId
+- runtimeObservationId
+- observedAt
 - frameId
 - resolution
 - pixelFormat
@@ -4439,3 +4457,21 @@ FrameQualityObservation
 - isLikelySystemSurface
 ```
 |
+
+### 2.111 FrameNotice
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** —
+> **Schema projection:** `FrameNotice` is defined in `nirman-schemas.md` §2.111. Owner: TA §10.7.
+
+Volatile display message from `RenderTransport` to `PreviewHost`. A `FrameNotice` is not a `PreviewSyncEvent`, is never appended to the durable event log, carries no `eventSequence`, is never replayed, and is dropped without record when the reader is behind. Frame pixels and frame notices never travel through the durable event log.
+
+```text
+FrameNotice
+- frameNoticeId
+- previewSurfaceId
+- ringSlot
+- frameStamp
+- droppedFrameCount
+``
+
+**Identity binding:** `FrameQualityObservation.frameSequence` MUST equal `FrameStamp.frameSequence`. `FrameQualityObservation.frameStampId` MUST reference the active frame stamp. Without both identity bindings, a quality detector could certify an old frame.

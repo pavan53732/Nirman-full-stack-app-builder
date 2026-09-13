@@ -429,6 +429,7 @@
 | `DeviceMatrixRiskProfile` | §2.108 | TA §59.2 | CONTRACT.RUNTIME.DEVICE_MATRIX | — |
 | `AndroidRuntimeObservation` | §2.109 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameQualityObservation` | §2.110 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
+| `FrameNotice` | §2.111 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 
 ## 4. Milestone → section
 

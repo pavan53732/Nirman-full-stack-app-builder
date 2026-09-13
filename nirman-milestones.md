@@ -1188,6 +1188,10 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 
 Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
 
+
+M9 establishes the first vertical preview implementation.
+M65–M79 harden and formalize the underlying runtime contracts.
+M80 is the first milestone permitted to claim `RUNTIME_CERTIFIED` autonomous Android end-to-end execution. Earlier milestones must never retroactively claim M80-level certification.
 ## M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.

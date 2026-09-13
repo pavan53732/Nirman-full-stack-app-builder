@@ -1159,7 +1159,7 @@ A major failure mode of autonomous agents is getting trapped in endless "doom lo
    - **Context Reset**: Strips out noisy intermediate trace logs and re-injects only the core error message and initial acceptance criteria.
    - **Model Escalation**: Automatically routes the problem to a higher-reasoning model tier configured in the user's provider settings.
    - **Targeted Diagnostic Sub-Agent**: Spawns a specialized debugging worker to isolate the root cause before letting the primary builder resume.
-4. **Graceful Escalation**: If automated recovery fails after configured attempts, Nirman pauses execution, presents the user with the exact failure history, and suggests specific corrective paths rather than silently failing or consuming infinite tokens.
+4. **Graceful Escalation**: If automated recovery fails after configured attempts, Nirman does not self-pause when automated recovery is exhausted. It changes strategy, backtracks, delegates, branches, degrades, enters `USER_REQUIRED`/`BLOCKED`/`ESCALATED` when a real gate requires it, or continues with an eligible independent requirement. It presents the user with the exact failure history and suggests specific corrective paths rather than silently failing or consuming infinite tokens.
 
 ### 22.4 Shared Task Ledger and Cross-Agent Coordination
 
@@ -4208,7 +4208,8 @@ The schema-parity relation named in the semantic-documentation row is this: the 
 | Additional check | Failure condition |
 |---|---|
 | Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, or ADR numbering has gaps |
-| Semantic documentation | A canonical anchor, schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
+| NO_AI_USAGE_AUTHORITY | The corpus MUST NOT introduce an authoritative Nirman-owned AI token, request, monetary, reasoning, pass, or autonomous-duration budget. Usage fields are telemetry only. Physical resource, provider technical-capacity, concurrency, liveness, and policy constraints remain permitted. |
+| {old_rule}, schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
 | Command payload coverage | An implementation-facing command payload under `crates/` lacks a policy-mandatory field of its canonical schema; reported as unevaluated, never as passed, when the source is absent |
 
 The verifier also accepts `--dump-registries`, which prints the parsed §5.7, §67.8, §67.12, §67.15, and milestone-mapping registries without changing the exit code; this is the only sanctioned way to inspect what the verifier believes the registries say.
@@ -4224,6 +4225,8 @@ The verifier's terminal status line MUST be one of exactly three values, and rea
 Exit code 0 means zero defects; it does not by itself mean every check was evaluated. An agent MUST NOT report a run as complete documentation certification when the terminal status carries the `_WITH_RUNTIME_SOURCE_SKIPS` suffix, and MUST NOT describe either passing status as runtime certification.
 
 
+
+**Negative mutation fixture:** The verifier must detect and report as a defect any corpus passage that introduces an authoritative Nirman-owned AI token, request, monetary, reasoning, pass, or autonomous-duration budget as an execution control. Usage telemetry fields are explicitly excluded from this rule.
 ### 67.12 Clause Registry
 
 Contradiction cannot be detected by reading prose. Every authoritative clause that an extension may touch is registered here with a stable `ClauseId`, a normative value, and a seal state. This table is the comparison source for the contradiction and override checks of §67.11.
