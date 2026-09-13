@@ -3499,7 +3499,14 @@ def check_semantic_documentation(docs, R, D, root="."):
         for _c in re.split(r",\s*and\s+|,\s*|\s+and\s+", _grp.strip()):
             if _c.strip():
                 _classes.add(_c.strip())
-    _p8 = bs.split("### 80.8 Prompt templates", 1)[-1].split("### 80.9", 1)[0]
+    # The §80.8 heading was retitled from "Prompt templates" to "Internal model-instruction
+    # contract"; splitting on the retired title made the block the whole document tail,
+    # silently inheriting any later "### 80.9" match. Split on the live heading, and fall
+    # back to the retired title so the derivation cannot go vacuous on either layout.
+    _p8_head = "### 80.8 Internal model-instruction contract"
+    if _p8_head not in bs:
+        _p8_head = "### 80.8 Prompt templates"
+    _p8 = bs.split(_p8_head, 1)[-1].split("### 80.9", 1)[0]
     _tabled = {m.group(1).strip().lower()
                for m in re.finditer(r"^\| ([a-z][a-z-]*(?: [a-z-]+)*) \|", _p8, re.M)}
     if not _classes:
@@ -3513,10 +3520,23 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "release-evaluation prompt set" not in _tabled:
         D.add("semantic documentation", "§80.8 prompt-class coverage",
               "the fixed release-evaluation prompt set of DP §16.3 is not addressed in §80.8")
-    if "Every system prompt used by the runtime is defined here" in bs:
+    # Whitespace-flexible: §80.8 is hard-wrapped prose, so the retired single-line
+    # needle never matched and the guard was silently dead. A live assertion is the
+    # defect; the corpus MUST keep quoting the withdrawn claim to record that it was
+    # withdrawn ("Earlier revisions read \"…\", which was not true and is withdrawn"
+    # in §80.8, plus the §80.2 row documenting the withdrawal), so a quotation
+    # lead-in or a nearby withdrawal word marks a mention as history, not a claim.
+    for _wm in re.finditer(
+            r'Every\s+system\s+prompt\s+used\s+by\s+the\s+runtime\s+is\s+defined\s+here', bs, re.I):
+        _pre = bs[max(0, _wm.start() - 40):_wm.start()]
+        _near = bs[max(0, _wm.start() - 120):_wm.end() + 240]
+        if re.search(r'read\s+["\u2018\u201c]\s*$', _pre, re.I) or 'withdraw' in _near.lower():
+            continue
         D.add("semantic documentation", "§80.8 prompt-class coverage",
               "§80.8 still carries the withdrawn unscoped claim that every runtime "
               "system prompt is defined there")
+        break
+
     # §80.6: every fixture identifier used outside §80.6 MUST have a definition
     # inside it, and the claim MUST stay scoped to the build spec. FIX-DEL-01..07
     # are defined in milestones §M95 and are named in §80.6's scope note, which is

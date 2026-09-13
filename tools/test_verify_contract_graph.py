@@ -331,10 +331,10 @@ CASES = {
 
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
-        BS, "| Build spec (all sections) | 322 | 322 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
+        BS, "| Build spec (all sections) | 321 | 321 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
         "semantic documentation"),
     "§80.10 total overstated": (
-        BS, "| **Total** | **497** | **497** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
+        BS, "| **Total** | **496** | **496** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
         "semantic documentation"),
     "§80.2 row deleted without updating §80.10": (
         BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",
@@ -1814,7 +1814,7 @@ CASES = {
         "semantic documentation"),
     "§80.8 restores the withdrawn unscoped prompt claim": (
         BS,
-        "Every system prompt template that this section provides is defined here",
+        "Five templates are provided below: planning, code generation, validation, repair, and context compaction. Each is a normative minimum-content instruction pattern for the purpose it names",
         "Every system prompt used by the runtime is defined here",
         "semantic documentation"),
     "the release-evaluation prompt set row is dropped from §80.8": (
@@ -1851,7 +1851,7 @@ CASES = {
         "semantic documentation"),
     "§80.9 parameter count drifts from §80.3": (
         BS,
-        "§80.3 declares 53",
+        "§80.3 declares 55",
         "§80.3 declares 60",
         "semantic documentation"),
     "a skill requires a capability the closed vocabulary does not declare": (
