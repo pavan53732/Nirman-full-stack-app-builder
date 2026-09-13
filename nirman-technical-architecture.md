@@ -2396,6 +2396,8 @@ The summarizer must produce concise, decision-relevant information: objective, c
 
 ### 55.2 ReasoningStreamEvent
 
+> **Schema projection:** Field block authoritative at SCHEMAS §2.97.1. This section carries event type vocabulary and runtime/producer constraints only. Owner: SCHEMAS §2.97.1.
+
 ```text
 ReasoningStreamEvent
 ├── event_id

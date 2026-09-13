@@ -3178,14 +3178,14 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 - Content: event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category
 - Governance: policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
 - Causal binding: every visible reasoning event resolves to its source model request, worker cycle, task, project revision, and associated runtime event
-- Schema projection at SCHEMAS §2.97.1; the inline field block at TA §55.2 remains the authoritative field list; this registry entry ensures canonical schema discovery
+- Schema projection at SCHEMAS §2.97.1; the field block at SCHEMAS §2.97.1 is the authoritative field list; TA §55.2 is a projection; this registry entry ensures canonical schema discovery
 
 **6. ReasoningStreamEvent fields (SCHEMAS §2.97.1)**
 - event_id, sequence, session_id, task_id, worker_id, trace_id, project_revision, event_type, status, title, summary, rationale_summary, uncertainty_summary, action_category, policy_reference_ids, evidence_ids, redaction_flags, created_at, supersedes_event_id
 
 **7. Closure**
 
-ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.97.1 is the canonical schema identity for the AI reasoning stream within that pipeline. The inline field block at TA §55.2 remains the authoritative field list for ReasoningStreamEvent; this registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from TA §55.2 into the registry verbatim; no schema field is invented here.
+ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.97.1 is the canonical schema identity for the AI reasoning stream within that pipeline. SCHEMAS §2.97.1 is the sole authoritative field list for ReasoningStreamEvent; TA §55.2 is a projection of SCHEMAS §2.97.1. This registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from SCHEMAS §2.97.1 into the registry verbatim; no schema field is invented here.
 
 **8. AndroidSemanticState schema (SCHEMAS §2.102)**
 - Screen → component → semantic role → current UI state → available actions
