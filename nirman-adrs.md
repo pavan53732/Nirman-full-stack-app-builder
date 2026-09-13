@@ -3215,5 +3215,29 @@ ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema 
 
 ---
 
+## ADR-236: Evidence-driven performance intelligence for Windows preview and the Rust control plane
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`, `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.PROFILING`
+**Amends:** ADR-076, ADR-078, ADR-153, ADR-195, ADR-218
+
+**Decision:** Nirman will optimize Android rendering and autonomous control-plane execution through measured, revision-bound performance intelligence rather than fixed product-level performance promises.
+
+Preview performance MUST retain the canonical supervisor-owned RenderTransport, stamped frame identity, single PreviewProjectionReducer, 30 FPS shared-memory baseline, DROP_OLDEST backpressure, GPU/SwiftShader selection, and WebRTC_LOOPBACK as an optional transport upgrade. The runtime MUST measure frame capture, transport, render, age, dropped-frame, freeze, blank-surface, and presentation-path observations and feed only deterministic recovery, diagnostics, transport selection, or resource adaptation.
+
+Control-plane performance MUST use existing fair-share scheduling, resource-aware concurrency, LoopHeartbeat liveness, RecoveryAuthority, ResourceIntegrityAuthority, ResourceProfile history, and evidence-driven continuation. Historical measurements MAY improve routing, concurrency, cache decisions, validation scheduling, and recovery strategy, but MUST NOT grant authority, weaken safety, bypass evidence, or create AI token/request/cost/duration budgets.
+
+No fixed FPS, latency, recovery-time, scheduler-tick, or provider-response target is a product guarantee unless a named fixture establishes it on the declared Windows hardware/profile.
+
+Performance degradation MUST be classified separately from functional correctness and MUST remain observable and recoverable.
+
+**Rationale:** Nirman needs a faster preview and more capable control plane, but optimization cannot weaken truth, evidence, or authority. Measured degradation is more useful than arbitrary targets.
+
+**Consequences:** M90, M108, M109, and M111 gain performance-intelligence acceptance coverage. Existing schemas are extended only where a missing observation cannot be derived from current records.
+
+**Reversal trigger:** Runtime evidence shows that measured adaptive behavior causes unstable scheduling, preview truth violations, starvation, or materially worse recovery/reproducibility than the pre-optimization baseline.
+
+**Locked surfaces:** TA §10.7/§10.8; TA §7.2; BS §71/§72; M90/M108/M109/M111 milestones.
+
 ---
 

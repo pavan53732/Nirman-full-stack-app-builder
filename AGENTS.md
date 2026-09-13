@@ -391,6 +391,8 @@ master product contract
 → verifier/conformance coverage
 ```
 
+Performance changes are contract changes when they alter scheduling, resource admission, preview transport, frame interpretation, or recovery behavior. Agents MUST extend the existing authority and schema rather than creating parallel performance authorities. Performance telemetry MUST remain advisory unless explicitly owned by ResourceIntegrityAuthority, PreviewProjectionReducer, or another canonical authority.
+
 Do not duplicate a canonical schema or lifecycle in multiple files with independent meanings. Explanatory copies must identify their canonical owner and must not redefine fields, enum semantics, authority, or lifecycle. There are exactly two lifecycle state sets — the task-execution states of build spec §26.14 (`TaskExecutionState`, implemented by TA §5.1) and the session lifecycle of build spec §33.2 (`ProductLifecycleState`, enum in §5.7.2, implemented by TA §36.2) — and exactly one committer for both, `LifecycleAuthority` = `SessionReducer` (TA §45.1). Kernel cycle outcomes and completion classifications are projections defined in build spec §33.2, never new states.
 
 ## 16. Required engineering workflow

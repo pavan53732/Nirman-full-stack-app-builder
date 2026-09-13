@@ -257,6 +257,8 @@ Every worker must receive a declared task contract containing its role, objectiv
 
 The primary orchestrator owns task decomposition and reconciliation. Specialist workers may handle requirements, architecture, Android implementation, UI, data/integrations, debugging, testing, security, visual QA, performance, documentation, release preparation, and reconciliation. Parallel work requires isolated workspaces or clearly separated file/interface boundaries and a reconciliation step before integration.
 
+Nirman uses measured performance intelligence for its emulator preview and Rust control plane. Rendering health, scheduling behavior, resource pressure, and recovery are observed and adapted through deterministic runtime authorities; performance measurements never substitute for Android runtime evidence.
+
 Skills, plugins, MCP-compatible tools, and instruction files are untrusted until provenance, version, hash, permissions, declared capabilities, instruction-scan results, policy admission, and revocation state are recorded. Tool execution must pass through the authorized broker or gateway.
 
 See [`AGENTS.md`](AGENTS.md) for the mandatory operational rules every agent must follow.

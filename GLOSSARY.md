@@ -122,6 +122,8 @@
 
 **RenderTransport / FrameNotice** — The supervisor-owned, per-emulator-session frame transport: loopback gRPC control channel, stamped frames in a shared-memory ring with drop-oldest backpressure, announced by volatile `FrameNotice` messages that are never logged or replayed (frames are pixels; `PreviewSyncEvent`s mark only stream-state changes), presented by PreviewHost on a `SwapChainPanel` and painted live only under a `CONNECTED` projection with a bound stamp. — TA §10.7; BS §71.1; SCHEMAS §2.89.
 
+**Frame-quality observation** — Revision-bound diagnostic evidence describing frame timing, drops, sequence continuity, visual freeze/blank conditions, and presentation-surface health without becoming preview truth. — TA §10.7; SCHEMAS §2.110; ADR-236.
+
 **SigningIdentityBinding** — The binding between a capability promotion and the signing identity that produced its evidence. — BS §5.7.9; SCHEMAS §1.5.
 
 **SkillPackage / SkillInvocationRecord / SkillAdmission** — A registered platform skill (eighty-three v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
@@ -159,6 +161,8 @@
 **Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
 
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
+
+**Performance intelligence** — Historical and live physical-resource measurements used by deterministic schedulers, recovery, validation ordering, and transport adaptation without granting authority or creating AI-usage budgets. — TA §7.2; BS §72; ADR-236.
 
 **Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
 
