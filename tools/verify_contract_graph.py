@@ -1652,6 +1652,26 @@ def check_semantic_documentation(docs, R, D, root="."):
             if field not in m_rt_fields:
                 D.add("semantic documentation", "render transport",
                       f"the RenderTransport block (SCHEMAS §2.89) must carry `{field}` (TA §10.7; ADR-221)")
+    # BS §71.1 (`Preview performance is not preview truth`) is the single canonical
+    # owner of the frame-quality truth boundary (ADR-236). Losing the rule, or
+    # silently reintroducing a second normative copy, must fail certification:
+    # frame quality may never advance a PreviewRevision promotion, create VERIFIED
+    # evidence, or mark a task complete.
+    m_ps = _section_text(bs, "71.1")
+    if m_ps is None or "Preview performance is not preview truth" not in m_ps:
+        D.add("semantic documentation", "frame quality truth boundary",
+              "BS §71.1 must carry the `Preview performance is not preview truth` subsection: frame transport "
+              "and presentation measurements are diagnostics, not preview truth (ADR-236)")
+    else:
+        for needle, why in ((
+                "- promote a `PreviewRevision`;",
+                "forbid frame-quality observations from promoting a `PreviewRevision`"),
+            ("- mark a task complete.", "forbid frame-quality observations from marking a task complete"),
+            ("Preview truth is derived only from compatible, ordered",
+             "state that preview truth derives only from ordered PreviewSyncEvent records reduced by PreviewProjectionReducer")):
+            if needle not in m_ps:
+                D.add("semantic documentation", "frame quality truth boundary",
+                      f"BS §71.1 must {why} (ADR-236)")
     m_221 = adr_blocks(dec).get(221, "")
     if not m_221:
         D.add("semantic documentation", "toolchain provisioning", "ADR-221 (toolchain provisioning) is missing")

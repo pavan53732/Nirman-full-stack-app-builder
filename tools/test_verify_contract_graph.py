@@ -380,6 +380,18 @@ CASES = {
         BS, "A registered schema MUST have identical field-name sets in every occurrence",
         "A registered schema SHOULD have matching fields in every occurrence",
         "semantic documentation"),
+    # BS §71.1 `Preview performance is not preview truth` is the single canonical
+    # owner of the frame-quality truth boundary; the verifier must fail if the rule
+    # or either of its two forbidden effects (revision promotion, completion) disappears.
+    "BS §71.1 lets frame quality promote a PreviewRevision": (
+        BS, "- promote a `PreviewRevision`;", "",
+        "semantic documentation"),
+    "BS §71.1 lets frame quality mark a task complete": (
+        BS, "- mark a task complete.\n", "",
+        "semantic documentation"),
+    "BS §71.1 drops the preview-truth boundary subsection entirely": (
+        BS, "#### Preview performance is not preview truth", "#### Preview frame diagnostics",
+        "semantic documentation"),
     "an ADR block is written back into nirman-decisions.md": (
         DEC, "## Decision Review Rules\n",
         "## ADR-221: Stray decision\n\n**Status:** Accepted\n**Locks:** `CONTRACT.RUNTIME.SCOPE`\n**Decision:** x\n**Rationale:** y\n**Consequences:** z\n**Reversal trigger:** none foreseeable\n\n---\n\n## Decision Review Rules\n",
@@ -458,7 +470,7 @@ CASES = {
         BS, "`C:\\Nirman\\<sid8>\\p\\<8-char-id>\\`", "`C:\\<root>\\p\\<8-char-id>\\`",
         "semantic documentation"),
     "the RenderTransport block loses its frameNotice field": (
-        SCHEMAS, "- frameNotice\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
+        SCHEMAS, "- frameNotice: volatile FrameNotice projection; not durable event state\n  - frameNoticeId\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
         "semantic documentation"),
     # BS §79.17: a Windows ARM64 host gets an honest UNAVAILABLE emulator, not
     # a substitute runtime and not a mismatched download.
