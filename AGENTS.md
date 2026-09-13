@@ -395,6 +395,27 @@ Performance changes are contract changes when they alter scheduling, resource ad
 
 Do not duplicate a canonical schema or lifecycle in multiple files with independent meanings. Explanatory copies must identify their canonical owner and must not redefine fields, enum semantics, authority, or lifecycle. There are exactly two lifecycle state sets — the task-execution states of build spec §26.14 (`TaskExecutionState`, implemented by TA §5.1) and the session lifecycle of build spec §33.2 (`ProductLifecycleState`, enum in §5.7.2, implemented by TA §36.2) — and exactly one committer for both, `LifecycleAuthority` = `SessionReducer` (TA §45.1). Kernel cycle outcomes and completion classifications are projections defined in build spec §33.2, never new states.
 
+### Documentation patch ledger requirement
+
+For any cross-cutting documentation change, the agent MUST produce a patch ledger before editing. Each ledger entry MUST identify:
+
+- patch ID;
+- exact filename;
+- exact section or owner location;
+- current contract or defect, quoted from the actual file rather than summarized;
+- replacement or insertion text;
+- canonical authority;
+- cross-document references;
+- schema impact;
+- ADR impact;
+- milestone, test, and evidence impact;
+- verifier impact, including whether a verifier rule or a conformance mutation pins the text being changed; and
+- implementation-status boundary.
+
+Agents MUST NOT make implementation edits when the request is documentation hardening only. Agents MUST NOT create a new authority, schema, lifecycle, performance authority, or duplicate contract when an existing canonical owner can be extended. Where a ledger entry prescribes an edit that a verifier rule or a conformance mutation forbids, the agent MUST report the conflict and apply the ledger's stated compatibility alternative rather than editing the certification tooling to fit the patch.
+
+Agents MUST distinguish required normative edits, architecture clarifications, schema changes, milestone and test changes, explanatory edits, and unverified recommendations. A patch ledger is a planning artifact. It does not itself certify the documentation or the runtime, and it does not raise any capability above `PLANNED`.
+
 ## 16. Required engineering workflow
 
 Before changing code or documentation, inspect the current branch, working tree, relevant canonical sections, existing contracts, and dependencies. Preserve user changes and never overwrite unrelated work.

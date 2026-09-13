@@ -214,6 +214,8 @@ Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch
 
 A single worker completes the first real Android fixture through `Inspect → Plan → Checkpoint → Mutate → Build → Install/Launch → Observe → Validate → Repair → Checkpoint`. Required proof includes a real Android source revision, real Gradle/build result, real runtime or device observation where the declared environment supports it, real diagnostics, durable evidence records, repair after an injected failure, and a rollback/undo path. This gate does not by itself claim `RUNTIME_CERTIFIED` autonomous Android end-to-end completion; that claim belongs to M80 and later applicable runtime gates.
 
+The worker fixture records process creation, isolation assignment, handshake, first heartbeat, first model-call dispatch, forced worker termination, and replacement-worker startup as separate observations. It distinguishes worker startup delay from provider and tool latency. Both observations are §69.7 performance measurements: they inform scheduling and recovery ordering only, confer no authority, and do not amend ADR-222's process-per-lease rule.
+
 ---
 
 ## 9. M6: Permissions and Sandbox Profiles
@@ -288,6 +290,8 @@ Add specialized workers and isolated parallel execution only after the single-wo
 ### Exit gate
 
 Three independent workers — three `NirmanWorker.exe` processes — can work on isolated tasks, return structured handoffs, and integrate without changing the main workspace until reconciliation and validation succeed. A forced conflict must be detected and presented rather than silently overwritten, and terminating one worker process leaves the other two and the supervisor running.
+
+The three-worker fixture records concurrent worker startup contention, supervisor responsiveness, `WorkerConnection` establishment, and replacement latency without allowing a worker to access another worker, the provider, the workspace, the emulator, or the ledger directly. Both observations are §69.7 performance measurements: they inform scheduling and recovery ordering only, confer no authority, and do not amend ADR-222's process-per-lease rule.
 
 ---
 
@@ -1387,6 +1391,28 @@ Test and evidence identity follows the same rule. A contract's capability-level 
 | M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all twelve §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure checks (which are additional to, not counted among, the twelve). It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, section-ownership violation, or structure violation.
+
+## Performance-intelligence documentation patch ownership
+
+### Patch ledger for the WIN/CP-001 set
+
+The documentation-only hardening for Windows Android-emulator rendering and Rust control-plane intelligence is distributed as follows. These identities describe documentation change units. They do not assert runtime implementation or runtime certification.
+
+| Patch | Canonical owner | Supporting sections | Required evidence identity |
+|---|---|---|---|
+| `WIN-001` | TA §10.7 | TA §75, ADR-236 | Documentation conformance |
+| `WIN-002` | BS §71.1 | TA §75, SCHEMAS §2.110 | `TEST-PSYNC-001` / `EV-PSYNC-001` |
+| `WIN-003` | SCHEMAS §2.89 | TA §10.7, SCHEMAS §2.111 | Schema-parity conformance |
+| `WIN-004` | BS §71.0.1 | TA §10.7, ADR-236 | `TEST-PSYNC-001` / `EV-PSYNC-001` |
+| `CP-001` | TA §7.1 | BS §52, BS §72 | Scheduler replay fixture |
+| `CP-002` | TA §69.7 | TA §59, TA §77 | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
+| `CP-003` | BS §72.2 | TA §69, TA §77, ADR-236 | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
+| `CP-004` | TA §3.5 | TA §57.11, M5, M8 | Worker lifecycle fixture |
+| `DOC-001` | this section | TA §7, TA §10, TA §69, TA §75 | Documentation conformance |
+
+Patch ownership does not reassign contract authority. `CONTRACT.RUNTIME.PREVIEW_SYNC` remains owned by M108 and
+`CONTRACT.RUNTIME.RESOURCE_INTEGRITY` by M111; the milestones above are the acceptance points, and ADR-236 remains
+the locking decision for the surfaces it names (TA §10.7/§10.8, TA §7.2, BS §71/§72, M90/M108/M109/M111).
 
 ## M93 Contract-Graph Certification Regression Gate
 

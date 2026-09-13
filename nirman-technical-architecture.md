@@ -115,6 +115,28 @@ Nirman's production installation consists of exactly three executables (ADR-222)
 
 **Lifecycle.** A worker process lives for one lease attempt: launched when the lease is granted, exited when the worker reaches `COMPLETED`, `FAILED`, `TIMED_OUT`, or `CANCELLED` (§5.2), never pooled or reused across leases. Its one-time launch token is delivered on its standard input, never on the command line or in the environment; it connects to the per-lease pipe named in that token, completes the `WorkerConnection` handshake, and sends a heartbeat every worker heartbeat interval (build spec §26.3, 10 seconds). The supervisor declares a worker dead only from both signals of §5.2 — the process handle and heartbeat freshness: a process exit is a worker crash (§32; §27.4: preserve the workspace, record the interruption, requeue or recover), and a live process past the stale threshold (60 seconds) is terminated through `TerminateJobObject` and follows the same path. Cancellation (§58.11) is cooperative first — a `CANCEL` message the worker acknowledges after sending its last artifact — then forced through the Job Object. Resumption never depends on a paused process being alive: every artifact a worker produced is already in the ledger, so the supervisor terminates a paused worker whenever the resource policy of build spec §26.3 needs the memory and relaunches a fresh process from durable state on resume. Workers do not outlive the supervisor — closing the supervisor closes every worker Job Object — and the recovery scan of §57.4 treats a lease whose process is gone as a worker crash. A worker that exits, hangs, leaks, or is replaced never takes another worker, the supervisor, or the UI with it, and never leaves a descendant: it has none.
 
+#### Worker startup performance evidence
+
+Worker isolation remains process-per-lease as required by ADR-222. The runtime MUST measure worker startup without weakening that isolation.
+
+The startup measurement chain MUST distinguish:
+
+- process creation;
+- Job Object assignment;
+- AppContainer initialization;
+- launch-token delivery;
+- `WorkerConnection` pipe establishment;
+- protocol handshake;
+- first heartbeat;
+- first admitted model call; and
+- worker replacement from durable state.
+
+Each measurement MUST be bound to the worker run, lease, attempt, supervisor generation, worker profile, host environment identity, and configuration version.
+
+Worker startup latency MUST NOT be merged with provider latency, model latency, tool latency, or task completion duration.
+
+A worker-startup observation MAY inform resource scheduling or recovery ordering. It MUST NOT change the worker permission ceiling, isolation profile, lease semantics, or authority model. It is a §69.7 measurement and confers no authority; ADR-222 is not amended by it.
+
 **Edges.** Every inter-process edge terminates at the supervisor; the topology is a star.
 
 | Edge | Transport | Authentication | Carries |
@@ -289,6 +311,42 @@ Worker nesting is limited to three levels by default (build spec §23.4; ADR-227
 The scheduler selects runnable tasks, reserves resources, launches workers, manages dependencies, handles approvals, records heartbeats, detects stale processes, and decides whether to retry or escalate failures.
 
 A scheduler tick should be deterministic and idempotent. Running the same scheduling cycle twice must not launch duplicate workers for the same contract.
+
+#### Scheduler tick determinism contract
+
+A scheduler tick MUST consume one immutable `SchedulerInputSnapshot`. The snapshot MUST contain:
+
+- runnable task and dependency state;
+- current task and project revisions;
+- worker lease and fencing state;
+- physical resource-integrity snapshot;
+- fair-share and priority-aging state;
+- validation reservations;
+- starvation-age values;
+- admitted policy decisions;
+- historical `ResourceProfile` references;
+- scheduler configuration version; and
+- the input event-sequence watermark.
+
+The tick MUST produce one `SchedulerDecisionSnapshot` containing:
+
+- selected task identities;
+- worker launch intents;
+- resource reservations;
+- deferred or rejected task identities;
+- deterministic reason codes;
+- next-wake condition; and
+- output event-sequence identity.
+
+For equal input snapshots, policy version, configuration version, authority state, and resource observations, the scheduler MUST produce an equivalent decision snapshot.
+
+Wall-clock progression, process scheduling order, UI connection state, provider response order, and worker message arrival order MUST NOT change the decision after the input snapshot has been captured.
+
+A task, worker, lease, or attempt that is already admitted MUST NOT be launched again by a replayed or repeated scheduler tick. A retry MUST use a new authorized attempt or lease identity.
+
+The scheduler MUST persist the input snapshot identity, decision identity, reason codes, and event watermark needed to replay and audit the decision.
+
+These records are implementation-facing payloads of the existing scheduler contract; no new scheduler, no new authority, and no separate decision store is introduced, and the field names above are not registered schemas (see §69.7 for measurement ownership and build spec §52 for scheduling policy).
 
 ### 7.2 Resource-aware scheduling
 
@@ -501,8 +559,6 @@ The Nirman-managed local Android emulator is the canonical PreviewRuntime for th
 
 No physical Android hardware is supported, required, or accepted as an alternative runtime. The Nirman-managed local Android emulator is the sole canonical Android preview and validation runtime.
 
-The transport is a named, versioned interface with a required baseline and a permitted upgrade:
-
 **RenderPipelineWatchdog**
 
 The supervisor owns the render pipeline watchdog and its deterministic state machine. PreviewHost does not own, start, stop, or recover the pipeline.
@@ -545,16 +601,9 @@ Failure kinds the watchdog reports:
 
 > **Schema projection:** `FrameQualityObservation` is defined in `nirman-schemas.md` §2.110. Owner: TA §10.7.
 
-The Nirman-managed local Android emulator is the canonical PreviewRuntime for the primary development workflow. It MUST run headless on the Windows host and its rendering surface MUST be projected into the WinUI 3 PreviewHost. A detached emulator window is not a valid primary preview.
+**Baseline and permitted transport upgrade.** The transport is a named, versioned interface. Its required baseline is the emulator's local gRPC control endpoint on loopback, using its screenshot-stream RPC. Low frame rate, minimal dependencies, sufficient for a truthful preview. The permitted upgrade is a WebRTC/video-stream path for higher frame rate and input forwarding, admitted through the SAME `PreviewPromotionGate`. Not a second authority.
 
-No physical Android hardware is supported, required, or accepted as an alternative runtime. The Nirman-managed local Android emulator is the sole canonical Android preview and validation runtime.
-
-The transport is a named, versioned interface with a required baseline and a permitted upgrade:
-
-- **Baseline** — the emulator's local gRPC control endpoint on loopback, using its screenshot-stream RPC. Low frame rate, minimal dependencies, sufficient for a truthful preview.
-- **Permitted upgrade** — a WebRTC/video-stream path for higher frame rate and input forwarding, admitted through the SAME `PreviewPromotionGate`. Not a second authority.
-
-Every delivered frame MUST bind `projectRevisionId`, `previewRevisionId`, `artifactFingerprint`, `deviceId`, `emulatorSessionId`, `deviceStateFingerprint`, `applicationStateFingerprint`, `runtimeObservationId`, `renderTransportGeneration`, and `interactionCausalityId`. An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). Frame capture is an `AndroidDeviceAdapter` operation carrying `adapterId`, `adapterVersion`, `technologyPlanHash`, and `deviceAdapterIdentity` (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND). Transport loss MUST invalidate the projection through the single canonical reducer (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER) and MUST NOT freeze the last frame while presenting it as live (CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE). Loopback only. The transport MUST NOT bind to an external interface. Physical Android hardware has no supported capture, transport, validation, or preview path.
+Every delivered frame MUST bind `projectRevisionId`, `previewRevisionId`, `artifactFingerprint`, `deviceId`, `emulatorSessionId`, `deviceStateFingerprint`, `applicationStateFingerprint`, `runtimeObservationId`, `renderTransportGeneration`, and `interactionCausalityId`. An unbound frame MUST be labelled `STALE` and MUST NOT satisfy completion (CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH, CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND). Frame capture is an `AndroidDeviceAdapter` operation carrying `adapterId`, `adapterVersion`, `technologyPlanHash`, and `deviceAdapterIdentity` (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND). Transport loss MUST invalidate the projection through the single canonical reducer (CLAUSE.PREVIEW_SYNC.SINGLE_REDUCER) and MUST NOT freeze the last frame while presenting it as live (CLAUSE.PREVIEW_SYNC.NO_LOCAL_ADVANCE). Loopback only. The transport MUST NOT bind to an external interface. Physical Android hardware has no supported capture, transport, validation, or preview path.
 
 **Preview/launch bridge binding:** `AndroidRuntimeObservation.previewRevisionId` MUST equal `PreviewRevision.previewRevisionId`. `AndroidRuntimeObservation.artifactFingerprint` MUST equal `PreviewRevision.artifactFingerprint`. `AndroidRuntimeObservation.emulatorSessionId` MUST equal `PreviewRevision.emulatorSessionId`. `AndroidRuntimeObservation.renderTransportGeneration` MUST equal `RenderTransport.renderTransportGeneration`. `AndroidRuntimeObservation.launchSessionId` binds to the `LaunchSession` that produced this observation. `AndroidRuntimeObservation.observationSequence` is monotonic per `previewRevisionId`.
 
@@ -3932,6 +3981,23 @@ DegradationDetector compares recent samples to the stored p90. Sustained regress
 
 Profiling is correct only when repeated identical fixture runs converge to stable profiles; when an over-capacity plan is reduced or surfaced before execution; when an unprofiled operation is reported as unprofiled; and when injected disk pressure raises a host-health signal rather than an application defect.
 
+### 69.7 Performance measurement ownership
+
+Performance measurements MUST use the following canonical ownership:
+
+| Measurement family | Canonical record | Authority or consumer |
+|---|---|---|
+| CPU, memory, disk, process, emulator, workspace-I/O, concurrency, network, and liveness pressure | `ResourceIntegrityRecord` | `ResourceIntegrityAuthority` |
+| Operation duration distributions, memory peaks, CPU peaks, disk deltas, and failure rates | `ResourceProfile` | Scheduler, validation planner, and recovery ordering |
+| Parent, child, shared, estimated, and unavailable attribution | `UsageRecord` | Resource attribution and telemetry |
+| Frame capture, transport, render, age, drops, freezes, blank surface, and presentation health | `FrameQualityObservation` | `RenderPipelineWatchdog` and preview diagnostics |
+| Kernel transition liveness and evidence movement | `LoopHeartbeat` | `SupervisorLifecycle` and recovery detection |
+| Durable event, reducer, replay, and transaction timing | Event metadata or an explicitly registered extension | Diagnostics only unless an existing authority adopts it |
+
+A measurement record MUST identify its source operation, task or session, project revision where applicable, environment identity where applicable, policy or configuration version, capture time, and evidence or telemetry classification.
+
+A performance measurement MUST NOT become a second source of truth for lifecycle, policy, permission, evidence, preview, artifact, signing, or completion state. The records named in the table above are already registered or owned elsewhere in the corpus; this subsection assigns ownership of measurements and registers no new schema, record, or authority.
+
 ## 70. Supply-Chain and Artifact Provenance Runtime
 
 **ContractId:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`  
@@ -4812,7 +4878,7 @@ ConstructionTransaction
 
 The architecture implements the exact `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` schemas defined by build spec §71.1. The event store assigns the durable per-project/task sequence. `WorkflowCoordinator` normalizes intent, agent, worker, build, device, evidence, recovery, and promotion outcomes into events. Every non-root event carries causal parentage, runtime-session identity where applicable, and an authority class. `PreviewCoordinator` is the only service that can emit an accepted promotion event. The UI consumes snapshots and events but never writes projection state.
 
-`PreviewProjectionReducer` is a pure deterministic reducer over a snapshot and an ordered event range. It must be replayable without side effects, must record the reducer version and projection revision, and must produce the same state for the same snapshot and event range. The reducer delegates specialized decisions to the existing lifecycle, evidence, device, artifact, recovery, and promotion authorities; it does not grant permissions or approve evidence.
+`PreviewProjectionReducer` is a pure deterministic reducer over a snapshot and an ordered event range. It must be replayable without side effects, must record the reducer version and projection revision, and must produce the same state for the same snapshot and event range. The reducer delegates specialized decisions to the existing lifecycle, evidence, device, artifact, recovery, and promotion authorities; it does not grant permissions or approve evidence. Frame transport and presentation measurements are diagnostic observations and never preview truth; the canonical statement of that boundary is build spec §71.1 (`Preview performance is not preview truth`), and transport defaults versus diagnostic thresholds versus fixture thresholds versus product guarantees are distinguished by build spec §71.0.1.
 
 ### 75.2 Event ownership table
 

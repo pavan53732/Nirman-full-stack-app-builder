@@ -4912,13 +4912,27 @@ This contract defines how the user’s chat instruction and autonomous agent act
 
 ### 71.0 Adapter binding
 
+### 71.0.1 Transport defaults, diagnostics, and guarantees
+
+The following categories MUST remain distinct:
+
+| Category | Meaning | Authority |
+|---|---|---|
+| Transport default | Initial operating value for a transport instance | `RenderTransport` |
+| Diagnostic threshold | Value used to classify frame or stream degradation | `RenderPipelineWatchdog` |
+| Fixture threshold | Acceptance value for one declared Windows hardware and emulator profile | Named milestone fixture |
+| Runtime adaptation trigger | Condition that may select recovery, transport adaptation, or resource adaptation | Existing preview/resource authority |
+| Product guarantee | General user-visible performance promise | Forbidden unless backed by named evidence and a declared hardware/profile scope |
+
+The baseline `maxFrameRate`, ring depth, `DROP_OLDEST` policy, stale interval, and transport upgrade ceiling are transport configuration and diagnostic inputs. They are not universal product guarantees.
+
+A fixture-specific performance result is valid only for the declared Windows hardware profile, emulator profile, system image, toolchain lock, transport version, policy version, and source revision. It MUST NOT be generalized to all supported Windows machines or Android projects.
+
+Changing a transport default MUST NOT change preview identity, evidence, promotion, completion, or stale-event semantics.
+
 `CONTRACT.RUNTIME.PREVIEW_SYNC` requires the selected `AndroidTechnologyPlan` to resolve through exactly one registered `AndroidTechnologyAdapter` (technical architecture §73.10). The `AndroidTechnologyAdapter` resolves execution authorities; it does not constitute an additional execution authority. Each concrete preview operation has exactly one execution surface: `AndroidBuildAdapter` for build and artifact operations, or `AndroidDeviceAdapter` for device and runtime operations. The technology adapter only exposes selection, composition, validation, planning, and failure-classification operations; it never executes concrete build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work.
 
-Preview performance MUST be evidence-driven. Nirman MUST distinguish functional preview truth from transport/presentation health. A degraded frame path may continue displaying the last-known-good frame, but it MUST NOT be represented as a newly observed current frame.
-
-The runtime SHOULD measure frame latency, dropped-frame delta, sequence gaps, frozen/blank detection, and presentation-surface health. These measurements may drive deterministic recovery or adaptive transport decisions and never completion decisions.
-
-Every preview operation that performs build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work MUST carry the `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` on the emitted `PreviewSyncEvent` and on the corresponding `PreviewSyncEvidenceRecord`. Lifecycle, policy, evidence, preview, artifact, recovery, promotion, and completion decisions remain with the existing specialized authorities. The deterministic preview-mode resolver defined in technical architecture §73.11 is the sole normative selector for the `PreviewRevision.previewMode` field, including the `CONSERVATIVE_FULL_REINSTALL` refinement introduced in technical architecture §73.11; a model, worker, UI, or prompt MUST NOT select the preview mode directly.
+Every preview operation that performs build, install, launch, observation, screenshot, UI hierarchy, Logcat, validation, or failure-classification work MUST carry the `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` on the emitted `PreviewSyncEvent` and on the corresponding `PreviewSyncEvidenceRecord`. Lifecycle, policy, evidence, preview, artifact, recovery, promotion, and completion decisions remain with the existing specialized authorities. The deterministic preview-mode resolver defined in technical architecture §73.11 is the sole normative selector for the `PreviewRevision.previewMode` field, including the `CONSERVATIVE_FULL_REINSTALL` refinement introduced in technical architecture §73.11; a model, worker, UI, or prompt MUST NOT select the preview mode directly. Preview performance is not preview truth; its canonical owner is this contract's §71.1, and the distinction between transport defaults, diagnostic thresholds, fixture thresholds, and product guarantees is owned by §71.0.1.
 
 ### 71.1 Canonical synchronization schemas
 
@@ -4931,6 +4945,39 @@ The `PreviewSyncEvent` fields identify the actual embedded rendering and interac
 > **Schema projection:** `PreviewProjectionReducer` is defined in `nirman-schemas.md` §1.39. Owner: BS §71.1.
 
 > **Schema projection:** `PreviewSyncEvidenceRecord` is defined in `nirman-schemas.md` §1.40. Owner: BS §71.1.
+
+#### Preview performance is not preview truth
+
+Frame transport and presentation measurements are diagnostic observations. They do not independently establish preview truth. This is the canonical statement of the rule; no other section restates it normatively.
+
+Frame-quality observations MAY describe:
+
+- capture latency;
+- transport latency;
+- render latency;
+- frame age;
+- dropped-frame deltas;
+- sequence gaps;
+- frozen-frame detection;
+- blank-surface detection;
+- system-surface detection; and
+- presentation-surface health.
+
+These observations MUST NOT independently:
+
+- promote a `PreviewRevision`;
+- mark a runtime as observed;
+- mark a preview as current;
+- satisfy a behavioral acceptance condition;
+- promote a capability;
+- promote an artifact; and
+- mark a task complete.
+
+Preview truth is derived only from compatible, ordered `PreviewSyncEvent` records reduced by `PreviewProjectionReducer` and admitted by the existing preview, evidence, validation, promotion, and completion authorities.
+
+A degraded frame path MAY continue displaying the last-known-good frame, but the display MUST carry an explicit `STALE` or degraded presentation status and MUST NOT be represented as a newly observed current frame.
+
+A frame-quality measurement MAY trigger deterministic recovery, diagnostic classification, transport adaptation, or physical-resource adaptation. It MUST NOT bypass policy, evidence, identity, revision, or promotion gates (BS §72).
 
 `PreviewSyncEvent` is the only event shape that can update the preview projection. A worker result, model message, terminal output, raw device callback, or UI action must first be normalized into this schema or remain informational. A live emulator frame is not an event: frames reach PreviewHost as volatile `FrameNotice` display messages (technical architecture §10.7) that are never appended to the durable event log or replayed, and `PreviewSyncEvent`s mark only stream-state transitions (`STREAM_RECONNECTED`, `STREAM_GAP`) and evidence captures (`OBSERVATION_CAPTURED`). A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED` and the frame's stamp binds the projection's candidate revision, device, and artifact. `PreviewProjectionReducer` is the only component that derives the panel’s preview state from durable events. `PreviewSyncEvidenceRecord` proves which event range and identity produced a displayed stage; it is not a substitute for the underlying device, process, visual, test, artifact, or promotion evidence.
 
@@ -5051,6 +5098,39 @@ Liveness protection is part of resource integrity and is mandatory (ADR-226). Ev
 ### 72.1 Acceptance criteria
 
 A fixture (`TEST-RESOURCE-001` yielding `EV-RESOURCE-001`) must prove physical admission against declared `resourceRequirements`, adaptive concurrency under CPU and memory pressure, backpressure and queueing when workers exceed admissible capacity, cache and resource reclamation before any blocking outcome, process and emulator protection, liveness containment of a hung operation without terminating the healthy goal, checkpoint preservation across a `BLOCKED_NO_SAFE_PATH` outcome, recovery and resumption when capacity returns, and the absence of AI-usage authority: a fixture task consuming arbitrarily many tokens, provider requests, reasoning passes, and hours continues unaffected while physical capacity and progress remain.
+
+### 72.2 Performance adaptation boundary
+
+Performance adaptation MAY:
+
+- reduce or increase concurrency within existing policy ceilings;
+- reorder validation when dependency and evidence rules permit;
+- select an already-admitted preview transport;
+- select an already-approved provider or model based on capability and health;
+- compact or retrieve context under `ContextGovernance`;
+- defer optional work;
+- preserve reserved recovery and validation capacity;
+- change recovery ordering; and
+- choose a materially different recovery strategy.
+
+Performance adaptation MUST NOT:
+
+- bypass `PolicyAuthority`;
+- bypass `ToolBroker`;
+- bypass `ConstructionTransactionManager`;
+- bypass `EvidenceAuthority`;
+- promote a preview or artifact;
+- weaken a required validation gate;
+- widen a permission ceiling;
+- change the generated target;
+- change signing policy;
+- create an AI token, request, monetary, reasoning, pass-count, or autonomous-duration budget;
+- terminate a healthy goal solely because of usage telemetry; or
+- treat a cached, predicted, simulated, stale, or invalidated observation as current verified evidence.
+
+This boundary restates no existing clause and creates no new authority: policy, tool, transaction, evidence,
+preview, artifact, signing, and completion authority remain with the owners named above, and preview truth remains
+owned by §71.1.
 
 ## 73. Agent Trust Boundary Authority
 

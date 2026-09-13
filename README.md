@@ -90,6 +90,13 @@ An earlier working tree held a pre-migration prototype built on React, Vite, Typ
 
 Every row that says "specified" means exactly that: a contract exists and is machine-checkable in principle. It does not mean code exists, compiles, or has been observed to run.
 
+### Documentation-hardening status
+
+The Windows Android-emulator rendering contract and the Rust control-plane performance-intelligence contract are being strengthened before implementation. The current documentation defines the intended behavior, authority boundaries, schemas, evidence lineage, recovery rules, performance measurements, and milestone fixtures. It does not mean that the WinUI 3 renderer, Android emulator transport, Rust supervisor, scheduler, worker runtime, or performance fixtures exist or have executed.
+
+Until executable source and applicable fixtures produce evidence, these capabilities remain `PLANNED` or environment-qualified according to the canonical capability-status rules (build spec §5.6–§5.7, AGENTS.md §15). This section is explanatory only: it creates no contract, grants no authority, and certifies nothing.
+
+
 ## Intended user experience
 
 The user should be able to describe an application once and allow Nirman to work continuously in the background. The expected path is:

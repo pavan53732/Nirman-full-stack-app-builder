@@ -3773,13 +3773,13 @@ RenderTransport
 - state: OPENING | STREAMING | IDLE | LOST | CLOSED
 - lastFrameSequence
 - lastFrameAt
-- frameNotice
+- frameNotice: volatile FrameNotice projection; not durable event state
   - frameNoticeId
   - previewSurfaceId
   - ringSlot
   - frameStamp
   - droppedFrameCount
-- frameStamp
+- frameStamp: volatile FrameStamp identity projection; not durable evidence
   - frameSequence
   - capturedAt
   - monotonicTimestamp
@@ -3801,6 +3801,8 @@ RenderTransport
 - createdAt
 - closedAt
 ```
+
+`frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; their field sets are owned by §2.111 (`FrameNotice`) and by the `FrameStamp` identity bound in §2.110 (`FrameQualityObservation.frameStampId`), and are restated here for transport readability only, not as independent definitions. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
 
 ### 2.91 ScreenModel
 
