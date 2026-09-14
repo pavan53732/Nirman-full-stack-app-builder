@@ -382,7 +382,7 @@ This order prevents the project from becoming a superficial chat interface that 
 
 ## License and project status
 
-No production license or release distribution is declared yet. This repository is an evolving internal specification and implementation workspace. Treat all capabilities as planned until the corresponding runtime source, executable tests, and evidence are present.
+The repository is licensed under the **Apache License 2.0** ([`LICENSE`](LICENSE); ADR-237) — you may build, modify, and redistribute per the license terms, satisfying Build Spec §1.5's source-access invariant. No production release distribution is declared yet. This repository is an evolving internal specification and implementation workspace. Treat all capabilities as planned until the corresponding runtime source, executable tests, and evidence are present.
 
 **No account, login, subscription, or license fee is required to use Nirman.** It is a local Windows desktop application you build from source (or obtain as a `.exe`). AI provider access (API keys, base URLs, model IDs) is supplied and paid for by you directly with your chosen provider; Nirman itself never charges, proxies, or requires a hosted platform. See Build Spec §1.5 and ADR-205 for the binding invariant.
 

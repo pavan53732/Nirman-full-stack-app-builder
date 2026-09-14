@@ -3241,3 +3241,20 @@ Performance degradation MUST be classified separately from functional correctnes
 
 ---
 
+## ADR-237: Adopt the Apache License 2.0 for the Nirman repository
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+
+**Decision:** The Nirman repository — specification corpus, documentation verifier and conformance harness, skills, tooling, and all future implementation source — is licensed under the Apache License 2.0. The canonical license text lives in the repository-root `LICENSE` file; its appendix notice names the copyright holder, pavan53732. The grant satisfies the build spec §1.5 source-access invariant: full source code is available and users may build, modify, and redistribute, including commercially, under the license terms. Apache-2.0 is a copyright license, not a usage restriction: it introduces no account, subscription, license fee, or hosted-platform dependency, so the ADR-205 invariants are untouched and remain binding.
+
+**Rationale:** Build spec §1.5 promises source access "per the eventual license" (ADR-205), but a public repository without a license file defaults to all-rights-reserved, contradicting the stated intent that users may build, modify, and redistribute. The decision was taken before implementation (M0) invites contribution. Apache-2.0 was selected over MIT for its explicit patent grant, trademark clause, and defined contribution terms — protections that matter for an AI-assisted development tool. Dual MIT OR Apache-2.0 licensing was considered and declined: it doubles the boilerplate every contributor and consumer must reason about for protection Apache-2.0 already provides alone.
+
+**Consequences:** The repository root carries a `LICENSE` file (not a Markdown document, so the ADR-220 ten-file root set is unaffected); the README's license section states the license as an explanatory pointer, and the build spec §1.5 "eventual license" clause is now fulfilled. No other canonical document changes; no contract, schema, capability, milestone, or capability status changes. The license covers the repository's current contents and, unless a superseding decision states otherwise, the implementation source that M0 and later milestones add. Externally provisioned components that Nirman downloads but never bundles, forks, or redistributes — the JDK, Android SDK components, the Google Android Emulator, system images, and Gradle (ADR-221) — and user-configured AI provider services keep their own licenses; nothing in this record licenses, sublicenses, or redistributes them.
+
+**Reversal trigger:** A legal, product, or compliance requirement incompatible with Apache-2.0's patent grant or contribution terms — for example, a decision to distribute a component that cannot accept the grant — recorded as a superseding ADR that names the replacement license and migrates the `LICENSE` file, the README section, and this record in one coherent change.
+
+**Locked surfaces:** BS §1.5.
+
+---
+
