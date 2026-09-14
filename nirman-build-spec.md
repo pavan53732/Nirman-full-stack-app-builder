@@ -3594,8 +3594,6 @@ The runtime provides a deterministic service that maps requirements to scenarios
 - Shows requirement-by-requirement completion status in evidence
 - Produces `ProofSynthesis` output: what is proven/unproven/blocked and why
 
-### 56.6 Acceptance criteria
-
 ### 56.x Testing-strength requirements
 
 Every completion-relevant E2EScenario MUST be evaluated across five dimensions:

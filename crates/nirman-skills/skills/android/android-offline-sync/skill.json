@@ -5,8 +5,8 @@
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
-    "Backend Worker",
-    "Frontend Worker"
+    "Backend & Service Engineering Worker",
+    "UI Worker"
   ],
   "triggerConditions": [
     "offline_sync_review",

@@ -3621,13 +3621,9 @@ The runtime provides a deterministic service that computes reachability and anal
 
 **Precedence:** Runtime intelligence, not authority - findings guide testing but cannot auto-complete requirements or auto-block tasks.
 
-> **Schema projection:** `ScreenGraphAnalysisRecord` is defined in `nirman-schemas.md` §2.99. Owner: TA §62.2.
-
 > **Schema projection:** `AndroidSemanticState` is defined in `nirman-schemas.md` §2.102. Owner: TA §62.2.
 
 > **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
-
-The runtime provides a deterministic service that computes reachability and analysis from the ScreenGraph.
 
 ### 62.3 Step and assertion schema
 
@@ -3683,11 +3679,11 @@ The runtime provides a deterministic service that evaluates technology plan qual
 
 **Precedence:** Runtime intelligence, not authority - findings guide planning but cannot auto-change technology plans.
 
-### 62.11 Architecture tests
+### 62.9 Architecture tests
 
 The engine is correct only when a data-persistence scenario detects an app that loses data on process death; when a flaky scenario is quarantined rather than reported as passing; and when every requirement's scenario link resolves in the ledger.
 
-### 62.12 Adapter-side resolution
+### 62.10 Adapter-side resolution
 
 Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test.
 

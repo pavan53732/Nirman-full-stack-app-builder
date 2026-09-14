@@ -6,7 +6,7 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Release Worker",
-    "Quality Worker"
+    "Test and QA Worker"
   ],
   "triggerConditions": [
     "installer_validation",

@@ -5,8 +5,8 @@
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
-    "Frontend Worker",
-    "Quality Worker"
+    "UI Worker",
+    "Test and QA Worker"
   ],
   "triggerConditions": [
     "form_validation_review",

@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "scope": "built_in",
   "compatibleWorkerRoles": [
-    "Frontend Worker",
+    "UI Worker",
     "Performance Worker"
   ],
   "triggerConditions": [
