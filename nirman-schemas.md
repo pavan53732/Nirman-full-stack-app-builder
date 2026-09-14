@@ -3278,10 +3278,22 @@ AndroidDeviceAdapter operations
   - params: packageId, durationMs
   - returns: processSurvived: bool, resumedActivity, screenshotRef
   - errors: DeviceBackgroundError
+- seedClock(isoTime: str) -> DeviceClockSeedResult
+  - params: isoTime: str (UTC instant the scenario clock starts from)
+  - returns: clockBasis, appliedAt, deviceStateFingerprint
+  - errors: DeviceClockError
+- advanceClock(durationMs: int) -> DeviceClockAdvanceResult
+  - params: durationMs: int (virtual milliseconds to advance)
+  - returns: advancedMs, alarmsFired: list, notificationsPosted: list, deviceStateFingerprint
+  - errors: DeviceClockError
 - waitFor(condition: WaitCondition, timeoutMs: int) -> DeviceWaitResult
-  - params: condition: WaitCondition (element present, element absent, text present, activity resumed, idle)
+  - params: condition: WaitCondition (element present, element absent, text present, activity resumed, idle, notification present)
   - returns: satisfied: bool, elapsedMs, screenModelId
   - errors: DeviceWaitTimeout
+- runInstrumentation(packageId: str, testPackageId: str) -> InstrumentationResult
+  - params: packageId: str, testPackageId: str
+  - returns: testsRun, testsPassed, testFailures: list, logcatRef
+  - errors: InstrumentationError
 - captureScreenshot() -> ScreenshotResult
   - params: none
   - returns: screenshotId, screenshotRef, capturedAt, deviceStateFingerprint
@@ -3302,6 +3314,10 @@ AndroidDeviceAdapter operations
   - params: none
   - returns: permissionStateId, permissions: list, capturedAt
   - errors: PermissionStateCollectionError
+- collectNotifications(packageId: str = "") -> NotificationCollectionResult
+  - params: packageId: str (default "" for all packages)
+  - returns: notificationId, notifications: list, capturedAt
+  - errors: NotificationCollectionError
 - reset() -> DeviceResetResult
   - params: none
   - returns: reset: bool, resetTimestamp

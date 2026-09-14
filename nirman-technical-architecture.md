@@ -3566,13 +3566,13 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | Component | Responsibility |
 |---|---|
 | ScenarioRegistry | Stores scenario definitions and requirement links |
-| ScenarioCompiler | Translates a scenario into instrumentation and ADB steps |
+| ScenarioCompiler | Lowers a scenario to `AndroidDeviceAdapter` operation sequences; ADB and instrumentation are adapter-internal execution, never emitted steps (§62.10) |
 | SeedDataProvisioner | Establishes preconditions through the app's own data layer |
 | ScenarioExecutor | Runs steps against an emulator session and records results |
 | StateProbe | Verifies persisted state after process death or restart |
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
 | ScreenGraphExplorer | Explores the installed application from the launcher into a `ScreenGraph` (ADR-225) |
-| ScenarioSynthesizer | Derives `E2EScenario` steps for acceptance criteria and the eight scenario classes of build spec §56.3 from the `ScreenGraph` |
+| ScenarioSynthesizer | Derives `E2EScenario` steps for acceptance criteria and the nine scenario classes of build spec §56.3 from the `ScreenGraph` |
 | StateSpaceCoverageEvaluator | Evaluates state-transition coverage across five dimensions (behavioral correctness, state-transition coverage, resilience correctness, regression safety, negative proof) |
 | MetamorphicVerifier | Executes invariant/metamorphic checks (persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent actions, repair-without-regression) |
 | FaultInjectionCoordinator | Orchestrates fault-injection scenarios (permission denial, process death, configuration change, network loss, UI/runtime faults, persistence faults) |
@@ -3629,13 +3629,13 @@ The runtime provides a deterministic service that computes reachability and anal
 
 > **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
 
-System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.4).
+System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.4). Alarm fire and notification delivery join the system-event set: `advanceClock` fires due alarms deterministically from the seeded basis, `collectNotifications` observes posted notifications, and `wait_for` accepts `notification present`; `StateProbe` executes `probe_state` steps against persisted state and posted notifications.
 
 ### 62.4 Determinism enforcement
 
 > **Schema projection:** `RequirementToImplementationGraph` is defined in `nirman-schemas.md` §2.104. Owner: TA §62.4.
 
-ScenarioExecutor must use explicit `wait_for` conditions and never fixed sleeps as synchronization. A scenario that passes and fails across repeated runs on the same revision and device must be marked `deterministic: false` and excluded from completion evidence until stabilized.
+ScenarioExecutor must use explicit `wait_for` conditions and never fixed sleeps as synchronization. A scenario that passes and fails across repeated runs on the same revision and device must be marked `deterministic: false` and excluded from completion evidence until stabilized. State changes produced by a seeded clock advance, including clock-rendered text, are expected transitions when the same seed and advance reproduce the same post-state; they MUST NOT be classified FLAKY.
 
 ### 62.5 Seed provenance
 
@@ -3643,7 +3643,7 @@ SeedDataProvisioner records how each precondition was established. Seeded state 
 
 ### 62.6 Persistence
 
-Scenario definitions, runs, step results, and evidence references are stored in the execution ledger and linked to requirement identifiers, enabling the traceability chain of build spec §66.3.
+Scenario definitions, runs, step results, and evidence references are stored in the execution ledger and linked to requirement identifiers, enabling the traceability chain of build spec §66.3. `ScenarioEvidenceWriter` performs these writes, binding time-bearing evidence to the run's clock basis.
 
 ### 62.7 Causal Surface Identification
 
@@ -3681,11 +3681,11 @@ The runtime provides a deterministic service that evaluates technology plan qual
 
 ### 62.9 Architecture tests
 
-The engine is correct only when a data-persistence scenario detects an app that loses data on process death; when a flaky scenario is quarantined rather than reported as passing; and when every requirement's scenario link resolves in the ledger.
+The engine is correct only when a data-persistence scenario detects an app that loses data on process death; when a flaky scenario is quarantined rather than reported as passing; when every requirement's scenario link resolves in the ledger; and when a scheduled-behavior scenario proves its clock basis with an observed delivery.
 
 ### 62.10 Adapter-side resolution
 
-Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test.
+Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test. The build spec §56.7 in-process bindings (Espresso, Compose UI Test) execute through `runInstrumentation`: the adapter runs the resolved binding on-device and returns typed per-test results as `Observation`s, so assertion evidence for Views and Compose compositions enters the chain without an out-of-band runner. ADB is adapter-internal transport; no component outside the adapter emits ADB steps.
 
 ## 63. Regression Localization Service
 
@@ -4689,7 +4689,7 @@ A resolver output is recorded as part of the `PreviewRequest` decision trace. Th
 
 ### 73.12 Android device adapter contract
 
-The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Every Nirman-managed local Android emulator implementation MUST satisfy this interface; the interface is an execution contract, not an authority.
+The device layer used by `PreviewCoordinator` for install, launch, interaction, screenshot, UI hierarchy, Logcat, crash, and permission observation is bound to a canonical `AndroidDeviceAdapter` interface. Every Nirman-managed local Android emulator implementation MUST satisfy this interface; the interface is an execution contract, not an authority. Clock, notification, and instrumentation execution are adapter operations like any other (SCHEMAS §2.68): virtual time advances only through `advanceClock` from a seeded basis, and no host wall-clock read is device evidence.
 
 > **Schema projection:** `AndroidDeviceAdapter` is defined in `nirman-schemas.md` §2.68. Owner: TA §73.12.
 

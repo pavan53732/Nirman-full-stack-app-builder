@@ -3555,10 +3555,11 @@ Scenarios are produced by the runtime, not awaited from a human. After the first
 | Permission flow | Grant and deny paths both handled |
 | Offline behavior | Network-absent path produces defined behavior |
 | Process death | System-initiated death and restore |
+| Scheduled behavior | Alarms fire at the seeded time; notifications are delivered and observed |
 
 ### 56.4 Data seeding
 
-Seed data must be created through the application's own data layer or an explicit test fixture, never by asserting state the app never produced. Seed provenance must be recorded so evidence cannot be confused with production behavior.
+Seed data must be created through the application's own data layer or an explicit test fixture, never by asserting state the app never produced. Seed provenance must be recorded so evidence cannot be confused with production behavior. The scenario clock is seeded state too: `SeedDataProvisioner` establishes the clock basis through `seedClock` and records it with seed provenance (technical architecture §62.5), so time-bearing evidence binds to a declared instant rather than the wall clock.
 
 ### 56.5 Evidence requirements
 
@@ -3574,7 +3575,8 @@ Each scenario run MUST produce:
 - emulator identity;
 - installed artifact identity;
 - source revision;
-- application-state fingerprint.
+- application-state fingerprint;
+- clock basis for time-bearing evidence: the seed instant plus advance offsets.
 
 A scenario without executable interaction results and assertion results is not behavioral evidence.
 
