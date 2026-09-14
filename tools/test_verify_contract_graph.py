@@ -6,8 +6,15 @@ Each case copies the ten root documents (ADR-220) to a temp dir, injects one
 mutation, and asserts the verifier exits 1 reporting the EXPECTED defect class.
 A case that passes proves the corresponding §67.11 check is not vacuous.
 
-Run: python3 tools/test_verify_contract_graph.py
+Cases run concurrently, one worker per available CPU by default; --jobs N
+overrides the worker count. Every case builds its own isolated fixture and
+subprocess, and results are reported in the original case order, so the
+report and every verdict are identical to a sequential run — only the wall
+time changes.
+
+Run: python3 tools/test_verify_contract_graph.py [--jobs N]
 """
+import concurrent.futures
 import json
 import os
 import re
@@ -15,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -1922,6 +1930,29 @@ def failed_checks(out):
     return hits
 
 
+def _parse_jobs(argv):
+    """Worker count for the mutation battery.
+
+    Default: one worker per available CPU. --jobs N overrides it. The count
+    changes only how fast the same cases run — never which cases run, their
+    order in the report, or their verdicts.
+    """
+    jobs = os.cpu_count() or 1
+    args = list(argv)
+    if "--jobs" in args:
+        i = args.index("--jobs")
+        if i + 1 >= len(args):
+            raise SystemExit("usage: test_verify_contract_graph.py [--jobs N]")
+        try:
+            jobs = int(args[i + 1])
+        except ValueError:
+            raise SystemExit("usage: test_verify_contract_graph.py [--jobs N]")
+        del args[i:i + 2]
+    if args:
+        raise SystemExit("usage: test_verify_contract_graph.py [--jobs N]")
+    return max(1, jobs)
+
+
 def main():
     results = []
 
@@ -1967,7 +1998,17 @@ def main():
 
     covered = set()
     skipped_count = 0
-    for label, case in CASES.items():
+
+    def _run_case(label, case):
+        """Execute one negative mutation case in its own isolated temp root.
+
+        Returns (ok, detail, covered_class): ok is None for a skip, False for
+        an invalid case (anchor missing), True when the verifier reports the
+        expected defect class; covered_class is the proven detection class,
+        None when nothing was proven. Thread-safe by construction — every
+        case builds its own fixture and subprocess and touches no shared
+        mutable state.
+        """
         if not isinstance(case, tuple) or len(case) not in (4, 5):
             raise AssertionError(f"bad case shape: {label!r} -> {case!r}")
         extra = ()
@@ -1978,24 +2019,18 @@ def main():
 
         # Skip command-payload-coverage cases when Rust source is absent.
         if expect == "command payload coverage" and not SOURCE_PRESENT:
-            results.append((f"negative: {label}", None,
-                            "SKIPPED — Rust source not present"))
-            skipped_count += 1
-            # Do NOT add to `covered`: a skipped negative test proves nothing.
-            continue
+            # Do NOT return a `covered` credit: a skipped negative test
+            # proves nothing.
+            return None, "SKIPPED — Rust source not present", None
 
         with tempfile.TemporaryDirectory(prefix="hermes-cg-") as tmp:
             _copy_fixture(tmp, extra)
             path = os.path.join(tmp, doc)
             if not os.path.exists(path):
-                results.append((f"negative: {label}", None,
-                                "SKIPPED — mutated file not present"))
-                skipped_count += 1
-                continue
+                return None, "SKIPPED — mutated file not present", None
             text = open(path, encoding="utf-8").read()
             if find not in text:
-                results.append((f"negative: {label}", False, "anchor missing -> test invalid"))
-                continue
+                return False, "anchor missing -> test invalid", None
             open(path, "w", encoding="utf-8").write(text.replace(find, repl, 1))
             # If the mutation targets a non-doc file in `extra`, apply the
             # same find/replace to that file's copy in the temp root.
@@ -2009,11 +2044,38 @@ def main():
                         ftext.replace(find, repl, 1))
             rc, out = run(tmp)
             hit = expect in failed_checks(out)
-            if hit:
-                covered.add(expect)
-            results.append((f"negative: {label}", rc == 1 and hit,
-                            "" if (rc == 1 and hit) else
-                            f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}"))
+            return (rc == 1 and hit,
+                    "" if (rc == 1 and hit) else
+                    f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}",
+                    expect if hit else None)
+
+    # The battery is subprocess-bound — each case runs the verifier as a fresh
+    # process — so a thread pool parallelises it without contending for the
+    # GIL. Cases are independent (isolated temp roots) and results are
+    # collected in the original case order, so the report and every verdict
+    # are identical to a sequential run; only the wall time changes. --jobs N
+    # overrides the default of one worker per CPU. The change is inside the
+    # harness, so both certification entry points (ADR-204) run the same gates
+    # in the same order and stay aligned.
+    jobs = _parse_jobs(sys.argv[1:])
+    workers = max(1, min(jobs, len(CASES)))
+    print(f"mutation battery: {len(CASES)} cases on {workers} worker(s)",
+          file=sys.stderr)
+    _t0 = time.monotonic()
+    ordered = list(CASES.items())
+    if workers > 1:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            outcomes = list(pool.map(lambda kv: _run_case(*kv), ordered))
+    else:
+        outcomes = [_run_case(label, case) for label, case in ordered]
+    for (label, _case), (ok, detail, cls) in zip(ordered, outcomes):
+        if ok is None:
+            skipped_count += 1
+        if cls:
+            covered.add(cls)
+        results.append((f"negative: {label}", ok, detail))
+    print(f"mutation battery: done in {time.monotonic() - _t0:.1f}s",
+          file=sys.stderr)
 
     # ---- ADR-220 document topology (synthetic fixtures). These rules read
     # documents the migration introduces one commit at a time, so each case
