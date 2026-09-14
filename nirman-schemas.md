@@ -3893,7 +3893,7 @@ ScreenGraph
   - action
   - targetIdentity
   - toScreenFingerprint
-  - observedResult: NAVIGATED | UNCHANGED | DIALOG | CRASHED | ANR | EXTERNAL_INTENT
+  - observedResult: NAVIGATED | UNCHANGED | DIALOG | CRASHED | ANR | EXTERNAL_INTENT | LAUNCHER_EXIT
   - interactionId
 - coveredRequirementIds
 - uncoveredRequirementIds
