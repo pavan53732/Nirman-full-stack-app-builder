@@ -3258,3 +3258,20 @@ Performance degradation MUST be classified separately from functional correctnes
 
 ---
 
+## ADR-238: English-only 1.0 user interface and the binding accessibility contract
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+
+**Decision:** The 1.0 Nirman user interface is authored in English only. Every user-facing string Nirman.exe itself renders — the §18 screen contracts, the Action Center cards of §4.6, notification surfaces, evidence and recovery presentation, and error messaging — is written once, in English, and is not localized, translated, or locale-switchable in the 1.0 release. Model-directed content is outside this decision: the user converses with the model in any language the provider serves, and generated applications keep whatever localization their own manifests declare. In exchange for deferring localization, accessibility is binding, not aspirational: the §13.1 accessibility contract — keyboard operability for every §18 screen and every Action Center card, UI Automation name, role, and state for every interactive control, screen-reader-completable chat, preview, evidence, and approval flows, the §13.1 contrast floor, Windows high-contrast theme support, reduced-motion support, always-visible focus, and no color-only status — MUST hold at the 1.0 exit gate, and no milestone acceptance trades it away. This record governs UI language and Nirman's own accessibility only; `CONTRACT.RUNTIME.LOCALIZATION` is the regression-localization contract of ADR-147 and keeps its meaning unchanged.
+
+**Rationale:** Localizing the 1.0 UI would multiply an unstable string surface — screens, policy-decision cards, evidence states, recovery language — across languages before any of it settles, and every accessibility repair would have to land once per language. A single authored English surface makes §13.1 testable and enforceable once. Deferring localization is reversible; deferring accessibility is not, because retrofitting keyboard operability and screen-reader semantics after the fact has failed reliably in comparable desktop products. The two decisions are therefore bound: localization waits, accessibility does not.
+
+**Consequences:** BS §13 gains a UI-language requirement row and the §13.1 accessibility contract, and its Accessibility row now points at §13.1 instead of restating a weaker summary; M1 work item 6 cites §13.1 so the shell is accessible from its first screens rather than retrofitted. Keyboard and screen-reader coverage become acceptance criteria that the 1.0 exit gate can fail on. No schema, contract identity, capability, or milestone status changes.
+
+**Reversal trigger:** A 1.x product decision to localize the user interface, recorded as a superseding ADR that names the launch languages, migrates every §18 screen contract and §13.1 clause to the localized-string model, and re-establishes the accessibility contract per language in the same change; or tooling evidence that a §13.1 clause is unachievable on the declared Windows platforms, which reverses this record together with §13.1.
+
+**Locked surfaces:** BS §13/§13.1; BS §4; BS §18; M1 milestone.
+
+---
+

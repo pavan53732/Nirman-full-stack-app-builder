@@ -106,7 +106,7 @@ M1 implements the user-facing Nirman.exe process. It is the visible desktop appl
 3. Add the main workspace layout with chat, file tree, editor, preview, tasks, and logs regions.
 4. Add project metadata storage without secrets.
 5. Add application-level error handling and restart messaging.
-6. Add keyboard navigation and accessible status indicators.
+6. Add keyboard navigation and accessible status indicators per the §13.1 accessibility contract (ADR-238).
 
 ### Exit gate
 

@@ -874,8 +874,20 @@ The user must be able to inspect installed tool versions, missing dependencies, 
 | Portability | Generated projects must remain usable outside Nirman |
 | Extensibility | New Android technology adapters and AI providers should be addable independently |
 | Recoverability | Users must be able to undo autonomous tasks |
-| Accessibility | Keyboard navigation, readable contrast, and visible status states are required |
+| Accessibility | Every 1.0 screen is fully keyboard-operable, exposes UI Automation name, role, and state, meets the §13.1 contrast floor, honors Windows high-contrast themes and reduced motion, and never signals state by color alone (§13.1, ADR-238) |
+| UI language | English is the sole authored UI language for the 1.0 release: screens, Action Center cards, notifications, and error messages are written once, in English, and are not localized; model-directed chat and generated project content are unaffected (ADR-238) |
 | Maintainability | Agent tools, provider adapters, internal Android bootstraps, and UI should have separate boundaries |
+
+### 13.1 Accessibility contract
+
+Accessibility is a functional requirement with the same standing as truth and safety: a screen that violates any clause below is a defect, not a degraded experience. This contract binds every screen contract of §18, the Action Center (§4.6), and every notification surface (M34), and it is part of the 1.0 exit gate (ADR-238).
+
+- **Keyboard operability.** Every action reachable by pointer MUST be reachable by keyboard alone, in a logical tab order, with documented shortcuts for chat input, the task list, the evidence view, and every Action Center card. A user MUST be able to complete a full autonomous cycle — open or create a project, converse, review a task, decide an Action Center card, inspect evidence, and export a delivery — without touching a pointer. Focus MUST NOT be trapped: ESC returns focus from any card, panel, or dialog to the invoking surface.
+- **UI Automation semantics.** Every interactive control MUST expose a UI Automation name, role, and state. State that matters to a decision — task state, export state (§78), recovery position (§55), or a gate's policy reason — MUST be exposed as an accessible property of the element displaying it, not only as visual styling.
+- **Screen-reader flows.** The four decision-critical flows MUST each be completable end to end with a screen reader: the chat stream announces new turns; the preview exposes its connection and freshness state; the evidence view traverses its chain (§37) in reading order; and every Action Center card reads its five fields — operation, policy reason, owning authority, consequence, and allow/ask/deny choices — as one coherent unit before its actions.
+- **Contrast floor.** Text and meaningful icons MUST meet at least a 4.5:1 contrast ratio against their actual background, and at least 3:1 for large text and graphical objects, in both light and dark themes. Windows high-contrast themes MUST be honored rather than overridden.
+- **Motion and focus.** The reduced-motion system setting MUST disable non-essential animation, including preview and status motion. Keyboard focus MUST be visibly indicated on every focusable element at all times; focus indication is never removed for visual cleanliness.
+- **No color-only status.** No state — success, failure, waiting, gated, or disconnected (§4.6) — is conveyed by color alone: every color-coded state MUST also carry a distinguishing text label, icon, or accessible property.
 
 ---
 
