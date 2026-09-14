@@ -33,3 +33,15 @@ __pycache__/
 # AI assistant work trees and configuration directories.
 .workbuddy/
 .workbuddy-ai/
+
+# Credential stores and other secret material that a local agent host may write inside the
+# working tree (git credential helpers, provider tokens, signing keystores). The agent
+# environment keeps its token at ~/.secrets/github-git-credentials, outside this repository,
+# and no remote URL in .git/config embeds a credential; this entry is the backstop that keeps
+# a stray copy from ever being staged onto main. Secrets never belong in provenance.
+.secrets/
+*token*
+*credentials*
+*.pem
+*.p12
+*.keystore
