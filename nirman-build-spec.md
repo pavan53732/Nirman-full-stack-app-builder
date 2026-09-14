@@ -1100,6 +1100,7 @@ The settings screen should group provider profiles, policy defaults, appearance 
 
 - Policy entries render summaries of canonical policy state; the screen never edits authority-owned rules directly (§67.7).
 - Accessibility options follow the non-functional requirements of §13.
+- A Check for updates action hands off to the Windows App Installer flow, and the application never checks, downloads, stages, or installs updates on its own; applying an update is an explicit user lifecycle command — sessions checkpoint, workers cancel cooperatively, the supervisor exits cleanly, and reopening resumes from durable state (ADR-239, §77).
 
 ### Notifications and background status
 
@@ -2916,6 +2917,7 @@ The following stack is the implementation baseline for Nirman. It does not chang
 | Android toolchain | JDK, Gradle, AGP, Android SDK, ADB, emulator, NDK/CMake when required |
 | JavaScript Android toolchain | Node and npm/pnpm/yarn, Metro, Expo/React Native only when selected |
 | Packaging | MSIX installer, with optional MSI packaging |
+| Update flow | User-initiated MSIX App Installer check from Settings; never automatic (ADR-239) |
 
 Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP, Android SDK, ADB, emulator, Node, Metro, Expo, native compilers, or Git.
 

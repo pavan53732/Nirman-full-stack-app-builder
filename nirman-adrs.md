@@ -3275,3 +3275,20 @@ Performance degradation MUST be classified separately from functional correctnes
 
 ---
 
+## ADR-239: User-initiated MSIX updates; the application never updates itself
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`
+
+**Decision:** Nirman ships as an MSIX package (BS §51.1), and update delivery is user-initiated only. The sole update path is a Check for updates action on the Settings screen (§18) that hands off to the Windows App Installer flow; the application never checks, downloads, stages, or installs updates on its own, and no background service, startup task, or scheduled trigger performs update work. Applying an update is an explicit user lifecycle command with the same standing as a user-initiated shutdown: active sessions checkpoint first, workers cancel cooperatively through the supervisor, the supervisor exits cleanly, and reopening the application resumes from durable state (§77). Nothing in this record changes the packaging decision itself: MSIX remains the packaging baseline of §51.1, and the optional MSI packaging path is unaffected.
+
+**Rationale:** An autonomous agent that modifies developer workspaces must never mutate its own executable without an explicit instruction. A self-updating agent undermines reproducibility — a task started on one binary would continue on another — risks breaking an in-flight autonomous cycle, and takes a decision that belongs to the owner, not the tool. Windows App Installer already provides the trusted, signed, user-consented flow for MSIX updates, so reusing it keeps Nirman out of the update-implementation business entirely. The lifecycle cost is real but bounded: updates happen when the owner says so, and the §77 background-continuity contract already guarantees that a checkpointed, cooperatively drained, cleanly exited session resumes on reopen.
+
+**Consequences:** BS §51.1 gains an Update flow row naming the user-initiated path and the never-automatic rule; the §18 Settings screen contract gains the Check for updates bullet; the §13.1 accessibility contract applies to the update surfaces like any other screen. No schema, contract identity, capability, or milestone status changes.
+
+**Reversal trigger:** A product decision to distribute outside MSIX, or tooling evidence that Windows App Installer cannot serve the declared update path on the supported Windows builds — recorded as a superseding ADR that names the replacement mechanism and restates, or deliberately changes, the never-automatic rule and the user-lifecycle-command semantics of applying an update.
+
+**Locked surfaces:** BS §51.1; BS §18; BS §77.
+
+---
+
