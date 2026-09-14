@@ -3152,7 +3152,7 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 
 **Decision:** Nirman will implement one canonical `ProofSynthesis` output that answers, before completion, what is proven, unproven, blocked, and eligible for completion.
 
-**Rationale:** ScreenGraph, Repository Graph, Requirement Coverage, and Evidence services collect data but don't represent a unified application state model or causal trace from requirement to implementation. These four components make Nirman's Android engineering intelligence complete.
+**Rationale:** ScreenGraph, Repository Graph, Requirement Coverage, and Evidence services collect data but don't represent a unified application state model or causal trace from requirement to implementation. These five components make Nirman's Android engineering intelligence complete.
 
 **Consequences:**
 
