@@ -41,3 +41,5 @@ The decision records themselves — ADR-001 through the current ceiling — live
 Every major change to the master specification, technical architecture, security model, or execution permissions should add or update a decision record. Rejected alternatives should remain documented when they explain an important trade-off.
 
 A decision should be reviewed when a milestone exposes a failed assumption, a security test fails, a new operating-system constraint appears, or the product scope changes materially.
+
+Testing-contract changes must be reviewed when a new failure class, false-positive completion mode, flaky behavior, evidence-integrity weakness, or regression gap is discovered.

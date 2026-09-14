@@ -3596,6 +3596,22 @@ The runtime provides a deterministic service that maps requirements to scenarios
 
 ### 56.6 Acceptance criteria
 
+### 56.x Testing-strength requirements
+
+Every completion-relevant E2EScenario MUST be evaluated across five dimensions:
+
+1. behavioral correctness — required actions produce the required observed states;
+2. state-transition coverage — required states and transitions are exercised;
+3. resilience correctness — declared faults are injected and recovery is observed;
+4. regression safety — repaired behavior and previously passing behavior are re-executed;
+5. negative proof — invalid, stale, contradictory, missing, or mismatched evidence MUST prevent completion.
+
+A passing happy-path scenario alone MUST NOT establish completion when the requirement has applicable state-transition, failure, persistence, permission, lifecycle, or recovery dimensions.
+
+A repaired failure MUST retain the original failing scenario identity and execute that same scenario again from its deterministic starting state before the repair can be considered validated.
+
+For applicable requirements, the runtime MUST derive and execute invariant or metamorphic checks, including persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent repeated actions, and repair-without-regression. A metamorphic relation passes only when both the source execution and transformed execution produce the declared invariant.
+
 Stateful verification is satisfied only when every functional requirement maps to at least one deterministic scenario, and when a requirement cannot be marked complete while its scenario is missing, skipped, or non-deterministic.
 
 A model claim, source inspection, successful compilation, static screenshot, or predicted UI state MUST NOT satisfy a behavioral acceptance condition when that condition is executable on the Android runtime.
@@ -3652,7 +3668,12 @@ Assertions that cannot fail are not evidence. For critical logic the runtime mus
 
 ### 57.6 Acceptance criteria
 
-Advanced verification is satisfied only when no mutation advances with an unresolved new diagnostic, when behavioral requirements have assertions authored before implementation, and when critical-logic assertion sets are proven non-vacuous.
+Advanced verification is satisfied only when no mutation advances with an unresolved new diagnostic, when behavioral requirements have assertions authored before implementation, when critical-logic assertion sets are proven non-vacuous, and when the verification gate enforces mandatory negative proof and differential regression:
+
+- Old passing scenarios rerun after repair;
+- Evidence from another revision/artifact/device is rejected;
+- Vacuous assertions are rejected;
+- Flaky outcomes become FLAKY, never PASS.
 
 ## 58. Adversarial Security and Supply-Chain Verification
 
@@ -6766,6 +6787,25 @@ Acceptance criteria:
   9. Dark theme is supported
   10. No expenses are uploaded to any external service
 ```
+
+### 80.6.9 Test-strength fixture extensions
+
+The fixture battery MUST include fault-injection and regression scenarios to satisfy §56.x testing-strength requirements:
+
+- seeded-state corruption
+- permission denial
+- process death
+- rotation
+- offline/online transition
+- one injected UI/runtime fault
+- one injected persistence fault
+- repair followed by same-scenario replay
+- regression execution of previously passing scenarios
+- intentionally invalid evidence proving completion is rejected
+
+The existing M80 fixture already injects dependency/provider/stale-worker/emulator/requirement/validation failures, so this is an extension, not duplication.
+
+---
 
 ### 80.7 Implementation sequencing within milestones
 

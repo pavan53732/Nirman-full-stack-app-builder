@@ -3293,3 +3293,29 @@ Performance degradation MUST be classified separately from functional correctnes
 
 ---
 
+## ADR-240: Evidence-strengthened autonomous Android verification
+
+**Status:** Accepted
+**Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Decision:** Nirman adopts the following evidence-strengthened verification contract:
+
+- Same-failing-scenario replay after repair is mandatory;
+- Differential regression (rerunning previously passing scenarios) is mandatory;
+- State-transition coverage across five dimensions (behavioral correctness, state-transition coverage, resilience correctness, regression safety, negative proof) is mandatory;
+- Metamorphic/invariant verification (persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent actions, repair-without-regression) is mandatory;
+- Deterministic/flaky classification of scenario runs is mandatory;
+- Negative proof (invalid/stale/contradictory/missing/mismatched evidence must prevent completion) is mandatory;
+- Fault-injection certification (permission denial, process death, configuration change, network loss, UI/runtime faults, persistence faults) is mandatory;
+- No completion from a single happy-path scenario when applicable dimensions exist.
+
+**Rationale:** The original E2E contract (§56) established stateful verification but allowed completion on a single happy-path scenario. This creates false-positive completion when requirements have state-transition, failure, persistence, permission, lifecycle, or recovery dimensions. The strengthened contract ensures that verification actually tests resilience, regression safety, and evidence integrity.
+
+**Consequences:** Build spec §56.x, §57.6, §80.6.9; technical architecture §62.1, §64.6; schemas §1.20, §2.103, §2.103.1. M80 fixture already injects dependency/provider/stale-worker/emulator/requirement/validation failures, so this extends rather than duplicates.
+
+**Reversal trigger:** A product decision to accept completion from single happy-path scenarios, or a demonstrated inability to execute the strengthened verification without unacceptable runtime overhead (requiring a superseding ADR that proposes an alternative strength-preserving strategy).
+
+**Locked surfaces:** BS §56.2, §56.x, §57.6, §80.6.9; TA §62.1, §64.6; SCHEMAS §1.20, §2.103, §2.103.1.
+
+---
+

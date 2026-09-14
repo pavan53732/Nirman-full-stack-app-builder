@@ -349,6 +349,8 @@ Release signing must bind artifact hash, application identity, version, certific
 
 Failures must be classified from real diagnostics and stable fingerprints. A recovery attempt should preserve the original failure, select a bounded strategy, include the actual diagnostic context, create a checkpoint or branch, apply the smallest authorized repair, run affected validation, and record whether the hypothesis was confirmed or refuted.
 
+A repair MUST NOT be reported as verified merely because a new validation passes. The original failing scenario MUST be retained and replayed from its deterministic starting state. Previously passing affected scenarios MUST be rerun. Any flaky, mismatched, stale, cross-revision, or unsupported evidence MUST remain non-completion evidence.
+
 Self-development mode may modify Nirman only in an isolated worktree or candidate workspace. The candidate must build, test, launch separately where applicable, pass compatibility and security checks, and produce evidence before promotion. Promotion, rollback, and capability status remain deterministic authority decisions. A candidate that fails validation is not promoted and must not corrupt the stable installation.
 
 Adaptive resource management may compact context, reduce concurrency, switch among approved models, retry transient operations, defer nonessential work, and preserve resources for validation/recovery. It cannot bypass sandboxing, permissions, evidence, signing, artifact, or completion gates. There are no arbitrary “pretend complete” time limits; exhaustion results in continuation, degradation, user-required state, or safe failure according to policy.

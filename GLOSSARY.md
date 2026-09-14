@@ -189,3 +189,15 @@
 **Milestone (`Mnn`)** — A contract-gated unit of the build plan with deliverables, tests, evidence, and exit gates; every milestone block lives in `nirman-milestones.md`. — `nirman-milestones.md`; ADR-220.
 
 **Test identity (`TEST-*`) / evidence identity (`EV-*`)** — The stable identifiers that tie a capability to the test that proves it and the evidence the test emits. — BS §5.7; BS §67.15.
+
+**Metamorphic verification** — A verification method that executes invariant checks (persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent actions, repair-without-regression) and requires both source and transformed executions to produce matching results. — BS §56.x.
+
+**Differential regression** — Rerunning previously passing scenarios after repair to detect regressions. — BS §57.6; TA §64.6.
+
+**Negative proof** — The requirement that invalid, stale, contradictory, missing, or mismatched evidence must prevent completion. — BS §56.x.
+
+**Determinism status** — Classification of scenario runs as DETERMINISTIC, FLAKY, or NONDETERMINISTIC based on repeated execution results. — TA §62.1, §62.4.
+
+**State-transition coverage** — Verification across five dimensions: behavioral correctness, state-transition coverage, resilience correctness, regression safety, and negative proof. — BS §56.x.
+
+**Same-scenario repair replay** — The mandatory requirement to retain and rerun the original failing scenario from its deterministic starting state after repair. — BS §56.x; ADR-240.

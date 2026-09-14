@@ -475,6 +475,16 @@ E2EScenario
 - teardown
 - devices
 - deterministic: true | false
+- coverageDimensions
+- applicableInvariants
+- metamorphicRelations
+- faultInjectionPlan
+- baselineScenarioRunId
+- failingScenarioRunId
+- repairedScenarioRunId
+- regressionScenarioRunIds
+- determinismStatus: DETERMINISTIC | FLAKY | NONDETERMINISTIC
+- evidenceValidity
 ```
 
 ### 1.21 DeviceMatrixEntry
@@ -4292,6 +4302,32 @@ StateSpaceCoverageModel
 - expansionRequired: boolean
 - expandedDimensions: list of { dimension, rationale }
 - capturedAt
+- transitionCoverageMatrix
+- uncoveredTransitions
+- riskWeight
+- requiredForCompletion
+- coverageEvidenceIds
+```
+
+### 2.103.1 ScenarioValidationMatrix
+
+**Owner:** TA §62.1 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+ScenarioValidationMatrix
+- matrixId
+- scenarioId
+- revision
+- baselineRunId
+- repairedRunId
+- regressionRunIds
+- faultRuns
+- invariantResults
+- metamorphicResults
+- negativeProofResults
+- determinismStatus
+- completionEligibility
+- evidenceIds
 ```
 
 ### 2.104 RequirementToImplementationGraph

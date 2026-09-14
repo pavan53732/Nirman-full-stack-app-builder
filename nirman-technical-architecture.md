@@ -3573,10 +3573,31 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
 | ScreenGraphExplorer | Explores the installed application from the launcher into a `ScreenGraph` (ADR-225) |
 | ScenarioSynthesizer | Derives `E2EScenario` steps for acceptance criteria and the eight scenario classes of build spec §56.3 from the `ScreenGraph` |
+| StateSpaceCoverageEvaluator | Evaluates state-transition coverage across five dimensions (behavioral correctness, state-transition coverage, resilience correctness, regression safety, negative proof) |
+| MetamorphicVerifier | Executes invariant/metamorphic checks (persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent actions, repair-without-regression) |
+| FaultInjectionCoordinator | Orchestrates fault-injection scenarios (permission denial, process death, configuration change, network loss, UI/runtime faults, persistence faults) |
+| DeterminismClassifier | Classifies scenario runs as DETERMINISTIC, FLAKY, or NONDETERMINISTIC based on repeated execution results |
+| DifferentialRegressionEvaluator | Reruns old passing scenarios after repair and detects regression patterns |
+| NegativeProofEvaluator | Validates that evidence is not invalid/stale/contradictory/missing/mismatched before completion |
 
 > **Schema projection:** `ScreenGraph` is defined in `nirman-schemas.md` §2.92. Owner: TA §62.1.
 
 > **Schema projection:** `StateSpaceCoverageModel` is defined in `nirman-schemas.md` §2.103. Owner: TA §62.1.
+
+All six components (StateSpaceCoverageEvaluator, MetamorphicVerifier, FaultInjectionCoordinator, DeterminismClassifier, DifferentialRegressionEvaluator, NegativeProofEvaluator) are subordinate components of CONTRACT.RUNTIME.E2E. They create no authority and no completion decision.
+
+Scenario execution pipeline:
+GoldenSnapshot
+→ deterministic install/seed
+→ baseline scenario execution
+→ state/transition coverage evaluation
+→ applicable fault injection
+→ recovery observation
+→ same failing scenario replay
+→ differential regression replay
+→ invariant/metamorphic verification
+→ negative-proof evaluation
+→ EvidenceLedger
 
 `ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` then maps each acceptance criterion and each required scenario class to a path in the graph and emits an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.3 exactly like authored ones.
 
@@ -3770,6 +3791,8 @@ For requirements marked critical, MutationProber must inject at least one fault 
 ### 64.6 Architecture tests
 
 Orchestration is correct only when a mutation introducing a compile error cannot advance; when an assertion authored after implementation is flagged `post_hoc`; when a vacuous assertion set for a critical requirement is rejected; and when every promoted artifact contains only verified mutations.
+
+A repair is not verified by the newly passing assertion alone. Verification MUST compare the repaired revision against the failing revision and last-known-good revision, rerun the original failing scenario, rerun affected previously passing scenarios, and reject completion when any regression or invalid evidence dependency is detected.
 
 ## 65. Android Emulator Scenario Coordinator
 
