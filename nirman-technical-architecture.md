@@ -3724,7 +3724,7 @@ Bisection must reuse checkpoints from the two-tier checkpoint architecture of §
 
 ### 63.3 Repair scoping
 
-The identified cause surface becomes the permitted repair scope. The mutation broker must reject a repair mutation outside that scope unless an authority records an explicit widening reason. This prevents broad regeneration from destroying validated work.
+The identified cause surface becomes the permitted repair scope. The mutation broker must reject a repair mutation outside that scope unless the planner records an explicit widening reason. `CauseRecorder` attaches the failure fingerprint shared with §51.1, so an identified cause enters `RepairPattern` lookup before model reasoning (ADR-225). An unlocalized regression escalates to the planner as a blocking input. This prevents broad regeneration from destroying validated work.
 
 ### 63.4 Failure signature schema
 
@@ -3770,7 +3770,7 @@ structured mutation applied
   -> mutation marked verified, dependent work unblocked
 ```
 
-A mutation that has not passed this sequence is `unverified` and cannot be cited as evidence, cannot pass the CommitBarrier of §60, and cannot be included in a promoted artifact.
+A mutation that has not passed this sequence is `unverified` and cannot be cited as evidence, cannot pass the CommitBarrier of §60, and cannot be included in a promoted artifact. Unit assertions execute on the host through `AndroidBuildAdapter` under the locked toolchain; scenario assertions execute through `ScenarioExecutor` (§62.1); every execution records a `VerificationRun`.
 
 ### 64.3 Assertion ordering enforcement
 
@@ -3784,11 +3784,17 @@ For requirements marked critical, MutationProber must inject at least one fault 
 
 > **Schema projection:** `VerificationRun` is defined in `nirman-schemas.md` §2.53. Owner: TA §64.5.
 
+The record carries the assertion's `authoredAtRevision` and `assertionTiming` (`pre` or `post_hoc`), so the completion authority can weight timing without re-deriving it.
+
 ### 64.6 Architecture tests
 
-Orchestration is correct only when a mutation introducing a compile error cannot advance; when an assertion authored after implementation is flagged `post_hoc`; when a vacuous assertion set for a critical requirement is rejected; and when every promoted artifact contains only verified mutations.
+Orchestration is correct only when a mutation introducing a compile error cannot advance; when an assertion authored after implementation is flagged `post_hoc`; when a vacuous assertion set for a critical requirement is rejected; when a property counterexample blocks the probed mutation; and when every promoted artifact contains only verified mutations.
 
 A repair is not verified by the newly passing assertion alone. Verification MUST compare the repaired revision against the failing revision and last-known-good revision, rerun the original failing scenario, rerun affected previously passing scenarios, and reject completion when any regression or invalid evidence dependency is detected.
+
+### 64.7 PropertyProber
+
+`PropertyProber` extracts the input domain from the recorded assertion, generates inputs within the declared bound under the recorded seed, and executes each through the §64.2 unit or scenario path. A counterexample is recorded with its failing input and seed as a `VerificationRun` with method `property_probe` (SCHEMAS §2.53), and the probed mutation does not advance until the property holds or the requirement is re-scoped. Generation is deterministic in the seed: the same seed and bound always yield the same input sequence.
 
 ## 65. Android Emulator Scenario Coordinator
 
@@ -3810,7 +3816,7 @@ Implements build spec §59. Extends §49 (Android Toolchain Authority and Enviro
 
 ### 65.2 Resolution and admission
 
-DeviceMatrixResolver must classify each declared entry as `available`, `unavailable`, or `user_required` before execution begins, using the toolchain authority of §49. The run proceeds only when the primary device is available. Unavailable secondary entries are recorded as declared coverage gaps, never as passes.
+DeviceMatrixResolver must classify each declared entry as `available`, `unavailable`, or `user_required` before execution begins, using the toolchain authority of §49. `user_required` covers firmware settings, licensed images, and consents; `unavailable` covers what the host cannot provide. The run proceeds only when the primary device is available. Execution order is primary first, then declared-matrix order; the same matrix and scenario set always yield the same order. Unavailable secondary entries are recorded as declared coverage gaps, never as passes.
 
 ### 65.3 Pool constraints
 
@@ -3820,15 +3826,15 @@ DevicePool must respect the resource reservations of the backpressure controller
 
 > **Schema projection:** `ScenarioDivergence` is defined in `nirman-schemas.md` §2.54. Owner: TA §65.4.
 
-Default classification is `defect`. Classification as `environment_limitation` requires cited evidence that the failure originates in the device or vendor rather than the application.
+Default classification is `defect`. Classification as `environment_limitation` requires cited evidence that the failure originates in the device or vendor rather than the application. A divergence record stays open until the scenario agrees on every profile: repair re-runs the full matrix, not only the failing profile.
 
 ### 65.5 Capability status mapping
 
-CoverageReporter maps results to the build spec §5.6 vocabulary: all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED`.
+CoverageReporter maps results to the build spec §5.6 vocabulary: all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED`. The per-scenario-per-profile report rows are the coverage record; a primary pass with skips elsewhere is partial coverage, never full.
 
 ### 65.6 Architecture tests
 
-Coordination is correct only when a missing secondary device produces a declared gap in the report; when a scenario passing on one API level and failing on another is recorded as a divergence defect; and when emulator boots serialize under constrained host capacity.
+Coordination is correct only when a missing secondary device produces a declared gap in the report; when a scenario passing on one API level and failing on another is recorded as a divergence defect; when emulator boots serialize under constrained host capacity; and when a primary-only pass reports `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` rather than `SUPPORTED`.
 
 ## 66. Runtime Directive Service
 

@@ -2944,6 +2944,8 @@ VerificationRun
 - evidenceRefs
 - durationMs
 - ranAtRevision
+- authoredAtRevision
+- assertionTiming: pre | post_hoc
 ```
 
 ### 2.54 ScenarioDivergence

@@ -3651,6 +3651,8 @@ For any requirement with observable behavior, the runtime must define the assert
 
 ### 57.4 Verification method matrix
 
+Performance measurement is owned by technical architecture §69.7 and screenshot comparison enters through the technical architecture §10.4 pipeline; the matrix records the methods, not the owners.
+
 | Method | Applies to | Evidence produced |
 |---|---|---|
 | Compiler diagnostics | Every mutation | Diagnostic set |
@@ -3674,6 +3676,10 @@ Advanced verification is satisfied only when no mutation advances with an unreso
 - Evidence from another revision/artifact/device is rejected;
 - Vacuous assertions are rejected;
 - Flaky outcomes become FLAKY, never PASS.
+
+### 57.7 Property probing inside the loop
+
+For requirements whose assertions carry input domains, the runtime must exercise the domain with seeded bounded generation. Any input that violates an asserted property is a counterexample: it is recorded with the failing input and the seed, and it is a defect, not noise. A property probe passes only when generation within the declared bound and seed yields no counterexample. The bound and seed are part of the verification record, so a passing probe replays exactly (technical architecture §62.4).
 
 ## 58. Adversarial Security and Supply-Chain Verification
 
@@ -3738,7 +3744,7 @@ An Android application that works on one emulator profile is not fully verified.
 
 > **Schema projection:** `DeviceMatrixEntry` is defined in `nirman-schemas.md` §1.21. Owner: BS §59.2.
 
-The primary emulator profile must be available for a run to proceed. Unavailable secondary emulator profiles produce a declared coverage gap, not a silent pass.
+The primary emulator profile must be available for a run to proceed. Unavailable secondary emulator profiles produce a declared coverage gap, not a silent pass. Entries classify as `available`, `unavailable`, or `user_required`: `user_required` means runnable only after a user-side action the runtime cannot take itself.
 
 ### 59.3 Scenario distribution
 
@@ -3842,7 +3848,7 @@ The runtime must attempt localization in increasing cost order: first the impact
 
 ### 62.4 Repair constraint
 
-Repair must target the identified cause. When localization fails to identify a cause, the runtime must record an unlocalized regression and escalate rather than rewriting unrelated code. Rewriting code outside the identified cause surface is prohibited without a recorded reason.
+Repair must target the identified cause. When localization fails to identify a cause, the runtime must record an unlocalized regression and escalate to the planner rather than rewriting unrelated code. Rewriting code outside the identified cause surface is prohibited without a recorded reason.
 
 ### 62.5 Failure signature learning
 
