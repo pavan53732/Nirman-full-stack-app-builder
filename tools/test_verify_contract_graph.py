@@ -1011,10 +1011,10 @@ CASES = {
         BS, "and from M7 onward `Nirman.exe` and `NirmanSupervisor.exe` MUST be distinct processes.",
         "and the two executables are separated when convenient.",
         "semantic documentation"),
-    "AGENTS.md presents the absent verify.sh entry point as present": (
-        "AGENTS.md", "do not exist yet in this documentation-only repository", "are the standard gate",
-        "semantic documentation",
-        (("AGENTS.md", os.path.join(REPO, "AGENTS.md")),)),
+    "AGENTS.md describes a present certification entry point as absent": (
+        "AGENTS.md", "are present in the working tree (development plan M0",
+        "are an M0 deliverable and do not exist yet in this documentation-only repository (development plan M0",
+        "semantic documentation"),
     "capacity verdict regains an unqualified time exhaustion value": (
         SCHEMAS, "- capacityVerdict: fits | exceeds_declared_time_bound | exceeds_memory | exceeds_disk |",
         "- capacityVerdict: fits | exceeds_time | exceeds_memory | exceeds_disk |",
@@ -1878,6 +1878,11 @@ def _copy_fixture(tmp, files):
     into the temp root, preserving relative paths. The verifier's
     `os.path.join(repo_root, rel_path)` lookups resolve correctly.
 
+    The local certification entry points (tools/verify.sh|.ps1, ADR-204) are
+    copied as well when present, so a clean fixture mirrors the working tree
+    the entry-point status rule observes and certifies exactly as the
+    repository does.
+
     Missing source files are silently skipped so the harness can run in a
     specification-only working tree where crates/ source has been removed.
     """
@@ -1886,6 +1891,12 @@ def _copy_fixture(tmp, files):
     for d in ADR220_DOCS:
         if os.path.exists(os.path.join(REPO, d)):
             shutil.copy2(os.path.join(REPO, d), os.path.join(tmp, d))
+    for relpath in ("tools/verify.sh", "tools/verify.ps1"):
+        src = os.path.join(REPO, relpath)
+        if os.path.exists(src):
+            dst = os.path.join(tmp, relpath)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
     for relpath, abspath in files:
         if not os.path.exists(abspath):
             continue
@@ -2097,6 +2108,12 @@ def main():
 
     _topology_case("an eleventh root Markdown file", lambda tmp: _rw(tmp, "NOTES.md", lambda _t: "# scratch\n"))
     _topology_case("a root document is missing from the ten", lambda tmp: os.remove(os.path.join(tmp, GLOSSARY)))
+    # Forward direction of the entry-point status rule: AGENTS.md (truthful,
+    # no absence disclaimer) instructs running tools/verify.sh, and the
+    # fixture's working tree no longer contains it.
+    _topology_case("AGENTS.md instructs a certification entry point the working tree lacks",
+                   lambda tmp: os.remove(os.path.join(tmp, "tools/verify.sh")),
+                   expect="semantic documentation")
     _topology_case("GLOSSARY.md cites a Build Spec section that does not exist",
                    lambda tmp: _rw(tmp, GLOSSARY, lambda t: t.replace("— BS §5; ADR-180.", "— BS §5.99; ADR-180.", 1)),
                    expect="semantic documentation")

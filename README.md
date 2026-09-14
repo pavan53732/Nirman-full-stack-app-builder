@@ -345,7 +345,7 @@ Host environment, target platform, validation platform, and certification status
 
 ### Paths referenced by the specification but not yet present
 
-The canonical documents describe a repository layout that implementation will create. The runtime code does not exist yet: `Cargo.toml`, `crates/` beyond the skill instruction bodies, `apps/desktop/`, `tests/`, `fixtures/`, and `config/`. The documentation verifier and test harness are present in `tools/` (`verify_contract_graph.py` and `test_verify_contract_graph.py`). Other runtime paths are design targets, not current contents.
+The canonical documents describe a repository layout that implementation will create. The runtime code does not exist yet: `Cargo.toml`, `crates/` beyond the skill instruction bodies, `apps/desktop/`, `tests/`, `fixtures/`, and `config/`. The documentation verifier, its mutation harness, and the local certification entry points are present in `tools/` (`verify_contract_graph.py`, `test_verify_contract_graph.py`, `verify.sh`, and `verify.ps1`). Other runtime paths are design targets, not current contents.
 
 ## Verification
 

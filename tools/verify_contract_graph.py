@@ -1518,17 +1518,25 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "The in-process allowance ends at M7" not in adr_blocks(dec).get(111, ""):
         D.add("semantic documentation", "in-process hosting bound",
               "ADR-111 must state that the in-process allowance ends at M7")
-    # AGENTS.md may not instruct agents to run a certification entry point that
-    # the working tree does not contain (tools/verify.sh|.ps1 are M0 deliverables).
+    # AGENTS.md's certification entry-point status must match the working tree
+    # in both directions (ADR-204; development plan M0 "Local certification
+    # pipeline"): it may not instruct agents to run an entry point the tree
+    # does not contain, and it may not describe a present entry point as absent.
     agents_path = os.path.join(root, "AGENTS.md")
     if os.path.exists(agents_path):
         agents = open(agents_path, encoding="utf-8").read()
         for entry in ("tools/verify.sh", "tools/verify.ps1"):
-            if entry in agents and not os.path.exists(os.path.join(root, entry)) \
+            present = os.path.exists(os.path.join(root, entry))
+            if entry in agents and not present \
                     and "do not exist yet in this documentation-only repository" not in agents:
                 D.add("semantic documentation", "certification entry point",
                       f"AGENTS.md instructs running `{entry}`, which is absent from the working tree, without "
                       "stating that it is an M0 deliverable and naming the present gate (verify_contract_graph.py + harness)")
+            if entry in agents and present \
+                    and "do not exist yet in this documentation-only repository" in agents:
+                D.add("semantic documentation", "certification entry point",
+                      f"AGENTS.md states that `{entry}` does not exist, but it is present in the working tree: "
+                      "the status claim is stale and must describe the present entry point and its gate status")
     # A capacity verdict on time exists only for a user-declared bound and must
     # say so next to the enum (TA §69.3); README may not describe a count stop.
     if "exceeds_declared_time_bound" in ta and \
