@@ -93,7 +93,7 @@ lost state, duplicated work, or work running after its scope ended.
   an identical case is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `LifecycleResult` (§23 SkillPackage contract):
+Emits `LifecycleResult` from `LifecycleRequest` (§23 SkillPackage contract):
 
 - stateClassification: survives, transient, or relocated per piece of state
 - casesExercised: rotation, resize, backgrounding, process death

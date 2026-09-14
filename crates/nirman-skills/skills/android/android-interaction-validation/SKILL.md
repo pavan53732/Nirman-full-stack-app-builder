@@ -91,7 +91,7 @@ the state the scenario requires.
   resume condition named.
 
 ## Output contract
-Emits `InteractionValidationResult` (§23 SkillPackage contract):
+Emits `InteractionValidationResult` from `InteractionValidationRequest` (§23 SkillPackage contract):
 
 - stepsExecuted: integer, with per-step outcome
 - assertions: expected value, observed value, and result for each

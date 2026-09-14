@@ -85,7 +85,7 @@ health must be proven before the preview is relied on.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `PreviewRenderingResult` (§23 SkillPackage contract):
+Emits `PreviewRenderingResult` from `PreviewRenderingRequest` (§23 SkillPackage contract):
 
 - streamHealth: frame timestamps, advancing or stalled
 - staleness: age of the newest frame against the bound

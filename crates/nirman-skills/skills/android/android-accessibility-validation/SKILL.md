@@ -88,7 +88,7 @@ acceptance evidence.
   change is reverted before the next criterion.
 
 ## Output contract
-Emits `AccessibilityValidationResult` (§23 SkillPackage contract):
+Emits `AccessibilityValidationResult` from `AccessibilityValidationRequest` (§23 SkillPackage contract):
 
 - criteriaEvaluated: criteria in scope, each with a result
 - perElement: identity, label, measured target, and contrast where measured

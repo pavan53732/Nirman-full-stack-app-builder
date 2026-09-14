@@ -85,7 +85,7 @@ something outside its grant.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `SandboxResult` (§23 SkillPackage contract):
+Emits `SandboxResult` from `SandboxRequest` (§23 SkillPackage contract):
 
 - observedView: identity, visible roots, handles
 - denialsObserved: each refused access and the error surfaced

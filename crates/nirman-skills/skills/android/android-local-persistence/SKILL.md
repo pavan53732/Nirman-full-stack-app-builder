@@ -82,7 +82,7 @@ without bound on device.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `PersistenceResult` (§23 SkillPackage contract):
+Emits `PersistenceResult` from `PersistenceRequest` (§23 SkillPackage contract):
 
 - storeSelection: per data shape, with reasons
 - transactions: boundaries and partial-write outcome

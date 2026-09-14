@@ -4526,3 +4526,19 @@ FrameNotice
 - droppedFrameCount
 ```
 **Identity binding:** `FrameQualityObservation.frameSequence` MUST equal `FrameStamp.frameSequence`. `FrameQualityObservation.frameStampId` MUST reference the active frame stamp. Without both identity bindings, a quality detector could certify an old frame.
+### 2.112 BuildGateRecord
+
+**Owner:** TA §84.1 · **Contract:** — · **Projected at:** —
+
+```text
+BuildGateRecord
+- gate_id
+- stage: compile | target_build | bundle | artifact_inspection | install | launch | runtime_validation | platform_specific_validation | recovery_validation | certification
+- platform
+- environment_id
+- revision
+- command_or_operation_ref
+- evidence_ids
+- result: VERIFIED | UNVERIFIED | UNAVAILABLE | USER_REQUIRED | FAILED
+- recorded_at
+```

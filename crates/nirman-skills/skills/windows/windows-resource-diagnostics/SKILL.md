@@ -83,7 +83,7 @@ session and the attributing process must be named.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ResourceDiagnosticsResult` (§23 SkillPackage contract):
+Emits `ResourceDiagnosticsResult` from `ResourceDiagnosticsRequest` (§23 SkillPackage contract):
 
 - baseline: CPU, memory, and disk at reference level
 - attribution: per-process figures across the stated window

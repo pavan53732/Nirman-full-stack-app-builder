@@ -90,7 +90,7 @@ under load.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `IpcValidationResult` (§23 SkillPackage contract):
+Emits `IpcValidationResult` from `IpcValidationRequest` (§23 SkillPackage contract):
 
 - connection: pipe, binder, security descriptor, negotiated version
 - messagesVerified: count, with framing results

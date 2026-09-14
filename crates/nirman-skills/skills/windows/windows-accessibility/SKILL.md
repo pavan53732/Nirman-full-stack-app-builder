@@ -83,7 +83,7 @@ a task with assistive technology.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `AccessibilityResult` (§23 SkillPackage contract):
+Emits `AccessibilityResult` from `AccessibilityRequest` (§23 SkillPackage contract):
 
 - keyboardReachability: per control, with unreachable ones named
 - focusOrder: observed order and visibility

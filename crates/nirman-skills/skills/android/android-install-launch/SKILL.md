@@ -95,7 +95,7 @@ install and a verified launch.
   blocked node names its resume condition.
 
 ## Output contract
-Emits `InstallLaunchResult` (§23 SkillPackage contract):
+Emits `InstallLaunchResult` from `InstallLaunchRequest` (§23 SkillPackage contract):
 
 - installed: boolean, with package identifier and version code
 - launched: boolean, with process identifier and cold or warm label

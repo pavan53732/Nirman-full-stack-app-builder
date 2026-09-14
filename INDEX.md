@@ -430,6 +430,7 @@
 | `AndroidRuntimeObservation` | §2.109 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameQualityObservation` | §2.110 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameNotice` | §2.111 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
+| `BuildGateRecord` | §2.112 | TA §84.1 | — | — |
 
 ## 4. Milestone → section
 

@@ -84,7 +84,7 @@ or provider and local records disagree.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `PaymentResult` (§23 SkillPackage contract):
+Emits `PaymentResult` from `PaymentRequest` (§23 SkillPackage contract):
 
 - capabilities: method and currency support from the provider contract
 - idempotency: retried-charge outcome

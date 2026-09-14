@@ -95,7 +95,7 @@ intermittent, or absent.
   capture is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `NetworkDiagnosticsResult` (§23 SkillPackage contract):
+Emits `NetworkDiagnosticsResult` from `NetworkDiagnosticsRequest` (§23 SkillPackage contract):
 
 - interactions: request, response, timing, and outcome per call
 - failureLayer: DNS, connection, TLS, status, or parsing

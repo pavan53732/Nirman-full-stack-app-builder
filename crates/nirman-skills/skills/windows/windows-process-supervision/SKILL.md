@@ -86,7 +86,7 @@ duplicated, restarting repeatedly, or outliving its owner.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `SupervisionResult` (§23 SkillPackage contract):
+Emits `SupervisionResult` from `SupervisionRequest` (§23 SkillPackage contract):
 
 - expectedInventory and observedInventory, with discrepancies named
 - restarts: attempts, recorded reasons, and outcomes

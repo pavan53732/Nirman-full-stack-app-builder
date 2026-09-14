@@ -86,7 +86,7 @@ condition.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `NavigationResult` (§23 SkillPackage contract):
+Emits `NavigationResult` from `NavigationRequest` (§23 SkillPackage contract):
 
 - routes: inventory with parameter types and external reachability
 - deepLinks: cold-start resolution per destination

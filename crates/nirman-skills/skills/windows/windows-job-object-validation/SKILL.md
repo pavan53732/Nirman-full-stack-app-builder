@@ -87,7 +87,7 @@ job it was assigned to.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `JobObjectResult` (§23 SkillPackage contract):
+Emits `JobObjectResult` from `JobObjectRequest` (§23 SkillPackage contract):
 
 - limitsConfigured: limit, value, and source, read from the job object
 - containment: processes inside, and any outside that belong inside

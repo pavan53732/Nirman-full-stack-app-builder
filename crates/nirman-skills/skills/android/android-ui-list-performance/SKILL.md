@@ -84,7 +84,7 @@ grows as the user scrolls.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ListPerformanceResult` (§23 SkillPackage contract):
+Emits `ListPerformanceResult` from `ListPerformanceRequest` (§23 SkillPackage contract):
 
 - baselineFrameTimes: measured over the stated list and scroll
 - recycling: views held against records

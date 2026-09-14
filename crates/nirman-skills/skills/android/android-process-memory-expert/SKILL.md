@@ -94,7 +94,7 @@ memory budget a screen must stay within.
   measurement is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `MemoryHealthResult` (§23 SkillPackage contract):
+Emits `MemoryHealthResult` from `MemoryHealthRequest` (§23 SkillPackage contract):
 
 - baselineHeapKb and perCycleHeapKb: the measured series
 - growthClass: LEAK, CACHE_WITHIN_BOUND, or NOISE

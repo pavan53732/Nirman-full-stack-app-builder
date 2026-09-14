@@ -84,7 +84,7 @@ publisher identity shown at install does not match what was expected.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `SigningResult` (§23 SkillPackage contract):
+Emits `SigningResult` from `SigningRequest` (§23 SkillPackage contract):
 
 - inventory: each shipped binary and its signing outcome
 - chainVerification: root, purpose, and chain integrity per signature

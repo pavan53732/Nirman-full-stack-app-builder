@@ -85,7 +85,7 @@ classified, and recovered from rather than leaving the system in an unknown stat
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `CrashRecoveryResult` (§23 SkillPackage contract):
+Emits `CrashRecoveryResult` from `CrashRecoveryRequest` (§23 SkillPackage contract):
 
 - crashRecord: process, exit state, reason, classification
 - dumpArtifact: reference, location, retention rule

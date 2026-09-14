@@ -85,7 +85,7 @@ in a way that points at the contract rather than at the call site.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ApiDesignResult` (§23 SkillPackage contract):
+Emits `ApiDesignResult` from `ApiDesignRequest` (§23 SkillPackage contract):
 
 - resourcesAndMethods: inventory with semantic findings
 - versioning: per-change determination

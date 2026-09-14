@@ -93,7 +93,7 @@ acceptance evidence.
   configurations is void.
 
 ## Output contract
-Emits `VisualValidationResult` (§23 SkillPackage contract):
+Emits `VisualValidationResult` from `VisualValidationRequest` (§23 SkillPackage contract):
 
 - captured: boolean, with screenshot artifact reference
 - compared: boolean, with golden image identity and configuration

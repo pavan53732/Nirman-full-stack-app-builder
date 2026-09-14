@@ -84,7 +84,7 @@ back, that data survives, and that the rollback itself works.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `UpdateRecoveryResult` (§23 SkillPackage contract):
+Emits `UpdateRecoveryResult` from `UpdateRecoveryRequest` (§23 SkillPackage contract):
 
 - knownGoodVersion: version and package availability
 - failureStage: download, staging, install, or first launch

@@ -82,7 +82,7 @@ state and the cause is in how state is held rather than in how it is rendered.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `StateManagementResult` (§23 SkillPackage contract):
+Emits `StateManagementResult` from `StateManagementRequest` (§23 SkillPackage contract):
 
 - classification of state as owned or derived
 - sourcesOfTruth: per owned state, with duplicates named

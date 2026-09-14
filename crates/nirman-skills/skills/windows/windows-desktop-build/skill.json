@@ -21,6 +21,6 @@
   ],
   "permissionRequests": [],
   "inputSchema": "WindowsDesktopBuildRequest",
-  "outputSchema": "BuildGateRecord",
+  "outputSchema": "WindowsBuildVerdict",
   "sourcePath": "SKILL.md"
 }

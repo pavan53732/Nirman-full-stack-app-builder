@@ -3072,7 +3072,7 @@ A proposal is immutable after validation. Any change creates a new proposal revi
 
 ### 58.4 SkillRuntime
 
-`SkillRuntime` resolves skill discovery, compatibility, composition, input binding, context assembly, execution, tool mediation, output validation, and evidence capture. It verifies skill version, required ToolBroker version, Android profile, worker role, input/output schema, permissions, and resource requirements before execution.
+`SkillRuntime` resolves skill discovery, compatibility, composition, input binding, context assembly, execution, tool mediation, output validation, and evidence capture. It verifies skill version, required ToolBroker version, Android profile, worker role, input/output schema, permissions, and resource requirements before execution. Input/output verification compares the invocation's declared names against the manifest and the body's `Emits` line, which the verifier pins identical; conformance to the `## Output contract` bullets is a worker instruction-following obligation.
 
 > **Schema projection:** `SkillExecutionRecord` is defined in `nirman-schemas.md` §2.45. Owner: TA §58.4.
 
@@ -5196,6 +5196,8 @@ Hypervisor availability is a Windows target-runtime facility already required by
 `ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_devices`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease_id`, `reserved_by_task`, `acquired_at`, `released_at`.
 
 `BuildGateRecord` (registry: §36.1): `gate_id`, `stage: compile | target_build | bundle | artifact_inspection | install | launch | runtime_validation | platform_specific_validation | recovery_validation | certification`, `platform`, `environment_id`, `revision`, `command_or_operation_ref`, `evidence_ids`, `result: VERIFIED | UNVERIFIED | UNAVAILABLE | USER_REQUIRED | FAILED`, `recorded_at`.
+
+> **Schema projection:** `BuildGateRecord` is defined in `nirman-schemas.md` §2.112. Owner: TA §84.1.
 
 `WorkerContract` extension (canonical owner: the `WorkerContract` entry in §36.1): adds `required_host_platforms`, `required_target_platforms`, `required_architectures`, `required_capabilities`, `required_skills`, `required_toolchain`, `required_validation_environment`, `cross_compilation_allowed`, `native_execution_required`, `evidence_requirements`. The scheduler, not the worker, refuses a worker whose fields are not satisfied by the current `EnvironmentCapabilityRecord`.
 

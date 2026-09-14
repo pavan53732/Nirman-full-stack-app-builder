@@ -66,7 +66,7 @@ continues rather than being blocked with it.
 ## Evidence
 - A record of each procedure step that executed, with the outcome observed,
   bound to the source revision and the environment fingerprint.
-- The emitted `BuildGateRecord` (§23 SkillPackage contract), carrying its
+- The emitted `WindowsBuildVerdict` (§23 SkillPackage contract), carrying its
   classification and its evidence references.
 - Invariant claims this skill must leave observable, each of which is a
   statement the evidence above has to support:
@@ -111,7 +111,7 @@ continues rather than being blocked with it.
   reported as unverified.
 
 ## Output contract
-Emits `BuildGateRecord` from `WindowsDesktopBuildRequest` (§23 SkillPackage contract):
+Emits `WindowsBuildVerdict` from `WindowsDesktopBuildRequest` (§23 SkillPackage contract):
 
 - classification: one of the failure classes above, null on success
 - evidenceRefs: identifiers of the evidence this run captured

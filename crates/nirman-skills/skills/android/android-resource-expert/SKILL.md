@@ -88,7 +88,7 @@ merge conflict, or a shipped resource that should have been removed.
   analysis is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ResourceResult` (§23 SkillPackage contract):
+Emits `ResourceResult` from `ResourceRequest` (§23 SkillPackage contract):
 
 - qualifiedInventory: resources, qualifiers, and resolved configurations
 - missingDefaults: qualified resources with no fallback

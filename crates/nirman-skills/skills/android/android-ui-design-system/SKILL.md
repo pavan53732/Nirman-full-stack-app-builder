@@ -83,7 +83,7 @@ literal values, one-off components, or a theme that breaks in dark mode.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `DesignSystemResult` (§23 SkillPackage contract):
+Emits `DesignSystemResult` from `DesignSystemRequest` (§23 SkillPackage contract):
 
 - literalFindings: each value and the token that should replace it
 - scaleFindings: off-scale spacing and typography

@@ -90,7 +90,7 @@ starves the host — or the host must be assessed before a device-dependent run.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `EmulatorHostResult` (§23 SkillPackage contract):
+Emits `EmulatorHostResult` from `EmulatorHostRequest` (§23 SkillPackage contract):
 
 - hostArchitecture and hypervisor availability
 - imageMatch: selected image versus host architecture

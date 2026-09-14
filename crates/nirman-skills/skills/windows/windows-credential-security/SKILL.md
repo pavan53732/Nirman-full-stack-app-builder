@@ -82,7 +82,7 @@ handling of secrets must be reviewed before a trust boundary is relied on.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `CredentialSecurityResult` (§23 SkillPackage contract):
+Emits `CredentialSecurityResult` from `CredentialSecurityRequest` (§23 SkillPackage contract):
 
 - inventory: credential, purpose, and actual store
 - accessControl: who can read, including the worker identity

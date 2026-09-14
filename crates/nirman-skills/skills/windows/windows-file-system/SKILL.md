@@ -81,7 +81,7 @@ workspace layout and its access control must be verified.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `FileSystemResult` (§23 SkillPackage contract):
+Emits `FileSystemResult` from `FileSystemRequest` (§23 SkillPackage contract):
 
 - resolvedRoot and observedLayout
 - accessControl: who can reach the workspace

@@ -89,7 +89,7 @@ that cannot be reproduced.
   an identical reset is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `DeviceStateResult` (§23 SkillPackage contract):
+Emits `DeviceStateResult` from `DeviceStateRequest` (§23 SkillPackage contract):
 
 - deviceIdentity: AVD, ABI, API level, orientation, density, locale
 - applicationState: package, version code, processes, fingerprint

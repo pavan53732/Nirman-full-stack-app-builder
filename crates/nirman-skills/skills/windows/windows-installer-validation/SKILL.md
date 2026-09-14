@@ -87,7 +87,7 @@ install, repaired, upgraded, and removed — with each path verified rather than
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `InstallerValidationResult` (§23 SkillPackage contract):
+Emits `InstallerValidationResult` from `InstallerValidationRequest` (§23 SkillPackage contract):
 
 - cleanInstall: completed, launched, version reported
 - elevation: required or not, and locations written

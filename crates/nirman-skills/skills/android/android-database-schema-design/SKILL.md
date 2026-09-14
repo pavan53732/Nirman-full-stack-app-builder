@@ -84,7 +84,7 @@ suspected to be structural rather than in the query text.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `SchemaDesignResult` (§23 SkillPackage contract):
+Emits `SchemaDesignResult` from `SchemaDesignRequest` (§23 SkillPackage contract):
 
 - model: tables, columns, and dependency findings
 - keys: stability determination per table

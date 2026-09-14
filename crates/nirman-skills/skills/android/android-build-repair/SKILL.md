@@ -93,7 +93,7 @@ classified and repaired at its cause rather than worked around.
   build is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `BuildRepairResult` (§23 SkillPackage contract):
+Emits `BuildRepairResult` from `BuildRepairRequest` (§23 SkillPackage contract):
 
 - failingTask: the Gradle task that failed
 - failureLayer: configuration, resolution, merge, shrinker, or packaging

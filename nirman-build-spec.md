@@ -5575,7 +5575,7 @@ Evidence that does not bind to the `EnvironmentCapabilityRecord` fingerprint, ta
 
 Platform behavior is carried by dedicated implementation skills, not by a generic AI-coding skill. A `UniversalCodingSkill` or equivalent catch-all prompt is prohibited: it cannot encode the host/target distinction and it cannot be evidence.
 
-Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requiredCapabilities`, `triggerConditions`, `permissionRequests`, `inputSchema`, `outputSchema`, and its fixture set. Skills remain permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every execution they describe still passes through ToolBroker and PolicyAuthority, and a skill whose `requiredCapabilities` resolve to `UNAVAILABLE` or `USER_REQUIRED` MUST NOT execute the gated steps and MUST report the blocked state. The v1 platform skill set:
+Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requiredCapabilities`, `triggerConditions`, `permissionRequests`, `inputSchema`, `outputSchema`, and its fixture set. Skills remain permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every execution they describe still passes through ToolBroker and PolicyAuthority, and a skill whose `requiredCapabilities` resolve to `UNAVAILABLE` or `USER_REQUIRED` MUST NOT execute the gated steps and MUST report the blocked state. Every skill instruction body MUST open its `## Output contract` section with one `Emits` line naming the body's `outputSchema` and the `inputSchema` it is emitted from; a body whose line disagrees with its manifest's names is a semantic-documentation defect. The v1 platform skill set:
 
 | Skill | Scope | Gated by |
 |---|---|---|

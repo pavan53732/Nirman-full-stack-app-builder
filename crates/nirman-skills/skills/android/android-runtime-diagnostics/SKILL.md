@@ -93,7 +93,7 @@ Diagnosis is requested when the observation alone does not say why.
   diagnosis that changes the state it measures is invalid.
 
 ## Output contract
-Emits `RuntimeDiagnosticsResult` (§23 SkillPackage contract):
+Emits `RuntimeDiagnosticsResult` from `RuntimeDiagnosticsRequest` (§23 SkillPackage contract):
 
 - faultClass: the classification above
 - attributedComponent: the component blamed, or null when unsupported

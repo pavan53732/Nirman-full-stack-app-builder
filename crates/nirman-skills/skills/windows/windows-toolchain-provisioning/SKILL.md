@@ -90,7 +90,7 @@ or failed integrity and the reason must be established rather than guessed.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ProvisioningResult` (§23 SkillPackage contract):
+Emits `ProvisioningResult` from `ProvisioningRequest` (§23 SkillPackage contract):
 
 - networkPath: DIRECT, SYSTEM_PROXY, or PAC, and how it was discovered
 - download: source, bytes, duration, resumed

@@ -3955,6 +3955,19 @@ def check_skill_bodies(docs, D, repo_root):
                 D.add("semantic documentation", f"skill {name}",
                       f"manifest names worker role {role!r}, which is not one of the ADR-227 twenty-one "
                       f"(BS §23.4; TA §6.5; M9 work item 18 rejects it at registration)")
+        # Emits-line agreement (BS §79.7): the body's `## Output contract`
+        # section opens with one `Emits` line naming the manifest's
+        # outputSchema and the inputSchema it is emitted from.
+        _emits = re.findall(r"^Emits `([^`]+)` from `([^`]+)`", body_text, re.M)
+        if len(_emits) != 1:
+            D.add("semantic documentation", f"skill {name}",
+                  "body must open its ## Output contract section with one `Emits` line "
+                  "naming the outputSchema and the inputSchema it is emitted from (BS §79.7)")
+        elif _emits[0][0] != man.get("outputSchema") or _emits[0][1] != man.get("inputSchema"):
+            _eout, _ein = _emits[0]
+            D.add("semantic documentation", f"skill {name}",
+                  f"body Emits `{_eout}` from `{_ein}` but the manifest declares "
+                  f"outputSchema {man.get('outputSchema')!r} and inputSchema {man.get('inputSchema')!r} (BS §79.7)")
 
     # Capability consumption (BS §79.7): every id in the closed vocabulary
     # must have at least one consuming skill. An id that no skill requires is

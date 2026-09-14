@@ -83,7 +83,7 @@ ran.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `MigrationResult` (§23 SkillPackage contract):
+Emits `MigrationResult` from `MigrationRequest` (§23 SkillPackage contract):
 
 - chain: versions covered and any gap
 - appliedSet: each migration applied exactly once

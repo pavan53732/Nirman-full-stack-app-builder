@@ -94,7 +94,7 @@ one use.
   is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `PermissionFlowResult` (§23 SkillPackage contract):
+Emits `PermissionFlowResult` from `PermissionFlowRequest` (§23 SkillPackage contract):
 
 - declaredPermissions: identifier and protection level for each
 - observedGrants: permission, grant scope, and how it was read

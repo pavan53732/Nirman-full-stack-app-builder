@@ -85,7 +85,7 @@ stuck in a refresh loop, or left in a state where the app looks signed in but is
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `AuthFlowResult` (§23 SkillPackage contract):
+Emits `AuthFlowResult` from `AuthFlowRequest` (§23 SkillPackage contract):
 
 - credentialHandling: review and scan results
 - tokenStorage: location and scan results

@@ -82,7 +82,7 @@ writes, or stale data after reconnecting.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `OfflineSyncResult` (§23 SkillPackage contract):
+Emits `OfflineSyncResult` from `OfflineSyncRequest` (§23 SkillPackage contract):
 
 - queueDurability: pending writes surviving a crash
 - replayOrder: observed order and restart preservation

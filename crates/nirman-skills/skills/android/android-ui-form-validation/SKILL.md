@@ -84,7 +84,7 @@ that do not say what is wrong, or a submit button that is disabled with no expla
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `FormValidationResult` (§23 SkillPackage contract):
+Emits `FormValidationResult` from `FormValidationRequest` (§23 SkillPackage contract):
 
 - rules: inventory and whether the server enforces each
 - timing: when validation fires per field

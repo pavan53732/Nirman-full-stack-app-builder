@@ -85,7 +85,7 @@ is relied on.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `ConPtyResult` (§23 SkillPackage contract):
+Emits `ConPtyResult` from `ConPtyRequest` (§23 SkillPackage contract):
 
 - session: handles, attachment, and command started
 - outputBytes and observedBufferDepth over the run

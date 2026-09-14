@@ -84,7 +84,7 @@ not at all, or a token is stale.
   identical action is never re-run against unchanged evidence.
 
 ## Output contract
-Emits `PushNotificationResult` (§23 SkillPackage contract):
+Emits `PushNotificationResult` from `PushNotificationRequest` (§23 SkillPackage contract):
 
 - permissionState: outcome recorded, including not asked
 - registration: token registered, refreshed, and old one removed
