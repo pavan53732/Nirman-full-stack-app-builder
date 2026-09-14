@@ -25,7 +25,7 @@
 | §15 | Implementation Roadmap |
 | §16 | Acceptance Criteria for the First Usable Release |
 | §17 | Risks and Mitigations |
-| §18 | Recommended Initial Screens |
+| §18 | Screen Contracts |
 | §19 | Recommended Development Strategy |
 | §20 | Final Product Direction |
 | §21 | Suggested Next Build Sequence |

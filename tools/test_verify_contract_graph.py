@@ -339,10 +339,10 @@ CASES = {
 
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
-        BS, "| Build spec (all sections) | 321 | 321 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
+        BS, "| Build spec (all sections) | 327 | 327 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
         "semantic documentation"),
     "§80.10 total overstated": (
-        BS, "| **Total** | **496** | **496** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
+        BS, "| **Total** | **502** | **502** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
         "semantic documentation"),
     "§80.2 row deleted without updating §80.10": (
         BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",

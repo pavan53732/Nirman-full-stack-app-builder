@@ -164,6 +164,7 @@ Nirman should use a minimal, focused desktop layout inspired by modern AI coding
 | Main workspace | Code editor, visual preview, diff view, or project specification view |
 | Bottom panel | Terminal output, test results, build logs, warnings, and agent activity |
 | Top toolbar | Run, stop, preview, checkpoint, undo, build, export, and provider status |
+| Action Center | Pending policy decisions and their count; opens the approvals surface (§4.6) |
 
 ### 4.2 First-run experience
 
@@ -210,6 +211,16 @@ The preview panel MUST show the canonical local emulator session, including emul
 ### 4.5 Manual editing
 
 Nirman must not trap users inside the chat. The application should include a full code editor with syntax highlighting, search, multi-file tabs, formatting, diagnostics, and direct editing. After a manual edit, the agent should be able to re-index the project and continue working from the updated state.
+
+### 4.6 Never-pause presentation and the Action Center
+
+The desktop interface is a reconnectable projection client (ADR-116): the autonomous loop runs in the supervisor and cannot stop itself (ADR-226), and the interface MUST never present the product as stopped when it is not.
+
+- Every `USER_REQUIRED`, `BLOCKED`, or otherwise gated condition renders as a decision waiting on the affected requirement, never as a global halt; independent requirements continue visibly (§29.4).
+- The Action Center is the single non-modal surface for pending decisions: a persistent toolbar badge with a count, one card per decision, and inline chat cards where the work originated (§4.3). A card names the operation, the policy reason, the owning authority, the consequence, and the allow/ask/deny choices (ADR-005). No card displays raw credentials, private reasoning, or evidence payloads, and no card blocks the window.
+- While the window is minimized or closed, decisions-required, completion, and failure events arrive as Windows notifications with an in-product fallback (M34); notifications carry no evidence payloads, secrets, or private content.
+- The three session conditions — working, waiting on a decision, and no eligible work — are always visually distinct, derived from projections, and never inferred from the absence of activity.
+- The toolbar Stop control is always enabled while any task is active (§80.2) and routes to the lifecycle authority as an explicit user command, the one legitimate user-initiated end of the loop.
 
 ---
 
@@ -999,27 +1010,91 @@ The first usable release should satisfy the following conditions:
 
 ---
 
-## 18. Recommended Initial Screens
+## 18. Screen Contracts
+
+The desktop interface is the presentation client of §76: every screen renders supervisor-owned projections and sends typed commands, and no screen holds authoritative state (ADR-116, ADR-201). Each contract below names its required elements, the projections and commands it serves, and its state obligations; §80.2 resolves the required elements into buildability MUSTs. The screens land across milestones (M1 shell and project screens, M3 provider, M9 preview, M10 export, M34 notifications); a screen contract is a product contract, not a release promise.
 
 ### Welcome screen
 
 The welcome screen should explain Nirman in one sentence, offer “Create project” and “Open project,” and show whether an AI provider is configured.
 
+- Entry: launch without an open project. First run routes into the §4.2 provisioning flow before any project exists; planning-only mode is offered honestly (`SessionProviderMode.PLANNING_ONLY`).
+- Recent projects list with their last activity state; opening one restores the workspace from durable projections.
+- No login, account, or onboarding gate may appear (§1.5; ADR-205).
+
 ### Project workspace
 
 The project workspace should contain the chat, file tree, editor or preview, activity stream, and bottom logs panel. The most important toolbar actions should be Run, Stop, Checkpoint, Undo, Build, and Export.
+
+- The preview is the primary surface with the resizable execution panel of §4.4: task graph, worker steps, terminals, checkpoints, approvals, validation evidence, and next action.
+- Chat follows the §4.3 response structure; approval cards render inline and mirror the Action Center (§4.6).
+- Commands served are the agent-loop, checkpoint, build, preview, and export command kinds of §76.1; projections consumed are the seven typed projections of technical architecture §81.1.
+- Stop is always enabled while any task is active (§80.2) and routes to the lifecycle authority as an explicit user command.
 
 ### Provider settings
 
 The provider settings screen should allow users to add profiles, enter a base URL, API key, and model ID, test the connection, select model capabilities, and remove credentials.
 
+- Credentials are keychain references only (ADR-018); a saved key is never displayed in full again.
+- Test connection performs a real provider call under the two compatibility modes of ADR-208; a capability-tested save refuses an unverified profile.
+- Provider status appears in the toolbar and on the welcome screen.
+
 ### Environment diagnostics
 
 The diagnostics screen should show required tools, detected versions, missing tools, project health, provider status, active processes, port usage, and recent errors.
 
+- Every value comes from observed preflight classified per §9.2 and §79.4 (`AVAILABLE`, `REPAIRABLE`, `USER_REQUIRED`, `UNAVAILABLE`), never from cached assumptions.
+- Missing toolchain components route to the provisioning decisions of §4.2, never to an installation guide.
+
 ### Task review
 
 The task review screen should show the original request, implementation plan, changed files, commands, test results, warnings, and buttons for keeping or restoring the work.
+
+- Every item links to its underlying evidence record (§37).
+- Keep-or-restore routes through the checkpoint machinery of §11 (technical architecture §18); restoring names its consequences before applying and never silently discards user edits (§55).
+
+### Approvals and the Action Center
+
+The Action Center should surface every pending policy decision as a non-modal card — the operation, the policy reason, the owning authority, the consequence, and the allow/ask/deny choices — with a persistent badge count, mirrored in chat, and never blocking the window.
+
+- Cards never display raw credentials, private reasoning, or evidence payloads.
+- One gated requirement never hides that independent requirements continue (§29.4; §4.6).
+- While the window is minimized or closed, decisions-required, completion, and failure events arrive as Windows notifications with an in-product fallback (M34).
+
+### Evidence and completion
+
+The evidence screen should let the user trace any claim to its record — observation, validation result, certification decision, and completion decision — with freshness, dependencies, and invalidation state.
+
+- Preview-bound evidence carries the truth labels of §71 (`PREDICTED` through `INVALIDATED`).
+- Completion presentation names what is proven, unproven, blocked, and eligible per requirement (`ProofSynthesis`, ADR-235), and certification vocabulary follows §67.11.
+
+### Recovery and checkpoints
+
+The recovery screen should show both checkpoint tiers with validity and known-good state, the recovery-ladder position of any active recovery, and restore actions with explicit consequences.
+
+- Restore invalidates previews bound to older checkpoints (§11) and emits the `checkpoint_restored` hook (technical architecture §17).
+- Recovery state comes from the recovery authority's records; the screen never invents progress (§28).
+
+### Delivery and export
+
+The delivery screen should show the export state machine of §78, the packaging profile, signing identity binding, source and destination hashes, and post-copy verification for every export.
+
+- APK is the mandatory deliverable; AAB appears only when the active `PackagingProfile` declares `APK_AND_AAB` (§5.7.3).
+- Source-access exports are labelled `SOURCE_ACCESS_ONLY` and are never presented as deployment completion (§78).
+
+### Settings
+
+The settings screen should group provider profiles, policy defaults, appearance and accessibility options, and application information.
+
+- Policy entries render summaries of canonical policy state; the screen never edits authority-owned rules directly (§67.7).
+- Accessibility options follow the non-functional requirements of §13.
+
+### Notifications and background status
+
+The notification surfaces should carry decisions-required, completions, and failures while the window is minimized or closed, and reopening the window restores full state from projections without data loss.
+
+- Notifications carry no evidence payloads, secrets, or private content.
+- Background status renders the continuity states of §77; `UI_DISCONNECTED` never displays as work stopped (§4.6).
 
 ---
 
@@ -6066,6 +6141,12 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §18 | "The provider settings screen should allow users to add profiles, enter a base URL, API key, and model ID, test the connection, select model capabilities, and remove credentials" | MUST provide all six operations | Test connection performs a real provider call, never a simulated success |
 | BS §18 | "The diagnostics screen should show required tools, detected versions, missing tools, project health, provider status, active processes, port usage, and recent errors" | MUST show all eight | Values come from observed preflight, never from cached assumptions |
 | BS §18 | "The task review screen should show the original request, implementation plan, changed files, commands, test results, warnings, and buttons" | MUST show all seven | Every item links to its underlying evidence record |
+| BS §18 | "The Action Center should surface every pending policy decision as a non-modal card — the operation, the policy reason, the owning authority, the consequence, and the allow/ask/deny choices — with a persistent badge count, mirrored in chat, and never blocking the window" | MUST surface all five card fields without blocking | One gated requirement never hides continuing work (§29.4) |
+| BS §18 | "The evidence screen should let the user trace any claim to its record — observation, validation result, certification decision, and completion decision — with freshness, dependencies, and invalidation state" | MUST trace all four evidence-chain stages | Every displayed stage links to its record (§37) |
+| BS §18 | "The recovery screen should show both checkpoint tiers with validity and known-good state, the recovery-ladder position of any active recovery, and restore actions with explicit consequences" | MUST show both tiers, the ladder position, and consequences | Restore never silently discards user edits (§55) |
+| BS §18 | "The delivery screen should show the export state machine of §78, the packaging profile, signing identity binding, source and destination hashes, and post-copy verification for every export" | MUST show the complete export record for every delivery | An `UNKNOWN` export never offers a blind retry (§78) |
+| BS §18 | "The settings screen should group provider profiles, policy defaults, appearance and accessibility options, and application information" | MUST group all four areas | Policy entries render canonical state; the screen never edits authority-owned rules directly (§67.7) |
+| BS §18 | "The notification surfaces should carry decisions-required, completions, and failures while the window is minimized or closed, and reopening the window restores full state from projections without data loss" | MUST carry all three event kinds and restore state on reopen | Notifications carry no evidence payloads or secrets |
 | BS §19 | "The project should be built in vertical slices" | MUST build vertically | Never by completing subsystems horizontally |
 | BS §19 | "Each slice should produce a usable part of the application" | MUST be user-visible | A slice with no user-observable outcome is not a slice |
 | BS §19 | "The first vertical slice should allow the user to open Nirman, configure a provider, describe any supported Android application in chat, optionally attach screenshots, receive a technology-selection plan" | MUST deliver that path end to end | This is the M0-M4 scope |
@@ -7072,11 +7153,11 @@ The unit of coverage is the §80.2 resolution row. One row resolves one "should"
 
 | Scope | Resolution rows | Resolved | Status |
 |---|---|---|---|
-| Build spec (all sections) | 321 | 321 | Complete |
+| Build spec (all sections) | 327 | 327 | Complete |
 | Technical architecture | 157 | 157 | Complete |
 | Development plan | 16 | 16 | Complete |
 | AGENTS.md | 2 | 2 | Complete |
-| **Total** | **496** | **496** | **100%** |
+| **Total** | **502** | **502** | **100%** |
 
 Earlier iterations of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 80 rows; the present task removed one duplicate-entry row added during the self-improvement reconciliation, bringing Build spec from 322 to 321 rows and total from 497 to 496.
 
