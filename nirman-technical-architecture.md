@@ -1262,6 +1262,8 @@ The self-development loop must preserve these invariants:
 | User ownership | Promotion to the active installation is explicit unless the user enables trusted auto-promotion |
 | Task continuity | Active user tasks are checkpointed and either resumed or safely paused across promotion |
 
+Self-development promotion is not a product update. The machinery of this section — the update-controller bootstrap stage, the update lock and active-version pointer, candidate staging, switching, and rollback — exists solely to activate validated self-development and self-improvement candidates (§30) inside a running Nirman that is developing itself; it never downloads, stages, installs, or replaces a distributed Nirman release, and user-enabled trusted auto-promotion never applies to the packaged product. Ordinary product updates are owned by ADR-239 — a user-initiated Check for updates from the Settings screen through the Windows App Installer MSIX flow, never automatic. The two mechanisms are disjoint: neither may be used to implement the other.
+
 ### 25.2 Two-process update architecture
 
 Nirman should use a stable launcher/controller process and a replaceable application process. The update protocol must handle UI-supervisor version compatibility explicitly:

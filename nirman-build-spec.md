@@ -218,6 +218,7 @@ The desktop interface is a reconnectable projection client (ADR-116): the autono
 
 - Every `USER_REQUIRED`, `BLOCKED`, or otherwise gated condition renders as a decision waiting on the affected requirement, never as a global halt; independent requirements continue visibly (§29.4).
 - The Action Center is the single non-modal surface for pending decisions: a persistent toolbar badge with a count, one card per decision, and inline chat cards where the work originated (§4.3). A card names the operation, the policy reason, the owning authority, the consequence, and the allow/ask/deny choices (ADR-005). No card displays raw credentials, private reasoning, or evidence payloads, and no card blocks the window.
+- A card resolves only from the supervisor's committed decision projection, never from UI optimism; the card, its inline chat mirror, and the badge count change together when the projection changes (ADR-116, §77.1).
 - While the window is minimized or closed, decisions-required, completion, and failure events arrive as Windows notifications with an in-product fallback (M34); notifications carry no evidence payloads, secrets, or private content.
 - The three session conditions — working, waiting on a decision, and no eligible work — are always visually distinct, derived from projections, and never inferred from the absence of activity.
 - The toolbar Stop control is always enabled while any task is active (§80.2) and routes to the lifecycle authority as an explicit user command, the one legitimate user-initiated end of the loop.
