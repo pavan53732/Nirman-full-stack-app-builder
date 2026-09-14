@@ -1213,7 +1213,7 @@ These milestones formalize the autonomous runtime without changing Nirman’s An
 | M73 | Mutation and regression intelligence | Predict affected behavior using call, route, dependency, traceability, and historical-failure relationships |
 | M74 | TrajectoryReplayEngine | Replay decisions and tool results against new models, prompts, skills, schemas, and runtimes without side effects |
 | M75 | SimulationExecutor | Provide clearly labeled dry-run predictions without mutating source, executing commands, or claiming observed evidence |
-| M76 | Deadlock and backpressure controls | Detect dependency/resource/approval cycles and reserve scarce Gradle, emulator, device, GPU, storage, and provider capacity |
+| M76 | Deadlock and backpressure controls | Detect dependency/resource/approval cycles and reserve scarce Gradle, emulator, GPU, storage, and provider capacity |
 | M77 | Cancellation and independent pause/resume | Propagate cancellation through every descendant and preserve exact pause/resume state for workers and skills |
 | M78 | Decision, uncertainty, contradiction, and replanning services | Add structured decision nodes, fact states, contradiction revisions, and evidence-triggered plan recompilation |
 | M79 | ExecutionHistoryManager | Implement hot, warm, cold, and archived history with safe compaction and evidence-preserving garbage collection |

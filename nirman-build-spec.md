@@ -59,7 +59,7 @@ Nirman is a **local Windows desktop application** with the following distributio
 | Subscription / recurring payment | **None** — no subscription, no license fee, no recurring charge to use Nirman |
 | Hosted platform dependency | **None** — no mandatory cloud service, no hosted execution, no platform account |
 | AI provider costs | **User's own responsibility** — user supplies their own API keys, base URLs, model IDs; Nirman does not proxy, resell, or charge for provider usage |
-| Distribution artifact | Windows `.exe` installer built from source; user builds locally or obtains from a trusted source |
+| Distribution artifact | Windows MSIX package built from source; user builds locally or obtains it from a trusted source |
 | Source access | Full source code available; user may build, modify, redistribute per the eventual license |
 
 These invariants are binding product constraints. No future feature, integration, or workflow may introduce a mandatory account, subscription, license fee, or hosted-platform dependency for Nirman itself. AI provider usage remains the user's separate commercial relationship with their chosen provider(s).
@@ -190,7 +190,7 @@ Validation results
 Summary and remaining issues
 ```
 
-When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, emulator access, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine reversible operations inside an approved workspace follow the Autonomous-build policy (§23.7) and must not require repeated prompts.
+When policy reaches a hard or review-gated operation, the chat should show a clear approval card. For example, external-directory access, credential use, destructive operations, publishing, or release signing should not be hidden inside ordinary text. Routine Nirman-managed local Android emulator operations required for preview, testing, observation, or repair remain governed by the Autonomous-build policy (§23.7) and do not require repeated approval unless the operation crosses a separate policy boundary.
 
 A request may include one or more screenshots as visual references. Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content. It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the Nirman-managed local Android emulator.
 
@@ -5910,7 +5910,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §4.2 | "The setup flow should offer two paths:" | MUST offer both setup paths | The two paths enumerated in §4.2 are both reachable from first run |
 | BS §4.3 | "Each user request should produce a structured response with the following sections" | MUST produce structured response | Every response MUST have: Understanding, Plan, Files to change, Commands, Progress, Validation, Summary |
 | BS §4.3 | "When policy reaches a hard or review-gated operation, the chat should show a clear approval card." | MUST show a distinct approval card | Every hard or review-gated operation surfaces as its own card, never as inline text |
-| BS §4.3 | "For example, external-directory access, credential use, emulator access, destructive operations, publishing, or release signing should not be hidden inside ordinary text." | MUST NOT hide gated actions in ordinary text | The six listed action classes always surface through the approval card |
+| BS §4.3 | "For example, external-directory access, credential use, destructive operations, publishing, or release signing should not be hidden inside ordinary text." | MUST NOT hide gated actions in ordinary text | The five listed action classes always surface through the approval card |
 | BS §4.3 | "Nirman should analyze layout, typography, color, spacing, components, navigation states, device framing, interaction clues, and visible content." | MUST analyze all nine listed aspects | Reference-screenshot analysis covers every listed aspect before synthesis |
 | BS §4.3 | "It should convert the analysis into an editable visual specification, identify uncertainty, synthesize the Android implementation, and validate the result against the reference screenshots in the Nirman-managed local Android emulator." | MUST produce an editable spec and validate in the emulator | Uncertainty is surfaced explicitly; validation runs in the Nirman-managed local Android emulator |
 | BS §4.4 | "The default project workspace should show the running application preview and the live execution surface together" | MUST support emulator first | Emulator is the primary preview path |
