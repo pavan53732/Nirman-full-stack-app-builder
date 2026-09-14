@@ -6,7 +6,7 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "UI Worker",
-    "Backend & Service Engineering Worker"
+    "Android Data and Integration Worker"
   ],
   "triggerConditions": [
     "persistence_store_selection",

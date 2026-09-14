@@ -1060,6 +1060,10 @@ CASES = {
     "skill manifest names a capability outside the vocabulary": (
         "crates/nirman-skills/skills/windows/windows-runtime-validation/skill.json", '"WINDOWS_NATIVE_EXECUTION"', '"WINDOWS_DEVICE_EXECUTION"',
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill manifest names a worker role outside the ADR-227 twenty-one": (
+        "crates/nirman-skills/skills/android/android-data-expert/skill.json", '"Android Data and Integration Worker"',
+        '"Backend Worker"',
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "skill body gates on a legacy lowercase capability id": (
         "crates/nirman-skills/skills/windows/windows-desktop-build/SKILL.md",
         "When `WINDOWS_HOST_TOOLCHAIN`\nresolves to", "When `cross_build_windows`\nresolves to",

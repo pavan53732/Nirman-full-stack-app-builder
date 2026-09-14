@@ -196,6 +196,17 @@ EDGE_DOMAIN = {
 
 DOC_OF = {"BS": "bs", "TA": "ta"}
 
+# The ADR-227 twenty-one canonical worker roles (BS §22.1, BS §23.4, TA §6.5).
+# Module-level so the prose-table check and the manifest role-membership check
+# pin the same set; a second literal here would desync exactly the way the
+# September skill manifests desynced from the taxonomy.
+ROLES_227 = {"Primary Orchestrator", "Repository Scout", "Requirements Planner", "Architecture Worker",
+             "UI Worker", "Android Data and Integration Worker", "Test and QA Worker", "Debugging Worker",
+             "Security Worker", "Visual QA Worker", "Performance Worker", "Documentation Worker",
+             "Release Worker", "Reconciliation Worker", "Emulator Driver Worker", "Diagnostic Worker",
+             "Content Worker", "Integration Double Worker", "Critic Worker",
+             "Android Platform Worker", "Backend & Service Engineering Worker"}
+
 
 def parse_ref(cell):
     """Parse a document-qualified reference.
@@ -2029,12 +2040,8 @@ def check_semantic_documentation(docs, R, D, root="."):
     # be the ADR-227 twenty-one, and no capitalised "<Name> Worker" phrase may
     # name a role outside it. Lower-case descriptive phrases ("a worker", "the
     # owning worker") are prose, not roles, and are not checked.
-    ROLES_227 = {"Primary Orchestrator", "Repository Scout", "Requirements Planner", "Architecture Worker",
-                 "UI Worker", "Android Data and Integration Worker", "Test and QA Worker", "Debugging Worker",
-                 "Security Worker", "Visual QA Worker", "Performance Worker", "Documentation Worker",
-                 "Release Worker", "Reconciliation Worker", "Emulator Driver Worker", "Diagnostic Worker",
-                 "Content Worker", "Integration Double Worker", "Critic Worker",
-                 "Android Platform Worker", "Backend & Service Engineering Worker"}
+    # ROLES_227 is module-level: the same set pins the prose role tables here
+    # and the manifest compatibleWorkerRoles values in check_skill_bodies.
     def _role_table(text, heading_num):
         body = _section_text(text, heading_num) or ""
         return {r.strip() for r in re.findall(r"^\|+ ([A-Z][A-Za-z &]+?) \|+", body, re.M)} - {"Canonical worker role", "Canonical worker", "Worker role"}
@@ -3865,7 +3872,8 @@ def check_skill_bodies(docs, D, repo_root):
               "SKILL.md body exists but the skill is not registered in BS §79.7")
     # Manifests (BS §79.7): skill.json beside each body, built_in scope,
     # requiredCapabilities equal to the §79.7 row, drawn from the closed
-    # capability-id vocabulary, no permission requests, no ledger state.
+    # capability-id vocabulary, compatibleWorkerRoles drawn from the ADR-227
+    # twenty-one, no permission requests, no ledger state.
     import json as _json
     sec = m.group(0)
     vocab = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| ", sec, re.M))
@@ -3942,6 +3950,11 @@ def check_skill_bodies(docs, D, repo_root):
         for fld in ("name", "description", "version", "compatibleWorkerRoles", "triggerConditions", "requiredTools", "inputSchema", "outputSchema"):
             if fld not in man:
                 D.add("semantic documentation", f"skill {name}", f"manifest lacks SkillPackage field {fld}")
+        for role in man.get("compatibleWorkerRoles") or []:
+            if role not in ROLES_227:
+                D.add("semantic documentation", f"skill {name}",
+                      f"manifest names worker role {role!r}, which is not one of the ADR-227 twenty-one "
+                      f"(BS §23.4; TA §6.5; M9 work item 18 rejects it at registration)")
 
     # Capability consumption (BS §79.7): every id in the closed vocabulary
     # must have at least one consuming skill. An id that no skill requires is
