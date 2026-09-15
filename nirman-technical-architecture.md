@@ -3242,6 +3242,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | CompactionPlanner | Executes non-destructive semantic compaction of historical context |
 | RetrievalCompletenessChecker | Executes pre-model COVERAGE_CHECK verifying dependency, interface, and evidence completeness |
 | ContextIntegrityVerifier | Validates revision bindings (goal, project, plan, evidence) as an authoritative hard gate |
+| HierarchicalSynthesizer | Subcomponent of ContextOrchestrator; derives the deterministic structural skeleton from RepositorySemanticGraph regions and maintains provenance-bearing interpreted summaries per skeleton level; owns no authority, holds no independent state, and mutates no source |
 
 The architecture retains three dedicated implementation collaborators:
 - `ContextAssembler`: internal assembly operation invoked by `ContextOrchestrator` to serialize the final `ContextPackage` payload in the placement layout of BS §53.11.
@@ -3452,6 +3453,26 @@ Probe cadence is bound to structural events only: provider profile save (the §2
 `AttentionProfiler` aggregates probe results into `positionalRecall` cells keyed by fill bucket and position bucket, derives `reliableLiteralSpanTokens` as the largest fill bucket whose literal pass rate meets the configured threshold (BS §80.3), and sets `confidence` from sample counts. Every `PREMISE_MISMATCH` returned by the mutation broker (BS §43.2) updates the cell corresponding to the mismatched item's recorded position with `source: LEARNED`, so the profile improves without additional model calls. An `UNPROFILED` model receives the unprofiled DENSE block bound of BS §80.3 and consequential steps against it carry an in-package probe that must pass.
 
 Each plan step carries `requiredReliability`, derived from the size of its DENSE block and whether it is consequential. `DeliberationModelRouter` (§72) and `ResourceGovernor` (§51.3) may select a lighter provider model only when its `AttentionReliabilityProfile` satisfies the step's `requiredReliability`; this is a capability match, like tool-calling or vision support, not a budget, and it operates inside the unchanged permission ceiling.
+
+### 59.13 Hierarchical project synthesis
+
+Implements build spec §53 over the §59.2 `RepositorySemanticGraph`. Owned by `ContextOrchestrator` through its `HierarchicalSynthesizer` subcomponent (§59.1). This section creates no authority and mutates no source.
+
+S1 Deterministic skeleton. The runtime MUST derive a deterministic structural skeleton by projecting graph regions onto the §59.2 containment hierarchy (Repository → Module → File → Symbol → Region → Exact source) with levels L0 system (Repository), L1 subsystem (Module), L2 unit (File), L3 detail (Symbol/Region). Skeleton derivation MUST use graph nodes and edges only; no model output participates in skeleton construction.
+
+S2 Interpreted summaries. Each skeleton level MUST carry interpreted summaries expressed as typed claims bearing provenance: graph node ids, projectRevision, producer worker id, validation status, and supersedes link. Summaries MUST be referenced from the `ContextPackage` manifest defined in BS §53.3. A summary becomes a memory FACT only through a validated event per BS §53.2; a model statement is never a memory write.
+
+S3 Refresh and invalidation. On every workspace mutation the runtime MUST invalidate synthesis entries for affected regions on the same trigger as the §59.2 incremental graph update, and MUST rebuild skeleton entries before they are served again. Interpreted summaries bound to a superseded projectRevision MUST NOT be served; the orchestrator MUST serve skeleton-only content or re-derive. Revision mismatch on the synthesis artifact MUST raise STALE_CONTEXT through the §59.6 recovery path (`RegroundingService`). User-originated edits MUST invalidate affected entries per the §59.9 re-grounding triggers.
+
+S4 Exact-source authority for mutation. Mutation-affecting context MUST resolve to EXACT-fidelity source through `ExactRetriever`; required EXACT items MUST remain EXACT, and EXACT items MUST NOT be replaced by summaries when required for mutation or line-level reasoning (BS §53.3). Every synthesis entry MUST carry its level and fidelity label. A summary MUST NOT be cited as the basis for a mutation; a plan citing a summary in place of exact source MUST be rejected by `RetrievalCompletenessChecker`.
+
+S5 Precedence. On conflict between a deterministic skeleton fact and an interpreted claim, the skeleton fact MUST prevail. An interpreted claim MUST NOT override a deterministic structural fact. The conflict MUST be recorded as CONTRADICTED_FACT through the §59.6 recovery path.
+
+S6 Compatibility. Synthesis output MUST enter `WorkingSetPlanner` partitions as anchored supporting content. `ContextCapacityPlanner` MUST account synthesis bytes against provider capacity like any other context. Synthesis staleness MUST feed the §59.9 re-grounding triggers. The §59.6 ten-step sequence is unchanged.
+
+S7 Bounded cost. Skeleton derivation MUST be incremental per region and deterministic. Interpreted summaries MUST be generated lazily per level on demand and cached with revision binding. All synthesis model calls MUST be governed by `ReasoningEffortSelector` effort grants and `ResourceIntegrityAuthority` budgets; synthesis MUST NOT create a separate budget class.
+
+S8 Rebuildability. The synthesis artifact MUST be rebuildable from the graph plus projectRevision. Any persisted synthesis form MUST be revision-bound and MUST carry the S4 labels, so that no cache is ever mistaken for source.
 
 ## 60. Peer Coordination and Semantic Reservations
 
