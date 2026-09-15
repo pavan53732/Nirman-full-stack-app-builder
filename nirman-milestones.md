@@ -282,8 +282,8 @@ Add specialized workers and isolated parallel execution only after the single-wo
 3. Implement the shared task ledger in the SQLite execution ledger with atomic task claims (ADR-110); any workspace task-ledger file is a derived projection, never state.
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
-6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery is proven by terminating one of three running worker processes while the other two continue (TA §3.5).
-7. Implement review, test, debug, and reconciliation worker chains.
+6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery is proven by terminating one of three running worker processes while the other two continue (TA §3.5); the fixture also asserts the replacement lease's first `ContextPackage` carries the TA §27.4 seed with each of the five items present.
+7. Implement review, test, debug, and reconciliation worker chains. The chain fixture rejects a Review stage executed by the implementation producer and accepts only reviews whose evidence cites a different reviewer `workerId`.
 8. Implement changed-file and changed-symbol conflict detection.
 9. Add transactional integration checkpoints.
 
@@ -1262,7 +1262,7 @@ These milestones implement build spec §53–§67 and technical architecture §5
 | M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService, AttentionProfiler, PlacementPlanner, RecallProbeService |
 | M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks; single-writer shared Android surfaces with `SharedSurfaceChangeRequest` applied semantically by SharedSurfaceApplier (BS §54.2; TA §60.1; ADR-225) — fixture: two workers adding different dependencies and one permission each integrate without a textual conflict, and a contradicting request is rejected with a reason |
 | M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
-| M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all nine required scenario classes, determinism quarantine |
+| M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all nine required scenario classes, determinism quarantine, unmarked-observable-requirement coverage (an unmarked requirement with observable behavior MUST appear in validation and proof coverage per BS §42.1) |
 | M85 | Advanced Verification | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection, PropertyProber bounded probes |
 | M86 | Regression Localization | Impact-graph localization, signature matching, checkpoint bisection, cause-scoped repair enforcement, escalation on unlocalized regression |
 | M87 | Adversarial Security and Supply Chain | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline |

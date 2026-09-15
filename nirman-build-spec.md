@@ -1351,7 +1351,7 @@ Explore → Plan → Implement → Test → Review → Repair → Re-test → Su
 
 The chain should not assume that every stage must run for every task. The planner may skip implementation for a planning request, and the reviewer may require a repair stage only when it identifies a material issue.
 
-Each stage should have a quality gate. For example, implementation cannot be marked complete when the project does not compile, testing cannot be marked complete when required tests were skipped, and release preparation cannot be marked complete when the artifact path or checksum is missing.
+Each stage should have a quality gate. For example, implementation cannot be marked complete when the project does not compile, testing cannot be marked complete when required tests were skipped, and release preparation cannot be marked complete when the artifact path or checksum is missing. Review of an implementation MUST execute on a different worker from the worker that produced it, and validation of a repair MUST execute on a different worker from the repair producer; review evidence MUST identify both producer and reviewer worker identities and demonstrate their separation. Different `attemptId` values on the same worker do not satisfy this rule.
 
 ### 23.6 Parallel work with isolation
 
@@ -2344,6 +2344,8 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 | Device matrix | Nirman-managed local Android emulator profiles, API levels, orientations, densities, tablet/phone coverage |
 | Validation model | Unit, integration, UI, visual, accessibility, performance, security, runtime, and release checks |
 | Artifact model | APK variants, signing policy, version code, checksums, evidence requirements, export destinations |
+
+A feature without an explicit optional marking is mandatory. A mandatory requirement with observable behavior is critical by default; downgrade from critical requires explicit recorded rationale, and model output MUST NOT silently downgrade or omit this classification.
 
 The contract MUST use explicit schema versions, reject unknown fields where strict validation is required, record source references for inferred fields, and distinguish user-provided facts from model inferences. A worker MUST NOT invent a contract field absent from the canonical schema.
 
@@ -6101,6 +6103,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.5 | "A typical feature chain should be" the eight stages | MUST use this stage vocabulary | Stage names are canonical; additional stages require a named definition |
 | BS §23.5 | "The chain should not assume that every stage must run for every task" | MAY skip stages | A skipped stage MUST be recorded with its reason. Silent omission is prohibited |
 | BS §23.5 | "Each stage should have a quality gate" | MUST gate every stage | Implementation cannot complete when the project does not compile; testing cannot complete when required tests were skipped; release cannot complete without artifact path and checksum |
+| BS §23.5 | "Review of an implementation MUST execute on a different worker from the worker that produced it" | MUST separate producer and reviewer workers | Applies to repair validation; review evidence MUST cite both worker identities; different `attemptId` alone is insufficient |
 | BS §23.6 | "should support parallel tasks only when each task has an isolated project copy, Git worktree, or equivalent workspace boundary" | MUST isolate before parallelising | Parallel execution without isolation is prohibited |
 | BS §23.6 | "The parallel-task lifecycle should be" the nine stages | MUST follow all nine in order | Matches §26.4 reconciliation; the two MUST NOT diverge |
 | BS §23.6 | "The user should be able to view each worker session, inspect its logs, pause it, cancel it, or open its isolated workspace" | MUST provide all five controls | Per worker session, at any time while it is active |
@@ -6249,6 +6252,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §28.6 | "Promotion should support observe-only, candidate-only, canary, trusted auto-promotion, and manual-promotion modes" | MUST support all five modes | Manual promotion is the default |
 | BS §28.7 | "Nirman should maintain separate task memory, project memory, and runtime-improvement memory" | MUST keep the three separate | Memory is generated from durable records, never from raw chain-of-thought |
 | BS §28.9 | "The runtime should continue automatically through these capabilities whenever a safe next action exists" | MUST continue automatically | Unless explicitly classified unnecessary, unavailable, or blocked with evidence |
+| BS §42.1 | "A feature without an explicit optional marking is mandatory" | MUST treat unmarked as mandatory and mandatory-plus-observable as critical | Downgrade from critical requires explicit recorded rationale; model output MUST NOT silently downgrade or omit |
 | BS §47.8 | "Nirman SHOULD measure worker and strategy quality using success rate, regression rate, time-to-evidence, false-positive review rate, repair reuse rate, handoff completeness, affected-test precision, and rollback frequency" | MUST measure all four | Quality metrics gate validated-pattern promotion per §53.10 |
 | BS §48 | "One instruction plus optional screenshots should produce a complete, validated Android application" | MUST achieve this from one instruction | Through a durable, recoverable, inspectable, evidence-bound loop. This is the product promise |
 | BS §50.5 | "Unaffected source code and assets should remain unchanged where impact analysis proves they are independent" | MUST NOT touch independent files | Independence must be proven by impact analysis, not assumed |
@@ -6398,6 +6402,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §27.3 | "The scheduler should execute idempotent runtime ticks" | MUST make every tick idempotent | A tick reads the task snapshot, receives new events, reconciles heartbeats, evaluates dependencies, checks policies, selects ready work, and commits one transition; replaying a tick on unchanged state commits nothing new |
 | TA §27.4 | "A worker lease should contain" the eleven listed fields | MUST contain all eleven | Worker ID, task ID, node ID, workspace, process ID, attempt ID, lease start, lease expiry, heartbeat sequence, resource snapshot, cancellation state; heartbeats persist independently of model output |
 | TA §27.4 | "When a lease expires, the supervisor should inspect process liveness, preserve the worker workspace, record an interruption, and choose among resume, requeue, recovery, or escalation" | MUST perform the three steps and select one of the four outcomes | The workspace is preserved before any outcome is chosen; a worker never keeps a task permanently claimed after a crash |
+| TA §27.4 | "A replacement lease's initial `ContextPackage` MUST seed from the predecessor attempt" | MUST seed all five items before actionable context | Predecessor `attemptId`, latest handoff or progress summary, failure fingerprint, rejected strategies, open `REQUIRED_VALIDATION` items; assembled by `RegroundingService` from the ledger |
 | TA §28.1 | "Nirman should use a graduated recovery ladder. It should not jump immediately to a new model or ask the user for help" | MUST ascend the ten-level ladder in order | Levels 0–7 continue automatically (level 5 only if permitted); level 8 requires a decision only when a requirement, permission, or external fact is genuinely missing; level 9 preserves state and escalates; skipping levels to reach 8 or 9 is prohibited, and every attempt must state what differentiates it from the previous one |
 | TA §28.2 | "The runtime should fingerprint failures using" the eight listed inputs | MUST derive the fingerprint from all eight | Normalized command, exit code, error class, stack-trace structure, changed-file set, environment state, provider response class, validation stage; the fingerprint is stable across cosmetic differences and distinct across different causes |
 | TA §28.2 | "The recovery manager should maintain a failure-pattern record containing the fingerprint, affected project area, attempted strategies, successful fixes, last known-good checkpoint, and confidence" | MUST maintain all six fields | The record feeds project memory and improvement proposals only after sensitive data is removed |
@@ -7220,11 +7225,11 @@ The unit of coverage is the §80.2 resolution row. One row resolves one "should"
 
 | Scope | Resolution rows | Resolved | Status |
 |---|---|---|---|
-| Build spec (all sections) | 327 | 327 | Complete |
-| Technical architecture | 157 | 157 | Complete |
+| Build spec (all sections) | 329 | 329 | Complete |
+| Technical architecture | 158 | 158 | Complete |
 | Development plan | 16 | 16 | Complete |
 | AGENTS.md | 2 | 2 | Complete |
-| **Total** | **502** | **502** | **100%** |
+| **Total** | **505** | **505** | **100%** |
 
 Earlier iterations of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 80 rows; the present task removed one duplicate-entry row added during the self-improvement reconciliation, bringing Build spec from 322 to 321 rows and total from 497 to 496.
 
