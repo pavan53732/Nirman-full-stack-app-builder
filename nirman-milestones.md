@@ -1514,7 +1514,7 @@ This is the anti-vacuity rule of build spec §57.5 (Assertion quality requiremen
 
 Implement the shared prompt-builder contract for coordinator, worker, skill, review, and deliberation prompts. Prompts must extract Android product intent, distinguish facts from assumptions, propose an Android technology plan without a framework or template choice, and produce schema-validated proposals rather than executable commands. Add negative fixtures for template-selection requests, app-archetype assumptions, non-Android target proposals, and model claims that predicted work was executed.
 
-**Exit gate:** prompt fixtures reject user-facing template selection, reject non-Android generated targets, preserve user intent and uncertainty, and route every accepted proposal through schema validation, policy, ToolBroker, transaction, observation, and evidence authorities.
+**Exit gate:** prompt fixtures reject user-facing template selection, reject non-Android generated targets, preserve user intent and uncertainty, and route every accepted proposal through schema validation, policy, ToolBroker, transaction, observation, and evidence authorities. Ranking fixtures present more than four MUST-ask candidates and prove the same four are selected on every run and the ordering is recomputable from `ClarificationRecord` fields and recorded requirement statuses.
 
 ## M97 — Revision-bound PreviewCoordinator
 

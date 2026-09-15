@@ -4984,6 +4984,8 @@ Nirman MUST NOT ask, and MUST default silently while recording the assumption, f
 
 Clarifying questions MUST be batched and asked once, before generation begins, with a maximum of four questions. Interrupting mid-run to ask what could have been asked at the start is a defect, because it converts an autonomous session into an attended one.
 
+When more than four MUST-ask candidates exist, the dependent requirements each candidate governs MUST be determined from the recorded dependencies before ordering. The runtime MUST order candidates by the following key and ask the first four: (1) greater count of `dependentRequirementIds` first; (2) greater count of dependent requirements with mandatory status first, where mandatory status follows §42.1; (3) category rank — PRIMARY_GOAL first, then SECURITY_OR_PERSONAL_DATA, then DISTINGUISHING_BEHAVIOR, then NAVIGATION_STRUCTURE; (4) lexicographically smallest `clarificationId` first. The same candidate set and requirement state MUST always produce the same four. No model output participates in this ordering, which MUST be recomputable from the `ClarificationRecord` fields and the recorded requirement statuses.
+
 Every ambiguity resolved by default MUST be written to the intent model's `assumptions` field with the alternative that was not chosen, so the user can see and revise it. Every ambiguity that is neither asked nor defaulted MUST be written to `unresolved ambiguities` and MUST NOT be treated as settled.
 
 A clarifying question is a proposal, not an authority act. The model proposes the question; it does not thereby acquire the right to decide the answer, widen scope, or treat an unanswered question as permission (CLAUSE.AUTHORITY.MODEL_PROPOSES applies unchanged).
