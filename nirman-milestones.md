@@ -283,7 +283,7 @@ Add specialized workers and isolated parallel execution only after the single-wo
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
 6. Add worker heartbeats, crash recovery, and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery is proven by terminating one of three running worker processes while the other two continue (TA §3.5); the fixture also asserts the replacement lease's first `ContextPackage` carries the TA §27.4 seed with each of the five items present.
-7. Implement review, test, debug, and reconciliation worker chains. The chain fixture rejects a Review stage executed by the implementation producer and accepts only reviews whose evidence cites a different reviewer `workerId`.
+7. Implement review, test, debug, and reconciliation worker chains. The chain fixture rejects a Review stage executed by the implementation producer and accepts only reviews whose evidence cites a different reviewer `workerId`. It likewise rejects Test-stage execution by the implementation producer and accepts only test evidence citing a different test-worker `workerId`.
 8. Implement changed-file and changed-symbol conflict detection.
 9. Add transactional integration checkpoints.
 
@@ -391,7 +391,7 @@ Add reusable skills, hooks, external tools, model routing, scheduled local tasks
 2. Add skill discovery, compatibility metadata, and permission control.
 3. Add pre-action and post-action hooks.
 4. Add external-tool adapters with isolated permissions.
-5. Add model fallback and task-to-model routing.
+5. Add model fallback and task-to-model routing. Fixture: when no configured model satisfies the step's `requiredReliability`, the runtime narrows the step, decomposes it, or escalates, and never proceeds at the unmet reliability (§80.4.3).
 6. Add bounded long-term project memory.
 7. Add scheduled safe tasks and notification policies.
 8. Add advanced native project profiles.

@@ -1351,7 +1351,7 @@ Explore → Plan → Implement → Test → Review → Repair → Re-test → Su
 
 The chain should not assume that every stage must run for every task. The planner may skip implementation for a planning request, and the reviewer may require a repair stage only when it identifies a material issue.
 
-Each stage should have a quality gate. For example, implementation cannot be marked complete when the project does not compile, testing cannot be marked complete when required tests were skipped, and release preparation cannot be marked complete when the artifact path or checksum is missing. Review of an implementation MUST execute on a different worker from the worker that produced it, and validation of a repair MUST execute on a different worker from the repair producer; review evidence MUST identify both producer and reviewer worker identities and demonstrate their separation. Different `attemptId` values on the same worker do not satisfy this rule.
+Each stage should have a quality gate. For example, implementation cannot be marked complete when the project does not compile, testing cannot be marked complete when required tests were skipped, and release preparation cannot be marked complete when the artifact path or checksum is missing. Review of an implementation MUST execute on a different worker from the worker that produced it, and validation of a repair MUST execute on a different worker from the repair producer; the Test stage MUST execute on a different worker than the implementation producer, and test evidence MUST identify both producer and test-worker identities and demonstrate their separation. Different `attemptId` values, sequence numbers, or any other identifier alone on the same worker do not satisfy this rule.
 
 ### 23.6 Parallel work with isolation
 
@@ -6103,7 +6103,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §23.5 | "A typical feature chain should be" the eight stages | MUST use this stage vocabulary | Stage names are canonical; additional stages require a named definition |
 | BS §23.5 | "The chain should not assume that every stage must run for every task" | MAY skip stages | A skipped stage MUST be recorded with its reason. Silent omission is prohibited |
 | BS §23.5 | "Each stage should have a quality gate" | MUST gate every stage | Implementation cannot complete when the project does not compile; testing cannot complete when required tests were skipped; release cannot complete without artifact path and checksum |
-| BS §23.5 | "Review of an implementation MUST execute on a different worker from the worker that produced it" | MUST separate producer and reviewer workers | Applies to repair validation; review evidence MUST cite both worker identities; different `attemptId` alone is insufficient |
+| BS §23.5 | "Review of an implementation MUST execute on a different worker from the worker that produced it" | MUST separate producer, reviewer, and test workers | Applies to repair validation and the Test stage; review and test evidence MUST cite both worker identities; different `attemptId` alone is insufficient |
 | BS §23.6 | "should support parallel tasks only when each task has an isolated project copy, Git worktree, or equivalent workspace boundary" | MUST isolate before parallelising | Parallel execution without isolation is prohibited |
 | BS §23.6 | "The parallel-task lifecycle should be" the nine stages | MUST follow all nine in order | Matches §26.4 reconciliation; the two MUST NOT diverge |
 | BS §23.6 | "The user should be able to view each worker session, inspect its logs, pause it, cancel it, or open its isolated workspace" | MUST provide all five controls | Per worker session, at any time while it is active |
@@ -6558,7 +6558,7 @@ When selecting a model for a task, the runtime MUST use this ordered criteria:
 1. **Capability requirement** — The model MUST have the required capabilities (vision, reasoning, tool calling)
 2. **Task type suitability** — The model MUST be suitable for the task type (planning, coding, visual)
 3. **Context capacity** — The model MUST have sufficient context capacity for the task
-4. **Execution suitability** — Prefer the model with the strongest expected correctness and reliability for the task — its measured `AttentionReliabilityProfile` against the step's `requiredReliability` (§53.11), structured-output fidelity, and tool-call fidelity — when required capabilities are equivalent. Price is never a routing criterion (§72)
+4. **Execution suitability** — Prefer the model with the strongest expected correctness and reliability for the task — its measured `AttentionReliabilityProfile` against the step's `requiredReliability` (§53.11), structured-output fidelity, and tool-call fidelity — when required capabilities are equivalent. Price is never a routing criterion (§72). When no configured model satisfies the step's `requiredReliability`, the runtime MUST narrow the step, decompose it, or escalate; it MUST NOT proceed at the unmet reliability.
 5. **Latency** — Prefer lower-latency models when capability is equivalent
 6. **Historical performance** — Prefer models with higher success rates for this task type
 7. **Provider health** — Prefer providers with better current health metrics
