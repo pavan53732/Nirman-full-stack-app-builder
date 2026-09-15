@@ -255,7 +255,7 @@ TaskResult
 - unresolvedIssues
 - frontierDelta: list of { frontierItemId, fromState, toState, evidenceId }
 - remainingUnproven: list of frontierItemId
-- workerHandoffs
+- workerHandoffs: WorkerHandoff[]
 - providerAndModel
 - tokenUsage
 - estimatedCost
@@ -1491,6 +1491,7 @@ WorkerAssignment
 - workspaceLease: string (lease ID)
 - modelProfile: string (profile ID)
 - status: ("assigned" | "active" | "completed" | "failed" | "released")
+- attemptId: integer (monotonic assignment-attempt counter; 1 for the first assignment; incremented on re-lease)
 ```
 
 ### 1.62 ProviderProfile
@@ -4541,4 +4542,57 @@ BuildGateRecord
 - evidence_ids
 - result: VERIFIED | UNVERIFIED | UNAVAILABLE | USER_REQUIRED | FAILED
 - recorded_at
+```
+
+### 2.113 WorkerHandoff
+
+**Owner:** BS §29.5 · **Contract:** — · **Projected at:** —
+
+```text
+WorkerHandoff
+- filesChanged
+- assumptions
+- dependencies
+- testsCompleted
+- evidenceReferences
+- unresolvedIssues
+- recommendedNextAction
+- summary (BS §23.4; TA §6.4)
+- filesInspected (BS §23.4; TA §6.4)
+- commandsRun (TA §6.4)
+- confidence (TA §6.4)
+- frontierDelta: list of { frontierItemId, fromState, toState, evidenceId } (TA §34.4)
+- remainingUnproven: list of frontierItemId (TA §34.4)
+```
+
+### 2.114 SwarmPlan
+
+**Owner:** TA §58.5 · **Contract:** — · **Projected at:** —
+
+```text
+SwarmPlan
+- parallelGroups
+- serializedDependencies
+- workerProfiles
+- interfaces
+- leases
+- capacityReservations
+- integrationCheckpoints
+```
+
+**Hardening note:** `SwarmPlan` is vocabulary normalization for the TA §58.5 emission sentence: it pins the sentence's seven nouns as field names. It closes no defect and no mandatory contract gap; no consumer, persistence, or registry entry is implied, and the seven nouns gain no sub-schemas here.
+
+### 2.115 InterfaceAgreement
+
+**Owner:** BS §23.4 · **Contract:** — · **Projected at:** —
+
+```text
+InterfaceAgreement
+- apiShapes?
+- sharedTypes?
+- routeContracts?
+- databaseSchemas?
+- eventFormats?
+- designTokens?
+- artifactContracts? (TA §6.5)
 ```

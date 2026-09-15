@@ -431,6 +431,9 @@
 | `FrameQualityObservation` | §2.110 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameNotice` | §2.111 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `BuildGateRecord` | §2.112 | TA §84.1 | — | — |
+| `WorkerHandoff` | §2.113 | BS §29.5 | — | — |
+| `SwarmPlan` | §2.114 | TA §58.5 | — | — |
+| `InterfaceAgreement` | §2.115 | BS §23.4 | — | — |
 
 ## 4. Milestone → section
 

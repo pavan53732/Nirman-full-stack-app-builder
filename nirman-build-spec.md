@@ -1337,6 +1337,8 @@ The orchestrator should choose swarm size using task complexity, dependency coup
 
 For genuinely interdependent work, the orchestrator must create an interface agreement before parallel implementation. The agreement may include API shapes, shared types, route contracts, database schemas, event formats, or design tokens. Workers validate against this agreement before reconciliation.
 
+> **Schema projection:** `InterfaceAgreement` is defined in `nirman-schemas.md` §2.115. Owner: BS §23.4.
+
 Worker nesting is limited to three levels by default (ADR-227): the Primary Orchestrator may delegate to workers; a worker may request one Diagnostic Worker child; and a Diagnostic Worker may request one probe child — a Repository Scout or Emulator Driver Worker instance restricted to observation actions, spawned to acquire the single piece of evidence the diagnosis is missing. No child may change the parent contract, expand permissions, or integrate changes; a probe child cannot create children; and every level satisfies the ceilings of §66.8 inside the worker limits of technical architecture §7.2, so depth adds observation and never authority. Unrestricted delegation would make ownership, evidence, and recovery ambiguous, which is why the depth is fixed here rather than left to policy.
 
 ### 23.5 Worker chains and quality gates
@@ -2137,7 +2139,9 @@ When a stall is detected, the runtime must refresh context, change strategy, cha
 
 ### 29.5 Swarm handoff and reconciliation
 
-Parallel workers must receive explicit contracts and isolated workspaces. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
+Parallel workers must receive explicit contracts and isolated workspaces. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The handoff record is the `WorkerHandoff` block (`nirman-schemas.md` §2.113); its fields are the union of the §23.4, §29.5, TA §6.4, and TA §34.4 lists, so a handoff satisfying the block satisfies every list. The `worker.handoff.submit` payload is the `WorkerHandoff` record. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
+
+> **Schema projection:** `WorkerHandoff` is defined in `nirman-schemas.md` §2.113. Owner: BS §29.5.
 
 ### 29.6 APK completion gates
 

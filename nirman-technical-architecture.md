@@ -3082,6 +3082,8 @@ A skill composition is a directed acyclic graph with bounded depth, explicit inp
 
 `SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, emulator availability, provider concurrency, and resource pressure. It emits a `SwarmPlan` containing parallel groups, serialized dependencies, worker profiles, interfaces, leases, capacity reservations, and integration checkpoints.
 
+> **Schema projection:** `SwarmPlan` is defined in `nirman-schemas.md` §2.114. Owner: TA §58.5.
+
 `DelegationProtocol` supports:
 
 ```text
