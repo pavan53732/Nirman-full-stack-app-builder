@@ -1584,7 +1584,7 @@ Every worker message should contain the following fields:
 
 > **Schema projection:** `WorkerMessage` is defined in `nirman-schemas.md` §1.13. Owner: BS §26.2.
 
-Supported message types should include `task_claimed`, `progress_update`, `question`, `dependency_ready`, `implementation_summary`, `test_result`, `review_finding`, `merge_request`, `approval_required`, `worker_failed`, and `task_completed`.
+Supported message types should include `task_claimed`, `progress_update`, `question`, `dependency_ready`, `implementation_summary`, `test_result`, `review_finding`, `merge_request`, `approval_required`, `worker_failed`, and `task_completed`, and `message_acknowledged`. A worker that receives a message with `requiresAcknowledgement` set must send `message_acknowledged` carrying the acknowledged `messageId`.
 
 Workers should use heartbeats while active. A worker that misses a configured number of heartbeats should be marked stale, its process should be inspected, and its task should be requeued or escalated. Messages should be idempotent so that replay after a daemon restart does not create duplicate changes.
 
@@ -1744,7 +1744,7 @@ RECONCILING
 COMPLETED or ESCALATED
 ```
 
-Every state transition should be persisted with a reason and event reference. A task may continue automatically only from states marked recoverable. A task that reaches `ESCALATED` must require a new user action or explicit retry strategy.
+Every state transition should be persisted with a reason and event reference. A task may continue automatically only from states marked recoverable. The recoverable states are `FAILED_RETRYABLE` and `RECOVERING`. A task that reaches `ESCALATED` must require a new user action or explicit retry strategy. `CANCEL_REQUESTED` is terminal: the task performs no further autonomous transitions once entered, teardown completes through cancellation propagation (BS §52.12), and the §27.10 completion classification derives `Cancelled` from this state.
 
 This is the canonical **task-execution state set** (`TaskExecutionState`). It is the only vocabulary for the state of one autonomous task, and technical architecture §5.1 implements it with exactly these names. It is distinct from, and nested inside, the **session product lifecycle** of §33.2 (`ProductLifecycleState`, whose machine-readable enum is fixed in §5.7.2): a session in `Implementing` may own many tasks, each in one of the states above. Kernel cycle outcomes (technical architecture §71.4) and completion classifications (§27.10) are neither task nor session states; the §33.2 mapping table fixes how each of them projects onto these two sets. No document may introduce a further task or session state vocabulary (AGENTS.md: one canonical lifecycle).
 
@@ -3180,7 +3180,7 @@ Swarm execution
 Reconciliation and validation
 ```
 
-The typed delegation protocol must support `delegate`, `spawn`, `handoff`, `resume`, `cancel`, `replace`, `retry`, `escalate`, and `merge`. A delegation request must include the required capability, proposed role/profile, task scope, input references, expected outputs, validation requirements, parent task, workspace lease, and cancellation lineage.
+The typed delegation protocol must support `delegate`, `spawn`, `handoff`, `resume`, `cancel`, `replace`, `retry`, `escalate`, and `merge`. A delegation request must include the required capability, proposed role/profile, task scope, input references, expected outputs, validation requirements, parent task, workspace lease, and cancellation lineage. `delegate`, issued by the delegating parent, authorizes a child agent under a `DelegationGrant` (`nirman-schemas.md` §1.31) with ceilings checked by the `DelegationManager`. `spawn` instantiates an already-granted worker as a leased process through the scheduler and `WorkerRuntime`. `handoff`, requested by either peer worker, transfers a `TaskContract` (`nirman-schemas.md` §2.1) for peer or chain continuation, while `worker.handoff.submit` delivers a `WorkerHandoff` (`nirman-schemas.md` §2.113) to the integration authority; the two differ by destination and payload. `resume`, executed by the supervisor, restores a paused scope on its existing lease from durable state and mints no new attempt. `cancel`, owned by the requesting user or parent, records the request and propagates it along the operation's cancellation lineage through the `CancellationPropagationManager`, ending descendant scopes by acknowledgement or forced termination. `replace`, owned by the supervisor and scheduler, retires the current lease and mints the next `WorkerAssignment` with the next `attemptId`, carrying the replaced attempt's failure fingerprint and recorded previous owner. `retry`, requested by the worker or its delegating parent, re-attempts the same scope under a stated strategy; scheduler requeue instead recycles crashed or stale claims. `escalate`, raised by the worker, moves the scope to `ESCALATED` with its reason, requiring a new user action or explicit retry strategy. `merge`, owned by the orchestrator through the reconciliation worker, submits results into the §26.4 reconciliation pipeline through the §54.5 commit barrier. An operation naming an unknown scope, worker, or contract, or exceeding its grant ceilings, is rejected without state change and persisted as a policy or integrity event; ceiling breaches additionally trigger cascading revocation by the `DelegationManager`.
 
 ### 52.7 KnowledgeLedger and TaskBlackboard
 
@@ -3195,6 +3195,8 @@ Workers may read relevant entries, propose artifacts, attach evidence, request c
 Every isolated worktree, copy-on-write workspace, terminal, ADB session, emulator, debugger, LSP, preview process, and other long-lived execution resource must be represented by an ownership and lifecycle record.
 
 A `WorkspaceLease` must include workspace ID, owner worker, task ID, parent checkpoint, lease state, acquisition time, heartbeat, expiration, cleanup policy, recovery policy, current revision, and stale-owner handling. Lease recovery must prevent orphan worktrees, duplicate ownership, zombie builds, and stale writes.
+
+> **Schema projection:** `WorkspaceLease` is defined in `nirman-schemas.md` §2.117. Owner: BS §52.8.
 
 A `ToolSession` must include session ID, tool type, owner, task and project scope, environment fingerprint, process group, current state, capability scope, input policy, output reference, heartbeat, reconnect policy, cleanup policy, and evidence references. Sessions must support reconnect after worker replacement or UI restart without granting a new scope.
 
@@ -3252,7 +3254,7 @@ The runtime must detect dependency cycles across tasks, workers, resource reserv
 
 Swarm execution must apply backpressure when workers compete for Gradle, emulator slots, GPU capacity, storage, or provider concurrency. Reservations, priority, fairness, queues, and resource release must be visible in the task graph.
 
-Cancellation must propagate from goal to task graph, workers, skills, ToolSessions, processes, PTY sessions, emulator operations, and pending provider requests. Each layer must support graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
+Cancellation must propagate from goal to task graph, workers, skills, ToolSessions, processes, PTY sessions, emulator operations, and pending provider requests. Each layer must support graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics. A cancellation unacknowledged within the worker stale threshold (60 seconds, §26.3) escalates to forced termination.
 
 Workers and skills must support independent pause and resume. Pausing must preserve context references, ToolSessions, leases, checkpoints, and unresolved questions while allowing unrelated work to continue.
 
@@ -6017,7 +6019,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
 | BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
 | BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All twelve `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
-| BS §26.2 | "Supported message types should include" the eleven listed | MUST support all eleven | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
+| BS §26.2 | "Supported message types should include" the twelve listed | MUST support all twelve | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
 | BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
 | BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
 | BS §26.2 | "its process should be inspected" | MUST inspect | On stale: confirm process liveness, capture exit code if dead, capture last output, record a durable failure record before any requeue |

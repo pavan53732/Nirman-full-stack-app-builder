@@ -4596,3 +4596,42 @@ InterfaceAgreement
 - designTokens?
 - artifactContracts? (TA §6.5)
 ```
+
+### 2.116 WorkerLease
+
+**Owner:** TA §27.4 · **Contract:** — · **Projected at:** —
+
+```text
+WorkerLease
+- workerId
+- taskId
+- nodeId
+- workspace
+- processId
+- attemptId: integer (identical to WorkerAssignment.attemptId, SCHEMAS §1.61; one identity)
+- leaseStart
+- leaseExpiry
+- heartbeatSequence
+- resourceSnapshot
+- cancellationState
+```
+
+### 2.117 WorkspaceLease
+
+**Owner:** BS §52.8 · **Contract:** — · **Projected at:** —
+
+```text
+WorkspaceLease
+- workspaceId
+- ownerWorker
+- taskId
+- parentCheckpoint
+- leaseState
+- acquisitionTime
+- heartbeat
+- expiration
+- cleanupPolicy
+- recoveryPolicy
+- currentRevision
+- staleOwnerHandling
+```

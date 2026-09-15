@@ -434,6 +434,8 @@
 | `WorkerHandoff` | §2.113 | BS §29.5 | — | — |
 | `SwarmPlan` | §2.114 | TA §58.5 | — | — |
 | `InterfaceAgreement` | §2.115 | BS §23.4 | — | — |
+| `WorkerLease` | §2.116 | TA §27.4 | — | — |
+| `WorkspaceLease` | §2.117 | BS §52.8 | — | — |
 
 ## 4. Milestone → section
 
