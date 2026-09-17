@@ -4066,7 +4066,8 @@ def build_index(docs, R):
     for label, name, text in (("Build Spec", DOCS["bs"], bs), ("Technical Architecture", DOCS["ta"], ta)):
         lines += [f"### {label} (`{name}`)", "", "| § | Title |", "|---|---|"]
         for num, title in _heading_map(text, depth=2):
-            lines.append(f"| §{num} | {title.replace('|', '\\|')} |")
+            escaped_title = title.replace('|', '\\|')
+            lines.append(f"| §{num} | {escaped_title} |")
         lines.append("")
     if sch:
         lines += [f"### Schema document (`{DOCS['schemas']}`)", "", "| § | Group |", "|---|---|"]
