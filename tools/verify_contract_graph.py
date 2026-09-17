@@ -2016,6 +2016,9 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_cr is None or "- outcome: ANSWERED | PROCEEDED_ON_DEFAULT | USER_REQUIRED | WITHDRAWN" not in m_cr.group(1):
         D.add("semantic documentation", "autonomous loop",
               "nirman-schemas.md ClarificationRecord block must carry the outcome enumeration with PROCEEDED_ON_DEFAULT (ADR-225)")
+    if m_cr is None or "automaticPathsAttempted" not in m_cr.group(1):
+        D.add("semantic documentation", "autonomous loop",
+              "nirman-schemas.md ClarificationRecord block must carry `automaticPathsAttempted` (ADR-225; BS §69.10)")
     m_542 = _section_text(bs, "54.2") or ""
     for needle, why in (("`SharedSurfaceChangeRequest` is defined in `nirman-schemas.md`", "project the SharedSurfaceChangeRequest schema"),
                         ("never by textual merge", "apply shared-surface requests semantically, never by textual merge"),

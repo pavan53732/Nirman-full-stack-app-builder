@@ -1757,6 +1757,7 @@ ClarificationRecord
 - answeredAt
 - answer
 - outcome: ANSWERED | PROCEEDED_ON_DEFAULT | USER_REQUIRED | WITHDRAWN
+- automaticPathsAttempted: required when outcome is USER_REQUIRED; otherwise absent. list of { path: SCREEN_MODEL_PERCEPTION | SCREEN_GRAPH_DERIVATION | DEVICE_HYGIENE_DIALOG_HANDLING | GOLDEN_SNAPSHOT_DETERMINISM | CLARIFICATION_ANSWER_OR_PROCEED | CONTRACT_DOUBLE_BACKED_SERVICE | REPAIR_PATTERN_BEFORE_REASONING | SINGLE_WRITER_SHARED_SURFACE | PREVIEW_VALIDATION_DEVICE_RULE, reason: UNAVAILABLE | UNAUTHORIZED | UNSAFE | UNSUCCESSFUL, detail } (one entry per applicable automatic path actually attempted or evaluated before this decision, carrying the reason it did not apply; never a default enumeration of all nine)
 - proceededAt
 - replanDirectiveId
 - createdAt
