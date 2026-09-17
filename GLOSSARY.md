@@ -201,3 +201,11 @@
 **State-transition coverage** — Verification across five dimensions: behavioral correctness, state-transition coverage, resilience correctness, regression safety, and negative proof. — BS §56.x.
 
 **Test identity (`TEST-*`) / evidence identity (`EV-*`)** — The stable identifiers that tie a capability to the test that proves it and the evidence the test emits. — BS §5.7; BS §67.15.
+
+**Documentation mutation battery (harness)** — The conformance harness (`tools/test_verify_contract_graph.py`) that copies the ten root documents, injects exactly one mutation per case, and asserts the verifier reports the expected defect class; a passing case proves the build-spec §67.11 check it targets is not vacuous. — ADR-204; build spec §67.11.
+
+**Mutation case** — One battery entry: a file, the exact current anchor text, the injected replacement, and the expected defect class. The anchor is an exact quotation of live document text; a case whose anchor no longer matches the document is itself a defect and must be repaired in the same change that moved the text. — AGENTS.md.
+
+**NOT_PROVEN (provenance status)** — The acknowledgement that a documented check has no proving mutation in the current tree (today: command payload coverage, whose anchors target Rust source); printed on the battery's summary line as `not proven: <check>`, distinct from both PASS and a defect. — tools/test_verify_contract_graph.py.
+
+**Command payload coverage** — The verifier check that the `ArtifactExportCommandPayload` Rust struct exposes the policy-mandatory payload fields; recorded as SKIP, never PASS, when no Rust source exists in the working tree. — technical architecture §73; `crates/`.

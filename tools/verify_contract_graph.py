@@ -196,6 +196,10 @@ EDGE_DOMAIN = {
 
 DOC_OF = {"BS": "bs", "TA": "ta"}
 
+# Explicit deterministic cell value (§67.15 preamble): an INTERNAL-class
+# predicate contract owns no section/schema/persistence artifact of that edge.
+NA_CELL = "N/A (INTERNAL predicate)"
+
 # The ADR-227 twenty-one canonical worker roles (BS §22.1, BS §23.4, TA §6.5).
 # Module-level so the prose-table check and the manifest role-membership check
 # pin the same set; a second literal here would desync exactly the way the
@@ -710,7 +714,7 @@ def check_dangling(R, docs, D):
 
         for edge, required in EDGE_DOMAIN.items():
             cell = row[edge]
-            if cell == "all":
+            if cell in ("all", NA_CELL):
                 continue
             doc, sec, sub, err = parse_ref(cell)
             if err:
@@ -743,6 +747,39 @@ def check_dangling(R, docs, D):
             D.add("dangling reference", cid, f"test id {row['test']} is defined nowhere")
         if row["evidence"] not in evid:
             D.add("dangling reference", cid, f"evidence id {row['evidence']} is defined nowhere")
+
+    # §67.8 registry cells must agree with the §67.15 twelve-edge rows —
+    # same milestone, same architecture edge; every §67.15 ADR edge recorded
+    # in the §67.8 ADR registry cell.
+    for cid, r in sorted(contracts.items()):
+        row = chain.get(cid)
+        if not row:
+            continue
+        if r["mile"] != row["milestone"]:
+            D.add("structure", cid,
+                  f"§67.8 milestone {r['mile']} disagrees with §67.15 milestone {row['milestone']}")
+        a15 = set(re.findall(r"ADR-\d+", row["adr"]))
+        a8 = set(re.findall(r"ADR-\d+", r["adr"]))
+        if not a15 <= a8:
+            D.add("structure", cid,
+                  f"§67.15 ADR edge {sorted(a15 - a8)} not recorded in the §67.8 ADR registry cell")
+        arch8 = set(re.findall(r"(?:TA|BS) §\d+", r["arch"]))
+        arch15 = set(re.findall(r"(?:TA|BS) §\d+", row["architecture"]))
+        if (r["arch"].strip() in ("all", "—", "-", "", NA_CELL)) != (row["architecture"].strip() in ("all", "—", "-", "", NA_CELL)) or (arch15 and not arch15 <= arch8):
+            D.add("structure", cid,
+                  f"§67.8 architecture {r['arch']} does not cover §67.15 architecture {row['architecture']}")
+
+    # Canonical §-pointers in the milestone document resolve to real sections.
+    def _sec_set(text, levels):
+        return set(re.findall(levels, text, re.M))
+    bs_all = _sec_set(docs.get("bs", ""), r"^#{2,4} (\d+(?:\.\d+)*)[.: ]")
+    ta_all = _sec_set(docs.get("ta", ""), r"^#{2,4} (\d+(?:\.\d+)*)[.: ]")
+    sch_all = _sec_set(docs.get("schemas", ""), r"^#{2,3} (\d+(?:\.\d+)*) ")
+    targets = {"BS": bs_all, "TA": ta_all, "SCHEMAS": sch_all}
+    for m in re.finditer(r"(?<![A-Za-z])(BS|TA|SCHEMAS) §(\d+(?:\.\d+)*)", docs["dev"]):
+        if m.group(2) not in targets[m.group(1)]:
+            D.add("dangling reference", "milestone document",
+                  f"{m.group(1)} §{m.group(2)} does not exist in the referenced document")
 
     # §67.12 clause authority sections
     for cl, meta in sorted(R["clauses"].items()):
@@ -1383,7 +1420,9 @@ def check_semantic_documentation(docs, R, D, root="."):
         end = marks[i + 1][0] if i + 1 < len(marks) else len(ta)
         ta_secs[num] = ta[pos:end]
     for cid, r in sorted(R["contracts"].items()):
-        if r["arch"].strip() in ("all", "—", "-", ""):
+        if r["arch"].strip() in ("all", "—", "-", "", NA_CELL):
+            continue
+        if r["arch"].strip() in ("all", "—", "-", "", NA_CELL):
             continue
         secs = secrefs(r["arch"])
         if any(re.search(rf"(?<![A-Z_.]){re.escape(cid)}(?![A-Z_])", ta_secs.get(n, "")) for n in secs):
@@ -4079,23 +4118,46 @@ def build_index(docs, R):
     lines.append("")
     if sch:
         lines += ["## 3. Schema → location", "", "| Schema | SCHEMAS § | Owner | Contract | Projected at |", "|---|---|---|---|---|"]
-        for m in re.finditer(r"^### (\d+\.\d+) ([A-Za-z0-9]+)\n\n\*\*Owner:\*\* ([^·\n]+?) · \*\*Contract:\*\* ([^·\n]+?) · \*\*Projected at:\*\* ([^\n]*)$", sch, re.M):
+        sch_rows = []
+        for m in re.finditer(r"^### (\d+(?:\.\d+)+) ([A-Za-z0-9]+)(?:[^\n]*)\n\n\*\*Owner:\*\* ([^·\n]+?) · \*\*Contract:\*\* ([^·\n]+?) · \*\*Projected at:\*\* ([^\n]*)$", sch, re.M):
+            sch_rows.append(([int(x) for x in m.group(1).split(".")], m))
+        for _, m in sorted(sch_rows, key=lambda p: p[0]):
             lines.append(f"| `{m.group(2)}` | §{m.group(1)} | {m.group(3)} | {m.group(4)} | {m.group(5)} |")
         lines.append("")
     lines += ["## 4. Milestone → section", "", f"Milestone blocks live in `{DOCS['dev']}`; the section number is the heading under which the block sits.", "",
               "| Milestone | Heading |", "|---|---|"]
-    fence, cur = False, None
+    fence, cur = False, "—"
+    seen_ms = set()
     for line in dev.split("\n"):
         if line.startswith("```"):
             fence = not fence
             continue
         if fence:
             continue
-        m = re.match(r"^## (\d+)\. M(\d+): (.*\S)\s*$", line) or re.match(r"^## M(\d+)(?: — |: )(.*\S)\s*$", line)
-        if m and len(m.groups()) == 3:
-            lines.append(f"| M{m.group(2)} | §{m.group(1)} {m.group(3)} |")
-        elif m:
-            lines.append(f"| M{m.group(1)} | {m.group(2)} |")
+        m = re.match(r"^## (\d+)\. M(\d+): (.*\S)\s*$", line)
+        if m:
+            cur = f"§{m.group(1)} {m.group(3)}"
+            if m.group(2) not in seen_ms:
+                seen_ms.add(m.group(2))
+                lines.append(f"| M{m.group(2)} | §{m.group(1)} {m.group(3)} |")
+            continue
+        m = re.match(r"^## M(\d+)(?:–M(\d+))?(?: — |: )(.*\S)\s*$", line)
+        if m:
+            lo = int(m.group(1))
+            hi = int(m.group(2)) if m.group(2) else lo
+            for mid in range(lo, hi + 1):
+                if str(mid) not in seen_ms:
+                    seen_ms.add(str(mid))
+                    lines.append(f"| M{mid} | {m.group(3)} |")
+            continue
+        if line.startswith("## "):
+            s = re.match(r"^## (\d+)\. (.*\S)\s*$", line)
+            cur = f"§{s.group(1)} {s.group(2)}" if s else line[3:].strip()
+            continue
+        tm = re.match(r"^\| M(\d+) \|", line)
+        if tm and tm.group(1) not in seen_ms:
+            seen_ms.add(tm.group(1))
+            lines.append(f"| M{tm.group(1)} | {cur} |")
     lines.append("")
     lines += ["## 5. ADR ranges", "", f"ADR records live in `{DOCS['adrs']}` in ascending order.", "", "| Range | Count | Statuses |", "|---|---|---|"]
     ids = []
@@ -4129,6 +4191,67 @@ def check_index_drift(docs, R, D):
         first = next((i for i, (a, b) in enumerate(zip(cur_lines, exp_lines)) if a != b), min(len(cur_lines), len(exp_lines)))
         D.add("structure", DOCS["index"],
               f"INDEX.md differs from the generator output at line {first + 1}; regenerate with --emit-index")
+    # Generator-side completeness: every milestone id cited by the §67.8/§67.15
+    # registry cells must be visible in the generated milestone map.
+    cited = set()
+    for r in R["contracts"].values():
+        cited |= set(re.findall(r"M(\d+)", r["mile"]))
+    for row in R["chain"].values():
+        cited |= set(re.findall(r"M(\d+)", row["milestone"]))
+    idx_ids = set(re.findall(r"^\| M(\d+) ", expected, re.M))
+    for mid in sorted(int(x) for x in cited - idx_ids):
+        D.add("structure", DOCS["index"],
+              f"INDEX milestone map omits registry-cited M{mid} (generator grammar gap or stale INDEX)")
+
+
+def check_schema_registry_closure(docs, R, D):
+    """BS §67.11 structure row (ADR-241): the CanonicalSchemaRegistry fence list
+    is closed — a registered name owns a field block or is declared in the §3.1
+    prose-defined identity list; a declaration must name a registered identity
+    without a block; every fenced block sits in its physical group region."""
+    sch = docs.get("schemas", "")
+    if not sch:
+        return
+    # placement: a ### N.N… block belongs to the physical group of its major
+    major = None
+    for line in sch.split("\n"):
+        g = re.match(r"^## (\d+)\. ", line)
+        if g:
+            major = int(g.group(1))
+            continue
+        b = re.match(r"^### (\d+)(?:\.\d+)+ ", line)
+        if b and major is not None and int(b.group(1)) != major:
+            D.add("structure", "nirman-schemas.md",
+                  f"block §{line.split()[1]} sits outside the physical group that owns its section number")
+    i = sch.find("### 3.1 CanonicalSchemaRegistry")
+    if i < 0:
+        return
+    region = sch[i:]
+    fm = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", region, re.S)
+    if not fm:
+        D.add("structure", "nirman-schemas.md", "CanonicalSchemaRegistry block missing or malformed")
+        return
+    names = [l.strip() for l in fm.group(1).splitlines() if re.match(r"^[A-Z][A-Za-z0-9]+$", l.strip())]
+    decls = re.findall(r"^- `([A-Za-z0-9]+)` — .*no projected field block", region, re.M)
+    blocks = set(m.group(1) for m in re.finditer(r"^### \d+(?:\.\d+)+ ([A-Za-z0-9]+)", sch, re.M))
+    name_set, decl_set = set(names), set(decls)
+    if len(names) != len(name_set):
+        D.add("structure", "CanonicalSchemaRegistry", "duplicate identity in the registry list")
+    for n in name_set:
+        if n not in blocks and n not in decl_set:
+            D.add("structure", n, "registered canonical-schema identity has neither a field block nor a §3.1 prose-defined declaration (ADR-241)")
+    for n in decl_set:
+        if n not in name_set:
+            D.add("structure", n, "§3.1 prose-defined declaration names an identity absent from the registry list")
+        if n in blocks:
+            D.add("structure", n, "§3.1 prose-defined declaration is stale: the identity has a field block; remove the declaration")
+    # declaration §-pointers resolve against the cited document
+    bs_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["bs"], re.M))
+    ta_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["ta"], re.M))
+    for m in re.finditer(r"^- `([A-Za-z0-9]+)` — [^\n]*?(build spec|technical architecture) §(\d+(?:\.\d+)*)", region, re.M):
+        ok = m.group(3) in (bs_secs if m.group(2) == "build spec" else ta_secs)
+        if not ok:
+            D.add("structure", m.group(1), f"prose-defined declaration's pointer ({m.group(2)} §{m.group(3)}) does not exist")
 
 
 def check_document_topology(docs, D, root):
@@ -4446,6 +4569,7 @@ def verify(root):
     check_section_ownership(R, D)
     check_semantic_documentation(docs, R, D, root)
     check_structure(docs, R, D)
+    check_schema_registry_closure(docs, R, D)
     check_document_topology(docs, D, root)
     check_index_drift(docs, R, D)
     check_skill_bodies(docs, D, root)

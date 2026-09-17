@@ -4258,8 +4258,8 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | — | — | — | INTERNAL |
+| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-157 | M93 | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |
@@ -4328,13 +4328,13 @@ The verifier must emit defects with the contract identifier, the sections involv
 
 The document-structure checks are these three defect classes. Each is individually addressable in the verifier output exactly like the twelve above, and a defect in any of them fails certification:
 
-The schema-parity relation named in the semantic-documentation row is this: the technical architecture's `CanonicalSchemaRegistry` (technical architecture §36.1; the list itself is held at SCHEMAS §3.1) is the single list of registered schema identities, and every fenced field-list schema has exactly one block, in `nirman-schemas.md`, whose owner line names the owning section of this document or of the technical architecture (ADR-220). A registered schema MUST have identical field-name sets in every occurrence; since the block is the only occurrence, the relation is enforced as follows: every `Schema.field` reference in a canonical document names a field the block carries, every field count stated in §80.2 matches the block, and a projection line stands at every former fence site and agrees with the block's owner line. Where a merged block carries a field that only the technical architecture's copy carried, the field line says so (`(technical architecture §x addition; build spec §67.11)`) and a count stated by this document excludes it. A schema named in the registry with no field block, a block that drops or renames a field a canonical document still cites by name, or a schema fence outside `nirman-schemas.md`, is a semantic-documentation or structure defect.
+The schema-parity relation named in the semantic-documentation row is this: the technical architecture's `CanonicalSchemaRegistry` (technical architecture §36.1; the list itself is held at SCHEMAS §3.1) is the single list of registered schema identities, and every fenced field-list schema has exactly one block, in `nirman-schemas.md`, whose owner line names the owning section of this document or of the technical architecture (ADR-220). A registered schema MUST have identical field-name sets in every occurrence; since the block is the only occurrence, the relation is enforced as follows: every `Schema.field` reference in a canonical document names a field the block carries, every field count stated in the body text of a canonical document matches the block, and a projection line stands at every former fence site and agrees with the block's owner line. Where a merged block carries a field that only the technical architecture's copy carried, the field line says so (`(technical architecture §x addition; build spec §67.11)`) and a count stated by this document excludes it. A schema named in the registry with no field block, a block that drops or renames a field a canonical document still cites by name, or a schema fence outside `nirman-schemas.md`, is a semantic-documentation or structure defect.
 
 | Additional check | Failure condition |
 |---|---|
-| Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, or ADR numbering has gaps |
+| Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, ADR numbering has gaps, a fenced field block sits outside the physical group region that owns its section number, a registered canonical-schema identity has neither a field block nor an entry in the §3.1 prose-defined identity list, or an edge cell disagrees between §67.8 and §67.15 |
 | NO_AI_USAGE_AUTHORITY | The corpus MUST NOT introduce an authoritative Nirman-owned AI token, request, monetary, reasoning, pass, or autonomous-duration budget, nor any semantic alias of these (including but not limited to: AI quota, inference cost, model credit, reasoning credit, prompt cost, completion token, embedding cost, throughput token, context credit, token pool, request budget, cost cap, model allowance, reasoning allowance, pass allowance, duration allowance, autonomous budget, execution credit, token limit as execution control, or any field whose semantics are AI-usage-quantity-with-authority). Usage fields are telemetry only and carry no execution-authority semantics. Physical resource, provider technical-capacity, concurrency, liveness, and policy constraints remain permitted. |
-| {old_rule}, schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
+| schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; or a `BS §n`, `TA §n`, or `SCHEMAS §n` pointer in a canonical document names a section that the target document does not contain; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
 | Command payload coverage | An implementation-facing command payload under `crates/` lacks a policy-mandatory field of its canonical schema; reported as unevaluated, never as passed, when the source is absent |
 
 The verifier also accepts `--dump-registries`, which prints the parsed §5.7, §67.8, §67.12, §67.15, and milestone-mapping registries without changing the exit code; this is the only sanctioned way to inspect what the verifier believes the registries say.
@@ -4505,7 +4505,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 
 ### 67.15 Twelve-edge resolution table
 
-§67.3 defines the chain. This table makes every edge individually addressable so forward traversal is resolved by lookup rather than by reading. Each row is one registered contract; each column is one edge.
+§67.3 defines the chain. This table makes every edge individually addressable so forward traversal is resolved by lookup rather than by reading. Each row is one registered contract; each column is one edge. A cell carrying `N/A (INTERNAL predicate)` is an explicit deterministic value, not a blank: it records that an INTERNAL-class predicate contract is enforced corpus-wide and owns no section, schema, or persistence artifact of that edge's class; the §67.8 registry cells use the same value for the same edges.
 
 | ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4542,7 +4542,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | all | all | BS §80 | all | BS §80 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | N/A (INTERNAL predicate) | N/A (INTERNAL predicate) | BS §80 | N/A (INTERNAL predicate) | BS §80 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-001 |
 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.3 | ADR-212 | M121 | TEST-CONV-001 | EV-CONV-001 |
 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.6 | ADR-213 | M122 | TEST-CHANGE-001 | EV-CHANGE-001 |
@@ -7233,7 +7233,7 @@ The unit of coverage is the §80.2 resolution row. One row resolves one "should"
 | AGENTS.md | 2 | 2 | Complete |
 | **Total** | **505** | **505** | **100%** |
 
-Earlier iterations of this table reported 320/172/18/2 (512 total) and described BS §3–§12 as 82 statements. Those figures were raw occurrences of the word "should", not resolution rows, and were never machine-derived; the §80.2 table itself has only ever grown. The table above uses the verifiable unit. BS §3–§12 is covered by 80 rows; the present task removed one duplicate-entry row added during the self-improvement reconciliation, bringing Build spec from 322 to 321 rows and total from 497 to 496.
+Earlier iterations of this table counted raw occurrences of the word "should", which were never machine-derived and matched no resolution rows; the table above is the only verifiable unit and has only ever grown.
 
 Counts exclude §80's own prose. They MUST be updated in the same commit as any change to the §80.2 table; the verifier enforces this.
 

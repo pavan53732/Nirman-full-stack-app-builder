@@ -1748,7 +1748,7 @@ Each contract has a schema version, owner, lifecycle status, project scope, sour
 
 `APKExportRecord` is not a registered schema: it is the read-model view of `ExportVerificationRecord` for an APK deployment (§74.3, build spec §78) and carries no field of its own. `SigningState`, `DeliveryState`, `ReproducibilityLevel`, `AssuranceState`, `CapabilityMaturity`, and `ProductLifecycleState` are enumerations owned by build spec §5.7.2, not registered schemas; `ReproducibilityLevel` is the value set of the `reproducibilityLevel` field of `AndroidCapabilityProfile` and `ArtifactSet`. `PackagingProfile` is owned by build spec §5.7.3 and `SkillPackage` by build spec §23.11; §19.1 restates the latter field for field.
 
-`CanonicalSchemaRegistry` is the sole machine-readable ownership index for these contracts. Each entry records `schemaId`, `canonicalOwner`, `version`, fields, enum values, invariants, migration policy, authority, persistence location, and acceptance-fixture IDs. Repeated schema descriptions in other documents are explanatory or implementation views and must identify the registry entry they implement; they cannot silently redefine fields or enum semantics.
+`CanonicalSchemaRegistry` is the sole machine-readable ownership index for these contracts. Its membership is enumerated at `nirman-schemas.md` §3.1 and is machine-checkable (ADR-241): each registered name has a field block in that document or is declared in §3.1's prose-defined identity list. Each entry records `schemaId`, `canonicalOwner`, `version`, fields, enum values, invariants, migration policy, authority, persistence location, and acceptance-fixture IDs. Repeated schema descriptions in other documents are explanatory or implementation views and must identify the registry entry they implement; they cannot silently redefine fields or enum semantics.
 
 Schema compatibility is explicit:
 
@@ -2455,7 +2455,7 @@ The summarizer must produce concise, decision-relevant information: objective, c
 
 ### 55.2 ReasoningStreamEvent
 
-> **Schema projection:** Field block authoritative at SCHEMAS §2.97.1. This section carries event type vocabulary and runtime/producer constraints only. Owner: SCHEMAS §2.97.1.
+> **Schema projection:** Field block authoritative at SCHEMAS §2.97.1. This section carries event type vocabulary and runtime/producer constraints only. Owner: TA §55.2.
 
 ```text
 ReasoningStreamEvent

@@ -205,8 +205,8 @@ CASES = {
 
     # ---- check 10: orphan contract (the false-negative case)
     "orphan contract with a VALID class": (
-        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |",
-        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | all | ADR-157 | M93 | FOUNDATIONAL |\n"
+        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |\n"
         "| CONTRACT.RUNTIME.DEAD_TEST | BS §64 | — | TA §69 | ADR-153 | M90 | INTERNAL |",
         "orphan contract"),
     "cross-cutting contract unreachable from any capability": (
@@ -339,10 +339,10 @@ CASES = {
 
     # ---- coverage derivation audit: §80.10 must equal the §80.2 row counts
     "§80.10 build-spec figure drifts from §80.2": (
-        BS, "| Build spec (all sections) | 327 | 327 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
+        BS, "| Build spec (all sections) | 329 | 329 | Complete |", "| Build spec (all sections) | 360 | 360 | Complete |",
         "semantic documentation"),
     "§80.10 total overstated": (
-        BS, "| **Total** | **502** | **502** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
+        BS, "| **Total** | **505** | **505** | **100%** |", "| **Total** | **560** | **560** | **100%** |",
         "semantic documentation"),
     "§80.2 row deleted without updating §80.10": (
         BS, '| BS §3.4 | "should create a checkpoint" | MUST create checkpoint | Before every multi-file autonomous task |\n', "",
@@ -1455,6 +1455,28 @@ CASES = {
         BS, "TEST-FCP-001 | EV-FCP-001",
         "TEST-GEN-001 | EV-GEN-001",
         "reverse break"),
+
+    # ---- registry closure & placement & pointer dangle & registry consistency
+    # (BS §67.11 structure/dangling rows; ADR-241)
+    "registry identity loses block and declaration": (
+        SCHEMAS, "- `AndroidRuntimeIntegrityObservation` — normative shape prose-defined at build spec §75; no projected field block (ADR-241).\n",
+        "", "structure"),
+    "prose-defined declaration for unregistered identity": (
+        SCHEMAS, "- `WorkerContract` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).",
+        "- `WorkerContract` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).\n- `GhostIdentity` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).",
+        "structure"),
+    "milestone document cites a nonexistent TA section": (
+        DEV, "behavioral or accessibility correctness (BS §79.5).",
+        "behavioral or accessibility correctness (BS §79.5; TA §474).",
+        "dangling reference"),
+    "registry and twelve-edge milestone cells disagree": (
+        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M94 | FOUNDATIONAL |",
+        "structure"),
+    "schema block sits outside its group region": (
+        SCHEMAS, "## 3. Canonical schema registry",
+        "### 1.999 GhostPlacement\n\n**Owner:** BS §5 · **Contract:** — · **Projected at:** —\n\n```text\nGhostPlacement\n- ghostField\n```\n\n## 3. Canonical schema registry",
+        "structure"),
 
     # ---- check 14: command payload coverage
     # The check requires ArtifactExportCommandPayload to expose the policy-

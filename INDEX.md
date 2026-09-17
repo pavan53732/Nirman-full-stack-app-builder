@@ -198,7 +198,7 @@
 
 | ContractId | Authority | Extensions | Architecture | Class |
 |---|---|---|---|---|
-| `CONTRACT.RUNTIME.AGENT_BUILDABILITY` | BS §80 | — | — | INTERNAL |
+| `CONTRACT.RUNTIME.AGENT_BUILDABILITY` | BS §80 | — | N/A (INTERNAL predicate) | INTERNAL |
 | `CONTRACT.RUNTIME.AGENT_TRUST` | BS §73 | — | TA §78 | CROSS_CUTTING |
 | `CONTRACT.RUNTIME.ANDROID_INTEGRITY` | BS §75 | — | TA §80 | CROSS_CUTTING |
 | `CONTRACT.RUNTIME.APK_EXPORT` | BS §78 | — | TA §83 | CROSS_CUTTING |
@@ -217,7 +217,7 @@
 | `CONTRACT.RUNTIME.EVIDENCE` | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | FOUNDATIONAL |
 | `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE` | BS §76 | — | TA §81 | CROSS_CUTTING |
 | `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY` | BS §70 | — | TA §74 | CROSS_CUTTING |
-| `CONTRACT.RUNTIME.INVARIANTS` | BS §67 | BS §80 | all | FOUNDATIONAL |
+| `CONTRACT.RUNTIME.INVARIANTS` | BS §67 | BS §80 | TA §23 | FOUNDATIONAL |
 | `CONTRACT.RUNTIME.LOCALIZATION` | BS §62 | — | TA §63 | CROSS_CUTTING |
 | `CONTRACT.RUNTIME.MEMORY` | BS §38 | BS §53 | TA §31, TA §59 | CROSS_CUTTING |
 | `CONTRACT.RUNTIME.PLATFORM_CAPABILITY` | BS §79 | BS §37, BS §52 | TA §84 | CROSS_CUTTING |
@@ -276,7 +276,6 @@
 | `SkillDeliberationProfile` | §1.34 | BS §68.15 | CONTRACT.RUNTIME.DELIBERATION | — |
 | `PreviewRevision` | §1.35 | BS §69.4 | CONTRACT.RUNTIME.PROMPT_CONTRACT | TA §73.3 |
 | `IntegrationBoundaryContract` | §1.36 | BS §70 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | TA §74 |
-| `WorkerConnection` | §2.90 | TA §57.11 | — | — |
 | `PreviewSyncEvent` | §1.37 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `PreviewProjection` | §1.38 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `PreviewProjectionReducer` | §1.39 | BS §71.1 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
@@ -408,6 +407,7 @@
 | `ToolchainProvisioningManifest` | §2.87 | TA §49.4 | — | — |
 | `ToolchainProvisioningRecord` | §2.88 | TA §49.4 | — | — |
 | `RenderTransport` | §2.89 | TA §10.7 | — | — |
+| `WorkerConnection` | §2.90 | TA §57.11 | — | — |
 | `ScreenModel` | §2.91 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
 | `ScreenGraph` | §2.92 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
 | `DeviceHygienePolicy` | §2.93 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
@@ -415,13 +415,14 @@
 | `ContractDouble` | §2.95 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
 | `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
-| `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
+| `ReasoningStreamEvent` | §2.97.1 | TA §55.2 | — | TA §55.2 |
 | `OrchestrationWiringMatrix` | §2.98 | BS §84 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `ScreenGraphAnalysisRecord` | §2.99 | TA §62.2 | CONTRACT.RUNTIME.E2E | — |
 | `RequirementCoverageReport` | §2.100 | BS §56.6 | CONTRACT.RUNTIME.E2E | — |
 | `ProjectMemoryEntry` | §2.101 | TA §31.3 | CONTRACT.RUNTIME.MEMORY | — |
 | `AndroidSemanticState` | §2.102 | TA §62.2 | CONTRACT.RUNTIME.E2E | — |
 | `StateSpaceCoverageModel` | §2.103 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
+| `ScenarioValidationMatrix` | §2.103.1 | TA §62.1 | CONTRACT.RUNTIME.E2E | — |
 | `RequirementToImplementationGraph` | §2.104 | TA §62.4 | CONTRACT.RUNTIME.E2E | — |
 | `ProofSynthesis` | §2.105 | BS §56.6 | CONTRACT.RUNTIME.E2E | — |
 | `ArchitectureFitnessReport` | §2.106 | TA §62.8 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | — |
@@ -436,6 +437,7 @@
 | `InterfaceAgreement` | §2.115 | BS §23.4 | — | — |
 | `WorkerLease` | §2.116 | TA §27.4 | — | — |
 | `WorkspaceLease` | §2.117 | BS §52.8 | — | — |
+| `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
 
@@ -443,45 +445,45 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 
 | Milestone | Heading |
 |---|---|
-| M0 | §3 Repository and Engineering Foundation |
-| M1 | §4 Nirman.exe WinUI Shell |
-| M2 | §5 Control Plane and Persistent State |
-| M3 | §6 Provider Runtime Foundation |
-| M4 | §7 Dynamic Android Project Synthesis and Local Runtime |
-| M5 | §8 Single-Worker Autonomous Development Loop |
-| M6 | §9 Permissions and Sandbox Profiles |
-| M7 | §10 Supervisor Survives UI Close/Restart |
-| M8 | §11 Multi-Worker Coordination |
-| M9 | §12 Android Emulator Runtime, Embedded Live Preview, and Visual Testing |
-| M10 | §13 Android Packaging |
-| M11 | §14 Android Capability Registry and Representative Profile Coverage |
-| M12 | §15 Advanced Extensibility |
-| M13 | Goal Mode and non-blocking background work |
-| M14 | Lifecycle hooks |
-| M15 | Scheduled automations |
-| M16 | Granular checkpoints and backtracking |
-| M17 | Context scaling and external-tool compatibility |
-| M18 | Durable task graph and nested execution tree |
-| M19 | Evidence-backed status and telemetry |
-| M20 | Autonomous validation coordinator |
-| M21 | Policy-boundary approvals and termination coordinator |
-| M22 | Provider-neutral AI settings and model gateway |
-| M23 | Controlled self-development loop |
-| M24 | Adaptive long-horizon provider execution |
-| M25 | Runtime supervisor and durable execution loop |
-| M26 | Graduated recovery ladder |
-| M27 | Self-observation and episode evaluation |
-| M28 | Self-improvement proposal manager |
-| M29 | Candidate canary, promotion, and rollback |
-| M30 | Canonical documentation and worker registry |
-| M31 | Autonomous-build policy and never-pause loop |
-| M32 | Persistent terminal subsystem |
-| M33 | Skills registry and invocation contract |
-| M34 | Windows lifecycle and multi-project resilience |
-| M35 | Long-horizon scale and unified execution surface |
-| M36 | Runtime authority and autonomous recovery invariants |
-| M37 | Android-only target contract |
-| M38 | Complete Android technology coverage |
+| M0 | §2 Delivery Milestones |
+| M1 | §2 Delivery Milestones |
+| M2 | §2 Delivery Milestones |
+| M3 | §2 Delivery Milestones |
+| M4 | §2 Delivery Milestones |
+| M5 | §2 Delivery Milestones |
+| M6 | §2 Delivery Milestones |
+| M7 | §2 Delivery Milestones |
+| M8 | §2 Delivery Milestones |
+| M9 | §2 Delivery Milestones |
+| M10 | §2 Delivery Milestones |
+| M11 | §2 Delivery Milestones |
+| M12 | §2 Delivery Milestones |
+| M13 | §2 Delivery Milestones |
+| M14 | §2 Delivery Milestones |
+| M15 | §2 Delivery Milestones |
+| M16 | §2 Delivery Milestones |
+| M17 | §2 Delivery Milestones |
+| M18 | §2 Delivery Milestones |
+| M19 | §2 Delivery Milestones |
+| M20 | §2 Delivery Milestones |
+| M21 | §2 Delivery Milestones |
+| M22 | §2 Delivery Milestones |
+| M23 | §2 Delivery Milestones |
+| M24 | §2 Delivery Milestones |
+| M25 | §2 Delivery Milestones |
+| M26 | §2 Delivery Milestones |
+| M27 | §2 Delivery Milestones |
+| M28 | §2 Delivery Milestones |
+| M29 | §2 Delivery Milestones |
+| M30 | §2 Delivery Milestones |
+| M31 | §2 Delivery Milestones |
+| M32 | §2 Delivery Milestones |
+| M33 | §2 Delivery Milestones |
+| M34 | §2 Delivery Milestones |
+| M35 | §2 Delivery Milestones |
+| M36 | §2 Delivery Milestones |
+| M37 | §2 Delivery Milestones |
+| M38 | §2 Delivery Milestones |
 | M39 | AndroidConstructionContract and schema authority |
 | M40 | Pure session reducer and event replay |
 | M41 | ConstructionTransaction and commit barrier |
@@ -502,15 +504,58 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M56 | Architecture and contract drift detection |
 | M57 | Project handbook, release intelligence, and runtime analysis |
 | M58 | Validated repair promotion and final integration |
-| M59 | PrivateReasoningRuntime and StructuredReasoningSummarizer |
-| M60 | ReasoningStreamEvent, filtering, and authenticated delivery |
-| M61 | Reasoning replay and presentation modes |
-| M62 | BrandManifest, AssetManifest, and UI Worker asset scope |
-| M63 | Android asset integration and validation |
-| M64 | ArtifactAssetInspector and final completion gate |
-| M94 | Agent Reasoning Runtime and Bounded Delegation |
-| M95 | Deep Deliberation Runtime |
-| M96 | IntentSynthesisPromptContract and no-template enforcement |
+| M59 | Reasoning Visibility and Streaming Milestones |
+| M60 | Reasoning Visibility and Streaming Milestones |
+| M61 | Reasoning Visibility and Streaming Milestones |
+| M62 | Brand and Asset Completion Milestones |
+| M63 | Brand and Asset Completion Milestones |
+| M64 | Brand and Asset Completion Milestones |
+| M65 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M66 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M67 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M68 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M69 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M70 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M71 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M72 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M73 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M74 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M75 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M76 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M77 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M78 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M79 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M80 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
+| M81 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M82 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M83 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M84 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M85 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M86 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M87 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M88 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M89 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M90 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M91 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M92 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M93 | Long-Horizon Intelligence, Verification, and Documentation Certification |
+| M94 | M81–M122 contract mapping |
+| M95 | M81–M122 contract mapping |
+| M96 | M81–M122 contract mapping |
+| M107 | M81–M122 contract mapping |
+| M108 | M81–M122 contract mapping |
+| M111 | M81–M122 contract mapping |
+| M112 | M81–M122 contract mapping |
+| M113 | M81–M122 contract mapping |
+| M114 | M81–M122 contract mapping |
+| M115 | M81–M122 contract mapping |
+| M116 | M81–M122 contract mapping |
+| M117 | M81–M122 contract mapping |
+| M118 | M81–M122 contract mapping |
+| M119 | M81–M122 contract mapping |
+| M120 | M81–M122 contract mapping |
+| M121 | M81–M122 contract mapping |
+| M122 | M81–M122 contract mapping |
 | M97 | Revision-bound PreviewCoordinator |
 | M98 | Truthful stepwise preview projection |
 | M99 | End-to-end synthesis and preview certification |
@@ -521,22 +566,8 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M104 | Hidden-human-dependency and runtime-proof fixtures |
 | M105 | Schema parity and cross-document conformance |
 | M106 | Documentation-verifier conformance |
-| M107 | Integration boundary contract and wiring conformance |
-| M108 | Preview synchronization protocol and first Android vertical slice |
 | M109 | Preview projection resilience and runtime-certification evidence |
 | M110 | Event-driven autonomous continuation and specialist gates |
-| M111 | Runtime resource integrity and adaptive execution |
-| M112 | Agent-layer trust boundary and extension security |
-| M113 | Context compaction and cache governance |
-| M114 | Android runtime integrity and honest coverage |
-| M115 | Frontend–control-plane protocol and generated service adapter |
-| M116 | Background continuity and interruption recovery |
-| M117 | Local APK export provenance and delivery admission |
-| M118 | Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures |
-| M119 | Platform Skill Registry Persistence and Fail-Closed Selection |
-| M120 | Content and Writing Intelligence |
-| M121 | Durable Conversation Context |
-| M122 | Change Intelligence |
 | M123 | Recovery-first autonomous continuity certification |
 | M124 | Orchestration wiring matrix and end-to-end pipeline certification |
 
@@ -550,4 +581,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-240 | 41 | Accepted 41 |
+| ADR-200–ADR-241 | 42 | Accepted 42 |

@@ -867,34 +867,6 @@ IntegrationBoundaryContract
 - notApplicableReason
 ```
 
-### 2.90 WorkerConnection
-
-**Owner:** TA §57.11 · **Contract:** — · **Projected at:** —
-
-```text
-WorkerConnection
-- connectionId
-- workerRunId
-- leaseId
-- workerProcessId
-- pipePath
-- handshakeVersion
-- capsVersion
-- launchTokenDigest
-- workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
-- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
-- admittedAt
-- heartbeatIntervalMs
-- lastHeartbeatAt
-- state: CONNECTING | ACTIVE | STALE | ENDED
-- endedReason
-- exitCode
-- openedAt
-- closedAt
-```
-
-Worker-to-supervisor message kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`.
-
 ### 1.37 PreviewSyncEvent
 
 **Owner:** BS §71.1 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** —
@@ -3833,6 +3805,34 @@ RenderTransport
 
 `frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; their field sets are owned by §2.111 (`FrameNotice`) and by the `FrameStamp` identity bound in §2.110 (`FrameQualityObservation.frameStampId`), and are restated here for transport readability only, not as independent definitions. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
 
+### 2.90 WorkerConnection
+
+**Owner:** TA §57.11 · **Contract:** — · **Projected at:** —
+
+```text
+WorkerConnection
+- connectionId
+- workerRunId
+- leaseId
+- workerProcessId
+- pipePath
+- handshakeVersion
+- capsVersion
+- launchTokenDigest
+- workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
+- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
+- admittedAt
+- heartbeatIntervalMs
+- lastHeartbeatAt
+- state: CONNECTING | ACTIVE | STALE | ENDED
+- endedReason
+- exitCode
+- openedAt
+- closedAt
+```
+
+Worker-to-supervisor message kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`.
+
 ### 2.91 ScreenModel
 
 **Owner:** TA §74.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
@@ -4051,102 +4051,9 @@ meaning of the screen. `comparisonMethod`, normalization, and masks MUST be
 revision-bound and evidence-backed. `similarityScore` and `pixelDiffRatio`
 alone MUST NOT establish behavioral correctness or completion.
 
-## 3. Canonical schema registry
+### 2.97.1 ReasoningStreamEvent
 
-### 3.1 CanonicalSchemaRegistry
-
-**Owner:** TA §36.1 · **Contract:** — · **Projected at:** —
-
-The registered schema identities (ADR-189). Registry metadata — owner, version, lifecycle, persistence, authority, acceptance fixtures — stays in technical architecture §36.1.
-
-```text
-CanonicalSchemaRegistry
-AutonomousAndroidSession
-AndroidConstructionContract
-VisualSpecification
-AndroidTechnologyPlan
-AndroidCapabilityProfile
-TaskGraph
-WorkerContract
-TerminalSession
-PreviewRevision
-Checkpoint
-EvidenceRecord
-EvidenceDependency
-ValidationResult
-CertificationDecision
-CompletionDecision
-RecoveryRecord
-ArtifactRecord
-ArtifactSet
-IntegrationOperationality
-ExternalEffectRecord
-IntegrationBoundaryContract
-UsageRecord
-ProviderProfile
-FrontendControlPlaneContract
-UICommandRegistry
-UICommandEnvelope
-ProjectionSnapshot
-UIResponseEnvelope
-UIErrorEnvelope
-EventSubscription
-ResourceIntegrityRecord
-AgentTrustAssessment
-ContextCachePolicy
-ContextPackage
-AttentionReliabilityProfile
-StructuredPatch
-AndroidRuntimeIntegrityObservation
-ContinuityDimensions
-BackgroundContinuityRecord
-ExportVerificationRecord
-PackagingProfile
-SkillPackage
-SkillInvocationRecord
-SkillAdmission
-EnvironmentCapabilityRecord
-PlatformCapabilityEntry
-ValidationEnvironment
-BuildGateRecord
-Content
-ContentRevision
-ContentRevisionDraft
-ContentMutation
-ContentValidationResult
-ContentPropagationPlan
-TerminologyProfile
-ContentEvidence
-ContentDependency
-Conversation
-ConversationMessage
-ConversationAttachment
-ConversationRequirement
-ConversationDecision
-ConversationSuggestion
-ConversationTaskLink
-ConversationRequirementIndex
-ConversationDecisionIndex
-ConversationRebaseRecord
-ChangeReportRecord
-ChangeImpactReport
-ScreenModel
-ScreenGraph
-VisualObservation
-DeviceHygienePolicy
-GoldenSnapshot
-ClarificationRecord
-ContractDouble
-RepairPattern
-SharedSurfaceChangeRequest
-LoopHeartbeat
-ReasoningStreamEvent
-FrameNotice
-```
-
-### 2.97.1 ReasoningStreamEvent field schema
-
-> **Schema projection:** TA §55.2 is a projection of this field block; the field list here is authoritative. Owner: SCHEMAS §2.97.1.
+**Owner:** TA §55.2 · **Contract:** — · **Projected at:** TA §55.2
 
 ```text
 ReasoningStreamEvent
@@ -4635,3 +4542,114 @@ WorkspaceLease
 - currentRevision
 - staleOwnerHandling
 ```
+
+## 3. Canonical schema registry
+
+### 3.1 CanonicalSchemaRegistry
+
+**Owner:** TA §36.1 · **Contract:** — · **Projected at:** —
+
+The registered schema identities (ADR-189). Registry membership is fixed by this list and is machine-checkable (ADR-241): every name below either owns a fenced field-list block in this document or is enumerated in the prose-defined identity list that follows the block. Per-schema metadata (owner, contract, projection) stands at each field block's own header; the contract-family registry rows are fixed in technical architecture §36.1.
+
+```text
+CanonicalSchemaRegistry
+AutonomousAndroidSession
+AndroidConstructionContract
+VisualSpecification
+AndroidTechnologyPlan
+AndroidCapabilityProfile
+TaskGraph
+WorkerContract
+TerminalSession
+PreviewRevision
+Checkpoint
+EvidenceRecord
+EvidenceDependency
+ValidationResult
+CertificationDecision
+CompletionDecision
+RecoveryRecord
+ArtifactRecord
+ArtifactSet
+IntegrationOperationality
+ExternalEffectRecord
+IntegrationBoundaryContract
+UsageRecord
+ProviderProfile
+FrontendControlPlaneContract
+UICommandRegistry
+UICommandEnvelope
+ProjectionSnapshot
+UIResponseEnvelope
+UIErrorEnvelope
+EventSubscription
+ResourceIntegrityRecord
+AgentTrustAssessment
+ContextCachePolicy
+ContextPackage
+AttentionReliabilityProfile
+StructuredPatch
+AndroidRuntimeIntegrityObservation
+ContinuityDimensions
+BackgroundContinuityRecord
+ExportVerificationRecord
+PackagingProfile
+SkillPackage
+SkillInvocationRecord
+SkillAdmission
+EnvironmentCapabilityRecord
+PlatformCapabilityEntry
+ValidationEnvironment
+BuildGateRecord
+Content
+ContentRevision
+ContentRevisionDraft
+ContentMutation
+ContentValidationResult
+ContentPropagationPlan
+TerminologyProfile
+ContentEvidence
+ContentDependency
+Conversation
+ConversationMessage
+ConversationAttachment
+ConversationRequirement
+ConversationDecision
+ConversationSuggestion
+ConversationTaskLink
+ConversationRequirementIndex
+ConversationDecisionIndex
+ConversationRebaseRecord
+ChangeReportRecord
+ChangeImpactReport
+ScreenModel
+ScreenGraph
+VisualObservation
+DeviceHygienePolicy
+GoldenSnapshot
+ClarificationRecord
+ContractDouble
+RepairPattern
+SharedSurfaceChangeRequest
+LoopHeartbeat
+ReasoningStreamEvent
+FrameNotice
+```
+
+The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
+
+- `WorkerContract` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).
+- `ValidationResult` — normative shape prose-defined at technical architecture §84.2; no projected field block (ADR-241).
+- `CertificationDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).
+- `CompletionDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).
+- `RecoveryRecord` — normative shape prose-defined at build spec §33.1; no projected field block (ADR-241).
+- `ArtifactRecord` — normative shape prose-defined at build spec §33.1; no projected field block (ADR-241).
+- `FrontendControlPlaneContract` — registered identity of the frontend control-plane contract family of build spec §76; its authoritative field shape is declared pending (ADR-241); no projected field block.
+- `UICommandRegistry` — normative shape prose-defined at build spec §76.1; no projected field block (ADR-241).
+- `UICommandEnvelope` — normative shape prose-defined at technical architecture §57.3; no projected field block (ADR-241).
+- `ProjectionSnapshot` — normative shape prose-defined at technical architecture §57.3; no projected field block (ADR-241).
+- `ResourceIntegrityRecord` — normative shape prose-defined at build spec §72; no projected field block (ADR-241).
+- `AgentTrustAssessment` — normative shape prose-defined at technical architecture §78.1; no projected field block (ADR-241).
+- `ContextCachePolicy` — normative shape prose-defined at build spec §53.5; no projected field block (ADR-241).
+- `AndroidRuntimeIntegrityObservation` — normative shape prose-defined at build spec §75; no projected field block (ADR-241).
+- `PlatformCapabilityEntry` — normative shape prose-defined at technical architecture §84.1; no projected field block (ADR-241).
