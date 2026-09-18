@@ -2024,6 +2024,11 @@ def main():
 
     covered = set()
     skipped_count = 0
+    # Append-only ledger of negative cases that skipped because the Rust
+    # source is absent (list.append is GIL-atomic under the worker pool); the
+    # summary reports them as source-dependent, never-proven-here negatives so
+    # the vacuity record cannot silently absorb them (A5-01 remediation).
+    skipped_source_negatives = []
 
     def _run_case(label, case):
         """Execute one negative mutation case in its own isolated temp root.
@@ -2032,8 +2037,8 @@ def main():
         an invalid case (anchor missing), True when the verifier reports the
         expected defect class; covered_class is the proven detection class,
         None when nothing was proven. Thread-safe by construction — every
-        case builds its own fixture and subprocess and touches no shared
-        mutable state.
+        case builds its own fixture and subprocess; the only shared structure
+        is the append-only skip ledger above.
         """
         if not isinstance(case, tuple) or len(case) not in (4, 5):
             raise AssertionError(f"bad case shape: {label!r} -> {case!r}")
@@ -2043,11 +2048,34 @@ def main():
         else:
             doc, find, repl, expect = case
 
-        # Skip command-payload-coverage cases when Rust source is absent.
+        # Fixture injection (A5-01 remediation): a case targeting a file
+        # outside the root-document set runs only if its document is mirrored
+        # into the temp root. Mirror automatically whenever the file exists in
+        # this tree; this is the mechanism that finally lets the
+        # skill-vocabulary negative execute wherever the vendored skill
+        # registry is present, without each case declaring its own extra.
+        if doc.startswith("crates/") and os.path.exists(os.path.join(REPO, doc)) \
+                and not any(rel == doc for rel, _abs in extra):
+            extra = tuple(extra) + ((doc, os.path.join(REPO, doc)),)
+
+        # Skip source-dependent mutation cases when their real dependency is
+        # absent in this tree (A5-01 remediation). Availability is judged
+        # per-case, not by tree shape: a partial crates checkout may carry the
+        # skill registry (crates/nirman-skills/) without the Rust source
+        # crates (nirman-ipc/), so a doc path alone never decides the skip.
+        # (1) Command-payload coverage needs the Rust source crates.
         if expect == "command payload coverage" and not SOURCE_PRESENT:
             # Do NOT return a `covered` credit: a skipped negative test
             # proves nothing.
+            skipped_source_negatives.append(label)
             return None, "SKIPPED — Rust source not present", None
+        # (2) A case whose target document lives outside the root-document set
+        # needs that exact file; when it is absent the skip is designed and
+        # named, distinct from a structural fixture error. When it IS present
+        # the case executes (the injection below mirrors it into tmp).
+        if doc.startswith("crates/") and not os.path.exists(os.path.join(REPO, doc)):
+            skipped_source_negatives.append(label)
+            return None, "SKIPPED — case document not present in this tree", None
 
         with tempfile.TemporaryDirectory(prefix="hermes-cg-") as tmp:
             _copy_fixture(tmp, extra)
@@ -2450,15 +2478,17 @@ def main():
     # coverage accounting so the ratio cannot exceed the number of real checks.
     covered_checks = covered & expected_checks
     missing = sorted(expected_checks - covered_checks)
-    # When Rust source is absent, command payload coverage mutations are all
-    # skipped. The "every check has a proving mutation" conformance case is
-    # satisfied for all checks whose source was available; the single uncovered
-    # check is reported on the non-vacuous line, not as a failure — the skip is
-    # an acknowledged environment limitation, not a defect.
-    if missing and not SOURCE_PRESENT and missing == ["command payload coverage"]:
+    # When Rust source is absent, every source-dependent mutation is skipped
+    # (command payload coverage plus any case targeting crates/ documents).
+    # The "every check has a proving mutation" conformance case is satisfied
+    # for all checks whose source was available; an uncovered source-dependent
+    # check is reported on the non-vacuous line, not as a failure — the skip
+    # is an acknowledged environment limitation, not a defect.
+    SOURCE_DEPENDENT_CHECKS = {"command payload coverage"}
+    if missing and not SOURCE_PRESENT and set(missing) <= SOURCE_DEPENDENT_CHECKS:
         results.append(("every check has a proving mutation", True,
                         f"all non-skipped checks have proving mutations "
-                        f"(command payload coverage skipped — source absent)"))
+                        f"({', '.join(missing)} skipped — source absent)"))
     else:
         results.append(("every check has a proving mutation", not missing,
                         f"uncovered: {missing}" if missing else ""))
@@ -2474,7 +2504,7 @@ def main():
         print(f"{'PASS' if ok else 'FAIL' if ok is False else 'SKIP':<5} {name:<{width}}  {detail}")
     executed = len(results) - skip
     print(f"\n{executed}/{len(results)} checks executed and passed")
-    print(f"{skip} skipped — Rust source not present in working tree")
+    print(f"{skip} skipped in this working tree (per-case reason on each SKIP line)")
     covered_checks = covered & expected_checks
     missing = sorted(expected_checks - covered_checks)
     print(f"verifier detection classes proven non-vacuous: "
@@ -2482,6 +2512,11 @@ def main():
     if missing:
         print(f"not proven: {', '.join(missing)} "
               f"(all mutations skipped)")
+    if skipped_source_negatives:
+        # Class-level coverage can look complete while individual gates have no
+        # proving negative in this tree; name them explicitly (A5-01).
+        print(f"not proven in this tree (source-dependent negatives): "
+              f"{', '.join(skipped_source_negatives)}")
     extra = sorted(covered - expected_checks)
     if extra:
         print(f"additional detection classes exercised: {', '.join(extra)}")
