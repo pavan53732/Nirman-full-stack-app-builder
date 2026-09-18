@@ -437,6 +437,8 @@
 | `InterfaceAgreement` | §2.115 | BS §23.4 | — | — |
 | `WorkerLease` | §2.116 | TA §27.4 | — | — |
 | `WorkspaceLease` | §2.117 | BS §52.8 | — | — |
+| `CoordinationStallRecord` | §2.118 | TA §58.13 | — | — |
+| `ExecutionEpoch` | §2.119 | TA §58.14 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -570,6 +572,7 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M110 | Event-driven autonomous continuation and specialist gates |
 | M123 | Recovery-first autonomous continuity certification |
 | M124 | Orchestration wiring matrix and end-to-end pipeline certification |
+| M125 | Long-Horizon Swarm Coordination Integrity |
 
 ## 5. ADR ranges
 
@@ -581,4 +584,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-242 | 43 | Accepted 43 |
+| ADR-200–ADR-245 | 46 | Accepted 46 |

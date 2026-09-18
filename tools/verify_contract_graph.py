@@ -4257,6 +4257,32 @@ def check_schema_registry_closure(docs, R, D):
             D.add("structure", m.group(1), f"prose-defined declaration's pointer ({m.group(2)} §{m.group(3)}) does not exist")
 
 
+def check_orchestration_hardening(docs, D):
+    """ADR-243/244/245 owner-ratified orchestration-hardening locks (patch-pack
+    §11): presence of the canonical invariant sentences and schema field lines.
+    Removal or rewording is a semantic-documentation defect."""
+    locks = [
+        ("bs",
+         "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`.",
+         "build spec §23.4: the interface-completion gate no longer verifies the five revision/parent/context bindings"),
+        ("schemas",
+         "- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
+         "nirman-schemas.md §1.58: TaskGraph lost the dependencySemantics join/failure-policy field"),
+        ("schemas",
+         "- deliveryState: PERSISTED | DISPATCHED | ACKED | REJECTED | DEAD_LETTERED\n- deliveryAttempt",
+         "nirman-schemas.md §1.13: WorkerMessage lost the durable delivery-state field"),
+        ("schemas",
+         "- handoffState: SUBMITTED | ACCEPTED | REJECTED_STALE | REVALIDATION_REQUIRED | INTEGRATED",
+         "nirman-schemas.md §2.113: WorkerHandoff lost its revision-bound handoff state machine"),
+        ("ta",
+         "Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics. `OPTIONAL` work never blocks a dependent requirement unless the graph explicitly marks the dependency `HARD`.",
+         "technical architecture §58.5.1: the task-graph fan-in join-semantics rule is gone"),
+    ]
+    for key, needle, msg in locks:
+        if needle not in docs[key]:
+            D.add("semantic documentation", key, msg)
+
+
 def check_document_topology(docs, D, root):
     """ADR-220 document topology (reported under check 13 "structure").
 
@@ -4573,6 +4599,7 @@ def verify(root):
     check_semantic_documentation(docs, R, D, root)
     check_structure(docs, R, D)
     check_schema_registry_closure(docs, R, D)
+    check_orchestration_hardening(docs, D)
     check_document_topology(docs, D, root)
     check_index_drift(docs, R, D)
     check_skill_bodies(docs, D, root)

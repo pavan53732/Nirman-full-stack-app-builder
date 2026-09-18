@@ -1898,6 +1898,33 @@ CASES = {
         'Prompt: "A tip calculator"\n',
         "",
         "semantic documentation"),
+
+    # ---- orchestration hardening locks (ADR-243/244/245; patch-pack §11).
+    "§23.4 drops the five revision bindings from INTERFACE_COMPLETE": (
+        BS,
+        "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`.",
+        "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision` and `planRevision`.",
+        "semantic documentation"),
+    "§1.58 loses the dependencySemantics join field": (
+        SCHEMAS,
+        "- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
+        "",
+        "semantic documentation"),
+    "§1.13 loses the durable delivery-state field": (
+        SCHEMAS,
+        "- deliveryState: PERSISTED | DISPATCHED | ACKED | REJECTED | DEAD_LETTERED\n- deliveryAttempt",
+        "- deliveryAttempt",
+        "semantic documentation"),
+    "§2.113 loses the handoff state machine": (
+        SCHEMAS,
+        "- handoffState: SUBMITTED | ACCEPTED | REJECTED_STALE | REVALIDATION_REQUIRED | INTEGRATED",
+        "- handoffState: SUBMITTED | ACCEPTED",
+        "semantic documentation"),
+    "§58.5.1 loses the fan-in join-semantics rule": (
+        TA,
+        "Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics.",
+        "Task graph fan-in uses unspecified semantics.",
+        "semantic documentation"),
 }
 
 

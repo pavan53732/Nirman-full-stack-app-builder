@@ -318,7 +318,15 @@ WorkerMessage
 - requiresAcknowledgement
 - createdAt
 - expiresAt
+- protocolVersion
+- deliveryState: PERSISTED | DISPATCHED | ACKED | REJECTED | DEAD_LETTERED
+- deliveryAttempt
+- deduplicationKey
+- orderingKey
+- priority: CONTROL | NORMAL | BULK
+- deliveredAt
 ```
+
 
 ### 1.14 AutonomousAndroidSession
 
@@ -1407,7 +1415,12 @@ TaskGraph
 - updatedAt: timestamp
 - lockedAt: timestamp
 - lockedBy: string (worker or authority ID)
+- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]
+- cancellationPolicy
+- planRevision
+- graphFence
 ```
+
 
 ### 1.59 TaskPhase
 
@@ -1448,7 +1461,13 @@ TaskNode
 - assignedWorker: string? (worker ID)
 - startedAt: timestamp?
 - completedAt: timestamp?
+- joinPolicy: ALL | ANY | QUORUM | OPTIONAL
+- dependencyFailurePolicy: PROPAGATE | ISOLATE | ESCALATE
+- planRevision
+- executionEpochId
+- staleOutcomePolicy: REJECT | REVALIDATE
 ```
+
 
 ### 1.61 WorkerAssignment
 
@@ -1464,7 +1483,10 @@ WorkerAssignment
 - modelProfile: string (profile ID)
 - status: ("assigned" | "active" | "completed" | "failed" | "released")
 - attemptId: integer (monotonic assignment-attempt counter; 1 for the first assignment; incremented on re-lease)
+- planRevision
+- fencingEpoch
 ```
+
 
 ### 1.62 ProviderProfile
 
@@ -1499,7 +1521,9 @@ ProviderProfile
 - lastConnectionTest: timestamp?
 - createdAt: timestamp
 - updatedAt: timestamp
+- providerCircuitState: CLOSED | OPEN | HALF_OPEN
 ```
+
 
 ### 1.63 ReasoningCapabilityProfile
 
@@ -4471,7 +4495,21 @@ WorkerHandoff
 - confidence (TA §6.4)
 - frontierDelta: list of { frontierItemId, fromState, toState, evidenceId } (TA §34.4)
 - remainingUnproven: list of frontierItemId (TA §34.4)
+- handoffId
+- workerId
+- leaseId
+- attemptId
+- projectRevision
+- taskGraphRevision
+- planRevision
+- contextIntegrityHash
+- reservationEpoch
+- baseSourceFingerprint
+- resultSourceFingerprint
+- evidenceWatermark
+- handoffState: SUBMITTED | ACCEPTED | REJECTED_STALE | REVALIDATION_REQUIRED | INTEGRATED
 ```
+
 
 ### 2.114 SwarmPlan
 
@@ -4486,7 +4524,16 @@ SwarmPlan
 - leases
 - capacityReservations
 - integrationCheckpoints
+- planRevision
+- projectRevision
+- taskGraphRevision
+- joinPolicies
+- admissionPolicy
+- coordinationPolicy
+- outcomeFeedbackRefs
+- recoveryCapacityReservation
 ```
+
 
 **Hardening note:** `SwarmPlan` is vocabulary normalization for the TA §58.5 emission sentence: it pins the sentence's seven nouns as field names. It closes no defect and no mandatory contract gap; no consumer, persistence, or registry entry is implied, and the seven nouns gain no sub-schemas here.
 
@@ -4542,6 +4589,59 @@ WorkspaceLease
 - recoveryPolicy
 - currentRevision
 - staleOwnerHandling
+```
+### 2.118 CoordinationStallRecord
+
+**Owner:** TA §58.13 · **Contract:** — · **Projected at:** —
+
+```text
+CoordinationStallRecord
+- recordId
+- taskId
+- graphRevision
+- planRevision
+- executionEpochId
+- observedAtEventId
+- observationWindowStartEventId
+- observationWindowEndEventId
+- activeWorkerIds
+- activeLeaseIds
+- frontierBefore
+- frontierAfter
+- dependencyResolutions
+- validatedEvidenceDelta
+- revisionAdvance
+- integrationAdvance
+- messageActivity
+- heartbeatActivity
+- stallFingerprint
+- response: REPLAN | REPARTITION | SERIALIZE | REPLACE | BACKTRACK | ESCALATE
+- recoveryRecordId
+```
+
+### 2.119 ExecutionEpoch
+
+**Owner:** TA §58.14 · **Contract:** — · **Projected at:** —
+
+```text
+ExecutionEpoch
+- epochId
+- taskId
+- parentEpochId
+- graphRevision
+- planRevision
+- projectRevision
+- checkpointId
+- startEventId
+- endEventId
+- sealedState: OPEN | SEALED | ROLLED_FORWARD
+- continuationSnapshotHash
+- eventWatermark
+- activeWorkerIds
+- activeLeaseIds
+- pendingMessageIds
+- unresolvedEffectIds
+- requiredEvidenceIds
 ```
 
 ## 3. Canonical schema registry
@@ -4637,6 +4737,8 @@ ReasoningStreamEvent
 FrameNotice
 ConstructionTransaction
 ProjectRevisionId
+CoordinationStallRecord
+ExecutionEpoch
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

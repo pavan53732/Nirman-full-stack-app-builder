@@ -469,6 +469,8 @@ proves that action. A generated application with missing external credentials
 MUST NOT be represented as FUNCTIONAL or COMPLETED merely because its local
 build, installation, or emulator execution succeeds.
 
+`providerCircuitState` is `CLOSED | OPEN | HALF_OPEN`. `OPEN` prevents new provider requests for the affected provider/model route while preserving eligible non-provider work. `HALF_OPEN` admits only the configured health/probe operation. A successful probe returns to `CLOSED`; failed probe remains `OPEN`. Provider stream recovery is resumable only where the adapter protocol supplies a resume identity; otherwise the logical request remains durable and is retried only after reconciliation/idempotency checks.
+
 ### 5.7.6 External-effect reconciliation
 
 Every remote or externally visible side effect MUST be represented by an `ExternalEffectRecord` with an idempotency key, target identity, authority grant, request fingerprint, request state, response reference, compensation plan, and local transaction. The record MUST reference the applicable `IntegrationBoundaryContract`. If the response is lost after transmission may have occurred, the runtime MUST reconcile by idempotency key or read-back before retrying or declaring failure. Local rollback MUST NOT be described as undoing a remote effect unless compensation evidence proves it.
@@ -1337,6 +1339,8 @@ The orchestrator should choose swarm size using task complexity, dependency coup
 
 For genuinely interdependent work, the orchestrator must create an interface agreement before parallel implementation. The agreement may include API shapes, shared types, route contracts, database schemas, event formats, or design tokens. Workers validate against this agreement before reconciliation.
 
+`InterfaceAgreement` is a pre-dispatch contract, not descriptive metadata. Before any write-capable worker is launched, the runtime MUST run `INTERFACE_COMPLETE`. The selected work shape determines the required agreement fields; every required field MUST be populated, or the field MUST carry an explicit `INAPPLICABLE` reason. `INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`. Failure rejects dispatch and returns the work item to planning; it does not create a partially authorized worker.
+
 > **Schema projection:** `InterfaceAgreement` is defined in `nirman-schemas.md` §2.115. Owner: BS §23.4.
 
 Worker nesting is limited to three levels by default (ADR-227): the Primary Orchestrator may delegate to workers; a worker may request one Diagnostic Worker child; and a Diagnostic Worker may request one probe child — a Repository Scout or Emulator Driver Worker instance restricted to observation actions, spawned to acquire the single piece of evidence the diagnosis is missing. No child may change the parent contract, expand permissions, or integrate changes; a probe child cannot create children; and every level satisfies the ceilings of §66.8 inside the worker limits of technical architecture §7.2, so depth adds observation and never authority. Unrestricted delegation would make ownership, evidence, and recovery ambiguous, which is why the depth is fixed here rather than left to policy.
@@ -1588,6 +1592,8 @@ Supported message types should include `task_claimed`, `progress_update`, `quest
 
 Workers should use heartbeats while active. A worker that misses a configured number of heartbeats should be marked stale, its process should be inspected, and its task should be requeued or escalated. Messages should be idempotent so that replay after a daemon restart does not create duplicate changes.
 
+Worker-message delivery has durable state `PERSISTED → DISPATCHED → ACKED`, with `REJECTED` and `DEAD_LETTERED` terminal delivery outcomes. Delivery attempts, duplicate delivery, ordering domain, and protocol version are recorded. A duplicate `messageId` or deduplication key is a no-op only when its immutable payload fingerprint matches; a conflicting duplicate is rejected and quarantined. Heartbeat and cancellation control traffic is assigned control priority at the WorkerConnection transport but remains subject to the same lease fencing and supervisor authority.
+
 ### 26.3 Worker concurrency and resource limits
 
 Nirman should not permit unlimited background workers. The scheduler should enforce global and per-task limits based on CPU cores, memory, disk availability, provider concurrency, and user configuration.
@@ -1605,6 +1611,8 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 | Default disk quota per task | 10 GB unless project policy overrides |
 
 The scheduler should reserve resources before launching a worker, release them after completion, and reduce parallelism when the system becomes constrained. A user should be able to pause new workers while allowing active workers to finish.
+
+Swarm admission MUST also enforce per-parent child concurrency, task queue depth, emulator-slot reservation, provider-concurrency reservation, and reserved recovery/validation capacity. These are physical/runtime controls only. AI token, request, monetary, reasoning, or elapsed-goal usage remains telemetry and MUST NOT enter admission or termination decisions.
 
 ### 26.4 Deterministic reconciliation of parallel changes
 
@@ -2139,9 +2147,11 @@ When a stall is detected, the runtime must refresh context, change strategy, cha
 
 ### 29.5 Swarm handoff and reconciliation
 
-Parallel workers must receive explicit contracts and isolated workspaces. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The handoff record is the `WorkerHandoff` block (`nirman-schemas.md` §2.113); its fields are the union of the §23.4, §29.5, TA §6.4, and TA §34.4 lists, so a handoff satisfying the block satisfies every list. The `worker.handoff.submit` payload is the `WorkerHandoff` record. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
+Parallel workers must receive explicit contracts, complete interface agreements, isolated workspaces, and revision/fencing bindings. Each handoff must include changed files, assumptions, dependencies, tests, evidence, unresolved issues, and recommended next actions. The handoff record is the `WorkerHandoff` block (`nirman-schemas.md` §2.113); its fields are the union of the §23.4, §29.5, TA §6.4, and TA §34.4 lists, so a handoff satisfying the block satisfies every list. The `worker.handoff.submit` payload is the `WorkerHandoff` record. The reconciliation worker integrates only validated outputs, resolves conflicts, runs integrated Android checks, updates the live preview, and creates the next checkpoint.
 
 > **Schema projection:** `WorkerHandoff` is defined in `nirman-schemas.md` §2.113. Owner: BS §29.5.
+
+`WorkerHandoff` is admissible only when its project revision, task-graph revision, plan revision, context integrity, lease/attempt, reservation epoch, source fingerprints, and evidence watermark still match authoritative state. Otherwise reconciliation rejects the handoff as stale and requests re-grounding/revalidation.
 
 ### 29.6 APK completion gates
 
@@ -3098,6 +3108,8 @@ After every meaningful observation, the kernel must determine whether the curren
 
 Completion is permitted only when the appropriate requirement, test, preview, device, quality, branding, and APK evidence gates pass. A model statement that a task is complete is never sufficient evidence.
 
+Progress has two dimensions: execution liveness and coordination progress. `LoopHeartbeat` proves the kernel is moving; `CoordinationStallRecord` proves whether the swarm frontier is moving. Coordination progress includes at least frontier reduction, dependency resolution, validated evidence acquisition, accepted revision advancement, or an integration checkpoint. Message traffic and worker heartbeats alone are not progress.
+
 ### 52.4 SkillRuntime and skill composition
 
 The existing skill registry describes packages and permissions. Nirman must also provide a `SkillRuntime` that performs:
@@ -3392,6 +3404,8 @@ Context integrity is an authoritative **hard execution gate**. No consequential 
 
 At every long-horizon checkpoint the runtime must re-ground the working context by re-reading the original goal, the active constraints, the locked decisions, and the current evidence state. Re-grounding must be an explicit recorded step, not an implicit prompt behavior, and must occur before plan recompilation.
 
+At every execution-epoch rollover the runtime rehydrates the same authoritative goal, graph, plan, constraint, evidence, lease, and pending-message state from the sealed prior epoch. Rollover MUST be replay-equivalent and MUST NOT re-execute completed durable effects.
+
 ### 53.9 Cross-project isolation
 
 Project memory must never be read across project boundaries. Runtime-improvement memory may cross projects only in anonymized form with no file paths, identifiers, source content, or credentials.
@@ -3450,6 +3464,8 @@ This section extends §22 and §23 (Advanced Autonomous Development and Swarm Ex
 Workspace leases prevent two workers from writing the same file. They do not prevent two workers from making semantically incompatible changes in different files — for example one worker renaming a data model field while another writes code against the old field name.
 
 ### 54.2 Semantic reservations
+
+Multi-reservation acquisition MUST be atomic or follow one deterministic total ordering over reservation keys. The runtime MUST maintain a wait-for relation for blocked acquisitions. A cycle is a deadlock finding and MUST invoke `DeadlockDetector`; deterministic victim selection releases the selected reservation set and routes the victim through RecoveryAuthority. Workers MUST NOT resolve reservation cycles by peer negotiation.
 
 A worker must reserve the semantic surfaces it intends to change before mutating them:
 
@@ -6022,7 +6038,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.1 | "Large logs and binary artifacts should be stored in task-specific directories" | MUST store outside the database | Blobs live in per-task directories; the ledger stores metadata, path, size, and content hash only |
 | BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
 | BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
-| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All twelve `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
+| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All nineteen `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
 | BS §26.2 | "Supported message types should include" the twelve listed | MUST support all twelve | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
 | BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
 | BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
@@ -6825,6 +6841,8 @@ The fixture battery MUST include fault-injection and regression scenarios to sat
 The existing M80 fixture already injects dependency/provider/stale-worker/emulator/requirement/validation failures, so this is an extension, not duplication.
 
 ---
+
+M125 additionally defines its orchestration fixtures in milestones §M125. These fixtures are attributed here and are not duplicated as field definitions in §80.6.
 
 ### 80.7 Implementation sequencing within milestones
 
@@ -7674,3 +7692,5 @@ M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and on
 **Document owner:** Nirman product team  
 **Recommended application name:** Nirman  
 **Recommended first release:** Windows desktop application for local Android application generation, Nirman-managed local Android emulator preview, testing, repair, packaging, and APK export
+
+When `planRevision` is superseded, every in-flight assignment MUST be classified before its next consequential action as `RETAIN`, `REBASE`, `QUIESCE`, `CANCEL`, or `REPLACE`. `RETAIN` requires unchanged premises and compatible graph scope; `REBASE` requires a fresh ContextPackage and interface agreement; `QUIESCE` prevents new consequential actions while preserving artifacts; `CANCEL` releases resources and preserves outputs; `REPLACE` fences the old lease and creates a fresh assignment. No stale plan revision may reach authorization.

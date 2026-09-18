@@ -2128,3 +2128,39 @@ certification.
 
 ---
 
+## M125 — Long-Horizon Swarm Coordination Integrity
+
+**Focus:** Complete orchestration hardening inside the existing supervisor.
+
+**Prerequisites:** M76, M77, M78, M79, M80, M94, M110, M123, and M124.
+
+**Required results:**
+1. `INTERFACE_COMPLETE` pre-dispatch gate and complete `InterfaceAgreement`.
+2. TaskGraph `ALL/ANY/QUORUM/OPTIONAL` join semantics and explicit failure propagation.
+3. Durable WorkerMessage delivery state, deduplication, ordering, priority, and redelivery/dead-letter behavior.
+4. WorkerHandoff revision/context/lease/reservation/evidence consistency validation.
+5. Atomic/global-order reservation acquisition plus wait-for cycle detection and deterministic victim recovery.
+6. PlanAssignmentMigrator with RETAIN/REBASE/QUIESCE/CANCEL/REPLACE outcomes.
+7. Swarm admission using physical child-concurrency, queue, emulator, provider, and recovery/validation reserve signals.
+8. CoordinationStallRecord and progress detector.
+9. Control-priority WorkerConnection QoS for HEARTBEAT/CANCEL.
+10. ExecutionEpoch seal/roll-forward with replay-equivalent recovery.
+11. Provider circuit breaker and resumable-or-reconciled provider stream recovery.
+12. Unified fault matrix spanning worker/message/lease/plan/reservation/provider/process/emulator/evidence/commit cut points.
+
+**Fixtures:**
+- `FIX-SWARM-01` fan-out/fan-in with ALL/ANY/QUORUM.
+- `FIX-SWARM-02` conflicting handoff against advanced project revision.
+- `FIX-SWARM-03` reservation deadlock A→B/B→A.
+- `FIX-SWARM-04` plan revision while three workers are active.
+- `FIX-SWARM-05` duplicate/lost/reordered WorkerMessage.
+- `FIX-SWARM-06` healthy workers with zero frontier progress.
+- `FIX-SWARM-07` worker kill at every critical cycle cut-point.
+- `FIX-SWARM-08` supervisor restart during pending message/commit/effect.
+- `FIX-SWARM-09` provider stream interruption with supported resume and unsupported-resume reconciliation.
+- `FIX-SWARM-10` execution-epoch rollover and replay equivalence.
+
+**Global invariants:** no stale worker can create a consequential effect; no duplicate logical effect creates two authoritative outcomes; no deadlock persists while an eligible recovery strategy exists; no swarm stall is mistaken for process liveness; no plan revision permits execution against superseded premises; no completion decision is advanced by transport or model claims.
+
+**Exit gate:** all ten fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
+

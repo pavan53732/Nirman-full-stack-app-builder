@@ -2846,7 +2846,7 @@ checkpoints, recovery_records, provider_profiles,
 provider_capabilities, terminal_sessions, process_records,
 preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
-project_locks, decision_records, reasoning_stream_events,
+project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
@@ -2926,6 +2926,8 @@ kernel without committing a partial proposal.
 Provider failure, stream truncation, schema failure, or disconnect creates
 a typed runtime outcome and enters the existing recovery path.
 
+Provider interruption behavior follows ADR-245: the route's `providerCircuitState` transitions CLOSED → OPEN → HALF_OPEN → CLOSED as defined in build spec §5.7.5; stream resumption requires a provider-supplied resume identity, otherwise the durable logical request is retried only through reconciliation/idempotency rules.
+
 ### 57.9 Git and worktree subsystem
 
 Git is a first-class subsystem for checkpoints, rollback, worker isolation, reconciliation, diffs, revision identity, recovery branches, and artifact provenance. Parallel workers use isolated worktrees or copy-on-write fallback. Reconciliation produces an integration revision only after conflict, dependency, requirement, and test-impact checks pass.
@@ -2942,6 +2944,8 @@ The architecture acceptance criteria are satisfied when the UI can restart while
 
 The supervisor end is `WorkerRuntime` (§58.1); the worker end is the only input and output `NirmanWorker.exe` has (§3.5). Every inter-process edge terminates at `NirmanSupervisor.exe`. The supervisor creates one pipe per lease with an ACL naming the invoking account only; the worker authenticates with the one-time launch token it read from standard input, and the handshake binds protocol version, worker ID, lease ID, attempt ID, role, declared execution profile, model profile ID, and limits. A token presented twice, a lease that is not active, or a mismatched attempt closes the pipe. Worker-to-supervisor kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`. Every worker-originated message carries the lease ID and attempt ID and is rejected once the lease is fenced (§46); nothing a worker sends is authoritative until an authority commits it (§27.1). Pipe traffic is not a durable event: the durable record of a worker's work is what the supervisor commits — `ReasoningArtifact`s, `DeliberationRecord`s, `AgentProposal`s, `AgentLoopRecord`s, and evidence — and the worker keeps no local file.
 
+Control messages (`HEARTBEAT`, `CANCEL`, and lifecycle fencing messages) use `CONTROL` priority and MUST NOT be starved behind bulk artifact/reasoning payloads. The implementation may use bounded per-connection queues; if a lower-priority queue saturates, bulk traffic is delayed/dropped according to policy while control traffic remains deliverable. This is transport QoS only and does not make pipe traffic durable.
+
 ### 57.11.1 Supervisor Ephemeral Coordination Cache (optional optimization)
 
 The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache for low-latency subscription to dependency, reservation, or conflict events. This cache is bounded, revision-aware, and non-authoritative; it may accelerate subscription/notification delivery but cannot establish observation, evidence, task state, lease state, or recovery state. All durable state and truth remain in the SQLite ledger and event stream. Cache miss, eviction, or supervisor restart must fall back deterministically to the SQLite ledger/event stream. Durable `WorkerMessage` semantics remain unchanged.
@@ -2949,18 +2953,18 @@ The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache fo
 
 ### 57.12 Component and authority registry
 
-This table is the single inventory of Nirman's authorities and of every component name that the build spec or this document uses as an identifier without a heading, component table, or list definition of its own (ADR-223). A PascalCase component name that appears in backticks, inside a fenced diagram, or in a table row of either document is defined at exactly one of: a heading whose words spell it, the first cell of a component table, a list entry that opens with the backticked name, a paragraph that opens with it, a `nirman-schemas.md` heading, or a row below; a name with none of these fails documentation certification. Alias rows carry no crate: an alias is a label for the owner named in its row and never a second authority. `WorkManager` and `DataStore` are Android Jetpack library names that occur only in generated-application content and are not Nirman components. The crate column agrees with the §57.1 table; the non-delegable authorities are those of §58.15, and the §21 hierarchy maps onto them as stated below the table.
+This table is the single inventory of Nirman's authorities and of every component name that the build spec or this document uses as an identifier without a heading, component table, or list definition of its own (ADR-223). A PascalCase component name that appears in backticks, inside a fenced diagram, or in a table row of either document is defined at exactly one of: a heading whose words spell it, the first cell of a component table, a list entry that opens with the backticked name, a paragraph that opens with it, a `nirman-schemas.md` heading, or a row below; a name with none of these fails documentation certification. Alias rows carry no crate: an alias is a label for the owner named in its row and never a second authority. `WorkManager` and `DataStore` are Android Jetpack library names that occur only in generated-application content and are not Nirman components. The crate column agrees with the §57.1 table; the non-delegable authorities are those of §58.16, and the §21 hierarchy maps onto them as stated below the table.
 
 | Name | Kind | Crate | Owns | Commits | Defined in |
 |---|---|---|---|---|---|
-| `LifecycleAuthority` | authority | `nirman-control-plane` | Session and task lifecycle transitions of §36.2 and build spec §33.2; implemented by `SessionReducer` (§45.1); the only committer of lifecycle state (§58.15 rule 1) | `sessions`, `tasks`, `task_states`, `events` (through `EventStore`) | §36.2, §44.1, §45.1 |
+| `LifecycleAuthority` | authority | `nirman-control-plane` | Session and task lifecycle transitions of §36.2 and build spec §33.2; implemented by `SessionReducer` (§45.1); the only committer of lifecycle state (§58.16 rule 1) | `sessions`, `tasks`, `task_states`, `events` (through `EventStore`) | §36.2, §44.1, §45.1 |
 | `EventStore` | service | `nirman-control-plane` | Append-only durable event log with monotonic sequence numbers and replay (§45.2); the storage side of `LifecycleAuthority` | `events`, `event_sequences` | §45.2 |
-| `ConstructionTransactionManager` | authority | `nirman-control-plane` | Every project mutation (§58.15 rule 4): pre-mutation checkpoint, staging, checks, commit or rollback (§45.3), the `CommitBarrier` (§45.4), and the transaction domains of §36.5 | `construction_transactions`, `task_revisions`, the `ChangeReportRecord` obligation (§87.5) | §45.3 |
-| `PolicyAuthority` | authority | `nirman-policy` | Allow, ask, or deny for every filesystem, terminal, network, provider, device, and external-tool action; execution, autonomy, and sandbox profiles (§16.2.2; build spec §26.5); operation-capability grants (§46.2; §58.15 rule 3) | `approvals`, `policies` | §21 "Permission authority", §44.1 "Policy authority" |
-| `ToolBroker` | service | `nirman-control-plane` | The only executor of tools (§58.15 rule 2): dispatches a `PolicyAuthority`-admitted `ToolCallRequest` (§24.5) to the filesystem, `TerminalSupervisor`, process, preview, browser, or external-tool adapter (§57.8) through adapter traits the supervisor binary registers at startup | `ActionRecord`s (build spec §11.4), `process_records` | §57.8, §58.15 |
-| `EvidenceAuthority` | authority | `nirman-evidence` | Evidence admission and the evidence ledger (§23.3), the dependency graph and cascading invalidation (§36.4; build spec §5.7.4), validation gates and `CertificationDecision`, and the sole completion evaluator of build spec §5.7.7 (§58.15 rule 5) | `evidence_records`, `validation_runs` | §21 "Evidence authority", §23.3, §44.1 |
+| `ConstructionTransactionManager` | authority | `nirman-control-plane` | Every project mutation (§58.16 rule 4): pre-mutation checkpoint, staging, checks, commit or rollback (§45.3), the `CommitBarrier` (§45.4), and the transaction domains of §36.5 | `construction_transactions`, `task_revisions`, the `ChangeReportRecord` obligation (§87.5) | §45.3 |
+| `PolicyAuthority` | authority | `nirman-policy` | Allow, ask, or deny for every filesystem, terminal, network, provider, device, and external-tool action; execution, autonomy, and sandbox profiles (§16.2.2; build spec §26.5); operation-capability grants (§46.2; §58.16 rule 3) | `approvals`, `policies` | §21 "Permission authority", §44.1 "Policy authority" |
+| `ToolBroker` | service | `nirman-control-plane` | The only executor of tools (§58.16 rule 2): dispatches a `PolicyAuthority`-admitted `ToolCallRequest` (§24.5) to the filesystem, `TerminalSupervisor`, process, preview, browser, or external-tool adapter (§57.8) through adapter traits the supervisor binary registers at startup | `ActionRecord`s (build spec §11.4), `process_records` | §57.8, §58.16 |
+| `EvidenceAuthority` | authority | `nirman-evidence` | Evidence admission and the evidence ledger (§23.3), the dependency graph and cascading invalidation (§36.4; build spec §5.7.4), validation gates and `CertificationDecision`, and the sole completion evaluator of build spec §5.7.7 (§58.16 rule 5) | `evidence_records`, `validation_runs` | §21 "Evidence authority", §23.3, §44.1 |
 | `RecoveryAuthority` | authority | `nirman-control-plane` | The choice of retry, diagnosis, repair, backtracking, delegation, degradation, or safe failure (§21); reconciliation of `UNKNOWN` external outcomes (§36.4) and of continuity state (build spec §77.4); ledger reconstruction (§87.6) | `recovery_records` | §21 "Recovery authority", §44.1 |
-| `ArtifactAuthority` | authority | `nirman-artifacts` | APK and optional AAB packaging, checksums, the signing workflow, packaging-profile admission, artifact promotion (§44.1; §58.15 rule 6), and local export (§83) | `artifacts`, `export_verification_records` | §44.1 "Artifact authority", §83 |
+| `ArtifactAuthority` | authority | `nirman-artifacts` | APK and optional AAB packaging, checksums, the signing workflow, packaging-profile admission, artifact promotion (§44.1; §58.16 rule 6), and local export (§83) | `artifacts`, `export_verification_records` | §44.1 "Artifact authority", §83 |
 | `CapabilityPromotionAuthority` | authority | `nirman-evidence` | The last step of the promotion chain (§36.5; build spec §5.7.9): the only writer of `CapabilityMaturity` (build spec §5.6) | immutable capability promotion records | §36.5, build spec §5.7.9 |
 | `PreviewCoordinator` | service | `nirman-preview` | Revision-bound emulator deployment, preview-mode resolution, and staleness (§44.1, §73.3) | `preview_revisions` | §50, §73.3 |
 | `PreviewPromotionGate` | service | `nirman-preview` | The preview promotion decision (§73.5.1) | `PreviewRevision` promotion state | §73.5.1 |
@@ -2986,6 +2990,9 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `ProgressEvaluator` | module | `nirman-kernel` | The EVALUATE_PROGRESS stage (§58.2): classifies a cycle as CONTINUE, VALIDATE, RECOVER, DELEGATE, REPLAN, or COMPLETE; not the completion evaluator of build spec §5.7.7 | `AgentLoopRecord.progress_status` through `AgentLoopReducer` | §58.1, §58.2 |
 | `PlanCompiler` | module | `nirman-kernel` | With `Replanner`, plan revisions when evidence invalidates the plan (§58.12; build spec §52.13) | plan revision records (`planRevision`, `supersedesPlan`) | §58.12 |
 | `ContradictionDetector` | module | `nirman-kernel` | A controlled decision revision when `UncertaintyRegistry` facts contradict (§58.12) | `DecisionNode` proposals only | §58.12 |
+| `SwarmAdmissionController` | module | `nirman-control-plane` | Swarm admission evaluation over physical resource, queue, child-concurrency, emulator-slot, provider-concurrency, and recovery/validation-reserve signals (§58.5.1); a scheduler component, never an authority | none | §58.5.1 |
+| `PlanAssignmentMigrator` | module | `nirman-kernel` | Classification of every active assignment after plan supersession as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE (§58.12); never grants authority | none | §58.12 |
+| `CoordinationProgressMonitor` | module | `nirman-kernel` | Records `CoordinationStallRecord` and evaluates coordination progress distinct from process liveness (§58.13); routes through RecoveryAuthority | none | §58.13 |
 | `MutationRegressionAnalyzer` | module | `nirman-kernel` | Predicts affected behaviour and expands the `ValidationPlan` (§58.9) | proposals only | §58.9 |
 | `StructuredReasoningSummarizer` | module | `nirman-agents` | Reduces private reasoning to the structured summary of §55.1; worker-hosted (§3.5) | none — its output leaves the worker as a `REASONING_ARTIFACT` message | §55.1 |
 | `AndroidWorkflowCoordinator` | alias | — | alias of `WorkflowCoordinator` (§53.1), the `IntegratedAndroidWorkflowCoordinator` of build spec §47.1, as listed in the §57.2 topology | — | §53.1 |
@@ -3104,7 +3111,7 @@ A skill composition is a directed acyclic graph with bounded depth, explicit inp
 
 ### 58.5 SwarmPlanner and delegation
 
-`SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, emulator availability, provider concurrency, and resource pressure. It emits a `SwarmPlan` containing parallel groups, serialized dependencies, worker profiles, interfaces, leases, capacity reservations, and integration checkpoints.
+`SwarmPlanner` analyzes change surface, dependencies, symbols, requirements, risk, validation cost, capability graph, workspace capacity, emulator availability, provider concurrency, physical resource pressure, recent validated worker outcomes, task-graph join semantics, and recovery/validation reserve. It emits a `SwarmPlan` bound to graph/project/plan revisions. Before launch, `InterfaceAgreement` completeness is required and every assignment is admitted under the current lease/fencing epoch. Historical outcome feedback is advisory only.
 
 > **Schema projection:** `SwarmPlan` is defined in `nirman-schemas.md` §2.114. Owner: TA §58.5.
 
@@ -3121,6 +3128,14 @@ retry(strategy)
 escalate(reason)
 merge(results)
 ```
+
+### 58.5.1 Swarm admission, joins, and outcome feedback
+
+`SwarmAdmissionController` is a scheduler component, not an authority. It evaluates the existing physical `ResourceIntegrityAuthority`, task queue depth, parent-child concurrency, emulator slots, provider concurrency, and reserved recovery/validation capacity. It may queue, reduce concurrency, repartition, or serialize work.
+
+Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics. `OPTIONAL` work never blocks a dependent requirement unless the graph explicitly marks the dependency `HARD`. Failure propagation follows the node's declared `dependencyFailurePolicy`.
+
+`AgentQualityScorer`/historical outcome data may influence worker/profile selection only as advisory input. It cannot modify permissions, evidence requirements, or completion.
 
 Every operation carries parent task, cancellation lineage, input references, expected outputs, required capabilities, profile, permissions, resource reservation, workspace lease, and validation requirements. Dynamic worker creation is bounded by policy and never changes the authority graph.
 
@@ -3168,11 +3183,12 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 
 ### 58.11 Deadlock, backpressure, and cancellation
 
-`DeadlockDetector` analyzes cycles across task dependencies, worker waits, resource reservations, approvals, workspace leases, and ToolSessions. A detected cycle produces a typed finding and may trigger reorder, replacement, lease recovery, cancellation, replanning, or a `DecisionNode`.
+`DeadlockDetector` MUST detect dependency, worker-wait, reservation, approval, workspace, and ToolSession cycles. Reservation acquisition is atomic or globally ordered. A detected cycle produces `CoordinationStallRecord` or a deadlock finding and routes to reorder, replacement, serialization, lease recovery, cancellation, replanning, or recovery.
 
 `BackpressureController` reserves and queues Gradle processes, emulator slots, Nirman-managed local Android emulators, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
 
 `CancellationPropagationManager` propagates cancellation from goal to task graph, workers, skills, ToolSessions, child processes, PTY, emulator actions, and pending provider requests. Each node supports graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
+`CancellationPropagationManager` additionally quiesces child dispatch, prevents new messages from entering a cancelled descendant, releases reservations after cancellation reaches the descendant, preserves produced artifacts, and seals the cancelled attempt.
 
 Independent worker or skill pause must preserve context references, leases, ToolSessions, checkpoints, and unresolved questions. Unrelated workers may continue.
 
@@ -3184,7 +3200,21 @@ Independent worker or skill pause must preserve context references, leases, Tool
 
 `PlanCompiler` and `Replanner` compile a new plan when evidence invalidates the current one. Each revision records `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and recovery/migration action.
 
-### 58.13 ExecutionHistoryManager
+When `Replanner` creates a new plan revision, it invokes `PlanAssignmentMigrator`. The migrator classifies every active assignment as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. REBASE requires a new context-integrity check and interface-agreement check. REPLACE fences the old lease before launch. An old plan may not produce a consequential proposal after migration.
+
+### 58.13 Coordination progress
+
+> **Schema projection:** `CoordinationStallRecord` is defined in `nirman-schemas.md` §2.118. Owner: TA §58.13.
+
+
+`CoordinationProgressMonitor` records `CoordinationStallRecord`. A swarm is making coordination progress only when at least one authoritative frontier item is reduced, a dependency is resolved, validated evidence is added, a project/plan revision advances, or an integration checkpoint is accepted. Heartbeats and message traffic alone are insufficient.
+
+When the configured coordination window has elapsed without qualifying progress, the monitor routes through existing RecoveryAuthority. It MUST NOT terminate a healthy goal merely because elapsed time passed.
+
+### 58.14 ExecutionHistoryManager
+
+> **Schema projection:** `ExecutionEpoch` is defined in `nirman-schemas.md` §2.119. Owner: TA §58.14.
+
 
 `ExecutionHistoryManager` separates active state from retained history using semantic indexing inside each tier rather than relying on unstructured text summaries:
 
@@ -3197,7 +3227,9 @@ Independent worker or skill pause must preserve context references, leases, Tool
 
 Compaction must preserve semantic summaries, evidence links, revision identity, artifact provenance, and replay references. Model-generated summary text is never the canonical memory; memory records require validated provenance from the execution ledger. Never make a summary the sole surviving representation of authoritative state. Garbage collection cannot delete active checkpoint parents, mandatory completion evidence, unresolved failure evidence, or artifact provenance. Tiering controls retrieval priority and representation, not authority. Archived data remains authoritative evidence when explicitly restored.
 
-### 58.14 Causal Execution Memory
+Execution history is divided into explicit `ExecutionEpoch`s. Epoch rollover is a semantic continuation boundary, not a new task. A new epoch is created only after the prior epoch's continuation snapshot, event watermark, pending messages, unresolved effects, active leases, and required evidence references are durably sealed. Replay of the new epoch must not re-execute an effect already completed in the predecessor epoch.
+
+### 58.15 Causal Execution Memory
 
 The runtime models autonomous problem solving as a durable causal sequence across thousands of actions. Every meaningful action is structured as:
 
@@ -3214,7 +3246,7 @@ Observation
 
 Deliberation checkpoints, rejected strategies, and alternative hypotheses are integrated directly into the `MemoryStore` and `ContextOrchestrator` rather than operating as an isolated parallel subsystem. Each causal node records its input observation, explanatory hypothesis, policy decision, executed action, observable result, resulting evidence item, and downstream project consequences.
 
-### 58.15 Runtime invariants
+### 58.16 Runtime invariants
 
 1. Only `LifecycleAuthority` (the `SessionReducer`, §45.1) commits lifecycle state; `AgentLoopReducer` proposes.
 2. Only the ToolBroker executes tools.
@@ -4941,6 +4973,15 @@ ConstructionTransaction
   → EvidenceAuthority
   → Promotion
 ```
+
+Required critical orchestration subgraphs additionally include:
+- plan emission → interface completeness → worker admission
+- worker message persistence → dispatch → ACK/recovery
+- plan revision → assignment migration → stale proposal rejection
+- reservation acquisition → wait-for graph → deadlock recovery
+- coordination progress → stall record → recovery
+- execution epoch seal → roll-forward → replay
+- provider outage → circuit → stream/retry reconciliation
 
 ## 75. Preview Synchronization Implementation Contract
 

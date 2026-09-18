@@ -157,6 +157,12 @@ Skills, plugins, MCP-compatible tools, and instruction files are untrusted input
 
 Tool execution must pass through the tool gateway or broker. Workers and models must not invoke the operating system directly, bypass filesystem restrictions, invent command results, or write authoritative state outside the control-plane transaction. Every worker is its own `NirmanWorker.exe` process with no authority, credential, file, socket, or child; it reasons over its `WorkerConnection` and nothing else (TA §3.5; ADR-222). Do not host a worker as a thread or task inside the supervisor or the UI, and do not give a worker process a provider key, a workspace handle, or a network path.
 
+`Workers and sub-agents MUST treat TaskGraph join semantics, planRevision, projectRevision, contextIntegrityHash, lease/fencing epoch, reservation epoch, and evidence watermark as binding coordination inputs. A stale handoff or proposal MUST be rejected by the runtime; workers MUST NOT re-anchor it manually.`
+
+`Workers MUST NOT hold semantic reservations in an order chosen independently when acquiring more than one reservation. The supervisor MUST use atomic acquisition or the canonical reservation ordering and wait-for cycle detection.`
+
+`A worker/process heartbeat is not proof of useful swarm progress. Workers MUST report frontier/evidence/integration deltas through structured records; coordination stalls are handled by the supervisor, never by peer worker authority.`
+
 ## 6. Workspace, source, and mutation rules
 
 All source changes must occur inside an approved project workspace and an authorized operation. Before significant work, create or reference a durable checkpoint. Preserve user edits, inspect the current revision, and reconcile concurrent changes before applying patches.
@@ -354,6 +360,8 @@ A repair MUST NOT be reported as verified merely because a new validation passes
 Self-development mode may modify Nirman only in an isolated worktree or candidate workspace. The candidate must build, test, launch separately where applicable, pass compatibility and security checks, and produce evidence before promotion. Promotion, rollback, and capability status remain deterministic authority decisions. A candidate that fails validation is not promoted and must not corrupt the stable installation.
 
 Adaptive resource management may compact context, reduce concurrency, switch among approved models, retry transient operations, defer nonessential work, and preserve resources for validation/recovery. It cannot bypass sandboxing, permissions, evidence, signing, artifact, or completion gates. There are no arbitrary “pretend complete” time limits; exhaustion results in continuation, degradation, user-required state, or safe failure according to policy.
+
+`Fault-injection tests MUST cover worker death, message duplication/loss/reordering, supervisor restart at commit boundaries, plan supersession during active work, reservation cycles, provider stream loss, emulator loss, evidence invalidation, and execution-epoch rollover. Every test must end in a deterministic resumed, recovered, escalated, or safely rolled-back state.`
 
 ## 15. Documentation and implementation-status rules
 

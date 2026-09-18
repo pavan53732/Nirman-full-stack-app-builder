@@ -3405,3 +3405,51 @@ through a superseding ADR.
 
 ---
 
+## ADR-243: Plan and interface emission integrity
+
+**Locks:** `CONTRACT.RUNTIME.AGENT_BUILDABILITY`, `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.CONTEXT`
+
+**Status:** Accepted
+
+**Decision:** A swarm plan or interface agreement MUST be complete, revision-bound, and internally consistent before any write-capable worker is launched. `SwarmPlanner` MUST emit the current `taskGraphRevision`, `planRevision`, `projectRevision`, `contextIntegrityHash`, explicit dependency/join semantics, worker assignments, interface agreements, capacity reservations, and integration checkpoints. `InterfaceAgreement` MUST pass a completeness gate before dispatch: every field required by the selected work shape is present or the omission has an explicit `INAPPLICABLE` reason; the agreement is bound to the graph, plan, project revision, and parent task. An active worker whose plan revision is superseded MUST be classified as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE before it can produce another consequential proposal. No worker may continue consequential work against a superseded plan without an accepted migration outcome.
+
+**Rationale:** Parallel work fails when workers receive a plausible but incomplete interface, or when they continue executing a plan that has already been superseded.
+
+**Consequences:** Plan emission becomes a deterministic pre-dispatch gate. Existing plan-revision machinery remains authoritative; this decision adds the missing active-assignment migration rule and interface completeness proof.
+
+**Reversal trigger:** Evidence that complete interface metadata and explicit active-assignment migration are redundant because an existing authoritative state transition already rejects every stale or incomplete dispatch.
+
+---
+
+## ADR-244: Swarm coordination integrity
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RESERVATION`, `CONTRACT.RUNTIME.RECONCILIATION`, `CONTRACT.RUNTIME.REASONING`, `CONTRACT.RUNTIME.RESOURCE_INTEGRITY`, `CONTRACT.RUNTIME.TRIGGER`
+
+**Status:** Accepted
+
+**Decision:** Swarm execution remains inside the existing `NirmanSupervisor.exe` control plane. No second supervisor, sandbox, VM, container, or swarm environment is introduced. Coordination integrity is enforced through durable task-graph synchronization, message delivery state, lease fencing, semantic-reservation ordering, handoff consistency, physical admission/backpressure, cancellation propagation, and reconciliation. A worker result is admissible only when its project/plan/context/lease/reservation/evidence bindings remain current. A coordination stall is distinct from process liveness: healthy processes with no frontier reduction, dependency resolution, validated evidence, or revision advancement over the configured coordination-stall window trigger deterministic recovery. SwarmPlanner may use historical validated outcomes as advisory routing input but cannot grant authority or alter evidence requirements.
+
+**Rationale:** The physical worker boundary already exists. The remaining failure surface is stale, conflicting, duplicated, deadlocked, or non-progressing coordination between otherwise healthy workers.
+
+**Consequences:** The supervisor remains the only coordination authority. Existing workers, leases, reservations, blackboard, commit barrier, and recovery ladder are strengthened rather than duplicated.
+
+**Reversal trigger:** Evidence that the existing graph/lease/reservation/reconciliation protocol already detects every stale-result, deadlock, duplicate-delivery, and coordination-stall case required by M125 without additional state.
+
+---
+
+## ADR-245: Long-horizon execution epochs and provider resilience
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RECONCILIATION`, `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** Long-running execution MAY roll from one durable `ExecutionEpoch` to the next without changing the logical task or losing evidence. Each epoch records the authoritative continuation snapshot, event watermark, active graph revision, active plan revision, open leases, pending durable messages, and unresolved effects. The next epoch is admissible only from the prior sealed epoch. Provider interruption uses the existing operationality/recovery path plus a circuit state of CLOSED → OPEN → HALF_OPEN → CLOSED; an in-flight stream is resumed only when the provider protocol supports resumability, otherwise the logical model step remains durable and is restarted only through idempotent/reconciliation rules. Epoch rollover and provider recovery never count as AI-usage limits and never weaken evidence.
+
+**Rationale:** Multi-hour execution needs bounded replay state and must survive provider interruptions without duplicating logical work.
+
+**Consequences:** History compaction gains a deterministic continuation boundary. Provider failure remains within the existing ModelGateway and RecoveryAuthority ownership.
+
+**Reversal trigger:** Evidence that the current history tiers and provider request/reconciliation state provide replay-equivalent recovery for unbounded runs without epoch rollover.
+
+---
+

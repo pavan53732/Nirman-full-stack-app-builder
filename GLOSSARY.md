@@ -146,7 +146,7 @@
 
 **Backtracking / two-tier checkpoints** — File-tier and task-tier restore points that let the runtime rewind without losing evidence lineage. — TA §18; BS §11.
 
-**Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — BS §23.4; TA §6.5; ADR-049; ADR-227.
+**Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — build spec §23.4; TA §6.5; ADR-049; ADR-227.
 
 **ConversationResolver** — The single authority that commits a conversation revision (also written `ConversationContinuationResolver`). — TA §86; BS §82.
 
@@ -209,3 +209,14 @@
 **NOT_PROVEN (provenance status)** — The acknowledgement that a documented check has no proving mutation in the current tree (today: command payload coverage, whose anchors target Rust source); printed on the battery's summary line as `not proven: <check>`, distinct from both PASS and a defect. — tools/test_verify_contract_graph.py.
 
 **Command payload coverage** — The verifier check that the `ArtifactExportCommandPayload` Rust struct exposes the policy-mandatory payload fields; recorded as SKIP, never PASS, when no Rust source exists in the working tree. — technical architecture §73; `crates/`.
+
+
+**Coordination stall** — A durable condition where the worker processes remain live but the task frontier, dependencies, validated evidence, revision, or integration state does not advance over the configured coordination window. — technical architecture §58.13; `nirman-schemas.md` §2.118; ADR-244.
+
+**Execution epoch** — A sealed, replay-equivalent continuation segment of one long-running task used to bound durable history without changing task identity. — technical architecture §58.14; `nirman-schemas.md` §2.119; ADR-245.
+
+**Interface completeness gate** — The deterministic pre-dispatch check that an interface agreement contains all work-shape-required fields or explicit INAPPLICABLE reasons and is revision/context bound. — build spec §23.4; ADR-243.
+
+**Plan assignment migration** — The deterministic classification of active worker assignments after plan supersession as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. — build spec §27.11; technical architecture §58.12; ADR-243.
+
+**Swarm coordination integrity** — The property that concurrent workers can only act through current leases, complete interfaces, durable messages, revision-bound context, semantic reservations, reconciliation, and deterministic recovery. — technical architecture §58.5–58.13; ADR-244.
