@@ -2159,8 +2159,15 @@ certification.
 - `FIX-SWARM-08` supervisor restart during pending message/commit/effect.
 - `FIX-SWARM-09` provider stream interruption with supported resume and unsupported-resume reconciliation.
 - `FIX-SWARM-10` execution-epoch rollover and replay equivalence.
+- `FIX-SWARM-11` reserved control lane delivers CANCEL/FENCE/REPLACE/PLAN_SUPERSEDED/RECONCILE/RECOVER under bulk saturation without starvation.
+- `FIX-SWARM-12` worker kill between receive and apply at every in-boundary cut-point; an `APPLIED` transition is never reduplicated.
+- `FIX-SWARM-13` supervisor restart resumes every coordination stream from durable mailbox/order watermarks; in-flight reconciles before new dispatch.
+- `FIX-SWARM-14` `AwaitCondition` lifecycle (wait → wake → cancel → supersede) with no synchronous agent-on-agent waiting in any trace.
+- `FIX-SWARM-15` durable join barriers for ALL/ANY/QUORUM/OPTIONAL: a parent wakes only when its join contract is satisfiable.
+- `FIX-SWARM-16` livelock detection: a coordination signature repeated N times routes REPLAN → REPARTITION → SERIALIZE → REPLACE → BACKTRACK → ESCALATE.
+- `FIX-SWARM-17` partition: fencing survives partition, no dual-authority action occurs, and reconcile-on-heal restores single-writer order.
 
 **Global invariants:** no stale worker can create a consequential effect; no duplicate logical effect creates two authoritative outcomes; no deadlock persists while an eligible recovery strategy exists; no swarm stall is mistaken for process liveness; no plan revision permits execution against superseded premises; no completion decision is advanced by transport or model claims.
 
-**Exit gate:** all ten fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
+**Exit gate:** all seventeen fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
 

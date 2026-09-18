@@ -2846,7 +2846,8 @@ checkpoints, recovery_records, provider_profiles,
 provider_capabilities, terminal_sessions, process_records,
 preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
-project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs,
+project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs, await_conditions,
+join_barrier_states,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
@@ -2949,6 +2950,16 @@ Control messages (`HEARTBEAT`, `CANCEL`, and lifecycle fencing messages) use `CO
 ### 57.11.1 Supervisor Ephemeral Coordination Cache (optional optimization)
 
 The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache for low-latency subscription to dependency, reservation, or conflict events. This cache is bounded, revision-aware, and non-authoritative; it may accelerate subscription/notification delivery but cannot establish observation, evidence, task state, lease state, or recovery state. All durable state and truth remain in the SQLite ledger and event stream. Cache miss, eviction, or supervisor restart must fall back deterministically to the SQLite ledger/event stream. Durable `WorkerMessage` semantics remain unchanged.
+
+### 57.11.2 Durable Coordination Fabric
+
+All logical worker/swarm messaging physically crosses the Supervisor's durable coordination fabric; there is no peer-to-peer worker transport (§58.16 rule 13). Every application-critical message follows persist → dispatch → receive → accept → apply → durable-ack with independent transport (`deliveryState`) and application (`processingState`) states (`nirman-schemas.md` §1.13). Receiving a message (`deliveryState: ACKED`) never means its state transition was applied; `APPLIED` means the authoritative transition or result was durably committed. `REJECTED` and `DEFERRED` retain a durable `failureCode` and reference so recovery can distinguish them from transport failure (ADR-246).
+
+Delivery is at-least-once with idempotent authoritative application; the fabric makes no end-to-end exactly-once claim. Durable inbox/outbox precede dispatch, so after a crash: `PENDING` messages redispatch, in-flight messages reconcile, `APPLIED` messages never reapply, and unknown states reconcile before new dispatch. `ExecutionEpoch` (`nirman-schemas.md` §2.119) captures in-flight messages and mailbox/order watermarks, not only pending IDs.
+
+Ordering is explicit per coordination stream and never a global serialization of the swarm: a message applies only when its sequence equals the stream's expected sequence; behind-expected and ahead-of-expected messages are held; duplicates are no-ops; a persistent gap triggers reconciliation (§58.11.3). `CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross the reserved-capacity control lane (§58.11.2).
+
+Hierarchical supervision remains logical scoping — Supervisor → coordination scope → swarm → agent → sub-agent → worker: these are scopes in the existing Supervisor, not new executables, and supervisors monitor and restart workers without becoming authorities.
 
 
 ### 57.12 Component and authority registry
@@ -3139,6 +3150,10 @@ Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics. `OPTIONAL` work n
 
 Every operation carries parent task, cancellation lineage, input references, expected outputs, required capabilities, profile, permissions, resource reservation, workspace lease, and validation requirements. Dynamic worker creation is bounded by policy and never changes the authority graph.
 
+> **Schema projection:** `JoinBarrierState` is defined in `nirman-schemas.md` §2.121. Owner: TA §58.5.1.
+
+Fan-in is durable: every join carries `JoinBarrierState` (expected, completed, and failed children; accepted results; quorum count; join revision; join state). A parent MAY wake only when its join contract becomes satisfiable (ADR-247); satisfaction is evaluated by the Supervisor control plane and recorded with the satisfying event, never inferred from transport traffic.
+
 ### 58.6 KnowledgeLedger and TaskBlackboard
 
 `KnowledgeLedger` stores typed, scoped `KnowledgeArtifact` records. `TaskBlackboard` is a task-scoped projection containing the goal, requirements, architecture, decisions, constraints, assumptions, active workers, completed/blocked work, findings, conflicts, evidence, known failures, and next actions. A separate graph database is not implied. When typed relationships are required, the ledger may store:
@@ -3183,6 +3198,8 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 
 ### 58.11 Deadlock, backpressure, and cancellation
 
+> **Schema projection:** `AwaitCondition` is defined in `nirman-schemas.md` §2.120. Owner: TA §58.11.
+
 `DeadlockDetector` MUST detect dependency, worker-wait, reservation, approval, workspace, and ToolSession cycles. Reservation acquisition is atomic or globally ordered. A detected cycle produces `CoordinationStallRecord` or a deadlock finding and routes to reorder, replacement, serialization, lease recovery, cancellation, replanning, or recovery.
 
 `BackpressureController` reserves and queues Gradle processes, emulator slots, Nirman-managed local Android emulators, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
@@ -3191,6 +3208,20 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 `CancellationPropagationManager` additionally quiesces child dispatch, prevents new messages from entering a cancelled descendant, releases reservations after cancellation reaches the descendant, preserves produced artifacts, and seals the cancelled attempt.
 
 Independent worker or skill pause must preserve context references, leases, ToolSessions, checkpoints, and unresolved questions. Unrelated workers may continue.
+
+### 58.11.1 Asynchronous waiting via `AwaitCondition`
+
+> **Schema projection:** `AwaitCondition` is defined in `nirman-schemas.md` §2.120. Owner: TA §58.11.
+
+No agent waits on an agent. Every cross-worker wait becomes a durable `AwaitCondition` with an explicit predicate, owner (the waiting worker), cancellation lineage, and wake condition (ADR-247): the producer emits its event or result and the Supervisor wakes the waiter only when the predicate becomes satisfiable. Synchronous call-and-block chains (A waits on B waits on C waits on A) cannot be expressed, which removes an entire class of orchestration deadlocks. `CANCELLED` and `SUPERSEDED` await conditions wake deterministically with their reason.
+
+### 58.11.2 Reserved control lane
+
+`CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross a reserved-capacity control lane (`nirman-schemas.md` §2.90 `reservedControlLane`), not merely a higher-priority queue (ADR-246). Bulk traffic can never occupy the lane's capacity, so control delivery is bounded even under payload saturation. The lane changes delivery guarantees only; it grants no authority.
+
+### 58.11.3 Delivery recovery
+
+On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each connection from durable mailbox/order watermarks: `PENDING` redispatches; in-flight reconciles and redelivers once; `APPLIED` never reapplies; unknown states reconcile before any new dispatch on that stream. Duplicate deliveries are detected by `messageId`/`deduplicationKey` plus immutable payload fingerprint; a conflicting duplicate is rejected and quarantined (build spec §26.2).
 
 ### 58.12 DecisionNodeManager, uncertainty, and replanning
 
@@ -3210,6 +3241,8 @@ When `Replanner` creates a new plan revision, it invokes `PlanAssignmentMigrator
 `CoordinationProgressMonitor` records `CoordinationStallRecord`. A swarm is making coordination progress only when at least one authoritative frontier item is reduced, a dependency is resolved, validated evidence is added, a project/plan revision advances, or an integration checkpoint is accepted. Heartbeats and message traffic alone are insufficient.
 
 When the configured coordination window has elapsed without qualifying progress, the monitor routes through existing RecoveryAuthority. It MUST NOT terminate a healthy goal merely because elapsed time passed.
+
+`CoordinationProgressMonitor` also detects livelocks, not only stalls (ADR-247): the same coordination signature — graph state, plan revision, frontier, evidence watermark, failure fingerprint, and strategy — repeated `repeatThreshold` times is a coordination cycle (`detectionKind: LIVELOCK`). A coordination cycle routes through the recovery ladder REPLAN → REPARTITION → SERIALIZE → REPLACE → BACKTRACK → ESCALATE; workers are never permitted to loop by resending near-identical coordination messages.
 
 ### 58.14 ExecutionHistoryManager
 
@@ -3260,6 +3293,11 @@ Deliberation checkpoints, rejected strategies, and alternative hypotheses are in
 10. Cancellation reaches every descendant execution node.
 11. A predicted result cannot be represented as observed evidence.
 12. History compaction cannot remove required proof.
+13. No agent waits on an agent; every cross-worker wait is a durable `AwaitCondition` (§58.11.1).
+14. No message is authoritative by itself; only Supervisor-committed state transitions are.
+15. No acknowledgement means "applied" unless the authoritative state transition is durable (§57.11.2).
+16. No worker continues execution from a superseded epoch or revision.
+17. No repeated coordination state may loop forever (§58.13 livelock rule).
 
 ## 59. Memory/Context Runtime
 

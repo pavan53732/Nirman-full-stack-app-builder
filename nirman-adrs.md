@@ -3453,3 +3453,34 @@ through a superseding ADR.
 
 ---
 
+## ADR-246: Durable Coordination Fabric
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RECONCILIATION`, `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`
+
+**Status:** Accepted
+
+**Decision:** All logical worker/swarm messaging physically crosses the Supervisor's durable coordination fabric; there is no peer-to-peer worker transport. Delivery and application are distinct states (`deliveryState` vs `processingState`): acknowledgement records receipt; `APPLIED` records a durably committed authoritative transition. Delivery is at-least-once with idempotent authoritative application. Ordering is explicit per coordination stream with hold/no-op/reconciliation semantics, never a global serialization. `CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross a reserved-capacity control lane, not merely a higher priority. Reconnections reconcile from durable mailbox/order watermarks. The enforceable contract lives in build spec §26.2, technical architecture §57.11.2/§58.11.2/§58.11.3, and `nirman-schemas.md` §1.13/§2.90/§2.119.
+
+**Rationale:** Long-horizon, high-fan-out orchestration must survive transport and process failure through durable history and replay/retry rather than trusting a worker process to stay alive; receipt semantics alone conflate delivery with authoritative application.
+
+**Consequences:** No new authority, executable, or transport is introduced; fabric evaluation remains inside the existing Supervisor control plane. Transport QoS text of §57.11 remains valid but is no longer the control guarantee.
+
+**Reversal trigger:** Evidence that transport-state acknowledgement plus epoch pending-ID records provide replay-equivalent recovery for all delivery boundaries without an application state or control lane.
+
+---
+
+## ADR-247: Asynchronous waiting, durable join barriers, and the livelock ladder
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RECONCILIATION`
+
+**Status:** Accepted
+
+**Decision:** No synchronous agent-to-agent waiting exists. Every cross-worker wait is a durable `AwaitCondition` (predicate, owner, cancellation lineage, wake condition); the Supervisor wakes the waiter only when the predicate is satisfiable. Fan-in state is a durable `JoinBarrierState` (expected/completed/failed children, accepted results, quorum count, join revision, join state); a parent wakes only when its join contract becomes satisfiable. Coordination progress monitoring detects repeated-state livelocks, not only stalls, and routes them through the recovery ladder REPLAN → REPARTITION → SERIALIZE → REPLACE → BACKTRACK → ESCALATE. The enforceable contract lives in technical architecture §58.5.1/§58.11.1/§58.13 and `nirman-schemas.md` §2.118/§2.120/§2.121.
+
+**Rationale:** Synchronous wait chains are the leading source of orchestration deadlocks; implicit join state loses wake conditions across restart; stall-only detection cannot catch agents looping on near-identical coordination messages.
+
+**Consequences:** Await and join evaluation are Supervisor control-plane responsibilities, not new components or authorities (no §57.12 rows). Cancellation and supersession wake awaiters deterministically with their reason.
+
+**Reversal trigger:** Evidence that synchronous waits with cancellation propagation plus stall-only monitoring meet the no-deadlock and no-infinite-loop requirements at swarm scale.
+
+---

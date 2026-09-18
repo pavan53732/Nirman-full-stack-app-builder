@@ -220,3 +220,13 @@
 **Plan assignment migration** — The deterministic classification of active worker assignments after plan supersession as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. — build spec §27.11; technical architecture §58.12; ADR-243.
 
 **Swarm coordination integrity** — The property that concurrent workers can only act through current leases, complete interfaces, durable messages, revision-bound context, semantic reservations, reconciliation, and deterministic recovery. — technical architecture §58.5–58.13; ADR-244.
+
+**Durable coordination fabric** — The Supervisor-resident transport every worker/swarm message physically crosses, with durable inbox/outbox, at-least-once delivery, idempotent authoritative application, and explicit per-stream ordering; there is no peer-to-peer worker transport. — technical architecture §57.11.2; ADR-246.
+
+**Application acknowledgement** — The state in which a message's authoritative state transition or result is durably committed (`processingState: APPLIED`), distinct from transport-level receipt (`deliveryState: ACKED`). — build spec §26.2; technical architecture §57.11.2; ADR-246.
+
+**Await condition** — The durable record of a cross-worker wait: predicate, owner, cancellation lineage, wake condition; no agent waits synchronously on another agent. — technical architecture §58.11.1; `nirman-schemas.md` §2.120; ADR-247.
+
+**Join barrier** — The durable fan-in state of a parent node: expected/completed/failed children, accepted results, quorum count, join revision, join state; the parent wakes only when the join contract becomes satisfiable. — technical architecture §58.5.1; `nirman-schemas.md` §2.121; build spec §80.5.4; ADR-247.
+
+**Coordination cycle** — A livelock signature: the same graph state, plan revision, frontier, evidence watermark, failure fingerprint, and strategy repeated the threshold number of times; routes to the recovery ladder. — technical architecture §58.13; `nirman-schemas.md` §2.118; ADR-247.

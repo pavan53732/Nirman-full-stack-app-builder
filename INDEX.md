@@ -439,6 +439,8 @@
 | `WorkspaceLease` | §2.117 | BS §52.8 | — | — |
 | `CoordinationStallRecord` | §2.118 | TA §58.13 | — | — |
 | `ExecutionEpoch` | §2.119 | TA §58.14 | — | — |
+| `AwaitCondition` | §2.120 | TA §58.11 | — | — |
+| `JoinBarrierState` | §2.121 | TA §58.5.1 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -584,4 +586,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-245 | 46 | Accepted 46 |
+| ADR-200–ADR-247 | 48 | Accepted 48 |

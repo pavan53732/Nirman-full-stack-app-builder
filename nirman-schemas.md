@@ -325,6 +325,19 @@ WorkerMessage
 - orderingKey
 - priority: CONTROL | NORMAL | BULK
 - deliveredAt
+- scopeId
+- parentScopeId
+- delegationChainId
+- causationId
+- replyTo
+- graphRevision
+- executionEpochId
+- expectedSequence
+- processingState: RECEIVED | ACCEPTED | APPLIED | REJECTED | DEFERRED
+- ackDeadline
+- nextAttemptAt
+- lastAttemptAt
+- failureCode
 ```
 
 
@@ -3854,6 +3867,11 @@ WorkerConnection
 - exitCode
 - openedAt
 - closedAt
+- reconnectPolicy: RESUMABLE | FRESH
+- resumeCursor (last durably applied sequence per ordering stream at disconnect)
+- reservedControlLane: boolean (true means reserved-capacity control lane, not merely higher priority)
+- controlMessageKinds: CANCEL | FENCE | REPLACE | PLAN_SUPERSEDED | RECONCILE | RECOVER | HEARTBEAT
+- lastAckAppliedSequence
 ```
 
 Worker-to-supervisor message kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`.
@@ -4617,6 +4635,10 @@ CoordinationStallRecord
 - stallFingerprint
 - response: REPLAN | REPARTITION | SERIALIZE | REPLACE | BACKTRACK | ESCALATE
 - recoveryRecordId
+- detectionKind: STALL | LIVELOCK
+- repeatedSignature (graph state + plan revision + frontier + evidence watermark + failure fingerprint + strategy)
+- repeatCount
+- repeatThreshold: N
 ```
 
 ### 2.119 ExecutionEpoch
@@ -4642,6 +4664,55 @@ ExecutionEpoch
 - pendingMessageIds
 - unresolvedEffectIds
 - requiredEvidenceIds
+- inFlightMessageIds
+- deliveredUnappliedMessageIds
+- mailboxWatermarks (per scope/stream last durably applied sequence)
+- orderWatermarks (per ordering stream next expected sequence)
+```
+
+### 2.120 AwaitCondition
+
+**Owner:** TA §58.11 · **Contract:** — · **Projected at:** —
+
+```text
+AwaitCondition
+- conditionId
+- ownerWorkerId (the waiting worker)
+- taskId
+- scopeId
+- predicate (durable, evaluatable wait predicate)
+- wakeCondition (event/result identity that satisfies the predicate)
+- cancellationLineage
+- graphRevision
+- planRevision
+- executionEpochId
+- createdEventId
+- state: WAITING | SATISFIED | CANCELLED | SUPERSEDED
+- satisfiedByMessageId
+- satisfiedAtEventId
+```
+
+### 2.121 JoinBarrierState
+
+**Owner:** TA §58.5.1 · **Contract:** — · **Projected at:** —
+
+```text
+JoinBarrierState
+- barrierId
+- taskId (parent fan-in node)
+- graphId
+- graphRevision
+- planRevision
+- executionEpochId
+- expectedChildren
+- completedChildren
+- failedChildren
+- acceptedResults (result/message IDs)
+- quorumCount
+- joinPolicy: ALL | ANY | QUORUM(n) | OPTIONAL
+- joinRevision
+- state: OPEN | SATISFIED | CANCELLED | SUPERSEDED
+- satisfiedAtEventId
 ```
 
 ## 3. Canonical schema registry
@@ -4739,6 +4810,8 @@ ConstructionTransaction
 ProjectRevisionId
 CoordinationStallRecord
 ExecutionEpoch
+AwaitCondition
+JoinBarrierState
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

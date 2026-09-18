@@ -1924,6 +1924,36 @@ CASES = {
         TA,
         "Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics.",
         "Task graph fan-in uses unspecified semantics.",
+        "semantic documentation"),    # ---- durable coordination fabric locks (ADR-246/247).
+    "§26.2 collapses the six-stage pipeline into a bare ack": (
+        BS,
+        "Worker messages follow persist → dispatch → receive → accept → apply → durable-ack.",
+        "Worker messages follow persist → dispatch → ack.",
+        "semantic documentation"),
+    "§1.13 drops the application processingState": (
+        SCHEMAS,
+        "- processingState: RECEIVED | ACCEPTED | APPLIED | REJECTED | DEFERRED",
+        "",
+        "semantic documentation"),
+    "§58.11.1 reintroduces synchronous agent waiting": (
+        TA,
+        "No agent waits on an agent. Every cross-worker wait becomes a durable `AwaitCondition`",
+        "An agent may wait synchronously for another agent's result",
+        "semantic documentation"),
+    "§2.121 drops quorum and join revision from the barrier": (
+        SCHEMAS,
+        "- quorumCount\n- joinPolicy: ALL | ANY | QUORUM(n) | OPTIONAL\n- joinRevision",
+        "- joinPolicy: ALL | ANY | QUORUM(n) | OPTIONAL",
+        "semantic documentation"),
+    "§57.11.2 downgrades to an exactly-once claim": (
+        TA,
+         "Delivery is at-least-once with idempotent authoritative application; the fabric makes no end-to-end exactly-once claim.",
+         "Delivery is exactly once end to end.",
+        "semantic documentation"),
+    "§58.13 deletes the livelock repeated-signature rule": (
+        TA,
+        "repeated `repeatThreshold` times is a coordination cycle (`detectionKind: LIVELOCK`)",
+        "is reported without escalation",
         "semantic documentation"),
 }
 

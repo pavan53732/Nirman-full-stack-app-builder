@@ -1339,7 +1339,7 @@ The orchestrator should choose swarm size using task complexity, dependency coup
 
 For genuinely interdependent work, the orchestrator must create an interface agreement before parallel implementation. The agreement may include API shapes, shared types, route contracts, database schemas, event formats, or design tokens. Workers validate against this agreement before reconciliation.
 
-`InterfaceAgreement` is a pre-dispatch contract, not descriptive metadata. Before any write-capable worker is launched, the runtime MUST run `INTERFACE_COMPLETE`. The selected work shape determines the required agreement fields; every required field MUST be populated, or the field MUST carry an explicit `INAPPLICABLE` reason. `INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`. Failure rejects dispatch and returns the work item to planning; it does not create a partially authorized worker.
+`InterfaceAgreement` is a pre-dispatch contract, not descriptive metadata. Before any write-capable worker is launched, the runtime MUST run `INTERFACE_COMPLETE`. The selected work shape determines the required agreement fields; every required field MUST be populated, or the field MUST carry an explicit `INAPPLICABLE` reason. `INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`. Failure rejects dispatch and returns the work item to planning; it does not create a partially authorized worker. Fan-in across workers MUST durably record join state (`JoinBarrierState`, §80.5.4): wake conditions are never inferred from transport traffic.
 
 > **Schema projection:** `InterfaceAgreement` is defined in `nirman-schemas.md` §2.115. Owner: BS §23.4.
 
@@ -1592,7 +1592,9 @@ Supported message types should include `task_claimed`, `progress_update`, `quest
 
 Workers should use heartbeats while active. A worker that misses a configured number of heartbeats should be marked stale, its process should be inspected, and its task should be requeued or escalated. Messages should be idempotent so that replay after a daemon restart does not create duplicate changes.
 
-Worker-message delivery has durable state `PERSISTED → DISPATCHED → ACKED`, with `REJECTED` and `DEAD_LETTERED` terminal delivery outcomes. Delivery attempts, duplicate delivery, ordering domain, and protocol version are recorded. A duplicate `messageId` or deduplication key is a no-op only when its immutable payload fingerprint matches; a conflicting duplicate is rejected and quarantined. Heartbeat and cancellation control traffic is assigned control priority at the WorkerConnection transport but remains subject to the same lease fencing and supervisor authority.
+Worker-message delivery has durable state `PERSISTED → DISPATCHED → ACKED`, with `REJECTED` and `DEAD_LETTERED` terminal delivery outcomes. Delivery attempts, duplicate delivery, ordering domain, and protocol version are recorded. A duplicate `messageId` or deduplication key is a no-op only when its immutable payload fingerprint matches; a conflicting duplicate is rejected and quarantined. `CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` traffic crosses a reserved-capacity control lane at the WorkerConnection transport (technical architecture §57.11.2, §58.11.2): bulk payloads can never occupy the lane's capacity, and control delivery is bounded under saturation. Control traffic remains subject to the same lease fencing and supervisor authority.
+
+Worker messages follow persist → dispatch → receive → accept → apply → durable-ack. Transport state (`deliveryState`) and application state (`processingState`) are independent: `RECEIVED` never counts as application, and `APPLIED` records only a durably committed authoritative transition; `REJECTED` and `DEFERRED` carry a durable `failureCode` and reference. Delivery is at-least-once with idempotent authoritative application. Ordering is explicit per coordination stream: apply only when the sequence equals the expected sequence, hold when behind or ahead, treat duplicates as no-ops, and reconcile a persistent gap. No worker waits synchronously on another worker: cross-worker waits MUST be expressed as durable `AwaitCondition` records (technical architecture §58.11.1). Fan-in MUST be durable through `JoinBarrierState` (§23.4; technical architecture §58.5.1): a parent wakes only when its join contract becomes satisfiable.
 
 ### 26.3 Worker concurrency and resource limits
 
@@ -6038,7 +6040,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.1 | "Large logs and binary artifacts should be stored in task-specific directories" | MUST store outside the database | Blobs live in per-task directories; the ledger stores metadata, path, size, and content hash only |
 | BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
 | BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
-| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All nineteen `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
+| BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All thirty-two `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
 | BS §26.2 | "Supported message types should include" the twelve listed | MUST support all twelve | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
 | BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
 | BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
@@ -6646,6 +6648,10 @@ This is the field-level schema of the §42.1 `AndroidConstructionContract` (ADR-
 > **Schema projection:** `TaskNode` is defined in `nirman-schemas.md` §1.60. Owner: BS §80.5.4.
 
 > **Schema projection:** `WorkerAssignment` is defined in `nirman-schemas.md` §1.61. Owner: BS §80.5.4.
+
+Task-graph fan-in state is durable on every join: `JoinBarrierState` records expected, completed, and failed children; accepted results; quorum count; join revision; and join state (technical architecture §58.5.1); a parent wakes only when its join contract becomes satisfiable.
+
+> **Schema projection:** `JoinBarrierState` is defined in `nirman-schemas.md` §2.121. Owner: TA §58.5.1.
 
 #### 80.5.5 ProviderProfile
 
