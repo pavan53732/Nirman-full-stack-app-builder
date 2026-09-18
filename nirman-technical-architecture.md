@@ -977,6 +977,10 @@ Nirman does not implement hybrid sparse/linear attention itself. The model provi
 
 Nirman adapts around the model by measuring its recall with deterministic probes, placing precision content inside the measured reliable span adjacent to the instruction, aligning the cache breakpoint before that block, verifying proposals against anchors and premises independently of recall, and routing queries through exact/sparse/summary memory, without coupling to any proprietary model architecture.
 
+### Symbol Reference Optimization (optional)
+
+Workers MAY request symbol/file references through the Supervisor retrieval API to reduce context assembly cost. The resulting context remains a derived `ContextPackage` (BS §53.3) bound to the revision and evidence ledger. This optimization must not become an independent memory/index authority or bypass the existing ContextOrchestrator contract.
+
 ## 20. External Tool Protocol Adapter
 
 Nirman’s internal Tool Gateway remains authoritative, but an adapter may expose or consume standardized external tool servers. The adapter should translate external tool calls into Nirman policy requests before execution.
@@ -2785,6 +2789,10 @@ The canonical `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `
 
 One user + one installation → one authoritative supervisor instance. The supervisor is a per-user singleton.
 
+#### Internal Partitioning Optimization (optional)
+
+To support scale, the Supervisor MAY use internal scheduler partitioning, task/resource namespaces, queue sharding, and resource-domain partitioning. These are internal scheduler/resource-domain concepts only. No partition may establish a new authority, process, or supervisor hierarchy. `NirmanSupervisor.exe` remains the single control-plane authority singleton.
+
 Singleton enforcement:
 - Mutex/lock ownership: the supervisor acquires a named Windows mutex on startup. A second instance detects the existing mutex, refuses to start, and exits.
 - Stale supervisor detection: if the mutex exists but the owning process is dead, the new instance takes ownership after verifying no active leases or tasks are in flight.
@@ -2922,7 +2930,11 @@ The architecture acceptance criteria are satisfied when the UI can restart while
 
 > **Schema projection:** `WorkerConnection` is defined in `nirman-schemas.md` §2.90. Owner: TA §57.11.
 
-The supervisor end is `WorkerRuntime` (§58.1); the worker end is the only input and output `NirmanWorker.exe` has (§3.5). The supervisor creates one pipe per lease with an ACL naming the invoking account only; the worker authenticates with the one-time launch token it read from standard input, and the handshake binds protocol version, worker ID, lease ID, attempt ID, role, declared execution profile, model profile ID, and limits. A token presented twice, a lease that is not active, or a mismatched attempt closes the pipe. Worker-to-supervisor kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`. Every worker-originated message carries the lease ID and attempt ID and is rejected once the lease is fenced (§46); nothing a worker sends is authoritative until an authority commits it (§27.1). Pipe traffic is not a durable event: the durable record of a worker's work is what the supervisor commits — `ReasoningArtifact`s, `DeliberationRecord`s, `AgentProposal`s, `AgentLoopRecord`s, and evidence — and the worker keeps no local file.
+The supervisor end is `WorkerRuntime` (§58.1); the worker end is the only input and output `NirmanWorker.exe` has (§3.5). Every inter-process edge terminates at `NirmanSupervisor.exe`. The supervisor creates one pipe per lease with an ACL naming the invoking account only; the worker authenticates with the one-time launch token it read from standard input, and the handshake binds protocol version, worker ID, lease ID, attempt ID, role, declared execution profile, model profile ID, and limits. A token presented twice, a lease that is not active, or a mismatched attempt closes the pipe. Worker-to-supervisor kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`. Every worker-originated message carries the lease ID and attempt ID and is rejected once the lease is fenced (§46); nothing a worker sends is authoritative until an authority commits it (§27.1). Pipe traffic is not a durable event: the durable record of a worker's work is what the supervisor commits — `ReasoningArtifact`s, `DeliberationRecord`s, `AgentProposal`s, `AgentLoopRecord`s, and evidence — and the worker keeps no local file.
+
+### 57.11.1 Supervisor Ephemeral Coordination Cache (optional optimization)
+
+The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache for low-latency subscription to dependency, reservation, or conflict events. This cache is bounded, revision-aware, and non-authoritative; it may accelerate subscription/notification delivery but cannot establish observation, evidence, task state, lease state, or recovery state. All durable state and truth remain in the SQLite ledger and event stream. Cache miss, eviction, or supervisor restart must fall back deterministically to the SQLite ledger/event stream. Durable `WorkerMessage` semantics remain unchanged.
 
 
 ### 57.12 Component and authority registry
@@ -3224,7 +3236,7 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | MemoryWriter | Writes classified memory records from validated events only |
 | MemoryStore | Persists records with scope, provenance, and retention |
 | ConstraintRegistry | Holds active constraints and locked decisions for a session |
-| ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, capacity planning against provider context capacity, and integrity verification |
+| ContextOrchestrator | Sole primary context engine; coordinates WorkingSet planning, multi-modal retrieval, capacity planning against provider context capacity, and integrity verification; ensures skeleton-vs-interpreted-summary consistency through its `HierarchicalSynthesizer` subcomponent |
 | WorkingSetPlanner | Partitions context into required, active, supporting, historical, and excluded sets |
 | ContextFidelityManager | Enforces context fidelity levels across exact, structural, semantic, summary, and historical tiers |
 | ExactRetriever | Resolves pinned symbols, target files, and explicitly referenced paths at EXACT fidelity; the first retriever of the §59.6 sequence |
@@ -3466,7 +3478,7 @@ S3 Refresh and invalidation. On every workspace mutation the runtime MUST invali
 
 S4 Exact-source authority for mutation. Mutation-affecting context MUST resolve to EXACT-fidelity source through `ExactRetriever`; required EXACT items MUST remain EXACT, and EXACT items MUST NOT be replaced by summaries when required for mutation or line-level reasoning (BS §53.3). Every synthesis entry MUST carry its level and fidelity label. A summary MUST NOT be cited as the basis for a mutation; a plan citing a summary in place of exact source MUST be rejected by `RetrievalCompletenessChecker`.
 
-S5 Precedence. On conflict between a deterministic skeleton fact and an interpreted claim, the skeleton fact MUST prevail. An interpreted claim MUST NOT override a deterministic structural fact. The conflict MUST be recorded as CONTRADICTED_FACT through the §59.6 recovery path.
+S5 Precedence. On conflict between a deterministic skeleton fact and an interpreted claim, the skeleton fact MUST prevail. `ContextOrchestrator`, through its `HierarchicalSynthesizer` subcomponent, compares each interpreted claim against the corresponding deterministic skeleton fact before that summary is admitted to the synthesis artifact or cache or served in a `ContextPackage`. A mismatching interpreted claim is not admitted or served as authoritative synthesis content. The conflict MUST be recorded as `CONTRADICTED_FACT` and the §59.6 recovery path aborts model dispatch, generates the integrity diagnostic, and invokes `RegroundingService`. An interpreted claim MUST NOT override a deterministic structural fact.
 
 S6 Compatibility. Synthesis output MUST enter `WorkingSetPlanner` partitions as anchored supporting content. `ContextCapacityPlanner` MUST account synthesis bytes against provider capacity like any other context. Synthesis staleness MUST feed the §59.9 re-grounding triggers. The §59.6 ten-step sequence is unchanged.
 
