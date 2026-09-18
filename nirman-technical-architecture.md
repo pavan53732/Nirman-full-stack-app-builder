@@ -2082,6 +2082,16 @@ The manager creates a pre-mutation checkpoint, captures the project fingerprint 
 
 Writes are serialized per project revision. Independent read-only analysis may proceed concurrently.
 
+At the atomic commit boundary of every project mutation, ConstructionTransactionManager mints a new
+`ProjectRevisionId` (ADR-242) iff the committed project-state witness set — workspace file tree,
+toolchain lock, dependency snapshot — differs from the base witness set; no-op, aborted, or
+rolled-back transactions mint nothing. The current project tip, exposed to readers as
+`Project.currentRevision` (BS §82.1), is a deterministic storage-authority projection equal to the
+`projectRevisionAfter` of the latest committed ConstructionTransaction in authoritative commit-event
+sequence order (TA §45.2) for that project; aborted or rolled-back transactions are never a projection
+source. No separate StorageAuthority component is introduced: the SQLite execution ledger (§57.5) remains the
+storage authority, written only through `EventStore` and `ConstructionTransactionManager` (§21 mapping).
+
 ### 45.4 Commit barrier
 
 `CommitBarrier` prevents conflicting worker writes. A proposal declares its base revision, touched paths, semantic symbols, dependencies, requirements, and expected outputs. The barrier compares the proposal against committed and pending proposals.
@@ -5416,6 +5426,9 @@ TaskRevision
 ```
 
 When `Continue` is invoked, the `ConversationContinuationResolver` (the `ConversationResolver` of build spec §82.1; one component) evaluates `Conversation.expectedProjectRevision` against `Project.currentRevision`:
+`Project.currentRevision` in this state machine is exactly the ADR-242 derived projection (§45.3):
+the `projectRevisionAfter` of the latest committed ConstructionTransaction in authoritative commit-event
+sequence order (TA §45.2) for the project.
 1. `MATCH` (`Conversation.expectedProjectRevision == Project.currentRevision`):
    State transitions to `CONTINUE`. Next task graph is synthesized from current conversation state.
 2. `MISMATCH` (`Conversation.expectedProjectRevision != Project.currentRevision`):

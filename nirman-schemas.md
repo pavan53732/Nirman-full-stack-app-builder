@@ -4635,6 +4635,8 @@ SharedSurfaceChangeRequest
 LoopHeartbeat
 ReasoningStreamEvent
 FrameNotice
+ConstructionTransaction
+ProjectRevisionId
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
@@ -4654,3 +4656,5 @@ The registered identities below are prose-defined normative records: their shape
 - `ContextCachePolicy` — normative shape prose-defined at build spec §53.5; no projected field block (ADR-241).
 - `AndroidRuntimeIntegrityObservation` — normative shape prose-defined at build spec §75; no projected field block (ADR-241).
 - `PlatformCapabilityEntry` — normative shape prose-defined at technical architecture §84.1; no projected field block (ADR-241).
+- `ConstructionTransaction` — prose-defined normative identity for the atomic autonomous transaction described by ADR-160 and technical architecture §45.3 and §36.5; no projected field block (ADR-241; ADR-242).
+- `ProjectRevisionId` — opaque semantic identity of the ProjectRevision axis; its current value is exposed through the derived Project.currentRevision projection defined by ADR-242; no projected field block (ADR-241; ADR-242).

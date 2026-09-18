@@ -3338,3 +3338,70 @@ Performance degradation MUST be classified separately from functional correctnes
 **Reversal trigger:** Any of the fifteen prose-defined identities acquiring an authoritative field shape at implementation time — the block is then written and the identity leaves the exception list in the same change.
 
 ---
+
+## ADR-242: ProjectRevision identity semantics and derived current-tip representation
+
+**Locks:** `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.AUTHORITY`
+
+**Status:** Accepted
+
+**Context.** The sealed Continue contract (CLAUSE.CONVERSATION.REVISION_CONSISTENT_CONTINUE; BS §82.1)
+resolves `expectedProjectRevision` against `Project.currentRevision`, and the triple revision invariant
+(BS §82.1; TA §86.5) names a `ProjectRevision` register — while the schema registry declared neither the
+datum nor its identity. The commit machinery (ADR-160; TA §45.3/§36.5) already produces
+`ChangeReportRecord.projectRevisionAfter` as the authoritative committed revision of every committed
+ConstructionTransaction, and last-committed selection is well-defined by the authoritative commit-event
+sequence order of the append-only EventStore (TA §45.2), over transactions committed under per-project
+serialization (TA §45.3; ADR-161).
+
+**Decision:**
+
+1. Canonical semantic identity: `ProjectRevisionId` — opaque, non-content-derived, non-ordered;
+   concrete representation is an implementation detail (e.g., random 128-bit/UUID-class). Consumers
+   MUST NOT infer recency, ordering, freshness, or authority from the identifier's representation;
+   revision freshness is established by the authoritative revision state and commit context.
+2. Equality: identity-incarnation equality. Two revisions of identical project state are distinct
+   identities (E-opaque).
+3. Referent: the committed project-state witness set W = {workspace file tree, toolchain lock,
+   dependency snapshot}. The project fingerprint is a detection/input mechanism only; it is neither
+   the identity nor the complete semantic witness set and MUST NOT enlarge W.
+4. Generation: a new ProjectRevisionId is minted iff the committed project-state witness set at the
+   atomic commit boundary differs from the base witness set. No-op commits and aborted or rolled-back
+   transactions mint nothing. Preview promotion, signing operations, artifact promotion, and
+   AssetManifest/BrandManifest version transitions do not mint a ProjectRevisionId unless they also
+   change W.
+5. Reversion: a checkpoint restore mints a new ProjectRevisionId iff the committed resulting witness
+   set differs from the current one; prior identities are never reused (opaque + no no-op mints).
+6. Durability: the identity is stable across process restarts, sessions, compaction, and handoffs.
+7. Mint authority: ConstructionTransactionManager is the sole authority permitted to mint a new
+   ProjectRevisionId at the atomic project commit boundary; no other component may mint, replace, or
+   advance ProjectRevision identity.
+8. Representation: `Project.currentRevision` is a logical storage-authority projection equal to the
+   `projectRevisionAfter` represented by the latest committed ConstructionTransaction in authoritative
+   commit-event sequence order (TA §45.2) for that project. Aborted or rolled-back transactions
+   MUST NOT become the projection source. ProjectRevisionId identity ≠ transactionId identity; the
+   representation is not part of the identity.
+9. Traceability: revision→transaction provenance is carried by `ChangeReportRecord`
+   (transactionId + projectRevisionAfter); no dedicated revision-history record is created.
+
+**Rationale:** Declaring `ProjectRevisionId` opaque and witness-set-generated fixes the identity's
+semantics without canonizing a mechanism: the commit machinery (ADR-160) remains the sole mint
+authority, while the storage-authority projection consumes the already-authoritative
+`projectRevisionAfter` of committed transactions instead of inventing a second persistence surface.
+Deriving the tip avoids the duplicated-state invariant a `Project.currentRevision` field would create,
+and forbidding order-as-authority preserves the corpus's existing law that newest revision is never
+authoritative by number alone.
+
+**Consequences:** No new persistence record exists (A rejected) and no denormalized pointer exists
+(C₁ rejected). The sealed BS operand is unchanged. The nine existing anchor sites that reference
+`Project.currentRevision` become normatively defined by this decision. TaskRevision (D3) remains
+semantically open. AssetManifest/BrandManifest registry admission is an independent ADR-241 closure
+question (PREP-M1), unaffected by this decision.
+
+**Reversal trigger:** Revisit if (a) the authoritative commit-event sequence (TA §45.2) demonstrably
+cannot yield a deterministic latest-committed tip under a legal runtime ordering, or (b) a new state
+class enters the project change law — in which case the witness set or representation is amended only
+through a superseding ADR.
+
+---
+
