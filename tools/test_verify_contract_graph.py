@@ -1964,6 +1964,21 @@ CASES = {
         TA,
         "repeated `repeatThreshold` times is a coordination cycle (`detectionKind: LIVELOCK`)",
         "is reported without escalation",
+        "semantic documentation"),    # ---- premise invalidation locks (ADR-249).
+    "§58.12.1 weakens premise propagation to a suggestion": (
+        TA,
+        "A falsified premise must become durable authoritative state and propagate to every currently dependent active assignment",
+        "A falsified premise should eventually reach dependent assignments when convenient",
+        "semantic documentation"),
+    "§2.123 drops the artifact quarantine list": (
+        SCHEMAS,
+        "- marking: INVALIDATED | REVALIDATION_REQUIRED\n- quarantinedEvidenceIds\n- quarantinedArtifactIds",
+        "- marking: INVALIDATED | REVALIDATION_REQUIRED\n- quarantinedEvidenceIds",
+        "semantic documentation"),
+    "§58.12.1 downgrades reconciliation to push-only": (
+        TA,
+        "Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority.",
+        "Push alone is sufficient once the durable record exists.",
         "semantic documentation"),
 }
 

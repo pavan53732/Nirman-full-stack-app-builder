@@ -1499,6 +1499,8 @@ WorkerAssignment
 - planRevision
 - taskGraphRevision
 - taskRevisionId
+- assignmentValidity: CURRENT | INVALIDATED | REVALIDATION_REQUIRED
+- invalidatedByRecordId?
 - fencingEpoch
 ```
 
@@ -4738,6 +4740,34 @@ TaskRevision
 
 `TaskRevision` is the immutable identity of a task's authoritative semantic contract; a committed contract mutation mints a new `taskRevisionId` (technical architecture §45.3; ADR-248).
 
+### 2.123 PremiseInvalidationRecord
+
+**Owner:** TA §58.12 · **Contract:** — · **Projected at:** —
+
+```text
+PremiseInvalidationRecord
+- invalidationId
+- factId
+- contradictingEvidenceId
+- proposedByWorkerId?
+- dependentNodeIds
+- affectedTaskRevisionIds
+- affectedAssignmentIds
+- marking: INVALIDATED | REVALIDATION_REQUIRED
+- quarantinedEvidenceIds
+- quarantinedArtifactIds
+- dissemination: PUSH | RECONCILIATION | BOTH
+- graphRevision
+- planRevision
+- executionEpochId
+- state: PROPOSED | ADMITTED | PROPAGATED | RESOLVED | SUPERSEDED
+- resolution?: REVALIDATED_COMPATIBLE | REPLANNED | DISCARDED_ON_PROOF (required once state = RESOLVED)
+- createdByEventId
+- createdAt
+```
+
+A falsified premise becomes durable authoritative state here and propagates to every currently dependent active assignment (technical architecture §58.12.1; ADR-249); the record commits before any push notification.
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -4836,6 +4866,7 @@ ExecutionEpoch
 AwaitCondition
 JoinBarrierState
 TaskRevision
+PremiseInvalidationRecord
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

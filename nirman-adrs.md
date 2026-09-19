@@ -3500,3 +3500,19 @@ through a superseding ADR.
 **Reversal trigger:** Evidence that task-lineage consistency at graph-revision granularity alone, with no per-task contract revision, satisfies Continue reconciliation and revision-bound coordination without a TaskRevision identity.
 
 ---
+
+## ADR-249: Dependency-aware premise invalidation and active-work quarantine
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RECONCILIATION`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** A falsified premise must become durable authoritative state and propagate to every currently dependent active assignment; no worker may continue consequential work until that dependency is revalidated or its plan/work is reconciled. The pipeline is evidence proposal → authoritative admission → invalidation record → dependency propagation → active-assignment marking → quarantine → revalidation OR replan/migrate, running through the existing kernel authority path of technical architecture §58.12 (UncertaintyRegistry `CONTRADICTED`/`BLOCKED`, ContradictionDetector, PlanCompiler/Replanner, PlanAssignmentMigrator). Active assignments carry an independent premise-validity dimension (`assignmentValidity: CURRENT | INVALIDATED | REVALIDATION_REQUIRED` + `invalidatedByRecordId`), never overloading lifecycle status or lease/fencing state. Output quarantine is the default (`quarantinedEvidenceIds`, `quarantinedArtifactIds`); compatibility may bypass replan only when the existing dependency graph proves independence (§36.4); discard requires proof that the affected output cannot be safely revalidated. Push + checkpoint/epoch reconciliation are mandatory dual paths: push is notification, the durable `PremiseInvalidationRecord` is authority; notification reuses the reserved-lane `RECONCILE` message with payload discriminator `reconcileReason = PREMISE_INVALIDATION` and `invalidationId`, and the record commits before dispatch.
+
+**Rationale:** The §58.12 machinery detects contradictions and migrates assignments after replanning, but nothing bridged mid-flight fact falsifications to other workers' still-current assignments and outputs; without the bridge a swarm can silently build on a falsified premise.
+
+**Consequences:** No new authority, no new ContractId, no new §57.12 row, and no new control-kind enum. The `premise_invalidations` ledger joins the CanonicalSchemaRegistry-admitted records in the same change.
+
+**Reversal trigger:** Evidence that plan-level supersession plus evidence-dependency invalidation (§36.4) prevents consequential work on falsified premises without assignment-level premise validity and dual-path propagation.
+
+---

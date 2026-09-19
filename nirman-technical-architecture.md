@@ -2851,7 +2851,7 @@ provider_capabilities, terminal_sessions, process_records,
 preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
 project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs, await_conditions,
-join_barrier_states,
+join_barrier_states, premise_invalidations,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
@@ -3229,6 +3229,8 @@ On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each conne
 
 ### 58.12 DecisionNodeManager, uncertainty, and replanning
 
+> **Schema projection:** `PremiseInvalidationRecord` is defined in `nirman-schemas.md` §2.123. Owner: TA §58.12.
+
 `DecisionNodeManager` represents ambiguous architecture or recovery choices with a question, options, evidence, trade-offs, recommendation, impact, and resume conditions. A decision node is separate from a generic command approval and remains bound to a task and plan revision.
 
 `UncertaintyRegistry` tracks `KNOWN`, `PROBABLE`, `ASSUMED`, `UNKNOWN`, `CONTRADICTED`, `VERIFIED`, and `BLOCKED` facts with source, confidence, evidence, expiry, scope, and next action. `ContradictionDetector` creates a controlled decision revision when requirements, assumptions, device constraints, toolchains, or architecture facts conflict.
@@ -3236,6 +3238,16 @@ On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each conne
 `PlanCompiler` and `Replanner` compile a new plan when evidence invalidates the current one. Each revision records `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and recovery/migration action.
 
 When `Replanner` creates a new plan revision, it invokes `PlanAssignmentMigrator`. The migrator classifies every active assignment as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. REBASE requires a new context-integrity check and interface-agreement check. REPLACE fences the old lease before launch. An old plan may not produce a consequential proposal after migration.
+
+### 58.12.1 Premise invalidation, propagation, and quarantine
+
+> **Schema projection:** `PremiseInvalidationRecord` is defined in `nirman-schemas.md` §2.123. Owner: TA §58.12.
+
+A falsified premise must become durable authoritative state and propagate to every currently dependent active assignment; no worker may continue consequential work until that dependency is revalidated or its plan/work is reconciled (ADR-249). The pipeline is: evidence proposal → authoritative admission → invalidation record → dependency propagation → active-assignment marking → quarantine → revalidation OR replan/migrate. The proposing evidence may come from a worker or from an authoritative/kernel observation path (`proposedByWorkerId?`); admission and marking travel the existing kernel authority path above: an UncertaintyRegistry fact becomes `CONTRADICTED` or `BLOCKED`, dependent nodes are resolved from the task graph, and every affected active assignment carries `assignmentValidity: INVALIDATED | REVALIDATION_REQUIRED` and `invalidatedByRecordId` independently of lifecycle status and lease/fencing state.
+
+Output quarantine is the default: evidence and artifacts produced under the falsified premise are quarantined (`quarantinedEvidenceIds`, `quarantinedArtifactIds`). Compatibility may bypass replan only when the existing dependency graph proves independence (§36.4); discard requires proof that the affected output cannot be safely revalidated.
+
+Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority. Notification reuses the reserved control lane `RECONCILE` message (§58.11.2) with payload discriminator `reconcileReason = PREMISE_INVALIDATION` and `invalidationId`; the record MUST commit before dispatch, and checkpoint reconciliation remains mandatory because push delivery can be missed. No new authority, component, or control kind is introduced.
 
 ### 58.13 Coordination progress
 

@@ -2026,6 +2026,8 @@ A task must terminate only on one of the five goal-level terminal conditions of 
 
 The final task result must expose the requested goal, changed files, checkpoints, worker activity, commands, validation evidence, tests, builds, screenshots or device results where relevant, warnings, blockers, unresolved conditions, resource usage, and the final completion classification. The user should be able to reopen each evidence item from the result.
 
+When evidence falsifies a premise that in-flight work depends on, the runtime MUST make the falsification durable (technical architecture §58.12.1), mark every currently dependent active assignment (`INVALIDATED` or `REVALIDATION_REQUIRED`), and quarantine the affected evidence and artifacts by default. Revalidation without replan is permitted only when the dependency graph proves the output's independence (technical architecture §36.4); affected output is discarded only when evidence proves it cannot be safely revalidated. No worker may continue consequential work on the falsified dependency until it is revalidated or its plan/work is reconciled; push notification and checkpoint reconciliation are both mandatory.
+
 ## 28. Complete Runtime and Self-Improvement Requirements
 
 The Nirman runtime must be treated as the core product, not as a thin wrapper around model requests. It must own the complete development loop from goal intake through requirement extraction, planning, implementation, validation, repair, packaging, evidence-backed completion, and recovery.

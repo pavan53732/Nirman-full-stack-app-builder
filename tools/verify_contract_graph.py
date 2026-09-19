@@ -4301,6 +4301,15 @@ def check_orchestration_hardening(docs, D):
         ("ta",
          "repeated `repeatThreshold` times is a coordination cycle (`detectionKind: LIVELOCK`)",
          "technical architecture §58.13: the livelock repeated-signature rule is gone"),
+          ("ta",
+         "A falsified premise must become durable authoritative state and propagate to every currently dependent active assignment; no worker may continue consequential work until that dependency is revalidated or its plan/work is reconciled (ADR-249).",
+         "technical architecture §58.12.1: the premise-invalidation propagation invariant is gone"),
+        ("schemas",
+         "- marking: INVALIDATED | REVALIDATION_REQUIRED\n- quarantinedEvidenceIds\n- quarantinedArtifactIds",
+         "nirman-schemas.md §2.123: PremiseInvalidationRecord lost marking or quarantine fields"),
+        ("ta",
+         "Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority.",
+         "technical architecture §58.12.1: the mandatory dual-path dissemination rule is gone"),
     ]
     for key, needle, msg in locks:
         if needle not in docs[key]:

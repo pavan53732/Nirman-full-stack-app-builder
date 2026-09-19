@@ -232,3 +232,7 @@
 **Coordination cycle** — A livelock signature: the same graph state, plan revision, frontier, evidence watermark, failure fingerprint, and strategy repeated the threshold number of times; routes to the recovery ladder. — technical architecture §58.13; `nirman-schemas.md` §2.118; ADR-247.
 
 **Task revision** — The immutable revision identity of a task's authoritative semantic contract (objective/scope, dependencies, required capabilities/outputs, validation requirements, join semantics), minted solely by ConstructionTransactionManager at the contract-mutation boundary; never lifecycle state, attempts, retries, evidence, or epochs. — technical architecture §45.3; `nirman-schemas.md` §2.122; ADR-248.
+
+**Premise invalidation** — The durable authoritative record that a fact on which in-flight work depends has been falsified; it propagates to every currently dependent active assignment, quarantines affected outputs by default, and resolves by revalidation or replan/migrate. — technical architecture §58.12.1; `nirman-schemas.md` §2.123; ADR-249.
+
+**Assignment validity** — The premise-state dimension of a worker assignment (CURRENT | INVALIDATED | REVALIDATION_REQUIRED), independent of lifecycle status and lease/fencing state. — technical architecture §58.12.1; `nirman-schemas.md` §1.61; ADR-249.

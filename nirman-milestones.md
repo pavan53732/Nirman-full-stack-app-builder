@@ -2166,8 +2166,13 @@ certification.
 - `FIX-SWARM-15` durable join barriers for ALL/ANY/QUORUM/OPTIONAL: a parent wakes only when its join contract is satisfiable.
 - `FIX-SWARM-16` livelock detection: a coordination signature repeated N times routes REPLAN → REPARTITION → SERIALIZE → REPLACE → BACKTRACK → ESCALATE.
 - `FIX-SWARM-17` partition: fencing survives partition, no dual-authority action occurs, and reconcile-on-heal restores single-writer order.
+- `FIX-SWARM-18` mid-run premise falsification: admission → propagation marks every dependent active assignment; no worker continues consequential work on the falsified dependency.
+- `FIX-SWARM-19` quarantine by default: evidence and artifacts produced under the falsified premise are quarantined and cannot promote while quarantined.
+- `FIX-SWARM-20` compatibility path: a §36.4 independence proof revalidates affected output without replan and without spurious CANCEL/REPLACE.
+- `FIX-SWARM-21` discard requires proof the affected output cannot be safely revalidated; absent proof, quarantine persists.
+- `FIX-SWARM-22` a missed reserved-lane RECONCILE/PREMISE_INVALIDATION push is caught by checkpoint/epoch reconciliation before new dispatch on the affected stream.
 
 **Global invariants:** no stale worker can create a consequential effect; no duplicate logical effect creates two authoritative outcomes; no deadlock persists while an eligible recovery strategy exists; no swarm stall is mistaken for process liveness; no plan revision permits execution against superseded premises; no completion decision is advanced by transport or model claims.
 
-**Exit gate:** all seventeen fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
+**Exit gate:** all twenty-two fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
 
