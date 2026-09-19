@@ -230,3 +230,5 @@
 **Join barrier** — The durable fan-in state of a parent node: expected/completed/failed children, accepted results, quorum count, join revision, join state; the parent wakes only when the join contract becomes satisfiable. — technical architecture §58.5.1; `nirman-schemas.md` §2.121; build spec §80.5.4; ADR-247.
 
 **Coordination cycle** — A livelock signature: the same graph state, plan revision, frontier, evidence watermark, failure fingerprint, and strategy repeated the threshold number of times; routes to the recovery ladder. — technical architecture §58.13; `nirman-schemas.md` §2.118; ADR-247.
+
+**Task revision** — The immutable revision identity of a task's authoritative semantic contract (objective/scope, dependencies, required capabilities/outputs, validation requirements, join semantics), minted solely by ConstructionTransactionManager at the contract-mutation boundary; never lifecycle state, attempts, retries, evidence, or epochs. — technical architecture §45.3; `nirman-schemas.md` §2.122; ADR-248.

@@ -1900,10 +1900,20 @@ CASES = {
         "semantic documentation"),
 
     # ---- orchestration hardening locks (ADR-243/244/245; patch-pack §11).
-    "§23.4 drops the five revision bindings from INTERFACE_COMPLETE": (
+    "§23.4 drops the six revision bindings from INTERFACE_COMPLETE": (
         BS,
-        "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`.",
+        "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, `contextIntegrityHash`, and the affected task's `taskRevisionId`.",
         "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision` and `planRevision`.",
+        "semantic documentation"),
+    "§45.3 lets the minter of TaskRevision go unfixed": (
+        TA,
+        "`ConstructionTransactionManager` is the sole minter of `taskRevisionId`: a committed task-contract mutation",
+        "The minter of `taskRevisionId` is unfixed: any actor may mint provided a transaction",
+        "semantic documentation"),
+    "§45.3 deletes the TaskRevision non-advancement exclusions": (
+        TA,
+        "lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision.",
+        "lease/handoff, worker replacement, and execution-epoch rollover may advance a TaskRevision freely.",
         "semantic documentation"),
     "§1.58 loses the dependencySemantics join field": (
         SCHEMAS,

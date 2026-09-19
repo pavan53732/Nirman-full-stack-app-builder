@@ -3394,8 +3394,8 @@ authoritative by number alone.
 
 **Consequences:** No new persistence record exists (A rejected) and no denormalized pointer exists
 (C₁ rejected). The sealed BS operand is unchanged. The nine existing anchor sites that reference
-`Project.currentRevision` become normatively defined by this decision. TaskRevision (D3) remains
-semantically open. AssetManifest/BrandManifest registry admission is an independent ADR-241 closure
+`Project.currentRevision` become normatively defined by this decision. TaskRevision (D3) is closed by
+ADR-248. AssetManifest/BrandManifest registry admission is an independent ADR-241 closure
 question (PREP-M1), unaffected by this decision.
 
 **Reversal trigger:** Revisit if (a) the authoritative commit-event sequence (TA §45.2) demonstrably
@@ -3482,5 +3482,21 @@ through a superseding ADR.
 **Consequences:** Await and join evaluation are Supervisor control-plane responsibilities, not new components or authorities (no §57.12 rows). Cancellation and supersession wake awaiters deterministically with their reason.
 
 **Reversal trigger:** Evidence that synchronous waits with cancellation propagation plus stall-only monitoring meet the no-deadlock and no-infinite-loop requirements at swarm scale.
+
+---
+
+## ADR-248: TaskRevision identity semantics
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** `TaskRevision` is the immutable revision identity of a task's authoritative semantic contract — objective/scope, dependencies and dependency-failure semantics, required inputs/outputs/capabilities, validation/acceptance requirements, join semantics, and other contract-defining fields. It is never task lifecycle state, worker attempt or lease, heartbeat or progress, retry count, evidence state, or execution epoch. `taskRevisionId` is opaque and never derives authority or freshness from numeric ordering. `ConstructionTransactionManager` is the sole minter: a committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `taskRevisionId`; unaffected tasks retain their existing `TaskRevisionId`. A replan advances only tasks whose contract actually changes; migration classes (REBASE/REPLACE), task-state transitions, heartbeats, retries, evidence updates, lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision. `TaskGraph.revision` (graph-wide snapshot revision) and `TaskRevisionId` (per-task contract revision) are complementary: WorkerAssignment, InterfaceAgreement, AwaitCondition, and JoinBarrierState bind to both. In Continue, the state machine remains authoritative for the Conversation ↔ Project consistency check; TaskRevision is an additional task-lineage consistency check whose mismatch enters reconciliation/replan for the affected task and is never itself a USER_REQUIRED verdict. The durable `task_revisions` row carries provenance (`taskRevisionId`, `taskId`, `parentTaskRevisionId?`, `graphRevision`, `createdByTransactionId`, `createdAt`, `contractFingerprint`) as storage ground truth; per ADR-242 semantics the row is representation, not the semantic identity. This closes D3.
+
+**Rationale:** TaskRevision is a named leg of the triple revision invariant and now has real coordination consumers (revision-bound assignments, messages, await conditions, and join barriers); leaving its identity open was a contract defect.
+
+**Consequences:** No new authority, no new ContractId, and no new §57.12 rows. `task_revisions` remains owned by ConstructionTransactionManager; the CanonicalSchemaRegistry (nirman-schemas.md §3.1) admits the §2.122 field block in the same change.
+
+**Reversal trigger:** Evidence that task-lineage consistency at graph-revision granularity alone, with no per-task contract revision, satisfies Continue reconciliation and revision-bound coordination without a TaskRevision identity.
 
 ---

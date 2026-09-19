@@ -4263,8 +4263,14 @@ def check_orchestration_hardening(docs, D):
     Removal or rewording is a semantic-documentation defect."""
     locks = [
         ("bs",
-         "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`.",
-         "build spec §23.4: the interface-completion gate no longer verifies the five revision/parent/context bindings"),
+         "`INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, `contextIntegrityHash`, and the affected task's `taskRevisionId`.",
+         "build spec §23.4: the interface-completion gate no longer verifies the six revision/parent/context bindings"),
+        ("ta",
+         "`ConstructionTransactionManager` is the sole minter of `taskRevisionId`: a committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `taskRevisionId`",
+         "technical architecture §45.3: the sole-minter task-contract mutation rule is gone"),
+        ("ta",
+         "lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision.",
+         "technical architecture §45.3: the non-advancement exclusions for TaskRevision are gone"),
         ("schemas",
          "- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
          "nirman-schemas.md §1.58: TaskGraph lost the dependencySemantics join/failure-policy field"),

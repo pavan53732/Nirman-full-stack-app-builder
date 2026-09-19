@@ -441,6 +441,7 @@
 | `ExecutionEpoch` | §2.119 | TA §58.14 | — | — |
 | `AwaitCondition` | §2.120 | TA §58.11 | — | — |
 | `JoinBarrierState` | §2.121 | TA §58.5.1 | — | — |
+| `TaskRevision` | §2.122 | TA §45.3 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -586,4 +587,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-247 | 48 | Accepted 48 |
+| ADR-200–ADR-248 | 49 | Accepted 49 |

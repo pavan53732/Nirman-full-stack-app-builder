@@ -1497,6 +1497,8 @@ WorkerAssignment
 - status: ("assigned" | "active" | "completed" | "failed" | "released")
 - attemptId: integer (monotonic assignment-attempt counter; 1 for the first assignment; incremented on re-lease)
 - planRevision
+- taskGraphRevision
+- taskRevisionId
 - fencingEpoch
 ```
 
@@ -4568,6 +4570,8 @@ InterfaceAgreement
 - eventFormats?
 - designTokens?
 - artifactContracts? (TA §6.5)
+- taskGraphRevision
+- taskRevisionId
 ```
 
 ### 2.116 WorkerLease
@@ -4684,6 +4688,7 @@ AwaitCondition
 - wakeCondition (event/result identity that satisfies the predicate)
 - cancellationLineage
 - graphRevision
+- taskRevisionId
 - planRevision
 - executionEpochId
 - createdEventId
@@ -4702,6 +4707,7 @@ JoinBarrierState
 - taskId (parent fan-in node)
 - graphId
 - graphRevision
+- taskRevisionId
 - planRevision
 - executionEpochId
 - expectedChildren
@@ -4714,6 +4720,23 @@ JoinBarrierState
 - state: OPEN | SATISFIED | CANCELLED | SUPERSEDED
 - satisfiedAtEventId
 ```
+
+### 2.122 TaskRevision
+
+**Owner:** TA §45.3 · **Contract:** — · **Projected at:** —
+
+```text
+TaskRevision
+- taskRevisionId
+- taskId
+- parentTaskRevisionId?
+- graphRevision
+- createdByTransactionId
+- createdAt
+- contractFingerprint
+```
+
+`TaskRevision` is the immutable identity of a task's authoritative semantic contract; a committed contract mutation mints a new `taskRevisionId` (technical architecture §45.3; ADR-248).
 
 ## 3. Canonical schema registry
 
@@ -4812,6 +4835,7 @@ CoordinationStallRecord
 ExecutionEpoch
 AwaitCondition
 JoinBarrierState
+TaskRevision
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

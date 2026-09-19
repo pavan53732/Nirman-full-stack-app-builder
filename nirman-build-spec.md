@@ -1339,7 +1339,7 @@ The orchestrator should choose swarm size using task complexity, dependency coup
 
 For genuinely interdependent work, the orchestrator must create an interface agreement before parallel implementation. The agreement may include API shapes, shared types, route contracts, database schemas, event formats, or design tokens. Workers validate against this agreement before reconciliation.
 
-`InterfaceAgreement` is a pre-dispatch contract, not descriptive metadata. Before any write-capable worker is launched, the runtime MUST run `INTERFACE_COMPLETE`. The selected work shape determines the required agreement fields; every required field MUST be populated, or the field MUST carry an explicit `INAPPLICABLE` reason. `INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, and `contextIntegrityHash`. Failure rejects dispatch and returns the work item to planning; it does not create a partially authorized worker. Fan-in across workers MUST durably record join state (`JoinBarrierState`, §80.5.4): wake conditions are never inferred from transport traffic.
+`InterfaceAgreement` is a pre-dispatch contract, not descriptive metadata. Before any write-capable worker is launched, the runtime MUST run `INTERFACE_COMPLETE`. The selected work shape determines the required agreement fields; every required field MUST be populated, or the field MUST carry an explicit `INAPPLICABLE` reason. `INTERFACE_COMPLETE` MUST also verify `taskGraphRevision`, `planRevision`, `projectRevision`, `parentTaskId`, `contextIntegrityHash`, and the affected task's `taskRevisionId`. Failure rejects dispatch and returns the work item to planning; it does not create a partially authorized worker. Fan-in across workers MUST durably record join state (`JoinBarrierState`, §80.5.4): wake conditions are never inferred from transport traffic.
 
 > **Schema projection:** `InterfaceAgreement` is defined in `nirman-schemas.md` §2.115. Owner: BS §23.4.
 
@@ -6643,6 +6643,8 @@ This is the field-level schema of the §42.1 `AndroidConstructionContract` (ADR-
 
 > **Schema projection:** `TaskGraph` is defined in `nirman-schemas.md` §1.58. Owner: BS §80.5.4.
 
+`TaskGraph.revision` is the graph-wide snapshot revision; `TaskRevisionId` is the individual task-contract revision (ADR-248). A committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `TaskRevisionId`; a graph change elsewhere may advance `TaskGraph.revision` without advancing any unaffected task's `TaskRevisionId`.
+
 > **Schema projection:** `TaskPhase` is defined in `nirman-schemas.md` §1.59. Owner: BS §80.5.4.
 
 > **Schema projection:** `TaskNode` is defined in `nirman-schemas.md` §1.60. Owner: BS §80.5.4.
@@ -7411,6 +7413,8 @@ The three revision fields have distinct change rules:
      Transition to `RECONCILE/REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (e.g. orthogonal worker patches, independent asset generation, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, increments `ConversationRevision`, records a durable `ConversationRebaseRecord`, and transitions to `CONTINUE`.
    - `MISMATCH + unresolved contradiction` (`UNRESOLVABLE`):
      If intervening changes conflict with settled conversation requirements or modify locked decisions, transition to `USER_REQUIRED`. Autonomous execution halts, exposing a structured diff of the revision conflict to the user. Continuing work without explicit user resolution or silently resurrecting stale intent is strictly forbidden.
+
+The Continue state machine above remains authoritative for the Conversation ↔ Project consistency check. `TaskRevision` (ADR-248) is an additional task-lineage consistency check performed for affected task execution and reconstruction: a task-revision mismatch enters reconciliation/replan for that task; it is not itself a `USER_REQUIRED` verdict.
 
 ### 82.2 Integration with Background Continuity
 

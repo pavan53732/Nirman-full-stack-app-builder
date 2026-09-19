@@ -2092,6 +2092,10 @@ sequence order (TA §45.2) for that project; aborted or rolled-back transactions
 source. No separate StorageAuthority component is introduced: the SQLite execution ledger (§57.5) remains the
 storage authority, written only through `EventStore` and `ConstructionTransactionManager` (§21 mapping).
 
+> **Schema projection:** `TaskRevision` is defined in `nirman-schemas.md` §2.122. Owner: TA §45.3.
+
+`TaskRevision` (D3-K1; ADR-248) is the immutable revision identity of a task's authoritative semantic contract — objective/scope, dependencies and dependency-failure semantics, required inputs/outputs/capabilities, validation/acceptance requirements, join semantics, and other contract-defining fields. It is never task lifecycle state, worker attempt or lease, heartbeat or progress, retry count, evidence state, or execution epoch, and `taskRevisionId` is opaque: authority and freshness never derive from numeric ordering. `ConstructionTransactionManager` is the sole minter of `taskRevisionId`: a committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `taskRevisionId`; unaffected tasks retain their existing `TaskRevisionId`. A replan advances only tasks whose contract actually changes; migration classes (REBASE/REPLACE), task-state transitions, heartbeats, retries, evidence updates, lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision. The durable `task_revisions` row carries provenance (`createdByTransactionId`, `contractFingerprint`) as storage ground truth; per ADR-242 semantics the row is representation, not the semantic identity.
+
 ### 45.4 Commit barrier
 
 `CommitBarrier` prevents conflicting worker writes. A proposal declares its base revision, touched paths, semantic symbols, dependencies, requirements, and expected outputs. The barrier compares the proposal against committed and pending proposals.
@@ -5514,6 +5518,8 @@ sequence order (TA §45.2) for the project.
    State transitions to `RECONCILE / REBASE`. The resolver inspects intervening `ConstructionTransaction`s and `ChangeImpactReport`s. If non-conflicting (orthogonal worker patches, independent asset build, background validation), the resolver rebases `expectedProjectRevision` to `Project.currentRevision`, records `ConversationRebaseRecord`, increments `ConversationRevision`, and transitions to `CONTINUE`.
 3. `UNRESOLVABLE`:
    If intervening mutations conflict with conversation requirements or modify user-locked decisions, state transitions to `USER_REQUIRED`. Autonomous execution halts, exposing a structured diff of the revision discrepancy to the user. Continuing work without explicit user resolution or silently resurrecting stale intent is strictly forbidden.
+
+The Continue state machine above remains authoritative for the Conversation ↔ Project consistency check. `TaskRevision` (ADR-248) is an additional task-lineage consistency check performed for affected task execution and reconstruction: a task-revision mismatch enters reconciliation/replan for that task; it is not itself a `USER_REQUIRED` verdict.
 
 ### 86.6 Integration with Background Continuity
 
