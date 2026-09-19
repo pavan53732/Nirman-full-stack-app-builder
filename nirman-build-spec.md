@@ -3114,6 +3114,8 @@ Completion is permitted only when the appropriate requirement, test, preview, de
 
 Progress has two dimensions: execution liveness and coordination progress. `LoopHeartbeat` proves the kernel is moving; `CoordinationStallRecord` proves whether the swarm frontier is moving. Coordination progress includes at least frontier reduction, dependency resolution, validated evidence acquisition, accepted revision advancement, or an integration checkpoint. Message traffic and worker heartbeats alone are not progress.
 
+Progress evaluation remains the normative integration point for trajectory reassessment (technical architecture §72.7.1; it is not a second authority). A trajectory assessment compares accepted original intent against current trajectory evidence and emits `TRAJECTORY_ALIGNED` or `TRAJECTORY_DRIFTED` with a `CONTINUE`/`REPLAN`/`BRANCH_ALTERNATIVE` proposal; only existing authoritative planning/reconciliation machinery may enact a change of course. Triggers fire only on execution boundaries — never standalone elapsed time — and are deduplicated per (graphRevision, planRevision, executionEpochId, triggerKind) boundary.
+
 ### 52.4 SkillRuntime and skill composition
 
 The existing skill registry describes packages and permissions. Nirman must also provide a `SkillRuntime` that performs:

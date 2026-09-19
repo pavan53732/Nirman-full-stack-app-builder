@@ -3516,3 +3516,19 @@ through a superseding ADR.
 **Reversal trigger:** Evidence that plan-level supersession plus evidence-dependency invalidation (§36.4) prevents consequential work on falsified premises without assignment-level premise validity and dual-path propagation.
 
 ---
+
+## ADR-250: Independent trajectory reassessment
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** Local task correctness is not global trajectory correctness: a worker can be entirely correct about its assigned task while the swarm converges on an implementation that no longer satisfies the original intent. Trajectory reassessment (technical architecture §72.7.1) evaluates the original intent and accepted requirements against current trajectory evidence and emits an evidence-backed `TrajectoryAssessment` — verdict `TRAJECTORY_ALIGNED` or `TRAJECTORY_DRIFTED`, proposal `CONTINUE`/`REPLAN`/`BRANCH_ALTERNATIVE`, scope `PROJECT`/`TASK`, with `triggerEventId` causal provenance and graph/plan/epoch snapshot bindings. A trajectory assessment may recommend a change in course, but only existing authoritative planning/reconciliation machinery may enact that change: the evaluator cannot edit code, invalidate evidence, veto completion, mint authority, or act as a second completion gate. Triggers are execution-boundary predicates only (`MEANINGFUL_GRAPH_PROGRESS`, `EPOCH_TRANSITION`, `STRATEGY_CHANGE`, `ACCUMULATED_CONTRADICTION`) — never standalone elapsed time — and within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary.
+
+**Rationale:** Pre-authorization critique (§72.7) and premise invalidation (§58.12.1) do not re-ask whether a long-running, locally-green build still serves the original intent; without trajectory-level reassessment, strategy drift is invisible until failure surfaces at completion.
+
+**Consequences:** No new authority, no new ContractId, no new §57.12 row, and no standalone time trigger. The `trajectory_assessments` ledger joins the CanonicalSchemaRegistry-admitted records in the same change; build spec §52.3 remains the normative integration point, not a second authority.
+
+**Reversal trigger:** Evidence that pre-authorization critique plus premise-level invalidation surfaces all strategy drift before consequential wrong-trajectory work, making an independent trajectory assessment redundant.
+
+---

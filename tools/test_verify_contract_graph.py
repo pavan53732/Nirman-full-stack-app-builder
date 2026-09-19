@@ -1979,6 +1979,21 @@ CASES = {
         TA,
         "Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority.",
         "Push alone is sufficient once the durable record exists.",
+        "semantic documentation"),    # ---- trajectory reassessment locks (ADR-250).
+    "§72.7.1 lets the assessment enact its own proposal": (
+        TA,
+        "A trajectory assessment may recommend a change in course, but only existing authoritative planning/reconciliation machinery may enact that change.",
+        "A trajectory assessment may itself enact the course change it recommends.",
+        "semantic documentation"),
+    "§2.124 drops scope or trigger provenance": (
+        SCHEMAS,
+        "- assessmentScope: PROJECT | TASK\n- taskId?\n- intentBasisRefs\n- evidenceBasisRefs\n- triggerKind: MEANINGFUL_GRAPH_PROGRESS | EPOCH_TRANSITION | STRATEGY_CHANGE | ACCUMULATED_CONTRADICTION\n- triggerEventId",
+        "- triggerKind: MEANINGFUL_GRAPH_PROGRESS | EPOCH_TRANSITION | STRATEGY_CHANGE | ACCUMULATED_CONTRADICTION\n- triggerEventId",
+        "semantic documentation"),
+    "§72.7.1 removes trigger deduplication": (
+        TA,
+        "Within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary, an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary",
+        "An assessment is emitted on every matching event; deduplication is not required,",
         "semantic documentation"),
 }
 

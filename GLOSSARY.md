@@ -236,3 +236,7 @@
 **Premise invalidation** — The durable authoritative record that a fact on which in-flight work depends has been falsified; it propagates to every currently dependent active assignment, quarantines affected outputs by default, and resolves by revalidation or replan/migrate. — technical architecture §58.12.1; `nirman-schemas.md` §2.123; ADR-249.
 
 **Assignment validity** — The premise-state dimension of a worker assignment (CURRENT | INVALIDATED | REVALIDATION_REQUIRED), independent of lifecycle status and lease/fencing state. — technical architecture §58.12.1; `nirman-schemas.md` §1.61; ADR-249.
+
+**Trajectory reassessment** — The evidence-backed evaluation of accepted original intent against current trajectory evidence, emitting TRAJECTORY_ALIGNED or TRAJECTORY_DRIFTED plus a CONTINUE/REPLAN/BRANCH_ALTERNATIVE proposal; local task correctness is not global trajectory correctness. — technical architecture §72.7.1; `nirman-schemas.md` §2.124; build spec §52.3; ADR-250.
+
+**Trajectory boundary trigger** — An execution-boundary predicate (MEANINGFUL_GRAPH_PROGRESS | EPOCH_TRANSITION | STRATEGY_CHANGE | ACCUMULATED_CONTRADICTION) that schedules a trajectory assessment; never a standalone elapsed-time trigger, and deduplicated per (graphRevision, planRevision, executionEpochId, triggerKind) boundary. — technical architecture §72.7.1; ADR-250.

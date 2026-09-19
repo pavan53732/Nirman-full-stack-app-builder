@@ -2851,7 +2851,7 @@ provider_capabilities, terminal_sessions, process_records,
 preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
 project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs, await_conditions,
-join_barrier_states, premise_invalidations,
+join_barrier_states, premise_invalidations, trajectory_assessments,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
@@ -4487,6 +4487,16 @@ A stated confidence value is an input to uncertainty only and can never satisfy 
 HypothesisEvaluator enumerates candidates, obtains a discriminating test per candidate from EvidenceAcquisitionPlanner, ranks by decisiveness divided by cost, executes the most decisive affordable test, and records refutation against the hypothesis records of §71.5. At DEEP and above it must report whether the last pass attempted refutation or only confirmation; a confirmation-only pass does not count as competition.
 
 StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in build spec §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
+
+> **Schema projection:** `TrajectoryAssessment` is defined in `nirman-schemas.md` §2.124. Owner: TA §72.7.
+
+### 72.7.1 Trajectory reassessment
+
+Local task correctness is not global trajectory correctness: a worker can be entirely correct about its assigned task while the swarm converges on an implementation that no longer satisfies the original intent (ADR-250). Trajectory reassessment evaluates the original intent and accepted requirements (`AgentTask.userRequest`, the normalized specification, and the Conversation aggregate's accepted requirements, build spec §82.1) against current trajectory evidence (frontier, evidence watermark, and committed change surfaces through the ImpactGraph/§36.4 dependency relation). Its verdict is `TRAJECTORY_ALIGNED` or `TRAJECTORY_DRIFTED`, its proposal `CONTINUE`, `REPLAN`, or `BRANCH_ALTERNATIVE`, and its evidence requests route back through `EvidenceAcquisitionPlanner`.
+
+A trajectory assessment may recommend a change in course, but only existing authoritative planning/reconciliation machinery may enact that change. The evaluation is a logical supervisor activity, not a component: it cannot edit code, cannot invalidate evidence, cannot veto completion, cannot mint authority, and is not a second completion gate. It enters the §58.12/§58.12.1 reconciliation/replanning machinery and, where its proposal requires, the existing USER gates.
+
+Triggers are execution-boundary predicates, never standalone elapsed time: `MEANINGFUL_GRAPH_PROGRESS`, `EPOCH_TRANSITION`, `STRATEGY_CHANGE`, or `ACCUMULATED_CONTRADICTION` (§58.13, §58.14, and §58.12 boundaries). Within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary, an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary; every trigger carries `triggerEventId` for deterministic causal provenance and replay/audit anchoring.
 
 ### 72.8 EvidenceAcquisitionPlanner
 

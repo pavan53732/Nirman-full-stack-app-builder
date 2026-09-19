@@ -2171,8 +2171,12 @@ certification.
 - `FIX-SWARM-20` compatibility path: a §36.4 independence proof revalidates affected output without replan and without spurious CANCEL/REPLACE.
 - `FIX-SWARM-21` discard requires proof the affected output cannot be safely revalidated; absent proof, quarantine persists.
 - `FIX-SWARM-22` a missed reserved-lane RECONCILE/PREMISE_INVALIDATION push is caught by checkpoint/epoch reconciliation before new dispatch on the affected stream.
+- `FIX-SWARM-23` locally-green strategy drift: all tasks pass local validation while trajectory evidence no longer satisfies the original intent; the assessment emits TRAJECTORY_DRIFTED with a proposal and nothing is enacted outside the existing machinery.
+- `FIX-SWARM-24` aligned trajectory: TRAJECTORY_ALIGNED yields CONTINUE with no spurious replan and no completion-gate interference.
+- `FIX-SWARM-25` boundary triggers and deduplication: each boundary trigger kind fires; at most one assessment is emitted per (graphRevision, planRevision, executionEpochId, triggerKind) boundary, and no standalone elapsed-time trigger exists.
+- `FIX-SWARM-26` read-only evaluation: the assessment cannot edit code, invalidate evidence, veto completion, or mint authority; output paths reach only §58.12/§58.12.1 and USER gates.
 
 **Global invariants:** no stale worker can create a consequential effect; no duplicate logical effect creates two authoritative outcomes; no deadlock persists while an eligible recovery strategy exists; no swarm stall is mistaken for process liveness; no plan revision permits execution against superseded premises; no completion decision is advanced by transport or model claims.
 
-**Exit gate:** all twenty-two fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
+**Exit gate:** all twenty-six fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
 

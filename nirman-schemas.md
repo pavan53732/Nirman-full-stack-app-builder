@@ -4768,6 +4768,33 @@ PremiseInvalidationRecord
 
 A falsified premise becomes durable authoritative state here and propagates to every currently dependent active assignment (technical architecture §58.12.1; ADR-249); the record commits before any push notification.
 
+### 2.124 TrajectoryAssessment
+
+**Owner:** TA §72.7 · **Contract:** — · **Projected at:** —
+
+```text
+TrajectoryAssessment
+- assessmentId
+- assessmentScope: PROJECT | TASK
+- taskId?
+- intentBasisRefs
+- evidenceBasisRefs
+- triggerKind: MEANINGFUL_GRAPH_PROGRESS | EPOCH_TRANSITION | STRATEGY_CHANGE | ACCUMULATED_CONTRADICTION
+- triggerEventId
+- verdict: TRAJECTORY_ALIGNED | TRAJECTORY_DRIFTED
+- findings
+- evidenceRequestIds?
+- proposal: CONTINUE | REPLAN | BRANCH_ALTERNATIVE
+- graphRevision
+- planRevision
+- executionEpochId
+- consumedByDecisionId?
+- createdByEventId
+- createdAt
+```
+
+An assessment may recommend a change in course; only existing authoritative planning/reconciliation machinery may enact it (technical architecture §72.7.1; ADR-250). At most one assessment per (graphRevision, planRevision, executionEpochId, triggerKind) boundary.
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -4867,6 +4894,7 @@ AwaitCondition
 JoinBarrierState
 TaskRevision
 PremiseInvalidationRecord
+TrajectoryAssessment
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

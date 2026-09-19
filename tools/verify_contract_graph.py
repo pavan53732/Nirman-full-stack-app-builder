@@ -4310,6 +4310,15 @@ def check_orchestration_hardening(docs, D):
         ("ta",
          "Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority.",
          "technical architecture §58.12.1: the mandatory dual-path dissemination rule is gone"),
+          ("ta",
+         "A trajectory assessment may recommend a change in course, but only existing authoritative planning/reconciliation machinery may enact that change.",
+         "technical architecture §72.7.1: the recommendation/enactment authority boundary is gone"),
+        ("schemas",
+         "- assessmentScope: PROJECT | TASK\n- taskId?\n- intentBasisRefs\n- evidenceBasisRefs\n- triggerKind: MEANINGFUL_GRAPH_PROGRESS | EPOCH_TRANSITION | STRATEGY_CHANGE | ACCUMULATED_CONTRADICTION\n- triggerEventId",
+         "nirman-schemas.md §2.124: TrajectoryAssessment lost scope or trigger-provenance fields"),
+        ("ta",
+         "Within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary, an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary",
+         "technical architecture §72.7.1: the trigger deduplication rule is gone"),
     ]
     for key, needle, msg in locks:
         if needle not in docs[key]:
