@@ -2596,40 +2596,11 @@ The asset scope is bound to the asset transaction: within it the UI Worker canno
 
 ### 56.2 BrandManifest and AssetManifest schemas
 
-```text
-BrandManifest
-├── manifest_id
-├── version
-├── app_identity
-├── semantic_brand_description
-├── source_prompt_hash
-├── source_screenshot_ids
-├── color_system
-├── typography_intent
-├── spacing_intent
-├── theme_behavior
-├── requested_asset_types
-└── accessibility_expectations
+> **Schema projection:** `BrandManifest` is defined in `nirman-schemas.md` §2.125. Owner: TA §56.2.
+>
+> **Schema projection:** `AssetManifestEntry` is defined in `nirman-schemas.md` §2.126. Owner: TA §56.2.
 
-AssetManifestEntry
-├── asset_id
-├── brand_manifest_version
-├── asset_type
-├── source_intent
-├── source_screenshot_ids
-├── output_path
-├── format
-├── dimensions
-├── density_or_adaptive_variant
-├── content_hash
-├── provider_model_metadata
-├── generation_status
-├── integration_status
-├── validation_status
-└── regeneration_history
-```
-
-Schemas are versioned and strict. Each asset entry is linked to the source revision and ConstructionTransaction that generated or changed it.
+Schemas are versioned and strict. Each asset entry is linked to the source revision and ConstructionTransaction that generated or changed it. `app_identity` is the display name of build spec §44.2 and §50.3 jointly. Provider/model metadata is jointly covered by `BrandManifest` and its entries and is stored only on `AssetManifestEntry.provider_model_metadata`. `source_prompt_hash` on `BrandManifest` hashes the brand-intent prompt; `source_prompt_hash` on an entry hashes that asset's generation-call prompt. `source_seed` is optional, recorded as an input, and never proof of identical output (§56.8; ADR-105).
 
 ### 56.3 Asset state machine
 
@@ -2852,6 +2823,7 @@ preview_revisions, device_profiles, validation_runs,
 evidence_records, artifacts, toolchain_manifests,
 project_locks, decision_records, reasoning_stream_events, coordination_stall_records, execution_epochs, await_conditions,
 join_barrier_states, premise_invalidations, trajectory_assessments,
+brand_manifests, asset_manifest_entries,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
@@ -2859,7 +2831,7 @@ build_gate_records, skill_admissions, skill_invocation_records,
 resource_integrity_records, background_continuity_records
 ```
 
-The added table groups persist, respectively, the §36.1 records of the construction/change-intelligence (§87), conversation (§86), content (§85), export (§83), platform capability (§84), skill (§19.1), resource integrity (§77), and background continuity (§82) contracts; a registered record with no ledger table is a defect of this section.
+The added table groups persist, respectively, the §36.1 records of the construction/change-intelligence (§87), conversation (§86), content (§85), export (§83), platform capability (§84), skill (§19.1), resource integrity (§77), and background continuity (§82) contracts; a registered record with no ledger table is a defect of this section. `AssetManifest` is the versioned collection of `asset_manifest_entries` for a `BrandManifest` version and is not a separate ledger table.
 
 Large logs, screenshots, diffs, patches, crash dumps, build output, and APK files remain in the filesystem artifact store with content hashes, revision references, and retention metadata. All durable records use migrations, atomic writes, schema versions, and integrity checks.
 

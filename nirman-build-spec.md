@@ -2481,7 +2481,7 @@ Every preview is bound to PreviewRevision, project revision, emulator identity, 
 
 ### 44.2 Android BrandManifest
 
-Nirman may infer branding from the application contract, screenshots, domain semantics, and user preferences, but it MUST not use Windows-specific visual assumptions. BrandManifest covers display name, semantic description, light/dark colors, typography, spacing, adaptive icon assets, splash assets, notification icons, empty states, density variants, accessibility contrast, provenance, prompt hash, provider/model ID, and output hashes.
+Nirman may infer branding from the application contract, screenshots, domain semantics, and user preferences, but it MUST not use Windows-specific visual assumptions. `BrandManifest` and its versioned `AssetManifest` entries jointly cover display name, semantic description, light/dark colors, typography, spacing, adaptive icon assets, splash assets, notification icons, empty states, density variants, accessibility contrast, provenance, prompt hash, provider/model ID, and output hashes.
 
 AI image seeds are recorded as inputs, but exact reproducibility MUST be verified from output hashes rather than assumed. Content-addressed caching and explicit regeneration records are required.
 
@@ -2869,7 +2869,7 @@ The pipeline covers the application label, adaptive launcher icon, legacy launch
 
 `BrandManifest` records display name, semantic brand description, logo/icon/splash intent, source screenshot references, light and dark colors, typography and spacing intent, theme behavior, asset requirements, accessibility expectations, and manifest version.
 
-`AssetManifest` records each asset’s ID, type, BrandManifest version, source intent, screenshot references, output path, format, dimensions, density or adaptive variant, content hash, provider/model metadata, generation status, integration status, validation status, and regeneration history.
+`AssetManifest` records each asset’s ID, type, BrandManifest version, source intent, screenshot references, output path, format, dimensions, density or adaptive variant, content hash, provider/model metadata, generation status, integration status, validation status, regeneration history, source prompt hash, and optional seed.
 
 Provider/model metadata and prompt hashes are retained for provenance, but raw prompts, private data, and secrets are not exposed in the user-facing stream or ordinary logs. A seed may be recorded when available, but exact reproducibility is verified from output hashes rather than assumed.
 

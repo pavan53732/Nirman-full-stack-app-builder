@@ -4795,6 +4795,51 @@ TrajectoryAssessment
 
 An assessment may recommend a change in course; only existing authoritative planning/reconciliation machinery may enact it (technical architecture §72.7.1; ADR-250). At most one assessment per (graphRevision, planRevision, executionEpochId, triggerKind) boundary.
 
+### 2.125 BrandManifest
+
+**Owner:** TA §56.2 · **Contract:** — · **Projected at:** —
+
+```text
+BrandManifest
+- manifest_id
+- version
+- app_identity
+- semantic_brand_description
+- source_prompt_hash
+- source_screenshot_ids
+- color_system
+- typography_intent
+- spacing_intent
+- theme_behavior
+- requested_asset_types
+- accessibility_expectations
+```
+
+### 2.126 AssetManifestEntry
+
+**Owner:** TA §56.2 · **Contract:** — · **Projected at:** —
+
+```text
+AssetManifestEntry
+- asset_id
+- brand_manifest_version
+- asset_type
+- source_intent
+- source_screenshot_ids
+- output_path
+- format
+- dimensions
+- density_or_adaptive_variant
+- content_hash
+- provider_model_metadata
+- generation_status
+- integration_status
+- validation_status
+- regeneration_history
+- source_prompt_hash
+- source_seed
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -4895,6 +4940,9 @@ JoinBarrierState
 TaskRevision
 PremiseInvalidationRecord
 TrajectoryAssessment
+BrandManifest
+AssetManifestEntry
+AssetManifest
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
@@ -4914,5 +4962,6 @@ The registered identities below are prose-defined normative records: their shape
 - `ContextCachePolicy` — normative shape prose-defined at build spec §53.5; no projected field block (ADR-241).
 - `AndroidRuntimeIntegrityObservation` — normative shape prose-defined at build spec §75; no projected field block (ADR-241).
 - `PlatformCapabilityEntry` — normative shape prose-defined at technical architecture §84.1; no projected field block (ADR-241).
+- `AssetManifest` — normative shape prose-defined at build spec §50.3; no projected field block (ADR-241).
 - `ConstructionTransaction` — prose-defined normative identity for the atomic autonomous transaction described by ADR-160 and technical architecture §45.3 and §36.5; no projected field block (ADR-241; ADR-242).
 - `ProjectRevisionId` — opaque semantic identity of the ProjectRevision axis; its current value is exposed through the derived Project.currentRevision projection defined by ADR-242; no projected field block (ADR-241; ADR-242).

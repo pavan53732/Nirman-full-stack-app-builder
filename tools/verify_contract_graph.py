@@ -4319,6 +4319,12 @@ def check_orchestration_hardening(docs, D):
         ("ta",
          "Within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary, an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary",
          "technical architecture §72.7.1: the trigger deduplication rule is gone"),
+          ("schemas",
+         "BrandManifest\n- manifest_id\n- version\n- app_identity\n- semantic_brand_description\n- source_prompt_hash\n- source_screenshot_ids\n- color_system\n- typography_intent\n- spacing_intent\n- theme_behavior\n- requested_asset_types\n- accessibility_expectations",
+         "nirman-schemas.md §2.125: BrandManifest field list (12) drifted"),
+        ("schemas",
+         "- regeneration_history\n- source_prompt_hash\n- source_seed\n```",
+         "nirman-schemas.md §2.126: AssetManifestEntry lost appended provenance fields (17)"),
     ]
     for key, needle, msg in locks:
         if needle not in docs[key]:

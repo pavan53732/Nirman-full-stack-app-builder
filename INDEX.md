@@ -444,6 +444,8 @@
 | `TaskRevision` | §2.122 | TA §45.3 | — | — |
 | `PremiseInvalidationRecord` | §2.123 | TA §58.12 | — | — |
 | `TrajectoryAssessment` | §2.124 | TA §72.7 | — | — |
+| `BrandManifest` | §2.125 | TA §56.2 | — | — |
+| `AssetManifestEntry` | §2.126 | TA §56.2 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

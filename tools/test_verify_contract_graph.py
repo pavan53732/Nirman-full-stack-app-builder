@@ -1994,6 +1994,16 @@ CASES = {
         TA,
         "Within one (graphRevision, planRevision, executionEpochId, triggerKind) boundary, an assessment is emitted at most once unless a later authoritative event creates a new trigger boundary",
         "An assessment is emitted on every matching event; deduplication is not required,",
+        "semantic documentation"),    # ---- PREP-M1 registry admission locks (ADR-241 closure).
+    "§2.125 BrandManifest drops a field": (
+        SCHEMAS,
+        "- requested_asset_types\n- accessibility_expectations\n```",
+        "- requested_asset_types\n```",
+        "semantic documentation"),
+    "§2.126 AssetManifestEntry drops appended provenance": (
+        SCHEMAS,
+        "- regeneration_history\n- source_prompt_hash\n- source_seed\n```",
+        "- regeneration_history\n```",
         "semantic documentation"),
 }
 
