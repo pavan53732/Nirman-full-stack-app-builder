@@ -2715,6 +2715,14 @@ The UI provides:
 
 The user can pause auto-scroll without pausing execution, collapse repeated events, filter by phase/worker/type, inspect evidence, copy a safe summary, request a current status summary, and replay the session. The UI must distinguish model summary, runtime operation, policy result, and evidence.
 
+- `ReasoningTraceGraphView` — The WinUI 3 presentation view that projects multi-pass deliberation traces as an interactive directed acyclic graph.
+
+**Reasoning trace graph visualization.** In `Inspect` and `Developer` modes, the WinUI 3 presentation layer projects multi-pass deliberation traces as an interactive directed acyclic graph (`ReasoningTraceGraphView`):
+- *Nodes:* Represent deliberation passes, candidate hypotheses ($H_1, H_2, \dots$), proposed repair strategies ($S_1, S_2, \dots$), and counterfactual audit checkpoints.
+- *Edges:* Represent discriminating tests, evidentiary observations, and causal refutation links.
+- *States:* Color-coded by lifecycle state: Evaluating (pulsing amber), Pruned/Refuted (muted red with clickable refuting evidence citation), Accepted/Sufficient (emerald green with verification certificate link).
+- *Privacy guarantee:* Selecting any node or edge displays the structured rationale summary, uncertainty delta, and associated non-mutating evidence references. The view strictly refuses to render raw private chain-of-thought tokens, enforcing ADR-218 and BS §66.
+
 ### 55.9 Failure and ordering behavior
 
 The stream must preserve per-session sequence order. If events arrive out of order, the client buffers them briefly and requests a replay gap when necessary. Duplicate events are de-duplicated by event ID and sequence.
@@ -3073,6 +3081,13 @@ The supervisor end is `WorkerRuntime` (§58.1); the worker end is the only input
 
 Control messages (`HEARTBEAT`, `CANCEL`, and lifecycle fencing messages) use `CONTROL` priority and MUST NOT be starved behind bulk artifact/reasoning payloads. The implementation may use bounded per-connection queues; if a lower-priority queue saturates, bulk traffic is delayed/dropped according to policy while control traffic remains deliverable. This is transport QoS only and does not make pipe traffic durable.
 
+**Framed multiplexing and backpressure protocol.** To prevent large AST or proposal payloads from blocking critical lifecycle signals, `WorkerConnection` transmits all frames across an explicit channel envelope:
+- *Frame layout:* `[4-byte big-endian uint32 payload_length][1-byte uint8 channel_id][payload_bytes]`.
+- *Channel `0x00` (Control lane):* Carries `HEARTBEAT`, `CANCEL`, `CANCEL_ACK`, `PAUSE`, `RESUME`, `FENCE`, and `CLOSE`. Bounded input buffer with immediate unblocking.
+- *Channel `0x01` (Bulk Data lane):* Carries `REASONING_ARTIFACT`, `MODEL_CALL`, `PROPOSAL`, and `DELIBERATION_RECORD`.
+- *Framing bounds:* Maximum frame length is strictly 16 MB (`MAX_FRAME_SIZE = 16 * 1024 * 1024`). Frames exceeding this limit are rejected with an immediate pipe protocol violation error.
+- *High-water mark backpressure:* The supervisor maintains a 64 MB high-water mark buffer per connection. If bulk data queues exceed 64 MB, the supervisor pauses emitting `CYCLE_INPUT` and signals worker backpressure until the queue drains below the 16 MB low-water mark.
+
 ### 57.11.1 Supervisor Ephemeral Coordination Cache (optional optimization)
 
 The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache for low-latency subscription to dependency, reservation, or conflict events. This cache is bounded, revision-aware, and non-authoritative; it may accelerate subscription/notification delivery but cannot establish observation, evidence, task state, lease state, or recovery state. All durable state and truth remain in the SQLite ledger and event stream. Cache miss, eviction, or supervisor restart must fall back deterministically to the SQLite ledger/event stream. Durable `WorkerMessage` semantics remain unchanged.
@@ -3268,6 +3283,7 @@ merge(results)
 
 - `GoalHierarchyGenerator` — The deterministic planner service that derives four-tier goal trees from accepted requirements.
 - `ProjectMilestonePlanner` — The runtime planning service that organizes generated Android project construction into ordered milestones.
+- `TaskBatchingOptimizer` — The planning component that fuses co-located micro-mutations into atomic composite tasks.
 
 **Goal hierarchy generation.** `GoalHierarchyGenerator` structures accepted requirements into a four-tier directed acyclic hierarchy:
 $$\text{L0: RootUserGoal} \longrightarrow \text{L1: FeatureCapability} \longrightarrow \text{L2: AcceptanceCriteria} \longrightarrow \text{L3: TaskNode}$$
@@ -3285,6 +3301,11 @@ An L0 goal is marked satisfied if and only if all L1 capabilities are verified; 
 5. *Phase 5: Background Work & Integrations:* AndroidX WorkManager workers, Retrofit network clients, and runtime permission flows.
 6. *Phase 6: E2E Autonomous Scenario Verification:* Headless emulator exploration, UI interaction crawls, and fault injection tests.
 7. *Phase 7: Release Packaging & Verification:* Signed APK / optional AAB generation, manifest merger checks, and installation validation.
+
+**Task batching optimization.** To prevent process spawning overhead and lease contention from fine-grained mutation tasks, `SwarmPlanner` employs `TaskBatchingOptimizer`:
+- *Co-location clustering:* Identifies micro-mutation tasks targeting the same file lease (e.g., adding several localized string resources in `res/values/strings.xml`, or adding adjacent UI vector assets in `res/drawable/`) or tightly-coupled files within the same Android package.
+- *Composite task synthesis:* Fuses eligible micro-tasks into a single composite task node executed by one worker pass under a single `ConstructionTransaction`.
+- *De-batching fallback:* If the composite mutation fails compilation or AST validation, `TaskBatchingOptimizer` automatically dissolves the batch back into granular individual tasks, isolating the failing edit for precise L1/L2 repair without cascading failures.
 
 ### 58.5.1 Swarm admission, joins, and outcome feedback
 
@@ -4475,6 +4496,8 @@ Artifacts, reflections, hypotheses, invocations, and grants are stored in the SQ
 
 ### 71.8 DelegationManager enforcement
 
+- `WorkerCompatibilityValidator` — The delegation component that verifies model, context, and modal compatibility before a worker grant is issued.
+
 Before issuing a grant the manager computes:
 
 ```text
@@ -4485,6 +4508,13 @@ child.workspaceScope        ⊆ parent.workspaceScope
 ```
 
 Any violation denies the grant with a typed reason. `parent.admissibleResourceCapacity` is the parent's currently admissible physical capacity as evaluated by ResourceIntegrityAuthority (§59, BS §72) net of aggregate outstanding child resource reservations; the manager must recompute it at issue time rather than trusting a cached value, since sibling grants and host pressure change it. `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. Revoking a parent grant must cascade to every descendant, reusing the cancellation propagation of §58.
+
+**Pre-dispatch worker compatibility validation.** Before `DelegationManager` issues a `DelegationGrant`, `WorkerCompatibilityValidator` executes a 4-dimensional compatibility audit:
+1. *Context Capacity Match:* The task's assembled `ContextPackage` size must not exceed the candidate model profile's verified attendable context capacity ($C_{\text{task\_package}} \le C_{\text{model\_context}}$).
+2. *Modal Capability Match:* If the task requires visual verification (e.g., `Visual QA Worker` analyzing emulator screenshots or icon assets), the candidate model profile must explicitly declare multimodal vision support.
+3. *Structured Output Match:* If the task contract requires strict schema-validated proposals, the candidate model must support native or grammar-constrained structured output.
+4. *Toolchain Profile & AppContainer Ceiling:* The worker's assigned AppContainer sandbox profile must encompass all files, paths, and `ToolBroker` capabilities required by the task.
+If compatibility validation fails, `DelegationManager` does not dispatch an invalid worker; it escalates the model profile or routes to an alternate qualified worker role, recording `INCOMPATIBLE_WORKER_PROFILE`.
 
 ### 71.9 Failure modes and recovery
 
@@ -4570,6 +4600,13 @@ There is no budget manager. No component owns an AI-usage ceiling, reserves or s
 DeliberationRecordStore must reject a record whose `passCount` exceeds one while `continuationReasons` has fewer entries than the additional passes, and must reject any record containing verbatim model reasoning in a text field. No field of either schema is a reasoning transcript.
 
 `reasoningUsage.accountingStatus` distinguishes provider-`reported` usage, runtime-`estimated` usage, and `unavailable` usage. The runtime never fabricates provider-reported reasoning usage: when the provider does not expose reasoning-token accounting, the record states `estimated` or `unavailable`, and estimates remain telemetry that can never satisfy a sufficiency or certification requirement. `reasoningUsage`, `resourceUsage`, `passCount`, and `toollessPassCount` are observational fields: no component reads them to authorize, refuse, pause, or terminate a pass.
+
+**Reasoning reproducibility contract.** To ensure deterministic replay, audit verification, and regression tracking across deliberation passes without capturing verbatim chain-of-thought, every pass recorded in `DeliberationRecord` points to its underlying `providerRequestRefs: requestId[]`. The runtime deterministically binds:
+1. `requestHash`: The SHA-256 digest of the normalized prompt assembly, system instruction, and schema contract.
+2. `contextIntegrityHash`: The cryptographically bound context package hash (BS §53.11).
+3. `reasoningSeed`: The random seed supplied to the provider model (or `null` when provider-unsupported).
+4. `modelProfileId` and sampling parameters (`temperature`, `topP`).
+When historical replay or reproducibility testing is triggered via `TrajectoryReplayEngine` (§58.10), re-running the identical prompt digest and context hash under fixed seeds must reproduce the identical structured deliberation graph (hypotheses, strategy selection, and discriminating tests). Any structural divergence under deterministic sampling is flagged as `REASONING_DRIFT_DETECTED` and falls back to cached deliberation traces rather than silently branching into unverified states.
 
 ### 72.4 Pass loop
 
@@ -4671,6 +4708,14 @@ A stated confidence value is an input to uncertainty only and can never satisfy 
 HypothesisEvaluator enumerates candidates, obtains a discriminating test per candidate from EvidenceAcquisitionPlanner, ranks by decisiveness divided by cost, executes the most decisive affordable test, and records refutation against the hypothesis records of §71.5. At DEEP and above it must report whether the last pass attempted refutation or only confirmation; a confirmation-only pass does not count as competition.
 
 StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in build spec §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
+
+**Pre-implementation counterfactual fault audit.** When executing adversarial critique for Android project strategies at `DEEP` and `EXHAUSTIVE` deliberation, `StrategyCritic` must systematically evaluate counterfactual failure modes across 5 canonical Android operational hazards:
+1. *Process death & state recreation:* Evaluates whether in-memory states survive OS process termination when backgrounded, requiring explicit `SavedStateHandle` or `rememberSaveable` state hoisting.
+2. *Runtime permission denial:* Evaluates whether revoking runtime permissions (e.g., `POST_NOTIFICATIONS`, `ACCESS_FINE_LOCATION`, `CAMERA`) crashes the app or triggers graceful unblocked fallback UI with rationale presentation.
+3. *Network offline & degradation:* Evaluates behavior during immediate airplane mode or socket timeouts, ensuring data access routes through Room offline-first caching and StateFlow streams rather than unbuffered HTTP calls.
+4. *Configuration changes & lifecycle tearing:* Evaluates screen orientation flips, split-screen toggling, and system dark/light theme switches, verifying that Coroutine scopes are bound to `viewModelScope` rather than ephemeral Activity contexts.
+5. *API level divergence / minSdk hazards:* Evaluates framework API calls against the target project's `minSdk`, verifying that newer API usages are guarded by static `Build.VERSION.SDK_INT` checks.
+If the candidate strategy fails any of these 5 counterfactual checks without defensive handling, `StrategyCritic` emits a `COUNTERFACTUAL_FAULT_HAZARD` rejection finding citing the specific fault vector, forcing the cycle back to strategy selection or generating targeted evidence requests.
 
 > **Schema projection:** `TrajectoryAssessment` is defined in `nirman-schemas.md` §2.124. Owner: TA §72.7.
 
