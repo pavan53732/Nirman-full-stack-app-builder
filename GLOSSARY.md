@@ -136,6 +136,10 @@
 
 ## 5. Authorities, services, and runtime concepts
 
+**AndroidAntiPatternDetector** — The static AST analysis service detecting prohibited Android and Jetpack Compose anti-patterns before commit. — TA §47.4; BS §23.4.
+
+**AndroidCircularDependencyDetector** — The graph analysis service detecting cycles across Gradle modules, dependency injection graphs, and database entity relationships. — TA §47.4; BS §23.4.
+
 **AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
 
 **AndroidRefactoringPipeline** — The supervisor-orchestrated offline AST refactoring engine for dead resource pruning, deprecated API migration, and Compose state hoisting normalization. — TA §47.4.
@@ -160,6 +164,8 @@
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
+**DocCodeMismatchDetector** — The documentation consistency service verifying KDoc and Javadoc tags against Tree-sitter AST declarations. — TA §47.4; TA §76.3.
+
 **EpisodicRepairPatternCatalog** — The supervisor-owned catalog of validated, cross-session AST repair patterns indexed by compilation and runtime error signatures. — TA §47.4; TA §58.15.
 
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
@@ -177,6 +183,8 @@
 **Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
 
 **PreviewCoordinator** — The service that owns preview promotion; `PreviewProjectionReducer` remains the sole projection reducer. — TA §50; TA §75.
+
+**ProjectReadmeSynthesizer** — The documentation engine synthesizing truthful, deterministic README.md files for exported Android projects. — TA §47.4; TA §76.3; BS §83.
 
 **ReasoningTraceGraphView** — The interactive WinUI 3 deliberation DAG component visualizing hypotheses, evaluations, and evidence references without exposing raw chain-of-thought tokens. — TA §55.8.
 

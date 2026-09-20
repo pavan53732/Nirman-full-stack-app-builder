@@ -2301,10 +2301,14 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Targeted test set derivation:* Filters `TEST_UNIT` and `TEST_INSTRUMENTED` test cases: only tests that exercise the forward impact set of mutated symbols are scheduled for execution. Tests with zero dependency paths to modified nodes remain valid from their prior cached evidence watermark.
 3. *Premise verification:* Compares the proposal's premise set against the current `AndroidSymbolGraph`. If an agent proposes a change based on a symbol signature or XML ID that changed in a preceding transaction, the mutation is immediately rejected as `PREMISE_MISMATCH` before workspace mutation opens.
 
+- `AndroidAntiPatternDetector` — The static AST analysis service that detects prohibited Android and Jetpack Compose anti-patterns before commit.
 - `AndroidApiLevelValidator` — The static AST analysis service that verifies API calls against minSdk constraints.
+- `AndroidCircularDependencyDetector` — The graph analysis service that detects cycles across Gradle modules, dependency injection graphs, and database entity relationships.
 - `AndroidDataFlowAnalyzer` — The static analysis service that computes intra-procedural control flow and taint flow across Android source files.
 - `AndroidPatternLibrary` — The local offline repository of canonical Android Jetpack implementation patterns.
 - `AndroidRefactoringPipeline` — The AST-guided refactoring service that executes dead resource elimination, deprecated API migration, and Compose state hoisting.
+- `DocCodeMismatchDetector` — The documentation consistency service that verifies KDoc and Javadoc tags against Tree-sitter AST declarations.
+- `ProjectReadmeSynthesizer` — The documentation engine that generates complete, truthful README.md files for exported Android projects.
 - `SemanticCodeFingerprintEngine` — The AST normalization service that computes syntax-invariant structural hashes for methods, classes, and source files.
 
 **Static Android API level and minSdk validation.** To prevent fatal runtime crashes (`NoSuchMethodError`, `ClassNotFoundException`) on older devices and emulators, `AndroidApiLevelValidator` enforces static API level compliance:
@@ -2339,6 +2343,25 @@ The graph service calculates affected files, modules, resources, permissions, te
 1. *Syntax-invariant normalization:* Normalizes Kotlin and Java AST nodes by stripping comments, formatting whitespace, import re-orderings, and local variable identifier renamings into canonical structural form ($H_{\text{ast}}$).
 2. *Semantic no-op elimination:* Before staging a file mutation, compares the candidate AST fingerprint against the baseline AST fingerprint. If the semantic structural hash is identical despite whitespace or superficial formatting churn, the supervisor cancels the redundant write, avoiding superfluous build triggers and emulator reload cycles.
 3. *Structural patch indexing:* Supplies deterministic method-level and class-level fingerprints to `EpisodicRepairPatternCatalog` and the supervisor's SQLite execution ledger, enabling instant retrieval of historically verified AST repair patterns across diverse projects and file organizations.
+
+**Static anti-pattern and Compose code smell detection.** To enforce the closed-world decision matrix of §73.2 and maintain Android runtime performance, `AndroidAntiPatternDetector` statically scans Tree-sitter AST nodes prior to transaction staging:
+1. *Prohibited pattern enforcement:* Detects and rejects legacy or dangerous constructs prohibited by §73.2 (`AsyncTask`, raw `Thread`/`Handler` allocations, direct `SQLiteOpenHelper` subclasses, `ProgressDialog`, and exported components without explicit `android:exported` attributes).
+2. *Compose state allocation anti-patterns:* Flags calls to `mutableStateOf(...)` or expensive allocations (e.g. bitmap resource decoding, collection transformations, regex compilations) inside `@Composable` functions that are not wrapped in `remember` or `rememberSaveable`, preventing severe frame-rate degradation and infinite recomposition loops.
+3. *Unstable parameter detection:* Scans Composable parameter types against Compose stability invariants, recommending immutable collection wrappers or `@Stable`/`@Immutable` annotations when unstable types cause unnecessary recompositions.
+
+**Circular dependency detection.** To prevent cyclic build deadlocks and runtime initialization crashes, `AndroidCircularDependencyDetector` constructs directed dependency graphs across three Android architectural planes:
+1. *Multi-module Gradle graph:* Builds a directed graph of project dependencies (`implementation(project(":feature"))`) across `build.gradle.kts` files and executes Tarjan's strongly connected components algorithm to identify and reject inter-module cycles before Gradle invocation.
+2. *Dependency injection graph:* Traverses Dagger/Hilt `@Inject` constructors and `@Provides` module bindings to verify acyclic object graph construction, reporting pre-commit diagnostic `CIRCULAR_INJECTION_DEPENDENCY` on detected cycles.
+3. *Relational schema graph:* Inspects Room `@Entity` relations and `@ForeignKey` constraints to guarantee acyclic entity dependency hierarchies, preventing cascading delete deadlocks.
+
+**Documentation consistency and doc-code mismatch detection.** Within `nirman-supervisor`, `DocCodeMismatchDetector` ensures that codebase documentation faithfully matches actual implementation:
+1. *Tag-to-signature reconciliation:* Compares KDoc and Javadoc `@param`, `@return`, and `@throws` tags against the corresponding Tree-sitter AST method signatures. If a parameter is renamed, removed, or added without updating the documentation comment, the analyzer flags a `DOC_CODE_MISMATCH` diagnostic.
+2. *Type and visibility consistency:* Verifies that documented types and exception classes exist in the current project classpath and that private helper details are not exposed in public KDoc contracts.
+
+**Project README synthesis.** During export preparation under `Documentation Worker`, `ProjectReadmeSynthesizer` generates a truthful, deterministic `README.md` at the project root:
+1. *Metadata grounding:* Derives project name, package name, `minSdk`, `targetSdk`, and toolchain versions directly from `AndroidToolchainLock` and `AndroidManifest.xml`, strictly forbidding fabricated build parameters.
+2. *Build and execution commands:* Emits exact local Gradle wrapper commands (`./gradlew assembleDebug`, `./gradlew test`) corresponding to the project's verified configuration.
+3. *Architecture summary:* Summarizes implemented screens, Room database entities, and background workers based strictly on verified `CapabilityRegistry` evidence.
 
 ---
 
@@ -5484,7 +5507,7 @@ Specialist gates are responsibilities assigned to the canonical worker roles of 
 | Diff-aware patching | Debugging Worker (repairs) or the owning implementation worker (UI Worker, Android Data and Integration Worker) | Apply scoped patches against the current revision, preserve unrelated user edits, and emit a reviewable diff | Workspace revision, reservation, and reconciliation checks |
 | Diagnostics | Diagnostic Worker (as the child of the failing worker) or Debugging Worker | Classify failures, correlate stack traces and runtime observations, and produce `FailureContextPackage` | Failure fingerprint and evidence references |
 | Validation | Test and QA Worker, with Emulator Driver Worker for scenario execution and Visual QA Worker for visual/accessibility checks | Run focused and regression checks, Android build/emulator validation, and visual/accessibility checks | Independent validation and current evidence |
-| Memory/index update | Documentation Worker | Update the project index, settled decisions, conventions, failure patterns, and sanitized episode summaries | Privacy classification and memory-write policy |
+| Memory/index update | Documentation Worker | Update the project index, settled decisions, conventions, failure patterns, sanitized episode summaries, verify KDoc/code consistency via `DocCodeMismatchDetector`, and synthesize export `README.md` via `ProjectReadmeSynthesizer` | Privacy classification and memory-write policy |
 | Release preparation | Release Worker | Prepare artifact, signing, certificate, promotion, and local export records without bypassing authorities | `PreviewPromotionGate`, signing authority, and export verification |
 | Adversarial critique | Critic Worker | Search for the counterexample that would make the selected strategy or completion claim wrong; request the discriminating evidence | A critique finding blocks authorization until answered with evidence (build spec §68.10) |
 | Integration doubles | Integration Double Worker | Author and conform `ContractDouble` fixtures for every declared integration without a reachable backend | Double conformance evidence; `IntegrationState` never passes `SPECIFIED` on its account |
@@ -5627,7 +5650,7 @@ The projection maps continuity dimensions and the derived aggregate to truthful 
 **Implementation owner:** `ArtifactAuthority`, the existing signing-identity policy authority, `EvidenceAuthority`/`ValidationAuthority`, `PreviewPromotionGate` for preview promotion, the existing external-effect transaction/reconciliation authority, and the local Windows filesystem adapter. The labels `SigningAuthority`, `PromotionAuthority`, and `ExternalEffectCoordinator` are implementation aliases only and are not additional authorities.
 
 ### 83.1 Deployment admission and profile binding
-The export handler resolves `packagingProfileId`, artifact kind, source revision, checkpoint, signing identity binding, validation decision, promotion decision, and destination policy before copying. It accepts only a verified declared APK for required local delivery or a declared AAB when the profile explicitly requests `APK_AND_AAB`. The deployment destination is `LOCAL_WINDOWS_FILESYSTEM`; any external deployment destination is rejected. Source, ZIP, and Git export is handled as `SOURCE_ACCESS_ONLY` and is never a deployment artifact.
+The export handler resolves `packagingProfileId`, artifact kind, source revision, checkpoint, signing identity binding, validation decision, promotion decision, and destination policy before copying. It accepts only a verified declared APK for required local delivery or a declared AAB when the profile explicitly requests `APK_AND_AAB`. The deployment destination is `LOCAL_WINDOWS_FILESYSTEM`; any external deployment destination is rejected. Source, ZIP, and Git export is handled as `SOURCE_ACCESS_ONLY` and is never a deployment artifact; when source access is generated, `ProjectReadmeSynthesizer` (§76.3) synthesizes a verified `README.md` at the project root from the `AndroidToolchainLock` and completed `CapabilityRegistry` records.
 
 ### 83.2 Durable copy operation
 The handler creates one `ExportVerificationRecord` before copying and records source identity, destination identity, source hash, destination hash, byte count, copy lifecycle, request fingerprint, idempotency key, and post-copy check. A copy that may have partially completed follows `UNKNOWN → RECONCILING`; destination inspection and source/destination identity and hash comparison must resolve it to `VERIFIED`, `FAILED`, or `BLOCKED` before retry. A hash or identity mismatch blocks completion and preserves the last-known-good artifact evidence. `reconciliationReference`, `failureEvidenceId`, and the corresponding external-effect or filesystem-inspection evidence are mandatory for the `UNKNOWN` and `RECONCILING` path.
