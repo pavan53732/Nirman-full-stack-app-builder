@@ -4319,13 +4319,27 @@ def check_schema_registry_closure(docs, R, D):
             D.add("structure", n, "§3.1 prose-defined declaration names an identity absent from the registry list")
         if n in blocks:
             D.add("structure", n, "§3.1 prose-defined declaration is stale: the identity has a field block; remove the declaration")
-    # declaration §-pointers resolve against the cited document
+    # declaration §-pointers resolve against the cited document, and the
+    # pointer's target section must actually DEFINE the identity. A pointer
+    # that resolves to a real heading which never names the identity is a
+    # stale or misdirected declaration: the reader follows the pointer and
+    # learns nothing. The whole clause list is scanned, not just the line,
+    # because a declaration's defining sentence may wrap onto a continuation
+    # line — a defect the line-anchored scan above would miss entirely.
     bs_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["bs"], re.M))
     ta_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["ta"], re.M))
     for m in re.finditer(r"^- `([A-Za-z0-9]+)` — [^\n]*?(build spec|technical architecture) §(\d+(?:\.\d+)*)", region, re.M):
-        ok = m.group(3) in (bs_secs if m.group(2) == "build spec" else ta_secs)
-        if not ok:
-            D.add("structure", m.group(1), f"prose-defined declaration's pointer ({m.group(2)} §{m.group(3)}) does not exist")
+        name, which, ptr = m.group(1), m.group(2), m.group(3)
+        owner_doc = docs["bs"] if which == "build spec" else docs["ta"]
+        owner_secs = bs_secs if which == "build spec" else ta_secs
+        if ptr not in owner_secs:
+            D.add("structure", name, f"prose-defined declaration's pointer ({which} §{ptr}) does not exist")
+            continue
+        body = _section_text(owner_doc, ptr)
+        if body is None or f"`{name}`" not in body:
+            D.add("structure", name,
+                  f"§3.1 prose-defined declaration points at {which} §{ptr}, whose body never names `{name}`; "
+                  "a declaration must point at the section that actually defines the identity (ADR-241)")
 
 
 def check_orchestration_hardening(docs, D):
@@ -4400,6 +4414,95 @@ def check_orchestration_hardening(docs, D):
     for key, needle, msg in locks:
         if needle not in docs[key]:
             D.add("semantic documentation", key, msg)
+
+
+def _section_start(text, num):
+    """Index of the heading line for section `num`, or -1 when absent."""
+    m = re.search(r"^(#{2,4}) " + re.escape(num) + r"(?:\.|\b)[^\n]*\n", text, re.M)
+    return m.start() if m else -1
+
+
+def _sec_has(text, num, needle):
+    """True when `needle` appears inside section `num`'s own body. Unlike a
+    whole-document membership test this cannot be satisfied by an occurrence
+    that lives in a different section, which is what makes a section-scoped
+    lock discriminating."""
+    body = _section_text(text, num)
+    return body is not None and needle in body
+
+
+def _para_after(text, heading_re, needle, window=9000):
+    """True when `needle` appears in the body of the first heading matching
+    `heading_re`, within `window` characters of that heading. Used by the
+    ADR-251 lock to prove a requirement is stated in the section that owns it
+    rather than merely somewhere in the document."""
+    m = re.search(heading_re, text, re.M)
+    if not m:
+        return False
+    return needle in text[m.start():m.start() + window]
+
+
+def _adr_body(adrs, num):
+    """Body of ADR block `num` (excluding its heading), or "" when absent."""
+    m = re.search(r"^## ADR-" + str(num) + r":[^\n]*\n(.*?)(?=^## ADR-|\Z)", adrs, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+def check_commit_boundary_locks(docs, D):
+    """ADR-251 owner-ratified commit-boundary locks. ADR-251 establishes, as
+    NEW normative law, that a zero-W-delta ConstructionTransaction terminates
+    as an explicit no-op abort and that the committed-transaction event is the
+    authoritative commit record. The law lives in the two owner sections and in
+    the amendment back-pointer; removing, weakening, or relocating any of it is
+    a semantic-documentation defect, not a style choice."""
+    ta = docs.get("ta", "")
+    bs = docs.get("bs", "")
+    adrs = adr_text(docs)
+    a251 = _adr_body(adrs, 251)
+    a242 = _adr_body(adrs, 242)
+    locks = [
+        # ADR-251 exists, and its cross-pointers are two-way. An amendment is
+        # only discoverable from either end if both ends name each other.
+        (bool(a251),
+         "decision log", "ADR-251 (committed-transaction commit events and the no-op commit boundary) is absent"),
+        ("**Amends:** ADR-242" in a251,
+         "ADR-251", "ADR-251 lost its `**Amends:** ADR-242` field"),
+        ("**Amended by ADR-251:**" in a242,
+         "ADR-242", "ADR-242 lost the `**Amended by ADR-251:**` back-pointer"),
+        # §45.2 defines the authoritative committed-transaction event.
+        (_para_after(ta, r"^### 45\.2 ", "**Authoritative committed-transaction event (ADR-251).**"),
+         "technical architecture", "§45.2 lost the authoritative committed-transaction event definition (ADR-251 clause 4)"),
+        (_para_after(ta, r"^### 45\.2 ", "in the same atomic durable"),
+         "technical architecture", "§45.2 lost the committed-transaction event's atomicity-with-commit requirement"),
+        (_para_after(ta, r"^### 45\.2 ", "sole authority for"),
+         "technical architecture", "§45.2 no longer names the event sequence number as the sole ordering authority"),
+        (_para_after(ta, r"^### 45\.2 ", "Recovery and compaction provenance."),
+         "technical architecture", "§45.2 lost the committed-transaction event recovery/compaction provenance clause"),
+        # §45.3 states the no-op law and the scoped predicate.
+        (_para_after(ta, r"^### 45\.3 ", "**Zero-delta termination (ADR-251).**"),
+         "technical architecture", "§45.3 lost the zero-W-delta termination rule (ADR-251 clause 2)"),
+        (_para_after(ta, r"^### 45\.3 ", "no-op abort"),
+         "technical architecture", "§45.3 no longer names the no-op abort termination"),
+        (_para_after(ta, r"^### 45\.3 ", "not the presence of file edits, decides"),
+         "technical architecture", "§45.3 lost the witness-set-over-file-edits criterion (ADR-251 clause 1/3)"),
+        (_para_after(ta, r"^### 45\.3 ", "It is not a failure, a validation defect, or a policy"),
+         "technical architecture", "§45.3 no longer states that a no-op abort is a normal termination, not an error"),
+        (_para_after(ta, r"^### 45\.3 ", "event.projectId == project.id"),
+         "technical architecture", "§45.3 lost the project-scoped commit-event selection predicate (ADR-251 clause 5)"),
+        # The exactly-one obligation is unchanged and still BS-owned. The
+        # clause id must be named in TA §45.3 itself — the commit boundary a
+        # reader consults — so a bare "exactly one ChangeReportRecord" sentence
+        # that has dropped the link back to the sealed clause is a defect. The
+        # search is bounded to §45.3's own body: the id also appears at TA §87.1,
+        # and an unbounded scan would report the lock satisfied after the §45.3
+        # citation had been deleted, which would make the case vacuous.
+        (_sec_has(ta, "45.3", "CLAUSE.CHANGE.EXACTLY_ONE_REPORT") and
+         "CLAUSE.CHANGE.EXACTLY_ONE_REPORT" in bs,
+         "build spec", "CLAUSE.CHANGE.EXACTLY_ONE_REPORT is no longer cross-referenced by TA §45.3 and BS"),
+    ]
+    for ok, where, msg in locks:
+        if not ok:
+            D.add("semantic documentation", where, msg)
 
 
 def check_document_topology(docs, D, root):
@@ -4680,6 +4783,27 @@ def check_structure(docs, R, D):
         if n >= 209 and "**Reversal trigger:**" not in body:
             D.add("structure", f"ADR-{n}", "missing Reversal trigger field (required from ADR-209 onward)")
 
+    # ADR-251 clause 7 promises that the number of anchor sites referencing
+    # `Project.currentRevision` is "a property of the corpus, not of this
+    # decision, and is computed by the verifier rather than asserted here."
+    # Computing it is what keeps that promise honest: the figure appears in the
+    # report as a measured count, and the derived status of the projection is
+    # enforced rather than described. "The corpus" is the canonical document
+    # set (ADR-220), so this tool's own prose is excluded — otherwise editing a
+    # verifier comment would move a number the clause calls a corpus property.
+    # `Project.currentRevision` MUST remain a projection: it is not a persisted
+    # `Project` field and not a `nirman-schemas.md` §1.7 member.
+    anchor_sites = sum(len(re.findall(r"Project\.currentRevision", docs.get(k, "")))
+                       for k in DOC_REGISTRY)
+    R["anchor_counts"] = {"Project.currentRevision": anchor_sites}
+    schema_doc = docs.get("schemas", "")
+    proj = re.search(r"^### \d+(?:\.\d+)* Project\b[^\n]*\n(?:.*?\n)*?```text\nProject\n(.*?)\n```",
+                     schema_doc, re.M | re.S)
+    if proj and re.search(r"^\s*-\s*currentRevision\b", proj.group(1), re.M):
+        D.add("structure", "Project.currentRevision",
+              "Project.currentRevision is declared as a persisted Project field; ADR-251 clause 7 keeps it a "
+              "derived storage-authority projection, not a storage member")
+
     # registry cardinality sanity
     if len(R["contracts"]) < 2:
         D.add("structure", "§67.8", "registry has fewer than 2 contracts")
@@ -4719,6 +4843,7 @@ def verify(root):
     check_structure(docs, R, D)
     check_schema_registry_closure(docs, R, D)
     check_orchestration_hardening(docs, D)
+    check_commit_boundary_locks(docs, D)
     check_document_topology(docs, D, root)
     check_index_drift(docs, R, D)
     check_skill_bodies(docs, D, root)
@@ -4764,6 +4889,9 @@ def main():
     print(f"extension declarations  : {len(R['declarations'])}")
     print(f"authority edges         : {edges}")
     print(f"milestone mappings      : {len(R['milestones'])}")
+    # ADR-251 clause 7: the anchor-site count is computed, never asserted.
+    for name, count in sorted(R.get("anchor_counts", {}).items()):
+        print(f"anchor sites ({name}) : {count}")
     print(f"defects                 : {len(D)}")
 
     grouped = D.by_check()

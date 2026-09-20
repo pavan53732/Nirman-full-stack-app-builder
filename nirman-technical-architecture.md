@@ -2074,27 +2074,88 @@ The event store uses append-only records with monotonic sequence numbers, schema
 
 Required event families include session lifecycle, task graph and worker, lease, transaction, terminal and process health, provider request, toolchain, preview and device, validation and evidence, recovery and checkpoint, artifact and signing, and decision trace events.
 
+**Authoritative committed-transaction event (ADR-251).** The `transaction` event family contains exactly one
+event class that is authoritative for committed project state: the committed-transaction event. Its contract
+is normative and exhaustive:
+
+1. **Existence.** One committed-transaction event is appended for each `ConstructionTransaction` that
+   reaches the atomic commit boundary and commits. Transactions that abort, roll back, or observe a zero
+   project-state witness-set delta append no committed-transaction event (TA §45.3).
+2. **Atomicity with the commit.** The committed-transaction event is appended in the same atomic durable
+   write as the transaction's committed state transition — never before, never after. A committed
+   transaction without its committed-transaction event, or a committed-transaction event without its
+   transaction, is an integrity violation, not a representable state.
+3. **Payload.** The event carries at minimum `transactionId`, `projectId`, the committed
+   `projectRevisionAfter`, the base revision, the committed project-state witness set, and the correlation
+   id of the session and task that produced it. It carries no raw workspace content.
+4. **Sequence authority.** The event's monotonic sequence number is the sole authority for
+   "authoritative commit-event sequence order". Commit order is never derived from wall-clock timestamps,
+   from event-store insertion order alone, or from `projectRevisionId` ordering — revision ids are opaque
+   (ADR-242).
+5. **Project scoping.** The event's `projectId` is the only authority for attributing a commit to a
+   project. The tip projection (TA §45.3) selects over committed-transaction events by project.
+6. **Recovery and compaction provenance.** Compaction, snapshotting, checkpoint restore, and recovery
+   replay MUST preserve the committed-transaction event (or an exact, verifiably equivalent record of it),
+   including its sequence number, payload, and ordering relative to other committed-transaction events. A
+   recovery or compaction step that loses, renumbers, reorders, duplicates, or synthesizes a
+   committed-transaction event is an integrity violation.
+
+The committed-transaction event is the event-store representation of the commit; it is not a second
+authority alongside the committed state. The committed state transition and its committed-transaction
+event are the same fact in two representations, and neither may be updated without the other.
+
 Replay reconstructs session state and can optionally re-run validation commands against a checkpoint without re-running model generation.
 
 ### 45.3 ConstructionTransactionManager
 
+A `ConstructionTransaction` is the atomic unit of project mutation: it carries one base revision, one staged candidate change set, one commit-or-rollback outcome, and — when it commits — exactly one minted project revision.
+
 The manager creates a pre-mutation checkpoint, captures the project fingerprint and base revision, validates worker scope and operation capability, stages changes in a transaction workspace, runs syntax/graph/policy/mutation-safety checks, applies the candidate revision, re-indexes affected files, runs affected tests/build/preview checks, collects evidence, and commits or rolls back atomically.
 
 Writes are serialized per project revision. Independent read-only analysis may proceed concurrently.
+
+**Zero-delta termination (ADR-251).** The committed project-state witness set W is defined in ADR-242 as the
+workspace file tree, the toolchain lock, and the dependency snapshot. At the atomic commit boundary the
+manager computes the delta between the base witness set and the candidate witness set:
+
+1. **Nonzero W delta** — the candidate witness set differs from the base in at least one of the three
+   witness components. The transaction is eligible to commit and, if it commits, mints exactly one new
+   `ProjectRevisionId` and appends exactly one committed-transaction event (TA §45.2).
+2. **Zero W delta** — the candidate witness set is identical to the base in all three witness components.
+   The transaction is a no-op: it terminates successfully as an explicit **no-op abort**. It mints no
+   `ProjectRevisionId`, appends no committed-transaction event, and changes the project tip in no way.
+3. **File-only delta is not the criterion.** A transaction that rewrites files without changing W as
+   defined — for example, a rewrite that leaves the file tree, toolchain lock, and dependency snapshot
+   semantically identical — is a no-op under this rule. Conversely, a transaction that changes the
+   toolchain lock or dependency snapshot without touching the workspace file tree has a nonzero W delta and
+   is eligible to commit. The witness set, not the presence of file edits, decides.
+4. **Exactly one committed revision.** A committing transaction mints at most one `ProjectRevisionId`. A
+   transaction that is eligible to commit and commits therefore produces exactly one committed revision,
+   and consequently exactly one `ChangeReportRecord` (`CLAUSE.CHANGE.EXACTLY_ONE_REPORT`, BS §83).
+5. **No-op creates no obligations.** A no-op abort creates neither a `ProjectRevisionId` nor the committed
+   report obligation that attaches to a revision. It may still be recorded for diagnostics as a
+   non-committed transaction outcome, and it is never a projection source.
+
+A no-op abort is a normal, expected termination. It is not a failure, a validation defect, or a policy
+violation, and it MUST NOT be surfaced as an error to the user.
 
 At the atomic commit boundary of every project mutation, ConstructionTransactionManager mints a new
 `ProjectRevisionId` (ADR-242) iff the committed project-state witness set — workspace file tree,
 toolchain lock, dependency snapshot — differs from the base witness set; no-op, aborted, or
 rolled-back transactions mint nothing. The current project tip, exposed to readers as
 `Project.currentRevision` (BS §82.1), is a deterministic storage-authority projection equal to the
-`projectRevisionAfter` of the latest committed ConstructionTransaction in authoritative commit-event
-sequence order (TA §45.2) for that project; aborted or rolled-back transactions are never a projection
-source. No separate StorageAuthority component is introduced: the SQLite execution ledger (§57.5) remains the
+`projectRevisionAfter` of the latest committed-transaction event in authoritative commit-event sequence
+order (TA §45.2) selected by the predicate `event.projectId == project.id AND event is a
+committed-transaction event`; aborted, rolled-back, and no-op transactions contribute no event and are
+never a projection source. The selection predicate is project-scoped and status-scoped: a
+committed-transaction event of another project, and any event that is not a committed-transaction event,
+are excluded by construction rather than by ordering accident. No separate StorageAuthority component is
+introduced: the SQLite execution ledger (§57.5) remains the
 storage authority, written only through `EventStore` and `ConstructionTransactionManager` (§21 mapping).
 
 > **Schema projection:** `TaskRevision` is defined in `nirman-schemas.md` §2.122. Owner: TA §45.3.
 
-`TaskRevision` (D3-K1; ADR-248) is the immutable revision identity of a task's authoritative semantic contract — objective/scope, dependencies and dependency-failure semantics, required inputs/outputs/capabilities, validation/acceptance requirements, join semantics, and other contract-defining fields. It is never task lifecycle state, worker attempt or lease, heartbeat or progress, retry count, evidence state, or execution epoch, and `taskRevisionId` is opaque: authority and freshness never derive from numeric ordering. `ConstructionTransactionManager` is the sole minter of `taskRevisionId`: a committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `taskRevisionId`; unaffected tasks retain their existing `TaskRevisionId`. A replan advances only tasks whose contract actually changes; migration classes (REBASE/REPLACE), task-state transitions, heartbeats, retries, evidence updates, lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision. The durable `task_revisions` row carries provenance (`createdByTransactionId`, `contractFingerprint`) as storage ground truth; per ADR-242 semantics the row is representation, not the semantic identity.
+`TaskRevision` (D3-K1; ADR-248) is the immutable revision identity of a task's authoritative semantic contract — objective/scope, dependencies and dependency-failure semantics, required inputs/outputs/capabilities, validation/acceptance requirements, join semantics, and other contract-defining fields. It is never task lifecycle state, worker attempt or lease, heartbeat or progress, retry count, evidence state, or execution epoch, and `taskRevisionId` is opaque: authority and freshness never derive from numeric ordering. `ConstructionTransactionManager` is the sole minter of `taskRevisionId`: a committed task-contract mutation atomically advances the applicable `TaskGraph.revision` and mints the affected task's new `taskRevisionId`; unaffected tasks retain their existing `TaskRevisionId`. A replan advances only tasks whose contract actually changes; migration classes (REBASE/REPLACE), task-state transitions, heartbeats, retries, evidence updates, lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision. The durable `task_revisions` row carries provenance (`createdByTransactionId`, `contractFingerprint`) as storage ground truth; by the same representation-versus-identity principle that governs `ProjectRevision` (ADR-242), the row is representation, not the semantic identity.
 
 ### 45.4 Commit barrier
 
@@ -3830,6 +3891,8 @@ detect regression
 ```
 
 Bisection must reuse checkpoints from the two-tier checkpoint architecture of §18 rather than rebuilding, because full rebuild bisection is prohibitively expensive for Android projects.
+
+`FailureContextPackage` is the bounded product of the localization pipeline: the Diagnostic Worker's root-cause hand-off containing the relevant error evidence, changed-file scope, environment identity, prior strategies, checkpoint, validation results, privacy classification, and next-action constraints.
 
 ### 63.3 Repair scoping
 

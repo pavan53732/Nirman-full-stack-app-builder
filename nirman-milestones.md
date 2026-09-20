@@ -1950,6 +1950,13 @@ J. projector failure and recovery lifecycle:
    6. COMPLETE report becomes immutable
 K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
 L. crash immediately after parent commit and before projection: after restart exactly one ChangeReportRecord exists for the transaction with status INCOMPLETE, recovery reconstructs it, and a repeated recovery scan creates no duplicate record
+M. the no-op commit boundary (ADR-251):
+   1. a transaction whose committed project-state witness set W equals its base witness set terminates without commit and mints no ProjectRevisionId
+   2. no ChangeReportRecord obligation is created for that no-op, so no committed record is ever required to carry a projectRevisionAfter equal to its base revision
+   3. a transaction whose only change is the toolchain lock or the dependency snapshot has a nonzero W-delta, commits, and mints exactly one revision
+   4. the committed-transaction event of clause 3 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
+   5. the tip is reconstructed after compaction and after restart from preserved committed-transaction provenance, without replaying discarded events
+   6. a committed-transaction event of a different project never contributes to this project's tip
 
 ---
 

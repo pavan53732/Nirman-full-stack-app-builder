@@ -232,7 +232,7 @@ CASES = {
         "**Status:** Accepted\n\n**Decision:** Autonomous work will be driven",
         "reverse break"),
     "migration regression: BS cert ref reverted to 66": (
-        BS, "### 67.8 Registered contract identifiers", "### 66.8 Registered contract identifiers",
+        BS, "### 67.8 Contract Authority Registry", "### 66.8 Contract Authority Registry",
         "structure"),
 
     # ---- Step 3: deliberation contract
@@ -2021,6 +2021,77 @@ CASES = {
         "- regeneration_history\n- source_prompt_hash\n- source_seed\n```",
         "- regeneration_history\n```",
         "semantic documentation"),
+
+    # ---- ADR-251 commit-boundary locks. Each case removes or weakens exactly
+    # one clause of the amendment so the corresponding lock is proven
+    # non-vacuous rather than incidentally satisfied by neighbouring text.
+    "ADR-251 amendment back-pointer removed from ADR-242": (
+        ADRS,
+        "**Amended by ADR-251:** the authoritative committed-transaction event",
+        "**Note.** The authoritative committed-transaction event",
+        "semantic documentation"),
+    "ADR-251 loses its Amends field": (
+        ADRS,
+        "**Amends:** ADR-242",
+        "**Related:** ADR-242",
+        "semantic documentation"),
+    "§45.2 drops the committed-transaction event definition": (
+        TA,
+        "**Authoritative committed-transaction event (ADR-251).**",
+        "**Transaction events.**",
+        "semantic documentation"),
+    "§45.2 drops the atomicity-with-commit requirement": (
+        TA,
+        "The committed-transaction event is appended in the same atomic durable",
+        "The committed-transaction event is appended at some point during the",
+        "semantic documentation"),
+    "§45.2 drops the sequence-authority rule": (
+        TA,
+        "The event's monotonic sequence number is the sole authority for",
+        "The event's wall-clock timestamp is the authority for",
+        "semantic documentation"),
+    "§45.2 drops recovery/compaction provenance": (
+        TA,
+        "**Recovery and compaction provenance.**",
+        "**Recovery note.**",
+        "semantic documentation"),
+    "§45.3 no longer names the no-op abort": (
+        TA,
+        "**Zero-delta termination (ADR-251).**",
+        "**Delta handling.**",
+        "semantic documentation"),
+    "§45.3 lets a file-only delta mint a revision": (
+        TA,
+        "The witness set, not the presence of file edits, decides.",
+        "A transaction that edits any file is eligible to commit.",
+        "semantic documentation"),
+    "§45.3 reclassifies a no-op abort as an error": (
+        TA,
+        "It is not a failure, a validation defect, or a policy",
+        "It is surfaced to the user as a validation failure and a policy",
+        "semantic documentation"),
+    "§45.3 drops the project-scoped selection predicate": (
+        TA,
+        "event.projectId == project.id",
+        "event.sequence == latest",
+        "semantic documentation"),
+    "§45.3 drops the exactly-one clause cross-reference": (
+        TA,
+        "(`CLAUSE.CHANGE.EXACTLY_ONE_REPORT`, BS §83)",
+        "(BS §83)",
+        "semantic documentation"),
+    "§3.1 declaration points at a section that never names the identity": (
+        SCHEMAS,
+        "- `FailureContextPackage` — normative shape prose-defined at technical architecture §63.2",
+        "- `FailureContextPackage` — normative shape prose-defined at technical architecture §63.3",
+        "structure"),
+
+    # ADR-251 clause 7: the tip is a derived projection, never a stored field.
+    "the Project schema promotes currentRevision to a stored field": (
+        SCHEMAS,
+        "- activeCheckpointId\n- providerProfileId",
+        "- activeCheckpointId\n- currentRevision\n- providerProfileId",
+        "structure"),
 }
 
 

@@ -3345,6 +3345,8 @@ Performance degradation MUST be classified separately from functional correctnes
 
 **Status:** Accepted
 
+**Amended by ADR-251:** the authoritative committed-transaction event that supplies the current-tip ordering is defined, and a transaction whose committed project-state witness set equals its base witness set terminates without commit and mints nothing; every other statement of this decision survives unchanged.
+
 **Context.** The sealed Continue contract (CLAUSE.CONVERSATION.REVISION_CONSISTENT_CONTINUE; BS §82.1)
 resolves `expectedProjectRevision` against `Project.currentRevision`, and the triple revision invariant
 (BS §82.1; TA §86.5) names a `ProjectRevision` register — while the schema registry declared neither the
@@ -3530,5 +3532,39 @@ through a superseding ADR.
 **Consequences:** No new authority, no new ContractId, no new §57.12 row, and no standalone time trigger. The `trajectory_assessments` ledger joins the CanonicalSchemaRegistry-admitted records in the same change; build spec §52.3 remains the normative integration point, not a second authority.
 
 **Reversal trigger:** Evidence that pre-authorization critique plus premise-level invalidation surfaces all strategy drift before consequential wrong-trajectory work, making an independent trajectory assessment redundant.
+
+---
+
+## ADR-251: Committed-transaction commit events and the no-op commit boundary
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`
+
+**Amends:** ADR-242
+
+**Status:** Accepted
+
+**Context.** ADR-242 derives the project current tip from "the `projectRevisionAfter` represented by the latest committed `ConstructionTransaction` in authoritative commit-event sequence order (TA §45.2) for that project," and §4 of that decision states that no-op commits mint nothing. Two gaps follow from that text. First, the corpus never states whether a `ConstructionTransaction` whose committed project-state witness set W is identical to its base witness set may reach the committed state at all; `ChangeReportRecord` (SCHEMAS §1.74) carries a non-nullable `projectRevisionAfter`, TA §87.1 requires exactly one record per committed transaction, and BS §83.1 requires that field to equal the owning transaction's committed revision, so an unclassified no-op leaves `projectRevisionAfter` without a defined value. Second, the phrase "authoritative commit-event sequence order" is used by ADR-242 and technical architecture §45.2/§45.3 as the sole selection key for the tip, but the corpus defines only the EventStore's monotonic sequence numbers and its transaction event family; it never defines which event constitutes the authoritative committed-transaction event. This decision closes both gaps and is a new normative law, not a restatement of existing text.
+
+**Decision:**
+
+1. Witness-set commit boundary. A `ConstructionTransaction` commits if and only if its committed project-state witness set W = {workspace file tree, toolchain lock, dependency snapshot} differs from its base witness set. The criterion is a delta in W, never a delta in workspace files alone: a transaction that changes only the toolchain lock or the dependency snapshot has a nonzero W-delta and is equally eligible to commit and mint.
+
+2. No-op transactions terminate without commit. A `ConstructionTransaction` whose committed project-state witness set is identical to its base witness set is a no-op and MUST terminate without commit at the atomic boundary. It MUST NOT enter the committed `ConstructionTransaction` state, MUST NOT mint a `ProjectRevisionId`, MUST NOT create a committed `construction_transactions` record, and MUST NOT create the `ChangeReportRecord` obligation of TA §87.5. The no-op is classified and recorded as an aborted transaction with its recovery/failure evidence, exactly as TA §87.1 already requires of aborted and rolled-back transactions; no `ChangeReportRecord` obligation is created for it. Consequently no committed transaction ever requires a `projectRevisionAfter` equal to its base revision, and `ChangeReportRecord.projectRevisionAfter` retains its single meaning: the authoritative committed revision of the transaction that produced it.
+
+3. Exactly one committed revision. A committed `ConstructionTransaction` MUST mint exactly one new `ProjectRevisionId`, and its `ChangeReportRecord` MUST carry that same revision as `projectRevisionAfter`, consistent with CLAUSE.CHANGE.EXACTLY_ONE_REPORT (BS §83.1; TA §87.1). `W_after != W_base` is the only condition under which a transaction may become committed.
+
+4. The authoritative committed-transaction event. Each successfully committed `ConstructionTransaction` MUST emit exactly one authoritative committed-transaction event. The event is emitted atomically with the transaction commit, as part of the same durable boundary that makes the parent `ConstructionTransaction` and its `ChangeReportRecord` obligation durable. The event carries an authoritative EventStore sequence number (TA §45.2), and that sequence number is the canonical committed-transaction ordering: the project current tip is the `projectRevisionAfter` of the highest-sequence committed-transaction event whose `projectId` equals the target project. An aborted or rolled-back transaction — including the no-op of clause 2 — MUST emit no committed-transaction event.
+
+5. Project-scoped selection predicate. Resolution of the current tip MUST satisfy `projectId == targetProjectId` AND the event being a committed-transaction event of clause 4. Last-committed selection is never global across projects; it is taken over per-project serialized commits (TA §45.3; ADR-161).
+
+6. Recovery and compaction provenance. Recovery and compaction MUST preserve sufficient committed-transaction provenance — at minimum the committed-transaction event identity and its sequence, and the revision it carried — to reconstruct the latest committed tip for a project without replaying discarded events. Compaction MUST NOT discard the provenance required to resolve `Project.currentRevision`, and `ProjectRevisionId` identity remains stable across compaction as ADR-242 §6 requires.
+
+7. Derived representation unchanged. `Project.currentRevision` remains a logical storage-authority projection, not a persisted `Project` field and not a `nirman-schemas.md` §1.7 member. The number of anchor sites that reference it is a property of the corpus, not of this decision, and is computed by the verifier rather than asserted here.
+
+**Rationale:** The revision model is only mechanically resolvable if the set of transactions eligible to mint a revision is closed and if the ordering key used to select the tip exists. Clause 2 closes the first: rather than inventing a second meaning for `projectRevisionAfter` (a value that was never minted) to serve a category with no consumers, it removes the category from the committed state, which is the form the corpus's mutation-driven transaction model already implies — staging, checks, candidate revision application, evidence collection, and commit-or-rollback have no meaningful output when W is unchanged. Clause 4 closes the second: ADR-242 and TA §45.2 cite an "authoritative commit-event sequence order" that was never defined, which made the derivation non-deterministic. Binding one event per commit, emitted atomically, sequenced by the EventStore, and preserved through compaction makes the tip reconstructible from durable state alone. Clause 5 removes an ambiguity that would otherwise let an implementation select a global latest transaction. No new authority, no new persistence record, and no new ContractId is introduced; `EventStore` already owns the events and `ConstructionTransactionManager` already owns the commit boundary.
+
+**Consequences:** `nirman-technical-architecture.md` §45.2 gains the authoritative committed-transaction event definition of clause 4; §45.3 states the no-op termination of clause 2, the project-scoped predicate of clause 5, and the commit-or-abort boundary of clause 1. ADR-242 §4, §5, and §8 are read together with this decision, which supplies the event definition they presuppose. `nirman-build-spec.md` §83.1 and technical architecture §87.1 are unchanged: the exactly-one obligation continues to apply to committed transactions, and aborted transactions continue to produce no completed change impact report. The verifier enforces every clause of this decision as a lock: a removed or weakened clause, a missing `**Amends:**` field, a missing ADR-242 back-pointer, or a `currentRevision` promoted to a stored `Project` field is a certification defect; it also validates each §3.1 prose-defined declaration's defining section and computes the `Project.currentRevision` anchor count for the report rather than accepting an asserted figure. M122 `TEST-CHANGE-001` gains the no-op termination and revision-tip reconstruction cases (paragraph M).
+
+**Reversal trigger:** Evidence that a legal runtime ordering produces a `ConstructionTransaction` whose committed project-state witness set is unchanged while still carrying authoritative product-state consequences that require a committed record, or evidence that the committed-transaction event of clause 4 cannot be emitted atomically with the commit under a legal crash ordering so that the tip becomes ambiguous.
 
 ---

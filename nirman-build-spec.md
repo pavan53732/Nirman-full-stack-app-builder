@@ -501,6 +501,8 @@ TargetPlatformSet == {ANDROID}
 project.targetPlatforms == ["android"]
 ```
 
+`TargetPlatformSet` is the normative identity of the generated deployable target set; this section fixes it to `{ANDROID}`.
+
 Supporting backend services, build tools, native modules, provider adapters, and development utilities MAY exist when required by an Android application, but no resolver path may produce a second generated deployable target. Android-only describes the generated product target, not a prohibition on supporting components. An Android service integration MUST identify its request/response schemas, authentication reference, datastore owner, privacy and network policy, functional scenarios, and required evidence; it remains a supporting dependency rather than a second generated product target. Cloud-provider context transmission is governed by a typed envelope:
 
 > **Schema projection:** `ProviderContextEnvelope` is defined in `nirman-schemas.md` §1.4. Owner: BS §5.7.8.
@@ -5337,6 +5339,8 @@ Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, sta
 **ContractId:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 
+`FrontendControlPlaneContract` is the registered identity of this section's normative contract family. Its authoritative field shape is the command-registry and envelope contract fixed by §76.1, §76.2, and §76.3; it carries no projected field block while that shape is declared pending (ADR-241).
+
 The desktop frontend is a presentation client of the authoritative local control plane. The canonical path is:
 
 ```text
@@ -5354,6 +5358,8 @@ UI input or user command
 The frontend may own view preferences, form input, selection, filters, scroll position, and pending-command display. It cannot own task, worker, process, build, preview, artifact, evidence, policy, signing, or completion truth. The control plane is the only component that authorizes operations, persists domain state, emits authoritative events, and derives projections.
 
 ### 76.1 UICommandRegistry
+
+`UICommandRegistry` is the normative registry of admitted command kinds at the authenticated frontend boundary; its authoritative shape is this section.
 
 Every command must be registered with `commandKind`, `requestSchemaRef`, `responseSchemaRef`, `requiredAuthority`, `requiredCapability`, `projectScope`, `transactionDomain`, `idempotencyPolicy`, `timeoutPolicy`, `cancellationPolicy`, `emittedEventTypes`, `projectionEffects`, `errorCodes`, and `sensitiveFields`. The registry (mirrored by `command_registry()` in `nirman-ipc`) is:
 
