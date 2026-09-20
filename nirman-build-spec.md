@@ -4830,6 +4830,39 @@ All system, coordinator, worker, skill, and deliberation prompts that can influe
 
 Worker prompts MUST receive the current contract version, project revision, checkpoint, relevant evidence, assigned scope, allowed capabilities, and unresolved questions. They MUST NOT replace the contract with a template-specific assumption or silently change the generated target.
 
+- `AndroidDomainVocabularyExpander` — The domain taxonomy service that expands colloquial user UI/UX descriptions into canonical Android Jetpack components and design tokens.
+- `DisjointIntentGraph` — The typed multi-intent graph separating construction, repair, and delivery branches.
+
+**Domain vocabulary expansion.** Before requirement synthesis produces an architecture proposal, `AndroidDomainVocabularyExpander` translates informal, colloquial user descriptions into canonical Android Jetpack primitives, Material 3 design tokens, and framework APIs:
+
+| User Expression | Expanded Canonical Android Jetpack Domain Component | Architectural Implementation Primitive |
+|---|---|---|
+| "bottom bar with tabs" | NavigationBar with NavigationBarItem | Material 3 `androidx.compose.material3.NavigationBar` |
+| "top tabs / sub-views" | PrimaryTabRow with Tab | Material 3 `androidx.compose.material3.PrimaryTabRow` |
+| "pull to refresh" | PullToRefreshBox | AndroidX Compose `PullToRefreshBox` with `rememberPullToRefreshState` |
+| "save data offline" | Room Relational Database | AndroidX Room `@Database`, `@Entity`, `@Dao` with `StateFlow` queries |
+| "key-value settings / toggles" | DataStore Preferences | AndroidX DataStore `preferencesDataStore` |
+| "sync in background" | WorkManager background execution | AndroidX WorkManager task execution with network constraints |
+| "infinite scrolling list" | LazyColumn with pagination | AndroidX Compose `LazyColumn` with state-backed scroll observation |
+| "swipe to delete / archive" | SwipeToDismissBox | AndroidX Compose `SwipeToDismissBox` with dismiss direction |
+| "floating action button" | FloatingActionButton | Material 3 `FloatingActionButton` anchored to Scaffold |
+| "collapsible top header" | TopAppBar with scroll behavior | Material 3 `TopAppBarDefaults.pinnedScrollBehavior()` |
+
+**Multi-intent detection and disjoint graph decomposition.** A prompt that combines multiple distinct goals MUST NOT be treated as a single unstructured task. The intent parser decomposes compound user instructions into a typed `DisjointIntentGraph`:
+- `CONSTRUCTION_INTENT`: Adding new capabilities, data models, or user screens.
+- `REPAIR_INTENT`: Fixing runtime crashes, regressions, or broken behavior.
+- `DELIVERY_INTENT`: Compiling release packages, signing APKs, or generating AAB bundles.
+When both a `REPAIR_INTENT` and a `DELIVERY_INTENT` exist in the same user request, the runtime imposes a hard serialization barrier: the repair intent MUST reach validated, committed evidence before delivery actions are admitted.
+
+**Entity extraction pipeline.** Intent extraction structures application concepts into five closed entity classes:
+1. `ScreenEntity`: Screen identifier, route name, navigation tier (top-level vs detail), UI layout archetype.
+2. `DataEntity`: Entity name, primary key, properties, typed data fields, relationships (1:1, 1:N, N:M), persistence tier.
+3. `ActionEntity`: User interaction trigger (click, swipe, input), state transition, expected observable post-condition.
+4. `PermissionEntity`: Android runtime permission string, justification rationale, graceful denial fallback path.
+5. `IntegrationEntity`: Remote REST endpoint, HTTP method, authentication mechanism, offline caching requirement.
+
+**Intent confidence scoring.** Extracted user intent MUST carry an `intentConfidenceScore` $\in [0.0, 1.0]$ derived from syntactic clarity and domain coverage. A stated model confidence alone NEVER satisfies sufficiency (BS §68.7). If `intentConfidenceScore < 0.85` or prompt ambiguity $> 0.20$, autonomous code generation is prohibited; the runtime MUST enter the clarification gate of BS §69.11.
+
 ### 69.3 Construction and preview truth labels
 
 Every plan item, command, file change, preview update, test result, and artifact claim MUST carry one of these execution truth labels:
@@ -5025,6 +5058,14 @@ A domain term whose meaning materially changes the data model — "streak", "act
 > **Schema projection:** `ClarificationRecord` is defined in `nirman-schemas.md` §1.76. Owner: BS §69.11.
 
 A question with nobody to answer it does not stall the goal (ADR-225). Every MUST-ask question is a `ClarificationRecord` that carries a `recordedDefault` at the moment it is asked — the conservative option for the security, authentication, and personal-data category (no accounts, no sensitive data, local storage), the conventional Android structure otherwise — and the `dependentRequirementIds` the answer governs. The runtime continues every requirement that does not depend on the answer immediately; when the session's answer-wait policy elapses without an answer, the runtime proceeds on the `recordedDefault`, marks the record `PROCEEDED_ON_DEFAULT`, sets the dependent requirements `ASSUMED` in the uncertainty registry (§52.13), and shows the assumption in the intent model exactly like a silent default. An answer that arrives later is a `refocus` runtime directive (§61) that replans the dependent requirements without a restart. Only a primary-goal ambiguity whose default would produce a different application — not a different variant of the same application — remains `USER_REQUIRED`, and that decision names the `ClarificationRecord` and the automatic paths that did not apply (`automaticPathsAttempted`).
+
+- `PlanCompletenessValidator` — The deterministic validator that verifies construction plan completeness before worker code execution opens.
+
+**Pre-execution plan completeness validation.** Before any worker process is dispatched to modify project source code, `PlanCompletenessValidator` enforces four non-negotiable structural invariants:
+1. *Navigation completeness:* Every navigation action in the proposed `ScreenGraph` must resolve to an existing `@Composable` destination; orphan navigation calls are rejected.
+2. *Storage schema completeness:* Every persistent property declared in a screen model or ViewModel must map to a concrete column in a Room `@Entity` or a typed key in DataStore.
+3. *Permission completeness:* Every hardware API or protected Android service invoked in the plan must have a declared `<uses-permission>` in `AndroidManifest.xml` and an in-app runtime permission check.
+4. *Scenario coverage completeness:* Every requirement in the `AndroidConstructionContract` must bind to at least one evaluable test scenario in `ScenarioRegistry`.
 
 ## 70. Integration Boundary Contract
 

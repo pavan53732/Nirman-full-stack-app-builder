@@ -2226,7 +2226,23 @@ Discover workspace → normalize root and exclusions → classify Android files
 
 The ingestion service understands Kotlin, Java, XML, manifests, Gradle files, JavaScript/TypeScript, native modules, resources, assets, SQL, JSON, YAML, TOML, lockfiles, signing configuration, emulator metadata, and test sources.
 
-It excludes build output, caches, generated intermediates, credentials, keystores, and vendor code from model mutation unless a transaction explicitly authorizes a narrowly scoped operation.
+**Ingestion Stages:**
+
+1. *Discovery and exclusion filtering:* Scans the project root while enforcing mandatory exclusion rules: `.gradle/`, `build/`, `.idea/`, `captures/`, Gradle daemon logs, local keystores (`*.jks`, `*.keystore`), and user credentials (`local.properties`). Excluded paths are excluded from AI model mutation and context assembly unless a transaction explicitly authorizes a privileged operation capability.
+2. *File classification by Android role:*
+   - `MANIFEST`: `AndroidManifest.xml` (root and flavor-specific overlays).
+   - `BUILD_CONFIG`: `build.gradle.kts`, `build.gradle`, `settings.gradle.kts`, `gradle/libs.versions.toml`.
+   - `SOURCE_KOTLIN`: `src/main/kotlin/**/*.kt`, `src/main/java/**/*.kt`.
+   - `SOURCE_JAVA`: `src/main/java/**/*.java`.
+   - `RESOURCE_LAYOUT`: `src/main/res/layout*/**/*.xml`.
+   - `RESOURCE_VALUES`: `src/main/res/values*/**/*.xml` (strings, colors, dimensions, themes, styles).
+   - `RESOURCE_DRAWABLE`: `src/main/res/drawable*/**/*` (vector drawables, shape XMLs, raster assets).
+   - `RESOURCE_NAVIGATION`: `src/main/res/navigation*/**/*.xml`.
+   - `TEST_UNIT`: `src/test/**/*.kt`, `src/test/**/*.java`.
+   - `TEST_INSTRUMENTED`: `src/androidTest/**/*.kt`, `src/androidTest/**/*.java`.
+3. *Content hashing and Merkle tree derivation:* Computes SHA-256 digests per classified file and builds an in-memory Merkle DAG for $O(\log N)$ change detection during worker transactions.
+4. *Lightweight symbol extraction:* Runs language-specific Tree-sitter adapters to extract top-level declarations (packages, classes, methods, Composable functions, XML identifiers).
+5. *Semantic graph assembly:* Reconciles identifiers across file boundaries into `AndroidSymbolGraph` before authorizing mutation planning.
 
 ### 47.2 Fingerprint model
 
@@ -2234,15 +2250,56 @@ The project fingerprint is a canonical hash over normalized relative paths, cont
 
 TOCTOU protection rejects an operation when files changed outside the transaction, a worker’s base revision is stale, the selected toolchain changed, or the preview/device revision no longer corresponds to the candidate source.
 
+The canonical project fingerprint calculation:
+$$\text{ProjectFingerprint} = \text{SHA-256}\left(\bigoplus_{i=1}^{N} \text{Hash}\left(\text{Path}_i \parallel \text{ContentDigest}_i \parallel \text{Role}_i\right) \parallel \text{ToolchainLockHash} \parallel \text{TechnologyPlanHash}\right)$$
+where relative paths are strictly POSIX-normalized and sorted lexicographically.
+
 ### 47.3 Language adapter interface
 
 > **Schema projection:** `AndroidLanguageAdapter` is defined in `nirman-schemas.md` §2.39. Owner: TA §47.3.
 
 Adapters are selected by file type and technology plan. No single parser is mandatory for every Android project.
 
+- `AndroidSymbolGraph` — The bi-directional code-intelligence graph connecting declarative Android resources with imperative source code.
+
+**Multi-language Tree-sitter AST parsers.** The Rust control plane embeds lightweight, fast Tree-sitter grammars rather than executing JVM-based compiler frontends during ingestion and analysis:
+- `tree-sitter-kotlin` for Kotlin source and Kotlin DSL (`build.gradle.kts`, `settings.gradle.kts`).
+- `tree-sitter-java` for legacy Android Java source.
+- `tree-sitter-xml` for `AndroidManifest.xml`, layout XMLs, values XMLs, and navigation graphs.
+
+**Static AST extraction queries:**
+- *Kotlin declarations & annotations:* Extracts class declarations, companion objects, function declarations, property definitions, and annotations (`@Composable`, `@Entity`, `@Dao`, Hilt `@ViewModel`, `@Inject`).
+- *XML element & attribute extraction:* Statically extracts tags, `android:id` definitions (`@+id/name`), layout inclusion (`<include layout="@layout/name">`), string keys (`<string name="key">`), and theme attributes.
+- *Static Gradle DSL extraction:* Queries `call_expression` AST nodes matching `plugins`, `dependencies`, `android`, `defaultConfig`, and `buildTypes` without running a JVM process or Gradle daemon:
+  ```text
+  (call_expression
+    (identifier) @block_name (#match? @block_name "^(dependencies|plugins|android)$")
+    (lambda_literal (statements) @body))
+  ```
+  Extracts dependencies (`implementation`, `api`, `ksp`, `testImplementation`), SDK constraints (`compileSdk`, `minSdk`, `targetSdk`), and application ID statically, safely, and instantaneously.
+
+**Cross-language symbol linking algorithm.** The runtime maintains a bi-directional `AndroidSymbolGraph` connecting declarative Android resources with imperative source code:
+
+1. *Node classification:*
+   - `ResourceSymbolNode`: ID (`@+id/save_button`), String (`@string/app_name`), Drawable (`@drawable/ic_check`), Layout (`@layout/fragment_detail`).
+   - `CodeSymbolNode`: Kotlin/Java class, function, property, ViewBinding reference (`binding.saveButton`), Compose test tag (`Modifier.testTag("save_button")`), or R-class reference (`R.id.save_button`, `R.string.app_name`).
+   - `ManifestComponentNode`: Activity, Service, BroadcastReceiver, ContentProvider, Permission request (`<uses-permission>`), IntentFilter (Action, Category, Data).
+2. *Edge relationships:*
+   - `DECLARES_RESOURCE`: Links an XML file to the resources it creates.
+   - `BINDS_VIEW`: Links Kotlin/Java ViewBinding access to the corresponding XML `@+id`.
+   - `TEST_TAG_MATCH`: Links Compose `Modifier.testTag("id")` to `ScreenModel` element queries.
+   - `REFERENCES_RESOURCE`: Links code expressions (`R.string.foo`, `stringResource(R.string.foo)`) to XML value definitions.
+   - `DECLARES_COMPONENT`: Links `AndroidManifest.xml` `<activity android:name=".MainActivity">` to the concrete Kotlin class symbol.
+   - `REQUIRES_PERMISSION`: Links API calls (e.g. FusedLocationProviderClient) to the required Android permission declaration in the manifest.
+
 ### 47.4 Impact analysis
 
 The graph service calculates affected files, modules, resources, permissions, tests, emulator profiles, preview surfaces, and artifact outputs. The affected-test set is persisted with each transaction and evidence record, so long-horizon sessions can validate changed behavior without rebuilding unrelated areas unnecessarily.
+
+**Bi-directional mutation impact analysis:**
+1. *Forward impact propagation:* When a transaction modifies symbol node $S$, the graph service computes the reflexive transitive closure of dependent nodes along `BINDS_VIEW`, `REFERENCES_RESOURCE`, and `CALLS` edges. This identifies all files requiring recompilation validation and all Composable functions or View classes requiring preview invalidation.
+2. *Targeted test set derivation:* Filters `TEST_UNIT` and `TEST_INSTRUMENTED` test cases: only tests that exercise the forward impact set of mutated symbols are scheduled for execution. Tests with zero dependency paths to modified nodes remain valid from their prior cached evidence watermark.
+3. *Premise verification:* Compares the proposal's premise set against the current `AndroidSymbolGraph`. If an agent proposes a change based on a symbol signature or XML ID that changed in a preceding transaction, the mutation is immediately rejected as `PREMISE_MISMATCH` before workspace mutation opens.
 
 ---
 
@@ -3195,11 +3252,38 @@ escalate(reason)
 merge(results)
 ```
 
+- `GoalHierarchyGenerator` — The deterministic planner service that derives four-tier goal trees from accepted requirements.
+- `ProjectMilestonePlanner` — The runtime planning service that organizes generated Android project construction into ordered milestones.
+
+**Goal hierarchy generation.** `GoalHierarchyGenerator` structures accepted requirements into a four-tier directed acyclic hierarchy:
+$$\text{L0: RootUserGoal} \longrightarrow \text{L1: FeatureCapability} \longrightarrow \text{L2: AcceptanceCriteria} \longrightarrow \text{L3: TaskNode}$$
+- *L0 RootUserGoal:* The overarching product intent synthesized from the user's instructions.
+- *L1 FeatureCapability:* Discrete functional capabilities (e.g., Workout Logging, GPS Route Recording, Offline Sync, User Preferences).
+- *L2 AcceptanceCriteria:* Specific observable behavioral conditions verifiable by test assertions.
+- *L3 TaskNode:* Atomic code mutations, layout creations, or configuration patches executed by individual worker instances.
+An L0 goal is marked satisfied if and only if all L1 capabilities are verified; an L1 capability is satisfied if and only if all child L2 criteria have passing evidence in the `EvidenceLedger`.
+
+**Runtime project milestone planning.** Construction of a generated Android application is orchestrated by `ProjectMilestonePlanner` through a seven-phase sequence:
+1. *Phase 1: Baseline Scaffold & Manifest:* Root build configurations, AGP toolchain lock, compileSdk/minSdk settings, and base `AndroidManifest.xml`.
+2. *Phase 2: Local Persistence & Entities:* Room `@Database`, `@Entity` definitions, `@Dao` interfaces, and DataStore preferences.
+3. *Phase 3: Core UI Screens & Design Tokens:* Material 3 themes, reusable Composable components, and screen scaffolds.
+4. *Phase 4: Navigation Graph & State Management:* Jetpack Navigation Compose type-safe routes, ViewModels, and StateFlow streams.
+5. *Phase 5: Background Work & Integrations:* AndroidX WorkManager workers, Retrofit network clients, and runtime permission flows.
+6. *Phase 6: E2E Autonomous Scenario Verification:* Headless emulator exploration, UI interaction crawls, and fault injection tests.
+7. *Phase 7: Release Packaging & Verification:* Signed APK / optional AAB generation, manifest merger checks, and installation validation.
+
 ### 58.5.1 Swarm admission, joins, and outcome feedback
 
 `SwarmAdmissionController` is a scheduler component, not an authority. It evaluates the existing physical `ResourceIntegrityAuthority`, task queue depth, parent-child concurrency, emulator slots, provider concurrency, and reserved recovery/validation capacity. It may queue, reduce concurrency, repartition, or serialize work.
 
 Task graph fan-in uses `ALL`, `ANY`, or `QUORUM(n)` semantics. `OPTIONAL` work never blocks a dependent requirement unless the graph explicitly marks the dependency `HARD`. Failure propagation follows the node's declared `dependencyFailurePolicy`.
+
+**Step priority ranking.** When parallel tasks or sub-agents compete for worker leases, emulator instances, or provider concurrency slots, `SwarmAdmissionController` schedules work strictly by priority tiers:
+1. *P0 (Build and Compile Blockers):* Toolchain acquisition, Gradle wrapper alignment, missing core class definitions, or syntax errors preventing compilation.
+2. *P1 (Schema and Data Contracts):* Room database entities, DAOs, repository interfaces, and shared data models required by downstream screens.
+3. *P2 (Core UI and Navigation):* Primary screen composables, top-level navigation routes, and interactive input elements.
+4. *P3 (Visual Polish and Transitions):* Edge-to-edge system bars, micro-animations, color styling, and non-blocking layout refinements.
+5. *P4 (Telemetry and Documentation):* Non-functional logging, README updates, and internal code annotations.
 
 `AgentQualityScorer`/historical outcome data may influence worker/profile selection only as advisory input. It cannot modify permissions, evidence requirements, or completion.
 
@@ -4637,6 +4721,36 @@ Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly 
 ```
 
 `generatedOutputs` includes source representation and internal build artifacts; it is not synonymous with deployment delivery. A ZIP, Git bundle, or Android source project remains user-owned source/workspace access and cannot satisfy an APK delivery requirement. The resolver may select Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence.
+
+**Closed-world Android Jetpack architectural decision matrix.** `AndroidTechnologyResolver` lowers functional requirement classifications to standard modern Android Jetpack components deterministically. The runtime rejects proposals attempting to introduce non-standard or deprecated architectures:
+
+| Architectural Concern | Requirement Classification | Resolved Modern Android Technology | Rationale and Constraint |
+|---|---|---|---|
+| UI Presentation (Default) | Modern reactive UI, dynamic animations, modern design system | Jetpack Compose (Material 3, `androidx.compose.material3`) | Standard default for all new Android UI. Eliminates XML view boilerplate and lifecycle binding bugs. |
+| UI Presentation (Specialized) | Custom legacy SDKs (embedded maps, custom surface rendering, legacy widgets) | Jetpack Compose with view interop or Android XML Views + ViewBinding | Selected ONLY when required library lacks native Compose bindings. Never use `findViewById`. |
+| Local Relational Storage | Structured records, multi-entity relationships, relational queries, migrations | Room Database (`androidx.room:room-runtime` + KSP) | SQLite ORM with compile-time SQL verification, Kotlin Coroutines Flow observable queries, automated migrations. |
+| Local Key-Value / State | User preferences, app configuration, simple auth tokens, toggles | Jetpack DataStore Preferences (`androidx.datastore:datastore-preferences`) | Asynchronous, transactional replacement for SharedPreferences; prevents main-thread disk I/O freezes. |
+| Local Typed Object Storage | Complex non-relational serialized state, configuration schemas | Jetpack DataStore Proto with `kotlinx.serialization` | Type-safe structured storage without SQLite overhead. |
+| Asynchrony and State | Reactive state propagation, UI state modeling, stream processing | Kotlin Coroutines + `StateFlow` / `SharedFlow` | Standard async model. Tied to `lifecycleScope` and `repeatOnLifecycle`. Strict prohibition of `RxJava` unless pre-existing. |
+| Deferred / Periodic Background | Database sync, asset prefetching, scheduled maintenance, periodic telemetry | AndroidX WorkManager (`androidx.work:work-runtime-ktx`) | Guaranteed execution surviving process death and device reboots; respects battery/network constraints. |
+| Continuous Active Background | Audio playback, ongoing turn-by-turn navigation, active workout recording | Foreground Service with `ServiceCompat.startForeground` | Mandatory user-visible persistent notification; explicit `android:foregroundServiceType` attribute (Android 14+ mandate). |
+| Exact Time Alarms | Clock alarm, calendar reminder, medication alert at exact clock time | Android alarm scheduler with exact alarms (`setExactAndAllowWhileIdle`) | Requires handling `SCHEDULE_EXACT_ALARM` permission and system power-saver doze-mode resilience. |
+| Networking and HTTP | REST APIs, JSON data fetching, multipart upload | Retrofit 2 + OkHttp 4 + `kotlinx.serialization` | Type-safe HTTP client with connection pooling, coroutine support, and compile-time serialization. |
+| Screen Navigation | Multi-screen flow, deep links, argument passing | Jetpack Navigation Compose (2.8+) with Type-Safe Routes | Kotlin `@Serializable` objects/classes for route parameters; replaces string-based route parsing. |
+| Dependency Injection | Multi-component dependency management | Single-module: Constructor injection via standard factory; Multi-module: Hilt (`com.google.dagger:hilt-android`) | Deterministic dependency graphs with compile-time validation via KSP. |
+
+**Prohibited legacy Android anti-patterns.** `MutationBroker` and the code intelligence analyzer validate all proposed mutations against the closed-world anti-pattern table. Any match is rejected at pre-commit:
+
+| Prohibited Pattern / API | Violation Category | Approved Replacement | Enforcement Rule |
+|---|---|---|---|
+| `android.os.AsyncTask` | Deprecated / Memory Leak | Kotlin Coroutines (`viewModelScope.launch`, `withContext(Dispatchers.IO)`) | AST query flags import or inheritance; rejected as `DEPRECATED_ASYNC_API`. |
+| Raw `java.lang.Thread` / `android.os.Handler` for background work | Unbounded Concurrency / Leak Hazard | Kotlin Coroutines structured concurrency | AST query flags `Thread { ... }.start()` or `Handler.postDelayed`; rejected as `UNSTRUCTURED_CONCURRENCY`. |
+| Unbonded background `Service` without persistent notification | Background Execution Limit (API 26+) | `WorkManager` (deferred) or `ForegroundService` (immediate user-facing) | Flagged in `AndroidManifest.xml` if `<service>` declared without foregroundType or WorkManager wrapper. |
+| Direct `android.database.sqlite.SQLiteOpenHelper` | Unverified SQL / Leak Hazard | Room Database (`@Database`, `@Entity`, `@Dao`) | Raw SQLite queries without compile-time verification rejected when Room capability is declared. |
+| `android.app.ProgressDialog` | Deprecated / Obstructive UI | Material 3 `CircularProgressIndicator` or `LinearProgressIndicator` in Compose | Rejected as `DEPRECATED_UI_DIALOG`. |
+| Calling `findViewById(R.id...)` | Null-Safety Hazard / Deprecated | ViewBinding (`binding.viewId`) or Jetpack Compose declarative state | AST flags `findViewById`; rejected as `UNSAFE_VIEW_LOOKUP`. |
+| Main-thread disk / network I/O (`NetworkOnMainThreadException`) | UI Thread Starvation / ANR | Coroutine with `withContext(Dispatchers.IO)` | IO method calls inside main dispatcher scope flagged as `MAIN_THREAD_IO_HAZARD`. |
+| Missing `android:exported` on components with `<intent-filter>` | Manifest Security Failure (API 31+) | Explicit `android:exported="true"` or `android:exported="false"` on every Activity, Service, and Receiver | Manifest merger preflight fails with `MANIFEST_MISSING_EXPORTED_ATTRIBUTE`. |
 
 ### 73.3 PreviewCoordinator and revision identity
 
