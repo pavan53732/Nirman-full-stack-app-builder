@@ -240,6 +240,23 @@ CREATED → STARTING → ACTIVE → WAITING_TOOL → ACTIVE
 
 Workers should emit heartbeats while active. The scheduler should distinguish a model request that is still processing from a dead worker process by checking both process liveness and heartbeat freshness.
 
+The worker process lifecycle maps the disposable OS process states above to the `WorkerConnection.state` transport lifecycle (nirman-schemas.md §2.90; §57.11) and owning authorities without altering the ADR-119 separation between process lifecycle and the worker's internal 13-state reasoning loop (§71.4):
+
+| Worker State (§5.2) | `WorkerConnection.state` (nirman-schemas.md §2.90) | Transition Trigger | Transition Authority | Persistence & Side Effect |
+|---|---|---|---|---|
+| `CREATED` | — | Lease granted, launch token minted | `TaskScheduler` / `WorkerRuntime` | `worker_leases` record committed; token sent via stdin (§3.5) |
+| `STARTING` | `CONNECTING` | `NirmanWorker.exe` spawned in AppContainer Job Object | `WorkerRuntime` | Process ID recorded; pipe created with DACL; awaiting handshake |
+| `ACTIVE` | `ACTIVE` | Handshake token digest verified | `WorkerRuntime` | `WorkerConnection` established; heartbeats start (10s interval, build spec §26.3) |
+| `WAITING_TOOL` | `ACTIVE` | Tool call request submitted to `ToolBroker` | `ToolBroker` / `PolicyAuthority` | Worker awaits `PROPOSAL_RESULT`; heartbeat monitoring continues |
+| `WAITING_APPROVAL` | `ACTIVE` | Policy requires interactive/user approval | `PolicyAuthority` | Awaiting approval event; worker remains connected |
+| `WAITING_DEPENDENCY` | `ACTIVE` | Cross-worker dependency pending | `TaskScheduler` | Durable `AwaitCondition` registered (§58.11.1); woke on satisfaction |
+| `PAUSED` | `ACTIVE` | User directive or resource backpressure | `LifecycleAuthority` | Process memory preserved or serialized; resumes to `ACTIVE` |
+| `COMPLETED` | `ENDED` | Worker returns final valid result artifact | `LifecycleAuthority` / `WorkerRuntime` | Results committed; process exits normally; pipe closed |
+| `FAILED` | `ENDED` | Process crash, uncaught error, or memory breach | `RecoveryAuthority` / `WorkerRuntime` | Interruption recorded in `recovery_records`; lease released |
+| `TIMED_OUT` | `STALE` → `ENDED` | Heartbeat missed >60s stale threshold | `TaskScheduler` / `WorkerRuntime` | `TerminateJobObject` invoked; marked recoverable failure |
+| `CANCELLED` | `ENDED` | Cancellation directive propagated (§58.11) | `CancellationPropagationManager` / `WorkerRuntime` | Cooperative `CANCEL` sent; escalates to forced kill at 60s stale bound (build spec §52.12) |
+
+
 ---
 
 ## 6. Inter-Worker Coordination Protocol
@@ -2991,7 +3008,7 @@ The Supervisor MAY maintain an ephemeral, supervisor-owned coordination cache fo
 
 ### 57.11.2 Durable Coordination Fabric
 
-All logical worker/swarm messaging physically crosses the Supervisor's durable coordination fabric; there is no peer-to-peer worker transport (§58.16 rule 13). Every application-critical message follows persist → dispatch → receive → accept → apply → durable-ack with independent transport (`deliveryState`) and application (`processingState`) states (`nirman-schemas.md` §1.13). Receiving a message (`deliveryState: ACKED`) never means its state transition was applied; `APPLIED` means the authoritative transition or result was durably committed. `REJECTED` and `DEFERRED` retain a durable `failureCode` and reference so recovery can distinguish them from transport failure (ADR-246).
+All logical worker/swarm messaging physically crosses the Supervisor's durable coordination fabric; there is no peer-to-peer worker transport (§58.16 rule 13). Every application-critical message follows persist → dispatch → receive → accept → apply → durable-ack with independent transport (`deliveryState`) and application (`processingState`) states (`nirman-schemas.md` §1.13). Receiving a message (`deliveryState: ACKED`) never means its state transition was applied; `APPLIED` means the authoritative transition or result was durably committed. `REJECTED` and `DEFERRED` retain a durable `failureCode` and reference so recovery can distinguish them from transport failure (ADR-246). A message transitions to terminal `deliveryState: DEAD_LETTERED` when the envelope fails deserialization or digest verification against protocol schemas, or when delivery attempts exhaust the node's declared `deliveryAttemptPolicy` (governed by `recoveryAttemptPolicy`, build spec §26.3) without receiving `ACKED`. Dead-lettered messages are quarantined with their `failureCode`, error reason, and raw payload for operator inspection and recovery analysis; they are never silently dropped or allowed to block subsequent stream messages.
 
 Delivery is at-least-once with idempotent authoritative application; the fabric makes no end-to-end exactly-once claim. Durable inbox/outbox precede dispatch, so after a crash: `PENDING` messages redispatch, in-flight messages reconcile, `APPLIED` messages never reapply, and unknown states reconcile before new dispatch. `ExecutionEpoch` (`nirman-schemas.md` §2.119) captures in-flight messages and mailbox/order watermarks, not only pending IDs.
 
@@ -3190,7 +3207,7 @@ Every operation carries parent task, cancellation lineage, input references, exp
 
 > **Schema projection:** `JoinBarrierState` is defined in `nirman-schemas.md` §2.121. Owner: TA §58.5.1.
 
-Fan-in is durable: every join carries `JoinBarrierState` (expected, completed, and failed children; accepted results; quorum count; join revision; join state). A parent MAY wake only when its join contract becomes satisfiable (ADR-247); satisfaction is evaluated by the Supervisor control plane and recorded with the satisfying event, never inferred from transport traffic.
+Fan-in is durable: every join carries `JoinBarrierState` (expected, completed, and failed children; accepted results; quorum count; join revision; join state). A parent MAY wake only when its join contract becomes satisfiable (ADR-247); satisfaction is evaluated by the Supervisor control plane and recorded with the satisfying event, never inferred from transport traffic. When a join barrier reaches a terminal state (`SATISFIED`, `CANCELLED`, or `SUPERSEDED`), its outcome is immutable for that `joinRevision`. Child results arriving after barrier satisfaction are recorded as non-mutating completion records in `quarantined_messages` and never alter the satisfied barrier or re-wake the parent; child outputs produced after a join is `CANCELLED` remain quarantined under §58.12.1 and cannot promote without independent revalidation.
 
 ### 58.6 KnowledgeLedger and TaskBlackboard
 
@@ -3247,7 +3264,7 @@ Platform dimensions are explicit (build spec §79). The planner resolves host an
 `BackpressureController` reserves and queues Gradle processes, emulator slots, Nirman-managed local Android emulators, GPU capacity, storage, and provider concurrency. It applies priority and fairness, exposes waiting reasons, and reduces parallelism before system pressure becomes failure.
 
 `CancellationPropagationManager` propagates cancellation from goal to task graph, workers, skills, ToolSessions, child processes, PTY, emulator actions, and pending provider requests. Each node supports graceful cancellation, forced termination, cleanup, checkpoint preservation, and rollback semantics.
-`CancellationPropagationManager` additionally quiesces child dispatch, prevents new messages from entering a cancelled descendant, releases reservations after cancellation reaches the descendant, preserves produced artifacts, and seals the cancelled attempt.
+`CancellationPropagationManager` additionally quiesces child dispatch, prevents new messages from entering a cancelled descendant, releases reservations after cancellation reaches the descendant, preserves produced artifacts, and seals the cancelled attempt. Cancellation is cooperative first: `CancellationPropagationManager` dispatches a `CANCEL` message over the reserved control lane (§58.11.2). A cancellation unacknowledged within the worker stale threshold (60 seconds, build spec §26.3, §52.12) escalates to forced termination via `TerminateJobObject`, sealing the attempt and releasing all workspace leases and semantic reservations.
 
 Independent worker or skill pause must preserve context references, leases, ToolSessions, checkpoints, and unresolved questions. Unrelated workers may continue.
 
