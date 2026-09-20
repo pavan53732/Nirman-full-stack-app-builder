@@ -136,6 +136,10 @@
 
 ## 5. Authorities, services, and runtime concepts
 
+**AndroidRefactoringPipeline** — The supervisor-orchestrated offline AST refactoring engine for dead resource pruning, deprecated API migration, and Compose state hoisting normalization. — TA §47.4.
+
+**AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
+
 **AndroidTechnologyAdapter** — The resolution-only adapter (six operations) through which a technology plan reaches a concrete `AndroidBuildAdapter` or `AndroidDeviceAdapter`; it performs no build, install, or observation work itself. — TA §73.10; TA §73.12; TA §73.13.
 
 **Attention placement / recall probes** — Placing context where the model measurably attends (`PlacementPlanner`) and verifying recall with runtime-known probes (`RecallProbeService`) instead of trusting model recall. — BS §53.11; TA §59; ADR-219.
@@ -168,15 +172,23 @@
 
 **PreviewCoordinator** — The service that owns preview promotion; `PreviewProjectionReducer` remains the sole projection reducer. — TA §50; TA §75.
 
+**ReasoningTraceGraphView** — The interactive WinUI 3 deliberation DAG component visualizing hypotheses, evaluations, and evidence references without exposing raw chain-of-thought tokens. — TA §55.8.
+
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
 
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
+**TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
+
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
 **ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
+
+**WorkerAnomalyDetector** — The runtime sentinel inside SupervisorExecutionLoop that detects cognitive stalls, mutation thrashing, and schema deviations, triggering immediate lease revocation and quarantine. — TA §58.1.
+
+**WorkerCompatibilityValidator** — The pre-dispatch gate verifying worker context capacity, multimodal vision requirements, schema fidelity, and sandbox isolation profile before assignment. — TA §71.8.
 
 **Worker lease / operation capability** — The renewable lease that fences a session's workers and the single-use capability that authorises a sensitive operation. — TA §36.3; TA §46.
 
