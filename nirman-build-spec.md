@@ -3206,7 +3206,13 @@ The typed delegation protocol must support `delegate`, `spawn`, `handoff`, `resu
 
 Workers must communicate through typed, scoped knowledge rather than a shared mutable prompt or unbounded common memory. Nirman must maintain a `KnowledgeLedger` and a task-scoped `TaskBlackboard` containing goals, requirements, architecture facts, decisions, constraints, assumptions, active workers, completed work, blocked work, findings, conflicts, evidence, known failures, and next actions.
 
-A `KnowledgeArtifact` may be a finding, decision, constraint, assumption, architecture fact, failure pattern, test result, artifact, or environment fact. It must include the source worker, source task, project revision, confidence, evidence IDs, validity period, and scope.
+A `KnowledgeArtifact` may be a finding, decision, constraint, assumption, architecture fact, failure pattern, test result, artifact, or environment fact. It must include the source worker, source task, project revision, confidence, evidence IDs, validity period, scope, and its promotion and selection record.
+
+Shared-memory selection must be explicit. Every artifact must record `promotionDecision`, `promotionRationale`, `supersededBy`, and `selectionRegime`, so that how an artifact entered the ledger, why, and whether a later artifact displaced it are readable without replaying the ledger. When `supersededBy` names a successor, `promotionDecision` must be `SUPERSEDED`, and a supersession chain must be acyclic.
+
+Retained knowledge must not drift or poison. When evidence supporting a retained artifact is invalidated, revoked, or expired, `EvidenceAuthority` must re-evaluate the artifact and either re-admit it on remaining valid evidence or commit its supersession. No worker may promote, supersede, or evict an artifact; proposal and evidence attachment are worker actions, promotion is an authority action. Drift and poisoning defence introduces no new authority.
+
+> **Schema projection:** `KnowledgeArtifact` is defined in `nirman-schemas.md` §2.47. Owner: TA §58.6.
 
 Workers may read relevant entries, propose artifacts, attach evidence, request changes, and retrieve facts. Only deterministic authorities may commit decisions, mutate the task graph, mark requirements complete, change policy, or promote artifacts.
 
@@ -4217,9 +4223,9 @@ Any missing edge in the chain is a documentation defect. A missing edge must be 
 
 This document set is certified only when every capability in the §5.6 coverage matrix resolves to a complete twelve-edge chain, when no section defines a contract that contradicts another section, when every referenced schema exists in the technical architecture, when every ADR referenced by a section exists in the decision log, and when every milestone referenced by a section exists in the development plan.
 
-### 67.7 Contract Authority Registry
+### 67.7 Contract authority rules
 
-Precedence is not resolved by reading. Every normative contract in this document set has exactly one registered authoritative definition, identified by a stable `ContractId`. All other sections that speak to that contract are extensions and must declare themselves as such.
+Precedence is not resolved by reading. Every normative contract in this document set has exactly one registered authoritative definition, identified by a stable `ContractId`. All other sections that speak to that contract are extensions and must declare themselves as such. This section states the rules; the `ContractId` values those rules govern are registered in the §67.8 Contract Authority Registry.
 
 Each extension must declare:
 
@@ -4252,9 +4258,9 @@ ContractId
 Where ambiguity exists, certification fails and the document set is corrected. Ambiguity is never resolved by interpretation at implementation time.
 
 
-### 67.8 Registered contract identifiers
+### 67.8 Contract Authority Registry
 
-The following `ContractId` values are the registered normative contracts of this document set. Each row names the single authoritative section, the declared extensions, the implementing architecture section, the locking ADR, and the implementing milestone. This table is the resolution source for §67.7 and the addressing source for §67.3.
+The following `ContractId` values are the registered normative contracts of this document set — the Contract Authority Registry. Each row names the single authoritative section, the declared extensions, the implementing architecture section, the locking ADR, and the implementing milestone. This table is the resolution source for the §67.7 Contract authority rules and the addressing source for §67.3.
 
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|

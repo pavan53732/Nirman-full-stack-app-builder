@@ -2847,6 +2847,10 @@ KnowledgeArtifact
 - valid_until
 - scope
 - supersedes
+- promotionDecision: PROPOSED | ADMITTED | REJECTED | SUPERSEDED
+- promotionRationale
+- supersededBy
+- selectionRegime: SOLE_SOURCE | COMPETITIVE_SELECTION | EVICTION | SUPERSESSION
 ```
 
 ### 2.48 ToolSession
@@ -4943,6 +4947,12 @@ TrajectoryAssessment
 BrandManifest
 AssetManifestEntry
 AssetManifest
+SchedulerInputSnapshot
+SchedulerDecisionSnapshot
+DecisionNode
+FailureContextPackage
+TargetPlatformSet
+AndroidToolchainManifest
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
@@ -4965,3 +4975,9 @@ The registered identities below are prose-defined normative records: their shape
 - `AssetManifest` — normative shape prose-defined at build spec §50.3; no projected field block (ADR-241).
 - `ConstructionTransaction` — prose-defined normative identity for the atomic autonomous transaction described by ADR-160 and technical architecture §45.3 and §36.5; no projected field block (ADR-241; ADR-242).
 - `ProjectRevisionId` — opaque semantic identity of the ProjectRevision axis; its current value is exposed through the derived Project.currentRevision projection defined by ADR-242; no projected field block (ADR-241; ADR-242).
+- `SchedulerInputSnapshot` — normative shape prose-defined at technical architecture §7.1 (Scheduler tick determinism contract: "A scheduler tick MUST consume one immutable `SchedulerInputSnapshot`. The snapshot MUST contain:"); no projected field block (ADR-241).
+- `SchedulerDecisionSnapshot` — normative shape prose-defined at technical architecture §7.1 (Scheduler tick determinism contract: "The tick MUST produce one `SchedulerDecisionSnapshot` containing:"); no projected field block (ADR-241).
+- `DecisionNode` — normative shape prose-defined at build spec §52.13 (decision nodes, uncertainty, contradiction, and plan recompilation); its implementing component is `DecisionNodeManager` (technical architecture §58.12); no projected field block (ADR-241).
+- `FailureContextPackage` — normative shape prose-defined at technical architecture §63.2 (localization pipeline) as the Diagnostic Worker's root-cause product; no projected field block (ADR-241).
+- `TargetPlatformSet` — normative shape prose-defined at build spec §5.7.8 (Android target and provider-context boundaries), where it is fixed to `{ANDROID}`; no projected field block (ADR-241).
+- `AndroidToolchainManifest` — normative shape prose-defined at build spec §79.7 (platform-specific build and validation skills), recording the locked JDK, Gradle, Android SDK, platform tools, and selected Node and package manager; no projected field block (ADR-241).

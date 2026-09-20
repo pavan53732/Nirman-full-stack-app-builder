@@ -235,9 +235,16 @@ def parse_registries(docs, D):
     bs, dev = docs["bs"], docs["dev"]
     R = {}
 
-    # §67.8 contract authority registry
-    reg_heading = re.search(r"^### \d+\.\d+ Registered contract identifiers\s*$", bs, re.M)
+    # §67.8 contract authority registry. The canonical heading is
+    # "Contract Authority Registry" (BS §67.8); "Registered contract
+    # identifiers" is the retired pre-rename title and must no longer appear,
+    # so a document still carrying it is a defect rather than a parse failure.
+    reg_heading = re.search(r"^### \d+\.\d+ Contract Authority Registry\s*$", bs, re.M)
     if reg_heading is None:
+        if re.search(r"^### \d+\.\d+ Registered contract identifiers\s*$", bs, re.M):
+            sys.exit("FATAL: §67.8 still carries the retired heading "
+                     "'Registered contract identifiers'; the canonical title is "
+                     "'Contract Authority Registry'")
         sys.exit("FATAL: contract authority registry heading not found")
     rows = table_rows(bs, reg_heading.group(0), "\n### ", "CONTRACT.")
     if rows is None:

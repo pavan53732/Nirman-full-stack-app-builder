@@ -374,7 +374,8 @@ The recommended build sequence is deliberately vertical and evidence-driven:
 4. M39–M64 — Construction transaction, leases, toolchain, provider bridge, mutation, repair, preview, validation, and resource governance.
 5. M65–M80 — Autonomous execution kernel and first end-to-end runtime certification.
 6. M81–M122 — Long-horizon intelligence, contract certification, preview synchronization, continuity, frontend/control-plane certification, APK export, platform capabilities, skills, writing intelligence, durable conversation context, and change intelligence.
-7. Windows `.exe` release certification follows the runtime gates and is not implied by documentation certification.
+7. M123–M125 — Recovery-first autonomous continuity certification, orchestration wiring matrix and end-to-end pipeline certification, and long-horizon swarm coordination integrity.
+8. Windows `.exe` release certification follows the runtime gates and is not implied by documentation certification.
 
 Certification vocabulary is explicit: `DOCUMENTATION_CERTIFIED` means the contract graph, identity, and traceability checks pass; `RUNTIME_CERTIFIED` means an executable fixture and runtime evidence pass; and `PRODUCT_COMPLETED` means the user's `GoalContract` completion predicate passes. The word "certified" must not be used without one of these scopes. The verifier's terminal line on a zero-defect run is either `CERTIFICATION: DOCUMENTATION_CERTIFIED` (every check evaluated) or `CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` (implementation-facing field coverage was not evaluated because the Rust source is absent — the current state of this specification-only repository; the unevaluated subjects are listed individually). Both exit with code 0; exit code 0 means zero defects, not complete evaluation, and neither status is runtime certification (spec §67.11).
 
