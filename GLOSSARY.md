@@ -156,6 +156,8 @@
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
+**EpisodicRepairPatternCatalog** — The supervisor-owned catalog of validated, cross-session AST repair patterns indexed by compilation and runtime error signatures. — TA §47.4; TA §58.15.
+
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
 
 **Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
@@ -180,6 +182,8 @@
 
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
+**SupervisorPreemptionProtocol** — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes. — TA §58.11.2.
+
 **TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
 
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
@@ -189,6 +193,8 @@
 **WorkerAnomalyDetector** — The runtime sentinel inside SupervisorExecutionLoop that detects cognitive stalls, mutation thrashing, and schema deviations, triggering immediate lease revocation and quarantine. — TA §58.1.
 
 **WorkerCompatibilityValidator** — The pre-dispatch gate verifying worker context capacity, multimodal vision requirements, schema fidelity, and sandbox isolation profile before assignment. — TA §71.8.
+
+**WorkerFailoverReconstitutionProtocol** — The deterministic protocol executed by the supervisor when recovering from a worker crash, anomaly eviction, or preemption event. — TA §58.1.
 
 **Worker lease / operation capability** — The renewable lease that fences a session's workers and the single-use capability that authorises a sensitive operation. — TA §36.3; TA §46.
 

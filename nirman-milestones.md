@@ -282,7 +282,7 @@ Add specialized workers and isolated parallel execution only after the single-wo
 3. Implement the shared task ledger in the SQLite execution ledger with atomic task claims (ADR-110); any workspace task-ledger file is a derived projection, never state.
 4. Add dependency-aware scheduling.
 5. Add isolated Git worktrees or copy-on-write workspace fallback.
-6. Add worker heartbeats, crash recovery, WorkerAnomalyDetector cognitive-stall and thrash sentinels (TA §58.1), and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery is proven by terminating one of three running worker processes while the other two continue (TA §3.5); the fixture also asserts the replacement lease's first `ContextPackage` carries the TA §27.4 seed with each of the five items present.
+6. Add worker heartbeats, crash recovery, WorkerAnomalyDetector cognitive-stall and thrash sentinels (TA §58.1), and per-worker physical resource requirements; each worker is its own `NirmanWorker.exe` process and crash recovery executes `WorkerFailoverReconstitutionProtocol` (TA §58.1), proven by terminating one of three running worker processes while the other two continue (TA §3.5); the fixture also asserts the replacement lease's first `ContextPackage` carries the TA §27.4 seed with each of the five items present.
 7. Implement review, test, debug, and reconciliation worker chains. The chain fixture rejects a Review stage executed by the implementation producer and accepts only reviews whose evidence cites a different reviewer `workerId`. It likewise rejects Test-stage execution by the implementation producer and accepts only test evidence citing a different test-worker `workerId`.
 8. Implement changed-file and changed-symbol conflict detection.
 9. Add transactional integration checkpoints.
@@ -617,7 +617,7 @@ Implement transient retry, focused diagnostics, context/index refresh, strategy 
 
 Implement the Android runtime sub-ladder (BS §28.2; ADR-225) as `RecoveryAuthority` behavior: rung selection from the failure family, per-rung fingerprint exhaustion, and the build-family skip. Fixture: an install failure walks reload → reseed → relaunch → reinstall without a model call; a Kotlin compile error never touches the sub-ladder; a rung that leaves the observation unchanged is absent from the next attempt.
 
-Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225): the `BUILT_IN` first-line set, fingerprint matching before model reasoning, demotion to `CANDIDATE` after two failures on one fingerprint, and promotion only through `ImprovementProposal` evidence. Fixture: a missing-permission crash is repaired by the built-in pattern with no model call in the trajectory; a pattern that fails twice is absent from the third attempt.
+Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225) and `EpisodicRepairPatternCatalog` (TA §47.4): the `BUILT_IN` first-line set, cross-session verified AST mutation indexing, fingerprint matching before model reasoning, demotion to `CANDIDATE` or quarantine after failures, and promotion only through `ImprovementProposal` evidence. Fixture: a missing-permission crash is repaired by the built-in pattern with no model call in the trajectory; a pattern that fails twice is absent from the third attempt.
 
 **Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
 
@@ -2177,7 +2177,7 @@ certification.
 5. Atomic/global-order reservation acquisition plus wait-for cycle detection and deterministic victim recovery.
 6. PlanAssignmentMigrator with RETAIN/REBASE/QUIESCE/CANCEL/REPLACE outcomes.
 7. Swarm admission using physical child-concurrency, `TaskBatchingOptimizer` micro-mutation clustering (TA §58.5), queue, emulator, provider, and recovery/validation reserve signals.
-8. CoordinationStallRecord, `WorkerAnomalyDetector` sentinels (TA §58.1), and progress detector.
+8. CoordinationStallRecord, `WorkerAnomalyDetector` sentinels, `SupervisorPreemptionProtocol` (TA §58.11.2), `WorkerFailoverReconstitutionProtocol` (TA §58.1), and progress detector.
 9. Control-priority WorkerConnection QoS for HEARTBEAT/CANCEL.
 10. ExecutionEpoch seal/roll-forward with replay-equivalent recovery.
 11. Provider circuit breaker and resumable-or-reconciled provider stream recovery.

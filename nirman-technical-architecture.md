@@ -2321,6 +2321,13 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Deprecated API & lifecycle migration:* Rewrites legacy Android patterns to modern Jetpack equivalents: transforms legacy `findViewById` or synthetic bindings into ViewBinding / Compose; upgrades deprecated Accompanist insets to AndroidX Window insets (`WindowInsets.safeDrawing`); and replaces unsafe `GlobalScope` / unbonded coroutines with `viewModelScope` and `repeatOnLifecycle`.
 3. *Compose state hoisting normalization:* Scans `@Composable` functions containing internal `remember { mutableStateOf(...) }` declarations that violate unidirectional data flow; automatically refactors them into stateless Composables by hoisting the state value to parameters and exposing typed event lambdas (`(Value) -> Unit`) to the parent caller.
 
+- `EpisodicRepairPatternCatalog` — The supervisor-owned catalog of validated, cross-session AST repair patterns indexed by compilation and runtime error signatures.
+
+**Episodic repair pattern catalog.** To accelerate autonomous repair loops without recurrent model inference, `EpisodicRepairPatternCatalog` durably indexes verified AST patch transformations:
+1. *Pattern representation:* Stores structured `(failureSignature, astPatchTemplate, verificationRule, targetJetpackVersion, minSdk)` tuples derived from previously successful metamorphic test episodes. In compliance with ADR-218 and BS §66, no raw chain-of-thought tokens or unverified model summaries are retained.
+2. *Deterministic pre-inference lookup:* When a build compilation or emulator test fails, the `Debugging Worker` queries the catalog using Tree-sitter error classification before dispatching a model deliberation request. An exact match on AST error signature and `minSdk` compatibility applies the proven patch template directly under a speculative branch.
+3. *Validation gating and quarantine:* Applied catalog patches must pass complete test and emulator validation before promotion. Any catalog pattern that causes an unexpected regression or fails validation on a target project is immediately marked `QUARANTINED` in the local ledger and removed from the active lookup index.
+
 ---
 
 ## 48. Provider Bridge and ModelGateway
@@ -3222,6 +3229,19 @@ These modules produce proposals and state transitions, but LifecycleAuthority, P
 3. *Schema deviation anomaly (`SCHEMA_DEVIATION_ANOMALY`):* A worker emits $> 2$ consecutive malformed payloads failing `WorkerConnection` schema validation or containing unparseable JSON/bincode structures.
 Upon detecting any of these three conditions, `WorkerAnomalyDetector` flags the attempt, revokes the worker's AppContainer lease via `WorkspaceLeaseManager`, records an `ANOMALY_REVOCATION` event in the execution ledger, and signals `RecoveryAuthority` to quarantine the attempt and dispatch a replacement worker under an escalated reasoning profile.
 
+- `WorkerFailoverReconstitutionProtocol` — The deterministic protocol executed by the supervisor when recovering from a worker crash, anomaly eviction, or preemption event.
+
+**Worker failover reconstitution protocol.** When a worker process crashes, times out, is evicted by `WorkerAnomalyDetector`, or is preempted by `SupervisorPreemptionProtocol`, the supervisor executes this deterministic failover sequence:
+1. *Isolation & quarantine:* Revokes the prior lease in `WorkspaceLeaseManager`, terminates any lingering process handles via `TerminateJobObject`, and isolates any uncommitted filesystem mutations into a quarantined patch branch (`quarantine/attempt-<id>`).
+2. *Clean context seeding:* Generates a fresh `ContextPackage` seeded per §27.4:
+   - Restores workspace files to the last validated `Checkpoint`;
+   - Injects the original user intent, task specification, and active interface agreements;
+   - Records the prior failure fingerprint and quarantined patch signatures as active negative constraints to prevent repeat failures;
+   - Attaches the current `AndroidSymbolGraph` and fresh evidence ledger watermark.
+3. *AppContainer allocation:* `WorkerRuntime` allocates a fresh `NirmanWorker.exe` AppContainer process under a newly generated `leaseId` with an incremented `attemptId`, a new unique container SID, and a dedicated named-pipe `WorkerConnection`.
+4. *Direct resumption:* The replacement worker initiates its lifecycle directly at the `PLAN` phase of the reasoning cycle, bypassing already completed and verified exploratory stages.
+5. *Causal audit trail:* Emits a `WORKER_FAILOVER_COMMITTED` event to the SQLite execution ledger linking `priorWorkerId` $\to$ `evictionReason` $\to$ `replacementWorkerId`, ensuring transparent lineage without losing task context.
+
 ### 58.2 AgentExecutionKernel contract
 
 > **Schema projection:** `AgentExecutionKernel` is defined in `nirman-schemas.md` §2.41. Owner: TA §58.2.
@@ -3418,6 +3438,14 @@ No agent waits on an agent. Every cross-worker wait becomes a durable `AwaitCond
 
 `CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross a reserved-capacity control lane (`nirman-schemas.md` §2.90 `reservedControlLane`), not merely a higher-priority queue (ADR-246). Bulk traffic can never occupy the lane's capacity, so control delivery is bounded even under payload saturation. The lane changes delivery guarantees only; it grants no authority.
 
+- `SupervisorPreemptionProtocol` — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes.
+
+**Supervisor preemption protocol.** When the supervisor detects a premise invalidation (`PREMISE_MISMATCH`), an anomaly (`WorkerAnomalyDetector`), a hard safety boundary violation, or an explicit user cancellation, `SupervisorPreemptionProtocol` executes atomic preemption:
+1. *Fenced control notice:* Emits a high-priority `PREEMPT` control notice across Reserved Control Lane `0x00` carrying the eviction reason, target lease ID, and cancellation watermark.
+2. *Atomic capability severance:* `WorkspaceLeaseManager` immediately marks the active lease `PREEMPTED` in the SQLite ledger, and `ToolBroker` / `ConstructionTransactionManager` reject any in-flight mutation tokens from that worker as `LEASE_FENCED`.
+3. *Process termination & containment:* Gives the worker a 500ms grace window to flush its in-memory telemetry, after which the supervisor terminates the worker's Job Object via `TerminateJobObject`. Uncommitted workspace edits are quarantined in an isolated recovery branch, preventing half-applied modifications from leaking into the primary workspace.
+4. *Audit logging:* Writes an immutable `PREEMPTION_EVENT` to the execution ledger containing causal trigger details, invalidated token counts, and downstream recovery requirements.
+
 ### 58.11.3 Delivery recovery
 
 On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each connection from durable mailbox/order watermarks: `PENDING` redispatches; in-flight reconciles and redelivers once; `APPLIED` never reapplies; unknown states reconcile before any new dispatch on that stream. Duplicate deliveries are detected by `messageId`/`deduplicationKey` plus immutable payload fingerprint; a conflicting duplicate is rejected and quarantined (build spec §26.2).
@@ -3505,7 +3533,7 @@ Observation
  → Consequence
 ```
 
-Deliberation checkpoints, rejected strategies, and alternative hypotheses are integrated directly into the `MemoryStore` and `ContextOrchestrator` rather than operating as an isolated parallel subsystem. Each causal node records its input observation, explanatory hypothesis, policy decision, executed action, observable result, resulting evidence item, and downstream project consequences.
+Deliberation checkpoints, rejected strategies, alternative hypotheses, and proven AST repair patches from `EpisodicRepairPatternCatalog` (§47.4) are integrated directly into the `MemoryStore` and `ContextOrchestrator` rather than operating as an isolated parallel subsystem. Each causal node records its input observation, explanatory hypothesis, policy decision, executed action, observable result, resulting evidence item, and downstream project consequences.
 
 ### 58.16 Runtime invariants
 
