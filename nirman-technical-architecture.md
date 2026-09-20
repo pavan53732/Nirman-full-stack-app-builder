@@ -3341,6 +3341,12 @@ A tool session may be reattached after worker replacement or UI restart, but rea
 
 Platform dimensions are explicit (build spec §79). The planner resolves host and target platforms through `TargetPlatformResolver`, consults the `PlatformCapabilityRegistry` matrix as a prior for preflight, and classifies cross-compilation capability and native target-runtime capability as separate prerequisites. It never derives native runtime capability from a successful build or cross-build: the cross-build admission decision point and the native-validation gate are the §84.3 decision points owned by the existing authorities, and a classification is never raised by model assertion.
 
+- `ToolReliabilityScorer` — The scoring service that tracks empirical tool execution success and failure rates.
+
+**Tool reliability scoring and fallback routing.** `ToolReliabilityScorer` computes an empirical reliability score $R(T) \in [0.0, 1.0]$ for each tool $T$ based on historical execution outcomes:
+$$R(T) = \frac{\text{SuccessCount}(T)}{\text{TotalInvocations}(T) + 2}$$
+When $R(T) < 0.60$, `ToolCapabilityGraph` marks tool $T$ as `DEGRADED` and automatically routes execution requests to registered fallback tools or alternative strategies. Tool execution cost awareness applies strictly to physical host resources (disk space, execution timeout, memory limits, emulator lock contention) under `ResourceIntegrityAuthority`; AI token and monetary costs have zero authority over tool execution or task continuation (ADR-218).
+
 ### 58.9 ValidationPlanner and mutation regression analysis
 
 `ValidationPlanner` chooses validation from changed files, symbols, call graph, route graph, dependency graph, requirement traceability, project type, risk, previous failures, emulator profiles, and resource availability. `MutationRegressionAnalyzer` predicts affected behavior and expands validation when a change touches a manifest, permission, navigation route, data model, native module, build file, authentication boundary, or shared UI component.
@@ -3411,6 +3417,13 @@ A falsified premise must become durable authoritative state and propagate to eve
 Output quarantine is the default: evidence and artifacts produced under the falsified premise are quarantined (`quarantinedEvidenceIds`, `quarantinedArtifactIds`). Compatibility may bypass replan only when the existing dependency graph proves independence (§36.4); discard requires proof that the affected output cannot be safely revalidated.
 
 Push + checkpoint/epoch reconciliation are mandatory dual paths. Push is notification; the durable record is authority. Notification reuses the reserved control lane `RECONCILE` message (§58.11.2) with payload discriminator `reconcileReason = PREMISE_INVALIDATION` and `invalidationId`; the record MUST commit before dispatch, and checkpoint reconciliation remains mandatory because push delivery can be missed. No new authority, component, or control kind is introduced.
+
+- `PlanningDeadEndDetector` — The detection service that identifies cyclic failure states and exhausted branches in the task graph.
+
+**Planning search-tree dead-end detection.** `PlanningDeadEndDetector` monitors task graph execution paths to prevent cyclic failure loops:
+- *State cycle detection:* If an action sequence $A_1 \to A_2 \to \dots \to A_k$ reproduces an identical failure signature, error diagnostic, or workspace Merkle digest as an earlier failed state, the sequence is classified as a `STATE_CYCLE`.
+- *Branch exhaustion:* If all permissible tool actions or mutation operators for a task node produce either a `STATE_CYCLE` or a rejected hypothesis, the branch is marked `DEAD_END`.
+- *Recovery action:* On dead-end classification, `PlanningDeadEndDetector` immediately halts the active branch, quarantines its intermediate outputs, and invokes `Replanner` to backtrack to the last stable checkpoint and prune that branch from future exploration.
 
 ### 58.13 Coordination progress
 
@@ -4617,6 +4630,12 @@ enter deliberation (from HYPOTHESIZE or STRATEGIZE)
 ```
 
 The loop has no path from a pass directly to execution. Sufficiency returns to the reasoning engine, which emits the ReasoningArtifact and submits it for authorization. The loop has no usage-exhaustion path and no fixed pass ceiling: a pass is never refused because of tokens, requests, cost, reasoning tokens, pass count, or elapsed time. An observation-free pass is a signal to obtain evidence, not a termination condition. Anti-thrash protection comes from DiminishingReturnDetector, RepeatedFailureDetector, and StrategyChangeRequired. Physical resource pressure is handled by ResourceIntegrityAuthority (BS §72) — a pass waits, is rescheduled, or is checkpointed — and never by the deliberation runtime terminating itself.
+
+- `ExplorationStrategySelector` — The deliberation component that decides between exploiting known repair patterns and exploring speculative solutions.
+
+**Exploration versus exploitation policy.** When deciding whether to refine an existing strategy or spawn a speculative candidate branch, `ExplorationStrategySelector` evaluates:
+- *Exploit:* Selected when a matching repair pattern exists in `AndroidRepairRegistry` with verified historical success and prior attempts for that pattern on the current failure signature $< 2$.
+- *Explore:* Selected when task uncertainty $> 0.40$, when consecutive exploitation attempts yield zero evidence progress, or when the problem involves novel dependency conflicts without registered repair recipes. Exploratory branches execute within isolated candidate sandboxes under BS §65 (`CONTRACT.RUNTIME.SPECULATION`).
 
 ### 72.5 ReasoningEffortSelector
 
