@@ -2932,11 +2932,11 @@ def check_semantic_documentation(docs, R, D, root="."):
     # components, operations, authorities, persistence, recovery, evidence,
     # and test identities; it must not smuggle in a direct worker/tool/action
     # shortcut or a new lifecycle state.
-    deliberation_matrix = _section_text(bs, "84.1.1") or ""
-    if not deliberation_matrix:
+    if "### 84.1.1 Closed-world deliberation traversal resolution" not in bs:
         D.add("semantic documentation", "deliberation wiring matrix",
               "BS §84.1.1 closed-world deliberation traversal matrix is missing")
-    else:
+    deliberation_matrix = _section_text(bs, "84.1.1") or ""
+    if deliberation_matrix:
         matrix_rows = {
             "Deliberation → Context assembly": (
                 "WorkerConnection.MODEL_CALL", "ContextOrchestrator",
