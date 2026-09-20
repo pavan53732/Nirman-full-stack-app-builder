@@ -6477,7 +6477,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 
 Every "configurable" parameter in the specification has a default value defined here. An agent MUST use these defaults unless the user explicitly overrides them.
 
-**One parameter is intentionally non-configurable.** Technical architecture §11.4 requires the terminal manager to detect interactive prompts through "configurable prompt classifiers". The runtime fixes these classifiers as a closed, non-extensible set derived from the unattended-prompt policy of §23.7 and the stop-vocabulary of §69.11: a prompt is classified interactive when it matches a known password/credential pattern, a confirmation pattern (`[y/n]`, `yes/no`, `continue?`), a TTY-readiness wait, or a stdin-blocking read. The set is not user-configurable because expanding it would let a skill reclassify a blocked prompt as safe and bypass the hard gate of §23.7. No other "configurable" mention in the canonical documents is unresolved.
+**One parameter is intentionally non-configurable.** Technical architecture §11.4 previously mentioned interactive-prompt detection through "configurable prompt classifiers". The runtime fixes these classifiers as a closed, non-extensible set derived from the unattended-prompt policy of §23.7 and the stop-vocabulary of §69.11: a prompt is classified interactive when it matches a known password/credential pattern, a confirmation pattern (`[y/n]`, `yes/no`, `continue?`), a TTY-readiness wait, or a stdin-blocking read. The set is intentionally not user-configurable because expanding it would let a skill reclassify a blocked prompt as safe and bypass the hard gate of §23.7. No other "configurable" mention in the canonical documents is unresolved.
 
 | Parameter | Default | Range | Override |
 |---|---|---|---|
@@ -7222,12 +7222,12 @@ The agent-buildability contract is satisfied only when:
    "should" subsequently added to a canonical document is an immediate
    shortfall against this criterion until it appears in §80.2 (§80.10).
 2. Every "configurable" parameter has a default value. §80.3 declares 55
-   parameters and CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS requires this. One
-   omission is known and open: technical architecture §11.4 requires
-   "configurable prompt classifiers" for interactive-prompt detection, and no
-   §80.3 row and no inline default exists for them. §80.3 records the gap.
-   Every other "configurable" mention in the canonical documents resolves to a
-   §80.3 row — including `recoveryAttemptPolicy` (row 23), checkpoint retention
+   parameters and CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS requires this. The
+   interactive-prompt detection classifiers of technical architecture §11.4
+   are resolved in §80.3 as an intentionally non-configurable, closed set
+   derived from §23.7 and §69.11 to prevent gate bypass. Every other
+   "configurable" mention in the canonical documents resolves to a §80.3 row
+   — including `recoveryAttemptPolicy` (row 23), checkpoint retention
    (rows 17–19), and the telemetry sampling interval of technical architecture
    §23.4 (row 22).
 3. Every vague procedure has a concrete step-by-step replacement

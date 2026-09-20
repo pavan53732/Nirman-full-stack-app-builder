@@ -692,7 +692,7 @@ The runtime should expose a `TerminalSession` abstraction instead of treating ev
 
 A worker can reuse a terminal session for commands that depend on working directory, environment variables, virtual-environment activation, package-manager state, or a long-running development server. Session environment changes must be explicit and recorded rather than inferred from arbitrary shell output.
 
-The terminal manager must detect interactive prompts through known prompt signatures, stdin readiness, process activity, and configurable prompt classifiers. It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision. Dev servers and emulators must be registered as long-running processes rather than mistaken for hung commands.
+The terminal manager must detect interactive prompts through known prompt signatures, stdin readiness, process activity, and the closed non-extensible prompt-classifier set defined in build spec §80.3 and §23.7 (not user-configurable, preventing bypass of the §23.7 gate). It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision. Dev servers and emulators must be registered as long-running processes rather than mistaken for hung commands.
 
 Shell selection must be explicit on Windows. Supported profiles may include PowerShell, `cmd.exe`, Git Bash, or another approved native-Windows shell. The selected profile, executable path, version, encoding, and environment fingerprint belong in task evidence.
 
