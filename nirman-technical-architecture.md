@@ -2301,6 +2301,20 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Targeted test set derivation:* Filters `TEST_UNIT` and `TEST_INSTRUMENTED` test cases: only tests that exercise the forward impact set of mutated symbols are scheduled for execution. Tests with zero dependency paths to modified nodes remain valid from their prior cached evidence watermark.
 3. *Premise verification:* Compares the proposal's premise set against the current `AndroidSymbolGraph`. If an agent proposes a change based on a symbol signature or XML ID that changed in a preceding transaction, the mutation is immediately rejected as `PREMISE_MISMATCH` before workspace mutation opens.
 
+- `AndroidApiLevelValidator` — The static AST analysis service that verifies API calls against minSdk constraints.
+- `AndroidPatternLibrary` — The local offline repository of canonical Android Jetpack implementation patterns.
+
+**Static Android API level and minSdk validation.** To prevent fatal runtime crashes (`NoSuchMethodError`, `ClassNotFoundException`) on older devices and emulators, `AndroidApiLevelValidator` enforces static API level compliance:
+1. Resolves active `minSdk` and `compileSdk` from the project's `AndroidToolchainLock`.
+2. Walks the Tree-sitter AST of all Kotlin and Java methods, properties, and class declarations.
+3. Cross-references invoked Android framework methods against the local SDK API level index.
+4. If a method requires an API level higher than `minSdk`, verifies that the AST node is enclosed in an explicit version check (`if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.X)`) or guarded by `@RequiresApi`.
+5. Any unguarded invocation is flagged with pre-compilation diagnostic `API_LEVEL_UNGUARDED_CALL` and rejected at pre-commit.
+
+**Offline Android pattern and snippet retrieval.** The supervisor embeds `AndroidPatternLibrary` directly within `nirman-supervisor`:
+- Supplies verified, canonical code templates for every component in the closed-world decision matrix of §73.2 (Room DAOs with KSP, Jetpack Compose Navigation 2.8+ type-safe routes, WorkManager periodic workers, Material 3 Scaffolds).
+- Operates 100% locally on the user's Windows host, enabling workers to synthesize compliant, idiomatic Android architectures even during severed network connectivity (`SessionProviderMode.OFFLINE`).
+
 ---
 
 ## 48. Provider Bridge and ModelGateway
@@ -3371,6 +3385,16 @@ On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each conne
 > **Schema projection:** `PremiseInvalidationRecord` is defined in `nirman-schemas.md` §2.123. Owner: TA §58.12.
 
 `DecisionNodeManager` represents ambiguous architecture or recovery choices with a question, options, evidence, trade-offs, recommendation, impact, and resume conditions. A decision node is separate from a generic command approval and remains bound to a task and plan revision.
+
+**Deterministic decision scoring equation.** When competing architectural strategies, recovery branches, or technology proposals are evaluated, `DecisionNodeManager` calculates a deterministic score for each alternative $A$:
+$$\text{Score}(A) = w_e \cdot \text{EvidenceCoverage}(A) + w_r \cdot (1 - \text{RegressionRisk}(A)) - w_u \cdot \text{UncertaintyPenalty}(A) - w_c \cdot \text{ComplexityWeight}(A)$$
+where all metrics are normalized to $[0.0, 1.0]$:
+- $\text{EvidenceCoverage}(A)$: Proportion of requirements with verified pass evidence.
+- $\text{RegressionRisk}(A)$: Graph density and historical failure rate of touched modules.
+- $\text{UncertaintyPenalty}(A)$: Ratio of `UNKNOWN` or `ASSUMED` dependencies in the closure of $A$.
+- $\text{ComplexityWeight}(A)$: Cyclomatic complexity and number of cross-module interface boundaries.
+- Default normalized weights: $w_e = 0.35$, $w_r = 0.25$, $w_u = 0.25$, $w_c = 0.15$ (summing to 1.0).
+Ties are broken deterministically by selecting the alternative with the smaller AST modification delta.
 
 `UncertaintyRegistry` tracks `KNOWN`, `PROBABLE`, `ASSUMED`, `UNKNOWN`, `CONTRADICTED`, `VERIFIED`, and `BLOCKED` facts with source, confidence, evidence, expiry, scope, and next action. `ContradictionDetector` creates a controlled decision revision when requirements, assumptions, device constraints, toolchains, or architecture facts conflict.
 
