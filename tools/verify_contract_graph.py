@@ -2927,6 +2927,66 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "SOURCE\n  → CONTRACT\n  → ADAPTER / BRIDGE\n  → AUTHORITY\n  → STATE\n  → OPERATION\n  → OBSERVATION\n  → EVIDENCE\n  → VALIDATION\n  → DOWNSTREAM EFFECT" not in bs:
         D.add("semantic documentation", "universal integration chain",
               "canonical source-to-downstream-effect chain is missing")
+    # M124 closes four deliberation labels through the existing integration
+    # envelope.  The static matrix must bind each logical label to existing
+    # components, operations, authorities, persistence, recovery, evidence,
+    # and test identities; it must not smuggle in a direct worker/tool/action
+    # shortcut or a new lifecycle state.
+    deliberation_matrix = _section_text(bs, "84.1.1") or ""
+    if not deliberation_matrix:
+        D.add("semantic documentation", "deliberation wiring matrix",
+              "BS §84.1.1 closed-world deliberation traversal matrix is missing")
+    else:
+        matrix_rows = {
+            "Deliberation → Context assembly": (
+                "WorkerConnection.MODEL_CALL", "ContextOrchestrator",
+                "ContextPackage", "RegroundingService", "TEST-ORCH-WIRING-001"),
+            "Deliberation → delegated worker": (
+                "WorkerConnection.REASONING_ARTIFACT", "DelegationGrant",
+                "PolicyAuthority", "no direct deliberation → worker boundary",
+                "TEST-ORCH-WIRING-001"),
+            "Diagnostics → Deliberation": (
+                "EvidenceAcquisitionPlanner", "ToolBroker", "EvidenceAuthority",
+                "WorkerConnection.CYCLE_INPUT", "TEST-ORCH-WIRING-001"),
+            "Deliberation → goal execution": (
+                "AgentExecutionKernel", "AgentProposal", "PolicyAuthority",
+                "no deliberation pass reaches execution directly",
+                "TEST-ORCH-WIRING-001"),
+        }
+        for label, needles in matrix_rows.items():
+            row = next((line for line in deliberation_matrix.splitlines()
+                        if line.startswith(f"| {label} |")), "")
+            if not row:
+                D.add("semantic documentation", "deliberation wiring matrix",
+                      f"BS §84.1.1 lacks the {label!r} traversal row")
+                continue
+            for needle in needles:
+                if needle not in row:
+                    D.add("semantic documentation", "deliberation wiring matrix",
+                          f"BS §84.1.1 {label!r} row does not resolve {needle!r}")
+        if "`DELIBERATING` task, session, or cycle state" not in deliberation_matrix:
+            D.add("semantic documentation", "deliberation lifecycle closure",
+                  "BS §84.1.1 must keep deliberation inside existing cycle states")
+    m124 = re.search(r"^## M124 .*?(?=^## M\d+|\Z)", dev, re.M | re.S)
+    m124 = m124.group(0) if m124 else ""
+    if "### Closed-world deliberation traversal coverage" not in m124:
+        D.add("semantic documentation", "M124 deliberation coverage",
+              "M124 lacks the closed-world deliberation traversal fixture coverage")
+    if not all(needle in m124 for needle in
+               ("TEST-ORCH-WIRING-001", "TEST-IB-001", "EV-IB-001")):
+        D.add("semantic documentation", "M124 deliberation coverage",
+              "M124 must bind TEST-ORCH-WIRING-001 to the existing M107 fixture and evidence")
+    m124_cases = {
+        "BF.": ("WorkerConnection.MODEL_CALL", "re-grounds"),
+        "BG.": ("REASONING_ARTIFACT", "no direct deliberation → worker edge"),
+        "BH.": ("EvidenceRecord", "CYCLE_INPUT"),
+        "BI.": ("AgentProposal", "no new `DELIBERATING` lifecycle or cycle state"),
+    }
+    for label, needles in m124_cases.items():
+        line = next((line for line in m124.splitlines() if line.startswith(label)), "")
+        if not line or any(needle not in line for needle in needles):
+            D.add("semantic documentation", "M124 deliberation coverage",
+                  f"M124 fixture assertion {label.rstrip('.')} is missing or incomplete")
     if "CertificateInspection\n- inspectionId" not in fta:
         D.add("semantic documentation", "certificate inspection schema",
               "canonical CertificateInspection schema is missing")

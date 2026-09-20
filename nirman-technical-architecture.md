@@ -5053,6 +5053,29 @@ WorkerConnection
   → AgentReasoningEngine
 ```
 
+**Deliberation closure:**
+
+The four static traversals in build spec §84.1.1 are one mediated subgraph,
+not direct worker, tool, or execution shortcuts. `DeepDeliberationRuntime`
+requests context only as `WorkerConnection.MODEL_CALL`; the supervisor's
+`ContextOrchestrator` applies its integrity gate, assembles the context, and
+returns only normalized `MODEL_EVENT`/context-manifest material. A read-only
+diagnostic selected by `EvidenceAcquisitionPlanner` crosses the admitted
+`ToolBroker` operation, becomes an `EvidenceRecord` through `EvidenceAuthority`,
+and returns to the worker only through re-grounded `CYCLE_INPUT`. A completed
+deliberation crosses `WorkerConnection` as `REASONING_ARTIFACT` and/or
+`DELIBERATION_RECORD`, reaches `AgentExecutionKernel`, and can reach
+`CapabilityBroker`, `DelegationManager`, or `WorkerRuntime` only after the
+existing kernel and `PolicyAuthority` path admits it.
+
+Each physical message or operation above has its own runtime
+`IntegrationBoundaryContract`/`OrchestrationWiringMatrix` traversal; the
+logical labels do not collapse those traversals into a new contract. The
+worker's cancellation, fencing, restart, and replacement semantics remain
+those of `WorkerConnection`, durable coordination, the kernel, and
+`RecoveryAuthority`. Deliberation remains at the existing `HYPOTHESIZE` and
+`STRATEGIZE` cycle states of §71.4; it does not add a lifecycle state.
+
 **Preview interaction path:**
 ```text
 Preview UI input

@@ -2020,11 +2020,13 @@ User message
   → WorkerConnection → ContextOrchestrator → ContextPackage
   → ContextPackage → ModelGateway → ProviderAdapter/provider
   → provider response → ModelGateway → normalized response → WorkerConnection
-  → WorkerConnection → AgentReasoningEngine (§71)
-  → reasoning → CapabilityBroker → SkillRuntime/Worker/Tool/Swarm → result → AgentLoopReducer
+  → WorkerConnection → AgentReasoningEngine (BS §66, §71)
+  → deliberation at HYPOTHESIZE/STRATEGIZE (DeepDeliberationRuntime, BS §68, §72)
+  → [optional read-only observation] → ToolBroker (§49) → EvidenceRecord → HypothesisEvaluator
+  → ReasoningArtifact (BS §66.2, with selectionBasis) → AgentExecutionKernel (§58)
   → proposal (Schema-validated, §69.2)
   → authorization (PolicyAuthority, §23.7)
-  → tool execution (ToolBroker, §49)
+  → CapabilityBroker → tool execution (ToolBroker, §49)
   → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
   → observation (AndroidDeviceAdapter, §73.12)
   → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority → promotion
@@ -2047,6 +2049,28 @@ User message
 ```
 
 Every arrow in the matrix carries: producer, consumer, canonical schema, revision identity, task/worker identity, correlation/causation ID, authority decision, persistence event, observation/evidence, success transition, failure transition, recovery transition, stale/duplicate behavior, cancellation behavior, restart behavior, and the full integration-boundary contract references (operation, payload/response schemas, protocol, adapter, transaction domain, permission profile, lifecycle/timeout/cancellation/retry policies, compatibility, invalidation dependencies, downstream effects). The `boundaryId` resolves exactly one `IntegrationBoundaryContract`.
+
+### Closed-world deliberation traversal coverage
+
+M124 resolves the four deliberation labels in build spec §84.1.1 through the
+existing boundary contract rather than adding a deliberation-specific envelope,
+schema, worker path, trigger event, or lifecycle state. The fixture observes a
+runtime UUID `boundaryId` for each physical traversal and resolves it through
+the row's existing source, destination, and operation references; a logical
+row may therefore contain more than one physical traversal.
+
+`TEST-ORCH-WIRING-001` is a constituent scenario of M107's
+`TEST-IB-001` and produces its required `EV-IB-001` evidence. The scenario
+also links the already-owned contract evidence below; it creates no second
+contract-level test or evidence identity and does not certify runtime behavior
+merely by passing documentation checks.
+
+| Edge | Required fixture assertion | Existing supporting evidence |
+|---|---|---|
+| Deliberation → Context assembly | `WorkerConnection.MODEL_CALL` reaches `ContextOrchestrator`; a stale context is rejected, re-grounded, and reassembled from durable state | `EV-IB-001`, `EV-MEM-001`, `EV-DEL-001` |
+| Deliberation → delegated worker | A deliberation result reaches `AgentExecutionKernel` as `REASONING_ARTIFACT`/`DELIBERATION_RECORD`; delegation reaches `WorkerRuntime` only after `AUTHORIZE`, `PolicyAuthority`, and the existing grant path | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
+| Diagnostics → Deliberation | A read-only diagnostic is admitted through `ToolBroker`, committed by `EvidenceAuthority`, invalidated when a dependency changes, and returned only through re-grounded `CYCLE_INPUT` | `EV-IB-001`, `EV-GEN-001`, `EV-DEL-001` |
+| Deliberation → goal execution | A sufficient deliberation returns a cited `ReasoningArtifact` to the kernel; it cannot reach execution without the existing `AgentProposal`, `AUTHORIZE`, and capability path, and remains in the canonical `HYPOTHESIZE`/`STRATEGIZE` states | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
 
 Deliver:
 - OrchestrationWiringMatrix schema block (nirman-schemas.md §2.98): boundaryId, producer, consumer, schema, revisionId, taskId, workerId, correlationId, causationId, authority, persistenceEvent, evidenceRef, successTransition, failureTransition, recoveryTransition, staleBehavior, cancelBehavior, restartBehavior, operationRef, payloadSchemaRef, responseSchemaRef, protocolVersion, adapterOrBridgeRef, transactionDomain, permissionProfileRef, lifecyclePolicyRef, timeoutPolicy, cancellationPolicy, retryPolicy, compatibilityRef, invalidationDependencyRefs, downstreamEffectRefs
@@ -2117,6 +2141,10 @@ BB. zero undocumented retry/recovery edges
 BC. zero direct worker → non-supervisor edges
 BD. zero preview-frame paths bypassing PreviewCoordinator
 BE. zero completion paths bypassing EvidenceAuthority
+BF. deliberation context assembly crosses `WorkerConnection.MODEL_CALL`, rejects stale context, and re-grounds from the durable ledger
+BG. deliberation delegation crosses `REASONING_ARTIFACT`/`DELIBERATION_RECORD` → kernel → authorization → existing grant path; no direct deliberation → worker edge exists
+BH. a read-only diagnostic becomes an `EvidenceRecord` through `ToolBroker` and `EvidenceAuthority`, is invalidated by a declared dependency change, and returns to deliberation only through re-grounded `CYCLE_INPUT`
+BI. deliberation-to-goal execution returns through `ReasoningArtifact` → `AgentProposal` → `AUTHORIZE`; no new `DELIBERATING` lifecycle or cycle state is accepted
 
 Exit gate:
 The fixture must prove the §84.3 boundary contract semantics: schema validation,

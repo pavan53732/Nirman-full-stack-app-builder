@@ -1279,6 +1279,26 @@ CASES = {
         BS, "SOURCE\n  → CONTRACT\n  → ADAPTER / BRIDGE\n  → AUTHORITY\n  → STATE\n  → OPERATION\n  → OBSERVATION\n  → EVIDENCE\n  → VALIDATION\n  → DOWNSTREAM EFFECT",
         "SOURCE\n  → DESTINATION",
         "semantic documentation"),
+    "semantic deliberation wiring matrix removed": (
+        BS, "### 84.1.1 Closed-world deliberation traversal resolution",
+        "### 84.1.1 Deliberation notes",
+        "semantic documentation"),
+    "semantic deliberation context operation weakened": (
+        BS, "Runtime `IntegrationBoundaryContract` for `WorkerConnection.MODEL_CALL`: `DeepDeliberationRuntime` → `ContextOrchestrator`",
+        "Runtime `IntegrationBoundaryContract` for a context request",
+        "semantic documentation"),
+    "semantic deliberation worker shortcut introduced": (
+        BS, "there is no direct deliberation → worker boundary",
+        "deliberation directly invokes the worker",
+        "semantic documentation"),
+    "semantic deliberation lifecycle closure weakened": (
+        BS, "`DELIBERATING` task, session, or cycle state",
+        "deliberation lifecycle state",
+        "semantic documentation"),
+    "semantic M124 deliberation fixture weakened": (
+        DEV, "BF. deliberation context assembly crosses `WorkerConnection.MODEL_CALL`, rejects stale context, and re-grounds from the durable ledger",
+        "BF. deliberation context assembly is recorded",
+        "semantic documentation"),
     "semantic UI hierarchy observation removed": (
         TA, "`UiHierarchyObservation` is defined in",
         "`UIHierarchyRecord` is defined in",

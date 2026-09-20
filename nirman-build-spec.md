@@ -7577,7 +7577,7 @@ USER_REQUEST
 → INTERACTION/E2E VALIDATION
 → VISUAL/ACCESSIBILITY VALIDATION
 → FAILURE CLASSIFICATION
-→ REPAIR/REPLAN/RECOVERY
+→ REPAIR/REPLAN/RECOVERY (DECIDE repair → ContextOrchestrator re-grounding → AgentReasoningEngine HYPOTHESIZE → DeepDeliberationRuntime causal escalation)
 → REBUILD
 → REVALIDATE
 → PREVIEW PROMOTION
@@ -7616,11 +7616,13 @@ WinUI 3
   → WorkerConnection → ContextOrchestrator → ContextPackage
   → ContextPackage → ModelGateway → ProviderAdapter/provider
   → provider response → ModelGateway → normalized response → WorkerConnection
-  → WorkerConnection → AgentReasoningEngine (BS §71)
-  → reasoning → CapabilityBroker → SkillRuntime/Worker/Tool/Swarm → result → AgentLoopReducer
+  → WorkerConnection → AgentReasoningEngine (BS §66, TA §71)
+  → deliberation at HYPOTHESIZE/STRATEGIZE (DeepDeliberationRuntime, BS §68, TA §72)
+  → [optional read-only observation] → ToolBroker (BS §49) → EvidenceRecord → HypothesisEvaluator
+  → ReasoningArtifact (BS §66.2, with selectionBasis) → AgentExecutionKernel (TA §58)
   → proposal (Schema-validated, BS §69.2)
   → authorization (PolicyAuthority, BS §23.7)
-  → tool execution (ToolBroker, BS §49)
+  → CapabilityBroker → tool execution (ToolBroker, BS §49)
   → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
   → observation (AndroidDeviceAdapter, technical architecture §73.12)
   → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority
@@ -7645,6 +7647,31 @@ WinUI 3
   → destination hash/identity verification
   → EvidenceAuthority → CompletionDecision (build spec §5.7.7)
 ```
+
+### 84.1.1 Closed-world deliberation traversal resolution
+
+The deliberation arrows in §84.1 are existing mediated traversals, not four
+new contracts, a side loop, a lifecycle state, or an authority. A literal
+`IntegrationBoundaryContract.boundaryId` remains the runtime UUID defined by
+`IntegrationBoundaryContract` (SCHEMAS §1.36). Its static canonical binding is
+the already-defined `sourceEntityRef`, `destinationEntityRef`, and
+`operationRef` shown below; this matrix therefore does not mint opaque static
+boundary IDs or alter the boundary schema. Each physical boundary in a row
+still creates its own `OrchestrationWiringMatrix` instance at runtime (§84.3).
+
+| Edge | Producer | Consumer | `boundaryId` binding (existing identity) | Schema | Authority | Persistence | Lifecycle, cancellation, restart, and recovery | Invalidation and evidence | Test identity |
+|---|---|---|---|---|---|---|---|---|---|
+| Deliberation → Context assembly | `DeepDeliberationRuntime` in `NirmanWorker.exe` | `ContextOrchestrator` in the supervisor | Runtime `IntegrationBoundaryContract` for `WorkerConnection.MODEL_CALL`: `DeepDeliberationRuntime` → `ContextOrchestrator` | `WorkerConnection` (SCHEMAS §2.90), `ContextPackage` (SCHEMAS §1.16), `ModelRequest` (SCHEMAS §2.20), `DeliberationSession` (SCHEMAS §2.62) | `ContextOrchestrator` performs the integrity gate; `LifecycleAuthority` remains the only state committer | The context manifest is emitted to the execution ledger; `DeliberationContinuationManager` checkpoints the session at the pass boundary | Existing TA §71.4 `HYPOTHESIZE`/`STRATEGIZE` only; `CANCEL` preserves the checkpoint; restart reassembles from the ledger; stale context invokes `RegroundingService` | Goal, project, plan, or evidence revision mismatch invalidates the package; context-integrity and recall-probe observations are `EvidenceRecord`s | `TEST-ORCH-WIRING-001` BF; `TEST-MEM-001`; `TEST-DEL-001`; `EV-MEM-001`; `EV-DEL-001` |
+| Deliberation → delegated worker | `DeepDeliberationRuntime` | `AgentExecutionKernel`; `WorkerRuntime` only after an admitted delegation | Runtime `IntegrationBoundaryContract` for `WorkerConnection.REASONING_ARTIFACT` or `WorkerConnection.DELIBERATION_RECORD`, followed by existing `CapabilityInvocation` and `DelegationGrant`; there is no direct deliberation → worker boundary | `ReasoningArtifact` (SCHEMAS §1.27), `DeliberationRecord` (SCHEMAS §1.33), `CapabilityInvocation` (SCHEMAS §1.30), `DelegationGrant` (SCHEMAS §1.31), `WorkerConnection` | `PolicyAuthority` admits execution; `DelegationManager` enforces ceilings; `LifecycleAuthority` commits state | The supervisor ledger stores the artifact, record, invocation, grant, `AgentLoopRecord`, and durable coordination messages | Existing `SELECT` → `AUTHORIZE` → `DELEGATE` path; parent-grant revocation cascades cancellation; durable coordination recovery reconciles or replaces a worker from its checkpoint | A stale plan, lease, premise, evidence, or worker message is rejected or reconciled before dispatch; invocation/result evidence is bound through `EvidenceRecord` | `TEST-ORCH-WIRING-001` BG; `TEST-RSN-001`; `TEST-DEL-001`; `EV-RSN-001`; `EV-DEL-001` |
+| Diagnostics → Deliberation | `EvidenceAcquisitionPlanner` through `ToolBroker` for a read-only diagnostic | `EvidenceAuthority`, then `DeepDeliberationRuntime` through re-grounded `CYCLE_INPUT` | Runtime `IntegrationBoundaryContract` for the admitted `ToolBroker` operation and for `WorkerConnection.CYCLE_INPUT`; each is a separate physical traversal | `EvidenceRecord` (SCHEMAS §2.19), `ContextPackage`, `DeliberationSession`, `WorkerConnection` | `PolicyAuthority` admits the tool operation; `EvidenceAuthority` admits and invalidates the resulting evidence | The diagnostic observation is an immutable `EvidenceRecord`; the next session/context revision is checkpointed in the ledger | Existing `HYPOTHESIZE`/`STRATEGIZE` pass loop; `CANCEL` preserves durable evidence and session state; restart rehydrates both; recovery re-acquires or re-grounds rather than guessing | Evidence dependencies invalidate on their declared source, revision, device, toolchain, policy, or checkpoint change; an invalid observation cannot support sufficiency | `TEST-ORCH-WIRING-001` BH; `TEST-DEL-001`; `EV-GEN-001`; `EV-DEL-001` |
+| Deliberation → goal execution | `DeepDeliberationRuntime` via `AgentReasoningEngine` | `AgentExecutionKernel`; execution proceeds only after authorization | Runtime `IntegrationBoundaryContract` for `WorkerConnection.REASONING_ARTIFACT`, then the existing `AgentProposal`/`PROPOSAL` boundary to the kernel; no deliberation pass reaches execution directly | `ReasoningArtifact`, `AgentProposal` (SCHEMAS §2.43), `CapabilityInvocation`, `WorkerConnection` | `PolicyAuthority` is the execution gate; `ToolBroker` is the executor; `LifecycleAuthority` commits the resulting lifecycle transition | `ReasoningArtifact`, `AgentProposal`, `CapabilityInvocation`, `AgentLoopRecord`, checkpoint, and resulting evidence are durably committed by their existing owners | Existing TA §71.4 `HYPOTHESIZE`/`STRATEGIZE` → `SELECT` → `AUTHORIZE` path; cancellation propagates from the kernel; restart reconstructs the loop from ledger/checkpoint; recovery returns to the existing reasoning or recovery path | `selectionBasis` and the resulting proposal cite evidence; stale context, denied policy, failed validation, or invalidated evidence returns the flow to the existing re-grounding, strategy, or recovery path | `TEST-ORCH-WIRING-001` BI; `TEST-RSN-001`; `TEST-DEL-001`; `EV-RSN-001`; `EV-DEL-001` |
+
+The closed state machines remain authoritative: deep deliberation is an
+execution/reasoning condition at `HYPOTHESIZE` and `STRATEGIZE`, not a new
+`DELIBERATING` task, session, or cycle state. A new delta schema, exploration
+task, or trigger event would duplicate the records and causal operations above
+unless a future closed-world audit proves an existing row cannot carry the
+required behavior.
 
 ### 84.2 OrchestrationWiringMatrix schema
 
