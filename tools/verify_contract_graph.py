@@ -4416,6 +4416,19 @@ def check_orchestration_hardening(docs, D):
             D.add("semantic documentation", key, msg)
 
 
+def _norm(text):
+    """Collapse every whitespace run to a single space. Locks are then testing
+    content rather than line breaks, so re-wrapping a paragraph — an editorial
+    act with no semantic effect — does not break a lock, while deleting,
+    reordering, or weakening normative words still does."""
+    return re.sub(r"\s+", " ", text)
+
+
+def _has(text, needle):
+    """Whitespace-insensitive containment, for locking prose sentences."""
+    return _norm(needle) in _norm(text)
+
+
 def _section_start(text, num):
     """Index of the heading line for section `num`, or -1 when absent."""
     m = re.search(r"^(#{2,4}) " + re.escape(num) + r"(?:\.|\b)[^\n]*\n", text, re.M)
@@ -4428,18 +4441,7 @@ def _sec_has(text, num, needle):
     that lives in a different section, which is what makes a section-scoped
     lock discriminating."""
     body = _section_text(text, num)
-    return body is not None and needle in body
-
-
-def _para_after(text, heading_re, needle, window=9000):
-    """True when `needle` appears in the body of the first heading matching
-    `heading_re`, within `window` characters of that heading. Used by the
-    ADR-251 lock to prove a requirement is stated in the section that owns it
-    rather than merely somewhere in the document."""
-    m = re.search(heading_re, text, re.M)
-    if not m:
-        return False
-    return needle in text[m.start():m.start() + window]
+    return body is not None and _has(body, needle)
 
 
 def _adr_body(adrs, num):
@@ -4452,9 +4454,13 @@ def check_commit_boundary_locks(docs, D):
     """ADR-251 owner-ratified commit-boundary locks. ADR-251 establishes, as
     NEW normative law, that a zero-W-delta ConstructionTransaction terminates
     as an explicit no-op abort and that the committed-transaction event is the
-    authoritative commit record. The law lives in the two owner sections and in
-    the amendment back-pointer; removing, weakening, or relocating any of it is
-    a semantic-documentation defect, not a style choice."""
+    authoritative commit record.
+
+    Coverage is the normative content of all seven clauses — locked in the ADR
+    that states them and in the owner sections that carry the detail — plus both
+    amendment pointers. Removing, weakening, or relocating any locked sentence is
+    a semantic-documentation defect, not a style choice. Re-wrapping a paragraph
+    is not, which is why the comparisons normalise whitespace."""
     ta = docs.get("ta", "")
     bs = docs.get("bs", "")
     adrs = adr_text(docs)
@@ -4470,25 +4476,33 @@ def check_commit_boundary_locks(docs, D):
         ("**Amended by ADR-251:**" in a242,
          "ADR-242", "ADR-242 lost the `**Amended by ADR-251:**` back-pointer"),
         # §45.2 defines the authoritative committed-transaction event.
-        (_para_after(ta, r"^### 45\.2 ", "**Authoritative committed-transaction event (ADR-251).**"),
+        (_sec_has(ta, "45.2", "**Authoritative committed-transaction event (ADR-251).**"),
          "technical architecture", "§45.2 lost the authoritative committed-transaction event definition (ADR-251 clause 4)"),
-        (_para_after(ta, r"^### 45\.2 ", "in the same atomic durable"),
+        (_sec_has(ta, "45.2", "in the same atomic durable"),
          "technical architecture", "§45.2 lost the committed-transaction event's atomicity-with-commit requirement"),
-        (_para_after(ta, r"^### 45\.2 ", "sole authority for"),
+        (_sec_has(ta, "45.2", "sole authority for"),
          "technical architecture", "§45.2 no longer names the event sequence number as the sole ordering authority"),
-        (_para_after(ta, r"^### 45\.2 ", "Recovery and compaction provenance."),
+        (_sec_has(ta, "45.2", "Recovery and compaction provenance."),
          "technical architecture", "§45.2 lost the committed-transaction event recovery/compaction provenance clause"),
         # §45.3 states the no-op law and the scoped predicate.
-        (_para_after(ta, r"^### 45\.3 ", "**Zero-delta termination (ADR-251).**"),
+        (_sec_has(ta, "45.3", "**Zero-delta termination (ADR-251).**"),
          "technical architecture", "§45.3 lost the zero-W-delta termination rule (ADR-251 clause 2)"),
-        (_para_after(ta, r"^### 45\.3 ", "no-op abort"),
+        (_sec_has(ta, "45.3", "no-op abort"),
          "technical architecture", "§45.3 no longer names the no-op abort termination"),
-        (_para_after(ta, r"^### 45\.3 ", "not the presence of file edits, decides"),
+        (_sec_has(ta, "45.3", "not the presence of file edits, decides"),
          "technical architecture", "§45.3 lost the witness-set-over-file-edits criterion (ADR-251 clause 1/3)"),
-        (_para_after(ta, r"^### 45\.3 ", "It is not a failure, a validation defect, or a policy"),
+        (_sec_has(ta, "45.3", "It is not a failure, a validation defect, or a policy"),
          "technical architecture", "§45.3 no longer states that a no-op abort is a normal termination, not an error"),
-        (_para_after(ta, r"^### 45\.3 ", "event.projectId == project.id"),
+        (_sec_has(ta, "45.3", "event.projectId == project.id"),
          "technical architecture", "§45.3 lost the project-scoped commit-event selection predicate (ADR-251 clause 5)"),
+        # The mint rule is a necessary-condition statement, not a biconditional:
+        # a transaction with a nonzero candidate W-delta that fails a gate and
+        # rolls back mints nothing. An "iff the witness set differs" phrasing
+        # asserts the opposite and contradicts the same sentence's own
+        # rollback exclusion, so the corrected form is locked.
+        (_sec_has(ta, "45.3", "only when the transaction commits and its committed project-state witness set"),
+         "technical architecture", "§45.3 mint rule lost its necessary-condition form (commits AND W differs) and "
+                                   "is again a biconditional that would mint for a rolled-back transaction"),
         # The exactly-one obligation is unchanged and still BS-owned. The
         # clause id must be named in TA §45.3 itself — the commit boundary a
         # reader consults — so a bare "exactly one ChangeReportRecord" sentence
@@ -4499,6 +4513,45 @@ def check_commit_boundary_locks(docs, D):
         (_sec_has(ta, "45.3", "CLAUSE.CHANGE.EXACTLY_ONE_REPORT") and
          "CLAUSE.CHANGE.EXACTLY_ONE_REPORT" in bs,
          "build spec", "CLAUSE.CHANGE.EXACTLY_ONE_REPORT is no longer cross-referenced by TA §45.3 and BS"),
+
+        # ---- ADR-251's own normative sentences. The ADR is the highest
+        # precedence document (AGENTS.md §1), so the law is locked where it is
+        # STATED, not only where it is restated. Without these, clause 1 could
+        # drift back to the "commits if and only if W differs" biconditional —
+        # which asserts that a nonzero W-delta is *sufficient* for commit, and
+        # would therefore forbid the legitimate rollback TA §45.3 requires after
+        # a failed validation, test, build, or preview gate — and nothing would
+        # notice, because the owner-section locks only cover the TA restatement.
+        (_has(a251, "may enter the committed state only when its committed project-state witness set"),
+         "ADR-251", "clause 1 lost the corrected commit boundary (may enter the committed state only when W differs)"),
+        (_has(a251, "forbids commit"),
+         "ADR-251", "clause 1 no longer states that W equality forbids commit"),
+        (_has(a251, "A nonzero W-delta is necessary for commit but is not sufficient"),
+         "ADR-251", "clause 1 lost the necessity-not-sufficiency qualification that keeps rollback legal"),
+        (_has(a251, "MUST NOT enter the committed `ConstructionTransaction` state, MUST NOT mint a `ProjectRevisionId`, "
+                    "MUST NOT create a committed `construction_transactions` record, and MUST NOT create the "
+                    "`ChangeReportRecord` obligation"),
+         "ADR-251", "clause 2 lost the no-op prohibition set (no committed state, no revision, no "
+                    "construction_transactions record, no report obligation)"),
+        (_has(a251, "MUST mint exactly one new `ProjectRevisionId`"),
+         "ADR-251", "clause 3 lost the exactly-one revision mint"),
+        (_has(a251, "MUST emit exactly one authoritative committed-transaction event"),
+         "ADR-251", "clause 4 lost the exactly-one committed-transaction event requirement"),
+        (_has(a251, "MUST emit no committed-transaction event"),
+         "ADR-251", "clause 4 no longer forbids a committed-transaction event for an aborted or rolled-back transaction"),
+        (_has(a251, "`projectId == targetProjectId`"),
+         "ADR-251", "clause 5 lost the project-scoped selection predicate"),
+        (_has(a251, "at minimum the committed-transaction event identity and its sequence, and the revision it carried"),
+         "ADR-251", "clause 6 lost the minimum recovery/compaction provenance (event identity, sequence, carried revision)"),
+        (_has(a251, "not a persisted `Project` field"),
+         "ADR-251", "clause 7 no longer keeps Project.currentRevision out of persisted storage"),
+        # TA §45.2 owns the event payload contract; clause 4 of the ADR defers
+        # the field list to it, so the payload is locked in its owner section.
+        (_sec_has(ta, "45.2", "The event carries at minimum `transactionId`, `projectId`, the committed "
+                              "`projectRevisionAfter`, the base revision, the committed project-state witness set, "
+                              "and the correlation id of the session and task that produced it"),
+         "technical architecture", "§45.2 lost the committed-transaction event payload contract (transactionId, "
+                                   "projectId, projectRevisionAfter, base revision, witness set, correlation id)"),
     ]
     for ok, where, msg in locks:
         if not ok:

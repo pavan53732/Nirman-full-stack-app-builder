@@ -2072,8 +2072,8 @@ CASES = {
         "semantic documentation"),
     "§45.3 drops the project-scoped selection predicate": (
         TA,
-        "event.projectId == project.id",
-        "event.sequence == latest",
+        "selected by the predicate `event.projectId ==",
+        "selected by the predicate `event.sequence ==",
         "semantic documentation"),
     "§45.3 drops the exactly-one clause cross-reference": (
         TA,
@@ -2092,6 +2092,74 @@ CASES = {
         "- activeCheckpointId\n- providerProfileId",
         "- activeCheckpointId\n- currentRevision\n- providerProfileId",
         "structure"),
+
+    # ---- ADR-251 normative-body locks. One case per locked sentence, so each
+    # lock is proven to fail when its sentence is weakened rather than merely
+    # being satisfied by neighbouring text. These are the cases that would have
+    # caught the clause-1 biconditional: the owner-section locks cannot see it,
+    # because the ADR is where the law is stated.
+    "ADR-251 clause 1 reverts to the commits-iff-W-differs biconditional": (
+        ADRS,
+        "may enter the committed state only when its committed project-state witness set",
+        "commits if and only if its committed project-state witness set",
+        "semantic documentation"),
+    "ADR-251 clause 1 drops the W-equality prohibition": (
+        ADRS,
+        "`W_after == W_base` forbids commit.",
+        "`W_after == W_base` is recorded for diagnostics.",
+        "semantic documentation"),
+    "ADR-251 clause 1 drops the necessity-not-sufficiency qualification": (
+        ADRS,
+        "A nonzero W-delta is necessary for commit but is not sufficient",
+        "A nonzero W-delta commits the transaction",
+        "semantic documentation"),
+    "ADR-251 clause 2 drops the no-op prohibition set": (
+        ADRS,
+        "MUST NOT enter the committed `ConstructionTransaction` state, MUST NOT mint a `ProjectRevisionId`, "
+        "MUST NOT create a committed `construction_transactions` record, and MUST NOT create the "
+        "`ChangeReportRecord` obligation",
+        "MUST NOT mint a `ProjectRevisionId`",
+        "semantic documentation"),
+    "ADR-251 clause 3 drops the exactly-one mint": (
+        ADRS,
+        "MUST mint exactly one new `ProjectRevisionId`",
+        "mints a `ProjectRevisionId`",
+        "semantic documentation"),
+    "ADR-251 clause 4 drops the exactly-one event requirement": (
+        ADRS,
+        "MUST emit exactly one authoritative committed-transaction event",
+        "emits a committed-transaction event",
+        "semantic documentation"),
+    "ADR-251 clause 4 lets an aborted transaction emit a commit event": (
+        ADRS,
+        "MUST emit no committed-transaction event",
+        "emits a recovery event",
+        "semantic documentation"),
+    "ADR-251 clause 5 drops the project-scoped predicate": (
+        ADRS,
+        "`projectId == targetProjectId`",
+        "`projectId` matches",
+        "semantic documentation"),
+    "ADR-251 clause 6 drops the minimum provenance": (
+        ADRS,
+        "at minimum the committed-transaction event identity and its sequence, and the revision it carried",
+        "sufficient information about the commit",
+        "semantic documentation"),
+    "ADR-251 clause 7 stores the tip on the Project record": (
+        ADRS,
+        "not a persisted `Project` field",
+        "a persisted `Project` field",
+        "semantic documentation"),
+    "§45.2 drops the committed-transaction event payload contract": (
+        TA,
+        "The event carries at minimum `transactionId`, `projectId`, the committed",
+        "The event carries identifying metadata, including the",
+        "semantic documentation"),
+    "§45.3 mint rule reverts to the mints-iff-W-differs biconditional": (
+        TA,
+        "only when the transaction commits and its committed project-state",
+        "iff the committed project-state",
+        "semantic documentation"),
 }
 
 

@@ -2140,18 +2140,19 @@ A no-op abort is a normal, expected termination. It is not a failure, a validati
 violation, and it MUST NOT be surfaced as an error to the user.
 
 At the atomic commit boundary of every project mutation, ConstructionTransactionManager mints a new
-`ProjectRevisionId` (ADR-242) iff the committed project-state witness set — workspace file tree,
-toolchain lock, dependency snapshot — differs from the base witness set; no-op, aborted, or
-rolled-back transactions mint nothing. The current project tip, exposed to readers as
-`Project.currentRevision` (BS §82.1), is a deterministic storage-authority projection equal to the
-`projectRevisionAfter` of the latest committed-transaction event in authoritative commit-event sequence
-order (TA §45.2) selected by the predicate `event.projectId == project.id AND event is a
-committed-transaction event`; aborted, rolled-back, and no-op transactions contribute no event and are
-never a projection source. The selection predicate is project-scoped and status-scoped: a
-committed-transaction event of another project, and any event that is not a committed-transaction event,
-are excluded by construction rather than by ordering accident. No separate StorageAuthority component is
-introduced: the SQLite execution ledger (§57.5) remains the
-storage authority, written only through `EventStore` and `ConstructionTransactionManager` (§21 mapping).
+`ProjectRevisionId` (ADR-242) only when the transaction commits and its committed project-state
+witness set — workspace file tree, toolchain lock, dependency snapshot — differs from the base witness
+set; a transaction whose committed witness set equals its base witness set mints nothing, and so does
+any transaction that aborts or rolls back, whatever its candidate witness set. The current project tip,
+exposed to readers as `Project.currentRevision` (BS §82.1), is a deterministic storage-authority
+projection equal to the `projectRevisionAfter` of the latest committed-transaction event in
+authoritative commit-event sequence order (TA §45.2) selected by the predicate `event.projectId ==
+project.id AND event is a committed-transaction event`; aborted, rolled-back, and no-op transactions
+contribute no event and are never a projection source. The selection predicate is project-scoped and
+status-scoped: a committed-transaction event of another project, and any event that is not a
+committed-transaction event, are excluded by construction rather than by ordering accident. No separate
+StorageAuthority component is introduced: the SQLite execution ledger (§57.5) remains the storage
+authority, written only through `EventStore` and `ConstructionTransactionManager` (§21 mapping).
 
 > **Schema projection:** `TaskRevision` is defined in `nirman-schemas.md` §2.122. Owner: TA §45.3.
 
