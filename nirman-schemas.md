@@ -4953,6 +4953,7 @@ DecisionNode
 FailureContextPackage
 TargetPlatformSet
 AndroidToolchainManifest
+ChangeIntelligenceRecoveryJob
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
@@ -4981,3 +4982,4 @@ The registered identities below are prose-defined normative records: their shape
 - `FailureContextPackage` — normative shape prose-defined at technical architecture §63.2 (localization pipeline) as the Diagnostic Worker's root-cause product; no projected field block (ADR-241).
 - `TargetPlatformSet` — normative shape prose-defined at build spec §5.7.8 (Android target and provider-context boundaries), where it is fixed to `{ANDROID}`; no projected field block (ADR-241).
 - `AndroidToolchainManifest` — normative shape prose-defined at build spec §79.7 (platform-specific build and validation skills), recording the locked JDK, Gradle, Android SDK, platform tools, and selected Node and package manager; no projected field block (ADR-241).
+- `ChangeIntelligenceRecoveryJob` — prose-defined normative identity of the `RecoveryAuthority`-owned reconstruction job described by build spec §83.2 and technical architecture §87.6; it is a durable, idempotent unit of recovery work keyed by `transactionId`, not a component, authority, or service, and commits only through `RecoveryAuthority`; no projected field block (ADR-241).

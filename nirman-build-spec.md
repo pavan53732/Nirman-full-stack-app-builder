@@ -7506,7 +7506,7 @@ ChangeReportRecord updated with status: COMPLETE (report: ChangeImpactReport)
 
 1. The parent `ConstructionTransaction` remains durably committed in SQLite.
 2. A `ChangeReportRecord` is written to `ChangeIntelligenceStore` with `status: INCOMPLETE`, `report: null`, and failure diagnostics.
-3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records.
+3. `RecoveryAuthority` schedules an asynchronous `ChangeIntelligenceRecoveryJob` to reconstruct the complete `ChangeImpactReport` from durable transaction, impact analysis, preview, and validation records. The `ChangeIntelligenceRecoveryJob` is a `RecoveryAuthority`-owned reconstruction job — a durable, idempotent unit of recovery work keyed by `transactionId`, not a component, authority, or service with decision rights of its own. It commits only through `RecoveryAuthority` (§21 "Recovery authority").
 4. The projector MUST NOT fabricate missing values (CLAUSE.CHANGE.DERIVED_NOT_FABRICATED). Missing transaction state, inconsistent revision identity, incomplete impact data, unavailable validation results, preview identity mismatch, or evidence state disagreement produces a typed incomplete report. If authoritative state cannot be reconciled, `ChangeReportRecord.status` is set to `UNRESOLVED`.
 5. A report cannot claim completion or support goal completion while its `ChangeReportRecord` is in `INCOMPLETE` or `UNRESOLVED` state.
 

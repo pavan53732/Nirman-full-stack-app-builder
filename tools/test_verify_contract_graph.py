@@ -609,6 +609,22 @@ CASES = {
     "a BS fenced diagram names a component that nothing defines": (
         BS, "BrandAssetCompletionGate\n```", "BrandAssetCompletionGate\n        ↓\nReleaseGateOrchestrator\n```",
         "semantic documentation"),
+    # The closure rule is bounded by a suffix list, not by a closed vocabulary,
+    # so a name ending in a suffix that marks a component-shaped identifier must
+    # be caught even though no registry row uses that ending. These two cases
+    # pin the widened list: `OrphanTestSnapshot` (Snapshot) and
+    # `OrphanTestWatchdog` (Watchdog) both end in suffixes that the original
+    # forty-entry list omitted, and a regression that re-narrows the list would
+    # make both cases pass silently.
+    "a prose component name ending in -Snapshot is not silently exempt": (
+        TA, "Android validation MUST use disposable Nirman-managed local Android emulator snapshots only.",
+        "Android validation MUST use disposable Nirman-managed local Android emulator snapshots only, "
+        "and the supervisor MUST consult `OrphanTestSnapshot` before validation.",
+        "semantic documentation"),
+    "a table component name ending in -Watchdog is not silently exempt": (
+        TA, "| Frame capture, transport, render, age, drops, freezes, blank surface, and presentation health | `FrameQualityObservation` | `RenderPipelineWatchdog` and preview diagnostics |",
+        "| Frame capture, transport, render, age, drops, freezes, blank surface, and presentation health | `FrameQualityObservation` | `RenderPipelineWatchdog`, `OrphanTestWatchdog`, and preview diagnostics |",
+        "semantic documentation"),
     "a TA §57.12 registry row has a blank crate cell": (
         TA, "| `TaskScheduler` | service | `nirman-control-plane` |", "| `TaskScheduler` | service | — |",
         "semantic documentation"),

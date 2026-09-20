@@ -1882,15 +1882,76 @@ def check_semantic_documentation(docs, R, D, root="."):
                           f"TA §57.12 row `{name}` names crate `{m_crate.group(1)}`, which the §57.1 crate table does not define")
             if not defined or defined == "—":
                 D.add("semantic documentation", "component registry", f"TA §57.12 row `{name}` has no defining section")
+    # A component name is a PascalCase token that ends in one of the suffixes
+    # below. The list is not a closed vocabulary of Nirman's component kinds —
+    # it is the set of endings that mark a name as a *component-shaped*
+    # identifier rather than a value, state, or technology name, and it bounds
+    # the rule so that registering a runtime flag, an Android library, or a
+    # state enum as a component is never demanded.
+    #
+    # Why the rule is suffix-bounded rather than "any PascalCase name": the
+    # corpus legitimately uses hundreds of PascalCase tokens that are not
+    # components — Android and WinUI platform names (`RecyclerView`,
+    # `SwapChainPanel`), state enum values (`BlockedByPolicy`,
+    # `EnvironmentPreparing`), field and identity names (`TaskRevisionId`,
+    # `MutationReportUnit`), command aliases (`PauseTask`), and third-party
+    # SDKs (`TensorFlow`, `LeakCanary`). A suffix-agnostic rule reports all of
+    # them and would demand ~86 registrations that ADR-223 does not intend.
+    # The suffix list is therefore the discriminator, and it must stay wide
+    # enough that no plausible *component* ending escapes it: the `Inspector`,
+    # `Prober`, `Writer`, `Synthesizer`, `Recorder`, `Explorer`, `Checker`,
+    # `Scorer`, `Monitor`, `Graph`, `Watchdog`, `Node`, `Job`, `Snapshot`,
+    # `Manifest`, `Tracker`, `Pipeline`, `Source`, `Sink`, `Bridge`, `Proxy`,
+    # `Client`, `Server`, `Host`, `Actor`, `Collector`, `Factory`, `Builder`,
+    # `Parser`, `Loader`, `Binder`, `Mapper`, `Connector`, `Transport`,
+    # `Channel`, `Token`, and `Entry` entries below were added after a scan of
+    # BS and TA found real component names ending in them that the original
+    # forty-entry list could not see (`RenderPipelineWatchdog`,
+    # `ChangeIntelligenceRecoveryJob`, `AndroidToolchainManifest`,
+    # `ArtifactAssetInspector`, `RetrievalCompletenessChecker`,
+    # `RepositorySemanticGraph`). Two mutation cases in the harness
+    # (`...ending in -Snapshot`, `...ending in -Watchdog`) pin the widening so
+    # that a future edit cannot silently re-narrow it.
+    #
+    # Residual limit, stated so it is a known boundary and not a hidden hole: a
+    # component name whose ending is in neither this list nor the exemptions
+    # remains invisible to the check. The remedy when one is found is to add
+    # the ending here *with* its definition site or registry admission, exactly
+    # as this change did for the six names F-3b admitted.
     m_suffixes = ("Authority", "Manager", "Store", "Registry", "Detector", "Service", "Adapter", "Planner", "Coordinator",
                   "Resolver", "Controller", "Runtime", "Retriever", "Engine", "Validator", "Selector", "Evaluator",
                   "Compiler", "Reducer", "Provisioner", "Analyzer", "Executor", "Broker", "Ledger", "Supervisor",
                   "Filter", "Kernel", "Assembler", "Orchestrator", "Protocol", "Router", "Interpreter", "Gateway",
-                  "Governor", "Critic", "Summarizer", "Blackboard", "Scheduler", "Gate")
+                  "Governor", "Critic", "Summarizer", "Blackboard", "Scheduler", "Gate",
+                  "Inspector", "Prober", "Writer", "Synthesizer", "Recorder", "Explorer", "Checker", "Scorer",
+                  "Monitor", "Graph", "Tree", "Profiler", "Migrator", "Expander", "Node", "Worker", "Job",
+                  "Watchdog", "Tracker", "Index", "Cache", "Queue", "Pool", "Journal", "Snapshot", "View",
+                  "Model", "Document", "Report", "Plan", "Profile", "Manifest", "Bundle", "Package", "Pipeline",
+                  "Stream", "Source", "Sink", "Bridge", "Proxy", "Client", "Server", "Host", "Actor",
+                  "Collector", "Emitter", "Publisher", "Subscriber", "Consumer", "Producer", "Factory", "Builder",
+                  "Composer", "Parser", "Loader", "Binder", "Mapper", "Connector", "Transport", "Channel",
+                  "Token", "Entry", "Set", "Table", "List")
     m_name_re = re.compile(r"\b([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)*(?:%s))\b(?!\.exe)" % "|".join(m_suffixes))
-    m_library_names = {"WorkManager", "DataStore"}  # Android Jetpack libraries named in generated-app content
+    # Android Jetpack and platform names that appear in generated-app content
+    # or in a technology list, never as a Nirman component. Each entry is here
+    # because the widened suffix list provably reaches it (`AndroidManifest` and
+    # `RecyclerView` end in `-Manifest`/`-View`); the list stays evidence-backed
+    # rather than pre-emptive so that a platform name which *should* be defined
+    # is not silently exempted.
+    m_library_names = {"WorkManager", "DataStore",  # Android Jetpack libraries named in generated-app content
+                       "AndroidManifest", "RecyclerView", "ViewModel"}
     m_banned = {"ProviderContextDecision", "ContextStore", "RequirementStore", "DecisionStore", "ProviderCapabilityProfile"}
     m_defs = set(m_reg_rows) | set(re.findall(r"^### \d+\.\d+ (\S+)\s*$", sch, re.M))
+    # A name may also be defined by one of the nirman-schemas.md registry
+    # structures: the CanonicalSchemaRegistry fenced name list (§3.1) or a
+    # prose-defined registered identity of the ADR-241 list. F-3b admitted six
+    # component-shaped names through those structures, so the closure check
+    # must treat them as definition sites or it re-reports its own registry.
+    m_schema_fence = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", sch, re.S)
+    if m_schema_fence:
+        m_defs.update(l.strip() for l in m_schema_fence.group(1).splitlines()
+                      if re.match(r"^[A-Z][A-Za-z0-9]+$", l.strip()))
+    m_defs.update(re.findall(r"^- `([A-Za-z0-9]+)` — .*no projected field block", sch, re.M))
     for text in (bs, ta):
         clean = re.sub(r"<!--.*?-->", "", text, flags=re.S)
         for head in re.findall(r"^#{2,4}\s+(.+)$", clean, re.M):
@@ -1903,6 +1964,9 @@ def check_semantic_documentation(docs, R, D, root="."):
         m_defs.update(re.findall(r"^\|\s*`?([A-Za-z][A-Za-z0-9]*)`?\s*(?:\(|\|)", clean, re.M))
         m_defs.update(re.findall(r"^\s*[-*]\s+\*{0,2}`([A-Za-z][A-Za-z0-9]*)`\*{0,2}\s*[:—-]", clean, re.M))
         m_defs.update(re.findall(r"^`([A-Za-z][A-Za-z0-9]*)`", clean, re.M))
+        # A bolded paragraph (`**Name**` alone on its line) is a definition
+        # site: it names the component the paragraph that follows defines.
+        m_defs.update(re.findall(r"^\*\*([A-Z][A-Za-z0-9]*)\*\*\s*$", clean, re.M))
     m_lower_defs = {d.lower() for d in m_defs}
     m_reported = set()
     for label, text in (("build spec", bs), ("technical architecture", ta)):
