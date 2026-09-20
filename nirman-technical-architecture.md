@@ -2302,8 +2302,10 @@ The graph service calculates affected files, modules, resources, permissions, te
 3. *Premise verification:* Compares the proposal's premise set against the current `AndroidSymbolGraph`. If an agent proposes a change based on a symbol signature or XML ID that changed in a preceding transaction, the mutation is immediately rejected as `PREMISE_MISMATCH` before workspace mutation opens.
 
 - `AndroidApiLevelValidator` — The static AST analysis service that verifies API calls against minSdk constraints.
+- `AndroidDataFlowAnalyzer` — The static analysis service that computes intra-procedural control flow and taint flow across Android source files.
 - `AndroidPatternLibrary` — The local offline repository of canonical Android Jetpack implementation patterns.
 - `AndroidRefactoringPipeline` — The AST-guided refactoring service that executes dead resource elimination, deprecated API migration, and Compose state hoisting.
+- `SemanticCodeFingerprintEngine` — The AST normalization service that computes syntax-invariant structural hashes for methods, classes, and source files.
 
 **Static Android API level and minSdk validation.** To prevent fatal runtime crashes (`NoSuchMethodError`, `ClassNotFoundException`) on older devices and emulators, `AndroidApiLevelValidator` enforces static API level compliance:
 1. Resolves active `minSdk` and `compileSdk` from the project's `AndroidToolchainLock`.
@@ -2327,6 +2329,16 @@ The graph service calculates affected files, modules, resources, permissions, te
 1. *Pattern representation:* Stores structured `(failureSignature, astPatchTemplate, verificationRule, targetJetpackVersion, minSdk)` tuples derived from previously successful metamorphic test episodes. In compliance with ADR-218 and BS §66, no raw chain-of-thought tokens or unverified model summaries are retained.
 2. *Deterministic pre-inference lookup:* When a build compilation or emulator test fails, the `Debugging Worker` queries the catalog using Tree-sitter error classification before dispatching a model deliberation request. An exact match on AST error signature and `minSdk` compatibility applies the proven patch template directly under a speculative branch.
 3. *Validation gating and quarantine:* Applied catalog patches must pass complete test and emulator validation before promotion. Any catalog pattern that causes an unexpected regression or fails validation on a target project is immediately marked `QUARANTINED` in the local ledger and removed from the active lookup index.
+
+**Intra-procedural control flow and taint flow analysis.** Within `nirman-supervisor`, `AndroidDataFlowAnalyzer` extends Tree-sitter AST traversal with lightweight intra-procedural control flow graphs (CFGs) and data flow taint tracking:
+1. *Lifecycle and coroutine flow validation:* Constructs CFGs for `@Composable` functions, Activities, and Fragments to verify that asynchronous coroutine flows, channel collections, and StateFlow emissions are strictly bound to lifecycle-aware scopes (`repeatOnLifecycle`, `collectAsStateWithLifecycle`, or `viewModelScope`). Any unconstrained collection inside an event branch or recomposition loop without lifecycle gating is flagged as a potential memory leak or background execution hazard before compilation.
+2. *Local taint tracking and credential protection:* Traces data flow from sensitive sources (e.g. Android Keystore, user input text fields, biometrics) to external sinks (e.g. unencrypted SharedPreferences, cleartext HTTP loggers, intent bundles). Hardcoded API secrets, auth tokens, or private signing keys discovered in AST literals or flowing into unencrypted local persistence are rejected with pre-commit diagnostic `TAINT_SENSITIVE_LEAK`.
+3. *Exception and branch exhaustiveness:* Analyzes CFG branches across sealed classes, enum switches, and Android permission request results to guarantee exhaustive handling and prevent silent branch drops.
+
+**Semantic code fingerprinting and normalization.** To eliminate no-op edits and index structural code artifacts across worker mutations, `SemanticCodeFingerprintEngine` operates on normalized AST representations:
+1. *Syntax-invariant normalization:* Normalizes Kotlin and Java AST nodes by stripping comments, formatting whitespace, import re-orderings, and local variable identifier renamings into canonical structural form ($H_{\text{ast}}$).
+2. *Semantic no-op elimination:* Before staging a file mutation, compares the candidate AST fingerprint against the baseline AST fingerprint. If the semantic structural hash is identical despite whitespace or superficial formatting churn, the supervisor cancels the redundant write, avoiding superfluous build triggers and emulator reload cycles.
+3. *Structural patch indexing:* Supplies deterministic method-level and class-level fingerprints to `EpisodicRepairPatternCatalog` and the supervisor's SQLite execution ledger, enabling instant retrieval of historically verified AST repair patterns across diverse projects and file organizations.
 
 ---
 
@@ -2728,6 +2740,7 @@ The UI provides:
 
 The user can pause auto-scroll without pausing execution, collapse repeated events, filter by phase/worker/type, inspect evidence, copy a safe summary, request a current status summary, and replay the session. The UI must distinguish model summary, runtime operation, policy result, and evidence.
 
+- `CoordinationTraceGraphView` — The WinUI 3 presentation view that renders multi-worker task graphs, message timelines, and lease lifecycles.
 - `ReasoningTraceGraphView` — The WinUI 3 presentation view that projects multi-pass deliberation traces as an interactive directed acyclic graph.
 
 **Reasoning trace graph visualization.** In `Inspect` and `Developer` modes, the WinUI 3 presentation layer projects multi-pass deliberation traces as an interactive directed acyclic graph (`ReasoningTraceGraphView`):
@@ -2735,6 +2748,12 @@ The user can pause auto-scroll without pausing execution, collapse repeated even
 - *Edges:* Represent discriminating tests, evidentiary observations, and causal refutation links.
 - *States:* Color-coded by lifecycle state: Evaluating (pulsing amber), Pruned/Refuted (muted red with clickable refuting evidence citation), Accepted/Sufficient (emerald green with verification certificate link).
 - *Privacy guarantee:* Selecting any node or edge displays the structured rationale summary, uncertainty delta, and associated non-mutating evidence references. The view strictly refuses to render raw private chain-of-thought tokens, enforcing ADR-218 and BS §66.
+
+**Coordination trace and worker timeline visualization.** In `Inspect` and `Developer` modes, the WinUI 3 presentation layer provides real-time visibility into multi-worker coordination and swarm execution dynamics (`CoordinationTraceGraphView`):
+- *Concurrency lanes:* Displays horizontal Gantt-style execution lanes for active `NirmanWorker.exe` instances, plotting task start, execution, checkpoint generation, and retirement phases.
+- *Message and handoff vectors:* Visualizes typed protocol messages exchanged over named pipes between the supervisor and isolated worker processes, highlighting task graph dependencies and handoff barriers.
+- *Lease and fencing state badges:* Renders monotonic lease epochs, resource reservations, and lock states, color-coding active leases (green), preempted leases (amber), and fenced/invalidated leases (red).
+- *Audit trace inspection:* Allows developers to inspect structured task events, worker anomaly warnings, and coordination stall resolutions chronologically without exposing raw model tokens.
 
 ### 55.9 Failure and ordering behavior
 

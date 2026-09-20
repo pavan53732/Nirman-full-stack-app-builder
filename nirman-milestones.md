@@ -513,7 +513,7 @@ Implement retrieval-based and large-context modes, context-package reports, secr
 
 ## M18: Durable task graph and nested execution tree
 
-Add a persisted task graph that represents the goal, extracted requirements, phases, dependencies, worker handoffs, commands, previews, tests, builds, approvals, checkpoints, recovery attempts, and final evidence. Build an expandable execution tree in the task view with node states, timestamps, owners, workspaces, heartbeats, warnings, and evidence links.
+Add a persisted task graph that represents the goal, extracted requirements, phases, dependencies, worker handoffs, commands, previews, tests, builds, approvals, checkpoints, recovery attempts, and final evidence. Build an expandable execution tree in the task view with node states, timestamps, owners, workspaces, heartbeats, warnings, and evidence links; project multi-worker execution dynamics, message timelines, and lease lifecycles through `CoordinationTraceGraphView` (TA §55.8; BS §76.4).
 
 **Exit gate:** A task can be inspected as a nested tree while running, after completion, and after a control-plane restart. Child events replay in order and no completed node lacks evidence.
 
@@ -617,7 +617,7 @@ Implement transient retry, focused diagnostics, context/index refresh, strategy 
 
 Implement the Android runtime sub-ladder (BS §28.2; ADR-225) as `RecoveryAuthority` behavior: rung selection from the failure family, per-rung fingerprint exhaustion, and the build-family skip. Fixture: an install failure walks reload → reseed → relaunch → reinstall without a model call; a Kotlin compile error never touches the sub-ladder; a rung that leaves the observation unchanged is absent from the next attempt.
 
-Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225) and `EpisodicRepairPatternCatalog` (TA §47.4): the `BUILT_IN` first-line set, cross-session verified AST mutation indexing, fingerprint matching before model reasoning, demotion to `CANDIDATE` or quarantine after failures, and promotion only through `ImprovementProposal` evidence. Fixture: a missing-permission crash is repaired by the built-in pattern with no model call in the trajectory; a pattern that fails twice is absent from the third attempt.
+Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225) and `EpisodicRepairPatternCatalog` (TA §47.4): the `BUILT_IN` first-line set, cross-session verified AST mutation indexing, fingerprint matching before model reasoning, demotion to `CANDIDATE` or quarantine after failures, and promotion only through `ImprovementProposal` evidence. Integrate `SemanticCodeFingerprintEngine` (TA §47.4; BS §53.2) for syntax-invariant AST hashing ($H_{\text{ast}}$) and semantic no-op elimination, and `AndroidDataFlowAnalyzer` (TA §47.4; BS §23.4) for intra-procedural coroutine lifecycle binding and sensitive data-flow taint analysis before staging repair patches. Fixture: a missing-permission crash is repaired by the built-in pattern with no model call in the trajectory; a pattern that fails twice is absent from the third attempt.
 
 **Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
 

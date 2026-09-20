@@ -136,6 +136,8 @@
 
 ## 5. Authorities, services, and runtime concepts
 
+**AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
+
 **AndroidRefactoringPipeline** — The supervisor-orchestrated offline AST refactoring engine for dead resource pruning, deprecated API migration, and Compose state hoisting normalization. — TA §47.4.
 
 **AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
@@ -153,6 +155,8 @@
 **Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — build spec §23.4; TA §6.5; ADR-049; ADR-227.
 
 **ConversationResolver** — The single authority that commits a conversation revision (also written `ConversationContinuationResolver`). — TA §86; BS §82.
+
+**CoordinationTraceGraphView** — The WinUI 3 presentation view that renders multi-worker task graphs, message timelines, and lease lifecycles. — TA §55.8; BS §76.
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
@@ -179,6 +183,8 @@
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
+
+**SemanticCodeFingerprintEngine** — The AST normalization service computing syntax-invariant structural hashes for semantic no-op elimination and repair indexing. — TA §47.4; BS §53.2.
 
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
