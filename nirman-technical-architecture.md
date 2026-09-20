@@ -2303,6 +2303,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 
 - `AndroidApiLevelValidator` — The static AST analysis service that verifies API calls against minSdk constraints.
 - `AndroidPatternLibrary` — The local offline repository of canonical Android Jetpack implementation patterns.
+- `AndroidRefactoringPipeline` — The AST-guided refactoring service that executes dead resource elimination, deprecated API migration, and Compose state hoisting.
 
 **Static Android API level and minSdk validation.** To prevent fatal runtime crashes (`NoSuchMethodError`, `ClassNotFoundException`) on older devices and emulators, `AndroidApiLevelValidator` enforces static API level compliance:
 1. Resolves active `minSdk` and `compileSdk` from the project's `AndroidToolchainLock`.
@@ -2314,6 +2315,11 @@ The graph service calculates affected files, modules, resources, permissions, te
 **Offline Android pattern and snippet retrieval.** The supervisor embeds `AndroidPatternLibrary` directly within `nirman-supervisor`:
 - Supplies verified, canonical code templates for every component in the closed-world decision matrix of §73.2 (Room DAOs with KSP, Jetpack Compose Navigation 2.8+ type-safe routes, WorkManager periodic workers, Material 3 Scaffolds).
 - Operates 100% locally on the user's Windows host, enabling workers to synthesize compliant, idiomatic Android architectures even during severed network connectivity (`SessionProviderMode.OFFLINE`).
+
+**AST-guided Android refactoring pipeline.** When executing architectural refactoring or code cleanup under the `Android Platform Worker` role, `AndroidRefactoringPipeline` performs three deterministic AST transformations without relying on full JVM re-compilation:
+1. *Dead resource & symbol pruning:* Identifies zero-in-degree nodes in `AndroidSymbolGraph` (e.g. unused `@string`, `@color`, `@drawable` XML entries, or unreferenced private Composable helper functions) and stages atomic deletion patches.
+2. *Deprecated API & lifecycle migration:* Rewrites legacy Android patterns to modern Jetpack equivalents: transforms legacy `findViewById` or synthetic bindings into ViewBinding / Compose; upgrades deprecated Accompanist insets to AndroidX Window insets (`WindowInsets.safeDrawing`); and replaces unsafe `GlobalScope` / unbonded coroutines with `viewModelScope` and `repeatOnLifecycle`.
+3. *Compose state hoisting normalization:* Scans `@Composable` functions containing internal `remember { mutableStateOf(...) }` declarations that violate unidirectional data flow; automatically refactors them into stateless Composables by hoisting the state value to parameters and exposing typed event lambdas (`(Value) -> Unit`) to the parent caller.
 
 ---
 
@@ -3197,6 +3203,7 @@ AgentExecutionKernel
       ├── TrajectoryReplayEngine
       ├── SimulationExecutor
       ├── DeadlockDetector
+      ├── WorkerAnomalyDetector
       ├── BackpressureController
       ├── CancellationPropagationManager
       ├── DecisionNodeManager
@@ -3206,6 +3213,14 @@ AgentExecutionKernel
 ```
 
 These modules produce proposals and state transitions, but LifecycleAuthority, PolicyAuthority, ToolBroker, ConstructionTransactionManager, EvidenceAuthority, and ArtifactAuthority remain the non-delegable authorities. The kernel runs in `NirmanSupervisor.exe`; the reasoning it drives runs in the worker's own `NirmanWorker.exe` process and reaches the kernel only as messages over the `WorkerConnection` (§3.5; §57.11).
+
+- `WorkerAnomalyDetector` — The supervisor component that detects cognitive stalls, mutation thrashing, and schema deviation anomalies in active workers.
+
+**Supervisor worker anomaly detection.** To protect workspace integrity and prevent compute thrashing from failing worker processes, `WorkerAnomalyDetector` monitors message streams across `WorkerConnection` during active leases:
+1. *Cognitive stall anomaly (`COGNITIVE_STALL_ANOMALY`):* A worker sends heartbeats on Control Channel `0x00`, but emits zero proposals, observation requests, or evidence queries on Data Channel `0x01` for $> 180$ seconds while marked in an active reasoning state.
+2. *Mutation thrash anomaly (`MUTATION_THRASH_ANOMALY`):* A worker emits $> 3$ consecutive AST mutation proposals modifying the identical AST node without acquiring new discriminating evidence or altering its error signature.
+3. *Schema deviation anomaly (`SCHEMA_DEVIATION_ANOMALY`):* A worker emits $> 2$ consecutive malformed payloads failing `WorkerConnection` schema validation or containing unparseable JSON/bincode structures.
+Upon detecting any of these three conditions, `WorkerAnomalyDetector` flags the attempt, revokes the worker's AppContainer lease via `WorkspaceLeaseManager`, records an `ANOMALY_REVOCATION` event in the execution ledger, and signals `RecoveryAuthority` to quarantine the attempt and dispatch a replacement worker under an escalated reasoning profile.
 
 ### 58.2 AgentExecutionKernel contract
 
