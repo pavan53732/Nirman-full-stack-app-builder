@@ -446,6 +446,8 @@
 | `TrajectoryAssessment` | §2.124 | TA §72.7 | — | — |
 | `BrandManifest` | §2.125 | TA §56.2 | — | — |
 | `AssetManifestEntry` | §2.126 | TA §56.2 | — | — |
+| `FeedbackRecord` | §2.127 | TA §44.3.3 | — | — |
+| `RequirementDelta` | §2.128 | TA §44.3.3 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

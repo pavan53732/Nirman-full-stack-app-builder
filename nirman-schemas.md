@@ -4844,6 +4844,40 @@ AssetManifestEntry
 - source_seed
 ```
 
+### 2.127 FeedbackRecord
+
+**Owner:** TA §44.3.3 · **Contract:** — · **Projected at:** —
+
+```text
+FeedbackRecord
+- feedbackId
+- sessionId
+- projectId
+- taskRevision
+- kind: correction | rating | clarification_answer | implicit_dissatisfaction
+- source: ui_chat | annotation_overlay | rating_bar | error_report
+- requirementNodeRef: string | null
+- content: string
+- ratingValue: integer | null
+- annotatedArtifactRef: string | null
+- timestamp
+```
+
+### 2.128 RequirementDelta
+
+**Owner:** TA §44.3.3 · **Contract:** — · **Projected at:** —
+
+```text
+RequirementDelta
+- deltaId
+- sourceFeedbackId
+- targetRequirementId: string | null
+- deltaKind: add | modify | remove | clarify
+- description: string
+- proposedAcceptanceCriteria: string[]
+- timestamp
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -4946,6 +4980,8 @@ PremiseInvalidationRecord
 TrajectoryAssessment
 BrandManifest
 AssetManifestEntry
+FeedbackRecord
+RequirementDelta
 AssetManifest
 SchedulerInputSnapshot
 SchedulerDecisionSnapshot
