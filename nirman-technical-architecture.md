@@ -2548,6 +2548,19 @@ The service records concise decision summaries without hidden chain-of-thought. 
 
 `ResourceGovernor` is the §57.2 process-topology name of `ResourceIntegrityAuthority` (§59, §77; build spec §72) — one service, one authority. The governor monitors CPU, RAM, disk, checkpoint storage, emulator memory, Gradle memory, worker/provider concurrency, context size, log volume, build duration, and device slots. It can compact context, reduce concurrency, prune safe caches, stop redundant workers, select affected tests, defer nonessential checks, or use an approved lighter provider profile whose `AttentionReliabilityProfile` satisfies the pending step's `requiredReliability` (§59.12). It cannot weaken sandbox, permission, evidence, signing, or artifact gates.
 
+### 51.4 AndroidRepairIntelligenceService
+
+`AndroidRepairIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. It exposes a typed query interface to the kernel agent (`Debugging Worker`, `Primary Orchestrator`, `RecoveryAuthority`) and registered desktop IPC command handlers.
+
+`AndroidRepairIntelligenceService` coordinates five deterministic analytical and storage components:
+1. *Failure classification:* Maps raw execution diagnostics to the canonical six-tier failure taxonomy T1–T6 (`FailureModeRegistry`, §53.3; BS §42.4).
+2. *Proven repair retrieval:* Queries `EpisodicRepairPatternCatalog` (§47.4) and `AndroidRepairRegistry` (§51.1) for pre-verified AST and configuration transformations before model deliberation.
+3. *Crash-to-symbol correlation:* Correlates Logcat crash frames and fatal exceptions with production AST symbols via `CrashPatternAnalyzer` (§47.4).
+4. *Error trace normalization:* Ingests heterogeneous compiler, Gradle, ADB, and runtime diagnostics through `RuntimeTraceAnalyzer` (§53.7) to produce redacted, LLM-ready failure summaries.
+5. *Oscillation and thrashing prevention:* Consults `RepairOscillationDetector` (§58.1.1) to arrest cyclical patch regressions.
+
+`AndroidRepairIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all repair proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
 ---
 
 ## 52. Technical Acceptance Tests
@@ -3377,6 +3390,11 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `PersonaInferenceEngine` | module | `nirman-android` | Infers target stakeholder personas, touch target ergonomics, and accessibility profiles (§73.15.4; BS §69.2) | none — analytical queries | §73.15.4 |
 | `AndroidDomainKnowledgeCatalog` | module | `nirman-android` | Local offline catalog of idiomatic Android Room entity models and standard state-machine workflows (§73.15.5; BS §69.2) | none — analytical queries | §73.15.5 |
 | `RegulatoryComplianceAnalyzer` | module | `nirman-android` | Audits declared permissions, target API levels, and data collection against Google Play policies and regional regulations (§73.15.6; BS §42.1) | none — analytical queries | §73.15.6 |
+| `AndroidRepairIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over repair patterns, failure classifications, and recovery recommendations (§51.4; BS §42.4) | none — read-only; proposals routed through `MutationBroker` | §51.4 |
+| `BuildReproducibilityChecker` | module | `nirman-artifacts` | Verifies multi-pass deterministic byte equality and reproducibility of APK outputs under `ArtifactAuthority` (§83.4; BS §42.1) | none — analytical verification | §83.4 |
+| `RepairOscillationDetector` | module | `nirman-agents` | Detects cyclical patch regressions (A breaks B, B breaks A) across transaction checkpoints (§58.1.1; BS §42.4) | none — anomaly detection | §58.1.1 |
+| `BlankScreenDetector` | module | `nirman-preview` | Frame luminescence, entropy, and semantics-tree inspection detecting blank or unpopulated screens (§73.5.2; BS §56.5) | none — preview validation | §73.5.2 |
+| `DeadControlDetector` | module | `nirman-android` | Verifies that interactive UI elements trigger observable state transitions or feedback during exploration (§62.1.1; BS §56.3) | none — scenario validation | §62.1.1 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -3430,6 +3448,13 @@ These modules produce proposals and state transitions, but LifecycleAuthority, P
 2. *Mutation thrash anomaly (`MUTATION_THRASH_ANOMALY`):* A worker emits $> 3$ consecutive AST mutation proposals modifying the identical AST node without acquiring new discriminating evidence or altering its error signature.
 3. *Schema deviation anomaly (`SCHEMA_DEVIATION_ANOMALY`):* A worker emits $> 2$ consecutive malformed payloads failing `WorkerConnection` schema validation or containing unparseable JSON/bincode structures.
 Upon detecting any of these three conditions, `WorkerAnomalyDetector` flags the attempt, revokes the worker's AppContainer lease via `WorkspaceLeaseManager`, records an `ANOMALY_REVOCATION` event in the execution ledger, and signals `RecoveryAuthority` to quarantine the attempt and dispatch a replacement worker under an escalated reasoning profile.
+
+### 58.1.1 RepairOscillationDetector
+
+`RepairOscillationDetector` operates within `WorkerAnomalyDetector` to prevent cyclic repair oscillation ("fix A breaks test B, fix B breaks test A"):
+1. *Cycle detection across checkpoints:* Tracks the multi-transaction history of modified symbol anchors and failing test assertions. If a patch targeting failure $F_1$ causes test $T_2$ to fail, and the subsequent patch targeting failure $F_2$ restores the error condition of $T_1$, an `OSCILLATION_DETECTED` anomaly is raised immediately.
+2. *Oscillation mitigation:* Halts further micro-patching on the oscillating symbols, revokes the active lease, and forces `RecoveryAuthority` to bypass Level 1/2 micro-repairs and escalate directly to Level 4 (checkpoint rollback and alternative architectural design) on the canonical recovery ladder (§28).
+3. *Telemetry recording:* Persists the oscillating symbol set and mutually conflicting test IDs in `ProjectMemoryEntry` (SCHEMAS §2.101) to prevent repeating the cyclic repair in future sessions.
 
 - `WorkerFailoverReconstitutionProtocol` — The deterministic protocol executed by the supervisor when recovering from a worker crash, anomaly eviction, or preemption event.
 
@@ -4175,6 +4200,13 @@ GoldenSnapshot
 → EvidenceLedger
 
 `ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` then maps each acceptance criterion and each required scenario class to a path in the graph and emits an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.4 exactly like authored ones.
+
+### 62.1.1 DeadControlDetector
+
+`DeadControlDetector` executes within `ScreenGraphExplorer` during automated application exploration to detect unresponsive, inert interactive controls:
+1. *Interactive element enumeration:* Traverses the active `ScreenModel` and Compose semantics node tree to enumerate all controls with click, swipe, or input actions (e.g. `Button`, `IconButton`, `Clickable`, `FloatingActionButton`, `Switch`, `Tab`).
+2. *State and feedback delta probe:* Injects synthetic interactions via `ScenarioExecutor` and probes for observable post-conditions: navigation transition, ViewModel state mutation, Room database write, snackbar/dialog presentation, or network dispatch.
+3. *Defect classification:* Flags any interactive element whose stimulus produces zero observable state change or user feedback across consecutive frames as a `DEAD_CONTROL` defect, preventing hollow UI implementations from satisfying completion evidence.
 
 ### 62.2 ScreenGraph Analysis Service
 
@@ -5158,6 +5190,13 @@ A candidate may become `VERIFIED` and replace the active last-known-good preview
 
 The gate must return a typed result such as `PASS`, `MISSING_EVIDENCE`, `STALE_IDENTITY`, `FAILED_VALIDATION`, `POLICY_BLOCKED`, or `ENVIRONMENT_UNAVAILABLE`. A failed or incomplete candidate remains `FAILED_CANDIDATE`, `RECOVERING`, `STALE`, or `INVALIDATED`; it cannot replace last-known-good. The gate is the sole normative promotion predicate and must be used by the control plane, artifact authority, preview reducer, and release completion checks.
 
+### 73.5.2 BlankScreenDetector
+
+`BlankScreenDetector` validates rendered frame content and UI semantics before any candidate preview is admitted to `PreviewPromotionGate`:
+1. *Frame luminescence and entropy analysis:* Evaluates captured emulator frames from `RenderTransport` for visual pathologies: solid white screens, solid black canvases, uniform background fill, or zero-entropy frames indicative of an unrendered Activity or stuck splash screen.
+2. *Semantics hierarchy inspection:* Cross-references frame pixels with the active Compose semantics node tree. A frame is rejected as `BLANK_SCREEN` if the visual viewport contains zero text nodes, vector icons, or clickable interactive targets.
+3. *Promotion failure:* Emits a `BLANK_SCREEN_OBSERVED` failure diagnostic, blocking candidate promotion to `OBSERVED` or `VERIFIED` and triggering the Android runtime sub-ladder (BS §42.4) to reload or relaunch the application.
+
 ### 73.6 Stepwise preview projection
 
 The UI projection groups real events into understandable stages without fabricating execution:
@@ -5875,6 +5914,13 @@ The `artifact.export` response is `UIResponseEnvelope` carrying `ArtifactExportR
 
 ### 83.3 Runtime acceptance
 Acceptance fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds and external deployment destinations, source/destination hash equality, destination identity, interrupted-copy reconciliation, signing/validation/promotion linkage, and refusal to treat source access as deployment completion. Documentation certification proves contract presence only; runtime certification must execute the fixtures.
+
+### 83.4 BuildReproducibilityChecker
+
+`BuildReproducibilityChecker` executes under `ArtifactAuthority` (§83) to verify deterministic build outputs:
+1. *Multi-pass clean build verification:* Executes two independent clean builds of the Android target from identical source revisions and toolchain locks in isolated build directories.
+2. *Byte-for-byte and archive equality:* Compares APK and optional AAB zip central directory records, manifest timestamps, and uncompressed DEX/resource checksums, verifying that generated artifacts are byte-identical or signature-equivalent.
+3. *Entropy and non-determinism detection:* Identifies non-deterministic build inputs (unpinned dependency dynamic versions, nondeterministic file iteration in packaging tasks, unstripped build machine absolute paths) and flags them as `REPRODUCIBILITY_DEFECT` findings before release promotion.
 
 ## 84. Platform Capability and Cross-Compilation Implementation Contract
 **Implements:** build spec §79 and `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`

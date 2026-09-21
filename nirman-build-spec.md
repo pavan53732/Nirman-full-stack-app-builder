@@ -2365,7 +2365,7 @@ A feature without an explicit optional marking is mandatory. A mandatory require
 
 The contract MUST use explicit schema versions, reject unknown fields where strict validation is required, record source references for inferred fields, and distinguish user-provided facts from model inferences. A worker MUST NOT invent a contract field absent from the canonical schema.
 
-Pre-construction requirement elicitation, companion requirement expansion, and contract formalization are supported by `AndroidProductIntelligenceService` (TA §73.15). Explicit feature declarations are expanded with mandatory companion requirements via `ImplicitRequirementMiner` (TA §73.15.1), semantic and architectural contradictions are detected before code generation by `RequirementConflictDetector` (TA §73.15.2), observable post-conditions are verified by `RequirementTestabilityScorer` (TA §73.15.3), target user touch and accessibility profiles are derived by `PersonaInferenceEngine` (TA §73.15.4), idiomatic Room entities and lifecycle workflows are informed by `AndroidDomainKnowledgeCatalog` (TA §73.15.5), and Google Play policies and regional regulations are audited by `RegulatoryComplianceAnalyzer` (TA §73.15.6).
+Pre-construction requirement elicitation, companion requirement expansion, and contract formalization are supported by `AndroidProductIntelligenceService` (TA §73.15). Explicit feature declarations are expanded with mandatory companion requirements via `ImplicitRequirementMiner` (TA §73.15.1), semantic and architectural contradictions are detected before code generation by `RequirementConflictDetector` (TA §73.15.2), observable post-conditions are verified by `RequirementTestabilityScorer` (TA §73.15.3), target user touch and accessibility profiles are derived by `PersonaInferenceEngine` (TA §73.15.4), idiomatic Room entities and lifecycle workflows are informed by `AndroidDomainKnowledgeCatalog` (TA §73.15.5), and Google Play policies and regional regulations are audited by `RegulatoryComplianceAnalyzer` (TA §73.15.6). Multi-pass deterministic build output and byte-for-byte reproducibility across clean builds are verified by `BuildReproducibilityChecker` (TA §83.4) under `ArtifactAuthority`.
 
 ### 42.2 ConstructionTransaction
 
@@ -2426,6 +2426,8 @@ Nirman MUST provide autonomous recovery without uncontrolled mutation loops. Ava
 | T6 | Structural | Invalid technology plan, missing capability, incompatible architecture, or broken contract |
 
 A worker makes one repair proposal per attempt. The supervisor owns retry count, checkpoint restoration, memory reset, strategy changes, concurrency reduction, and safe terminal-state selection.
+
+Autonomous error intelligence and proven repair selection are coordinated by `AndroidRepairIntelligenceService` (TA §51.4), which queries `AndroidRepairRegistry` (TA §51.1) and `EpisodicRepairPatternCatalog` (TA §47.4) for pre-verified AST fixes matching failure fingerprints before model deliberation. Cyclic patch regressions across checkpoints are detected and halted by `RepairOscillationDetector` (TA §58.1.1), which forces immediate escalation on the canonical recovery ladder (TA §28).
 
 > Integrated principle: the model proposes the construction strategy; deterministic Nirman authorities validate, apply, observe, repair, roll back, and promote only evidence-backed Android artifacts.
 
@@ -3640,7 +3642,7 @@ The runtime provides a deterministic service that maps requirements to scenarios
 - Shows requirement-by-requirement completion status in evidence
 - Produces `ProofSynthesis` output: what is proven/unproven/blocked and why
 
-On-demand identification and risk prioritization of coverage gaps across requirements, state-space transitions, and AST source code is provided by `CoverageGapLocator` (TA §53.5.3), while untested control flow graph decision points are identified by `UntestedBranchDetector` (TA §53.5.4).
+On-demand identification and risk prioritization of coverage gaps across requirements, state-space transitions, and AST source code is provided by `CoverageGapLocator` (TA §53.5.3), while untested control flow graph decision points are identified by `UntestedBranchDetector` (TA §53.5.4). Unresponsive or inert interactive controls during exploration are identified by `DeadControlDetector` (TA §62.1.1), while visual pathologies such as unrendered or blank viewports are caught by `BlankScreenDetector` (TA §73.5.2) before preview promotion.
 
 ### 56.x Testing-strength requirements
 

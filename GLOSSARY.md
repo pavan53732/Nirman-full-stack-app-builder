@@ -150,6 +150,8 @@
 
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
 
+**AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
+
 **AndroidRefactoringPipeline** — The supervisor-orchestrated offline AST refactoring engine for dead resource pruning, deprecated API migration, and Compose state hoisting normalization. — TA §47.4.
 
 **AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
@@ -170,6 +172,10 @@
 
 **Backtracking / two-tier checkpoints** — File-tier and task-tier restore points that let the runtime rewind without losing evidence lineage. — TA §18; BS §11.
 
+**BlankScreenDetector** — The preview validation module evaluating frame luminescence, pixel entropy, and Compose semantics trees to detect blank, unrendered, or solid-color canvases. — TA §73.5.2; BS §56.5.
+
+**BuildReproducibilityChecker** — The artifact verification module executing independent multi-pass clean builds to verify deterministic byte-for-byte and archive equality under `ArtifactAuthority`. — TA §83.4; BS §42.1.
+
 **Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — build spec §23.4; TA §6.5; ADR-049; ADR-227.
 
 **CodeDuplicationDetector** — The AST clone detection service identifying duplicated Composable UI trees and business logic algorithms using structural fingerprints. — TA §47.4; BS §23.4.
@@ -181,6 +187,8 @@
 **CrashPatternAnalyzer** — The runtime crash analysis service that correlates Logcat stack traces with source symbol anchors and episodic repair patterns. — TA §47.4; BS §28.2.
 
 **CoverageGapLocator** — The prioritized coverage gap locator synthesizing AST source-level instruction/method coverage, state-space transitions, and requirement gaps. — TA §53.5.3; BS §56.6.
+
+**DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.3.
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
@@ -225,6 +233,8 @@
 **RedundantTestDetector** — The test suite optimization module identifying duplicate and subsumed test cases via AST structural fingerprints and execution path overlap. — TA §53.5.11; BS §57.5.
 
 **RegulatoryComplianceAnalyzer** — The compliance audit module evaluating declared permissions, API targets, and data collection against Google Play policies and privacy regulations. — TA §73.15.6; BS §42.1.
+
+**RepairOscillationDetector** — The supervisor sentinel inside `WorkerAnomalyDetector` that detects cyclical patch regressions across transaction checkpoints and forces escalation on the recovery ladder. — TA §58.1.1; BS §42.4.
 
 **RequirementConflictDetector** — The pre-construction contradiction detector identifying semantic and architectural conflicts across proposed requirements before code generation opens. — TA §73.15.2; BS §69.11.
 
