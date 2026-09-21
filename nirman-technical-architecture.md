@@ -2498,6 +2498,11 @@ The graph service calculates affected files, modules, resources, permissions, te
 1. *Boundary parsing:* Scans Kotlin, Java, and XML source files for declared safe-zone comments (`// nirman:protected-start` ... `// nirman:protected-end`) and `@NirmanProtected` annotations.
 2. *Pre-transaction violation check:* Validates every incoming `StructuredPatch` against the active protected line ranges; any patch that modifies, moves, or deletes tokens within a protected zone is rejected with `PROTECTED_ZONE_VIOLATION` before staging.
 
+**Fast micro-loop incremental compilation and validation.** To provide the sub-5-second feedback required by BS §52.3a's Tier 1 Inner Micro-Loop, `MicroLoopValidator` gates proposed mutations before transaction staging:
+1. *In-memory AST validation:* Validates syntax, brace matching, and Compose annotations using Tree-sitter parsers, rejecting malformed constructs with instant syntax diagnostics.
+2. *Incremental module compiler dry-run:* Invokes an isolated, non-packaging Gradle compilation check (`compileDebugKotlin` targeting strictly the affected module) to verify type correctness, import resolution, and symbol bindings without packaging APKs or touching emulator runtimes.
+3. *Micro-fail-fast dispatch:* Emits a fingerprinted `MICRO_COMPILATION_ERROR` or `AST_VALIDATION_ERROR` and halts Tier 1 execution within 5 seconds on defects, handing diagnostic feedback back to the agent before disk staging or downstream invalidation occurs.
+
 ---
 
 ### 47.5 Android Code Intelligence, Architecture Reasoning, Generation Intelligence, and Data Intelligence Services
@@ -3606,6 +3611,7 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `FeedbackTriagePrioritizer` | module | `nirman-control-plane` | Prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue by feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and co-occurrence frequency; produces an ordered dispatch list — `TaskScheduler` and `PolicyAuthority` govern actual worker dispatch (§44.3.3) | none — ordering only | §44.3.3 |
 | `ThreeWayAstMergeEngine` | module | `nirman-android` | Structural 3-way Tree-sitter AST merge reconciling base generated code, user manual edits, and agent synthesis (§47.4; BS §4.5) | none — proposal producer; commits via `MutationBroker` | §47.4 |
 | `RegenerationSafeZoneMarker` | module | `nirman-android` | Statically parses and enforces protected code region boundaries (`// nirman:protected-start`) against mutation proposals (§47.4; BS §4.5, §43.2) | none — analytical safety check; evaluated by `MutationBroker` | §47.4 |
+| `MicroLoopValidator` | module | `nirman-android` | Pre-transaction AST syntax validation and isolated incremental compilation check enforcing sub-5s feedback for Tier 1 micro-loop (§47.4; BS §52.3a) | none — validation gate; evaluated before transaction staging | §47.4 |
 | `AndroidThreatSketchSynthesizer` | module | `nirman-android` | Generates structured threat models, attack surfaces, and negative E2E validation scenarios for security-sensitive archetypes (§70.7.6; BS §58.2b) | none — analytical security model producer | §70.7.6 |
 | `DependencyVulnerabilityAutomerger` | module | `nirman-android` | Bumps vulnerable patch dependencies in `libs.versions.toml` and orchestrates isolated smoke verification (§73.18.8; BS §28.7) | none — proposals committed via `MutationBroker` under `Security Worker` | §73.18.8 |
 
@@ -4438,6 +4444,13 @@ GoldenSnapshot
 2. *Heap allocation inspection:* Triggers deterministic garbage collection via ADB and parses `dumpsys meminfo` heap distributions to inspect native and Dalvik heap growth across cycles.
 3. *Retained instance detection:* Identifies retained destroyed Activity instances, View hierarchies captured in static references, or unbonded coroutine scopes, emitting `MEMORY_LEAK_DETECTED` failure evidence to block invalid candidate promotion.
 
+### 62.1.4 ComposeIdlingBarrier
+
+`ComposeIdlingBarrier` coordinates deterministic runtime synchronization between Nirman's scenario execution engine and the Android Jetpack Compose runtime:
+1. *Compose idling synchronization:* Bridges `AndroidDeviceAdapter` with the on-device test orchestrator via Compose `IdlingResource` and `TestMonotonicFrameClock`, guaranteeing that synthetic gestures and screenshot captures occur only when recompositions, animations, and snapshot state propagation have completely quiesced.
+2. *Asynchronous coroutine quiescence:* Coordinates with Kotlin Coroutine dispatchers under test (`StandardTestDispatcher`), asserting that pending background jobs bound to the active screen lifecycle have finished processing prior to node semantics tree extraction.
+3. *Flake-free UI observation:* Eliminates race conditions where screenshots or accessibility node hierarchies are captured mid-frame, providing deterministic ground-truth visual and semantic evidence to `ScreenGraphExplorer` and `PerceptualHashComparator`.
+
 ### 62.2 ScreenGraph Analysis Service
 
 > **Schema projection:** `ScreenGraphAnalysisRecord` is defined in `nirman-schemas.md` §2.99. Owner: TA §62.2.
@@ -5049,6 +5062,8 @@ This section is the **canonical cycle state machine** and the single authority o
 > **Schema projection:** `Hypothesis` is defined in `nirman-schemas.md` §1.29. Owner: BS §66.6.
 
 The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.5 and feed the failure signatures of §63.4.
+
+`NegativePremiseStore` is the named partition within `ProjectMemoryStore` (§59.1) that indexes rejected hypotheses, failed AST patch fingerprints, and refuting evidence records. Before entering `STRATEGIZE` (§71.4) or authorizing a mutation proposal, `StrategySelector` queries `NegativePremiseStore` to prune candidate hypotheses that match known refuted premises, preventing repetitive regression cycles and redundant model deliberation (BS §52.3b).
 
 ### 71.6 CapabilityRegistry and discovery
 
