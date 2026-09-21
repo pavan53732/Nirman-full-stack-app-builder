@@ -2396,9 +2396,24 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Double binding verification:* Verifies that dependency injection modules (`@Module`, `@InstallIn(SingletonComponent::class)`) in production source sets bind to concrete Room databases, DataStore preferences, and actual network clients rather than in-memory fakes.
 3. *Gated double authorization:* Rejects any mutation introducing unauthorized test doubles into production sets with `UNAUTHORIZED_MOCK_RESIDUAL`, ensuring mock doubles are strictly confined to `src/test/`, `src/androidTest/`, or explicitly declared `ContractDouble` boundaries (ADR-225).
 
+**Room schema and migration safety analysis.** To prevent runtime SQLite crashes and data loss across app upgrades, `RoomSchemaMigrationAnalyzer` validates Room entity schemas and database evolution:
+1. *Schema diffing and version consistency:* Statically parses exported Room schema JSON files (`schemas/com.example.AppDatabase/N.json`) across version increments, comparing table structures, column types, nullability, primary key constraints, and indices against the compiled `@Database(version = ...)` definition.
+2. *Destructive migration detection:* Flags any unmanaged schema drift where columns or tables were altered or dropped without an explicit `AutoMigration` specification, a registered `Migration(from, to)` implementation, or an authorized destructive migration policy.
+3. *Foreign key and constraint verification:* Verifies that foreign key references (`@ForeignKey`) target valid parent entity primary keys and specify explicit cascading policies (`onDelete`, `onUpdate`) compatible with SQLite constraints.
+
+**Room query performance and safety analysis.** To eliminate database latency bottlenecks and runtime vulnerabilities, `QueryPerformanceAnalyzer` statically inspects Room DAO interfaces:
+1. *N+1 query pattern detection:* Scans DAO method signatures and usage call-graphs in ViewModels and Repositories to detect N+1 query patterns where child entities are fetched iteratively in a loop rather than using composite Room `@Relation` embeddings or parameterized `IN (:ids)` batch queries.
+2. *Index coverage and table scan prevention:* Correlates query `WHERE`, `JOIN`, and `ORDER BY` clauses against entity `@Index` definitions to flag queries that would trigger unindexed SQLite full table scans on large datasets.
+3. *Injection safety and parameter binding:* Validates that dynamic raw queries (`@RawQuery`, `SupportSQLiteQuery`) use parameterized bindings (`?` or `:arg`) rather than string concatenation, rejecting unsafe SQL construction before transaction commit.
+
+**Offline-first synchronization protocol planning.** To guarantee data consistency in disconnected or intermittent network conditions, `OfflineSyncProtocolPlanner` verifies persistence and sync architecture:
+1. *Reactive single-source-of-truth verification:* Confirms that local Room DAOs and Repositories expose reactive `Flow<T>` streams or AndroidX paging data sources to UI layers, ensuring the local database acts as the single source of truth.
+2. *Outbox pattern and retry queueing:* Statically verifies the presence of an Outbox persistence entity and scheduled Android Jetpack WorkManager tasks with exponential backoff retry policies for reliable background synchronization.
+3. *Conflict resolution verification:* Ensures data repositories define explicit deterministic conflict resolution policies (such as Last-Write-Wins based on synchronized timestamps or server-authoritative reconciliation) for bidirectional sync operations.
+
 ---
 
-### 47.5 Android Code Intelligence, Architecture Reasoning, and Generation Intelligence Services
+### 47.5 Android Code Intelligence, Architecture Reasoning, Generation Intelligence, and Data Intelligence Services
 
 **Role:** aggregate query facade and static what-if analysis — read-only services; no authority, no AI-usage budget.
 
@@ -2434,6 +2449,18 @@ Responsibilities:
 5. *Mock residue scanning:* Queries `MockResidualDetector` (§47.4) before release packaging to prevent test doubles and fake in-memory repositories from leaking into production source sets.
 
 `AndroidGenerationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all generation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 47.5.4 AndroidDataIntelligenceService
+
+`AndroidDataIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies schema design validation, Room migration verification, query performance inspection, and offline-first synchronization planning. It exposes a typed query surface to data engineering workers (`Android Data and Integration Worker`, `Backend & Service Engineering Worker`) and registered IPC command handlers.
+
+`AndroidDataIntelligenceService` coordinates four deterministic analytical and pattern components:
+1. *Domain entity and schema synthesis:* Queries `AndroidDomainKnowledgeCatalog` (§73.15.5) and `AndroidPatternLibrary` (§47.4) for idiomatic Room entity models, TypeConverters, and DataStore schemas.
+2. *Migration safety and schema diffing:* Invokes `RoomSchemaMigrationAnalyzer` (§47.4) to verify database schema version transitions, validate `Migration` implementations, and ensure zero unmanaged data loss.
+3. *Query optimization and index analysis:* Invokes `QueryPerformanceAnalyzer` (§47.4) to eliminate N+1 query patterns, recommend composite indices, and prevent SQL injection.
+4. *Offline sync and outbox verification:* Invokes `OfflineSyncProtocolPlanner` (§47.4) to validate reactive Flow repositories, WorkManager background synchronization, and conflict resolution policies.
+
+`AndroidDataIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all data layer mutations route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
 
 ---
 
@@ -3430,6 +3457,10 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `StartupRegressionTracker` | module | `nirman-android` | Measures TTID and TTFD cold-start launch latency from Logcat and flags performance regressions (§62.1.2; BS §56.3) | none — performance tracking | §62.1.2 |
 | `MemoryLeakDetector` | module | `nirman-android` | Evaluates heap growth and Activity retention across repeated lifecycle churn and navigation cycles (§62.1.3; BS §56.3) | none — leak detection | §62.1.3 |
 | `TestDataLeakageDetector` | module | `nirman-android` | Verifies persistent storage isolation, ensuring synthetic seed data does not survive teardown (§62.5.1; BS §56.4) | none — isolation validation | §62.5.1 |
+| `AndroidDataIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over Room schemas, migrations, query performance, and offline sync (§47.5.4; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §47.5.4 |
+| `RoomSchemaMigrationAnalyzer` | module | `nirman-android` | Statically diffs Room schema JSONs, verifies migration paths, and checks for destructive table/column drops (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `QueryPerformanceAnalyzer` | module | `nirman-android` | Statically detects N+1 queries in Room DAOs, recommends indices, and verifies SQL parameter binding (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `OfflineSyncProtocolPlanner` | module | `nirman-android` | Validates offline-first sync architecture, reactive Flow repositories, and WorkManager Outbox patterns (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 

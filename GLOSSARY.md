@@ -144,6 +144,8 @@
 
 **AndroidCodeIntelligenceService** — The supervisor-owned, read-only aggregate service exposing a typed query interface over `AndroidSymbolGraph`, `SemanticCodeFingerprintEngine`, `EpisodicRepairPatternCatalog`, and the project `ImpactGraph` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority. — TA §47.5.1; BS §43.1.
 
+**AndroidDataIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Room schema design, migration verification, query performance inspection, and offline-first synchronization planning. — TA §47.5.4; BS §43.1.
+
 **AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
 
 **AndroidDomainKnowledgeCatalog** — The local offline repository of idiomatic Android architecture patterns, Room entity models, and state-machine workflows that assists requirements planning without user-facing templates. — TA §73.15.5; BS §69.2.
@@ -220,6 +222,8 @@
 
 **MockResidualDetector** — The production release integrity module verifying that mock doubles, in-memory repositories, and fake datasets do not leak into production source sets without explicit authorization. — TA §47.4; BS §43.1.
 
+**OfflineSyncProtocolPlanner** — The persistence verification module validating offline-first sync architecture, reactive Flow repositories, WorkManager Outbox patterns, and conflict resolution policies. — TA §47.4; BS §43.1.
+
 **OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
 
 **Performance intelligence** — Historical and live physical-resource measurements used by deterministic schedulers, recovery, validation ordering, and transport adaptation without granting authority or creating AI-usage budgets. — TA §7.2; BS §72; ADR-236.
@@ -234,6 +238,8 @@
 
 **ProjectReadmeSynthesizer** — The documentation engine synthesizing truthful, deterministic README.md files for exported Android projects. — TA §47.4; TA §76.3; BS §83.
 
+**QueryPerformanceAnalyzer** — The static analysis module detecting N+1 queries in Room DAOs, recommending indices for multi-column queries, and verifying SQL parameter binding against SQL injection. — TA §47.4; BS §43.1.
+
 **ReasoningTraceGraphView** — The interactive WinUI 3 deliberation DAG component visualizing hypotheses, evaluations, and evidence references without exposing raw chain-of-thought tokens. — TA §55.8.
 
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
@@ -241,6 +247,8 @@
 **RedundantTestDetector** — The test suite optimization module identifying duplicate and subsumed test cases via AST structural fingerprints and execution path overlap. — TA §53.5.11; BS §57.5.
 
 **RegulatoryComplianceAnalyzer** — The compliance audit module evaluating declared permissions, API targets, and data collection against Google Play policies and privacy regulations. — TA §73.15.6; BS §42.1.
+
+**RoomSchemaMigrationAnalyzer** — The database evolution verifier statically diffing Room schema JSONs, validating migration paths, detecting destructive schema drops, and verifying foreign key integrity. — TA §47.4; BS §43.1.
 
 **RepairOscillationDetector** — The supervisor sentinel inside `WorkerAnomalyDetector` that detects cyclical patch regressions across transaction checkpoints and forces escalation on the recovery ladder. — TA §58.1.1; BS §42.4.
 
