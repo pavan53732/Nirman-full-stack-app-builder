@@ -4648,16 +4648,95 @@ def check_android_intelligence_output_boundary(docs, D):
         if needle not in body:
             D.add("semantic documentation", "Android intelligence output boundary",
                   f"TA common intelligence contract lost required term `{needle}`")
-    services = re.findall(
-        r"^### (?:47\.5\.\d+|51\.4|53\.5\.1|70\.7\.1|73\.15|73\.16\.1|74\.7\.1) ([A-Z][A-Za-z0-9]+Service)\s*$",
-        ta, re.M)
-    for service in services:
-        pos = ta.find(service)
-        nxt = ta.find("\n#### ", pos + 1)
-        local = ta[pos:nxt if nxt >= 0 else pos + 5000]
-        if "read-only" not in local.lower() or "no authority" not in local.lower():
+    # Discover all Android intelligence and analytical services from the §57.12 component registry
+    reg_start = ta.find("### 57.12")
+    if reg_start < 0:
+        D.add("semantic documentation", "Android intelligence output boundary",
+              "TA lacks §57.12 component and authority registry")
+        return
+    reg_end = ta.find("## 58.", reg_start)
+    reg_text = ta[reg_start:reg_end if reg_end >= 0 else reg_start + 50000]
+
+    intel_services = []
+    for line in reg_text.splitlines():
+        if not line.startswith("|"):
+            continue
+        parts = [p.strip() for p in line.split("|")[1:-1]]
+        if len(parts) != 6 or parts[0] in ("Name", "") or parts[0].startswith("---"):
+            continue
+        name = parts[0].replace("`", "")
+        kind = parts[1].lower()
+        crate = parts[2].replace("`", "")
+        owns = parts[3]
+        commits = parts[4]
+        defined_in = parts[5]
+
+        # Explicitly match services in nirman-android whose canonical metadata identifies them
+        # as intelligence/analytical query facades, excluding ordinary authorities or build services.
+        if kind == "service" and "nirman-android" in crate:
+            text = f"{name} {owns} {commits}".lower()
+            if ("intelligence" in text or "facade" in text or "analytical" in text) and not name.endswith("Authority"):
+                m_sec = re.search(r"(\d+(?:\.\d+)*)", defined_in)
+                sec_num = m_sec.group(1) if m_sec else ""
+                intel_services.append((name, sec_num))
+
+    if not intel_services:
+        D.add("semantic documentation", "Android intelligence output boundary",
+              "§57.12 registry yielded zero Android intelligence services")
+        return
+
+    # Resolve each service to its exact defining section heading and slice by heading boundary
+    for service, sec_num in intel_services:
+        if not sec_num:
             D.add("semantic documentation", f"Android intelligence service {service}",
-                  "defining section no longer states read-only/no-authority boundary")
+                  "§57.12 registry row lacks a valid defining section pointer")
+            continue
+        head_pat = r"^(#{2,4})\s+" + re.escape(sec_num) + r"(?:\.|\b)[^\n]*"
+        m_head = re.search(head_pat, ta, re.M)
+        if not m_head:
+            D.add("semantic documentation", f"Android intelligence service {service}",
+                  f"defining heading for section §{sec_num} not found in TA")
+            continue
+
+        head_level = len(m_head.group(1))
+        head_pos = m_head.start()
+        head_line = m_head.group(0)
+
+        # Slice section body until the next heading of same or higher level
+        nxt_pat = r"^\n#{1," + str(head_level) + r"}\s+"
+        m_nxt = re.search(nxt_pat, ta[head_pos + len(head_line):], re.M)
+        body_end = head_pos + len(head_line) + m_nxt.start() if m_nxt else len(ta)
+        local = ta[head_pos:body_end].lower()
+
+        # Validate read-only behavior, no authority / no second authority, and canonical mutation path
+        has_ro = ("read-only" in local or "read only" in local)
+        has_na = (
+            "no authority" in local
+            or "no second authority" in local
+            or "creates no second authority" in local
+            or "holds no authority" in local
+            or "promotion authority remains with" in local
+            or "never writes authoritative state" in local
+        )
+        has_mut = (
+            "mutationbroker" in local
+            or "constructiontransaction" in local
+            or "provenancerecorder" in local
+            or "never writes authoritative state" in local
+            or "never mutates" in local
+            or "mutation" in local
+        )
+
+        if not (has_ro and has_na and has_mut):
+            missing = []
+            if not has_ro:
+                missing.append("read-only boundary")
+            if not has_na:
+                missing.append("no-authority boundary")
+            if not has_mut:
+                missing.append("canonical mutation path")
+            D.add("semantic documentation", f"Android intelligence service {service}",
+                  f"defining section §{sec_num} lacks required boundary: {', '.join(missing)}")
 
 
 def check_document_topology(docs, D, root):

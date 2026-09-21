@@ -2692,7 +2692,7 @@ The service records concise decision summaries without hidden chain-of-thought. 
 4. *Error trace normalization:* Ingests heterogeneous compiler, Gradle, ADB, and runtime diagnostics through `RuntimeTraceAnalyzer` (§53.7) to produce redacted, LLM-ready failure summaries.
 5. *Oscillation and thrashing prevention:* Consults `RepairOscillationDetector` (§58.1.1) to arrest cyclical patch regressions.
 
-`AndroidRepairIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all repair proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidRepairIntelligenceService` holds no authority and creates no second authority. It is a read-only query facade; it does not directly mutate project source or bypass policy; all repair proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
 
 ---
 
@@ -2799,7 +2799,7 @@ Responsibilities:
 - Exposes typed query endpoints for bi-directional test-to-code mapping, prioritized coverage gaps, untested CFG decision branches, semantic test intent, static assertion quality scoring, flakiness signatures, fixture dependency impact, mock boundary conformance, test pyramid balance, and redundant test elimination.
 - Routes each query to the respective deterministic module (`TestToCodeMappingEngine`, `CoverageGapLocator`, `UntestedBranchDetector`, `TestIntentExtractor`, `AssertionStrengthAnalyzer`, `FlakyTestSignatureDetector`, `FixtureDependencyTracer`, `MockAndStubBoundaryAnalyzer`, `TestPyramidBalanceAnalyzer`, `RedundantTestDetector`) and returns typed, read-only analytical records.
 - Operates 100% locally on the Windows host with zero token, monetary, or reasoning budgets (ADR-218; BS §72).
-- Never mutates project code, executes unauthorized test runners, or overrides deterministic quality gates; all mutation proposals pass through `MutationBroker` and `ConstructionTransactionManager` (BS §43.2), and `ProvenanceRecorder` remains the sole promotion gate.
+- Operates as a read-only query facade that holds no authority and creates no second authority. Never mutates project code, executes unauthorized test runners, or overrides deterministic quality gates; all mutation proposals pass through `MutationBroker` and `ConstructionTransactionManager` (BS §43.2), and `ProvenanceRecorder` remains the sole promotion gate.
 
 ### 53.5.2 TestToCodeMappingEngine
 

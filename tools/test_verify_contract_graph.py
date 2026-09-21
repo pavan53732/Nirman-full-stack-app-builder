@@ -2556,6 +2556,62 @@ def main():
                        "### Cross-service intelligence output contract REMOVED", 1)),
                    expect="semantic documentation")
 
+    # NEGATIVE CONFORMANCE (ADR-228): removing the read-only or no-authority
+    # boundary from an individual discovered intelligence service must fail.
+    _topology_case("Android repair intelligence service boundary removed",
+                   lambda tmp: _rw(tmp, TA, lambda t: t.replace(
+                       "AndroidRepairIntelligenceService` holds no authority and creates no second authority. It is a read-only query facade;",
+                       "AndroidRepairIntelligenceService` holds authoritative repair privileges.", 1)),
+                   expect="semantic documentation")
+
+    _topology_case("Android test intelligence service boundary removed",
+                   lambda tmp: _rw(tmp, TA, lambda t: t.replace(
+                       "- Operates as a read-only query facade that holds no authority and creates no second authority.",
+                       "- Operates as an authoritative test runner.", 1)),
+                   expect="semantic documentation")
+
+    # NEGATIVE CONFORMANCE: dangling defining-section pointer for an intelligence service.
+    _topology_case("Android intelligence service section heading pointer dangles",
+                   lambda tmp: _rw(tmp, TA, lambda t: t.replace(
+                       "### 51.4 AndroidRepairIntelligenceService",
+                       "### 51.88 AndroidRepairIntelligenceService", 1)),
+                   expect="semantic documentation")
+
+    # NEGATIVE CONFORMANCE: adding a new intelligence service to §57.12 without
+    # boundary statements is automatically caught without verifier code changes.
+    _topology_case("new registry intelligence service automatically caught when unhardened",
+                   lambda tmp: _rw(tmp, TA, lambda t: (
+                       t.replace(
+                           "| `AndroidPlatformTargetService` | service | `nirman-android` | Read-only aggregate query facade over permissions, Gradle config, shrinker rules, notifications, deep links, and target API level compliance (§73.18.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.1 |\n",
+                           "| `AndroidPlatformTargetService` | service | `nirman-android` | Read-only aggregate query facade over permissions, Gradle config, shrinker rules, notifications, deep links, and target API level compliance (§73.18.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.1 |\n| `AndroidTelemetryIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over telemetry (§73.99; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.99 |\n", 1)
+                       + "\n### 73.99 AndroidTelemetryIntelligenceService\n\nUnhardened service without boundary statements.\n")),
+                   expect="semantic documentation")
+
+    # POSITIVE CONFORMANCE: dynamic resolution of renumbered intelligence service section.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-intel-renum-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        tpath = os.path.join(tmp, TA)
+        ttext = open(tpath, encoding="utf-8").read()
+        ttext = ttext.replace("§51.4 |", "§51.99 |", 1)
+        ttext = ttext.replace("(§51.4;", "(§51.99;", 1)
+        ttext = ttext.replace("### 51.4 AndroidRepairIntelligenceService", "### 51.99 AndroidRepairIntelligenceService", 1)
+        open(tpath, "w", encoding="utf-8").write(ttext)
+        _rw(tmp, BS, lambda b: b.replace("§51.4", "§51.99"))
+        _rw(tmp, GLOSSARY, lambda g: g.replace("§51.4", "§51.99"))
+        _rw(tmp, DEV, lambda m: m.replace("§51.4", "§51.99"))
+        rc, out = run(tmp)
+        results.append(("positive: intelligence service discovered after section renumber",
+                        rc == 0 and CERTIFIED_RE.search(out) is not None,
+                        f"exit={rc}"))
+
+    # POSITIVE CONFORMANCE: non-intelligence services in nirman-android are not falsely classified.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-non-intel-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        rc, out = run(tmp)
+        results.append(("positive: non-intelligence services are not falsely classified",
+                        rc == 0 and "Android intelligence service ToolchainProvisioner" not in out,
+                        f"exit={rc}"))
+
     # POSITIVE CONFORMANCE: identifiers in ordinary prose, comments, and fenced
     # examples must not become graph records or authorities.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-prose-") as tmp:
