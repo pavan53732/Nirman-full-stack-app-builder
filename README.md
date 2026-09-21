@@ -8,7 +8,7 @@ Nirman is a **Windows-first desktop application** that lets a user describe an A
 
 ## Read this first if you are an agent
 
-This repository is currently a specification and documentation test suite. There is no product implementation — no C#, no Rust, no WinUI 3, no binaries. Nothing here compiles, because there is nothing yet to compile. The documentation verifier and test harness are present in `tools/` and actively executed.
+This repository is currently a specification and documentation test suite. There is no product implementation — no C#, no Rust, no WinUI 3, no binaries. Nothing here compiles, because there is nothing yet to compile. The documentation verifier and test harness are present in `tools/` and are executable locally; this repository does not itself evidence a current certification run.
 
 If you are an AI agent operating on this repository, read `AGENTS.md` in full before acting. It is the binding rulebook. In particular:
 
@@ -70,7 +70,7 @@ None of this runs today. It is the specified behavior, written down so it can be
 
 ## Current status
 
-This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, the eighty-three v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are the complete contents of the working tree.
+This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, the eighty-three v1 skill instruction bodies with their `skill.json` manifests, and the `.kilo/agents` profiles are part of the working tree; the ten root Markdown files are the complete canonical root document set.
 
 The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108 as superseded, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
 
