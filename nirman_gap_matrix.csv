@@ -1,0 +1,1131 @@
+num,item,block,verdict,basis,gap_id,note
+1,Prompt intent classifier,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+2,Prompt ambiguity detector,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+3,Intent confidence scoring,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+4,Multi-intent detection,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+5,Prompt normalization pipeline,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+6,Context enrichment engine,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+7,Domain vocabulary expansion,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+8,Entity extraction pipeline,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+9,Feature request extraction,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+10,User goal reconstruction,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+11,Task decomposition engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+12,Goal hierarchy generator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+13,Task dependency graph builder,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+14,Milestone planner,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+15,Step priority ranking,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+16,Planning constraint solver,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+17,Planning feasibility checker,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+18,Requirement satisfaction validator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+19,Iterative planning refinement,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+20,Plan completeness validator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+21,Chain-of-thought generation system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+22,Step verification engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+23,Logical inference checker,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+24,Hypothesis generation module,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+25,Hypothesis ranking system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+26,Alternative solution generator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+27,Reasoning branch explorer,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+28,Decision scoring system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+29,Reasoning consistency validator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+30,Reasoning conflict detector,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+31,Context relevance scoring,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+32,Token budget allocator,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+33,Context compression system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+34,Context summarization engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+35,Context priority ranking,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+36,Context deduplication engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+37,Context conflict resolver,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+38,Knowledge fusion engine,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+39,Memory retrieval prioritizer,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+40,Context expansion trigger,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+41,Code retrieval engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+42,Documentation retrieval engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+43,Pattern retrieval engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+44,Architecture retrieval engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+45,API reference retrieval engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+46,Semantic similarity ranking,P1.1 Reasoning,NOT_ADOPTED,ITEM,,Design alternative: graph-based SemanticRetriever over the Repository Semantic Graph (TA:3670-3737); embeddings optional (BS:691)
+47,Retrieval re-ranking system,P1.1 Reasoning,NOT_ADOPTED,ITEM,,Design alternative: graph-based SemanticRetriever over the Repository Semantic Graph (TA:3670-3737); embeddings optional (BS:691)
+48,Query rewriting engine,P1.1 Reasoning,NOT_ADOPTED,ITEM,,Design alternative: graph-based SemanticRetriever over the Repository Semantic Graph (TA:3670-3737); embeddings optional (BS:691)
+49,Retrieval fallback strategy,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+50,Knowledge source validator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+51,Output correctness scoring,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+52,Logical consistency checker,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+53,Self-critique engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+54,Confidence estimation system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+55,Reasoning trace recorder,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+56,Evidence linking system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+57,Source attribution generator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+58,Verification prompt generator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+59,Error probability estimator,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+60,Result acceptance scoring,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+61,Feedback learning pipeline,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+62,Reasoning failure analysis,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+63,Prompt optimization engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+64,Strategy evaluation engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+65,Plan refinement loop,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+66,Reasoning replay system,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+67,Error correction reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+68,Learning signal extractor,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+69,Reasoning pattern library,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+70,Adaptive reasoning strategies,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+71,Tool selection reasoning engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+72,Tool parameter inference,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+73,Tool execution planner,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+74,Tool result validation,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+75,Tool fallback planner,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+76,Tool reliability scoring,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+77,Tool output normalization,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+78,Tool chaining planner,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+79,Tool cost awareness engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+80,Tool dependency reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+81,Reflection reasoning engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+82,Replanning engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+83,Iterative improvement pipeline,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+84,Self-verification loops,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+85,Exploration vs exploitation selector,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+86,Goal progress evaluator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+87,Intermediate state analyzer,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+88,Partial solution evaluator,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+89,Dead-end detection,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+90,Recovery strategy generator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+91,Architecture rule reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+92,Best practice reasoning,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+93,Performance reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+94,Security reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+95,Scalability reasoning,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+96,Maintainability reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+97,Cost reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+98,Compatibility reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+99,Technology tradeoff reasoning,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+100,Design pattern reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+101,Counterfactual reasoning engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+102,Scenario simulation engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+103,Risk prediction reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+104,Failure mode reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+105,Impact analysis engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+106,System constraint reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+107,Optimization reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+108,Long-term planning reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+109,Parallel reasoning branch evaluation,P1.1 Reasoning,COVERED,ITEM,,"Covered under other terms: context packages, plan revision, deliberation, self-improvement, decision criteria, candidate branching (BS §28/§65/§68/§80.4; TA §19/§30/§59)"
+110,Multi-objective reasoning,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+111,Reasoning graph builder,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+112,Reasoning node evaluator,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+113,Reasoning edge dependency tracker,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+114,Reasoning state persistence,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+115,Reasoning cache engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+116,Reasoning trace visualization,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+117,Reasoning performance profiler,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+118,Reasoning memory storage,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+119,Reasoning version tracking,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+120,Reasoning reproducibility engine,P1.1 Reasoning,COVERED_FAMILY,FAMILY,,"Reasoning/context/retrieval/validation mechanisms: BS §49, §52, §53, §66, §68, §69; TA §19, §55, §58, §59, §71-72"
+121,Agent role registry,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+122,Agent capability catalog,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+123,Agent task dispatcher,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+124,Agent lifecycle manager,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+125,Agent state tracker,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+126,Agent identity system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+127,Agent configuration manager,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+128,Agent execution sandbox,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+129,Agent capability discovery,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+130,Agent compatibility validator,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+131,Task queue manager,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+132,Task priority scheduler,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+133,Workload balancer,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+134,Agent task assignment engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+135,Task progress tracker,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+136,Task retry scheduler,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+137,Task dependency resolver,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+138,Parallel task orchestrator,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+139,Task batching system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+140,Task timeout handler,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+141,Agent message bus,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+142,Inter-agent communication protocol,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+143,Message serialization layer,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+144,Event broadcasting system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+145,Agent discovery network,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+146,Communication reliability monitor,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+147,Message ordering system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+148,Message deduplication,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+149,Communication retry logic,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+150,Agent conversation memory,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+151,Shared knowledge base,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+152,Collaborative planning engine,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+153,Shared context manager,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+154,Collaborative decision voting,P1.2 Multi-agent,NOT_ADOPTED,ITEM,,"Deterministic tie-breaking, Critic worker and user decision instead of voting (BS:1647)"
+155,Conflict resolution mechanism,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+156,Agent negotiation system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+157,Multi-agent consensus builder,P1.2 Multi-agent,NOT_ADOPTED,ITEM,,"Deterministic tie-breaking, Critic worker and user decision instead of voting (BS:1647)"
+158,Shared task board,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+159,Agent coordination policy engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+160,Agent hierarchy manager,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+161,Planner agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+162,Architect agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+163,Backend generator agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+164,Frontend generator agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+165,Database architect agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+166,Security agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+167,Testing agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+168,Deployment agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+169,Debugging agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+170,Refactoring agent,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+171,Agent performance metrics,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+172,Agent reliability scoring,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+173,Agent failure detection,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+174,Agent recovery system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+175,Agent resource monitoring,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+176,Agent health checks,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+177,Agent latency monitoring,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+178,Agent throughput metrics,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+179,Agent load balancing,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+180,Agent anomaly detection,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+181,Agent permission system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+182,Agent capability restrictions,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+183,Agent execution policies,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+184,Agent action auditing,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+185,Agent behavior monitoring,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+186,Agent safety constraints,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+187,Agent sandbox enforcement,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+188,Agent termination controls,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+189,Agent override system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+190,Agent escalation workflow,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+191,Agent performance feedback,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+192,Agent skill improvement loop,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+193,Agent behavior optimization,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+194,Agent knowledge updates,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+195,Agent collaboration improvement,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+196,Agent specialization learning,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+197,Agent strategy evolution,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+198,Agent experience memory,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+199,Agent pattern learning,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+200,Agent role evolution,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+201,Dynamic agent spawning,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+202,Agent cloning mechanism,P1.2 Multi-agent,NOT_ADOPTED,ITEM,,No adoption evidence; unbounded recursive spawning excluded (BS §48)
+203,Swarm coordination engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+204,Distributed agent cluster,P1.2 Multi-agent,OUT_OF_SCOPE,ITEM,,Local-only desktop runtime; no distributed cluster (ADR-001)
+205,Cross-agent reasoning,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+206,Agent delegation system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+207,Agent redundancy system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+208,Agent failover mechanism,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+209,Emergent coordination detection,P1.2 Multi-agent,NOT_ADOPTED,ITEM,,No adoption evidence; unbounded recursive spawning excluded (BS §48)
+210,Agent topology optimizer,P1.2 Multi-agent,NOT_ADOPTED,ITEM,,No adoption evidence; unbounded recursive spawning excluded (BS §48)
+211,Coordination graph builder,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+212,Coordination policy engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+213,Coordination metrics tracker,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+214,Coordination replay engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+215,Coordination simulation system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+216,Coordination debugging tools,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+217,Coordination visualization engine,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+218,Coordination trace logging,P1.2 Multi-agent,COVERED,ITEM,,"Fair-share scheduling/backpressure, idempotent retry, shared memory, reconciliation, task graph, audit trail, bounded delegation (BS §26/§52.12/§54/§66; TA §6/§7/§60)"
+219,Coordination consistency checker,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+220,Coordination audit system,P1.2 Multi-agent,COVERED_FAMILY,FAMILY,,"Multi-agent runtime: BS §23, §26, §54, §60, §66; TA §3, §6, §7, §60"
+221,Multi-language parser,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+222,AST generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+223,Syntax validation engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+224,Code tokenization engine,P1.3 Code understanding,COVERED,ITEM,,Tree-sitter parsers (TA:2267)
+225,Structural code analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+226,Control flow graph builder,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+227,Data flow analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+228,Type inference engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+229,Static analysis engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+230,Code semantic analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+231,Code embedding generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+232,Function embedding system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+233,Class embedding system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+234,File embedding system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+235,Repository embedding system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+236,Code similarity search,P1.3 Code understanding,COVERED,ITEM,,"CodeDuplicationDetector / SemanticCodeFingerprintEngine (TA:2311, 2375)"
+237,Code clustering engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+238,Code indexing system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+239,Code metadata extractor,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+240,Code fingerprint generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+241,Function dependency graph,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+242,Class dependency graph,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+243,Module dependency graph,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+244,Package dependency graph,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+245,Circular dependency detector,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+246,Dependency impact analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+247,Dependency risk scorer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+248,Dependency visualization engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+249,Dependency change tracker,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+250,Dependency health scoring,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+251,Function purpose inference,P1.3 Code understanding,COVERED,ITEM,,"Semantic summaries in repository graph; KDoc/Javadoc mismatch detector (TA:2313, 2361)"
+252,API usage detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+253,Code intent extraction,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+254,Algorithm pattern detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+255,Design pattern detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+256,Code smell detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+257,Anti-pattern detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+258,Performance hotspot detection,P1.3 Code understanding,COVERED,ITEM,,"android-performance-expert (Baseline Profiles, Macrobenchmark); Performance Worker (TA:2625)"
+259,Security risk detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+260,Maintainability scoring,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+261,Comment extraction system,P1.3 Code understanding,COVERED,ITEM,,"Semantic summaries in repository graph; KDoc/Javadoc mismatch detector (TA:2313, 2361)"
+262,Documentation generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+263,API documentation builder,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+264,Code example generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+265,Documentation consistency checker,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+266,Documentation coverage analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+267,Doc-code mismatch detector,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+268,Inline explanation generator,P1.3 Code understanding,COVERED,ITEM,,"Semantic summaries in repository graph; KDoc/Javadoc mismatch detector (TA:2313, 2361)"
+269,Architecture doc generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+270,README synthesis engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+271,Test-to-code mapping engine,Patch Test and Coverage Comprehension,COVERED,ITEM,,Requirement->test traceability (BS §47.5); TA §62
+272,Coverage gap locator,Patch Test and Coverage Comprehension,GAP,ITEM,GAP-3,"GAP-3: no code-coverage measurement (0 hits for JaCoCo/Kover/line/branch coverage); ""test coverage"" is named as a review dimension only (BS:2678)"
+273,Untested branch detector,Patch Test and Coverage Comprehension,GAP,ITEM,GAP-3,"GAP-3: no code-coverage measurement (0 hits for JaCoCo/Kover/line/branch coverage); ""test coverage"" is named as a review dimension only (BS:2678)"
+274,Test intent extractor,Patch Test and Coverage Comprehension,COVERED,ITEM,,Requirement->test traceability (BS §47.5); TA §62
+275,Assertion strength analyzer,Patch Test and Coverage Comprehension,COVERED,ITEM,,BS §57.5 assertion quality; CLAUSE.VERIFY.NON_VACUITY
+276,Flaky test signature detector,Patch Test and Coverage Comprehension,COVERED,ITEM,,Flaky/skipped tests recorded in traceability matrix (BS §47.5); quarantine handling
+277,Fixture dependency tracer,Patch Test and Coverage Comprehension,NOT_STATED,ITEM,,"Low value: fixture tracing, mock boundaries, test-pyramid balance, redundant-test detection not stated"
+278,Mock and stub boundary analyzer,Patch Test and Coverage Comprehension,NOT_STATED,ITEM,,"Low value: fixture tracing, mock boundaries, test-pyramid balance, redundant-test detection not stated"
+279,Test pyramid balance analyzer,Patch Test and Coverage Comprehension,NOT_STATED,ITEM,,"Low value: fixture tracing, mock boundaries, test-pyramid balance, redundant-test detection not stated"
+280,Redundant test detector,Patch Test and Coverage Comprehension,NOT_STATED,ITEM,,"Low value: fixture tracing, mock boundaries, test-pyramid balance, redundant-test detection not stated"
+281,Complexity analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+282,Cyclomatic complexity scorer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+283,Code duplication detector,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+284,Dead code detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+285,Unused dependency detector,P1.3 Code understanding,PARTIAL,ITEM,,Dependency vetting covers duplicates/size/licence/vulns (TA:2662); unused-dependency detection not stated (Android Lint may cover)
+286,Refactoring suggestion engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+287,Code style analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+288,Lint rule generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+289,Code formatting system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+290,Quality trend tracker,P1.3 Code understanding,COVERED,ITEM,,Frozen FIX-PROG battery tracks progress across milestones (M §35); metrics BS §47.8
+291,Runtime trace analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+292,Stack trace interpreter,P1.3 Code understanding,COVERED,ITEM,,"android-runtime-diagnostics (logcat, crash/ANR classification)"
+293,Memory usage analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+294,Performance profiling engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+295,Thread behavior analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+296,Resource usage tracker,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+297,API latency analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+298,Runtime anomaly detector,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+299,Crash pattern analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+300,Runtime dependency tracker,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+301,Repository structure analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+302,Monorepo analyzer,P1.3 Code understanding,NA,ITEM,,Multi-module Gradle handled by android-gradle-expert
+303,Microservice detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+304,Service boundary inference,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+305,Package architecture inference,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+306,Code ownership graph,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+307,Developer workflow analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+308,Codebase risk scoring,P1.3 Code understanding,COVERED,ITEM,,PreflightReport risk records (BS §47.2); SecurityRiskScorer (BS §58.2)
+309,System complexity analyzer,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+310,Architecture drift detector,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+311,Semantic code search,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+312,Code completion reasoning,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+313,Code synthesis validation,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+314,Code rewrite engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+315,Automatic refactoring system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+316,Cross-language code mapping,P1.3 Code understanding,COVERED,ITEM,,"Multi-language AndroidCodeIntelligence; ingestion and deprecated-API migration (TA:2267, 2330)"
+317,Code migration engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+318,Legacy code understanding,P1.3 Code understanding,COVERED,ITEM,,"Multi-language AndroidCodeIntelligence; ingestion and deprecated-API migration (TA:2267, 2330)"
+319,Code modernization planner,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+320,Cross-repository knowledge linking,P1.3 Code understanding,OUT_OF_SCOPE,ITEM,,Single local project scope; project memory is project-scoped
+321,Code knowledge graph builder,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+322,Code query engine,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+323,Code indexing pipeline,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+324,Code cache system,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+325,Code metadata storage,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+326,Code analysis scheduler,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+327,Code insight dashboard,P1.3 Code understanding,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+328,Code visualization tools,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+329,Code analysis API,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+330,Code intelligence service,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+331,Vulnerability detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+332,Secret detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+333,Hardcoded credential detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+334,Dependency CVE detection,P1.3 Code understanding,COVERED,ITEM,,"Vulnerability checks before dependency promotion (BS:1689, 2015; TA:2662)"
+335,Secure coding validator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+336,Security policy enforcement,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+337,Exploit pattern detection,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+338,Security risk scoring,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+339,Threat modeling inference,P1.3 Code understanding,PARTIAL,ITEM,GAP-8,GAP-8: post-hoc exploit-pattern scan (BS §58.2) but no pre-generation threat sketch or abuse cases
+340,Security audit generator,P1.3 Code understanding,COVERED_FAMILY,FAMILY,,"Android code intelligence and security intelligence: TA §47, §70; BS §43, §58"
+341,Architecture node graph builder,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Repository Semantic Graph, integration graph, event/evidence stores: TA §45, §47, §74"
+342,Component relationship graph,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Repository Semantic Graph, integration graph, event/evidence stores: TA §45, §47, §74"
+343,Service dependency graph,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Repository Semantic Graph, integration graph, event/evidence stores: TA §45, §47, §74"
+344,Data flow architecture graph,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Repository Semantic Graph, integration graph, event/evidence stores: TA §45, §47, §74"
+345,Event flow graph,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Repository Semantic Graph, integration graph, event/evidence stores: TA §45, §47, §74"
+346,API communication graph,P1.4 Arch graphs,COVERED,ITEM,,IntegrationBoundaryContract / AndroidServiceIntegration graph (BS §70; TA §74)
+347,Infrastructure topology graph,P1.4 Arch graphs,COVERED,ITEM,,IntegrationBoundaryContract / AndroidServiceIntegration graph (BS §70; TA §74)
+348,Storage architecture graph,P1.4 Arch graphs,NA,ITEM,,Storage choices live in AndroidTechnologyPlan
+349,Deployment architecture graph,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server/infrastructure topology graphs; Android-only client target
+350,Scaling architecture graph,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server/infrastructure topology graphs; Android-only client target
+351,Architecture constraint engine,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+352,Architecture rule validator,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+353,Architecture best practice checker,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+354,Architecture anti-pattern detector,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+355,Architecture conflict resolver,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+356,Architecture redundancy detector,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+357,Architecture optimization engine,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+358,Architecture risk scoring,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+359,Architecture maintainability scoring,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+360,Architecture complexity scoring,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Contract/plan drift detection and contract-graph verifier: BS §47.6, §67; M56"
+361,Architecture pattern detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+362,Microservice architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+363,Monolith architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+364,Event-driven architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+365,Serverless architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+366,CQRS architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+367,Layered architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+368,Hexagonal architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+369,Domain-driven architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+370,Clean architecture detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Pattern detection on ingestion not stated; generation-side patterns via android-architecture-expert
+371,Architecture simulation engine,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+372,Traffic simulation system,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+373,Failure simulation engine,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+374,Scaling simulation system,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+375,Load distribution simulation,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+376,Latency simulation engine,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+377,Resource bottleneck detection,P1.4 Arch graphs,COVERED,ITEM,,Runtime Resource Integrity Authority (BS §72) for host bottlenecks
+378,Architecture resilience testing,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+379,Disaster scenario simulation,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+380,Architecture stress testing,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Server-scale simulation; Android-only client target
+381,Architecture change impact analyzer,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+382,Architecture drift detection,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+383,Architecture evolution tracker,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+384,Architecture decision record generator,P1.4 Arch graphs,NOT_STATED,ITEM,,"Generated projects get a handbook and release report, not ADRs or migration plans"
+385,Architecture migration planner,P1.4 Arch graphs,NOT_STATED,ITEM,,"Generated projects get a handbook and release report, not ADRs or migration plans"
+386,Architecture rollback planner,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+387,Architecture compatibility checker,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+388,Architecture upgrade planner,P1.4 Arch graphs,NOT_STATED,ITEM,,"Generated projects get a handbook and release report, not ADRs or migration plans"
+389,Architecture refactoring planner,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Change intelligence, drift, rollback: BS §83, §47.6; TA §18"
+390,Architecture version tracking,P1.4 Arch graphs,COVERED,ITEM,,AndroidConstructionContract and plan revisions are versioned (BS §47.6)
+391,Architecture reasoning engine,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Technology resolver, decision criteria, candidate branching: BS §5.2, §65, §80.4"
+392,Architecture decision scoring,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,"Technology resolver, decision criteria, candidate branching: BS §5.2, §65, §80.4"
+393,Architecture tradeoff analyzer,P1.4 Arch graphs,COVERED,ITEM,,"Technology resolver, explicit decision criteria, candidate selection (BS §5.2, §65, §80.4)"
+394,Architecture constraint solver,P1.4 Arch graphs,COVERED,ITEM,,"Technology resolver, explicit decision criteria, candidate selection (BS §5.2, §65, §80.4)"
+395,Architecture optimization search,P1.4 Arch graphs,NA,ITEM,,No adoption evidence; not needed for a one-shot local build
+396,Architecture multi-objective planner,P1.4 Arch graphs,COVERED,ITEM,,"Technology resolver, explicit decision criteria, candidate selection (BS §5.2, §65, §80.4)"
+397,Architecture heuristic engine,P1.4 Arch graphs,NA,ITEM,,No adoption evidence; not needed for a one-shot local build
+398,Architecture reinforcement learning loop,P1.4 Arch graphs,NOT_ADOPTED,ITEM,,No adoption evidence (research feature)
+399,Architecture solution ranking,P1.4 Arch graphs,COVERED,ITEM,,"Technology resolver, explicit decision criteria, candidate selection (BS §5.2, §65, §80.4)"
+400,Architecture recommendation engine,P1.4 Arch graphs,COVERED,ITEM,,"Technology resolver, explicit decision criteria, candidate selection (BS §5.2, §65, §80.4)"
+401,Architecture knowledge graph,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+402,Architecture query engine,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+403,Architecture pattern library,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+404,Architecture best practice database,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+405,Architecture violation alerts,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+406,Architecture insight dashboard,P1.4 Arch graphs,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+407,Architecture visualization system,P1.4 Arch graphs,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+408,Architecture graph explorer,P1.4 Arch graphs,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+409,Architecture metadata store,P1.4 Arch graphs,COVERED_FAMILY,FAMILY,,Repository Semantic Graph and typed query interface: TA §47; BS:2438
+410,Architecture analytics engine,P1.4 Arch graphs,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+411,Architecture scenario planner,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Forecasting/capacity planning for hosted systems
+412,Architecture future growth planner,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Forecasting/capacity planning for hosted systems
+413,Architecture scaling forecast,P1.4 Arch graphs,OUT_OF_SCOPE,FAMILY,,Forecasting/capacity planning for hosted systems
+414,Architecture cost projection model,P1.4 Arch graphs,OUT_OF_SCOPE,ITEM,,Forecasting for hosted systems; Android-only client target
+415,Architecture performance forecast,P1.4 Arch graphs,OUT_OF_SCOPE,ITEM,,Forecasting for hosted systems; Android-only client target
+416,Architecture security posture analyzer,P1.4 Arch graphs,COVERED,ITEM,,AndroidSecurityIntelligenceService risk score (BS §58.2)
+417,Architecture reliability predictor,P1.4 Arch graphs,OUT_OF_SCOPE,ITEM,,Forecasting for hosted systems; Android-only client target
+418,Architecture maintainability forecast,P1.4 Arch graphs,OUT_OF_SCOPE,ITEM,,Forecasting for hosted systems; Android-only client target
+419,Architecture capacity planning engine,P1.4 Arch graphs,COVERED,ITEM,,Resource forecast and capacityVerdict (BS §47.2; TA:4467)
+420,Architecture sustainability analysis,P1.4 Arch graphs,OUT_OF_SCOPE,ITEM,,Forecasting for hosted systems; Android-only client target
+421,Architecture monitoring system,P1.4 Arch graphs,PARTIAL,FAMILY,,Runtime integrity signals from the local emulator session only (CAP.ANDROID.RUNTIME_INTEGRITY); post-publish monitoring excluded (BS §46)
+422,Architecture runtime telemetry analyzer,P1.4 Arch graphs,PARTIAL,FAMILY,,Runtime integrity signals from the local emulator session only (CAP.ANDROID.RUNTIME_INTEGRITY); post-publish monitoring excluded (BS §46)
+423,Architecture anomaly detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Runtime integrity signals from the local emulator session only (CAP.ANDROID.RUNTIME_INTEGRITY); post-publish monitoring excluded (BS §46)
+424,Architecture degradation detection,P1.4 Arch graphs,PARTIAL,FAMILY,,Runtime integrity signals from the local emulator session only (CAP.ANDROID.RUNTIME_INTEGRITY); post-publish monitoring excluded (BS §46)
+425,Architecture recovery strategy generator,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+426,Architecture improvement suggestions,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+427,Architecture health scoring,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+428,Architecture diagnostics engine,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+429,Architecture debugging tools,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+430,Architecture governance engine,P1.4 Arch graphs,COVERED,ITEM,,"Recovery ladder (TA §28), quality findings (BS §47.3), android-runtime-diagnostics, Agent Runtime Debugger (BS §63), contract governance (BS §67)"
+431,Dependency graph builder,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+432,Package registry scanner,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+433,Dependency version analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+434,Dependency compatibility checker,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+435,Dependency conflict resolver,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+436,Dependency upgrade recommender,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+437,Dependency downgrade analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+438,Dependency security scanner,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+439,Dependency license analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+440,Dependency risk scoring,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency resolution, integrity hashes, compatibility, licence and vulnerability checks: BS §58.3, §26.7; TA:2451, 2662"
+441,Dependency update planner,P1.5 Dependency intel,PARTIAL,FAMILY,,dependency_changed checks exist (BS:2015); ecosystem/stability prediction not stated
+442,Dependency change impact analyzer,P1.5 Dependency intel,COVERED,ITEM,,dependency_changed triggers checks (BS:2015); checkpoint rollback (TA §18)
+443,Dependency upgrade simulation,P1.5 Dependency intel,COVERED,ITEM,,dependency_changed triggers compatibility/vulnerability/licence checks before commit (BS:2015)
+444,Dependency rollback planner,P1.5 Dependency intel,COVERED,ITEM,,dependency_changed triggers checks (BS:2015); checkpoint rollback (TA §18)
+445,Dependency test trigger engine,P1.5 Dependency intel,COVERED,ITEM,,dependency_changed triggers checks (BS:2015); checkpoint rollback (TA §18)
+446,Dependency patch recommendation,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+447,Dependency stability predictor,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+448,Dependency maintenance tracker,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+449,Dependency popularity analyzer,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+450,Dependency ecosystem analyzer,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+451,Dependency health monitoring,P1.5 Dependency intel,PARTIAL,FAMILY,,Ongoing dependency health monitoring is post-publish (BS §46); build-time checks exist
+452,Dependency vulnerability alerts,P1.5 Dependency intel,EXCLUDED,ITEM,,"Ongoing dependency alerts/lifecycle/runtime monitoring is post-publish (BS §46, ADR-224)"
+453,Dependency lifecycle tracker,P1.5 Dependency intel,EXCLUDED,ITEM,,"Ongoing dependency alerts/lifecycle/runtime monitoring is post-publish (BS §46, ADR-224)"
+454,Dependency abandonment detection,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+455,Dependency maintainability scoring,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+456,Dependency code quality analysis,P1.5 Dependency intel,NOT_STATED,ITEM,,Ecosystem popularity/stability/abandonment/maintainability scoring not stated; low value for a local one-shot build
+457,Dependency runtime monitoring,P1.5 Dependency intel,EXCLUDED,ITEM,,"Ongoing dependency alerts/lifecycle/runtime monitoring is post-publish (BS §46, ADR-224)"
+458,Dependency failure detection,P1.5 Dependency intel,COVERED,ITEM,,"Failure classification and approved-alternative selection (BS §5.4, §47.4)"
+459,Dependency fallback selection,P1.5 Dependency intel,COVERED,ITEM,,"Failure classification and approved-alternative selection (BS §5.4, §47.4)"
+460,Dependency replacement recommender,P1.5 Dependency intel,COVERED,ITEM,,"Failure classification and approved-alternative selection (BS §5.4, §47.4)"
+461,Dependency compatibility matrix,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Toolchain/dependency compatibility constraints and build validation: TA:2451; BS §79.7
+462,Dependency build validation,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Toolchain/dependency compatibility constraints and build validation: TA:2451; BS §79.7
+463,Dependency container compatibility,P1.5 Dependency intel,PROHIBITED,ITEM,,Docker/VM/WSL sandboxes excluded (BS:2021; ADR:1093)
+464,Dependency runtime compatibility,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Toolchain/dependency compatibility constraints and build validation: TA:2451; BS §79.7
+465,Dependency architecture compatibility,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Toolchain/dependency compatibility constraints and build validation: TA:2451; BS §79.7
+466,Dependency API compatibility,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Toolchain/dependency compatibility constraints and build validation: TA:2451; BS §79.7
+467,Dependency semantic version validator,P1.5 Dependency intel,COVERED,ITEM,,Version pinning with integrity hashes (BS §58.3); prohibited-pattern table (TA:4970)
+468,Dependency deprecation detection,P1.5 Dependency intel,COVERED,ITEM,,Version pinning with integrity hashes (BS §58.3); prohibited-pattern table (TA:4970)
+469,Dependency migration assistant,P1.5 Dependency intel,PARTIAL,ITEM,GAP-9,GAP-9: no migration/upgrade procedure for opened projects
+470,Dependency upgrade automation,P1.5 Dependency intel,PARTIAL,ITEM,GAP-9,GAP-9: no migration/upgrade procedure for opened projects
+471,Dependency knowledge graph,P1.5 Dependency intel,COVERED,ITEM,,Repository map and dependency graph (TA §37)
+472,Dependency relationship graph,P1.5 Dependency intel,COVERED,ITEM,,Repository map and dependency graph (TA §37)
+473,Dependency cross-project linking,P1.5 Dependency intel,NA,ITEM,,No cross-project dependency analytics in scope
+474,Dependency similarity analysis,P1.5 Dependency intel,NA,FAMILY,,Cross-project analytics not in scope; single local project
+475,Dependency clustering engine,P1.5 Dependency intel,NA,FAMILY,,Cross-project analytics not in scope; single local project
+476,Dependency trend analysis,P1.5 Dependency intel,NA,ITEM,,No cross-project dependency analytics in scope
+477,Dependency usage prediction,P1.5 Dependency intel,NA,FAMILY,,Cross-project analytics not in scope; single local project
+478,Dependency anomaly detection,P1.5 Dependency intel,NA,FAMILY,,Cross-project analytics not in scope; single local project
+479,Dependency analytics dashboard,P1.5 Dependency intel,NA,ITEM,,"UI surface or cross-project analytics, not a builder mechanism"
+480,Dependency intelligence API,P1.5 Dependency intel,NA,FAMILY,,Cross-project analytics not in scope; single local project
+481,Dependency optimization engine,P1.5 Dependency intel,PARTIAL,FAMILY,,Size impact and duplicate-class checks exist (TA:2662); runtime/build-time optimizers not stated
+482,Dependency footprint reducer,P1.5 Dependency intel,COVERED,ITEM,,Size-impact and duplicate-class checks (TA:2662); shrinker/R8 rules (android-gradle-expert)
+483,Dependency load time analyzer,P1.5 Dependency intel,NA,ITEM,,Web/server load characteristics
+484,Dependency memory usage analyzer,P1.5 Dependency intel,NA,ITEM,,Web/server load characteristics
+485,Dependency performance impact scorer,P1.5 Dependency intel,PARTIAL,ITEM,,Size impact only (TA:2662)
+486,Dependency build time analyzer,P1.5 Dependency intel,PARTIAL,FAMILY,,Size impact and duplicate-class checks exist (TA:2662); runtime/build-time optimizers not stated
+487,Dependency bundling optimizer,P1.5 Dependency intel,COVERED,ITEM,,Size-impact and duplicate-class checks (TA:2662); shrinker/R8 rules (android-gradle-expert)
+488,Dependency caching strategy generator,P1.5 Dependency intel,PARTIAL,FAMILY,,Size impact and duplicate-class checks exist (TA:2662); runtime/build-time optimizers not stated
+489,Dependency parallel loading planner,P1.5 Dependency intel,NA,ITEM,,Web/server load characteristics
+490,Dependency lazy loading planner,P1.5 Dependency intel,NA,ITEM,,Web/server load characteristics
+491,Dependency governance system,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+492,Dependency policy engine,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+493,Dependency approval rules,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+494,Dependency audit logs,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+495,Dependency compliance validation,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+496,Dependency security policy enforcement,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+497,Dependency provenance tracking,P1.5 Dependency intel,COVERED,ITEM,,SBOM with integrity hashes and artifact provenance (BS §58.3-58.4)
+498,Dependency supply chain verification,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+499,Dependency trust scoring,P1.5 Dependency intel,PARTIAL,ITEM,,Unscannable packages are labelled unverified (BS:1689); no trust score
+500,Dependency risk mitigation planner,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,"Dependency policy, approvals, audit trail, provenance, SBOM, trust boundary: BS §26.7, §58, §73; TA §70"
+501,Dependency observability system,P1.5 Dependency intel,PARTIAL,FAMILY,,Transitive dependencies evaluated (TA:2662); dependency telemetry not applicable to a local one-shot build
+502,Dependency metrics collector,P1.5 Dependency intel,PARTIAL,FAMILY,,Transitive dependencies evaluated (TA:2662); dependency telemetry not applicable to a local one-shot build
+503,Dependency telemetry analyzer,P1.5 Dependency intel,PARTIAL,FAMILY,,Transitive dependencies evaluated (TA:2662); dependency telemetry not applicable to a local one-shot build
+504,Dependency failure analytics,P1.5 Dependency intel,COVERED,ITEM,,"Failure signatures, repair registry (TA §51.1)"
+505,Dependency service reliability scoring,P1.5 Dependency intel,PARTIAL,FAMILY,,Transitive dependencies evaluated (TA:2662); dependency telemetry not applicable to a local one-shot build
+506,Dependency dependency-of-dependency tracking,P1.5 Dependency intel,COVERED,ITEM,,Transitive conflicts and vulnerabilities evaluated (TA:2662)
+507,Dependency deep dependency graph analyzer,P1.5 Dependency intel,COVERED,ITEM,,Transitive conflicts and vulnerabilities evaluated (TA:2662)
+508,Dependency indirect risk scoring,P1.5 Dependency intel,COVERED,ITEM,,Transitive conflicts and vulnerabilities evaluated (TA:2662)
+509,Dependency dependency cycle detection,P1.5 Dependency intel,PARTIAL,FAMILY,,Transitive dependencies evaluated (TA:2662); dependency telemetry not applicable to a local one-shot build
+510,Dependency graph pruning optimizer,P1.5 Dependency intel,NA,ITEM,,No cross-project dependency analytics in scope
+511,Dependency environment compatibility analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+512,Dependency platform compatibility checker,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+513,Dependency cloud compatibility validator,P1.5 Dependency intel,OUT_OF_SCOPE,ITEM,,No cloud/CI deployment target (BS:2021)
+514,Dependency OS compatibility analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+515,Dependency architecture compatibility validator,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+516,Dependency runtime engine analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+517,Dependency container image analyzer,P1.5 Dependency intel,PROHIBITED,ITEM,,Docker/VM/WSL excluded (BS:2021)
+518,Dependency build system analyzer,P1.5 Dependency intel,COVERED_FAMILY,FAMILY,,Windows host x Android target platform/toolchain compatibility: BS §79; TA §84
+519,Dependency CI compatibility validator,P1.5 Dependency intel,OUT_OF_SCOPE,ITEM,,No cloud/CI deployment target (BS:2021)
+520,Dependency deployment readiness checker,P1.5 Dependency intel,COVERED,ITEM,,"Certified-release gate (BS §5.7.7, CAP.ANDROID.CERTIFIED_RELEASE)"
+521,Clarifying question generator,6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+522,Question value ranker (ask only what changes the build),6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+523,Assumption ledger builder,6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+524,Assumption risk classifier,6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+525,Default decision policy engine (decide vs ask),6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+526,Stakeholder persona inference,6 Requirement Elicitation,NOT_STATED,ITEM,,Low value: no persona inference step
+527,Use-case scenario expander,6 Requirement Elicitation,COVERED,ITEM,,Requirement->acceptance criterion->test traceability (BS §47.5); E2E scenarios
+528,Non-functional requirement inferrer,6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+529,"Implicit requirement miner (login implies reset, logout, session expiry)",6 Requirement Elicitation,PARTIAL,ITEM,,"Ambiguity gate and assumption recording exist (BS §69.11), E2E state dimensions (ADR:3169); no expansion of implied functional requirements (login -> reset, logout)"
+530,Requirement source tracer (prompt phrase to requirement),6 Requirement Elicitation,COVERED_FAMILY,FAMILY,,"Clarification gate, assumption recording, defaults: BS §69.11; E2E dimensions ADR:3169"
+531,PRD generator,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+532,User story synthesizer,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+533,Acceptance criteria generator,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+534,Given-When-Then scenario builder,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+535,Feature dependency map builder,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+536,"Scope boundary definer (in, out, later)",6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+537,MVP cutline calculator,6 Spec Formalization,NOT_STATED,ITEM,,No MVP cut-line; DEGRADED/USER_REQUIRED classification exists (BS §5.4)
+538,Product-level requirement conflict detector,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+539,Requirement testability scorer,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+540,Requirement priority scorer,6 Spec Formalization,COVERED_FAMILY,FAMILY,,"AndroidConstructionContract / RequirementManifest with acceptance criteria: BS §47.5; M39, M47"
+541,Requirement-to-file trace matrix,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+542,Requirement-to-test trace matrix,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+543,Requirement coverage tracker,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+544,Orphan code detector (code no requirement asked for),6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+545,Orphan requirement detector (requirement with no code),6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+546,Spec drift detector,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+547,Spec patch generator,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+548,Spec version differ,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+549,Change request to requirement mapper,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+550,Definition-of-done evaluator,6 Spec-to-Build Traceability,COVERED_FAMILY,FAMILY,,"Traceability, drift, contract versioning: BS §47.5-47.6; M55-M56"
+551,Domain template library,6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+552,Domain entity model catalog,6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+553,Domain workflow catalog,6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+554,Regulatory context lookup by domain and region,6 Product Domain Knowledge,NOT_STATED,ITEM,,Regulatory lookup by region not stated (store submission excluded)
+555,Competitor feature baseline extractor,6 Product Domain Knowledge,NA,ITEM,,Not a builder mechanism or no monorepo/env-template concept
+556,Competitor gap analyzer,6 Product Domain Knowledge,NA,ITEM,,Not a builder mechanism or no monorepo/env-template concept
+557,Industry glossary manager,6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+558,"Locale business rule library (tax, currency, address formats)",6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+559,Persona-based UX flow library,6 Product Domain Knowledge,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+560,Monetization model recommender,6 Product Domain Knowledge,COVERED,ITEM,,"android-ads-expert, android-payments-expert"
+561,Project scaffold selector,7 Scaffolding and Templates,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+562,Stack choice recommender,7 Scaffolding and Templates,COVERED_FAMILY,FAMILY,,"Technology resolver, android-gradle/architecture experts, project handbook: BS §5.2, §79.7"
+563,Boilerplate template registry,7 Scaffolding and Templates,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+564,Template parameter binder,7 Scaffolding and Templates,PROHIBITED,ITEM,,"No user-facing framework/template catalogue; project creation is described, not selected (BS §46, BS:842; M96 no-template enforcement)"
+565,Scaffold post-processor,7 Scaffolding and Templates,NOT_STATED,ITEM,,Internal bootstrap is permitted only when needed (BS §46); no post-processor stated
+566,Monorepo layout generator,7 Scaffolding and Templates,NA,ITEM,,Not a builder mechanism or no monorepo/env-template concept
+567,"Tooling config synthesizer (tsconfig, lint, bundler)",7 Scaffolding and Templates,COVERED_FAMILY,FAMILY,,"Technology resolver, android-gradle/architecture experts, project handbook: BS §5.2, §79.7"
+568,Environment file template generator,7 Scaffolding and Templates,NA,ITEM,,Not a builder mechanism or no monorepo/env-template concept
+569,Folder convention enforcer,7 Scaffolding and Templates,COVERED,ITEM,,android-architecture-expert; project handbook lists directories and conventions (BS:1276)
+570,Naming convention resolver,7 Scaffolding and Templates,COVERED,ITEM,,android-architecture-expert; project handbook lists directories and conventions (BS:1276)
+571,File generation order planner,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+572,Interface-first generation scheduler,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+573,Shared type generator (single source of truth),7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+574,Stub-then-fill generator,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+575,Generation unit sizer (scope per model call),7 Generation Planning,COVERED,ITEM,,Step narrowing to reliable recall span (TA:3787)
+576,Cross-file symbol reservation,7 Generation Planning,COVERED,ITEM,,Semantic reservations (BS §54; TA §60)
+577,Import path resolver,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+578,Export surface planner,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+579,Per-file generation checkpointer,7 Generation Planning,COVERED_FAMILY,FAMILY,,"Kernel task graph, InterfaceAgreement, semantic reservations, mutation broker: BS §52, §54, §43"
+580,Partial regeneration planner,7 Generation Planning,COVERED,ITEM,,Targeted repair without broad regeneration (CAP.ANDROID.REGRESSION_REPAIR)
+581,Cross-file consistency checker,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+582,Symbol table maintainer,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+583,Undefined reference detector,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+584,Call signature mismatch detector,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+585,Type contract propagator,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+586,Naming drift detector,7 Generation Consistency,NOT_STATED,ITEM,,Naming drift across generated files not explicitly checked
+587,Duplicate implementation detector,7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+588,"Placeholder residue detector (TODO, lorem, FIXME)",7 Generation Consistency,GAP,ITEM,GAP-4,GAP-4: placeholder gating exists only for branding assets; no static gate for TODO/stub/lorem/hard-coded sample data
+589,"Truncated file detector (unbalanced braces, cut-off endings)",7 Generation Consistency,COVERED_FAMILY,FAMILY,,"Cross-file contracts, repository graph, compile/AST validation: BS §43; TA §47"
+590,Fake data leftover detector (mock data shipped as real),7 Generation Consistency,GAP,ITEM,GAP-4,GAP-4: placeholder gating exists only for branding assets; no static gate for TODO/stub/lorem/hard-coded sample data
+591,Compile-before-commit gate,7 Generation Quality Gates,COVERED_FAMILY,FAMILY,,"Verification-in-loop, quality skills, anti-pattern detector: BS §57; TA §47.4"
+592,Lint-before-commit gate,7 Generation Quality Gates,COVERED_FAMILY,FAMILY,,"Verification-in-loop, quality skills, anti-pattern detector: BS §57; TA §47.4"
+593,Idempotent regeneration checker,7 Generation Quality Gates,NA,ITEM,,Generation is not template regeneration
+594,Generation determinism scorer,7 Generation Quality Gates,NA,ITEM,,Generation is not template regeneration
+595,Generated code style normalizer,7 Generation Quality Gates,COVERED_FAMILY,FAMILY,,"Verification-in-loop, quality skills, anti-pattern detector: BS §57; TA §47.4"
+596,Generated-file marker stamper,7 Generation Quality Gates,NOT_STATED,ITEM,,Low value: generated project is a normal user-owned project
+597,License header injector,7 Generation Quality Gates,NOT_STATED,ITEM,,Low value: generated project is a normal user-owned project
+598,Generated vs handwritten region tracker,7 Generation Quality Gates,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+599,"Banned construct scanner (eval, untyped casts, empty catch)",7 Generation Quality Gates,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+600,"Codegen provenance recorder (prompt, model, version per file)",7 Generation Quality Gates,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+601,Framework idiom library,7 Idiom and API Correctness,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+602,Framework version-aware API selector,7 Idiom and API Correctness,COVERED_FAMILY,FAMILY,,"Skill library, prohibited-pattern table, dependency verification: BS §79.7, §58.3; TA:4970"
+603,Deprecated API avoidance filter,7 Idiom and API Correctness,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+604,Hallucinated API detector,7 Idiom and API Correctness,PARTIAL,ITEM,,Unresolved references are caught by syntax/compile validation; no explicit nonexistent-API check
+605,Hallucinated package detector,7 Idiom and API Correctness,COVERED,ITEM,,Name resembling a known package is flagged; unresolved dependencies rejected (BS §58.3)
+606,Type definition usage verifier,7 Idiom and API Correctness,COVERED_FAMILY,FAMILY,,"Skill library, prohibited-pattern table, dependency verification: BS §79.7, §58.3; TA:4970"
+607,Language pitfall catalog,7 Idiom and API Correctness,COVERED,ITEM,,"Ownership classification (BS §55); AndroidAntiPatternDetector and prohibited-pattern table (TA:2304, 4970); skill library (BS §79.7); workerRunId in worker records and provider/model in activity log (BS:798)"
+608,Async and concurrency pattern enforcer,7 Idiom and API Correctness,COVERED_FAMILY,FAMILY,,"Skill library, prohibited-pattern table, dependency verification: BS §79.7, §58.3; TA:4970"
+609,Error handling idiom enforcer,7 Idiom and API Correctness,NOT_STATED,ITEM,,Swallowed-error idioms not listed in the anti-pattern table
+610,State management pattern selector,7 Idiom and API Correctness,COVERED_FAMILY,FAMILY,,"Skill library, prohibited-pattern table, dependency verification: BS §79.7, §58.3; TA:4970"
+611,Toolchain detector,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+612,Runtime version provisioner,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+613,SDK installer,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+614,Toolchain version pinner,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+615,Offline package mirror manager,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+616,Disk space preflight,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+617,Port availability preflight,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+618,Permission and elevation preflight,8 Toolchain Provisioning,COVERED,ITEM,,environment-preflight skill; elevation prompt handling (BS:177)
+619,"OS quirk handler (long paths, line endings, case sensitivity)",8 Toolchain Provisioning,PARTIAL,ITEM,GAP-10,"GAP-10: long paths, atomic writes, file locking covered (BS:5731, 5959); Defender/antivirus interference not mentioned"
+620,Environment snapshot recorder,8 Toolchain Provisioning,COVERED_FAMILY,FAMILY,,"Toolchain authority, environment preflight/repair: BS §9, §79; TA §11, §49"
+621,Build command inferencer,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+622,Incremental build planner,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+623,Build cache manager,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+624,Build step DAG executor,8 Build Orchestration,NA,ITEM,,Gradle owns the build DAG; reproducibility levels are artifact-level (BS §5.7.1)
+625,Build timeout supervisor,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+626,Build log streamer,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+627,Build artifact registry,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+628,Build reproducibility checker,8 Build Orchestration,NA,ITEM,,Gradle owns the build DAG; reproducibility levels are artifact-level (BS §5.7.1)
+629,Parallel build scheduler,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+630,Build resource throttler,8 Build Orchestration,COVERED_FAMILY,FAMILY,,Toolchain authority and build supervision: TA §49; BS §72
+631,Compiler error parser,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+632,Cross-tool error normalizer,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+633,Error signature fingerprinter,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+634,Error taxonomy classifier,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+635,Cascade root error finder (first error vs downstream noise),8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+636,Error-to-file locator,8 Error Intelligence,COVERED,ITEM,,Regression localization (BS §62; TA §63)
+637,Known error solution store,8 Error Intelligence,COVERED,ITEM,,Repair registry (TA §51.1)
+638,Error frequency tracker,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+639,Environment vs code error separator,8 Error Intelligence,COVERED_FAMILY,FAMILY,,"FailureModeRecord catalogue, repair registry, android-build-repair: BS §47.4; TA §51"
+640,LLM-ready error summarizer,8 Error Intelligence,COVERED,ITEM,,Debugging worker receives focused failure output (BS §23.15)
+641,Patch candidate generator,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+642,Minimal diff patch selector,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+643,Patch applicability validator,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+644,Patch blast radius estimator,8 Auto-Repair,COVERED,ITEM,,Mutation safety constraints bound transaction size (BS:2442)
+645,Repair attempt budget manager,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+646,"Repair oscillation detector (fix A breaks B, fix B breaks A)",8 Auto-Repair,COVERED,ITEM,,RepeatedFailureDetector / StrategyChangeRequired (BS:4776)
+647,Post-patch regression guard,8 Auto-Repair,COVERED,ITEM,,"CLAUSE.VERIFY.IN_LOOP; regression localization (BS §57, §62)"
+648,Failed patch rollback,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+649,"Repair escalation ladder (line fix, file regen, replan)",8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+650,Repair outcome recorder,8 Auto-Repair,COVERED_FAMILY,FAMILY,,"Recovery ladder, regression localization, repeated-failure detection: TA §28; BS §62, §66"
+651,App launch smoke tester,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+652,Health endpoint prober,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+653,Startup crash detector,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+654,Console error harvester,8 Runtime Smoke Verification,COVERED,ITEM,,android-runtime-diagnostics; android-network-debugging
+655,Network failure harvester,8 Runtime Smoke Verification,COVERED,ITEM,,android-runtime-diagnostics; android-network-debugging
+656,Headless UI driver,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+657,Screenshot capture pipeline,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+658,Blank screen detector,8 Runtime Smoke Verification,COVERED_FAMILY,FAMILY,,"android-install-launch, runtime-diagnostics, interaction-validation, AndroidScreenGraph"
+659,Screen reachability crawler,8 Runtime Smoke Verification,COVERED,ITEM,,AndroidScreenGraph with reachable/unreachable/dead-end nodes (schemas:4190-4202)
+660,Dead control detector (click does nothing),8 Runtime Smoke Verification,COVERED,ITEM,,AndroidScreenGraph with reachable/unreachable/dead-end nodes (schemas:4190-4202)
+661,Unit test synthesizer,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+662,Integration test synthesizer,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+663,End-to-end scenario synthesizer,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+664,Property-based test generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+665,Boundary value generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+666,Test data factory generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+667,Negative path test generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+668,Contract test generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+669,Snapshot test generator,9 Test Generation,COVERED_FAMILY,FAMILY,,Stateful E2E engine and android-testing-expert: TA §62; BS §56
+670,Bug report to regression test generator,9 Test Generation,PARTIAL,ITEM,GAP-6,GAP-6: no rule to turn a user-reported defect into a failing reproduction scenario before repair (0 hits)
+671,Test runner selector,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+672,Test sharding scheduler,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+673,Test isolation enforcer,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+674,Test environment seeder,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+675,Retry-with-diagnosis policy,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+676,Test timeout tuner,9 Test Execution,COVERED,ITEM,,Configurable liveness timeouts (BS §80.3 defaults)
+677,Test result aggregator,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+678,Failure clustering engine,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+679,Failing test log slicer,9 Test Execution,COVERED,ITEM,,Debugging worker receives focused failure output (BS §23.15)
+680,Quarantine manager,9 Test Execution,COVERED_FAMILY,FAMILY,,Verification orchestrator; flaky/quarantine handling: TA §64; BS §57
+681,Mutation testing engine,9 Test Quality,COVERED,ITEM,,Fault-injection proof of non-vacuous assertions (BS §57.5); CLAUSE.VERIFY.NON_VACUITY
+682,Mutation survivor analyzer,9 Test Quality,COVERED,ITEM,,Fault-injection proof of non-vacuous assertions (BS §57.5); CLAUSE.VERIFY.NON_VACUITY
+683,Tautological assertion detector,9 Test Quality,COVERED,ITEM,,Fault-injection proof of non-vacuous assertions (BS §57.5); CLAUSE.VERIFY.NON_VACUITY
+684,Right-answer-wrong-reason detector,9 Test Quality,COVERED,ITEM,,Fault-injection proof of non-vacuous assertions (BS §57.5); CLAUSE.VERIFY.NON_VACUITY
+685,Coverage-guided test augmenter,9 Test Quality,GAP,ITEM,GAP-3,"GAP-3: no code-coverage measurement (0 hits for JaCoCo/Kover/line/branch coverage); ""test coverage"" is named as a review dimension only (BS:2678)"
+686,Test determinism verifier,9 Test Quality,COVERED_FAMILY,FAMILY,,"Assertion-quality fault injection (BS §57.5), NON_VACUITY, traceability"
+687,Test data leakage detector,9 Test Quality,NOT_STATED,ITEM,,Low value
+688,Test suite runtime budgeter,9 Test Quality,NOT_STATED,ITEM,,"App-design detail, not stated"
+689,Test-to-requirement alignment scorer,9 Test Quality,COVERED,ITEM,,Requirement->test traceability (BS §47.5)
+690,Test maintenance cost estimator,9 Test Quality,NOT_STATED,ITEM,,Low value
+691,Load test generator,9 Non-Functional Testing,OUT_OF_SCOPE,ITEM,,Server load testing
+692,Soak test scheduler,9 Non-Functional Testing,PARTIAL,ITEM,,android-process-memory-expert covers heap growth; no soak scheduling stated
+693,Chaos injection harness,9 Non-Functional Testing,PARTIAL,ITEM,,"Process death, permission denial, offline states are required E2E dimensions (ADR:3169); no fault injection into the generated app"
+694,Fuzz input generator,9 Non-Functional Testing,PARTIAL,ITEM,,Invalid-input dimension present (ADR:3169); no randomized fuzz/monkey pass (0 hits)
+695,Accessibility audit runner,9 Non-Functional Testing,COVERED,ITEM,,android-accessibility-validation; android-visual-validation; Device Matrix; android-process-memory-expert; android-network-debugging
+696,Visual regression differ,9 Non-Functional Testing,COVERED,ITEM,,android-accessibility-validation; android-visual-validation; Device Matrix; android-process-memory-expert; android-network-debugging
+697,Device and browser matrix runner,9 Non-Functional Testing,COVERED,ITEM,,android-accessibility-validation; android-visual-validation; Device Matrix; android-process-memory-expert; android-network-debugging
+698,Long-run memory leak detector,9 Non-Functional Testing,COVERED,ITEM,,android-accessibility-validation; android-visual-validation; Device Matrix; android-process-memory-expert; android-network-debugging
+699,Startup time regression tracker,9 Non-Functional Testing,PARTIAL,ITEM,GAP-5,GAP-5: startup named as a review dimension (TA:2625); no budget or regression baseline
+700,Poor network scenario tester,9 Non-Functional Testing,COVERED,ITEM,,android-accessibility-validation; android-visual-validation; Device Matrix; android-process-memory-expert; android-network-debugging
+701,Entity-to-schema deriver,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+702,Cardinality inferrer,10 Schema Design,COVERED,ITEM,,"android-data-expert (Room entities/relationships/migrations, offline-first); seed data in E2E (BS:2049); sync conflict semantics declared beyond NL spec (BS:269)"
+703,Normalization advisor,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+704,Index recommender,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+705,Constraint synthesizer,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+706,Table and column naming policy,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+707,Audit and soft-delete policy,10 Schema Design,NOT_STATED,ITEM,,"App-design detail, not stated"
+708,Multi-tenancy pattern selector,10 Schema Design,OUT_OF_SCOPE,ITEM,,Server-side data concerns; backend is a supporting dependency only (BS:506)
+709,"Datastore selector (relational, document, key-value, local)",10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+710,Schema-to-type generator,10 Schema Design,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+711,Migration script generator,10 Migrations and Data Evolution,COVERED,ITEM,,"android-data-expert (Room entities/relationships/migrations, offline-first); seed data in E2E (BS:2049); sync conflict semantics declared beyond NL spec (BS:269)"
+712,"Migration safety analyzer (locks, data loss)",10 Migrations and Data Evolution,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+713,Migration ordering resolver,10 Migrations and Data Evolution,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+714,Down-migration generator,10 Migrations and Data Evolution,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+715,Zero-downtime migration planner,10 Migrations and Data Evolution,OUT_OF_SCOPE,ITEM,,Server-side data concerns; backend is a supporting dependency only (BS:506)
+716,Schema diff engine,10 Migrations and Data Evolution,COVERED,ITEM,,"android-data-expert (Room entities/relationships/migrations, offline-first); seed data in E2E (BS:2049); sync conflict semantics declared beyond NL spec (BS:269)"
+717,Data backfill planner,10 Migrations and Data Evolution,NA,ITEM,,Room migrations and seedData cover the Android-side need
+718,Seed data generator,10 Migrations and Data Evolution,COVERED,ITEM,,"android-data-expert (Room entities/relationships/migrations, offline-first); seed data in E2E (BS:2049); sync conflict semantics declared beyond NL spec (BS:269)"
+719,Fixture realism scorer,10 Migrations and Data Evolution,NA,ITEM,,Room migrations and seedData cover the Android-side need
+720,App-to-schema version gate,10 Migrations and Data Evolution,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+721,N+1 query detector,10 Query and Data Access,NA,ITEM,,Room migrations and seedData cover the Android-side need
+722,Query plan analyzer,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+723,Injection-safe query checker,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+724,Transaction boundary planner,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+725,Connection pool sizer,10 Query and Data Access,OUT_OF_SCOPE,ITEM,,Server-side data concerns; backend is a supporting dependency only (BS:506)
+726,Cache layer selector,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+727,Cache invalidation planner,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+728,Pagination strategy selector,10 Query and Data Access,NOT_STATED,ITEM,,"App-design detail, not stated"
+729,Bulk operation optimizer,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+730,Repository layer generator,10 Query and Data Access,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+731,Offline-first strategy selector,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+732,Local store selector,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+733,Sync protocol designer,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+734,Conflict resolution policy generator,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+735,Delta sync planner,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+736,Outbox retry queue generator,10 Local Data and Sync,COVERED,ITEM,,"android-data-expert (Room entities/relationships/migrations, offline-first); seed data in E2E (BS:2049); sync conflict semantics declared beyond NL spec (BS:269)"
+737,Encryption-at-rest planner,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+738,Storage quota manager,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+739,Data import and export generator,10 Local Data and Sync,COVERED_FAMILY,FAMILY,,android-data-expert (Room/DataStore/migrations/offline-first): BS §79.7
+740,Backup and restore flow generator,10 Local Data and Sync,NOT_STATED,ITEM,,"App-design detail, not stated"
+741,Resource model deriver,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+742,Endpoint generator,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+743,OpenAPI spec synthesizer,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+744,Request validator generator,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+745,Error response standardizer,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+746,API versioning policy engine,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+747,"Pagination, filter and sort convention engine",11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+748,Idempotency key planner,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+749,Rate limit policy generator,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+750,API documentation site generator,11 API Design,OUT_OF_SCOPE,ITEM,,"Server-side API design; client-side contracts covered by AndroidServiceIntegration (BS §70, BS:5469)"
+751,Client SDK generator,11 Contract Integrity,COVERED,ITEM,,Schema-ref driven integration and ContractDouble loopback stub (TA:5336; BS:5471)
+752,Server stub generator,11 Contract Integrity,COVERED,ITEM,,Schema-ref driven integration and ContractDouble loopback stub (TA:5336; BS:5471)
+753,Frontend-backend contract drift detector,11 Contract Integrity,NOT_STATED,ITEM,,Drift between ContractDouble and the real service is only visible once real-service evidence exists
+754,Breaking change detector,11 Contract Integrity,OUT_OF_SCOPE,ITEM,,Server-side contract evolution / webhooks
+755,Backward compatibility checker,11 Contract Integrity,OUT_OF_SCOPE,ITEM,,Server-side contract evolution / webhooks
+756,Mock server generator,11 Contract Integrity,COVERED,ITEM,,Schema-ref driven integration and ContractDouble loopback stub (TA:5336; BS:5471)
+757,Consumer-driven contract registry,11 Contract Integrity,COVERED,ITEM,,Schema-ref driven integration and ContractDouble loopback stub (TA:5336; BS:5471)
+758,Schema evolution rule engine,11 Contract Integrity,OUT_OF_SCOPE,ITEM,,Server-side contract evolution / webhooks
+759,Webhook contract validator,11 Contract Integrity,OUT_OF_SCOPE,ITEM,,Server-side contract evolution / webhooks
+760,Cross-tier type sharing pipeline,11 Contract Integrity,OUT_OF_SCOPE,ITEM,,Server-side contract evolution / webhooks
+761,"Integration catalog (payments, email, SMS, storage, maps)",11 Third-Party Integration,COVERED,ITEM,,"Skill library (firebase, maps, payments, ads); AndroidServiceIntegration retry/timeout policy; ContractDouble"
+762,Provider selection scorer,11 Third-Party Integration,COVERED,ITEM,,"Skill library (firebase, maps, payments, ads); AndroidServiceIntegration retry/timeout policy; ContractDouble"
+763,SDK wrapper generator,11 Third-Party Integration,COVERED,ITEM,,"Skill library (firebase, maps, payments, ads); AndroidServiceIntegration retry/timeout policy; ContractDouble"
+764,Credential onboarding flow,11 Third-Party Integration,PARTIAL,ITEM,GAP-1,GAP-1: acquisition covered (BS §5.7.5a); delivery of secrets to the app and classification of client keys not specified
+765,Sandbox and live mode switcher,11 Third-Party Integration,NOT_STATED,ITEM,,"Live/sandbox switching, circuit breaking, fallback routing for generated-app integrations not stated"
+766,Webhook receiver scaffolder,11 Third-Party Integration,OUT_OF_SCOPE,ITEM,,Server-side webhook receiver
+767,Retry and backoff policy generator,11 Third-Party Integration,COVERED,ITEM,,"Skill library (firebase, maps, payments, ads); AndroidServiceIntegration retry/timeout policy; ContractDouble"
+768,Circuit breaker generator,11 Third-Party Integration,NOT_STATED,ITEM,,"Live/sandbox switching, circuit breaking, fallback routing for generated-app integrations not stated"
+769,Provider fallback router,11 Third-Party Integration,NOT_STATED,ITEM,,"Live/sandbox switching, circuit breaking, fallback routing for generated-app integrations not stated"
+770,Integration mock generator,11 Third-Party Integration,COVERED,ITEM,,"Skill library (firebase, maps, payments, ads); AndroidServiceIntegration retry/timeout policy; ContractDouble"
+771,"Auth strategy selector (session, token, OAuth)",11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+772,Signup and login flow generator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+773,Password reset flow generator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+774,Social login wiring,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+775,Role model generator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+776,Permission matrix generator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+777,Route guard generator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+778,Token refresh and rotation handler,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+779,MFA scaffold,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+780,Session hardening configurator,11 Auth and Identity,COVERED,ITEM,,"android-credentials-expert, android-firebase-expert (auth), android-security-expert"
+781,Design token generator,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+782,Light and dark theme generator,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+783,Component library selector,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+784,Component inventory builder,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+785,Typography scale generator,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+786,Spacing and grid generator,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+787,Icon set selector,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+788,Motion policy generator,12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+789,"Brand asset generator (icon, splash, placeholder logo)",12 Design System,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+790,Design-to-code parity checker,12 Design System,COVERED,ITEM,,android-design-import; android-visual-validation; Visual QA Worker
+791,Screen inventory deriver,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+792,Navigation structure generator,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+793,User flow mapper,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+794,Wireframe synthesizer,12 Layout and Flow,NOT_ADOPTED,ITEM,,Instruction-driven synthesis plus Figma import; no wireframe artifact
+795,Responsive breakpoint planner,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+796,"Empty, loading and error state generator",12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+797,Form and validation UX generator,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+798,Onboarding flow generator,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+799,Settings screen generator,12 Layout and Flow,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+800,Dark pattern avoidance checker,12 Layout and Flow,NOT_STATED,ITEM,,Low value: no dark-pattern policy check
+801,Screenshot critique loop,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+802,Layout overflow detector,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+803,Contrast ratio checker,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+804,Touch target size checker,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+805,Text truncation detector,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+806,Font fallback detector,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+807,Image resolution checker,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+808,Alignment and spacing inconsistency detector,12 Visual QA Loop,COVERED,ITEM,,android-design-import; android-visual-validation; Visual QA Worker
+809,Visual hierarchy scorer,12 Visual QA Loop,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+810,Design rubric scorer,12 Visual QA Loop,COVERED,ITEM,,android-design-import; android-visual-validation; Visual QA Worker
+811,Screen reader label generator,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+812,Keyboard navigation verifier,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+813,Focus order checker,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+814,ARIA misuse detector,12 Accessibility and Localization,COVERED,ITEM,,"android-accessibility-validation (Android semantics); WCAG AA contrast (BS:2508, 893)"
+815,Color-blind palette validator,12 Accessibility and Localization,PARTIAL,ITEM,,Contrast ratios enforced (BS:893); colour-vision simulation not stated
+816,String externalization engine,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+817,Locale file generator,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+818,Pluralization and formatting rule handler,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+819,RTL layout validator,12 Accessibility and Localization,COVERED_FAMILY,FAMILY,,"Design system, navigation, visual QA, accessibility, localization: BS §18, §50, §79.7, §81"
+820,"Locale-aware date, number and currency formatter",12 Accessibility and Localization,COVERED,ITEM,,"android-localization-expert (date/number/currency formats, RTL)"
+821,Input validation generator,13 Secure-by-Default Generation,COVERED,ITEM,,BS §58.2 generated-app checks; ADR-018; over-broad permission check
+822,Output encoding enforcer,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+823,CSRF protection injector,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+824,CORS policy generator,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+825,Security header configurator,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+826,Secrets externalization enforcer,13 Secure-by-Default Generation,COVERED,ITEM,,BS §58.2 generated-app checks; ADR-018; over-broad permission check
+827,Least-privilege config generator,13 Secure-by-Default Generation,COVERED,ITEM,,BS §58.2 generated-app checks; ADR-018; over-broad permission check
+828,Abuse and rate guard generator,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+829,File upload hardening,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+830,SSRF guard generator,13 Secure-by-Default Generation,OUT_OF_SCOPE,ITEM,,"Web/server controls; Android equivalents covered by BS §58.2 (cleartext, exported components, WebView, pinning)"
+831,PII field classifier,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+832,Personal data flow mapper,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+833,Consent flow generator,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+834,Retention policy generator,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+835,Erasure request flow generator,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+836,Data minimization checker,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+837,Log redaction rule generator,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+838,Analytics opt-out wiring,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+839,Privacy policy generator,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+840,Data residency planner,13 Privacy and Data Protection,PARTIAL,ITEM,GAP-7,"GAP-7: privacy behaviours (PII classification, consent, erasure, opt-out, residency) not required; only the detection question (BS:5041) and data-handling summary (BS §47.7)"
+841,App store policy checker,13 Store and Regulatory Compliance,EXCLUDED,ITEM,,Store submission / regulatory filing is outside the product boundary (BS §46)
+842,Permission justification generator,13 Store and Regulatory Compliance,COVERED,ITEM,,Permission inventory in release report (BS §47.7); android-permission-runtime
+843,Data safety form generator,13 Store and Regulatory Compliance,EXCLUDED,ITEM,,Store submission / regulatory filing is outside the product boundary (BS §46)
+844,Age rating questionnaire helper,13 Store and Regulatory Compliance,EXCLUDED,ITEM,,Store submission / regulatory filing is outside the product boundary (BS §46)
+845,Open-source notice file composer,13 Store and Regulatory Compliance,NOT_STATED,ITEM,,"Notice file, terms template, content-moderation requirement not stated"
+846,Terms of service template generator,13 Store and Regulatory Compliance,NOT_STATED,ITEM,,"Notice file, terms template, content-moderation requirement not stated"
+847,WCAG conformance report generator,13 Store and Regulatory Compliance,COVERED,ITEM,,"android-accessibility-validation (Android semantics); WCAG AA contrast (BS:2508, 893)"
+848,Payment compliance checklist,13 Store and Regulatory Compliance,EXCLUDED,ITEM,,Store submission / regulatory filing is outside the product boundary (BS §46)
+849,Region regulation mapper,13 Store and Regulatory Compliance,EXCLUDED,ITEM,,Store submission / regulatory filing is outside the product boundary (BS §46)
+850,Content moderation requirement detector,13 Store and Regulatory Compliance,NOT_STATED,ITEM,,"Notice file, terms template, content-moderation requirement not stated"
+851,"Prompt injection detector (in fetched docs, repos, tool output)",13 Builder-Side Safety,COVERED_FAMILY,FAMILY,,"Agent Trust Boundary Authority, policy engine, sandbox, secrets handling: BS §10, §36, §73; TA §9, §78"
+852,Untrusted content quarantine,13 Builder-Side Safety,COVERED_FAMILY,FAMILY,,"Agent Trust Boundary Authority, policy engine, sandbox, secrets handling: BS §10, §36, §73; TA §9, §78"
+853,Command allowlist enforcer,13 Builder-Side Safety,COVERED_FAMILY,FAMILY,,"Agent Trust Boundary Authority, policy engine, sandbox, secrets handling: BS §10, §36, §73; TA §9, §78"
+854,Destructive command interceptor,13 Builder-Side Safety,COVERED,ITEM,,"Three-outcome policy engine; mutation safety constraints and lease scopes (BS §10, BS:2442)"
+855,Filesystem jail enforcer,13 Builder-Side Safety,COVERED,ITEM,,"ACL-scoped workspaces, restricted tokens, network policy (BS §48, TA §9)"
+856,Network egress policy engine,13 Builder-Side Safety,COVERED,ITEM,,"ACL-scoped workspaces, restricted tokens, network policy (BS §48, TA §9)"
+857,LLM context secret redactor,13 Builder-Side Safety,COVERED,ITEM,,Secrets withheld from provider context (BS:510); OS keychain (ADR-018); windows-credential-security
+858,Credential vault broker,13 Builder-Side Safety,COVERED,ITEM,,Secrets withheld from provider context (BS:510); OS keychain (ADR-018); windows-credential-security
+859,Blast radius limiter,13 Builder-Side Safety,COVERED,ITEM,,"Three-outcome policy engine; mutation safety constraints and lease scopes (BS §10, BS:2442)"
+860,Irreversible action ledger,13 Builder-Side Safety,COVERED_FAMILY,FAMILY,,"Agent Trust Boundary Authority, policy engine, sandbox, secrets handling: BS §10, §36, §73; TA §9, §78"
+861,Installer builder,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+862,Code signing pipeline,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+863,Auto-update mechanism generator,14 Packaging and Distribution,EXCLUDED,ITEM,,"Update channels, distribution and store listing are outside the product boundary (BS §46)"
+864,Update channel manager,14 Packaging and Distribution,EXCLUDED,ITEM,,"Update channels, distribution and store listing are outside the product boundary (BS §46)"
+865,Delta update generator,14 Packaging and Distribution,EXCLUDED,ITEM,,"Update channels, distribution and store listing are outside the product boundary (BS §46)"
+866,Final bundle size analyzer,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+867,Native module rebuild handler,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+868,Build variant manager,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+869,Keystore management flow,14 Packaging and Distribution,COVERED,ITEM,,APK packaging/signing/inspection; android-gradle-expert; signing identity (BS §5.7.9)
+870,Store listing asset generator,14 Packaging and Distribution,EXCLUDED,ITEM,,"Update channels, distribution and store listing are outside the product boundary (BS §46)"
+871,Container image generator,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+872,Orchestration file generator,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+873,IaC template synthesizer,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+874,Environment parity checker,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+875,Secrets injection planner,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+876,Domain and TLS setup planner,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+877,Managed service selector,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+878,Cloud spend estimator,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+879,Region and latency placement planner,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+880,Autoscaling policy generator,14 Infrastructure as Code,OUT_OF_SCOPE,ITEM,,No cloud/web deployment target (BS:2021)
+881,Pipeline generator,14 CI/CD and Release,NOT_STATED,ITEM,,Optional CI scaffold / versionCode policy for the generated project not stated
+882,Pipeline stage optimizer,14 CI/CD and Release,OUT_OF_SCOPE,ITEM,,Server/web release tooling
+883,Preview environment provisioner,14 CI/CD and Release,COVERED,ITEM,,Local revision-bound preview (BS §71)
+884,Release versioning engine,14 CI/CD and Release,NOT_STATED,ITEM,,Optional CI scaffold / versionCode policy for the generated project not stated
+885,Changelog generator,14 CI/CD and Release,COVERED,ITEM,,"Change intelligence reports and release-intelligence report (BS §83, §47.7)"
+886,Canary and blue-green planner,14 CI/CD and Release,OUT_OF_SCOPE,ITEM,,Server/web release tooling
+887,Feature flag scaffold,14 CI/CD and Release,OUT_OF_SCOPE,ITEM,,Server/web release tooling
+888,Post-deploy verification gate,14 CI/CD and Release,EXCLUDED,ITEM,,Post-deploy operations are outside the product boundary (local rollback via checkpoints is covered)
+889,Automated rollback trigger,14 CI/CD and Release,EXCLUDED,ITEM,,Post-deploy operations are outside the product boundary (local rollback via checkpoints is covered)
+890,Release readiness scorer,14 CI/CD and Release,COVERED,ITEM,,CAP.ANDROID.CERTIFIED_RELEASE
+891,Structured logging scaffold,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+892,Crash reporting integration,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+893,Metrics instrumentation generator,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+894,Tracing instrumentation generator,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+895,Health dashboard generator,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+896,Alert rule generator,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+897,Error budget definer,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+898,Analytics event schema generator,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+899,Feature usage tracker,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+900,In-app diagnostics exporter,14 Generated App Observability,EXCLUDED,ITEM,,Post-publish monitoring/telemetry/crash collection is outside the product boundary (BS §46)
+901,Manifest permission deriver,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+902,Gradle config synthesizer,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+903,SDK level policy engine,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+904,Shrinker rule generator,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+905,Android lifecycle handler,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+906,Background work policy planner,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+907,Notification channel setup,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+908,Deep link and intent filter generator,15 Android,COVERED,ITEM,,"Android skill library (permission-runtime, gradle, lifecycle, background, notifications, navigation)"
+909,Target API deadline tracker,15 Android,EXCLUDED,ITEM,,Store target-API deadline tracking; toolchain updates go through ADR-239
+910,Device fragmentation test matrix,15 Android,COVERED,ITEM,,Device Matrix (CAP.ANDROID.DEVICE_COVERAGE)
+911,Process boundary planner (main vs renderer),15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+912,IPC contract generator,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+913,Context isolation enforcer,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+914,Native menu and tray generator,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+915,File association handler,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+916,Installer registry hygiene checker,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+917,Startup and auto-launch policy,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+918,Native module ABI matcher,15 Desktop,COVERED,ITEM,,ABI/NDK checks in preflight (BS §47.2)
+919,Crash dump collector,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+920,Cross-OS path handler,15 Desktop,PROHIBITED,ITEM,,"Desktop targets excluded (BS §46, §48)"
+921,Service worker generator,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+922,Caching strategy selector,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+923,Web manifest generator,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+924,SEO metadata generator,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+925,Web vitals budgeter,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+926,"Rendering mode selector (SSR, CSR, SSG)",15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+927,Hydration mismatch detector,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+928,CDN caching planner,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+929,Browser support policy engine,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+930,Web push scaffold,15 Web and PWA,PROHIBITED,ITEM,,"Web/PWA delivery excluded (BS §46, §48)"
+931,Shared code boundary planner,15 Cross-Platform,COVERED,ITEM,,"Expo/React Native and custom native modules chosen by the resolver (BS:240, §5.2)"
+932,Platform capability abstraction generator,15 Cross-Platform,OUT_OF_SCOPE,ITEM,,Multi-platform abstraction; Android form factors are android-large-screens-expert
+933,Native bridge generator,15 Cross-Platform,COVERED,ITEM,,"Expo/React Native and custom native modules chosen by the resolver (BS:240, §5.2)"
+934,Feature parity matrix builder,15 Cross-Platform,PROHIBITED,ITEM,,Multi-platform parity and universal web-wrapper architecture not adopted (BS §48)
+935,Platform fallback generator,15 Cross-Platform,OUT_OF_SCOPE,ITEM,,Multi-platform abstraction; Android form factors are android-large-screens-expert
+936,Web-to-native wrapper configurator,15 Cross-Platform,PROHIBITED,ITEM,,Multi-platform parity and universal web-wrapper architecture not adopted (BS §48)
+937,Cross-platform link resolver,15 Cross-Platform,OUT_OF_SCOPE,ITEM,,Multi-platform abstraction; Android form factors are android-large-screens-expert
+938,Cross-platform state sync,15 Cross-Platform,OUT_OF_SCOPE,ITEM,,Multi-platform abstraction; Android form factors are android-large-screens-expert
+939,Per-platform UI adapter,15 Cross-Platform,OUT_OF_SCOPE,ITEM,,Multi-platform abstraction; Android form factors are android-large-screens-expert
+940,Native permission prompt flow generator,15 Cross-Platform,COVERED,ITEM,,android-permission-runtime
+941,Task difficulty model router,16 Model Routing and Cost,PARTIAL,ITEM,,"Routing by task type/role (BS:1441), not by measured difficulty"
+942,Cheap-first cascade,16 Model Routing and Cost,NOT_ADOPTED,ITEM,,"AI usage is telemetry only; no cost-driven routing or budgets (BS:1499, 1619)"
+943,Provider failover,16 Model Routing and Cost,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+944,Rate limit backoff manager,16 Model Routing and Cost,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+945,Token cost ledger,16 Model Routing and Cost,COVERED,ITEM,,"Usage telemetry recorded, informational only (BS:1499)"
+946,Per-build budget guard,16 Model Routing and Cost,PROHIBITED,ITEM,,"Per-build AI budget guard excluded: Nirman imposes no task budget (BS:1499, 1619, 1801, 4630)"
+947,Prompt cache manager,16 Model Routing and Cost,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+948,Response cache with invalidation,16 Model Routing and Cost,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+949,Batch inference scheduler,16 Model Routing and Cost,NA,ITEM,,Provider-specific; not needed
+950,Latency SLO manager,16 Model Routing and Cost,COVERED,ITEM,,Liveness timeouts per provider request (BS §80.3)
+951,Structured output enforcer,16 Output Reliability,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+952,JSON repair engine,16 Output Reliability,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+953,Constrained decoding adapter,16 Output Reliability,NA,ITEM,,Provider-specific; not needed
+954,Output overrun handler,16 Output Reliability,COVERED,ITEM,,Context overflow / continuation-loss recovery (TA:5624); malformed tool results rejected (BS:2277)
+955,Truncation continuation stitcher,16 Output Reliability,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+956,Empty or refusal response detector,16 Output Reliability,COVERED,ITEM,,Refusal handling is a provider conformance fixture (BS:6403)
+957,Format drift detector,16 Output Reliability,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+958,Self-consistency sampler,16 Output Reliability,NOT_ADOPTED,ITEM,,No sampling-vote mechanism; hypothesis competition instead (BS §68)
+959,Majority-vote arbiter,16 Output Reliability,NOT_ADOPTED,ITEM,,No sampling-vote mechanism; hypothesis competition instead (BS §68)
+960,Sampling determinism policy,16 Output Reliability,COVERED_FAMILY,FAMILY,,"Provider gateway: routing by task type, fallback, structured output, streaming, error normalization: BS §8, §35; BS:6403"
+961,Prompt template registry,16 Prompt and Eval Engineering,COVERED_FAMILY,FAMILY,,"Fixture battery, evaluation runs, self-improvement: M §35; TA:1566, §30"
+962,Prompt version control,16 Prompt and Eval Engineering,COVERED_FAMILY,FAMILY,,"Fixture battery, evaluation runs, self-improvement: M §35; TA:1566, §30"
+963,Prompt A/B harness,16 Prompt and Eval Engineering,COVERED_FAMILY,FAMILY,,"Fixture battery, evaluation runs, self-improvement: M §35; TA:1566, §30"
+964,Golden app benchmark suite,16 Prompt and Eval Engineering,COVERED,ITEM,,Frozen FIX-PROG battery; evaluation runs per runtime/provider/prompt policy (TA:1566; M §35); candidate canary M29
+965,Regression eval runner,16 Prompt and Eval Engineering,COVERED,ITEM,,Frozen FIX-PROG battery; evaluation runs per runtime/provider/prompt policy (TA:1566; M §35); candidate canary M29
+966,LLM judge rubric engine,16 Prompt and Eval Engineering,NOT_ADOPTED,ITEM,,Quality scores are never completion evidence (BS:2686)
+967,Judge calibration checker,16 Prompt and Eval Engineering,NOT_ADOPTED,ITEM,,Quality scores are never completion evidence (BS:2686)
+968,Failure case corpus manager,16 Prompt and Eval Engineering,COVERED,ITEM,,Failure signatures / repair registry; self-improvement manager (TA §30)
+969,Eval-driven prompt tuner,16 Prompt and Eval Engineering,COVERED,ITEM,,Failure signatures / repair registry; self-improvement manager (TA §30)
+970,Model upgrade canary evals,16 Prompt and Eval Engineering,COVERED,ITEM,,Frozen FIX-PROG battery; evaluation runs per runtime/provider/prompt policy (TA:1566; M §35); candidate canary M29
+971,Virtual workspace manager,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+972,Workspace snapshotter,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+973,Checkpoint and resume orchestrator,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+974,Crash-safe write journal,16 Builder Runtime and State,COVERED,ITEM,,"Atomic persistence/WAL (TA:802); retention and GC rules (BS:3312, §80.3); Job Object kill-on-close (TA:100)"
+975,Persistent job queue,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+976,Long task heartbeat monitor,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+977,"Resource quota governor (CPU, RAM, disk)",16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+978,File lock manager,16 Builder Runtime and State,COVERED_FAMILY,FAMILY,,"Durable state, checkpoints, resource governor, workspace isolation: TA §4, §8, §18; BS §72"
+979,Temp file garbage collector,16 Builder Runtime and State,COVERED,ITEM,,"Atomic persistence/WAL (TA:802); retention and GC rules (BS:3312, §80.3); Job Object kill-on-close (TA:100)"
+980,Orphaned process reaper,16 Builder Runtime and State,COVERED,ITEM,,"Atomic persistence/WAL (TA:802); retention and GC rules (BS:3312, §80.3); Job Object kill-on-close (TA:100)"
+981,Build session timeline,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+982,Per-stage success rate tracker,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+983,Stuck loop detector,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+984,Cost per successful build metric,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+985,Failure mode leaderboard,16 Builder Observability,PARTIAL,ITEM,,Metrics defined (BS §47.8); no leaderboard/scorecard artifact
+986,Time-to-first-run metric,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+987,Human intervention rate tracker,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+988,Build quality scorecard,16 Builder Observability,PARTIAL,ITEM,,Metrics defined (BS §47.8); no leaderboard/scorecard artifact
+989,Telemetry privacy filter,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+990,Automated post-mortem generator,16 Builder Observability,COVERED,ITEM,,"Decision trace/replay, worker metrics (BS §47.8), stall detection (BS §80.3), usage telemetry (BS:1499), final report (BS:2310)"
+991,Approval gate policy engine,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+992,Risk-tiered autonomy levels,17 Approval and Control,PROHIBITED,ITEM,,"""no autonomy level to choose"" (BS:1304)"
+993,Spend approval threshold,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+994,Destructive action confirmation flow,17 Approval and Control,COVERED,ITEM,,Three-outcome policy with approvals (BS:1304)
+995,Pause and resume controller,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+996,Step-through mode,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+997,Mid-run user edit injection,17 Approval and Control,COVERED,ITEM,,"User/edit reconciliation and runtime directives (BS §55, §61)"
+998,Agent action undo stack,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+999,Per-task permission grants,17 Approval and Control,COVERED_FAMILY,FAMILY,,"Policy three-outcome approvals, pause/resume, directives, undo: BS §10, §61"
+1000,Autonomy level tuner,17 Approval and Control,PROHIBITED,ITEM,,"""no autonomy level to choose"" (BS:1304)"
+1001,Progress narrator,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1002,Decision explanation generator,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1003,Human-readable diff summarizer,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1004,Uncertainty communicator,17 Explainability and Communication,PARTIAL,ITEM,,Uncertainty thresholds are internal (BS:6566-6568); user-facing confidence presentation not explicit
+1005,Plan preview renderer,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1006,Cost and time estimate presenter,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1007,Blocker report generator,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1008,Question batching engine,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1009,Completion report composer,17 Explainability and Communication,COVERED_FAMILY,FAMILY,,"Structured reasoning stream, decision trace, progress ledger, completion report: BS §45, §49, §30"
+1010,Output walkthrough generator,17 Explainability and Communication,COVERED,ITEM,,"Completion report and project handbook (BS §30, §47.7)"
+1011,Natural language change request parser,17 Feedback Ingestion,COVERED,ITEM,,"Durable conversation context, change intelligence, project memory of preferences/conventions/failed strategies (BS §82, §83, BS:1287, 2115)"
+1012,Screenshot annotation ingestor,17 Feedback Ingestion,COVERED_FAMILY,FAMILY,,"Conversation context, change intelligence, directives: BS §61, §82, §83"
+1013,Bug report to repro converter,17 Feedback Ingestion,PARTIAL,ITEM,GAP-6,GAP-6: no rule to turn a user-reported defect into a failing reproduction scenario before repair (0 hits)
+1014,Rating signal collector,17 Feedback Ingestion,EXCLUDED,ITEM,,Field feedback ingestion is outside the product boundary (BS §46)
+1015,"Implicit dissatisfaction detector (reverts, rewrites, repeats)",17 Feedback Ingestion,NOT_STATED,ITEM,,In-session implicit dissatisfaction (reverts/rewrites) signal not stated
+1016,Feedback-to-requirement mapper,17 Feedback Ingestion,COVERED,ITEM,,"Durable conversation context, change intelligence, project memory of preferences/conventions/failed strategies (BS §82, §83, BS:1287, 2115)"
+1017,User preference learner,17 Feedback Ingestion,COVERED,ITEM,,"Durable conversation context, change intelligence, project memory of preferences/conventions/failed strategies (BS §82, §83, BS:1287, 2115)"
+1018,Code style extractor,17 Feedback Ingestion,COVERED,ITEM,,"Durable conversation context, change intelligence, project memory of preferences/conventions/failed strategies (BS §82, §83, BS:1287, 2115)"
+1019,Correction memory,17 Feedback Ingestion,COVERED,ITEM,,"Durable conversation context, change intelligence, project memory of preferences/conventions/failed strategies (BS §82, §83, BS:1287, 2115)"
+1020,Feedback triage prioritizer,17 Feedback Ingestion,EXCLUDED,ITEM,,Field feedback ingestion is outside the product boundary (BS §46)
+1021,Change request scoper,18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1022,Incremental feature adder,18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1023,Manual edit detector,18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1024,"Three-way merge engine (generated, hand-edited, regenerated)",18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1025,Regeneration-safe zone marker,18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1026,Generation version tagger,18 Change Management,COVERED,ITEM,,Open-existing-project flow (BS §2.2); reconciliation (BS §55); revision ids/checkpoints
+1027,New module feature toggle,18 Change Management,NA,ITEM,,Not applicable to one-shot local artifact production
+1028,Backport patch generator,18 Change Management,NA,ITEM,,Not applicable to one-shot local artifact production
+1029,Own-API deprecation scheduler,18 Change Management,NA,ITEM,,Not applicable to one-shot local artifact production
+1030,Rename propagation engine,18 Change Management,COVERED_FAMILY,FAMILY,,"Open-project flow, reconciliation, project memory: BS §2.2, §53, §55"
+1031,Decision reopen-trigger detector,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1032,Rationale capture engine,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1033,Convention profile learner,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1034,Known limitation register,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1035,Tech debt ledger,18 Project Memory,PARTIAL,ITEM,,Known limitations recorded in handbook (BS:2712); no debt ledger
+1036,Open issue register,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1037,Cross-project pattern library,18 Project Memory,NOT_STATED,ITEM,,Cross-project reuse not stated (project memory is project-scoped)
+1038,Reusable component harvester,18 Project Memory,NOT_STATED,ITEM,,Cross-project reuse not stated (project memory is project-scoped)
+1039,Lessons-learned distiller,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1040,Knowledge staleness detector,18 Project Memory,COVERED,ITEM,,"Project memory, known limitations (BS:2061, 2712), context freshness, self-improvement manager (BS §28, §53)"
+1041,Framework major-version codemod planner,18 Upgrade and Lifecycle,PARTIAL,ITEM,GAP-9,"GAP-9: locked toolchain and P0 ""Gradle wrapper alignment"" exist (BS:373, TA:3443) but no compatibility/migration procedure for opened projects (0 hits for AGP/Kotlin upgrade)"
+1042,Codemod generator,18 Upgrade and Lifecycle,PARTIAL,ITEM,GAP-9,"GAP-9: locked toolchain and P0 ""Gradle wrapper alignment"" exist (BS:373, TA:3443) but no compatibility/migration procedure for opened projects (0 hits for AGP/Kotlin upgrade)"
+1043,Language version upgrade planner,18 Upgrade and Lifecycle,PARTIAL,ITEM,GAP-9,"GAP-9: locked toolchain and P0 ""Gradle wrapper alignment"" exist (BS:373, TA:3443) but no compatibility/migration procedure for opened projects (0 hits for AGP/Kotlin upgrade)"
+1044,End-of-life tracker,18 Upgrade and Lifecycle,NOT_STATED,ITEM,,End-of-life / OS advisory tracking not stated
+1045,Vendor deprecation notice ingester,18 Upgrade and Lifecycle,EXCLUDED,ITEM,,Vendor/store notices and post-publish lifecycle are outside the product boundary
+1046,Store policy change monitor,18 Upgrade and Lifecycle,EXCLUDED,ITEM,,Vendor/store notices and post-publish lifecycle are outside the product boundary
+1047,Runtime and OS advisory tracker,18 Upgrade and Lifecycle,NOT_STATED,ITEM,,End-of-life / OS advisory tracking not stated
+1048,Compatibility regression sentinel,18 Upgrade and Lifecycle,COVERED,ITEM,,Verification-in-loop and regression localization
+1049,Long-term support branch manager,18 Upgrade and Lifecycle,NA,ITEM,,Not applicable to one-shot local artifact production
+1050,Sunset and decommission planner,18 Upgrade and Lifecycle,EXCLUDED,ITEM,,Vendor/store notices and post-publish lifecycle are outside the product boundary
+1051,Render cost profiler,19 Frontend Performance,PARTIAL,FAMILY,,GAP-5 performance budgets
+1052,Unnecessary re-render detector,19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1053,Long task detector,19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1054,Image optimization pipeline,19 Frontend Performance,COVERED,ITEM,,Asset density variants and inspection (BS §50)
+1055,Font loading strategy selector,19 Frontend Performance,NA,ITEM,,Web font loading / list virtualization handled by framework skills
+1056,List virtualization advisor,19 Frontend Performance,NA,ITEM,,Web font loading / list virtualization handled by framework skills
+1057,Memoization advisor,19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1058,Layout thrashing detector,19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1059,Animation jank detector,19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1060,"Perceived performance advisor (skeletons, optimistic updates)",19 Frontend Performance,PARTIAL,ITEM,GAP-5,GAP-5: android-performance/compose experts give guidance; no budgets or regression baselines
+1061,Critical path latency budgeter,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1062,Blocking I/O detector,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1063,Garbage collection pressure analyzer,19 Backend and Runtime Performance,COVERED,ITEM,,"android-process-memory-expert (heap growth, leaks)"
+1064,Event loop lag monitor,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1065,Concurrency limit tuner,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1066,Queue backpressure planner,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1067,Cache hit ratio analyzer,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1068,Cold start analyzer,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1069,Payload size minimizer,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1070,Compression strategy selector,19 Backend and Runtime Performance,OUT_OF_SCOPE,ITEM,,Server/runtime tuning; backend is not a generated target
+1071,Battery drain estimator,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1072,Wake lock misuse detector,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1073,Background service auditor,19 Device Resource Efficiency,COVERED,ITEM,,android-background-expert; runtime integrity signals
+1074,Startup path analyzer,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1075,Memory pressure handler,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1076,Disk I/O pattern analyzer,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1077,Network usage minimizer,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1078,Thermal throttling awareness,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1079,Low-end device profile tester,19 Device Resource Efficiency,COVERED,ITEM,,Device Matrix profiles
+1080,Idle CPU usage checker,19 Device Resource Efficiency,PARTIAL,ITEM,GAP-5,GAP-5: battery/Doze signals reported (CAP.ANDROID.RUNTIME_INTEGRITY); no thresholds
+1081,Clean-machine setup rehearsal engine,20 Project Documentation,COVERED,ITEM,,Clean-machine build authority (M43); handbook environment assumptions (BS:2712)
+1082,Docs link and command rot checker,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1083,Runbook generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1084,Troubleshooting guide generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1085,Environment variable reference builder,20 Project Documentation,COVERED,ITEM,,Clean-machine build authority (M43); handbook environment assumptions (BS:2712)
+1086,Usage example verifier,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1087,Data lifecycle diagram generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1088,Contribution guide generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1089,Code tour generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1090,Failure-derived FAQ generator,20 Project Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1091,User manual generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1092,In-app help generator,20 End-User Documentation,COVERED,ITEM,,"Product content generation, localization and validation (BS §81)"
+1093,Onboarding tutorial generator,20 End-User Documentation,COVERED,ITEM,,"Product content generation, localization and validation (BS §81)"
+1094,What's-new screen generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1095,Annotated screenshot guide generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1096,Support macro generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1097,Demo script generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1098,Documentation translator,20 End-User Documentation,COVERED,ITEM,,"Product content generation, localization and validation (BS §81)"
+1099,Store description writer,20 End-User Documentation,EXCLUDED,ITEM,,Store description is outside the product boundary
+1100,Telemetry disclosure text generator,20 End-User Documentation,NOT_STATED,ITEM,,Optional generated documentation beyond handbook and release report (BS §47.7)
+1101,Handoff package assembler,20 Handoff and Ownership,COVERED,ITEM,,APK export provenance (BS §78); SBOM (BS §58.4); evidence ledger
+1102,Ownership and license summary generator,20 Handoff and Ownership,PARTIAL,ITEM,,Dependency and permission inventory in release report (BS §47.7); no licence/ownership summary
+1103,SBOM generator,20 Handoff and Ownership,COVERED,ITEM,,APK export provenance (BS §78); SBOM (BS §58.4); evidence ledger
+1104,Third-party account checklist builder,20 Handoff and Ownership,PARTIAL,ITEM,GAP-1,GAP-1: credential guidance exists (BS §5.7.5a); no owner-side account/credential handover checklist
+1105,Credential handover checklist,20 Handoff and Ownership,PARTIAL,ITEM,GAP-1,GAP-1: credential guidance exists (BS §5.7.5a); no owner-side account/credential handover checklist
+1106,Cost-of-ownership estimator,20 Handoff and Ownership,NOT_STATED,ITEM,,Cost-of-ownership / lock-in reporting not stated
+1107,Maintenance effort forecaster,20 Handoff and Ownership,EXCLUDED,ITEM,,Post-publish maintenance/operations are outside the product boundary
+1108,Backup and disaster recovery runbook generator,20 Handoff and Ownership,EXCLUDED,ITEM,,Post-publish maintenance/operations are outside the product boundary
+1109,Vendor lock-in reporter,20 Handoff and Ownership,NOT_STATED,ITEM,,Cost-of-ownership / lock-in reporting not stated
+1110,Compliance evidence bundler,20 Handoff and Ownership,COVERED,ITEM,,APK export provenance (BS §78); SBOM (BS §58.4); evidence ledger
+1111,Subscription scaffold generator,21 Business Operations Scaffolding,COVERED,ITEM,,android-payments-expert; android-notifications-expert
+1112,Payment flow generator,21 Business Operations Scaffolding,COVERED,ITEM,,android-payments-expert; android-notifications-expert
+1113,Invoice and receipt generator,21 Business Operations Scaffolding,NA,ITEM,,"Generated-app feature content chosen by the resolver, not a builder mechanism"
+1114,Trial and entitlement manager,21 Business Operations Scaffolding,COVERED,ITEM,,android-payments-expert; android-notifications-expert
+1115,Usage metering generator,21 Business Operations Scaffolding,NA,ITEM,,"Generated-app feature content chosen by the resolver, not a builder mechanism"
+1116,Coupon and referral scaffold,21 Business Operations Scaffolding,NA,ITEM,,"Generated-app feature content chosen by the resolver, not a builder mechanism"
+1117,Admin dashboard generator,21 Business Operations Scaffolding,OUT_OF_SCOPE,ITEM,,Admin dashboards are server/web
+1118,Support ticket scaffold,21 Business Operations Scaffolding,NA,ITEM,,"Generated-app feature content chosen by the resolver, not a builder mechanism"
+1119,Notification template generator,21 Business Operations Scaffolding,COVERED,ITEM,,android-payments-expert; android-notifications-expert
+1120,Churn signal instrumentation,21 Business Operations Scaffolding,EXCLUDED,ITEM,,Post-publish analytics is outside the product boundary
+1121,LLM client wrapper generator,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1122,In-app prompt packager,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1123,RAG pipeline scaffold,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1124,Embedding store selector,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1125,Chunking strategy selector,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1126,Tool calling scaffold,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1127,Streaming response UI scaffold,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1128,In-app token cost meter,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1129,Moderation guardrail scaffold,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
+1130,Model fallback and offline mode scaffold,21 AI Features in Generated Apps,GAP,ITEM,GAP-2,"GAP-2: no capability, skill, fixture or acceptance criteria for LLM/AI features inside generated apps"
