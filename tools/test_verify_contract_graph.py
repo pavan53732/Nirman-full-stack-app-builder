@@ -2547,6 +2547,15 @@ def main():
                         rc == 0 and CERTIFIED_RE.search(out) is not None,
                         f"exit={rc}"))
 
+
+    # NEGATIVE CONFORMANCE (ADR-228): deleting the common Android intelligence
+    # output boundary must be detected even when all service registry rows remain.
+    _topology_case("Android intelligence output boundary removed",
+                   lambda tmp: _rw(tmp, TA, lambda t: t.replace(
+                       "### Cross-service intelligence output contract",
+                       "### Cross-service intelligence output contract REMOVED", 1)),
+                   expect="semantic documentation")
+
     # POSITIVE CONFORMANCE: identifiers in ordinary prose, comments, and fenced
     # examples must not become graph records or authorities.
     with tempfile.TemporaryDirectory(prefix="hermes-cg-prose-") as tmp:
