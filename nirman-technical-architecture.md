@@ -2381,9 +2381,24 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Symbol graph line anchor correlation:* Queries `AndroidSymbolGraph` to map the crash stack frames directly to active source file paths and AST node declarations, resolving generated class names (e.g. Composable lambdas, coroutine continuations) back to original source constructs.
 3. *Episodic catalog matching:* Matches the structured crash signature and active `minSdk` against `EpisodicRepairPatternCatalog` to retrieve validated AST repair transformations, enabling zero-inference speculative repair of recurring runtime defects before invoking model deliberation.
 
+**Placeholder residue detection.** Within `nirman-supervisor`, `PlaceholderResidueDetector` statically scans proposed source code mutations, string resources, and layout templates before transaction staging:
+1. *Code placeholder pattern matching:* Walks the Tree-sitter AST to identify unexpanded stub markers, including `TODO`, `FIXME`, calls to standard library stubs (`TODO()`, `error("Not implemented")`), hollow exception throws (`throw NotImplementedError()`, `throw UnsupportedOperationException()`), and empty method bodies returning default dummy literals.
+2. *Resource placeholder scanning:* Inspects XML resource files (`strings.xml`, `arrays.xml`) for filler text patterns (`Lorem ipsum`, `Sample Text`, `Placeholder`, `Title here`, `lorem_ipsum`).
+3. *Pre-commit rejection:* Emits a `PLACEHOLDER_RESIDUE_DETECTED` finding and rejects transaction staging, preventing incomplete or hollow code from reaching compilation or evidence ledger records.
+
+**Truncated file detection.** Working in close coordination with Tree-sitter AST validation, `TruncatedFileDetector` guards against incomplete or cut-off model completions:
+1. *Syntactic delimiter balance:* Analyzes source code for unbalanced braces, parentheses, or brackets, unclosed triple-quoted string literals, and unclosed KDoc comment blocks.
+2. *Grammar error node verification:* Scans Tree-sitter parse trees for top-level `ERROR` nodes positioned at end-of-file indicative of abrupt stream truncation.
+3. *Immediate recovery trigger:* Flags a `FILE_TRUNCATION_DETECTED` defect, preventing partial file writes from corrupting the workspace, and instructs the kernel to request continuation or clean re-synthesis before attempting compilation.
+
+**Mock and residual double detection.** Working before release packaging and final validation gates, `MockResidualDetector` protects production release integrity:
+1. *Production source set isolation:* Scans `src/main/` source trees for test doubles, in-memory mock repositories, hardcoded dummy lists, and test-only bypass logic.
+2. *Double binding verification:* Verifies that dependency injection modules (`@Module`, `@InstallIn(SingletonComponent::class)`) in production source sets bind to concrete Room databases, DataStore preferences, and actual network clients rather than in-memory fakes.
+3. *Gated double authorization:* Rejects any mutation introducing unauthorized test doubles into production sets with `UNAUTHORIZED_MOCK_RESIDUAL`, ensuring mock doubles are strictly confined to `src/test/`, `src/androidTest/`, or explicitly declared `ContractDouble` boundaries (ADR-225).
+
 ---
 
-### 47.5 Android Code Intelligence Service and Architecture Reasoning Service
+### 47.5 Android Code Intelligence, Architecture Reasoning, and Generation Intelligence Services
 
 **Role:** aggregate query facade and static what-if analysis — read-only services; no authority, no AI-usage budget.
 
@@ -2406,6 +2421,19 @@ Responsibilities:
 - Reports the projected impact as a read-only `ArchitecturalImpactProjection`; this projection is advisory and carries no authority over evidence or completion.
 - Detects Clean Architecture layer boundary violations, circular dependency risks, and anti-pattern introduction *before* a transaction, by querying `ArchitectureDriftDetector` and `AndroidAntiPatternDetector` (§47.4) in read-only mode.
 - Never opens a `ConstructionTransaction`, mutates project state, or grants permissions.
+
+#### 47.5.3 AndroidGenerationIntelligenceService
+
+`AndroidGenerationIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies code generation pattern retrieval, placeholder detection, syntactic truncation verification, mock residue detection, and API level safety. It exposes a typed query surface to code generation workers (`UI Worker`, `Android Data and Integration Worker`, `Android Platform Worker`) and registered IPC command handlers.
+
+`AndroidGenerationIntelligenceService` coordinates five deterministic analytical and pattern components:
+1. *Idiomatic snippet retrieval:* Queries `AndroidPatternLibrary` (§47.4) and `AndroidDomainKnowledgeCatalog` (§73.15.5) for compliant Room DAOs, Compose layouts, and Navigation 2.8+ type-safe routes.
+2. *Placeholder residue verification:* Invokes `PlaceholderResidueDetector` (§47.4) to guarantee generated source files contain no unexpanded `TODO`, `FIXME`, or `Lorem ipsum` literals.
+3. *Syntactic continuity verification:* Invokes `TruncatedFileDetector` (§47.4) to ensure proposed completions are syntactically complete without premature EOF truncation.
+4. *API level and anti-pattern enforcement:* Queries `AndroidApiLevelValidator` (§47.4) and `AndroidAntiPatternDetector` (§47.4) to verify `minSdk` compatibility and prevent banned Android constructs (`AsyncTask`, unremembered `mutableStateOf`).
+5. *Mock residue scanning:* Queries `MockResidualDetector` (§47.4) before release packaging to prevent test doubles and fake in-memory repositories from leaking into production source sets.
+
+`AndroidGenerationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all generation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
 
 ---
 
@@ -3395,6 +3423,10 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `RepairOscillationDetector` | module | `nirman-agents` | Detects cyclical patch regressions (A breaks B, B breaks A) across transaction checkpoints (§58.1.1; BS §42.4) | none — anomaly detection | §58.1.1 |
 | `BlankScreenDetector` | module | `nirman-preview` | Frame luminescence, entropy, and semantics-tree inspection detecting blank or unpopulated screens (§73.5.2; BS §56.5) | none — preview validation | §73.5.2 |
 | `DeadControlDetector` | module | `nirman-android` | Verifies that interactive UI elements trigger observable state transitions or feedback during exploration (§62.1.1; BS §56.3) | none — scenario validation | §62.1.1 |
+| `AndroidGenerationIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over code generation patterns, placeholder detection, syntactic truncation validation, and anti-pattern checks (§47.5.3; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §47.5.3 |
+| `PlaceholderResidueDetector` | module | `nirman-android` | Statically scans AST and XML resources for unexpanded placeholder markers (TODO, FIXME, Lorem ipsum) (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `TruncatedFileDetector` | module | `nirman-android` | Syntactic continuity verifier detecting premature EOF, unclosed delimiters, and cut-off completions (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `MockResidualDetector` | module | `nirman-android` | Production source set scanner preventing unauthorized mock doubles and fake data from leaking into release builds (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 

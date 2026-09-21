@@ -2398,7 +2398,7 @@ PROPOSED → SCOPED → SNAPSHOTTED → VALIDATED → APPLIED
         → INDEXED → TESTED → PREVIEWED → COMMITTED
 ```
 
-Any failed stage transitions to REJECTED, ROLLED_BACK, WAITING, RETRYABLE_FAILURE, or SAFE_FAILURE. A model response is never a commit. The runtime authority owns transaction acceptance, rollback, and promotion.
+Any failed stage transitions to REJECTED, ROLLED_BACK, WAITING, RETRYABLE_FAILURE, or SAFE_FAILURE. A model response is never a commit. The runtime authority owns transaction acceptance, rollback, and promotion. Pre-commit validation enforces syntactic delimiter balance (`TruncatedFileDetector`, TA §47.4) and the absence of unexpanded placeholder residue (`PlaceholderResidueDetector`, TA §47.4).
 
 ### 42.3 Pure Reducer and Replayable State
 
@@ -2439,7 +2439,7 @@ Nirman MUST use a language-neutral Android code-intelligence layer with adapters
 
 The graph MUST track files, modules, symbols, references, Gradle dependencies, manifest permissions, resource references, navigation routes, native-module boundaries, test-to-source relationships, API-level compatibility, and generated artifacts. Lightweight indexing may support discovery and browsing; full semantic indexing is required before high-impact mutation, reconciliation, packaging, signing, or promotion.
 
-The typed query interface over this code-intelligence graph — symbol lookup, cross-reference expansion, fingerprint retrieval, impact-scope expansion, repair-pattern lookup, and analysis scheduling — is exposed to the agent kernel and registered IPC command handlers by `AndroidCodeIntelligenceService` (TA §47.5.1). `AndroidCodeIntelligenceService` is a read-only facade; it creates no second authority and routes all mutation proposals through the `MutationBroker` governed by §43.2. Pre-transaction architectural what-if analysis is provided by `AndroidArchitectureReasoningService` (TA §47.5.2), which traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface before any `ConstructionTransaction` opens.
+The typed query interface over this code-intelligence graph — symbol lookup, cross-reference expansion, fingerprint retrieval, impact-scope expansion, repair-pattern lookup, and analysis scheduling — is exposed to the agent kernel and registered IPC command handlers by `AndroidCodeIntelligenceService` (TA §47.5.1). `AndroidCodeIntelligenceService` is a read-only facade; it creates no second authority and routes all mutation proposals through the `MutationBroker` governed by §43.2. Pre-transaction architectural what-if analysis is provided by `AndroidArchitectureReasoningService` (TA §47.5.2), which traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface before any `ConstructionTransaction` opens. On-demand code generation patterns, placeholder detection, syntactic truncation validation, and mock double leakage prevention are coordinated by `AndroidGenerationIntelligenceService` (TA §47.5.3). Staged mutations are scanned for unexpanded `TODO`, `FIXME`, and `Lorem ipsum` residue by `PlaceholderResidueDetector` (TA §47.4), premature stream cut-offs and delimiter imbalances are caught by `TruncatedFileDetector` (TA §47.4), and unauthorized mock doubles in production source sets are blocked by `MockResidualDetector` (TA §47.4) prior to transaction commit.
 
 ### 43.2 Structured Mutation Broker
 

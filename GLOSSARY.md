@@ -148,6 +148,8 @@
 
 **AndroidDomainKnowledgeCatalog** — The local offline repository of idiomatic Android architecture patterns, Room entity models, and state-machine workflows that assists requirements planning without user-facing templates. — TA §73.15.5; BS §69.2.
 
+**AndroidGenerationIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying code generation pattern lookup, placeholder residue detection, syntactic truncation validation, and mock double leakage prevention. — TA §47.5.3; BS §43.1.
+
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
 
 **AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
@@ -214,11 +216,15 @@
 
 **MockAndStubBoundaryAnalyzer** — The static double analysis module verifying test double signatures, contract fidelity, over-mocking anti-patterns, and mock isolation in generated Android tests. — TA §53.5.9; BS §57.5.
 
+**MockResidualDetector** — The production release integrity module verifying that mock doubles, in-memory repositories, and fake datasets do not leak into production source sets without explicit authorization. — TA §47.4; BS §43.1.
+
 **OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
 
 **Performance intelligence** — Historical and live physical-resource measurements used by deterministic schedulers, recovery, validation ordering, and transport adaptation without granting authority or creating AI-usage budgets. — TA §7.2; BS §72; ADR-236.
 
 **PersonaInferenceEngine** — The product intelligence module inferring target stakeholder personas, touch target ergonomics, and accessibility profiles from user intent. — TA §73.15.4; BS §69.2.
+
+**PlaceholderResidueDetector** — The pre-commit static analysis module detecting unexpanded stub markers (TODO, FIXME, NotImplementedError, Lorem ipsum) in generated code and XML resources. — TA §47.4; BS §43.1.
 
 **Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
 
@@ -263,6 +269,8 @@
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
 **ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
+
+**TruncatedFileDetector** — The pre-commit syntax continuity module verifying balanced delimiters, closed string literals, and the absence of EOF error nodes in generated files. — TA §47.4; BS §43.1.
 
 **UntestedBranchDetector** — The static control-flow analysis module correlating CFG decision branches with test execution traces to flag unverified decision paths. — TA §53.5.4; BS §56.6.
 
