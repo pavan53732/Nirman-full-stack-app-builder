@@ -3461,6 +3461,10 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `RoomSchemaMigrationAnalyzer` | module | `nirman-android` | Statically diffs Room schema JSONs, verifies migration paths, and checks for destructive table/column drops (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 | `QueryPerformanceAnalyzer` | module | `nirman-android` | Statically detects N+1 queries in Room DAOs, recommends indices, and verifies SQL parameter binding (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 | `OfflineSyncProtocolPlanner` | module | `nirman-android` | Validates offline-first sync architecture, reactive Flow repositories, and WorkManager Outbox patterns (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `AndroidIntegrationIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over API contracts, third-party integrations, and mobile auth (§74.7.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §74.7.1 |
+| `ApiContractDriftDetector` | module | `nirman-android` | Statically compares client network interfaces and DTOs against OpenAPI specifications to detect schema drift (§74.7.2; BS §43.1) | none — pre-commit verification | §74.7.2 |
+| `ThirdPartyIntegrationAnalyzer` | module | `nirman-android` | Validates third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC checks (§74.7.3; BS §43.1) | none — pre-commit verification | §74.7.3 |
+| `AuthFlowSecurityHardener` | module | `nirman-android` | Audits mobile auth flows for OAuth 2.0 PKCE, token refresh mutexes, Keystore encryption, and route guards (§74.7.4; BS §43.1) | none — pre-commit verification | §74.7.4 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -5758,6 +5762,43 @@ Required critical orchestration subgraphs additionally include:
 - coordination progress → stall record → recovery
 - execution epoch seal → roll-forward → replay
 - provider outage → circuit → stream/retry reconciliation
+
+### 74.7 Android API, Integration, and Identity Intelligence Services
+
+**Role:** aggregate query facade and static contract validation — read-only services; no authority, no AI-usage budget.
+
+#### 74.7.1 AndroidIntegrationIntelligenceService
+
+`AndroidIntegrationIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies API contract integrity, third-party integration analysis, webhook signature verification, and mobile authentication security. It exposes a typed query surface to integration workers (`Backend & Service Engineering Worker`, `Integration Double Worker`, `Android Data and Integration Worker`) and registered IPC command handlers.
+
+`AndroidIntegrationIntelligenceService` coordinates four deterministic analytical components:
+1. *Integration double management:* Interacts with supervisor-managed `ContractDouble` (§74.1) fixtures to verify that mocked endpoints strictly adhere to declared request and response schemas.
+2. *API contract drift detection:* Invokes `ApiContractDriftDetector` (§74.7.2) to detect breaking schema changes, type mismatches, and route omissions between Android client network layers and API specifications.
+3. *Third-party vendor integration verification:* Invokes `ThirdPartyIntegrationAnalyzer` (§74.7.3) to validate SDK wrapper boundaries, circuit breakers, exponential backoff, and webhook HMAC signature handling.
+4. *Authentication and identity hardening:* Invokes `AuthFlowSecurityHardener` (§74.7.4) to audit OAuth 2.0 PKCE implementations, token refresh mutexes, biometric re-auth, Keystore encryption, and navigation route guards.
+
+`AndroidIntegrationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all integration proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 74.7.2 ApiContractDriftDetector
+
+`ApiContractDriftDetector` provides static contract verification across client and server boundaries:
+1. *Client-to-spec parity analysis:* Statically parses OpenAPI specifications and correlates them against Android client Retrofit/Ktor interfaces, serialization DTOs, and route parameters. Any missing field, type mismatch, or endpoint mismatch is flagged as `API_CONTRACT_DRIFT`.
+2. *Breaking change detection:* Compares successive API specifications to identify non-additive mutations, such as removed endpoints, renamed properties, altered data types, or newly mandatory query/body parameters, emitting `BREAKING_API_CHANGE` findings.
+3. *Error and pagination standard verification:* Asserts that remote endpoints conform to standardized error models (such as RFC 7807 Problem Details) and consistent cursor or limit-offset pagination structures.
+
+#### 74.7.3 ThirdPartyIntegrationAnalyzer
+
+`ThirdPartyIntegrationAnalyzer` verifies external vendor SDK integration and communication resilience:
+1. *Credential isolation verification:* Audits source files and Gradle build scripts to ensure third-party API keys and merchant secrets are not committed as plaintext literals, verifying that credentials resolve through Gradle `local.properties`, system environment variables, or Android Keystore (`TAINT_SENSITIVE_LEAK`).
+2. *Fault tolerance and circuit breaking:* Statically verifies the presence of client-side circuit breakers and exponential backoff retry policies with jitter in OkHttp interceptors and WorkManager sync workers, preventing cascading thread exhaustion during third-party outages.
+3. *Webhook signature verification:* Analyzes webhook receivers to guarantee incoming webhook payloads enforce cryptographic HMAC SHA-256 signature verification headers before processing.
+
+#### 74.7.4 AuthFlowSecurityHardener
+
+`AuthFlowSecurityHardener` audits authentication, authorization, and session security across the Android application:
+1. *OAuth 2.0 PKCE compliance:* Verifies that mobile OAuth authorization flows implement Proof Key for Code Exchange (PKCE) with cryptographically random code verifiers and SHA-256 code challenges, rejecting insecure client-secret embedding.
+2. *Thread-safe token refresh:* Analyzes OkHttp `Authenticator` and Ktor auth plugins to ensure JWT token refresh routines synchronize concurrent requests using mutex locks, preventing race conditions and duplicate refresh token exchanges.
+3. *Keystore-backed storage and route guarding:* Verifies that auth tokens are stored in `EncryptedSharedPreferences` backed by the Android Keystore, checks that biometric authentication utilizes AndroidX `BiometricPrompt`, and asserts that Jetpack Compose navigation graphs define explicit route guards redirecting unauthenticated sessions to login.
 
 ## 75. Preview Synchronization Implementation Contract
 

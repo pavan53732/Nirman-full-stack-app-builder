@@ -152,6 +152,8 @@
 
 **AndroidGenerationIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying code generation pattern lookup, placeholder residue detection, syntactic truncation validation, and mock double leakage prevention. — TA §47.5.3; BS §43.1.
 
+**AndroidIntegrationIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying API contract integrity, third-party integration analysis, webhook signature verification, and mobile authentication security. — TA §74.7.1; BS §43.1.
+
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
 
 **AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
@@ -164,11 +166,15 @@
 
 **AndroidTestIntelligenceService** — The supervisor-owned, read-only aggregate query facade exposing on-demand test and coverage comprehension across test-to-code mapping, prioritized coverage gaps, untested branches, semantic test intent, assertion quality, flakiness detection, fixture tracing, mock boundaries, pyramid balance, and redundant test elimination. — TA §53.5.1; BS §47.5.
 
+**ApiContractDriftDetector** — The static contract verification module comparing Android client network interfaces and DTOs against OpenAPI specifications to detect schema drift and breaking changes. — TA §74.7.2; BS §43.1.
+
 **ArchitectureDriftDetector** — The static AST analysis service detecting Clean Architecture layer boundary violations between UI, ViewModel, and Data layers. — TA §47.4; TA §53.6; BS §23.4.
 
 **AssertionStrengthAnalyzer** — The static analysis module evaluating assertion density, presence, superficiality, and vacuity across test ASTs. — TA §53.5.6; BS §57.5.
 
 **Attention placement / recall probes** — Placing context where the model measurably attends (`PlacementPlanner`) and verifying recall with runtime-known probes (`RecallProbeService`) instead of trusting model recall. — BS §53.11; TA §59; ADR-219.
+
+**AuthFlowSecurityHardener** — The mobile security verification module auditing OAuth 2.0 PKCE implementation, thread-safe token refresh mutexes, Android Keystore encryption, and navigation route guards. — TA §74.7.4; BS §43.1.
 
 **Authority hierarchy** — The fixed order of who may decide what during execution and recovery; consumers of an artifact form no authority edge. — TA §21; BS §67.7.
 
@@ -279,6 +285,8 @@
 **TestDataLeakageDetector** — The state isolation module verifying that synthetic seed data, mock tokens, and test fixtures do not survive teardown into persistent app storage. — TA §62.5.1; BS §56.4.
 
 **TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2; BS §47.5.
+
+**ThirdPartyIntegrationAnalyzer** — The integration verification module validating third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC signature checks. — TA §74.7.3; BS §43.1.
 
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
