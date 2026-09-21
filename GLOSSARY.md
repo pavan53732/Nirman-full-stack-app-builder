@@ -54,9 +54,9 @@
 
 **AssuranceState** — The observation-strength vocabulary (`UNKNOWN` … `VERIFIED` and beyond) kept separate from maturity and lifecycle. — BS §5.7.2.
 
-**Capability status (BS §5.6)** — The derived capability status (`SUPPORTED`, `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `PLANNED`) computed from maturity and operational inputs, never asserted directly. — BS §5.6; BS §5.7.1.
+**Capability status (BS §5.6)** — The explanatory glossary label for the derived capability status (`SUPPORTED`, `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `PLANNED`) computed from maturity and operational inputs, never asserted directly. — BS §5.6; BS §5.7.1.
 
-**CapabilityMaturity** — The `SPECIFIED | IMPLEMENTED | VERIFIED | CERTIFIED | …` vocabulary; a capability is never promoted without runtime evidence. — BS §5.7.2; BS §5.7.9.
+**CapabilityMaturity** — The explanatory name for the `SPECIFIED | IMPLEMENTED | VERIFIED | CERTIFIED | …` vocabulary; a capability is never promoted without runtime evidence. — BS §5.7.2; BS §5.7.9.
 
 **CompletionState / CompletionDecision** — The recorded outcome of the completion predicate, including `NOT_COMPLETE`; certification is not completion. — BS §5.7.2; BS §5.7.7; TA §36.4.
 
@@ -126,7 +126,7 @@
 
 **SigningIdentityBinding** — The binding between a capability promotion and the signing identity that produced its evidence. — BS §5.7.9; SCHEMAS §1.5.
 
-**SkillPackage / SkillInvocationRecord / SkillAdmission** — A registered platform skill (eighty-three v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
+**SkillPackage / SkillInvocationRecord / SkillAdmission** — The explanatory names for a registered platform skill (eighty-three v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
 
 **TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13.
 
