@@ -3470,6 +3470,11 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `AndroidAccessibilityAuditor` | module | `nirman-android` | Audits native Android accessibility: 48dp touch targets, TalkBack contentDescription, focus order, and color-blind safety (§73.16.3; BS §43.1) | none — pre-commit verification | §73.16.3 |
 | `StringExternalizationEngine` | module | `nirman-android` | Scans hardcoded string literals into strings.xml, enforces RTL mirroring, and validates plurals and locale formatting (§73.16.4; BS §43.1) | none — pre-commit verification | §73.16.4 |
 | `DarkPatternDetector` | module | `nirman-android` | Statically scans UI compositions to detect pre-checked consent checkboxes, deceptive button contrast, and hidden cancellation flows (§73.16.5; BS §43.1) | none — pre-commit verification | §73.16.5 |
+| `AndroidPrivacyIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade unifying PII classification, personal data flow tracking, data minimization, privacy policy generation, and OSS notice composition (§70.7.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §70.7.1 |
+| `PiiFieldClassifier` | module | `nirman-android` | Statically analyzes Room entity fields, Compose form inputs, and network DTOs to detect and classify PII fields (§70.7.2; BS §43.1) | none — analytical queries | §70.7.2 |
+| `DataMinimizationChecker` | module | `nirman-android` | Audits detected PII and sensor access against the application's declared functional requirements (§70.7.3; BS §43.1) | none — analytical queries | §70.7.3 |
+| `PrivacyPolicyGenerator` | module | `nirman-android` | Synthesizes a project-specific Privacy Policy document and Google Play Data Safety declaration draft (§70.7.4; BS §43.1) | none — analytical queries | §70.7.4 |
+| `OpenSourceNoticeComposer` | module | `nirman-android` | Aggregates library licenses from `ResolvedDependency` and `SbomBuilder` metadata into `NOTICE.txt` and Compose viewer (§70.7.5; BS §43.1) | none — analytical queries | §70.7.5 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -4781,6 +4786,51 @@ Every finding must terminate in `blocking` or `accepted_with_reason`. The store 
 ### 70.6 Architecture tests
 
 The runtime is correct only when a hardcoded secret blocks packaging; when an unpinned or hash-mismatched dependency blocks the build; when a name resembling a known package is flagged; when an artifact with an incomplete SBOM is not promotable; and when a finding cannot be dispositioned without a reason.
+
+### 70.7 AndroidPrivacyIntelligenceService
+
+**Role:** aggregate query facade and static privacy and compliance validation — read-only services; no authority, no AI-usage budget.
+
+#### 70.7.1 AndroidPrivacyIntelligenceService
+
+`AndroidPrivacyIntelligenceService` is the supervisor-owned, read-only aggregate query facade unifying Personal Identifiable Information (PII) classification, personal data flow tracking, data minimization checking, privacy policy generation, and open-source license notice composition across the generated Android application. It exposes a typed query surface to compliance workers (`Security Worker`, `Documentation Worker`, `Release Worker`) and registered IPC command handlers.
+
+`AndroidPrivacyIntelligenceService` coordinates four deterministic analytical and composition components:
+1. *PII field classification:* Invokes `PiiFieldClassifier` (§70.7.2) to detect and tag sensitive personal data fields across Room database entities, Jetpack Compose form inputs, and network data transfer objects.
+2. *Data minimization and over-collection auditing:* Invokes `DataMinimizationChecker` (§70.7.3) to correlate detected PII and sensor access against the application's declared functional requirements, flagging unnecessary or excessive data collection.
+3. *Privacy policy and data safety synthesis:* Invokes `PrivacyPolicyGenerator` (§70.7.4) to generate project-specific Privacy Policy documentation and Google Play Data Safety declaration drafts based on concrete codebase evidence.
+4. *Open-source notice composition:* Invokes `OpenSourceNoticeComposer` (§70.7.5) to assemble third-party library license notices from verified SBOM metadata into an in-app notice file and display surface.
+
+`AndroidPrivacyIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all privacy and documentation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 70.7.2 PiiFieldClassifier
+
+`PiiFieldClassifier` is the static analysis module that inspects Android data models to locate and categorize personal identifiable information:
+1. *AST field and type scanning:* Analyzes Kotlin data classes, Room `@Entity` fields, and serialization DTOs (`@Serializable`, `@JsonClass`) using semantic pattern matching and attribute dictionaries to classify fields into standard privacy categories (e.g. `NAME`, `EMAIL`, `PHONE_NUMBER`, `PHYSICAL_ADDRESS`, `GEOLOCATION`, `DEVICE_IDENTIFIER`, `BIOMETRIC_DATA`, `FINANCIAL_DATA`).
+2. *Form input and sensor tagging:* Statically scans Jetpack Compose `TextField` inputs, keyboard type configurations (`KeyboardType.Email`, `KeyboardType.Phone`), and sensor API call-sites (Location services, Camera, Microphone) to tag originating PII collection points.
+3. *Data-flow taint binding:* Correlates classified PII sources with `AndroidDataFlowAnalyzer` (TA §47.4) taint graphs to identify persistence sinks (Room database tables, DataStore preferences) and network egress points (Retrofit/Ktor endpoints).
+
+#### 70.7.3 DataMinimizationChecker
+
+`DataMinimizationChecker` audits personal data collection against declared functional requirements to enforce GDPR, CCPA, and Google Play data minimization principles:
+1. *Functional necessity correlation:* Cross-references each classified PII source and runtime permission against the `GoalContract` and `ImplicitRequirementMiner` specifications to verify that every collected personal data element is functionally necessary for declared app capabilities.
+2. *Excessive collection detection:* Flags instances where high-precision or sensitive data is requested when low-precision alternatives suffice (e.g. requesting `ACCESS_FINE_LOCATION` when coarse location or zip code satisfies the feature).
+3. *Retention and auto-purge verification:* Verifies that local caches, temporary logs, and session tokens containing PII declare deterministic expiration or scheduled WorkManager pruning routines rather than persisting indefinitely.
+
+#### 70.7.4 PrivacyPolicyGenerator
+
+`PrivacyPolicyGenerator` generates legally grounded, evidence-backed privacy documentation for the Android project:
+1. *Evidence-based privacy policy synthesis:* Generates a comprehensive `PRIVACY_POLICY.md` based on actual AST evidence (classified PII fields, persistent data stores, third-party SDKs, and declared permissions) rather than generic boilerplates.
+2. *Google Play Data Safety mapping:* Produces structured responses for the Google Play Console Data Safety questionnaire, detailing which data types are collected or shared, whether data is encrypted in transit, and whether users can request data deletion.
+3. *Erasure and opt-out flow guidance:* Verifies the presence of user data deletion flows ("Delete Account" / "Clear Data") and analytics opt-out toggles required for Google Play and GDPR compliance.
+
+#### 70.7.5 OpenSourceNoticeComposer
+
+`OpenSourceNoticeComposer` manages third-party software license compliance for the produced Android application:
+1. *License aggregation from SBOM:* Consumes `ResolvedDependency` and `SbomBuilder` metadata (§70.1, §70.4) to extract canonical package names, versions, license identifiers (SPDX), and license text for all compiled dependencies.
+2. *In-app notice asset generation:* Generates the required open-source notice text file (`res/raw/third_party_licenses.txt` or `assets/NOTICE.txt`) and synthesizes a compliant Jetpack Compose license display screen or dialog.
+3. *Incompatible license verification:* In conjunction with `SbomBuilder` (§70.1) and `ProvenanceRecorder` (§70.1), verifies that no viral or restricted copyleft licenses (e.g. GPL-3.0) infect proprietary client artifacts, ensuring safe commercial and release distribution.
+
 
 
 ## 71. Agent Reasoning Runtime and Capability Layer

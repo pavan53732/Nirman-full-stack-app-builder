@@ -158,6 +158,8 @@
 
 **AndroidIntegrationIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying API contract integrity, third-party integration analysis, webhook signature verification, and mobile authentication security. — TA §74.7.1; BS §43.1.
 
+**AndroidPrivacyIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Personal Identifiable Information (PII) classification, personal data flow tracking, data minimization checking, privacy policy generation, and open-source license notice composition. — TA §70.7.1; BS §43.1.
+
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
 
 **AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
@@ -204,6 +206,8 @@
 
 **DarkPatternDetector** — The static analysis module detecting manipulative UX anti-patterns, pre-checked opt-in consent checkboxes, deceptive button contrast, and hidden subscription cancellation flows. — TA §73.16.5; BS §43.1.
 
+**DataMinimizationChecker** — The static compliance module auditing detected PII and sensor access against the application's declared functional requirements to prevent over-collection. — TA §70.7.3; BS §43.1.
+
 **DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.3.
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
@@ -236,17 +240,23 @@
 
 **OfflineSyncProtocolPlanner** — The persistence verification module validating offline-first sync architecture, reactive Flow repositories, WorkManager Outbox patterns, and conflict resolution policies. — TA §47.4; BS §43.1.
 
+**OpenSourceNoticeComposer** — The license compliance module that consumes SBOM and resolved dependency metadata to generate in-app open-source notice files and Compose display surfaces. — TA §70.7.5; BS §43.1.
+
 **OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
 
 **Performance intelligence** — Historical and live physical-resource measurements used by deterministic schedulers, recovery, validation ordering, and transport adaptation without granting authority or creating AI-usage budgets. — TA §7.2; BS §72; ADR-236.
 
 **PersonaInferenceEngine** — The product intelligence module inferring target stakeholder personas, touch target ergonomics, and accessibility profiles from user intent. — TA §73.15.4; BS §69.2.
 
+**PiiFieldClassifier** — The static analysis module scanning Room entity fields, Compose form inputs, and serialization DTOs to detect and categorize personal identifiable information. — TA §70.7.2; BS §43.1.
+
 **PlaceholderResidueDetector** — The pre-commit static analysis module detecting unexpanded stub markers (TODO, FIXME, NotImplementedError, Lorem ipsum) in generated code and XML resources. — TA §47.4; BS §43.1.
 
 **Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
 
 **PreviewCoordinator** — The service that owns preview promotion; `PreviewProjectionReducer` remains the sole projection reducer. — TA §50; TA §75.
+
+**PrivacyPolicyGenerator** — The documentation synthesis module generating legally grounded privacy policies and Google Play Data Safety declaration responses from AST evidence. — TA §70.7.4; BS §43.1.
 
 **ProjectReadmeSynthesizer** — The documentation engine synthesizing truthful, deterministic README.md files for exported Android projects. — TA §47.4; TA §76.3; BS §83.
 
