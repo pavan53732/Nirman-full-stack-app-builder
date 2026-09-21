@@ -136,6 +136,8 @@
 
 ## 5. Authorities, services, and runtime concepts
 
+**AndroidAccessibilityAuditor** — The static and dynamic accessibility verification module evaluating minimum 48dp touch targets, TalkBack contentDescription semantics, keyboard focus order, and color-blind safety. — TA §73.16.3; BS §43.1.
+
 **AndroidAntiPatternDetector** — The static AST analysis service detecting prohibited Android and Jetpack Compose anti-patterns before commit. — TA §47.4; BS §23.4.
 
 **AndroidArchitectureReasoningService** — The static architectural what-if analysis service that traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface (affected files, modules, tests, evidence) for a proposed architectural change before any `ConstructionTransaction` opens. Read-only and advisory; no authority, no AI-usage budget. — TA §47.5.2; BS §43.3.
@@ -144,9 +146,11 @@
 
 **AndroidCodeIntelligenceService** — The supervisor-owned, read-only aggregate service exposing a typed query interface over `AndroidSymbolGraph`, `SemanticCodeFingerprintEngine`, `EpisodicRepairPatternCatalog`, and the project `ImpactGraph` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority. — TA §47.5.1; BS §43.1.
 
+**AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
+
 **AndroidDataIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Room schema design, migration verification, query performance inspection, and offline-first synchronization planning. — TA §47.5.4; BS §43.1.
 
-**AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
+**AndroidDesignIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying design token compliance, visual layout hierarchy, mobile accessibility compliance, string externalization, and dark pattern prevention. — TA §73.16.1; BS §43.1.
 
 **AndroidDomainKnowledgeCatalog** — The local offline repository of idiomatic Android architecture patterns, Room entity models, and state-machine workflows that assists requirements planning without user-facing templates. — TA §73.15.5; BS §69.2.
 
@@ -197,6 +201,8 @@
 **CrashPatternAnalyzer** — The runtime crash analysis service that correlates Logcat stack traces with source symbol anchors and episodic repair patterns. — TA §47.4; BS §28.2.
 
 **CoverageGapLocator** — The prioritized coverage gap locator synthesizing AST source-level instruction/method coverage, state-space transitions, and requirement gaps. — TA §53.5.3; BS §56.6.
+
+**DarkPatternDetector** — The static analysis module detecting manipulative UX anti-patterns, pre-checked opt-in consent checkboxes, deceptive button contrast, and hidden subscription cancellation flows. — TA §73.16.5; BS §43.1.
 
 **DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.3.
 
@@ -274,6 +280,8 @@
 
 **StartupRegressionTracker** — The performance analysis module measuring TTID and TTFD cold-start launch latency from Logcat and detecting startup latency regressions. — TA §62.1.2; BS §56.3.
 
+**StringExternalizationEngine** — The static localization module detecting hardcoded UI string literals, proposing extraction into strings.xml, enforcing RTL mirroring, and validating localized plurals. — TA §73.16.4; BS §43.1.
+
 **SupervisorPreemptionProtocol** — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes. — TA §58.11.2.
 
 **TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
@@ -295,6 +303,8 @@
 **TruncatedFileDetector** — The pre-commit syntax continuity module verifying balanced delimiters, closed string literals, and the absence of EOF error nodes in generated files. — TA §47.4; BS §43.1.
 
 **UntestedBranchDetector** — The static control-flow analysis module correlating CFG decision branches with test execution traces to flag unverified decision paths. — TA §53.5.4; BS §56.6.
+
+**VisualHierarchyAnalyzer** — The static and dynamic visual QA module evaluating WCAG 2.1 AA color contrast ratios, layout overflows, text clipping, and design token adherence on rendered frames and Compose trees. — TA §73.16.2; BS §43.1.
 
 **WorkerAnomalyDetector** — The runtime sentinel inside SupervisorExecutionLoop that detects cognitive stalls, mutation thrashing, and schema deviations, triggering immediate lease revocation and quarantine. — TA §58.1.
 

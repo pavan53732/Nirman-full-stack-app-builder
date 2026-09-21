@@ -3465,6 +3465,11 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `ApiContractDriftDetector` | module | `nirman-android` | Statically compares client network interfaces and DTOs against OpenAPI specifications to detect schema drift (§74.7.2; BS §43.1) | none — pre-commit verification | §74.7.2 |
 | `ThirdPartyIntegrationAnalyzer` | module | `nirman-android` | Validates third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC checks (§74.7.3; BS §43.1) | none — pre-commit verification | §74.7.3 |
 | `AuthFlowSecurityHardener` | module | `nirman-android` | Audits mobile auth flows for OAuth 2.0 PKCE, token refresh mutexes, Keystore encryption, and route guards (§74.7.4; BS §43.1) | none — pre-commit verification | §74.7.4 |
+| `AndroidDesignIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade unifying design token compliance, visual QA, accessibility, string externalization, and dark pattern prevention (§73.16.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.16.1 |
+| `VisualHierarchyAnalyzer` | module | `nirman-android` | Statically and dynamically evaluates contrast ratios, layout overflows, text truncations, and design token adherence (§73.16.2; BS §43.1) | none — pre-commit verification | §73.16.2 |
+| `AndroidAccessibilityAuditor` | module | `nirman-android` | Audits native Android accessibility: 48dp touch targets, TalkBack contentDescription, focus order, and color-blind safety (§73.16.3; BS §43.1) | none — pre-commit verification | §73.16.3 |
+| `StringExternalizationEngine` | module | `nirman-android` | Scans hardcoded string literals into strings.xml, enforces RTL mirroring, and validates plurals and locale formatting (§73.16.4; BS §43.1) | none — pre-commit verification | §73.16.4 |
+| `DarkPatternDetector` | module | `nirman-android` | Statically scans UI compositions to detect pre-checked consent checkboxes, deceptive button contrast, and hidden cancellation flows (§73.16.5; BS §43.1) | none — pre-commit verification | §73.16.5 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -5602,6 +5607,50 @@ The §73.8 rule that the preview panel is a read model of durable control-plane 
 1. *Google Play policy verification:* Audits requirements against Google Play policies (Families Policy requirements for children's apps, Prominent Disclosure mandates for background location and health data, Account Deletion URL/in-app requirements).
 2. *Data Safety Section declarations:* Generates accurate Data Safety declarations (data collected, shared, encrypted in transit, ephemeral vs persistent) based on the project's declared entities and network endpoints.
 3. *Regional compliance heuristics:* Identifies regulatory constraints (COPPA, GDPR, CCPA/CPRA, India DPDP Act) requiring in-app consent dialogs, privacy policy links, or local data encryption before artifact release.
+
+### 73.16 AndroidDesignIntelligenceService
+
+**Role:** aggregate query facade and static UI/UX and accessibility validation — read-only services; no authority, no AI-usage budget.
+
+#### 73.16.1 AndroidDesignIntelligenceService
+
+`AndroidDesignIntelligenceService` is the supervisor-owned, read-only aggregate query facade unifying design token compliance, visual hierarchy and layout QA, mobile accessibility auditing, string externalization, and dark pattern prevention across the generated Android application. It exposes a typed query surface to UI and visual QA workers (`UI Worker`, `Visual QA Worker`, `Content Worker`) and registered IPC command handlers.
+
+`AndroidDesignIntelligenceService` coordinates four deterministic analytical components:
+1. *Visual QA and hierarchy analysis:* Invokes `VisualHierarchyAnalyzer` (§73.16.2) to evaluate color contrast ratios, layout overflows, density bucket coverage, and design token adherence on rendered frames and Compose trees.
+2. *Android accessibility auditing:* Invokes `AndroidAccessibilityAuditor` (§73.16.3) to verify minimum 48dp touch targets, TalkBack `contentDescription` semantics, focus order, and color-blind palette safety, while enforcing native Compose semantics over invalid web ARIA attributes.
+3. *Localization and string externalization:* Invokes `StringExternalizationEngine` (§73.16.4) to scan for hardcoded string literals, manage `strings.xml` and `<plurals>`, verify RTL mirroring (`start`/`end`), and check localized date/number formatters.
+4. *Dark pattern detection:* Invokes `DarkPatternDetector` (§73.16.5) to detect manipulative UX patterns, pre-selected consent boxes, and disguised cancellation actions.
+
+`AndroidDesignIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all UI/UX proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 73.16.2 VisualHierarchyAnalyzer
+
+`VisualHierarchyAnalyzer` provides static and dynamic visual QA verification across Android layouts and rendered screens:
+1. *Contrast ratio verification:* Statically evaluates text and icon foreground colors against backgrounds in light and dark color schemes, enforcing WCAG 2.1 AA contrast floors (4.5:1 for normal text, 3:1 for large text and interactive icons).
+2. *Layout overflow and clipping detection:* Traverses Compose layout constraints and rendered viewport bounds to flag element clipping, unconstrained text overflows, and unintentional text truncations.
+3. *Design token and density parity:* Verifies that UI composables utilize declared design tokens (`MaterialTheme.colorScheme`, `spacing`, `typography`) rather than hardcoded hex values or raw dimensions, and checks that image assets supply required density buckets (`mdpi` through `xxxhdpi`) or vector drawables.
+
+#### 73.16.3 AndroidAccessibilityAuditor
+
+`AndroidAccessibilityAuditor` audits mobile accessibility compliance against Android guidelines:
+1. *Touch target size verification:* Enforces the Android minimum interactive touch target dimension of 48dp $\times$ 48dp across all clickable controls (`Button`, `IconButton`, `FloatingActionButton`, clickable composables).
+2. *Screen reader semantics and TalkBack support:* Verifies that all non-text actionable elements declare meaningful `contentDescription` attributes via Jetpack Compose `Modifier.semantics`, rejecting non-applicable web ARIA attributes in favor of native Android AccessibilityNodeInfo properties.
+3. *Focus navigation and color independence:* Checks hardware keyboard and D-pad focus traversal order (`Modifier.focusProperties`), and validates that UI state (such as error, warning, or selected) is never conveyed by color alone, maintaining visual accessibility under simulated color-vision deficiencies.
+
+#### 73.16.4 StringExternalizationEngine
+
+`StringExternalizationEngine` verifies and automates Android localization readiness:
+1. *Hardcoded string literal detection:* Statically scans Kotlin source files and Compose composables for hardcoded UI text literals, proposing extraction into `res/values/strings.xml`.
+2. *RTL layout and mirroring validator:* Verifies bidirectional layout compatibility (`android:supportsRtl="true"`), ensuring padding, margin, and alignment specifications use directional `start`/`end` properties rather than hardcoded `left`/`right`.
+3. *Pluralization and locale formatting:* Audits quantity-dependent text to ensure usage of Android `<plurals>` resources rather than string concatenation, and verifies date, time, number, and currency formatting via localized Android APIs (`DateTimeFormatter`, `NumberFormat.getCurrencyInstance(locale)`).
+
+#### 73.16.5 DarkPatternDetector
+
+`DarkPatternDetector` statically scans UI compositions and transaction flows to prevent deceptive UX designs:
+1. *Consent and opt-in neutrality:* Detects pre-checked opt-in checkboxes for marketing or tracking consent, verifying default-neutral user choice.
+2. *Deceptive choice hierarchy:* Identifies unequal visual hierarchies that disguise decline, cancel, or opt-out actions through degraded contrast, obscured positioning, or tiny font sizes.
+3. *Subscription and cancellation transparency:* Verifies that account deletion and subscription management pathways provide direct, unhindered navigation without hidden cancellation loops.
 
 ## 74. Integration Boundary Implementation Contract
 
