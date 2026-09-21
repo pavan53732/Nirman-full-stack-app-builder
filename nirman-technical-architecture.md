@@ -2645,6 +2645,88 @@ contract requirement
 
 The service supports unit, integration, instrumentation, UI, visual, accessibility, permission, migration, offline, and smoke tests. It records skipped, blocked, flaky, and not-applicable states rather than treating them as passes.
 
+### 53.5.1 AndroidTestIntelligenceService
+
+`AndroidTestIntelligenceService` is the supervisor-owned, read-only aggregate query facade that exposes on-demand test and coverage comprehension across the project's test suite, coverage graphs, and verification artifacts to the `AgentExecutionKernel` and registered desktop IPC command handlers. It coordinates ten deterministic analytical modules to answer on-demand test intelligence queries without requiring full model deliberation or triggering unneeded emulator test cycles. It is the implementation of the on-demand test comprehension query surface referenced by BS §47.5.
+
+Responsibilities:
+- Exposes typed query endpoints for bi-directional test-to-code mapping, prioritized coverage gaps, untested CFG decision branches, semantic test intent, static assertion quality scoring, flakiness signatures, fixture dependency impact, mock boundary conformance, test pyramid balance, and redundant test elimination.
+- Routes each query to the respective deterministic module (`TestToCodeMappingEngine`, `CoverageGapLocator`, `UntestedBranchDetector`, `TestIntentExtractor`, `AssertionStrengthAnalyzer`, `FlakyTestSignatureDetector`, `FixtureDependencyTracer`, `MockAndStubBoundaryAnalyzer`, `TestPyramidBalanceAnalyzer`, `RedundantTestDetector`) and returns typed, read-only analytical records.
+- Operates 100% locally on the Windows host with zero token, monetary, or reasoning budgets (ADR-218; BS §72).
+- Never mutates project code, executes unauthorized test runners, or overrides deterministic quality gates; all mutation proposals pass through `MutationBroker` and `ConstructionTransactionManager` (BS §43.2), and `ProvenanceRecorder` remains the sole promotion gate.
+
+### 53.5.2 TestToCodeMappingEngine
+
+`TestToCodeMappingEngine` provides deterministic, bi-directional symbol-to-test and test-to-symbol mapping across the project:
+1. *Forward mapping (Code to Tests):* Given an AST symbol node (function, Composable, ViewModel, Repository, Room DAO), traverses `AndroidSymbolGraph` (§47.3) and `ImpactGraph` (BS §43.3) to resolve all `TEST_UNIT`, `TEST_INSTRUMENTED`, and `E2EScenario` tests and assertion identifiers that exercise that symbol.
+2. *Reverse mapping (Test to Code):* Given a test class, method, or scenario assertion, parses invocation targets, `@Test` call graphs, and `composeTestRule` node lookups to resolve the exact set of production source symbols and files covered by that test.
+3. *On-demand query support:* Supplies instant cross-referencing to kernel workers (`Test and QA Worker`, `Debugging Worker`) and the desktop UI without requiring a staging transaction or full impact recomputation.
+
+### 53.5.3 CoverageGapLocator
+
+`CoverageGapLocator` unifies and prioritizes coverage gaps across three distinct architectural layers into a single actionable report:
+1. *Tri-layer synthesis:* Aggregates source-level instruction/method coverage (derived from AST instrumentation or local JaCoCo reports), state-space transition coverage (`StateSpaceCoverageModel`, §62.1), and requirement coverage (`RequirementCoverageReport`, BS §56.6).
+2. *Prioritized gap enumeration:* Ranks uncovered symbols and screen transitions by risk weight (`riskFactor`, `riskWeight`), distinguishing critical domain logic and unhandled UI failure states from benign cosmetic code.
+3. *Targeted test synthesis guidance:* Emits structured recommendations for `ScenarioSynthesizer` (§62.1) and `AssertionAuthor` (§64.1) identifying the highest-value missing tests required to satisfy completion evidence.
+
+### 53.5.4 UntestedBranchDetector
+
+`UntestedBranchDetector` combines intra-procedural control flow graph (CFG) analysis with test execution traces to identify untested decision points:
+1. *CFG branch extraction:* Queries `AndroidDataFlowAnalyzer` (§47.4) to enumerate all conditional branches, `when` clauses, Elvis null-coalescing operators (`?:`), sealed class subtypes, and `try/catch` exception handlers in target Kotlin and Java ASTs.
+2. *Execution trace correlation:* Cross-references enumerated branch identifiers against unit assertion outcomes and scenario runtime traces (`RuntimeTraceAnalyzer`, §53.7).
+3. *Defect and gap reporting:* Flags any executable branch with zero test execution or assertion verification as an `UNTESTED_BRANCH` diagnostic, ensuring error handling and recovery branches are never left unverified.
+
+### 53.5.5 TestIntentExtractor
+
+`TestIntentExtractor` performs deterministic inbound parsing of test code to extract semantic behavioral intent:
+1. *Structural intent harvesting:* Parses test method names (e.g. `givenEmptyCart_whenCheckoutClicked_showsError`), JUnit 5 `@DisplayName` annotations, KDoc/Javadoc comments, and Given-When-Then block comments via Tree-sitter AST traversal.
+2. *Assertion target analysis:* Inspects assertion calls (`assertEquals`, `assertThat`, `assertIsDisplayed`) and MockK/Mockito verification blocks (`verify { ... }`) to extract the exact behavioral postconditions asserted by the test.
+3. *Semantic intent indexing:* Normalizes extracted intents into structured `TestIntentRecord`s linked to `AndroidConstructionContract` requirement IDs, enabling on-demand semantic test search and traceability verification without model deliberation.
+
+### 53.5.6 AssertionStrengthAnalyzer
+
+`AssertionStrengthAnalyzer` statically evaluates the quality, specificity, and mutation-killing strength of test assertions:
+1. *Assertion density and presence:* Scans test methods to detect tests with zero assertions (execution-only tests) or tests relying solely on uncaught exception absence.
+2. *Superficial assertion detection:* Flags weak assertions that fail to verify state semantics, such as asserting nullness only (`assertNotNull(item)`) when field contents should be validated, or trivial collection size checks (`size > 0`) without member verification.
+3. *Tautological and vacuity detection:* Detects tautological assertions (`assertTrue(true)`, variable self-comparison) and assertions on mocked return values; complements the in-loop dynamic `MutationProber` (§64.4) by providing instant pre-commit static quality feedback.
+4. *Compose assertion specificity:* Verifies that Jetpack Compose UI tests assert node semantic properties (text, state, enabled/disabled, selected) rather than merely checking node existence in the UI tree.
+
+### 53.5.7 FlakyTestSignatureDetector
+
+`FlakyTestSignatureDetector` proactively scans test code and runtime execution traces for known non-determinism anti-patterns *before* expensive emulator executions:
+1. *Static timing hazard detection:* Flags hardcoded delays (`Thread.sleep()`, `delay()`) in test bodies and coroutines, enforcing migration to coroutine test dispatchers with `advanceUntilIdle()` or explicit `wait_for` conditions (§62.4).
+2. *Unseeded randomness and clock access:* Detects unseeded `Random()` instances, `UUID.randomUUID()`, `System.currentTimeMillis()`, and unmocked `Instant.now()` in test assertions, requiring deterministic seed binding via `SeedDataProvisioner` (§62.1).
+3. *Concurrency and dispatcher hazards:* Flags uncoordinated asynchronous launches (`GlobalScope.launch`, unconfined coroutine dispatchers) and tests missing Compose test synchronization (`composeTestRule.waitUntil` or `IdlingResource`).
+4. *Shared mutable state:* Identifies static mutable fields and singleton references that persist across test methods without `@BeforeEach` or `@AfterEach` reset lifecycle hooks.
+
+### 53.5.8 FixtureDependencyTracer
+
+`FixtureDependencyTracer` maps and traces relationships between test cases and their shared fixtures, seed data, and test assets:
+1. *Fixture mapping:* Maps unit and instrumentation tests to their declared setup hooks (`@BeforeEach`, `@BeforeAll`), Room pre-packaged database fixtures, mock JSON assets (`src/test/resources/`), and factory objects.
+2. *Fixture blast radius calculation:* Computes the downstream test invalidation set when a test asset, seed file, or fixture helper is modified, ensuring only affected tests are scheduled for re-execution under targeted test set derivation (§47.4).
+3. *Fixture state leakage detection:* Detects fixtures that modify shared persistent state (SQLite tables, DataStore preferences) without registering corresponding teardown routines, preventing inter-test contamination.
+
+### 53.5.9 MockAndStubBoundaryAnalyzer
+
+`MockAndStubBoundaryAnalyzer` statically inspects test doubles (MockK, Mockito, fake repositories) in the generated project to guarantee contract fidelity:
+1. *Stub signature and type fidelity:* Verifies that stubbed methods (`every { repo.getUser(id) } returns user`) conform to current production class and interface signatures, detecting broken stubs immediately when production APIs change.
+2. *Over-mocking detection:* Flags anti-patterns where domain data classes, value objects, Room entities, or pure algorithmic utilities are mocked rather than instantiated directly.
+3. *Mock boundary isolation:* Verifies that mocks do not leak across test boundaries and ensures that tests asserting end-to-end capabilities do not mock the primary subsystem under test. Complements the supervisor-level `ContractDouble` (§74.1) by enforcing in-project unit test double integrity.
+
+### 53.5.10 TestPyramidBalanceAnalyzer
+
+`TestPyramidBalanceAnalyzer` evaluates the structural distribution of the project's test suite against canonical Android testing pyramid principles:
+1. *Tier cardinality computation:* Computes the distribution of tests across the three canonical tiers: Unit tests (fast JVM tests, ViewModels, business logic), Integration/Component tests (Robolectric, Compose UI unit tests, Room DAO tests), and E2E Scenarios (emulator-based full APK workflows, §62.1).
+2. *Pyramid balance scoring:* Evaluates the unit-to-integration-to-E2E ratio against recommended balance thresholds (e.g. 70% unit, 20% integration, 10% E2E).
+3. *Inversion anti-pattern detection:* Detects the "inverted pyramid" or "ice cream cone" anti-pattern where slow, brittle emulator E2E tests outnumber fast unit tests; provides structured tier-placement guidance to `Test and QA Worker` when synthesizing new tests.
+
+### 53.5.11 RedundantTestDetector
+
+`RedundantTestDetector` identifies duplicate, overlapping, and subsumed tests to maintain test suite efficiency:
+1. *AST structural clone detection:* Leverages `SemanticCodeFingerprintEngine` (§47.4) to compare normalized test method ASTs, detecting tests with identical setup, stimulus, and assertion structures across test classes.
+2. *Subsumption analysis:* Identifies test cases whose execution path, input equivalence partition, and assertion set form an exact subset of a broader parameterized or scenario test, providing zero marginal fault-detection capability.
+3. *Redundancy reporting:* Emits advisory pruning proposals to `Test and QA Worker`, enabling test suite optimization without reducing verified requirement or state-space coverage.
+
 ### 53.6 ArchitectureDriftDetector and ContractDriftDetector
 
 The detectors compare the current project graph and build outputs with the approved contract and technology plan. They identify missing features, unreachable screens, undocumented permissions, data models without migrations, untested acceptance criteria, unauthorized dependencies, stale generated files, architecture-boundary violations, and preview/artifact revision mismatch.
@@ -3277,6 +3359,17 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `SecurityRiskScorer` | module | `nirman-android` | Severity-weighted aggregation of `AppSecurityScanner` findings into a structured `SecurityRiskScore` bound to the artifact revision; read-only projection — `ProvenanceRecorder` remains the sole promotion gate (§70.1; §70.3) | `SecurityRiskScore` record in `FindingDispositionStore` | §70.3 |
 | `SecurityAuditGenerator` | module | `nirman-android` | Composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact record attached before promotion; read-only projection — promotion authority remains with `ProvenanceRecorder` (§70.1; §70.3) | security audit report artifact record | §70.3 |
 | `DependencyIntelligenceService` | service | `nirman-android` | Read-only coordination facade over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore`; routes typed dependency-intelligence queries from kernel workers and IPC command handlers to authoritative components without creating a second authority; `ProvenanceRecorder` remains the sole promotion gate (§53.8.1; BS §58.3) | none — read-only; proposals routed through `MutationBroker` | §53.8.1 |
+| `AndroidTestIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over test comprehension engines; routes on-demand test-to-code mapping, coverage gap analysis, untested branch detection, test intent extraction, assertion strength analysis, flakiness detection, fixture tracing, mock boundary validation, pyramid balance, and redundant test elimination without creating a second authority (BS §47.5) | none — read-only; proposals routed through `MutationBroker` | §53.5.1 |
+| `TestToCodeMappingEngine` | module | `nirman-android` | Bi-directional symbol-to-test and test-to-symbol mapping across unit, instrumentation, and scenario tests (§53.5.2) | none — analytical queries | §53.5.2 |
+| `CoverageGapLocator` | module | `nirman-android` | Prioritized coverage gap locator synthesizing AST source coverage, state-space transitions, and requirement gaps (§53.5.3) | none — analytical queries | §53.5.3 |
+| `UntestedBranchDetector` | module | `nirman-android` | Correlates `AndroidDataFlowAnalyzer` CFG decision points with test execution traces to locate untested branches (§53.5.4) | none — analytical queries | §53.5.4 |
+| `TestIntentExtractor` | module | `nirman-android` | Deterministic inbound test AST parser extracting semantic behavioral intents from test declarations and assertions (§53.5.5) | none — analytical queries | §53.5.5 |
+| `AssertionStrengthAnalyzer` | module | `nirman-android` | Static analyzer evaluating assertion density, specificity, and vacuity across test ASTs (§53.5.6) | none — analytical queries | §53.5.6 |
+| `FlakyTestSignatureDetector` | module | `nirman-android` | Static scanner detecting flakiness anti-patterns (sleeps, unseeded random, unconfined dispatchers) in test code (§53.5.7) | none — analytical queries | §53.5.7 |
+| `FixtureDependencyTracer` | module | `nirman-android` | Maps tests to shared fixtures, seed data, and test assets, computing fixture change blast radius (§53.5.8) | none — analytical queries | §53.5.8 |
+| `MockAndStubBoundaryAnalyzer` | module | `nirman-android` | Verifies in-project test double signatures, contract fidelity, and over-mocking anti-patterns (§53.5.9) | none — analytical queries | §53.5.9 |
+| `TestPyramidBalanceAnalyzer` | module | `nirman-android` | Evaluates test tier cardinality and detects inverted test pyramid anti-patterns (§53.5.10) | none — analytical queries | §53.5.10 |
+| `RedundantTestDetector` | module | `nirman-android` | Identifies duplicate and subsumed test cases via AST structural fingerprints and execution path overlap (§53.5.11) | none — analytical queries | §53.5.11 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 

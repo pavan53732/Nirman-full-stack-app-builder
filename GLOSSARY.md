@@ -152,7 +152,11 @@
 
 **AndroidTechnologyAdapter** — The resolution-only adapter (six operations) through which a technology plan reaches a concrete `AndroidBuildAdapter` or `AndroidDeviceAdapter`; it performs no build, install, or observation work itself. — TA §73.10; TA §73.12; TA §73.13.
 
+**AndroidTestIntelligenceService** — The supervisor-owned, read-only aggregate query facade exposing on-demand test and coverage comprehension across test-to-code mapping, prioritized coverage gaps, untested branches, semantic test intent, assertion quality, flakiness detection, fixture tracing, mock boundaries, pyramid balance, and redundant test elimination. — TA §53.5.1; BS §47.5.
+
 **ArchitectureDriftDetector** — The static AST analysis service detecting Clean Architecture layer boundary violations between UI, ViewModel, and Data layers. — TA §47.4; TA §53.6; BS §23.4.
+
+**AssertionStrengthAnalyzer** — The static analysis module evaluating assertion density, presence, superficiality, and vacuity across test ASTs. — TA §53.5.6; BS §57.5.
 
 **Attention placement / recall probes** — Placing context where the model measurably attends (`PlacementPlanner`) and verifying recall with runtime-known probes (`RecallProbeService`) instead of trusting model recall. — BS §53.11; TA §59; ADR-219.
 
@@ -172,6 +176,8 @@
 
 **CrashPatternAnalyzer** — The runtime crash analysis service that correlates Logcat stack traces with source symbol anchors and episodic repair patterns. — TA §47.4; BS §28.2.
 
+**CoverageGapLocator** — The prioritized coverage gap locator synthesizing AST source-level instruction/method coverage, state-space transitions, and requirement gaps. — TA §53.5.3; BS §56.6.
+
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
 **DependencyIntelligenceService** — The supervisor-owned, read-only coordination facade exposing a unified typed query interface over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority; `ProvenanceRecorder` remains the sole promotion gate. — TA §53.8.1; BS §58.3.
@@ -184,9 +190,15 @@
 
 **Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
 
+**FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8; BS §47.5.
+
+**FlakyTestSignatureDetector** — The static test analysis module detecting non-deterministic timing, unseeded randomness, unconfined coroutine dispatchers, and missing Compose synchronization anti-patterns before execution. — TA §53.5.7; BS §57.5.
+
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
+
+**MockAndStubBoundaryAnalyzer** — The static double analysis module verifying test double signatures, contract fidelity, over-mocking anti-patterns, and mock isolation in generated Android tests. — TA §53.5.9; BS §57.5.
 
 **OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
 
@@ -202,6 +214,8 @@
 
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
 
+**RedundantTestDetector** — The test suite optimization module identifying duplicate and subsumed test cases via AST structural fingerprints and execution path overlap. — TA §53.5.11; BS §57.5.
+
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
 
 **SecurityAuditGenerator** — The report synthesizer that composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact attached to the artifact record before promotion. Read-only projection; `ProvenanceRecorder` remains the sole promotion gate. Part of the `AndroidSecurityIntelligenceService` service. — TA §70.1; TA §70.3; BS §58.2.
@@ -216,9 +230,17 @@
 
 **TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
 
+**TestIntentExtractor** — The deterministic inbound test parser extracting semantic behavioral intents from test declarations, annotations, and assertions. — TA §53.5.5; BS §47.5.
+
+**TestPyramidBalanceAnalyzer** — The structural analysis module computing test tier cardinality across Unit, Integration, and E2E Scenarios, and flagging inverted test pyramid anti-patterns. — TA §53.5.10; BS §47.5.
+
+**TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2; BS §47.5.
+
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
 **ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
+
+**UntestedBranchDetector** — The static control-flow analysis module correlating CFG decision branches with test execution traces to flag unverified decision paths. — TA §53.5.4; BS §56.6.
 
 **WorkerAnomalyDetector** — The runtime sentinel inside SupervisorExecutionLoop that detects cognitive stalls, mutation thrashing, and schema deviations, triggering immediate lease revocation and quarantine. — TA §58.1.
 

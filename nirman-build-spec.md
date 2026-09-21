@@ -2701,6 +2701,8 @@ Requirement → acceptance criterion → test → execution result → evidence 
 
 The traceability matrix records skipped, blocked, flaky, and passing tests honestly. A final artifact cannot claim complete implementation when a mandatory requirement has no executable validation or has unresolved blocking evidence.
 
+The typed query interface for on-demand test and coverage comprehension — bi-directional test-to-code mapping, prioritized coverage gap location, untested branch detection, test intent extraction, assertion strength analysis, flaky test signature detection, fixture dependency tracing, mock and stub boundary analysis, test pyramid balance evaluation, and redundant test elimination — is exposed to the agent kernel and desktop IPC command handlers by `AndroidTestIntelligenceService` (TA §53.5.1). `AndroidTestIntelligenceService` is a read-only facade; it creates no second authority and routes all mutation proposals through the `MutationBroker` governed by §43.2.
+
 ### 47.6 Architecture and contract drift
 
 After every major transaction, Nirman MUST compare the project against the approved `AndroidConstructionContract` and `AndroidTechnologyPlan`. Drift detection identifies missing features, undocumented permissions, unreachable screens, data models without migrations, acceptance criteria without tests, dependencies outside the approved plan, unauthorized architecture changes, stale generated files, and preview or artifact outputs from unrelated revisions.
@@ -3636,6 +3638,8 @@ The runtime provides a deterministic service that maps requirements to scenarios
 - Shows requirement-by-requirement completion status in evidence
 - Produces `ProofSynthesis` output: what is proven/unproven/blocked and why
 
+On-demand identification and risk prioritization of coverage gaps across requirements, state-space transitions, and AST source code is provided by `CoverageGapLocator` (TA §53.5.3), while untested control flow graph decision points are identified by `UntestedBranchDetector` (TA §53.5.4).
+
 ### 56.x Testing-strength requirements
 
 Every completion-relevant E2EScenario MUST be evaluated across five dimensions:
@@ -3707,6 +3711,8 @@ Performance measurement is owned by technical architecture §69.7 and screenshot
 ### 57.5 Assertion quality requirement
 
 Assertions that cannot fail are not evidence. For critical logic the runtime must confirm that the assertion set detects at least one injected fault. An assertion set that passes against a deliberately broken implementation must be rejected as vacuous.
+
+Static assertion quality and vacuity analysis is performed by `AssertionStrengthAnalyzer` (TA §53.5.6), while non-deterministic timing and concurrency hazards are detected by `FlakyTestSignatureDetector` (TA §53.5.7). In-project test double contract fidelity is verified by `MockAndStubBoundaryAnalyzer` (TA §53.5.9), and redundant or subsumed tests are detected by `RedundantTestDetector` (TA §53.5.11).
 
 ### 57.6 Acceptance criteria
 
