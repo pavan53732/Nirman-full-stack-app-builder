@@ -138,7 +138,11 @@
 
 **AndroidAntiPatternDetector** — The static AST analysis service detecting prohibited Android and Jetpack Compose anti-patterns before commit. — TA §47.4; BS §23.4.
 
+**AndroidArchitectureReasoningService** — The static architectural what-if analysis service that traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface (affected files, modules, tests, evidence) for a proposed architectural change before any `ConstructionTransaction` opens. Read-only and advisory; no authority, no AI-usage budget. — TA §47.5.2; BS §43.3.
+
 **AndroidCircularDependencyDetector** — The graph analysis service detecting cycles across Gradle modules, dependency injection graphs, and database entity relationships. — TA §47.4; BS §23.4.
+
+**AndroidCodeIntelligenceService** — The supervisor-owned, read-only aggregate service exposing a typed query interface over `AndroidSymbolGraph`, `SemanticCodeFingerprintEngine`, `EpisodicRepairPatternCatalog`, and the project `ImpactGraph` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority. — TA §47.5.1; BS §43.1.
 
 **AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
 
@@ -147,6 +151,8 @@
 **AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
 
 **AndroidTechnologyAdapter** — The resolution-only adapter (six operations) through which a technology plan reaches a concrete `AndroidBuildAdapter` or `AndroidDeviceAdapter`; it performs no build, install, or observation work itself. — TA §73.10; TA §73.12; TA §73.13.
+
+**ArchitectureDriftDetector** — The static AST analysis service detecting Clean Architecture layer boundary violations between UI, ViewModel, and Data layers. — TA §47.4; TA §53.6; BS §23.4.
 
 **Attention placement / recall probes** — Placing context where the model measurably attends (`PlacementPlanner`) and verifying recall with runtime-known probes (`RecallProbeService`) instead of trusting model recall. — BS §53.11; TA §59; ADR-219.
 
@@ -158,11 +164,17 @@
 
 **Canonical worker roles (twenty-one)** — The one role taxonomy: Primary Orchestrator, Repository Scout, Requirements Planner, Architecture Worker, UI Worker, Android Data and Integration Worker, Test and QA Worker, Debugging Worker, Security Worker, Visual QA Worker, Performance Worker, Documentation Worker, Release Worker, Reconciliation Worker, Emulator Driver Worker, Diagnostic Worker, Content Worker, Integration Double Worker, Critic Worker, Android Platform Worker, Backend & Service Engineering Worker. Nesting is three levels (worker → diagnostic child → probe child). — build spec §23.4; TA §6.5; ADR-049; ADR-227.
 
+**CodeDuplicationDetector** — The AST clone detection service identifying duplicated Composable UI trees and business logic algorithms using structural fingerprints. — TA §47.4; BS §23.4.
+
 **ConversationResolver** — The single authority that commits a conversation revision (also written `ConversationContinuationResolver`). — TA §86; BS §82.
 
 **CoordinationTraceGraphView** — The WinUI 3 presentation view that renders multi-worker task graphs, message timelines, and lease lifecycles. — TA §55.8; BS §76.
 
+**CrashPatternAnalyzer** — The runtime crash analysis service that correlates Logcat stack traces with source symbol anchors and episodic repair patterns. — TA §47.4; BS §28.2.
+
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
+
+**DependencyIntelligenceService** — The supervisor-owned, read-only coordination facade exposing a unified typed query interface over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority; `ProvenanceRecorder` remains the sole promotion gate. — TA §53.8.1; BS §58.3.
 
 **DocCodeMismatchDetector** — The documentation consistency service verifying KDoc and Javadoc tags against Tree-sitter AST declarations. — TA §47.4; TA §76.3.
 
@@ -191,6 +203,10 @@
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
+
+**SecurityAuditGenerator** — The report synthesizer that composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact attached to the artifact record before promotion. Read-only projection; `ProvenanceRecorder` remains the sole promotion gate. Part of the `AndroidSecurityIntelligenceService` service. — TA §70.1; TA §70.3; BS §58.2.
+
+**SecurityRiskScorer** — The severity-weighted aggregation component that transforms `AppSecurityScanner` findings into a structured `SecurityRiskScore` (critical, high, medium, low counts; overall risk level; blocking status) bound to the artifact revision. Read-only projection; no authority over promotion. Part of the `AndroidSecurityIntelligenceService` aggregate. — TA §70.1; TA §70.3; BS §58.2.
 
 **SemanticCodeFingerprintEngine** — The AST normalization service computing syntax-invariant structural hashes for semantic no-op elimination and repair indexing. — TA §47.4; BS §53.2.
 
