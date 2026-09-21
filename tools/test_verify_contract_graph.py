@@ -2553,7 +2553,7 @@ def main():
     _topology_case("Android intelligence output boundary removed",
                    lambda tmp: _rw(tmp, TA, lambda t: t.replace(
                        "### Cross-service intelligence output contract",
-                       "### Cross-service intelligence output contract REMOVED", 1)),
+                       "### REMOVED cross-service output contract", 1)),
                    expect="semantic documentation")
 
     # NEGATIVE CONFORMANCE (ADR-228): removing the read-only or no-authority
@@ -2579,12 +2579,18 @@ def main():
 
     # NEGATIVE CONFORMANCE: adding a new intelligence service to §57.12 without
     # boundary statements is automatically caught without verifier code changes.
+    def _add_unhardened_service(t):
+        target = "| `AndroidPlatformTargetService` | service | `nirman-android`"
+        idx = t.find(target)
+        line_end = t.find("\n", idx)
+        row = t[idx:line_end+1]
+        new_row = row + "| `AndroidTelemetryIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over telemetry (§73.18.8; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.8 |\n"
+        t = t[:idx] + new_row + t[line_end+1:]
+        idx_next_sec = t.find("## 74.")
+        return t[:idx_next_sec] + "#### 73.18.8 AndroidTelemetryIntelligenceService\n\nUnhardened service without boundary statements.\n\n" + t[idx_next_sec:]
+
     _topology_case("new registry intelligence service automatically caught when unhardened",
-                   lambda tmp: _rw(tmp, TA, lambda t: (
-                       t.replace(
-                           "| `AndroidPlatformTargetService` | service | `nirman-android` | Read-only aggregate query facade over permissions, Gradle config, shrinker rules, notifications, deep links, and target API level compliance (§73.18.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.1 |\n",
-                           "| `AndroidPlatformTargetService` | service | `nirman-android` | Read-only aggregate query facade over permissions, Gradle config, shrinker rules, notifications, deep links, and target API level compliance (§73.18.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.1 |\n| `AndroidTelemetryIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over telemetry (§73.99; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.99 |\n", 1)
-                       + "\n### 73.99 AndroidTelemetryIntelligenceService\n\nUnhardened service without boundary statements.\n")),
+                   lambda tmp: _rw(tmp, TA, _add_unhardened_service),
                    expect="semantic documentation")
 
     # POSITIVE CONFORMANCE: dynamic resolution of renumbered intelligence service section.
