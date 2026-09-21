@@ -4618,6 +4618,48 @@ def check_commit_boundary_locks(docs, D):
             D.add("semantic documentation", where, msg)
 
 
+
+def check_android_intelligence_output_boundary(docs, D):
+    """ADR-228 intelligence-result boundary documentation lock."""
+    ta = docs["ta"]
+    common = "### Cross-service intelligence output contract"
+    if common not in ta:
+        D.add("semantic documentation", "Android intelligence output boundary",
+              "TA lacks the common cross-service intelligence output contract")
+        return
+    start = ta.find(common)
+    end = ta.find("### 73.15", start)
+    body = ta[start:end if end >= 0 else start + 5000]
+    required = (
+        "typed read-only producers",
+        "projectId",
+        "projectRevision",
+        "contextIntegrityHash",
+        "evidence references",
+        "OBSERVATION",
+        "ADVISORY_FINDING",
+        "VALIDATION_INPUT",
+        "GATE_INPUT",
+        "Existing finding, observation, validation, or evidence schemas",
+        "MutationBroker",
+        "ConstructionTransactionManager",
+    )
+    for needle in required:
+        if needle not in body:
+            D.add("semantic documentation", "Android intelligence output boundary",
+                  f"TA common intelligence contract lost required term `{needle}`")
+    services = re.findall(
+        r"^### (?:47\.5\.\d+|51\.4|53\.5\.1|70\.7\.1|73\.15|73\.16\.1|74\.7\.1) ([A-Z][A-Za-z0-9]+Service)\s*$",
+        ta, re.M)
+    for service in services:
+        pos = ta.find(service)
+        nxt = ta.find("\n#### ", pos + 1)
+        local = ta[pos:nxt if nxt >= 0 else pos + 5000]
+        if "read-only" not in local.lower() or "no authority" not in local.lower():
+            D.add("semantic documentation", f"Android intelligence service {service}",
+                  "defining section no longer states read-only/no-authority boundary")
+
+
 def check_document_topology(docs, D, root):
     """ADR-220 document topology (reported under check 13 "structure").
 
@@ -4958,6 +5000,7 @@ def verify(root):
     check_orchestration_hardening(docs, D)
     check_commit_boundary_locks(docs, D)
     check_document_topology(docs, D, root)
+    check_android_intelligence_output_boundary(docs, D)
     check_index_drift(docs, R, D)
     check_skill_bodies(docs, D, root)
     check_command_payload_field_coverage(docs, R, D, root)
