@@ -2365,6 +2365,8 @@ A feature without an explicit optional marking is mandatory. A mandatory require
 
 The contract MUST use explicit schema versions, reject unknown fields where strict validation is required, record source references for inferred fields, and distinguish user-provided facts from model inferences. A worker MUST NOT invent a contract field absent from the canonical schema.
 
+Pre-construction requirement elicitation, companion requirement expansion, and contract formalization are supported by `AndroidProductIntelligenceService` (TA §73.15). Explicit feature declarations are expanded with mandatory companion requirements via `ImplicitRequirementMiner` (TA §73.15.1), semantic and architectural contradictions are detected before code generation by `RequirementConflictDetector` (TA §73.15.2), observable post-conditions are verified by `RequirementTestabilityScorer` (TA §73.15.3), target user touch and accessibility profiles are derived by `PersonaInferenceEngine` (TA §73.15.4), idiomatic Room entities and lifecycle workflows are informed by `AndroidDomainKnowledgeCatalog` (TA §73.15.5), and Google Play policies and regional regulations are audited by `RegulatoryComplianceAnalyzer` (TA §73.15.6).
+
 ### 42.2 ConstructionTransaction
 
 Every mutation, dependency change, toolchain repair, preview promotion, signing operation, and artifact promotion MUST be represented by a ConstructionTransaction.
@@ -4873,6 +4875,8 @@ When both a `REPAIR_INTENT` and a `DELIVERY_INTENT` exist in the same user reque
 
 **Intent confidence scoring.** Extracted user intent MUST carry an `intentConfidenceScore` $\in [0.0, 1.0]$ derived from syntactic clarity and domain coverage. A stated model confidence alone NEVER satisfies sufficiency (BS §68.7). If `intentConfidenceScore < 0.85` or prompt ambiguity $> 0.20$, autonomous code generation is prohibited; the runtime MUST enter the clarification gate of BS §69.11.
 
+**Companion requirement expansion and persona inference.** Intent extraction is augmented by `ImplicitRequirementMiner` (TA §73.15.1), which injects required companion requirements (e.g. login implies logout and password reset; entity collection implies empty and loading states), and `PersonaInferenceEngine` (TA §73.15.4), which derives target user ergonomic constraints (touch target sizing, reachability, accessibility baselines). Canonical domain entity relationships and state transitions are informed offline by `AndroidDomainKnowledgeCatalog` (TA §73.15.5) without violating `CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG`.
+
 ### 69.3 Construction and preview truth labels
 
 Every plan item, command, file change, preview update, test result, and artifact claim MUST carry one of these execution truth labels:
@@ -5076,6 +5080,8 @@ A question with nobody to answer it does not stall the goal (ADR-225). Every MUS
 2. *Storage schema completeness:* Every persistent property declared in a screen model or ViewModel must map to a concrete column in a Room `@Entity` or a typed key in DataStore.
 3. *Permission completeness:* Every hardware API or protected Android service invoked in the plan must have a declared `<uses-permission>` in `AndroidManifest.xml` and an in-app runtime permission check.
 4. *Scenario coverage completeness:* Every requirement in the `AndroidConstructionContract` must bind to at least one evaluable test scenario in `ScenarioRegistry`.
+5. *Requirement conflict absence:* No unresolved semantic or architectural contradictions flagged by `RequirementConflictDetector` (TA §73.15.2) may remain in the contract.
+6. *Requirement testability:* Every admitted requirement must have observable post-conditions on Android verified by `RequirementTestabilityScorer` (TA §73.15.3).
 
 ## 70. Integration Boundary Contract
 

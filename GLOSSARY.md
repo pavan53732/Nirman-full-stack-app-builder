@@ -146,6 +146,10 @@
 
 **AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
 
+**AndroidDomainKnowledgeCatalog** — The local offline repository of idiomatic Android architecture patterns, Room entity models, and state-machine workflows that assists requirements planning without user-facing templates. — TA §73.15.5; BS §69.2.
+
+**AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
+
 **AndroidRefactoringPipeline** — The supervisor-orchestrated offline AST refactoring engine for dead resource pruning, deprecated API migration, and Compose state hoisting normalization. — TA §47.4.
 
 **AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
@@ -194,6 +198,8 @@
 
 **FlakyTestSignatureDetector** — The static test analysis module detecting non-deterministic timing, unseeded randomness, unconfined coroutine dispatchers, and missing Compose synchronization anti-patterns before execution. — TA §53.5.7; BS §57.5.
 
+**ImplicitRequirementMiner** — The requirement expansion module deterministically expanding high-level user goals into mandatory companion requirements for authentication, data listing, and transactional flows. — TA §73.15.1; BS §42.1.
+
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
@@ -203,6 +209,8 @@
 **OrchestrationWiringMatrix** — Runtime record describing one traversal of one canonical integration boundary, including causal identity, authority, persistence, state transitions, failure/recovery behavior, and invalidation semantics. — BS §84; SCHEMAS §2.98; TA §74.6.
 
 **Performance intelligence** — Historical and live physical-resource measurements used by deterministic schedulers, recovery, validation ordering, and transport adaptation without granting authority or creating AI-usage budgets. — TA §7.2; BS §72; ADR-236.
+
+**PersonaInferenceEngine** — The product intelligence module inferring target stakeholder personas, touch target ergonomics, and accessibility profiles from user intent. — TA §73.15.4; BS §69.2.
 
 **Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
 
@@ -215,6 +223,12 @@
 **Recovery ladder** — The escalating problem-solving depth applied when work repeats or stalls; repetition feeds the ladder rather than raising a stop verdict. — TA §28; ADR-218.
 
 **RedundantTestDetector** — The test suite optimization module identifying duplicate and subsumed test cases via AST structural fingerprints and execution path overlap. — TA §53.5.11; BS §57.5.
+
+**RegulatoryComplianceAnalyzer** — The compliance audit module evaluating declared permissions, API targets, and data collection against Google Play policies and privacy regulations. — TA §73.15.6; BS §42.1.
+
+**RequirementConflictDetector** — The pre-construction contradiction detector identifying semantic and architectural conflicts across proposed requirements before code generation opens. — TA §73.15.2; BS §69.11.
+
+**RequirementTestabilityScorer** — The requirement verification module statically evaluating observable post-conditions and testability of requirements on Android. — TA §73.15.3; BS §69.11.
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
 

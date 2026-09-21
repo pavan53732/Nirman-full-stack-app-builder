@@ -3370,6 +3370,13 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `MockAndStubBoundaryAnalyzer` | module | `nirman-android` | Verifies in-project test double signatures, contract fidelity, and over-mocking anti-patterns (§53.5.9) | none — analytical queries | §53.5.9 |
 | `TestPyramidBalanceAnalyzer` | module | `nirman-android` | Evaluates test tier cardinality and detects inverted test pyramid anti-patterns (§53.5.10) | none — analytical queries | §53.5.10 |
 | `RedundantTestDetector` | module | `nirman-android` | Identifies duplicate and subsumed test cases via AST structural fingerprints and execution path overlap (§53.5.11) | none — analytical queries | §53.5.11 |
+| `AndroidProductIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over product and requirement intelligence; routes companion requirement mining, pre-construction conflict detection, testability scoring, persona inference, offline domain knowledge lookup, and regulatory compliance analysis without creating a second authority (BS §42.1, BS §69.11) | none — read-only; proposals routed through `MutationBroker` | §73.15 |
+| `ImplicitRequirementMiner` | module | `nirman-android` | Deterministically expands high-level user goals into mandatory companion requirements for auth, data lists, and transactions (§73.15.1; BS §42.1) | none — analytical queries | §73.15.1 |
+| `RequirementConflictDetector` | module | `nirman-android` | Pre-construction semantic and architectural contradiction detector across proposed requirements (§73.15.2; BS §69.11) | none — analytical queries | §73.15.2 |
+| `RequirementTestabilityScorer` | module | `nirman-android` | Statically evaluates observable post-conditions and testability of requirements on Android (§73.15.3; BS §69.11) | none — analytical queries | §73.15.3 |
+| `PersonaInferenceEngine` | module | `nirman-android` | Infers target stakeholder personas, touch target ergonomics, and accessibility profiles (§73.15.4; BS §69.2) | none — analytical queries | §73.15.4 |
+| `AndroidDomainKnowledgeCatalog` | module | `nirman-android` | Local offline catalog of idiomatic Android Room entity models and standard state-machine workflows (§73.15.5; BS §69.2) | none — analytical queries | §73.15.5 |
+| `RegulatoryComplianceAnalyzer` | module | `nirman-android` | Audits declared permissions, target API levels, and data collection against Google Play policies and regional regulations (§73.15.6; BS §42.1) | none — analytical queries | §73.15.6 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -5412,6 +5419,56 @@ UI → AndroidTechnologyAdapter.executeBuild | install | launch | reload |
 ```
 
 The §73.8 rule that the preview panel is a read model of durable control-plane events is preserved; the technology adapter and the build and device adapters do not change the panel authority, they only supply observations through the existing `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` flow.
+
+### 73.15 AndroidProductIntelligenceService
+
+`AndroidProductIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies requirement elicitation, specification formalization, spec-to-build traceability, and offline Android domain knowledge. It exposes a typed query interface to the kernel agent (`Requirements Planner`, `Primary Orchestrator`) and registered desktop IPC command handlers.
+
+`AndroidProductIntelligenceService` creates no second authority. It does not directly mutate the `AndroidConstructionContract` or project source code; all mutation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). It does not maintain or expose a user-facing template catalog (`CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG`). It has no external cloud scraper or competitor crawler dependencies and consumes zero AI token/duration budgets (ADR-218, BS §72).
+
+### 73.15.1 ImplicitRequirementMiner
+
+`ImplicitRequirementMiner` deterministically expands high-level user requests and explicit feature declarations into mandatory companion requirements:
+1. *Authentication companion expansion:* Expands login requirements to include password reset, secure session logout, token expiry handling, and account deletion pathways (Google Play account deletion mandate).
+2. *Data collection and listing expansion:* Expands persistent entity lists to require empty-state UI layouts, swipe-to-refresh (`PullToRefreshBox`), loading shimmer/skeleton states, item deletion confirmations, and error-state fallbacks.
+3. *Transactional interaction expansion:* Expands checkout, booking, or financial operations to include transaction confirmation modals, receipt display, offline idempotency guards, and network timeout recovery.
+4. *Contract injection:* Proposes inferred companion requirements into the `Feature model` of `AndroidConstructionContract` (BS §42.1) with explicit source attribution (`inferred: true`, `parentRequirementId`).
+
+### 73.15.2 RequirementConflictDetector
+
+`RequirementConflictDetector` performs pre-construction semantic and architectural contradiction detection across proposed requirements before any transaction opens:
+1. *Architectural contradictions:* Detects conflicting architectural choices (e.g. offline-only requirement paired with real-time cloud collaboration; conflicting database persistence choices; conflicting state management paradigms).
+2. *Navigation and UI contradictions:* Identifies incompatible screen navigation models (e.g. bottom navigation bar combined with fullscreen modal-only workflows; circular back-stack navigation dependencies).
+3. *Permission and capability contradictions:* Flags conflicting Android capabilities (e.g. background location tracking declared without background service entitlement; exact alarm usage without `SCHEDULE_EXACT_ALARM` justification).
+4. *Conflict resolution guidance:* Emits structured contradiction diagnostics directly to `Requirements Planner`, triggering targeted clarification under BS §69.11 before code generation begins.
+
+### 73.15.3 RequirementTestabilityScorer
+
+`RequirementTestabilityScorer` statically evaluates whether a synthesized requirement has deterministically observable post-conditions on Android:
+1. *Observability scoring:* Computes a testability score based on whether requirement acceptance criteria bind to observable UI elements (Compose semantics nodes), inspectable persistent storage (Room entity queries), interceptable local network doubles, or mockable system hardware sensors.
+2. *Ambiguity and unobservable assertion detection:* Flags vague requirements lacking concrete post-conditions (e.g. "app should feel snappy", "clean interface") and requires reformulation into verifiable metrics (e.g. frame render duration, text contrast ratio).
+3. *Pre-commit verification:* Complements `PlanCompletenessValidator` (BS §69.11) by ensuring only testable requirements advance to `AndroidConstructionContract` commitment.
+
+### 73.15.4 PersonaInferenceEngine
+
+`PersonaInferenceEngine` infers target stakeholder personas and ergonomic profiles from user intent and product descriptions:
+1. *Ergonomic profile derivation:* Determines primary usage contexts (e.g. on-the-go one-handed usage for transit apps requiring bottom-anchored controls and minimum 48dp touch targets; seated dual-hand usage for productivity apps).
+2. *Accessibility and visual profile:* Infers required contrast baselines, Dynamic Type font scaling ranges, and screen reader TalkBack content description priorities based on the intended audience (e.g. high-contrast, large-type defaults for senior/medical apps).
+3. *UX complexity calibration:* Recommends appropriate progressive disclosure levels (streamlined wizard flows for consumer apps vs dense data dashboards for technical utilities) to guide UI component composition without templates.
+
+### 73.15.5 AndroidDomainKnowledgeCatalog
+
+`AndroidDomainKnowledgeCatalog` provides a local, offline repository of idiomatic Android architecture patterns, entity models, and state-machine workflows:
+1. *Domain entity models:* Maintains standard relational Room entity schemas and relationships for common application domains (E-Commerce: Cart, Product, Order; Fitness: Workout, Exercise, Set; Productivity: Task, Project, Tag) to assist `Requirements Planner` in generating normalized schemas without user-facing templates.
+2. *Domain state-machine workflows:* Enforces standard Android lifecycle state transitions (e.g. Onboarding to Authentication to Dashboard; Cart to Checkout to PaymentConfirmation; Playback to Pause to Buffering) for comprehensive `ScenarioSynthesizer` (§62.1) coverage.
+3. *Zero-template compliance:* Operates strictly as internal reference heuristics for requirement and schema formulation; never exposes a template picker or pre-built skeleton app to the user (`CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG`).
+
+### 73.15.6 RegulatoryComplianceAnalyzer
+
+`RegulatoryComplianceAnalyzer` evaluates declared permissions, target API levels, and data collection models against Google Play policies and regional privacy regulations:
+1. *Google Play policy verification:* Audits requirements against Google Play policies (Families Policy requirements for children's apps, Prominent Disclosure mandates for background location and health data, Account Deletion URL/in-app requirements).
+2. *Data Safety Section declarations:* Generates accurate Data Safety declarations (data collected, shared, encrypted in transit, ephemeral vs persistent) based on the project's declared entities and network endpoints.
+3. *Regional compliance heuristics:* Identifies regulatory constraints (COPPA, GDPR, CCPA/CPRA, India DPDP Act) requiring in-app consent dialogs, privacy policy links, or local data encryption before artifact release.
 
 ## 74. Integration Boundary Implementation Contract
 
