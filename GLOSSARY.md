@@ -214,6 +214,8 @@
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
 
+**MemoryLeakDetector** — The runtime heap analysis module evaluating memory growth and Activity retention across repeated orientation and navigation cycles. — TA §62.1.3; BS §56.3.
+
 **MockAndStubBoundaryAnalyzer** — The static double analysis module verifying test double signatures, contract fidelity, over-mocking anti-patterns, and mock isolation in generated Android tests. — TA §53.5.9; BS §57.5.
 
 **MockResidualDetector** — The production release integrity module verifying that mock doubles, in-memory repositories, and fake datasets do not leak into production source sets without explicit authorization. — TA §47.4; BS §43.1.
@@ -256,6 +258,8 @@
 
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
+**StartupRegressionTracker** — The performance analysis module measuring TTID and TTFD cold-start launch latency from Logcat and detecting startup latency regressions. — TA §62.1.2; BS §56.3.
+
 **SupervisorPreemptionProtocol** — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes. — TA §58.11.2.
 
 **TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
@@ -263,6 +267,8 @@
 **TestIntentExtractor** — The deterministic inbound test parser extracting semantic behavioral intents from test declarations, annotations, and assertions. — TA §53.5.5; BS §47.5.
 
 **TestPyramidBalanceAnalyzer** — The structural analysis module computing test tier cardinality across Unit, Integration, and E2E Scenarios, and flagging inverted test pyramid anti-patterns. — TA §53.5.10; BS §47.5.
+
+**TestDataLeakageDetector** — The state isolation module verifying that synthetic seed data, mock tokens, and test fixtures do not survive teardown into persistent app storage. — TA §62.5.1; BS §56.4.
 
 **TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2; BS §47.5.
 

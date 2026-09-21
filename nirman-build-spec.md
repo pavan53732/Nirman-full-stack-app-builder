@@ -3603,9 +3603,11 @@ Scenarios are produced by the runtime, not awaited from a human. After the first
 | Process death | System-initiated death and restore |
 | Scheduled behavior | Alarms fire at the seeded time; notifications are delivered and observed |
 
+Cold start scenarios verify first launch without data and evaluate Time to Initial Display (TTID) and Time to Full Display (TTFD) via `StartupRegressionTracker` (technical architecture §62.1.2) to detect launch latency regressions. Configuration change, navigation depth, and process death scenarios verify that heap memory growth and Activity destruction do not leak retained instances, monitored by `MemoryLeakDetector` (technical architecture §62.1.3).
+
 ### 56.4 Data seeding
 
-Seed data must be created through the application's own data layer or an explicit test fixture, never by asserting state the app never produced. Seed provenance must be recorded so evidence cannot be confused with production behavior. The scenario clock is seeded state too: `SeedDataProvisioner` establishes the clock basis through `seedClock` and records it with seed provenance (technical architecture §62.5), so time-bearing evidence binds to a declared instant rather than the wall clock.
+Seed data must be created through the application's own data layer or an explicit test fixture, never by asserting state the app never produced. Seed provenance must be recorded so evidence cannot be confused with production behavior. The scenario clock is seeded state too: `SeedDataProvisioner` establishes the clock basis through `seedClock` and records it with seed provenance (technical architecture §62.5), so time-bearing evidence binds to a declared instant rather than the wall clock. After scenario teardown and GoldenSnapshot verification, `TestDataLeakageDetector` (technical architecture §62.5.1) verifies private storage isolation in `/data/data/<package>/` to guarantee synthetic seed data, mock entities, and temporary credentials never survive into persistent storage.
 
 ### 56.5 Evidence requirements
 

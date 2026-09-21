@@ -3427,6 +3427,9 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `PlaceholderResidueDetector` | module | `nirman-android` | Statically scans AST and XML resources for unexpanded placeholder markers (TODO, FIXME, Lorem ipsum) (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 | `TruncatedFileDetector` | module | `nirman-android` | Syntactic continuity verifier detecting premature EOF, unclosed delimiters, and cut-off completions (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
 | `MockResidualDetector` | module | `nirman-android` | Production source set scanner preventing unauthorized mock doubles and fake data from leaking into release builds (§47.4; BS §43.1) | none — pre-commit verification | §47.4 |
+| `StartupRegressionTracker` | module | `nirman-android` | Measures TTID and TTFD cold-start launch latency from Logcat and flags performance regressions (§62.1.2; BS §56.3) | none — performance tracking | §62.1.2 |
+| `MemoryLeakDetector` | module | `nirman-android` | Evaluates heap growth and Activity retention across repeated lifecycle churn and navigation cycles (§62.1.3; BS §56.3) | none — leak detection | §62.1.3 |
+| `TestDataLeakageDetector` | module | `nirman-android` | Verifies persistent storage isolation, ensuring synthetic seed data does not survive teardown (§62.5.1; BS §56.4) | none — isolation validation | §62.5.1 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -4211,12 +4214,15 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | DeterminismClassifier | Classifies scenario runs as DETERMINISTIC, FLAKY, or NONDETERMINISTIC based on repeated execution results |
 | DifferentialRegressionEvaluator | Reruns old passing scenarios after repair and detects regression patterns |
 | NegativeProofEvaluator | Validates that evidence is not invalid/stale/contradictory/missing/mismatched before completion |
+| StartupRegressionTracker | Measures cold start launch latency (TTID/TTFD) and detects performance regressions (§62.1.2) |
+| MemoryLeakDetector | Evaluates heap growth and Activity retention across lifecycle churn and navigation (§62.1.3) |
+| TestDataLeakageDetector | Verifies persistent storage isolation, ensuring synthetic seed data does not survive teardown (§62.5.1) |
 
 > **Schema projection:** `ScreenGraph` is defined in `nirman-schemas.md` §2.92. Owner: TA §62.1.
 
 > **Schema projection:** `StateSpaceCoverageModel` is defined in `nirman-schemas.md` §2.103. Owner: TA §62.1.
 
-All six components (StateSpaceCoverageEvaluator, MetamorphicVerifier, FaultInjectionCoordinator, DeterminismClassifier, DifferentialRegressionEvaluator, NegativeProofEvaluator) are subordinate components of CONTRACT.RUNTIME.E2E. They create no authority and no completion decision.
+All nine components (StateSpaceCoverageEvaluator, MetamorphicVerifier, FaultInjectionCoordinator, DeterminismClassifier, DifferentialRegressionEvaluator, NegativeProofEvaluator, StartupRegressionTracker, MemoryLeakDetector, TestDataLeakageDetector) are subordinate components of CONTRACT.RUNTIME.E2E. They create no authority and no completion decision.
 
 Scenario execution pipeline:
 GoldenSnapshot
@@ -4239,6 +4245,20 @@ GoldenSnapshot
 1. *Interactive element enumeration:* Traverses the active `ScreenModel` and Compose semantics node tree to enumerate all controls with click, swipe, or input actions (e.g. `Button`, `IconButton`, `Clickable`, `FloatingActionButton`, `Switch`, `Tab`).
 2. *State and feedback delta probe:* Injects synthetic interactions via `ScenarioExecutor` and probes for observable post-conditions: navigation transition, ViewModel state mutation, Room database write, snackbar/dialog presentation, or network dispatch.
 3. *Defect classification:* Flags any interactive element whose stimulus produces zero observable state change or user feedback across consecutive frames as a `DEAD_CONTROL` defect, preventing hollow UI implementations from satisfying completion evidence.
+
+### 62.1.2 StartupRegressionTracker
+
+`StartupRegressionTracker` measures cold-start launch latency and tracks startup performance regressions across autonomous build cycles:
+1. *Launch milestone harvesting:* Ingests Android activity manager Logcat records (`Displayed` / `Fully drawn`) to measure Time to Initial Display (TTID) and Time to Full Display (TTFD) during `Cold start` scenario execution (BS §56.3).
+2. *Historical baseline comparison:* Evaluates observed startup metrics against the project profile's historical baseline stored in the execution ledger.
+3. *Regression gating:* Flags any regression exceeding 25% or violating the profile's latency ceiling as a `STARTUP_LATENCY_REGRESSION` finding, requiring optimization or explicit review before release packaging.
+
+### 62.1.3 MemoryLeakDetector
+
+`MemoryLeakDetector` performs runtime heap allocation analysis and Activity lifecycle leak verification:
+1. *Lifecycle churn orchestration:* Drives repeated configuration changes (portrait/landscape rotation), process backgrounding/foregrounding, and deep navigation traversal via `FaultInjectionCoordinator`.
+2. *Heap allocation inspection:* Triggers deterministic garbage collection via ADB and parses `dumpsys meminfo` heap distributions to inspect native and Dalvik heap growth across cycles.
+3. *Retained instance detection:* Identifies retained destroyed Activity instances, View hierarchies captured in static references, or unbonded coroutine scopes, emitting `MEMORY_LEAK_DETECTED` failure evidence to block invalid candidate promotion.
 
 ### 62.2 ScreenGraph Analysis Service
 
@@ -4279,6 +4299,13 @@ ScenarioExecutor must use explicit `wait_for` conditions and never fixed sleeps 
 ### 62.5 Seed provenance
 
 SeedDataProvisioner records how each precondition was established. Seeded state is labeled in evidence so it cannot be mistaken for behavior the application produced, satisfying the honesty invariant of build spec §66.1.
+
+### 62.5.1 TestDataLeakageDetector
+
+`TestDataLeakageDetector` executes after scenario completion and teardown to verify state isolation:
+1. *Persistent storage inspection:* Inspects the target application's private filesystem directory (`/data/data/<package>/`) on the emulator after test completion, scanning SQLite/Room database tables, SharedPreferences XML files, and DataStore protobuf files.
+2. *Seed marker reconciliation:* Cross-references stored data records with `SeedDataProvisioner` seed identities and temporary test fixtures.
+3. *Leakage prevention:* Rejects any scenario run where synthetic seed data, mock user tokens, or test fixtures survive teardown into persistent storage with `TEST_DATA_LEAKAGE_DETECTED`, ensuring production state remains clean.
 
 ### 62.6 Persistence
 
