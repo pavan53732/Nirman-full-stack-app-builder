@@ -2489,6 +2489,15 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Outbox pattern and retry queueing:* Statically verifies the presence of an Outbox persistence entity and scheduled Android Jetpack WorkManager tasks with exponential backoff retry policies for reliable background synchronization.
 3. *Conflict resolution verification:* Ensures data repositories define explicit deterministic conflict resolution policies (such as Last-Write-Wins based on synchronized timestamps or server-authoritative reconciliation) for bidirectional sync operations.
 
+**Structural three-way AST merge.** When autonomous background generation runs concurrently with user manual edits in the built-in code editor, `ThreeWayAstMergeEngine` reconciles the changes without broad file rewrites:
+1. *Three-way AST diffing:* Parses the common base revision ($Base$), the user's manual modifications ($Ours$), and the model-proposed generation ($Theirs$) into Tree-sitter ASTs, mapping edits to specific syntax nodes (declarations, imports, statements).
+2. *Non-conflicting integration:* Automatically merges modifications when $Ours$ and $Theirs$ touch disjoint AST declarations or non-overlapping function/class bodies.
+3. *Conflict containment:* When both sides mutate the identical AST expression or statement, isolates the conflicting region with explicit conflict markers and surfaces an Action Center decision card, preserving user edits deterministically (BS §4.5; ADR-251).
+
+**Regeneration-safe zone protection.** To allow users to write custom native code immune to agent overwriting, `RegenerationSafeZoneMarker` statically enforces boundary invariants:
+1. *Boundary parsing:* Scans Kotlin, Java, and XML source files for declared safe-zone comments (`// nirman:protected-start` ... `// nirman:protected-end`) and `@NirmanProtected` annotations.
+2. *Pre-transaction violation check:* Validates every incoming `StructuredPatch` against the active protected line ranges; any patch that modifies, moves, or deletes tokens within a protected zone is rejected with `PROTECTED_ZONE_VIOLATION` before staging.
+
 ---
 
 ### 47.5 Android Code Intelligence, Architecture Reasoning, Generation Intelligence, and Data Intelligence Services
@@ -3595,6 +3604,10 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `CodeStyleExtractor` | module | `nirman-android` | Analyzes committed source history and confirmed correction feedback to extract code style conventions; populates style-constraint fields in `SkillPackage` candidates (§19.1) that must pass full skill admission before becoming active constraints; never modifies existing admitted skills (§44.3.3) | none — proposals only; skill admission governed by §19.1 | §44.3.3 |
 | `CorrectionMemoryStore` | module | `nirman-context` | Named partition of `ProjectMemoryStore` (§59.1) for user-confirmed correction facts; every entry must carry source `FeedbackRecord.feedbackId`, `EpisodeRecord.episodeId`, and the original agent output; `MemoryWriter` validation rules apply; model-generated statements without durable user confirmation are ineligible (§44.3.3) | `MemoryRecord`s scoped to correction partition (through `MemoryWriter`) | §44.3.3 |
 | `FeedbackTriagePrioritizer` | module | `nirman-control-plane` | Prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue by feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and co-occurrence frequency; produces an ordered dispatch list — `TaskScheduler` and `PolicyAuthority` govern actual worker dispatch (§44.3.3) | none — ordering only | §44.3.3 |
+| `ThreeWayAstMergeEngine` | module | `nirman-android` | Structural 3-way Tree-sitter AST merge reconciling base generated code, user manual edits, and agent synthesis (§47.4; BS §4.5) | none — proposal producer; commits via `MutationBroker` | §47.4 |
+| `RegenerationSafeZoneMarker` | module | `nirman-android` | Statically parses and enforces protected code region boundaries (`// nirman:protected-start`) against mutation proposals (§47.4; BS §4.5, §43.2) | none — analytical safety check; evaluated by `MutationBroker` | §47.4 |
+| `AndroidThreatSketchSynthesizer` | module | `nirman-android` | Generates structured threat models, attack surfaces, and negative E2E validation scenarios for security-sensitive archetypes (§70.7.6; BS §58.2b) | none — analytical security model producer | §70.7.6 |
+| `DependencyVulnerabilityAutomerger` | module | `nirman-android` | Bumps vulnerable patch dependencies in `libs.versions.toml` and orchestrates isolated smoke verification (§73.18.8; BS §28.7) | none — proposals committed via `MutationBroker` under `Security Worker` | §73.18.8 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -4951,7 +4964,12 @@ The runtime is correct only when a hardcoded secret blocks packaging; when an un
 2. *In-app notice asset generation:* Generates the required open-source notice text file (`res/raw/third_party_licenses.txt` or `assets/NOTICE.txt`) and synthesizes a compliant Jetpack Compose license display screen or dialog.
 3. *Incompatible license verification:* In conjunction with `SbomBuilder` (§70.1) and `ProvenanceRecorder` (§70.1), verifies that no viral or restricted copyleft licenses (e.g. GPL-3.0) infect proprietary client artifacts, ensuring safe commercial and release distribution.
 
+#### 70.7.6 AndroidThreatSketchSynthesizer
 
+`AndroidThreatSketchSynthesizer` synthesizes pre-generation threat models and negative verification scenarios for security-sensitive Android applications:
+1. *Attack surface enumeration:* Analyzes the `AndroidConstructionContract` to identify exposed attack surfaces: exported Android components, custom intent filters, deep links, cleartext network endpoints, and shared preferences.
+2. *Trust boundary mapping:* Formulates structured `AndroidThreatSketch` models delineating boundaries between untrusted external inputs (network payloads, intent extras) and sensitive local storage (Android Keystore, Room databases).
+3. *Negative scenario derivation:* Directly derives executable negative test scenarios (`NegativeE2EScenario`) passed to `AndroidScenarioDriver` to verify that forged intents, malformed deep links, and SQL injection payloads are rejected before packaging promotion.
 
 ## 71. Agent Reasoning Runtime and Capability Layer
 
@@ -5959,6 +5977,13 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 1. *Google Play targetSdk verification:* Validates the project's `targetSdk` against current Google Play Store submission requirements (e.g. requiring target SDK 34 or 35 for new apps and updates).
 2. *Annual deadline tracking:* Cross-references the active calendar date against Google Play's annual August 31st target SDK deadlines, flagging warning diagnostics when the project target SDK is nearing obsolescence.
 3. *Migration guidance:* Identifies framework behavioral changes introduced in newer target SDK levels (e.g. Android 14 foreground service types, Android 15 edge-to-edge enforcement) to guide autonomous upgrade planning.
+
+#### 73.18.8 DependencyVulnerabilityAutomerger
+
+`DependencyVulnerabilityAutomerger` coordinates autonomous security upgrades for third-party Gradle dependencies:
+1. *Vulnerability assessment:* Cross-references the resolved dependency tree against security advisories, flagging dependencies with known CVEs.
+2. *Non-breaking patch resolution:* Queries Maven Central and Google Maven to derive the minimal non-breaking patch version update within the declared major/minor compatibility window.
+3. *Automated staging and verification:* Updates version declarations in `gradle/libs.versions.toml`, stages an isolated `ConstructionTransaction`, executes project test suites and headless emulator smoke tests, and promotes the update upon passing verification evidence.
 
 ## 74. Integration Boundary Implementation Contract
 

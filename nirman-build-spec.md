@@ -212,6 +212,10 @@ The preview panel MUST show the canonical local emulator session, including emul
 
 Nirman must not trap users inside the chat. The application should include a full code editor with syntax highlighting, search, multi-file tabs, formatting, diagnostics, and direct editing. After a manual edit, the agent should be able to re-index the project and continue working from the updated state.
 
+When an autonomous task produces candidate patches while manual edits are in progress or committed, `ThreeWayAstMergeEngine` (TA §47.4) performs a structural three-way AST merge ($Base, Ours = UserManualEdits, Theirs = AgentSynthesis$). Non-conflicting AST node additions and updates are integrated into the working tree automatically. Conflicting modifications to the same AST declaration surface as an explicit Action Center card naming the conflicted file and line ranges, preventing silent overwrite of user-authored code (ADR-251).
+
+Users may protect hand-crafted code sections from automated regeneration using `RegenerationSafeZoneMarker` (TA §47.4) annotations or comment boundaries (`// nirman:protected-start` ... `// nirman:protected-end`). The `MutationBroker` (§43.2) statically validates proposed mutations against registered safe zones and rejects any patch altering protected ranges with typed outcome `PROTECTED_ZONE_VIOLATION`.
+
 ### 4.6 Never-pause presentation and the Action Center
 
 The desktop interface is a reconnectable projection client (ADR-116): the autonomous loop runs in the supervisor and cannot stop itself (ADR-226), and the interface MUST never present the product as stopped when it is not.
@@ -361,6 +365,7 @@ Every user-facing product capability has a stable `CapabilityId`. A capability t
 | CAP.ANDROID.CONTENT_INTELLIGENCE | First-class product-content generation, revision, consistency, localization, accessibility, and content validation | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | TEST-CONTENT-001 | EV-CONTENT-001 | PLANNED |
 | CAP.ANDROID.CONVERSATION_CONTEXT | Durable conversation state connecting messages, attachments, requirements, decisions, suggestions, active goal, project revision, and task lineage | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | TEST-CONV-001 | EV-CONV-001 | PLANNED |
 | CAP.ANDROID.CHANGE_INTELLIGENCE | Explain every committed ConstructionTransaction through a revision-bound change-impact report | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TEST-CHANGE-001 | EV-CHANGE-001 | PLANNED |
+| CAP.ANDROID.AI_FEATURES | Govern LLM and generative AI capabilities in generated Android applications | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY, CONTRACT.RUNTIME.E2E | TEST-AIFEAT-001 | EV-AIFEAT-001 | PLANNED |
 
 Capability status uses the §5.6 vocabulary. `PLANNED` here means the capability has an accepted contract chain but no implemented runtime; it must not be reported as `SUPPORTED` until its test id produces its evidence id, per §67.5.
 
@@ -470,6 +475,17 @@ MUST NOT be represented as FUNCTIONAL or COMPLETED merely because its local
 build, installation, or emulator execution succeeds.
 
 `providerCircuitState` is `CLOSED | OPEN | HALF_OPEN`. `OPEN` prevents new provider requests for the affected provider/model route while preserving eligible non-provider work. `HALF_OPEN` admits only the configured health/probe operation. A successful probe returns to `CLOSED`; failed probe remains `OPEN`. Provider stream recovery is resumable only where the adapter protocol supplies a resume identity; otherwise the logical request remains durable and is retried only after reconciliation/idempotency checks.
+
+### 5.7.5b External integration credential & configuration classification
+
+Integration values required by generated Android applications MUST be classified into one of four mutually exclusive storage and delivery classes:
+
+1. `PUBLIC_CLIENT_CONFIG`: Provider-restricted client identifiers (e.g. Google Maps Android API keys restricted by package name and SHA-1 certificate fingerprint, Firebase `google-services.json` client configuration fields, OAuth client IDs). Permitted in source resources, Gradle manifests, or build placeholders; provider-side restriction (package and signing fingerprint) MUST be verified and recorded as an evidence reference.
+2. `BUILD_INJECTED`: Secrets supplied by the supervisor environment at build time (e.g. CI signing tokens, private repository credentials). Injected into build environments via transient environment variables or Gradle project properties; strictly forbidden from Git commits, source files, prompt context, logs, or SBOM manifests. Verified present via APK inspection before build promotion.
+3. `RUNTIME_USER_SECRET`: User-entered secrets supplied dynamically in the running Android application (e.g. end-user API keys, private tokens). Must be collected via user UI prompts and persisted exclusively via Android Keystore-backed `EncryptedSharedPreferences` or encrypted SQLite Room storage.
+4. `SERVER_HELD_SECRET`: High-privilege secrets (e.g. backend master API keys, payment provider private secrets). Strictly prohibited from client-side presence, source code, APK assets, or reverse-engineerable strings. Any instruction attempting client-side integration of a `SERVER_HELD_SECRET` triggers `USER_REQUIRED` advising backend proxy delegation.
+
+The hardcoded secret scanner (§58.2) blocks unclassified credential-like strings and any `BUILD_INJECTED` or `SERVER_HELD_SECRET` values discovered in source or decompiled APKs, while validating that `PUBLIC_CLIENT_CONFIG` items carry package/fingerprint restriction evidence.
 
 ### 5.7.6 External-effect reconciliation
 
@@ -2097,6 +2113,8 @@ Nirman should maintain separate task memory, project memory, and runtime-improve
 
 Within project memory, the `CorrectionMemoryStore` (technical architecture §44.3.3, §57.12) is a named partition of `ProjectMemoryStore` (§59.1) reserved exclusively for user-confirmed correction facts — cases where the user explicitly rejected an agent output and provided the correct alternative. Every `CorrectionMemoryStore` entry requires a source `FeedbackRecord.feedbackId`, an `EpisodeRecord.episodeId`, and the original agent output as mandatory provenance. Model-generated statements without durable user confirmation are ineligible for the correction partition. The `UserPreferenceLearner` (technical architecture §44.3.3) extracts and validates user preference facts (naming conventions, architectural choices, visual style) from confirmed episode decisions and correction feedback before writing them to `ProjectMemoryStore` through `MemoryWriter`.
 
+The self-healing toolchain maintenance loop incorporates `DependencyVulnerabilityAutomerger` (technical architecture §73.18.8, §57.12). When vulnerability scanning or security advisories detect high-severity CVEs in third-party Gradle dependencies, `DependencyVulnerabilityAutomerger` derives the minimum non-breaking patch version update in `gradle/libs.versions.toml`, stages an isolated `ConstructionTransaction`, executes the test suite and headless emulator smoke gate, and promotes the patched dependency catalog only upon verified evidence.
+
 ### 28.8 End-to-end runtime acceptance criteria
 
 The complete runtime is not considered implemented until it can accept one broad goal, extract requirements, create a durable task graph, run multiple workers, persist events, execute the validation loop, recover from worker/provider/environment failure, survive application restart, produce evidence-backed completion, and continue until the goal is complete or a genuine hard stop condition exists.
@@ -2271,6 +2289,14 @@ An operation capability is required for actions such as installing a risky depen
 The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, JavaScript package manifests where selected, native-module boundaries, Nirman-managed local Android emulator configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
 
 The layer must apply hard exclusions, canonical path normalization, project-root boundaries, scope fingerprints, content hashes, and revision checks. Before reconciliation, preview installation, packaging, or self-development promotion, it must detect external changes and revalidate the active project revision. A stale or mismatched revision must be rejected rather than silently overwritten.
+
+### 34.1 Project Ingestion Version Compatibility
+
+When ingesting an existing Android codebase, the project-ingestion layer evaluates the project's Android Gradle Plugin (AGP), Gradle wrapper version, Kotlin version, and JDK level against `AndroidToolchainLock` (technical architecture §73.18), producing a three-outcome compatibility classification:
+
+1. `COMPATIBLE`: The existing project's toolchain matches the active `AndroidToolchainLock`. Admitted directly to the workspace without toolchain modification.
+2. `MIGRATABLE`: The project uses older but supported toolchain versions (e.g. AGP 8.0–8.5, Gradle 8.0–8.7). Admitted under a mandatory automated migration transaction: `GradleConfigSynthesizer` (technical architecture §73.18.3) upgrades AGP, Gradle wrapper, and Kotlin version catalog definitions to modern locked versions within an isolated `ConstructionTransaction`, verified via dry-run build prior to user task execution.
+3. `UNSUPPORTED`: The project uses legacy, incompatible toolchain versions (e.g. AGP < 7.0, Eclipse ADT, non-Gradle builds, unsupported Java 8/11 requirements). Ingestion halts with `USER_REQUIRED`, emitting an Action Center card that identifies the exact toolchain mismatches and required manual upgrade steps before Nirman admission.
 
 ## 35. Provider Gateway and Controlled Tool Protocol
 
@@ -2470,6 +2496,8 @@ Every model-proposed mutation is a `StructuredPatch` bound to the `ContextPackag
 > **Schema projection:** `StructuredPatch` is defined in `nirman-schemas.md` §1.15. Owner: BS §43.2.
 
 `anchorHashes` are the hashes of the `EXACT` regions the proposal edits, as they appeared in the originating package; `premises` are the symbol identities and signature hashes the proposal relies on, as they appeared at `STRUCTURAL` or `EXACT` fidelity. Before syntax validation and before any `ConstructionTransaction` opens, the broker compares `baseRevision`, `anchorHashes`, and `premises` against the originating package and the current project revision. Any mismatch is rejected with the typed outcome `PREMISE_MISMATCH`, is recorded as a recall failure for the provider model's `AttentionReliabilityProfile` (§53.11), and is never repaired by silently re-anchoring the patch. A patch that names no anchors for an `EXACT` edit is rejected as malformed.
+
+Prior to transaction staging, `MutationBroker` validates that no patch targets lines guarded by `RegenerationSafeZoneMarker` boundaries (`// nirman:protected-start` ... `// nirman:protected-end` or `@NirmanProtected`); mutations touching protected zones are rejected with `PROTECTED_ZONE_VIOLATION`. Where manual workspace modifications diverge from base revisions during active generation, `MutationBroker` invokes `ThreeWayAstMergeEngine` (technical architecture §47.4) to reconcile non-overlapping AST subtrees or escalate unresolvable structural conflicts to the user.
 
 ### 43.3 Project Impact Graph
 
@@ -3741,6 +3769,14 @@ Advanced verification is satisfied only when no mutation advances with an unreso
 
 For requirements whose assertions carry input domains, the runtime must exercise the domain with seeded bounded generation. Any input that violates an asserted property is a counterexample: it is recorded with the failing input and the seed, and it is a defect, not noise. A property probe passes only when generation within the declared bound and seed yields no counterexample. The bound and seed are part of the verification record, so a passing probe replays exactly (technical architecture §62.4).
 
+### 57.8 Code coverage measurement rules
+
+Code coverage for generated Android applications is measured using Kover (`kotlinx-kover`) integrated into the canonical Android Gradle toolchain lock (technical architecture §73.18). Coverage measurement follows these rules:
+1. *Line and branch coverage:* The test execution engine records statement, line, and branch coverage per Gradle module and source set, bound strictly to the `projectRevision` of the executed tests.
+2. *Informational default:* Code coverage is by default an informational verification metric; low coverage does not unilaterally fail a build unless the active `AndroidConstructionContract` or project policy defines an explicit coverage floor.
+3. *Critic citation:* The Critic Worker and Test and QA Worker cite measured coverage percentages when assessing verification thoroughness, or explicitly report unassessed modules if test execution skips coverage collection.
+4. *Non-vacuity precedence:* Measured code coverage never substitutes for assertion quality or metamorphic non-vacuity (§57.5); high line coverage with hollow or tautological assertions remains a test-strength failure.
+
 ## 58. Adversarial Security and Supply-Chain Verification
 
 **ContractId:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`  
@@ -3764,6 +3800,16 @@ The existing sections protect the host. They do not verify that the generated ap
 Before packaging, the runtime must verify the generated application for hardcoded secrets and API keys, insecure network configuration including cleartext traffic, exported components without permission guards, insecure data storage of sensitive values, unsafe WebView configuration, unguarded intent handling, over-broad permission requests, debuggable release configuration, and missing certificate handling for pinned endpoints.
 
 The `AndroidSecurityIntelligenceService` aggregate (TA §70.1; TA §70.3) implements these checks through three coordinated components: `AppSecurityScanner` performs the enumerated checks above and applies deterministic exploit-pattern matching against known Android attack patterns; `SecurityRiskScorer` aggregates findings by severity into a structured risk score bound to the artifact revision; and `SecurityAuditGenerator` produces a security audit report artifact covering all finding dispositions, risk score, SBOM completeness, and artifact provenance before promotion. Every finding must reach `FindingDispositionStore` as blocking or accepted-with-reason (§58.5); a finding must never be silently dropped. `ProvenanceRecorder` remains the sole promotion gate.
+
+### 58.2b Pre-generation Threat Sketch
+
+Before generating code for security-sensitive project archetypes (e.g. applications handling credentials, payments, health data, cryptography, external network APIs, or exported Android components), the `Security Worker` MUST synthesize a structured `AndroidThreatSketch`.
+
+The `AndroidThreatSketch` models:
+1. *Attack surfaces & entry points:* Exported Activities, BroadcastReceivers with intent-filters, custom URI schemes, deep link parameters, dynamic content providers, and network endpoints.
+2. *Trust boundaries:* Transitions between untrusted input (network payloads, intent extras, QR codes) and sensitive sinks (Keystore, Room database, system APIs).
+3. *Abuse cases:* Replay attacks, token theft, intent spoofing, SQL injection, path traversal, and malicious deep link navigation.
+4. *Negative verification scenarios:* Directly derives negative E2E scenarios (`NegativeE2EScenario`) executed during emulator validation to verify that hostile inputs are rejected.
 
 ### 58.3 Dependency verification
 
@@ -3908,9 +3954,15 @@ When something that previously passed now fails, the runtime must identify the c
 
 The runtime must attempt localization in increasing cost order: first the impact graph to find mutations touching the failing surface, then historical correlation with known failure signatures, then revision bisection using the recorded checkpoint sequence. Bisection must reuse existing checkpoints rather than rebuilding from scratch when checkpoints are available.
 
-### 62.4 Repair constraint
+### 62.4 Repair constraint and reproduce-first gate
 
 Repair must target the identified cause. When localization fails to identify a cause, the runtime must record an unlocalized regression and escalate to the planner rather than rewriting unrelated code. Rewriting code outside the identified cause surface is prohibited without a recorded reason.
+
+For user-reported defects ingested via `BugReportReproConverter` (technical architecture §44.3.3) or chat feedback, the runtime MUST enforce a **reproduce-first gate**:
+1. The bug report is converted into an executable candidate `ReproScenario` (extending `E2EScenario`, technical architecture §62.1).
+2. The runtime must execute the `ReproScenario` on the current project revision and verify that it deterministically FAILS (`REPRO_CONFIRMED`). A repair transaction is forbidden from opening if the reproduction scenario passes on the unpatched codebase.
+3. The repair patch is applied via `ConstructionTransaction`.
+4. The runtime executes the `ReproScenario` and verifies it now PASSES, while all previously green test scenarios continue to pass without regression.
 
 ### 62.5 Failure signature learning
 
@@ -6587,6 +6639,10 @@ Every "configurable" parameter in the specification has a default value defined 
 | Visual diff threshold | 5% pixel diff | 1-20% | Per project |
 | Visual comparison normalization | Canonical emulator screenshot dimensions, orientation, density, and color-space normalization; no unrecorded preprocessing | Per project |
 | Dynamic-region policy | Explicitly declared masked regions only; undeclared dynamic content remains diffable | Per visual baseline |
+| Cold-start latency threshold (TTID) | 1500 ms | 1000-3000 ms | Per device profile |
+| Frozen-frame ratio ceiling | 0.1% | 0.01%-0.5% | Per device profile |
+| Janky-frame ratio ceiling | 5.0% | 1.0%-10.0% | Per device profile |
+| APK release size warning threshold | 15 MB | 5-50 MB | Per packaging profile |
 | Uncertainty threshold (high risk) | 0.1 | 0.05-0.3 | Per task |
 | Uncertainty threshold (medium risk) | 0.2 | 0.1-0.5 | Per task |
 | Uncertainty threshold (low risk) | 0.4 | 0.2-0.7 | Per task |
@@ -7290,7 +7346,7 @@ The agent-buildability contract is satisfied only when:
    is satisfied for the statements currently enumerated in §80.2. Any
    "should" subsequently added to a canonical document is an immediate
    shortfall against this criterion until it appears in §80.2 (§80.10).
-2. Every "configurable" parameter has a default value. §80.3 declares 55
+2. Every "configurable" parameter has a default value. §80.3 declares 59
    parameters and CLAUSE.BUILDABILITY.EXPLICIT_DEFAULTS requires this. The
    interactive-prompt detection classifiers of technical architecture §11.4
    are resolved in §80.3 as an intentionally non-configurable, closed set

@@ -166,6 +166,8 @@
 
 **AndroidPrivacyIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Personal Identifiable Information (PII) classification, personal data flow tracking, data minimization checking, privacy policy generation, and open-source license notice composition. — TA §70.7.1; BS §43.1.
 
+**AndroidThreatSketchSynthesizer** — The security modeling module that derives attack surface maps, trust boundaries, and negative E2E scenarios for security-sensitive archetypes. — TA §70.7.6; BS §58.2b.
+
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
 
 **AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
@@ -225,6 +227,8 @@
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
 **DependencyIntelligenceService** — The supervisor-owned, read-only coordination facade exposing a unified typed query interface over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority; `ProvenanceRecorder` remains the sole promotion gate. — TA §53.8.1; BS §58.3.
+
+**DependencyVulnerabilityAutomerger** — The automated security upgrade coordinator resolving and verifying non-breaking patch updates for dependencies with known CVEs. — TA §73.18.8; BS §28.7.
 
 **DocCodeMismatchDetector** — The documentation consistency service verifying KDoc and Javadoc tags against Tree-sitter AST declarations. — TA §47.4; TA §76.3.
 
@@ -290,6 +294,8 @@
 
 **RedundantTestDetector** — The test suite optimization module identifying duplicate and subsumed test cases via AST structural fingerprints and execution path overlap. — TA §53.5.11; BS §57.5.
 
+**RegenerationSafeZoneMarker** — The static boundary protection module that prevents autonomous agent mutation within user-declared protected code regions (`// nirman:protected-start`). — TA §47.4; BS §4.5, §43.2.
+
 **RegulatoryComplianceAnalyzer** — The compliance audit module evaluating declared permissions, API targets, and data collection against Google Play policies and privacy regulations. — TA §73.15.6; BS §42.1.
 
 **RoomSchemaMigrationAnalyzer** — The database evolution verifier statically diffing Room schema JSONs, validating migration paths, detecting destructive schema drops, and verifying foreign key integrity. — TA §47.4; BS §43.1.
@@ -334,6 +340,8 @@
 
 **ThirdPartyIntegrationAnalyzer** — The integration verification module validating third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC signature checks. — TA §74.7.3; BS §43.1.
 
+**ThreeWayAstMergeEngine** — The structural AST merge engine that reconciles concurrent user manual edits and autonomous agent code generation without broad file overwrites. — TA §47.4; BS §4.5; ADR-251.
+
 **TracingInstrumentationScaffolder** — The system tracing module instrumenting AndroidX Tracing, Perfetto trace sections, and Compose recomposition tracking markers. — TA §73.17.5; BS §43.1.
 
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
@@ -369,6 +377,8 @@
 **Milestone (`Mnn`)** — A contract-gated unit of the build plan with deliverables, tests, evidence, and exit gates; every milestone block lives in `nirman-milestones.md`. — `nirman-milestones.md`; ADR-220.
 
 **Negative proof** — The requirement that invalid, stale, contradictory, missing, or mismatched evidence must prevent completion. — BS §56.x.
+
+**ReproScenario** — An executable reproduction scenario confirming a reported bug or user feedback regression before opening an autonomous repair transaction. — BS §62.4; TA §44.3.3.
 
 **Same-scenario repair replay** — The mandatory requirement to retain and rerun the original failing scenario from its deterministic starting state after repair. — BS §56.x; ADR-240.
 
