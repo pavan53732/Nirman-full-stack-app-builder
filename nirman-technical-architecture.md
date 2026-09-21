@@ -5728,6 +5728,10 @@ UI → AndroidTechnologyAdapter.executeBuild | install | launch | reload |
 
 The §73.8 rule that the preview panel is a read model of durable control-plane events is preserved; the technology adapter and the build and device adapters do not change the panel authority, they only supply observations through the existing `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` flow.
 
+### Cross-service intelligence output contract
+
+All Android intelligence services and analytical modules are **typed read-only producers**, not authorities. An intelligence result MUST be bound to the applicable `projectId`, `projectRevision`, `planRevision` where relevant, `contextIntegrityHash`, input/source fingerprint, execution/observation identity, and evidence references. Each result MUST declare one semantic class: `OBSERVATION`, `ADVISORY_FINDING`, `VALIDATION_INPUT`, or `GATE_INPUT`. `GATE_INPUT` means an existing canonical authority may consume the result; it does not grant decision rights to the producer. Results become stale when their bound source revision, execution epoch, or relevant evidence watermark changes. Existing finding, observation, validation, or evidence schemas MUST be reused or extended; intelligence components MUST NOT invent an unbound parallel authority or completion record. Mutations remain exclusively under `MutationBroker` → `ConstructionTransactionManager`.
+
 ### 73.15 AndroidProductIntelligenceService
 
 `AndroidProductIntelligenceService` is the supervisor-owned, read-only aggregate query facade that unifies requirement elicitation, specification formalization, spec-to-build traceability, and offline Android domain knowledge. It exposes a typed query interface to the kernel agent (`Requirements Planner`, `Primary Orchestrator`) and registered desktop IPC command handlers.
