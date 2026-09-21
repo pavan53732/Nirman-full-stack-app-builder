@@ -1567,6 +1567,22 @@ An evaluation run executes a fixed fixture suite against a specific runtime vers
 
 The evaluation engine should include ordinary feature tasks, multi-file refactors, environment failures, provider failures, merge conflicts, visual regressions, database migrations, sandbox tests, long-running continuation, self-update failures, and recovery scenarios.
 
+### 29.4 CriticCalibrationTracker and BuildTimeMetricTracker
+
+#### 29.4.1 CriticCalibrationTracker
+
+`CriticCalibrationTracker` monitors calibration, precision, recall, and false-positive rates of advisory model reviews authored by `Critic Worker` (BS §23.4) against ground-truth deterministic execution outcomes:
+1. *Empirical agreement measurement:* Correlates static model critique findings (e.g. predicted defects, anti-patterns, missing post-conditions) with actual scenario test execution (`CONTRACT.RUNTIME.E2E`), unit test assertions, and deterministic static analysis gates (`AndroidQualityGate`, §53.4).
+2. *Critic drift detection:* Tracks temporal drift where model review rubrics become either overly permissive (vacuous approval) or overly strict (spurious rejection). Divergence exceeding policy thresholds triggers calibration warnings and prompts self-improvement fine-tuning (§30).
+3. *Advisory-only integrity:* `CriticCalibrationTracker` operates strictly as a read-only calibration evaluator; it holds no decision authority over task completion or artifact promotion (`AGENTS.md §3`).
+
+#### 29.4.2 BuildTimeMetricTracker
+
+`BuildTimeMetricTracker` records precise execution latencies and stage timings across the construction loop:
+1. *Time-to-First-Run (TTFR):* Measures the elapsed duration from initial user intent submission to the first rendered frame in the Nirman-managed local Android emulator preview window.
+2. *Stage duration profiling:* Records wall-clock durations for intent formalization, technology resolution, code generation, compilation, test execution, emulator deployment, and artifact packaging.
+3. *Zero-budget invariant:* Build latency metrics serve strictly as telemetry for desktop UI display and local diagnostic analysis. Nirman never bounds, throttles, terminates, or downgrades a valid task based on elapsed build time or duration quotas (ADR-218; BS §72).
+
 ## 30. Self-Improvement Manager
 
 ### 30.1 Improvement sources
@@ -2060,6 +2076,68 @@ Rust Control Plane Supervisor
 No UI command may bypass the control plane to invoke a terminal, edit a file, launch an emulator, contact a provider, install a package, or promote an artifact.
 
 This graph and the §57.2 process topology describe the same `NirmanSupervisor.exe`: §57.2 lists the authority services by their canonical names (`LifecycleAuthority` = `SessionReducer` + `EventStore`, `ToolBroker`, `TaskScheduler`, `CheckpointManager`, `AndroidWorkflowCoordinator`), while this graph additionally shows the internal modules those authorities compose (`ConstructionTransactionManager`, `LeaseManager`, `ToolchainAuthority`, `AndroidCodeIntelligence`, `RequirementAuthority`, `ProjectMemoryStore`) and the external processes they supervise. Neither graph introduces a component absent from the other's authority set; a module named in only one graph is composed by an authority named in both. Every name in either graph is a row of the §57.12 component and authority registry or is defined by a section of its own; the registry fixes each one's crate, decision rights, and committed records.
+
+### 44.3 Human-in-the-Loop Service Layer
+
+This section defines the components that implement the human-in-the-loop and autonomy-control contracts of build spec §4.6, §23.7–§23.9, §27.11, §28.7, and §29.4. Every component here is a **module or presentation service only**: none hold authority, none commit authoritative state, and none may grant permissions, mark tasks complete, promote artifacts, or bypass the sandbox. All state mutations route through the relevant authority (§57.12). The components are supervisor-hosted.
+
+**Architectural scope boundary.** Two items from the standard HITL checklist are architecturally excluded from Nirman by sealed invariants:
+
+- *Step-through mode* (attended, per-action approval loop): excluded by ADR-226 and BS §23.3. There is exactly one operating mode — Autonomous-build. No attended variant exists to enter, and no component may introduce one.
+- *Autonomy level tuner* (user-selectable autonomy dial): excluded by ADR-226 and BS §23.3. The autonomy levels of BS §28.5 are **observed evidence states** reported by the runtime, never user-selectable options.
+- *AI spend approval threshold*: the AI-monetary-budget variant is excluded by ADR-218 and BS §72 (AI usage is telemetry only, zero execution-authority semantics). Physical resource limits are covered by `ResourceGovernor` (§77) and `SwarmAdmissionController` (§58.5.1).
+
+#### 44.3.1 Autonomy control components
+
+`MidRunEditCoordinator` is a module in `nirman-control-plane` that receives manual file-save events while an autonomous task is active (the `workspace_file_saved` lifecycle hook of BS §27.4). It validates the edit against the active workspace lease, routes the mutation through `ConstructionTransactionManager`, and emits `workspace_file_saved` to trigger the continuation paths of BS §27.11. It does not interrupt the autonomous loop; it queues the edit as a dependency delta for the next `EVALUATE_PROGRESS` cycle. `PolicyAuthority` must admit the edit path and `ConstructionTransactionManager` must commit it; `MidRunEditCoordinator` never writes directly.
+
+`RiskClassifier` is a sub-module of `PolicyAuthority` (crate `nirman-policy`) that classifies every incoming tool action into an ordered risk class — `ROUTINE`, `REVIEWABLE`, `PRIVILEGED`, or `HARD_GATED` — before the three-outcome allow/ask/deny decision is reached. The classification is deterministic, based on the action kind, path, worker role, network destination, and the execution profile of §16.2.2. Risk class feeds the approval card's risk explanation (§23.6) and the autonomy capability evidence reported by BS §28.5. `RiskClassifier` never makes the allow/ask/deny decision itself — that decision belongs to `PolicyAuthority`.
+
+#### 44.3.2 Explainability and communication components
+
+`ProgressNarrator` is a module in `nirman-control-plane` that subscribes to the `EventStore` event stream (§45.2) and converts typed task events into human-readable narrative progress strings projected to the UI via the `SupervisorConnection` (§57.3). It is a read-only projection and holds no execution state. It must not coerce event semantics — it maps events, it does not interpret or modify them.
+
+`DiffSummarizer` is a module in `nirman-control-plane` that receives a committed `ConstructionTransaction` record (§45.3) and produces a human-readable mutation summary listing changed files, added/removed lines, affected symbols, and the requirement node that motivated the change. The summary is attached to the `ChangeReportRecord` obligation of §45.3 and projected to the UI. It is a read-only transformation; it does not alter the transaction or its evidence.
+
+`UncertaintyCommunicator` is a module in `nirman-kernel` that subscribes to `UncertaintyRegistry` and `ContradictionDetector` (§58.12) and surfaces unresolved uncertainty findings as structured decision nodes visible in the execution tree (§23.2). It converts the internal `UncertaintyEntry` into a user-facing `UncertaintyNotice` (schema: `uncertaintyId`, `source`, `affectedRequirements`, `description`, `suggestedClarification`, `severity`) and routes it to `DecisionNodeManager` (TA §3795). It does not resolve uncertainty — `RecoveryAuthority` and the clarification gate of BS §69.11 own that path.
+
+`BlockerReportGenerator` is a module in `nirman-control-plane` that monitors the task graph for requirement nodes carrying `BLOCKED` or `USER_REQUIRED` decisions (BS §27.10) and assembles a structured `BlockerReport` (schema: `blockerReportId`, `taskId`, `blockedRequirements[]`, `automatedPathsAttempted[]`, `decisionRequired`, `escalationLevel`) surfaced through the Action Center (BS §4.6) and the `PARTIALLY_BLOCKED` classification path. It is a read-only assembler; it does not set the `BLOCKED` or `USER_REQUIRED` decisions — `RecoveryAuthority` and `TaskScheduler` do.
+
+`QuestionBatchingEngine` is a module in `nirman-kernel` that implements the clarification gate of BS §69.11. When a requirement analysis, planning step, or worker produces a clarification question, this module groups, deduplicates, and orders pending questions by dependency and priority before surfacing them as a single batched `ClarificationRequest` to the user. Answers route back through `GoalInterpreter` as requirement-level updates. The engine never bypasses the clarification gate — it optimizes the user experience of it.
+
+`CompletionReportComposer` is a module in `nirman-control-plane` that assembles the final `TaskResult` (BS §23.9, §30, SCHEMAS §1.11) from the `EvidenceAuthority` ledger, `EventStore` records, and `ArtifactAuthority` promotion records when `EvidenceAuthority` issues a completion decision. The composed report includes the requested goal, changed files, checkpoints, worker activity, commands, validation evidence, tests, builds, screenshots or device results, warnings, blockers, unresolved conditions, resource usage telemetry, and the final completion classification. `CompletionReportComposer` reads authoritative records; it does not produce evidence or make completion decisions.
+
+`OutputWalkthroughGenerator` is a module in `nirman-control-plane` that generates a human-readable post-task walkthrough artifact from the `EpisodeRecord` (BS §28.3), evidence ledger, and committed event sequence after task completion or escalation. The walkthrough describes the goal, key decisions, worker stages, notable repairs, validated evidence, and final state. It is persisted as a documentation artifact in the task directory and linked from the completion report. It is read-only; it does not create new evidence.
+
+#### 44.3.3 Feedback ingestion pipeline
+
+`FeedbackIngestionPipeline` is a supervisor-hosted service in `nirman-control-plane` that coordinates the ten feedback sub-components below. It receives `FeedbackRecord` items from the UI via the `SupervisorConnection` (§57.3), persists them to the `feedback_records` ledger table through `StorageAuthority`, and routes each item to the appropriate sub-component based on `FeedbackRecord.kind`. It holds no authority; it is a routing coordinator.
+
+> **Schema projection:** `FeedbackRecord` is defined in `nirman-schemas.md` §2.131. Owner: TA §44.3.3.
+
+> **Schema projection:** `RequirementDelta` is defined in `nirman-schemas.md` §2.132. Owner: TA §44.3.3.
+
+**Sub-components:**
+
+`ChangeRequestParser` is a module in `nirman-kernel` that parses natural-language change requests submitted mid-session (distinct from initial goal creation handled by `GoalInterpreter`) into structured `RequirementDelta` records that are admitted by `GoalInterpreter` and routed into the active `TaskGraph` through `LifecycleAuthority`. It never mutates the task graph directly.
+
+`ScreenshotAnnotationIngestor` is a module in `nirman-control-plane` that ingests annotated screenshots (screenshots with user-drawn regions, labels, or text overlays) into `VisualSpecification` delta records consumed by the Visual QA Worker and requirements planner. Screenshot pixels are stored in the task directory; annotation metadata is persisted through `EvidenceAuthority`.
+
+`BugReportReproConverter` is a module in `nirman-android` that converts an externally submitted bug description (stack trace, user-reported symptom, or Logcat excerpt) into a candidate `E2EScenario` reproduction spec (§62.1) suitable for the `Debugging Worker`. The converted scenario is a proposal only; `ScenarioSynthesizer` and `ToolBroker` govern its admission and execution.
+
+`RatingSignalCollector` is a module in `nirman-control-plane` that collects explicit user rating signals — thumbs-up/thumbs-down, star ratings, or labelled satisfaction signals — and persists them as `FeedbackRecord.kind = RATING` items in the `feedback_records` table. Rating signals are attached to `EpisodeRecord` entries for self-improvement analysis (BS §28.3–§28.4). Rating signals are telemetry; they do not change task state or trigger autonomous actions.
+
+`ImplicitDissatisfactionDetector` is a module in `nirman-control-plane` that monitors `EventStore` for revert operations, repeated re-requests of the same change, consecutive checkpoint restores, and rapid consecutive edits to recently generated code — patterns that indicate implicit user dissatisfaction without explicit rating. Detected patterns produce a `FeedbackRecord.kind = IMPLICIT_DISSATISFACTION` item and an advisory signal to `RecoveryAuthority`; they never autonomously revert work or alter the task state.
+
+`FeedbackRequirementMapper` is a module in `nirman-kernel` that maps `FeedbackRecord` items to requirement nodes in the active `TaskGraph`. It uses the requirement-node dependency graph, the changed-file set, and the feedback content to associate feedback with the most specific applicable requirement. The mapping is a proposal routed through `GoalInterpreter`; `LifecycleAuthority` owns the requirement-node update.
+
+`UserPreferenceLearner` is a module in `nirman-context` that extracts validated user preference facts — naming conventions, visual style choices, architectural preferences, communication style — from confirmed `EpisodeRecord` decisions and `FeedbackRecord.kind = CORRECTION` items. Extracted preferences must be validated against existing `ProjectMemoryStore` entries and may not contradict confirmed facts. Validated preferences are written to `ProjectMemoryStore` through `MemoryWriter` (§59.1). This module never writes preferences inferred from model summaries alone; durable user action or explicit confirmation is required provenance.
+
+`CodeStyleExtractor` is a module in `nirman-android` that analyzes committed source history and confirmed correction feedback to extract code style conventions — formatting rules, naming patterns, import ordering, comment style, component structure — and populates style-constraint fields within `SkillPackage` style conventions (§19.1). Extracted conventions are proposed as `SkillPackage` candidates and must pass the full skill admission process (§19.1) before becoming active constraints. `CodeStyleExtractor` never modifies existing admitted skills directly.
+
+`CorrectionMemoryStore` is a named partition of `ProjectMemoryStore` (§59.1, crate `nirman-context`) dedicated to user-confirmed correction facts: cases where the user explicitly rejected an agent output and provided the correct alternative. Every `CorrectionMemoryStore` entry must carry its source `FeedbackRecord.feedbackId`, the `EpisodeRecord.episodeId` of the task it corrects, and the original agent output. `MemoryWriter` applies the same validation rules as the parent `ProjectMemoryStore`; model-generated statements without durable user confirmation do not qualify as corrections.
+
+`FeedbackTriagePrioritizer` is a module in `nirman-control-plane` that prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue before routing them to worker dispatch. Priority is computed from feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and frequency of co-occurring feedback. The prioritizer produces an ordered dispatch list; `TaskScheduler` and `PolicyAuthority` govern the actual worker dispatch.
 
 ---
 
@@ -3475,6 +3553,48 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `DataMinimizationChecker` | module | `nirman-android` | Audits detected PII and sensor access against the application's declared functional requirements (§70.7.3; BS §43.1) | none — analytical queries | §70.7.3 |
 | `PrivacyPolicyGenerator` | module | `nirman-android` | Synthesizes a project-specific Privacy Policy document and Google Play Data Safety declaration draft (§70.7.4; BS §43.1) | none — analytical queries | §70.7.4 |
 | `OpenSourceNoticeComposer` | module | `nirman-android` | Aggregates library licenses from `ResolvedDependency` and `SbomBuilder` metadata into `NOTICE.txt` and Compose viewer (§70.7.5; BS §43.1) | none — analytical queries | §70.7.5 |
+| `AndroidAppObservabilityService` | service | `nirman-android` | Read-only aggregate query facade over structured logging, in-app crash reporting, metrics, tracing, diagnostics, and analytics schemas (§73.17.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.17.1 |
+| `StructuredLoggingScaffolder` | module | `nirman-android` | Scaffolds structured Logcat/Timber wrappers, contextual tags, PII masking, and release R8 stripping rules (§73.17.2; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.2 |
+| `CrashReportingScaffolder` | module | `nirman-android` | Integrates client-side UncaughtExceptionHandler and local persistent crash caching in private app storage (§73.17.3; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.3 |
+| `AppMetricsScaffolder` | module | `nirman-android` | Instruments AndroidX Metrics, JankStats frame rendering listeners, and TTID/TTFD startup latency markers (§73.17.4; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.4 |
+| `TracingInstrumentationScaffolder` | module | `nirman-android` | Instruments AndroidX Tracing, Perfetto trace sections, and Compose recomposition tracking markers (§73.17.5; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.5 |
+| `InAppDiagnosticsScaffolder` | module | `nirman-android` | Scaffolds debug-variant Compose health dashboard and ZIP/Share Intent diagnostic report exporter (§73.17.6; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.6 |
+| `AnalyticsSchemaGenerator` | module | `nirman-android` | Synthesizes type-safe Kotlin sealed class analytics event hierarchies and abstract dispatcher interfaces (§73.17.7; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.7 |
+| `FeatureUsageTracker` | module | `nirman-android` | Scaffolds local feature adoption counters, first-use flags, and interaction frequency tracking via DataStore (§73.17.8; BS §43.1) | none — analytical and scaffolding synthesis | §73.17.8 |
+| `AndroidPlatformTargetService` | service | `nirman-android` | Read-only aggregate query facade over permissions, Gradle config, shrinker rules, notification channels, deep links, and target SDK compliance (§73.18.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §73.18.1 |
+| `ManifestPermissionDeriver` | module | `nirman-android` | Statically derives `<uses-permission>` tags and scaffolds modern ActivityResultContracts runtime permission flows (§73.18.2; BS §43.1) | none — analytical and scaffolding synthesis | §73.18.2 |
+| `GradleConfigSynthesizer` | module | `nirman-android` | Scaffolds and reconciles Kotlin DSL build.gradle.kts, settings.gradle.kts, and libs.versions.toml version catalogs (§73.18.3; BS §43.1) | none — analytical and scaffolding synthesis | §73.18.3 |
+| `ShrinkerRuleGenerator` | module | `nirman-android` | Synthesizes and validates ProGuard/R8 rules for kotlinx.serialization, Room entities, DAOs, and JNI preservation (§73.18.4; BS §43.1) | none — analytical and scaffolding synthesis | §73.18.4 |
+| `NotificationChannelSetup` | module | `nirman-android` | Manages Android 8.0+ notification channel creation and Android 13+ POST_NOTIFICATIONS runtime permission flows (§73.18.5; BS §43.1) | none — analytical and scaffolding synthesis | §73.18.5 |
+| `DeepLinkIntentFilterGenerator` | module | `nirman-android` | Synthesizes manifest `<intent-filter>` declarations and Navigation Compose 2.8+ type-safe deep link routes (§73.18.6; BS §43.1) | none — analytical and scaffolding synthesis | §73.18.6 |
+| `TargetApiDeadlineTracker` | module | `nirman-android` | Validates targetSdk compliance against Google Play Store submission deadlines and flags impending deprecations (§73.18.7; BS §43.1) | none — analytical and compliance verification | §73.18.7 |
+| `ApprovalGatePolicyEngine` | alias | `nirman-policy` | alias for the three-outcome allow/ask/deny classifier inside `PolicyAuthority` (§16.2.1, §23.6, BS §23.7); the `RiskClassifier` sub-module (§44.3.1) feeds its risk-class input | — | §44.3.1 |
+| `RiskClassifier` | module | `nirman-policy` | Deterministic risk-class classifier sub-module of `PolicyAuthority` assigning `ROUTINE`, `REVIEWABLE`, `PRIVILEGED`, or `HARD_GATED` to every incoming tool action before the allow/ask/deny decision; feeds the approval card risk explanation (§23.6) and BS §28.5 autonomy capability evidence | none — classification only; decision remains with `PolicyAuthority` | §44.3.1 |
+| `DestructiveActionConfirmationFlow` | alias | `nirman-policy` | alias for the `DENY` outcome path of `PolicyAuthority` (BS §23.7) that generates a `HARD_GATED` approval request for destructive operations; no separate state | — | §44.3.1 |
+| `PauseResumeController` | alias | `nirman-control-plane` | alias for the `PAUSE` / `RESUME` lifecycle transitions owned by `LifecycleAuthority` (`SessionReducer`, §45.1; BS §23.8, TA §5.1) | — | §44.3.1 |
+| `ActionUndoCoordinator` | alias | `nirman-control-plane` | alias for the file-tier and task-tier checkpoint restore path of `CheckpointManager` (§18, BS §27.6); the checkpoint system is the undo mechanism — no separate undo ledger exists | — | §44.3.1 |
+| `MidRunEditCoordinator` | module | `nirman-control-plane` | Receives `workspace_file_saved` hook events while an autonomous task is active, validates against the active workspace lease, routes the mutation through `ConstructionTransactionManager`, and queues a dependency delta for the next `EVALUATE_PROGRESS` cycle (§44.3.1, BS §4.5) | none — routing only; writes committed by `ConstructionTransactionManager` | §44.3.1 |
+| `ProgressNarrator` | module | `nirman-control-plane` | Read-only projection that subscribes to the `EventStore` event stream (§45.2) and converts typed task events into human-readable narrative progress strings surfaced via the `SupervisorConnection` (§57.3); holds no execution state and must not coerce event semantics | none — read-only projection | §44.3.2 |
+| `DecisionExplanationGenerator` | alias | `nirman-policy` | alias for the approval-card content producer inside `PolicyAuthority` that populates the required action, policy reason, risk explanation, and predicted side effect fields (§23.6, BS §4.6) | — | §44.3.2 |
+| `DiffSummarizer` | module | `nirman-control-plane` | Converts a committed `ConstructionTransaction` record (§45.3) into a human-readable mutation summary (changed files, added/removed lines, affected symbols, motivating requirement); attached to the `ChangeReportRecord` obligation and projected to the UI | none — read-only transformation | §44.3.2 |
+| `UncertaintyCommunicator` | module | `nirman-kernel` | Subscribes to `UncertaintyRegistry` and `ContradictionDetector` (§58.12) and surfaces unresolved uncertainty findings as structured decision nodes in the execution tree (§23.2); converts `UncertaintyEntry` to a user-facing `UncertaintyNotice` routed to `DecisionNodeManager`; does not resolve uncertainty | none — advisory surface only | §44.3.2 |
+| `PlanPreviewRenderer` | alias | `nirman-control-plane` | alias for the execution-plan projection derived from the `TaskGraph` (SCHEMAS §1.58) by `TaskGraphCompiler` and presented in the execution tree UI (§23.2, BS §4.3) | — | §44.3.2 |
+| `CostTimeEstimatePresenter` | alias | `nirman-control-plane` | alias for the cost-and-elapsed-time telemetry projection (TA §23.4, BS §23.8 activity panel) sourced from `ResourceGovernor` and `EventStore`; AI monetary spend is telemetry only and never an execution gate (ADR-218) | — | §44.3.2 |
+| `BlockerReportGenerator` | module | `nirman-control-plane` | Monitors the task graph for `BLOCKED` / `USER_REQUIRED` requirement nodes (BS §27.10) and assembles a structured `BlockerReport` surfaced through the Action Center (BS §4.6) and `PARTIALLY_BLOCKED` path; does not set blocked decisions | none — read-only assembly | §44.3.2 |
+| `QuestionBatchingEngine` | module | `nirman-kernel` | Implements the clarification gate of BS §69.11: groups, deduplicates, and prioritizes pending clarification questions before surfacing them as a single batched `ClarificationRequest`; routes answers back through `GoalInterpreter` as requirement-level updates | none — batching and routing only | §44.3.2 |
+| `CompletionReportComposer` | module | `nirman-control-plane` | Assembles the final `TaskResult` (BS §23.9, §30, SCHEMAS §1.11) from `EvidenceAuthority` ledger, `EventStore` records, and `ArtifactAuthority` promotion records on completion decision; reads authoritative records only — does not produce evidence or decide completion | none — read-only composition | §44.3.2 |
+| `OutputWalkthroughGenerator` | module | `nirman-control-plane` | Generates a human-readable post-task walkthrough artifact from `EpisodeRecord` (BS §28.3), evidence ledger, and committed event sequence after task completion or escalation; persisted as a documentation artifact in the task directory and linked from the completion report | none — read-only documentation artifact | §44.3.2 |
+| `FeedbackIngestionPipeline` | service | `nirman-control-plane` | Supervisor-hosted coordinator that receives `FeedbackRecord` items from the UI, persists them to `feedback_records` through `StorageAuthority`, and routes each item to the appropriate feedback sub-component based on `FeedbackRecord.kind` (§44.3.3, SCHEMAS §2.131) | `feedback_records` (through `StorageAuthority`) | §44.3.3 |
+| `ChangeRequestParser` | module | `nirman-kernel` | Parses natural-language mid-session change requests (distinct from initial goals handled by `GoalInterpreter`) into structured `RequirementDelta` records (SCHEMAS §2.132) routed into the active `TaskGraph` through `LifecycleAuthority` (§44.3.3) | none — proposals only; graph updates committed by `LifecycleAuthority` | §44.3.3 |
+| `ScreenshotAnnotationIngestor` | module | `nirman-control-plane` | Ingests annotated screenshots (user-drawn regions, labels, overlays) into `VisualSpecification` delta records; screenshot pixels stored in task directory, annotation metadata persisted through `EvidenceAuthority` (§44.3.3) | annotation metadata through `EvidenceAuthority` | §44.3.3 |
+| `BugReportReproConverter` | module | `nirman-android` | Converts externally submitted bug descriptions (stack trace, Logcat excerpt, user symptom) into candidate `E2EScenario` reproduction specs (§62.1) suitable for the `Debugging Worker`; proposals only — `ScenarioSynthesizer` and `ToolBroker` govern admission and execution (§44.3.3) | none — proposals only | §44.3.3 |
+| `RatingSignalCollector` | module | `nirman-control-plane` | Collects explicit user rating signals (thumbs-up/down, star, labelled satisfaction) and persists them as `FeedbackRecord.kind = RATING` items attached to `EpisodeRecord` entries; telemetry only — no task-state changes (§44.3.3, BS §28.3) | `feedback_records` entries through `FeedbackIngestionPipeline` | §44.3.3 |
+| `ImplicitDissatisfactionDetector` | module | `nirman-control-plane` | Monitors `EventStore` for revert operations, repeated re-requests, consecutive checkpoint restores, and rapid edits to recently generated code, producing `FeedbackRecord.kind = IMPLICIT_DISSATISFACTION` items and advisory signals to `RecoveryAuthority` without altering task state (§44.3.3) | `feedback_records` entries through `FeedbackIngestionPipeline` | §44.3.3 |
+| `FeedbackRequirementMapper` | module | `nirman-kernel` | Maps `FeedbackRecord` items to the most specific requirement nodes in the active `TaskGraph` using the requirement-node dependency graph and changed-file set; mapping is a proposal routed through `GoalInterpreter` (§44.3.3) | none — proposals only | §44.3.3 |
+| `UserPreferenceLearner` | module | `nirman-context` | Extracts validated user preference facts from confirmed `EpisodeRecord` decisions and `FeedbackRecord.kind = CORRECTION` items; writes to `ProjectMemoryStore` through `MemoryWriter` (§59.1); never writes preferences inferred from model summaries alone — durable user action or explicit confirmation is required provenance (§44.3.3) | `MemoryRecord`s (through `MemoryWriter`) | §44.3.3 |
+| `CodeStyleExtractor` | module | `nirman-android` | Analyzes committed source history and confirmed correction feedback to extract code style conventions; populates style-constraint fields in `SkillPackage` candidates (§19.1) that must pass full skill admission before becoming active constraints; never modifies existing admitted skills (§44.3.3) | none — proposals only; skill admission governed by §19.1 | §44.3.3 |
+| `CorrectionMemoryStore` | module | `nirman-context` | Named partition of `ProjectMemoryStore` (§59.1) for user-confirmed correction facts; every entry must carry source `FeedbackRecord.feedbackId`, `EpisodeRecord.episodeId`, and the original agent output; `MemoryWriter` validation rules apply; model-generated statements without durable user confirmation are ineligible (§44.3.3) | `MemoryRecord`s scoped to correction partition (through `MemoryWriter`) | §44.3.3 |
+| `FeedbackTriagePrioritizer` | module | `nirman-control-plane` | Prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue by feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and co-occurrence frequency; produces an ordered dispatch list — `TaskScheduler` and `PolicyAuthority` govern actual worker dispatch (§44.3.3) | none — ordering only | §44.3.3 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -5701,6 +5821,140 @@ The §73.8 rule that the preview panel is a read model of durable control-plane 
 1. *Consent and opt-in neutrality:* Detects pre-checked opt-in checkboxes for marketing or tracking consent, verifying default-neutral user choice.
 2. *Deceptive choice hierarchy:* Identifies unequal visual hierarchies that disguise decline, cancel, or opt-out actions through degraded contrast, obscured positioning, or tiny font sizes.
 3. *Subscription and cancellation transparency:* Verifies that account deletion and subscription management pathways provide direct, unhindered navigation without hidden cancellation loops.
+
+### 73.17 AndroidAppObservabilityService
+
+**Role:** aggregate query facade and generated app observability scaffolding — read-only services; no authority, no AI-usage budget.
+
+#### 73.17.1 AndroidAppObservabilityService
+
+`AndroidAppObservabilityService` is the supervisor-owned, read-only aggregate query facade coordinating observability, diagnostic instrumentation, and telemetry scaffolding across the generated Android application. It exposes a typed query surface to engineering and QA workers (`Android Platform Worker`, `UI Worker`, `Test and QA Worker`) and registered IPC command handlers.
+
+`AndroidAppObservabilityService` coordinates seven deterministic analytical and scaffolding components:
+1. *Structured logging scaffolding:* Invokes `StructuredLoggingScaffolder` (§73.17.2) to scaffold structured Logcat wrappers or Timber integration, tag conventions, and R8/ProGuard release stripping rules.
+2. *In-app crash reporting integration:* Invokes `CrashReportingScaffolder` (§73.17.3) to scaffold client-side `Thread.UncaughtExceptionHandler`, persistent crash log caching in private application storage (`filesDir/crash_reports/`), and crash dump formatting.
+3. *Metrics and performance instrumentation:* Invokes `AppMetricsScaffolder` (§73.17.4) to instrument AndroidX Metrics (`androidx.metrics:metrics-performance` / JankStats) for frame rendering performance, jank tracking, and startup latency (TTID/TTFD) markers.
+4. *Tracing instrumentation:* Invokes `TracingInstrumentationScaffolder` (§73.17.5) to scaffold AndroidX Tracing (`androidx.tracing:tracing-ktx`), Perfetto trace sections (`trace("section") { ... }`), and Compose recomposition markers.
+5. *In-app diagnostics screen and exporter:* Invokes `InAppDiagnosticsScaffolder` (§73.17.6) to generate an in-app debug Jetpack Compose health dashboard (under debug build variants) inspecting Room database state, cache size, network latency, and WorkManager queue status, along with a ZIP/Share Intent diagnostic exporter.
+6. *Analytics event schema generation:* Invokes `AnalyticsSchemaGenerator` (§73.17.7) to synthesize type-safe Kotlin sealed class event hierarchies and abstract dispatcher interfaces.
+7. *Feature usage tracking:* Invokes `FeatureUsageTracker` (§73.17.8) to scaffold local feature adoption counters and user interaction frequency tracking via Jetpack DataStore.
+
+*Prohibited cloud patterns and Android adaptation:*
+Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error budgets (server uptime SLOs) are strictly prohibited under Nirman's binding product invariants (BS §1.5, ADR-180, ADR-218, ADR-220: client-only Android target, no cloud/server output, no AI token/monetary/reasoning/error budgets as execution controls). In client Android applications, alert rules are adapted strictly to local in-app notification threshold checks (e.g. low storage warning, battery conservation mode), and reliability targets are enforced as crash-free session rate objectives evaluated deterministically by `AndroidQualityGate` (TA §53.4) without halting valid builds through budget eviction.
+
+`AndroidAppObservabilityService` creates no second authority. It does not directly mutate project source or bypass policy; all observability scaffolding proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 73.17.2 StructuredLoggingScaffolder
+
+`StructuredLoggingScaffolder` scaffolds structured, performant logging infrastructure for the Android application:
+1. *Logging abstraction:* Scaffolds a lightweight logging facade (such as Timber or a custom structured `AppLogger`) enforcing standard log levels (`VERBOSE`, `DEBUG`, `INFO`, `WARN`, `ERROR`), contextual tags, and structured JSON-compatible event payloads.
+2. *PII masking:* Integrates with `PiiFieldClassifier` (§70.7.2) to ensure user credentials, tokens, and personal identifiable information are automatically masked or redacted before reaching Logcat streams.
+3. *Release build stripping:* Synthesizes ProGuard/R8 rules (`-assumenosideeffects class android.util.Log { ... }`) to strip verbose and debug log invocations from release APK binaries, protecting intellectual property and eliminating unnecessary runtime overhead.
+
+#### 73.17.3 CrashReportingScaffolder
+
+`CrashReportingScaffolder` integrates client-side uncaught exception handling and local crash persistence:
+1. *Uncaught exception hook:* Scaffolds a default `Thread.UncaughtExceptionHandler` registered during `Application.onCreate` to intercept fatal uncaught exceptions before process termination.
+2. *Local crash persistence:* Writes normalized crash records (stack trace, active thread name, device model, Android OS version, app version code, available memory, and timestamp) to private internal storage (`filesDir/crash_reports/`).
+3. *Crash dispatch adapter:* Provides an abstract crash reporter interface allowing optional forwarding to external crash logging SDKs (such as Firebase Crashlytics or Sentry) when declared in product requirements, or presenting a graceful crash dialogue on next application launch.
+
+#### 73.17.4 AppMetricsScaffolder
+
+`AppMetricsScaffolder` instruments application runtime performance and UI responsiveness:
+1. *Frame rendering and jank tracking:* Integrates AndroidX Metrics (`androidx.metrics:metrics-performance`) and `JankStats` listeners on the main Activity window to observe frame render durations and track jank states across Compose screens.
+2. *Startup latency instrumentation:* Scaffolds `reportFullyDrawn()` invocations and Activity launch timing markers to measure Time-To-Initial-Display (TTID) and Time-To-Full-Display (TTFD).
+3. *Network latency metrics:* Injects OkHttp `EventListener` metrics collectors to record DNS resolution times, TLS handshake durations, and round-trip request latency.
+
+#### 73.17.5 TracingInstrumentationScaffolder
+
+`TracingInstrumentationScaffolder` instruments system tracing across critical application journeys:
+1. *AndroidX Tracing integration:* Adds `androidx.tracing:tracing-ktx` dependencies and instruments critical paths (database queries, network deserialization, heavy image decoding) using inline `trace("section_name") { ... }` blocks.
+2. *Perfetto and Systrace compatibility:* Emits trace tags compatible with Android Studio Profiler, Perfetto, and Systrace for deep visual timeline inspection.
+3. *Compose recomposition tracking:* Configures Compose compiler trace flags and debug recomposition markers on critical UI screens to facilitate performance auditing during emulator runs.
+
+#### 73.17.6 InAppDiagnosticsScaffolder
+
+`InAppDiagnosticsScaffolder` scaffolds an in-app debug diagnostics dashboard and export utility:
+1. *Debug diagnostics Compose screen:* Generates a debug-only Jetpack Compose screen (restricted to `debug` build variants via source set isolation) displaying live device hardware parameters, Room database table row counts and schema versions, active DataStore preference keys, network cache metrics, and scheduled WorkManager job states.
+2. *Diagnostic archive exporter:* Synthesizes a one-tap export routine that bundles recent Logcat excerpts, local database schema dumps, device metadata, and memory status into a compressed ZIP file or dispatches it via an Android `Intent.ACTION_SEND` share sheet for rapid issue triage.
+3. *Storage inspection:* Provides utilities to inspect internal private storage consumption, cache directories, and database file sizes, alerting developers when disk allocations exceed normal thresholds.
+
+#### 73.17.7 AnalyticsSchemaGenerator
+
+`AnalyticsSchemaGenerator` synthesizes strongly-typed analytics event models for the Android project:
+1. *Type-safe event taxonomy:* Generates Kotlin sealed class or sealed interface hierarchies representing all tracked domain events (e.g. `ScreenViewEvent`, `ButtonClickedEvent`, `TransactionCompletedEvent`, `FeatureUsedEvent`) with strictly typed parameter schemas.
+2. *Analytics dispatcher contract:* Scaffolds an `AnalyticsDispatcher` interface with standard event logging methods (`logEvent(event: AnalyticsEvent)`), decoupling business logic from third-party vendor analytics SDKs.
+3. *Validation and payload sanitization:* Validates event names and parameter keys against platform length and formatting constraints (e.g. Firebase Analytics 40-character limits and alphanumeric character rules) and checks against `PiiFieldClassifier` to prevent PII leakage into analytics streams.
+
+#### 73.17.8 FeatureUsageTracker
+
+`FeatureUsageTracker` scaffolds local feature adoption and usage telemetry:
+1. *First-use detection:* Implements Jetpack DataStore preference tracking to record feature discovery timestamps and first-use flags, supporting progressive onboarding tooltips and feature discovery flows.
+2. *Interaction frequency counters:* Maintains local counters tracking feature utilization frequency, enabling adaptive UI prioritization and local recency/frequency caching.
+3. *Funnel milestone tracking:* Tracks step completions across multi-stage user journeys (e.g. onboarding, checkout, registration) to detect abandonment points without requiring cloud analytics infrastructure.
+
+### 73.18 AndroidPlatformTargetService
+
+**Role:** aggregate query facade and Android platform target compliance — read-only services; no authority, no AI-usage budget.
+
+#### 73.18.1 AndroidPlatformTargetService
+
+`AndroidPlatformTargetService` is the supervisor-owned, read-only aggregate query facade that coordinates Android OS platform-specific generation, Gradle configuration, shrinker rules, system integrations, and device fragmentation compliance. It exposes a typed query surface to platform engineering workers (`Android Platform Worker`, `Architecture Worker`, `Release Worker`) and registered IPC command handlers.
+
+`AndroidPlatformTargetService` coordinates six deterministic analytical and synthesis components:
+1. *Manifest permission derivation:* Invokes `ManifestPermissionDeriver` (§73.18.2) to statically derive required `<uses-permission>` tags and runtime permission requests based on framework API usage.
+2. *Gradle configuration synthesis:* Invokes `GradleConfigSynthesizer` (§73.18.3) to scaffold and maintain multi-module `build.gradle.kts`, `settings.gradle.kts`, and `libs.versions.toml` version catalogs.
+3. *Shrinker rule generation:* Invokes `ShrinkerRuleGenerator` (§73.18.4) to synthesize and validate ProGuard/R8 consumer rules for reflection, serialization, Room entities, and JNI entry points.
+4. *Notification channel setup:* Invokes `NotificationChannelSetup` (§73.18.5) to scaffold Android 8.0+ (API 26+) notification channel structures and Android 13+ (API 33+) `POST_NOTIFICATIONS` runtime permission flows.
+5. *Deep link and intent filter generation:* Invokes `DeepLinkIntentFilterGenerator` (§73.18.6) to generate `<intent-filter>` declarations in `AndroidManifest.xml` and Jetpack Compose Navigation 2.8+ type-safe deep links.
+6. *Target API deadline tracking:* Invokes `TargetApiDeadlineTracker` (§73.18.7) to verify that `targetSdk` satisfies current Google Play Store submission mandates and warn on approaching deprecation deadlines.
+
+*Integration with established platform components:*
+`AndroidPlatformTargetService` directly integrates with and builds upon Nirman's established canonical platform analyzers: API level compliance and desugaring are enforced via `AndroidApiLevelValidator` (§47.4); Jetpack lifecycle flows are verified by `AndroidDataFlowAnalyzer` (§47.4) and the closed-world decision matrix (§73.2); background work execution is governed by `OfflineSyncProtocolPlanner` (§47.4) and WorkManager policies (§73.2); and multi-device matrix coverage is validated by `AndroidEmulatorScenarioCoordinator` (§65) against `DeviceMatrixEntry` profiles (BS §59.2).
+
+`AndroidPlatformTargetService` creates no second authority. It does not directly mutate project source or bypass policy; all platform target proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+
+#### 73.18.2 ManifestPermissionDeriver
+
+`ManifestPermissionDeriver` statically maps Android framework API usage to manifest and runtime permissions:
+1. *AST framework API scanning:* Walks the Tree-sitter AST of source files to identify calls to protected Android framework APIs (e.g. location services, camera, Bluetooth, telephony, biometrics).
+2. *Manifest permission mapping:* Queries the `AndroidSymbolGraph` `REQUIRES_PERMISSION` edges (§47.3) to derive the exact `<uses-permission>` tags required in `AndroidManifest.xml`, distinguishing normal permissions from dangerous (runtime) permissions and special permissions (`SCHEDULE_EXACT_ALARM`, `MANAGE_EXTERNAL_STORAGE`).
+3. *Runtime permission flow scaffolding:* Scaffolds modern AndroidX `rememberLauncherForActivityResult` with `ActivityResultContracts.RequestPermission()` or `RequestMultiplePermissions()`, ensuring mandatory rationale dialogs and permission-denied fallbacks are generated for all dangerous permissions.
+
+#### 73.18.3 GradleConfigSynthesizer
+
+`GradleConfigSynthesizer` coordinates the synthesis and reconciliation of modern Android Gradle build configurations:
+1. *Version catalog management:* Generates and maintains `gradle/libs.versions.toml`, managing `[versions]`, `[libraries]`, and `[plugins]` blocks in accordance with single-writer reconciliation rules (BS §35).
+2. *Kotlin DSL convention plugins:* Synthesizes type-safe `build.gradle.kts` files using Gradle Kotlin DSL, applying standard Android Gradle Plugin (AGP) convention plugins (`com.android.application`, `com.android.library`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`).
+3. *Build variant and flavor configuration:* Configures `debug` and `release` build types, application ID suffixes, signing configurations, and optimization flags (`isMinifyEnabled`, `isShrinkResources`).
+
+#### 73.18.4 ShrinkerRuleGenerator
+
+`ShrinkerRuleGenerator` synthesizes and validates ProGuard/R8 consumer shrinking and obfuscation rules:
+1. *Serialization rule synthesis:* Generates `-keepclassmembers` and serialization rules for `kotlinx.serialization` `@Serializable` classes, Moshi, or Gson models, preventing runtime `ClassNotFoundException` and JSON field deserialization failures.
+2. *Room entity and DAO keep rules:* Synthesizes keep rules for Room database entities, DAOs, and generated type adapters to preserve SQLite table mappings and reflection-based database initializers.
+3. *JNI and reflection preservation:* Scans for `@Keep` annotations, JNI `native` method declarations, and dynamic reflection calls, emitting targeted keep rules to prevent symbol stripping during R8 release builds.
+
+#### 73.18.5 NotificationChannelSetup
+
+`NotificationChannelSetup` manages Android notification channel creation and permission compliance:
+1. *Channel and group synthesis:* Generates boilerplate for notification manager channel and channel group creation on Android 8.0+ (API 26+), defining channel IDs, human-readable names, descriptions, importance levels (`IMPORTANCE_HIGH`, `IMPORTANCE_DEFAULT`), vibration patterns, and sound attributes.
+2. *POST_NOTIFICATIONS runtime handling:* Scaffolds Android 13+ (API 33+) `android.permission.POST_NOTIFICATIONS` runtime permission checks before notifications are posted, ensuring seamless compatibility across Android versions.
+3. *Channel intent routing:* Provides helper extensions for directing users directly to app notification settings (`Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS`) when notification permissions or specific channels are disabled.
+
+#### 73.18.6 DeepLinkIntentFilterGenerator
+
+`DeepLinkIntentFilterGenerator` coordinates Android deep linking across manifests and navigation graphs:
+1. *Manifest intent-filter synthesis:* Emits `<intent-filter android:autoVerify="true">` blocks in `AndroidManifest.xml` with `<action android:name="android.intent.action.VIEW" />`, `<category android:name="android.intent.category.DEFAULT" />`, `<category android:name="android.intent.category.BROWSABLE" />`, and targeted `<data>` URI schemes, hosts, and path prefixes.
+2. *Navigation Compose deep link binding:* Generates Jetpack Compose `navDeepLink` definitions matching type-safe route serializable classes, ensuring external URIs map directly into the app's navigation graph with typed argument extraction.
+3. *App Links asset verification:* Synthesizes the required `assetlinks.json` Digital Asset Links file template for Android App Links domain verification.
+
+#### 73.18.7 TargetApiDeadlineTracker
+
+`TargetApiDeadlineTracker` enforces Google Play target SDK compliance and deadline tracking:
+1. *Google Play targetSdk verification:* Validates the project's `targetSdk` against current Google Play Store submission requirements (e.g. requiring target SDK 34 or 35 for new apps and updates).
+2. *Annual deadline tracking:* Cross-references the active calendar date against Google Play's annual August 31st target SDK deadlines, flagging warning diagnostics when the project target SDK is nearing obsolescence.
+3. *Migration guidance:* Identifies framework behavioral changes introduced in newer target SDK levels (e.g. Android 14 foreground service types, Android 15 edge-to-edge enforcement) to guide autonomous upgrade planning.
 
 ## 74. Integration Boundary Implementation Contract
 

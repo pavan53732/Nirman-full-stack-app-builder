@@ -136,9 +136,13 @@
 
 ## 5. Authorities, services, and runtime concepts
 
+**AnalyticsSchemaGenerator** — The static analytics schema module synthesizing type-safe Kotlin sealed class event hierarchies and abstract dispatcher interfaces. — TA §73.17.7; BS §43.1.
+
 **AndroidAccessibilityAuditor** — The static and dynamic accessibility verification module evaluating minimum 48dp touch targets, TalkBack contentDescription semantics, keyboard focus order, and color-blind safety. — TA §73.16.3; BS §43.1.
 
 **AndroidAntiPatternDetector** — The static AST analysis service detecting prohibited Android and Jetpack Compose anti-patterns before commit. — TA §47.4; BS §23.4.
+
+**AndroidAppObservabilityService** — The supervisor-owned, read-only aggregate query facade coordinating structured logging, in-app crash reporting, performance metrics, system tracing, debug diagnostics screens, and analytics event schemas across the generated application. — TA §73.17.1; BS §43.1.
 
 **AndroidArchitectureReasoningService** — The static architectural what-if analysis service that traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface (affected files, modules, tests, evidence) for a proposed architectural change before any `ConstructionTransaction` opens. Read-only and advisory; no authority, no AI-usage budget. — TA §47.5.2; BS §43.3.
 
@@ -158,6 +162,8 @@
 
 **AndroidIntegrationIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying API contract integrity, third-party integration analysis, webhook signature verification, and mobile authentication security. — TA §74.7.1; BS §43.1.
 
+**AndroidPlatformTargetService** — The supervisor-owned, read-only aggregate query facade coordinating Android OS platform-specific generation, manifest permissions, Gradle configuration, shrinker rules, notification channels, deep links, and target SDK compliance. — TA §73.18.1; BS §43.1.
+
 **AndroidPrivacyIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Personal Identifiable Information (PII) classification, personal data flow tracking, data minimization checking, privacy policy generation, and open-source license notice composition. — TA §70.7.1; BS §43.1.
 
 **AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
@@ -173,6 +179,8 @@
 **AndroidTestIntelligenceService** — The supervisor-owned, read-only aggregate query facade exposing on-demand test and coverage comprehension across test-to-code mapping, prioritized coverage gaps, untested branches, semantic test intent, assertion quality, flakiness detection, fixture tracing, mock boundaries, pyramid balance, and redundant test elimination. — TA §53.5.1; BS §47.5.
 
 **ApiContractDriftDetector** — The static contract verification module comparing Android client network interfaces and DTOs against OpenAPI specifications to detect schema drift and breaking changes. — TA §74.7.2; BS §43.1.
+
+**AppMetricsScaffolder** — The performance instrumentation module integrating AndroidX Metrics, JankStats frame rendering listeners, and startup latency markers. — TA §73.17.4; BS §43.1.
 
 **ArchitectureDriftDetector** — The static AST analysis service detecting Clean Architecture layer boundary violations between UI, ViewModel, and Data layers. — TA §47.4; TA §53.6; BS §23.4.
 
@@ -202,6 +210,8 @@
 
 **CrashPatternAnalyzer** — The runtime crash analysis service that correlates Logcat stack traces with source symbol anchors and episodic repair patterns. — TA §47.4; BS §28.2.
 
+**CrashReportingScaffolder** — The crash reporting module integrating client-side UncaughtExceptionHandler hooks, persistent crash log caching in private storage, and optional crash dispatch adapters. — TA §73.17.3; BS §43.1.
+
 **CoverageGapLocator** — The prioritized coverage gap locator synthesizing AST source-level instruction/method coverage, state-space transitions, and requirement gaps. — TA §53.5.3; BS §56.6.
 
 **DarkPatternDetector** — The static analysis module detecting manipulative UX anti-patterns, pre-checked opt-in consent checkboxes, deceptive button contrast, and hidden subscription cancellation flows. — TA §73.16.5; BS §43.1.
@@ -209,6 +219,8 @@
 **DataMinimizationChecker** — The static compliance module auditing detected PII and sensor access against the application's declared functional requirements to prevent over-collection. — TA §70.7.3; BS §43.1.
 
 **DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.3.
+
+**DeepLinkIntentFilterGenerator** — The navigation and intent module generating manifest `<intent-filter>` declarations and Navigation Compose type-safe deep links. — TA §73.18.6; BS §43.1.
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
@@ -222,13 +234,21 @@
 
 **Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
 
+**FeatureUsageTracker** — The telemetry module scaffolding local feature adoption counters, first-use flags, and interaction frequency tracking via Jetpack DataStore. — TA §73.17.8; BS §43.1.
+
 **FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8; BS §47.5.
 
 **FlakyTestSignatureDetector** — The static test analysis module detecting non-deterministic timing, unseeded randomness, unconfined coroutine dispatchers, and missing Compose synchronization anti-patterns before execution. — TA §53.5.7; BS §57.5.
 
+**GradleConfigSynthesizer** — The build configuration module scaffolding and reconciling Kotlin DSL build.gradle.kts, settings.gradle.kts, and libs.versions.toml version catalogs. — TA §73.18.3; BS §43.1.
+
 **ImplicitRequirementMiner** — The requirement expansion module deterministically expanding high-level user goals into mandatory companion requirements for authentication, data listing, and transactional flows. — TA §73.15.1; BS §42.1.
 
+**InAppDiagnosticsScaffolder** — The debug diagnostics module generating an in-app debug Compose health dashboard and ZIP/Share Intent diagnostic report exporter. — TA §73.17.6; BS §43.1.
+
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
+
+**ManifestPermissionDeriver** — The static permission analysis module deriving required `<uses-permission>` tags and scaffolding modern ActivityResultContracts runtime permission flows from framework API calls. — TA §73.18.2; BS §43.1.
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
 
@@ -237,6 +257,8 @@
 **MockAndStubBoundaryAnalyzer** — The static double analysis module verifying test double signatures, contract fidelity, over-mocking anti-patterns, and mock isolation in generated Android tests. — TA §53.5.9; BS §57.5.
 
 **MockResidualDetector** — The production release integrity module verifying that mock doubles, in-memory repositories, and fake datasets do not leak into production source sets without explicit authorization. — TA §47.4; BS §43.1.
+
+**NotificationChannelSetup** — The notification management module scaffolding Android 8.0+ NotificationChannel structures and Android 13+ POST_NOTIFICATIONS runtime permission flows. — TA §73.18.5; BS §43.1.
 
 **OfflineSyncProtocolPlanner** — The persistence verification module validating offline-first sync architecture, reactive Flow repositories, WorkManager Outbox patterns, and conflict resolution policies. — TA §47.4; BS §43.1.
 
@@ -286,15 +308,21 @@
 
 **SemanticCodeFingerprintEngine** — The AST normalization service computing syntax-invariant structural hashes for semantic no-op elimination and repair indexing. — TA §47.4; BS §53.2.
 
+**ShrinkerRuleGenerator** — The code shrinking module synthesizing and validating ProGuard/R8 consumer rules for serialization, Room entities, DAOs, and JNI preservation. — TA §73.18.4; BS §43.1.
+
 **Speculation runtime** — Exploration of candidate branches implemented only by TA §88 under `CONTRACT.RUNTIME.SPECULATION`. — BS §65; TA §88.
 
 **StartupRegressionTracker** — The performance analysis module measuring TTID and TTFD cold-start launch latency from Logcat and detecting startup latency regressions. — TA §62.1.2; BS §56.3.
+
+**StructuredLoggingScaffolder** — The logging scaffolding module synthesizing structured Logcat wrappers, contextual tags, PII masking, and release R8 stripping rules. — TA §73.17.2; BS §43.1.
 
 **StringExternalizationEngine** — The static localization module detecting hardcoded UI string literals, proposing extraction into strings.xml, enforcing RTL mirroring, and validating localized plurals. — TA §73.16.4; BS §43.1.
 
 **SupervisorPreemptionProtocol** — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes. — TA §58.11.2.
 
 **TaskBatchingOptimizer** — The pre-dispatch clustering engine inside TaskGraphDispatcher that groups co-located workspace micro-mutations into atomic composite execution units. — TA §58.5.
+
+**TargetApiDeadlineTracker** — The policy tracking module validating target SDK compliance against Google Play Store submission deadlines and flagging approaching deprecations. — TA §73.18.7; BS §43.1.
 
 **TestIntentExtractor** — The deterministic inbound test parser extracting semantic behavioral intents from test declarations, annotations, and assertions. — TA §53.5.5; BS §47.5.
 
@@ -305,6 +333,8 @@
 **TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2; BS §47.5.
 
 **ThirdPartyIntegrationAnalyzer** — The integration verification module validating third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC signature checks. — TA §74.7.3; BS §43.1.
+
+**TracingInstrumentationScaffolder** — The system tracing module instrumenting AndroidX Tracing, Perfetto trace sections, and Compose recomposition tracking markers. — TA §73.17.5; BS §43.1.
 
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 

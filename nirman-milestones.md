@@ -22,47 +22,47 @@ The team should keep the master specification stable as the product contract, up
 
 ## 2. Delivery Milestones
 
-| Milestone | Focus | Main output |
-|---|---|---|
-| M0 | Repository and engineering foundation | Source repository, conventions, local certification, fixture projects |
-| M1 | Nirman.exe WinUI shell | Windows application shell and project manager |
-| M2 | NirmanSupervisor.exe + SupervisorConnection | Background task daemon, SQLite state, event stream |
-| M3 | Provider and model runtime | Provider profiles, keychain, streaming, usage telemetry |
-| M4 | Dynamic Android synthesis and local runtime | Instruction/screenshot analysis, framework resolver, Nirman-managed local emulator runtime foundation, process manager, diagnostics |
-| M5 | Single-worker agent loop | Plan, inspect, edit, test, repair, checkpoint, undo |
-| M6 | Permissions and sandbox profiles | Policy engine, approvals, restricted execution |
-| M7 | Supervisor survives UI close/restart | Resume after UI close or restart, notifications, adaptive guardrails |
-| M8 | Multi-worker coordination | Canonical workers, contracts, event bus, isolated worktrees, reconciliation |
-| M9 | Android emulator runtime, embedded preview, and visual testing | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, Nirman-managed local Android emulator profiles, screenshots, Logcat, phone/tablet layout-profile checks on the managed emulator |
-| M10 | Android packaging | APK build, artifact validation, signing boundaries |
-| M11 | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/emulator profile matrix, and representative fixture evidence |
-| M12 | Advanced extensibility | Skills, external tools, hooks, model routing, scheduled tasks |
-| M13 | Goal Mode and non-blocking background work | Durable goals, resumable tasks, background control |
-| M14 | Lifecycle hooks | Deterministic pre/post action hooks and policy interception |
-| M15 | Scheduled automations | Persistent local schedules, fairness, safe recurring tasks |
-| M16 | Granular checkpoints and backtracking | File/task checkpoints, retention, restore, strategy changes |
-| M17 | Context scaling and external tools | Retrieval/large-context modes and mediated adapters |
-| M18 | Durable task graph and execution tree | Nested live progress, worker nodes, evidence links |
-| M19 | Evidence-backed status and telemetry | Event ledger, heartbeats, resource and validation telemetry |
-| M20 | Autonomous validation coordinator | Dependency-aware checks, affected tests, regression sharding |
-| M21 | Policy-boundary approvals and termination | Autonomous-build policy, truthful termination, hard safety boundaries |
-| M22 | Provider-neutral AI settings and model gateway | Chat, response-item, message protocols, tools, streaming |
-| M23 | Controlled self-development loop | Candidate build, health checks, promotion, rollback |
-| M24 | Adaptive long-horizon provider execution | Context compaction, routing, continuation, provider recovery |
-| M25 | Runtime supervisor and durable execution loop | Runtime ticks, leases, restart recovery, continuity |
-| M26 | Graduated recovery ladder | Failure fingerprints, strategy changes, backtracking |
-| M27 | Self-observation and episode evaluation | Quality metrics, fixtures, trajectory replay |
-| M28 | Self-improvement proposal manager | Improvement hypotheses, scoped candidates, test plans |
-| M29 | Candidate canary, promotion, and rollback | Baselines, canaries, post-promotion monitoring |
-| M30 | Canonical documentation and worker registry | Renumbered sections, one role taxonomy, roadmap crosswalk |
-| M31 | Autonomous-build policy and never-pause loop | Routine in-workspace actions allowed; deployment and signing gated; stalls recover, never pause |
-| M32 | Persistent terminal subsystem | PTYs, interactive prompts, shell profiles, multi-terminal logs |
-| M33 | Skills registry and invocation contract | Skill schema, scanning, permissions, versioning, rollback |
-| M34 | Windows lifecycle and multi-project resilience | Reboot autostart, sleep/resume, notification fallback, fair scheduling |
-| M35 | Long-horizon scale and unified execution surface | Map sharding, checkpoint retention, affected tests, side-by-side preview |
-| M36 | Runtime authority and autonomous recovery invariants | Deterministic authorities, model non-authority, safe recovery, evidence gates |
-| M37 | Android-only target contract | Android profiles, Nirman-managed local Android emulator validation, APK artifacts, and Android-only project resolution |
-| M38 | Certified Android profile coverage and production acceptance | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports |
+| Milestone | Focus                                                           | Main output                                                                                                                                                                                                             |
+| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0        | Repository and engineering foundation                           | Source repository, conventions, local certification, fixture projects                                                                                                                                                   |
+| M1        | Nirman.exe WinUI shell                                          | Windows application shell and project manager                                                                                                                                                                           |
+| M2        | NirmanSupervisor.exe + SupervisorConnection                     | Background task daemon, SQLite state, event stream                                                                                                                                                                      |
+| M3        | Provider and model runtime                                      | Provider profiles, keychain, streaming, usage telemetry                                                                                                                                                                 |
+| M4        | Dynamic Android synthesis and local runtime                     | Instruction/screenshot analysis, framework resolver, Nirman-managed local emulator runtime foundation, process manager, diagnostics                                                                                     |
+| M5        | Single-worker agent loop                                        | Plan, inspect, edit, test, repair, checkpoint, undo                                                                                                                                                                     |
+| M6        | Permissions and sandbox profiles                                | Policy engine, approvals, restricted execution                                                                                                                                                                          |
+| M7        | Supervisor survives UI close/restart                            | Resume after UI close or restart, notifications, adaptive guardrails                                                                                                                                                    |
+| M8        | Multi-worker coordination                                       | Canonical workers, contracts, event bus, isolated worktrees, reconciliation                                                                                                                                             |
+| M9        | Android emulator runtime, embedded preview, and visual testing  | Nirman-managed headless emulator, embedded WinUI PreviewHost, controlled preview input, Nirman-managed local Android emulator profiles, screenshots, Logcat, phone/tablet layout-profile checks on the managed emulator |
+| M10       | Android packaging                                               | APK build, artifact validation, signing boundaries                                                                                                                                                                      |
+| M11       | Android capability registry and representative profile coverage | Internal profile identity, AI-selected technology compositions, toolchain/emulator profile matrix, and representative fixture evidence                                                                                  |
+| M12       | Advanced extensibility                                          | Skills, external tools, hooks, model routing, scheduled tasks                                                                                                                                                           |
+| M13       | Goal Mode and non-blocking background work                      | Durable goals, resumable tasks, background control                                                                                                                                                                      |
+| M14       | Lifecycle hooks                                                 | Deterministic pre/post action hooks and policy interception                                                                                                                                                             |
+| M15       | Scheduled automations                                           | Persistent local schedules, fairness, safe recurring tasks                                                                                                                                                              |
+| M16       | Granular checkpoints and backtracking                           | File/task checkpoints, retention, restore, strategy changes                                                                                                                                                             |
+| M17       | Context scaling and external tools                              | Retrieval/large-context modes and mediated adapters                                                                                                                                                                     |
+| M18       | Durable task graph and execution tree                           | Nested live progress, worker nodes, evidence links                                                                                                                                                                      |
+| M19       | Evidence-backed status and telemetry                            | Event ledger, heartbeats, resource and validation telemetry                                                                                                                                                             |
+| M20       | Autonomous validation coordinator                               | Dependency-aware checks, affected tests, regression sharding                                                                                                                                                            |
+| M21       | Policy-boundary approvals and termination                       | Autonomous-build policy, truthful termination, hard safety boundaries                                                                                                                                                   |
+| M22       | Provider-neutral AI settings and model gateway                  | Chat, response-item, message protocols, tools, streaming                                                                                                                                                                |
+| M23       | Controlled self-development loop                                | Candidate build, health checks, promotion, rollback                                                                                                                                                                     |
+| M24       | Adaptive long-horizon provider execution                        | Context compaction, routing, continuation, provider recovery                                                                                                                                                            |
+| M25       | Runtime supervisor and durable execution loop                   | Runtime ticks, leases, restart recovery, continuity                                                                                                                                                                     |
+| M26       | Graduated recovery ladder                                       | Failure fingerprints, strategy changes, backtracking                                                                                                                                                                    |
+| M27       | Self-observation and episode evaluation                         | Quality metrics, fixtures, trajectory replay                                                                                                                                                                            |
+| M28       | Self-improvement proposal manager                               | Improvement hypotheses, scoped candidates, test plans                                                                                                                                                                   |
+| M29       | Candidate canary, promotion, and rollback                       | Baselines, canaries, post-promotion monitoring                                                                                                                                                                          |
+| M30       | Canonical documentation and worker registry                     | Renumbered sections, one role taxonomy, roadmap crosswalk                                                                                                                                                               |
+| M31       | Autonomous-build policy and never-pause loop                    | Routine in-workspace actions allowed; deployment and signing gated; stalls recover, never pause                                                                                                                         |
+| M32       | Persistent terminal subsystem                                   | PTYs, interactive prompts, shell profiles, multi-terminal logs                                                                                                                                                          |
+| M33       | Skills registry and invocation contract                         | Skill schema, scanning, permissions, versioning, rollback                                                                                                                                                               |
+| M34       | Windows lifecycle and multi-project resilience                  | Reboot autostart, sleep/resume, notification fallback, fair scheduling                                                                                                                                                  |
+| M35       | Long-horizon scale and unified execution surface                | Map sharding, checkpoint retention, affected tests, side-by-side preview                                                                                                                                                |
+| M36       | Runtime authority and autonomous recovery invariants            | Deterministic authorities, model non-authority, safe recovery, evidence gates                                                                                                                                           |
+| M37       | Android-only target contract                                    | Android profiles, Nirman-managed local Android emulator validation, APK artifacts, and Android-only project resolution                                                                                                  |
+| M38       | Certified Android profile coverage and production acceptance    | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports                                                                                              |
 
 ---
 
@@ -74,16 +74,16 @@ Create the source repository and define the code-quality baseline before impleme
 
 ### Work items
 
-| Work item | Acceptance condition |
-|---|---|
-| Repository layout | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits and exactly two Rust binaries, `NirmanSupervisor.exe` and `NirmanWorker.exe`, each linking only the crates its §57.1 row allows (`NirmanWorker.exe`: `nirman-domain`, `nirman-worker-ipc`, `nirman-agents` — no ledger, policy, adapter, or provider crate); the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge or a binary that links outside its row (TA §3.5; ADR-222) |
-| Component registry parity | Every non-alias row of technical architecture §57.12 names a crate that exists in the workspace, and the module-boundary check fails the local gate when a registered component's Rust item lives in a crate other than the one its row declares (ADR-223) |
-| C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command |
-| Configuration model | Development, test, and production settings are separate |
-| Logging standard | Structured logs include task, worker, project, and correlation IDs |
-| Test fixtures | At least three representative Android projects exist |
-| Security baseline | Secret files are excluded from logs and test fixtures |
-| Local certification pipeline | `tools/verify.sh` and `tools/verify.ps1` exist, stay aligned (ADR-204), and run documentation certification (`tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py`), foundation, Rust supervisor, WinUI 3/.NET host (build, analyzers, and tests — there is no web frontend), fixture, and static checks, reporting `UNAVAILABLE` or `USER_REQUIRED` for every gate whose subject or toolchain has not landed |
+| Work item                                               | Acceptance condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repository layout                                       | The Cargo workspace under `crates/` contains exactly the crates of technical architecture §57.1 with the dependency directions that table permits and exactly two Rust binaries, `NirmanSupervisor.exe` and `NirmanWorker.exe`, each linking only the crates its §57.1 row allows (`NirmanWorker.exe`: `nirman-domain`, `nirman-worker-ipc`, `nirman-agents` — no ledger, policy, adapter, or provider crate); the C#/.NET host solution binds only `nirman-ipc`; a module-boundary check fails the local gate on a forbidden dependency edge or a binary that links outside its row (TA §3.5; ADR-222) |
+| Component registry parity                               | Every non-alias row of technical architecture §57.12 names a crate that exists in the workspace, and the module-boundary check fails the local gate when a registered component's Rust item lives in a crate other than the one its row declares (ADR-223)                                                                                                                                                                                                                                                                                                                                              |
+| C#/.NET, WinUI 3, Windows App SDK, and Rust conventions | Formatting, analyzers, linting, and type checks for the C#/.NET WinUI 3 host and the Rust supervisor run through the local certification command                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Configuration model                                     | Development, test, and production settings are separate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Logging standard                                        | Structured logs include task, worker, project, and correlation IDs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Test fixtures                                           | At least three representative Android projects exist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Security baseline                                       | Secret files are excluded from logs and test fixtures                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Local certification pipeline                            | `tools/verify.sh` and `tools/verify.ps1` exist, stay aligned (ADR-204), and run documentation certification (`tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py`), foundation, Rust supervisor, WinUI 3/.NET host (build, analyzers, and tests — there is no web frontend), fixture, and static checks, reporting `UNAVAILABLE` or `USER_REQUIRED` for every gate whose subject or toolchain has not landed                                                                                                                                                                      |
 
 ### Exit gate
 
@@ -122,15 +122,15 @@ Implement the local control plane before building the autonomous agent. The cont
 
 ### Work items
 
-| Component | Required behavior |
-|---|---|
-| IPC API | Authenticated local communication between UI and daemon |
-| SQLite store | Versioned schema with migrations and transactions |
-| Event bus | Durable events with task sequence numbers and replay |
-| Task scheduler | Idempotent state transitions and resource reservations |
-| Process registry | Track process trees, ports, output, and ownership |
-| Recovery scanner | Rehydrate interrupted tasks after restart |
-| Notification adapter | Surface approvals and failures while minimized |
+| Component            | Required behavior                                       |
+| -------------------- | ------------------------------------------------------- |
+| IPC API              | Authenticated local communication between UI and daemon |
+| SQLite store         | Versioned schema with migrations and transactions       |
+| Event bus            | Durable events with task sequence numbers and replay    |
+| Task scheduler       | Idempotent state transitions and resource reservations  |
+| Process registry     | Track process trees, ports, output, and ownership       |
+| Recovery scanner     | Rehydrate interrupted tasks after restart               |
+| Notification adapter | Surface approvals and failures while minimized          |
 
 ### Exit gate
 
@@ -497,17 +497,17 @@ Implement retrieval-based and large-context modes, context-package reports, secr
 
 ## 21. Revised Fixture and Recovery Evaluation Matrix
 
-| Evaluation | Required behavior |
-|---|---|
-| Goal completion | Task ends only when objective conditions pass or a defined stop condition is reached |
-| UI disconnect | Background task continues and event sequence replays after reconnect |
-| Hook enforcement | Blocking safety hook prevents the action and records the reason |
-| Scheduled run | A recurring task runs once per trigger and survives daemon restart |
-| File checkpoint | One file restores without changing unrelated files |
-| Backtracking | Failed strategy returns to a known-good state before trying a different strategy |
-| Context scaling | Mode selection is visible and falls back safely when the provider's context capacity is insufficient |
-| External tool | Tool is scoped, audited, and cannot bypass the policy engine |
-| Subagent isolation | Parallel workers cannot mutate the main workspace before reconciliation |
+| Evaluation         | Required behavior                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| Goal completion    | Task ends only when objective conditions pass or a defined stop condition is reached                 |
+| UI disconnect      | Background task continues and event sequence replays after reconnect                                 |
+| Hook enforcement   | Blocking safety hook prevents the action and records the reason                                      |
+| Scheduled run      | A recurring task runs once per trigger and survives daemon restart                                   |
+| File checkpoint    | One file restores without changing unrelated files                                                   |
+| Backtracking       | Failed strategy returns to a known-good state before trying a different strategy                     |
+| Context scaling    | Mode selection is visible and falls back safely when the provider's context capacity is insufficient |
+| External tool      | Tool is scoped, audited, and cannot bypass the policy engine                                         |
+| Subagent isolation | Parallel workers cannot mutate the main workspace before reconciliation                              |
 
 ## 22. Execution-Surface Milestones
 
@@ -546,18 +546,18 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 ## 23. Execution-Surface Evaluation Matrix
 
-| Evaluation | Required result |
-|---|---|
-| Task launcher | Chat starts a durable background task without owning its execution loop |
-| Plan visibility | User can see phases, dependencies, progress, checkpoints, and completion state |
-| Nested activity | Commands, tests, builds, worker handoffs, approvals, and repairs appear as expandable child nodes |
-| Evidence status | Completed claims link to execution or review evidence |
-| Worker observability | Active action, heartbeat, elapsed time, workspace, and resource usage are visible |
-| Validation loop | Required preview, tests, build, security, reliability, and visual/device checks run or block completion |
-| Policy boundaries | Routine actions are not approval-blocked; privileged actions create precise approval requests |
-| Reconnection | UI close or disconnect does not lose task state or event history |
-| Termination | Task stops only at a defined completion, decision, limit, cancellation, environment failure, or unrecoverable failure |
-| Final result | Changed files, checkpoints, evidence, tests, warnings, blockers, usage, and completion classification are available |
+| Evaluation           | Required result                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Task launcher        | Chat starts a durable background task without owning its execution loop                                               |
+| Plan visibility      | User can see phases, dependencies, progress, checkpoints, and completion state                                        |
+| Nested activity      | Commands, tests, builds, worker handoffs, approvals, and repairs appear as expandable child nodes                     |
+| Evidence status      | Completed claims link to execution or review evidence                                                                 |
+| Worker observability | Active action, heartbeat, elapsed time, workspace, and resource usage are visible                                     |
+| Validation loop      | Required preview, tests, build, security, reliability, and visual/device checks run or block completion               |
+| Policy boundaries    | Routine actions are not approval-blocked; privileged actions create precise approval requests                         |
+| Reconnection         | UI close or disconnect does not lose task state or event history                                                      |
+| Termination          | Task stops only at a defined completion, decision, limit, cancellation, environment failure, or unrecoverable failure |
+| Final result         | Changed files, checkpoints, evidence, tests, warnings, blockers, usage, and completion classification are available   |
 
 ## 24. Provider Runtime and Self-Development Milestones
 
@@ -589,23 +589,23 @@ AI usage is telemetry only; no token, request, monetary, reasoning, or duration 
 
 ## 25. Provider and Self-Development Evaluation Matrix
 
-| Evaluation | Required result |
-|---|---|
-| Custom provider | Base URL, key reference, protocol, and model ID can be configured manually |
-| Capability detection | Text, vision, tools, structured output, streaming, cancellation, and context behavior are tested or explicitly overridden |
-| Protocol normalization | Chat, response-item, and message-oriented requests reach the same internal gateway |
-| Tool continuity | Tool-call IDs and tool results remain correctly associated across turns |
-| Streaming | Partial events are durable and reconnectable; non-streaming providers still produce lifecycle events |
-| Reasoning capability | Provider reports whether native reasoning is supported and which normalized effort levels it can satisfy |
-| Reasoning normalization | NORMAL/EXTENDED/DEEP/EXHAUSTIVE requests map deterministically to provider-specific parameters |
-| Reasoning accounting | Reported reasoning usage is distinguished from estimated or unavailable usage |
-| Reasoning effort grant | Concurrent provider requests are attributed to distinct effort grants and their reported reasoning usage is recorded as telemetry without double counting |
-| Reasoning capability gap | A provider unable to satisfy the required minimum effort produces a typed capability gap or approved failover |
-| Self-update isolation | Current installation is unchanged until candidate validation succeeds |
-| Candidate health | Candidate launches in a temporary profile and passes IPC, database, provider, preview, and smoke checks |
-| Migration safety | Failed migration leaves the previous version and recoverable database available |
-| Rollback | Injected candidate failure atomically restores the previous version and task state |
-| Long horizon | Ordinary token/time usage thresholds adapt execution rather than terminating the goal |
+| Evaluation               | Required result                                                                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Custom provider          | Base URL, key reference, protocol, and model ID can be configured manually                                                                                |
+| Capability detection     | Text, vision, tools, structured output, streaming, cancellation, and context behavior are tested or explicitly overridden                                 |
+| Protocol normalization   | Chat, response-item, and message-oriented requests reach the same internal gateway                                                                        |
+| Tool continuity          | Tool-call IDs and tool results remain correctly associated across turns                                                                                   |
+| Streaming                | Partial events are durable and reconnectable; non-streaming providers still produce lifecycle events                                                      |
+| Reasoning capability     | Provider reports whether native reasoning is supported and which normalized effort levels it can satisfy                                                  |
+| Reasoning normalization  | NORMAL/EXTENDED/DEEP/EXHAUSTIVE requests map deterministically to provider-specific parameters                                                            |
+| Reasoning accounting     | Reported reasoning usage is distinguished from estimated or unavailable usage                                                                             |
+| Reasoning effort grant   | Concurrent provider requests are attributed to distinct effort grants and their reported reasoning usage is recorded as telemetry without double counting |
+| Reasoning capability gap | A provider unable to satisfy the required minimum effort produces a typed capability gap or approved failover                                             |
+| Self-update isolation    | Current installation is unchanged until candidate validation succeeds                                                                                     |
+| Candidate health         | Candidate launches in a temporary profile and passes IPC, database, provider, preview, and smoke checks                                                   |
+| Migration safety         | Failed migration leaves the previous version and recoverable database available                                                                           |
+| Rollback                 | Injected candidate failure atomically restores the previous version and task state                                                                        |
+| Long horizon             | Ordinary token/time usage thresholds adapt execution rather than terminating the goal                                                                     |
 
 ## 26. Complete Runtime and Self-Improvement Milestones
 
@@ -647,32 +647,32 @@ Implement observe-only, candidate-only, canary, trusted auto-promotion, and manu
 
 ## 27. Complete Runtime and Self-Improvement Evaluation Matrix
 
-| Evaluation | Required result |
-|---|---|
-| Runtime continuity | Provider responses are intermediate steps, not task termination |
-| Supervisor recovery | UI, worker, or control-plane restart preserves task state |
-| Lease correctness | A crashed worker cannot permanently claim a task |
-| Strategy diversity | Repeated failures cause materially different recovery attempts |
-| Progress quality | The runtime detects when requests are not producing verified progress |
-| Episode analysis | Completed and failed tasks produce structured, privacy-filtered records |
-| Candidate quality | Improvements are judged against fixed fixtures and baseline metrics |
-| Scoped promotion | A candidate can be limited to a project, provider, worker role, or task class |
-| Rollback | Post-promotion regressions automatically restore the known-good runtime |
-| Memory safety | Long-term memory contains validated, privacy-filtered records only |
+| Evaluation          | Required result                                                               |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Runtime continuity  | Provider responses are intermediate steps, not task termination               |
+| Supervisor recovery | UI, worker, or control-plane restart preserves task state                     |
+| Lease correctness   | A crashed worker cannot permanently claim a task                              |
+| Strategy diversity  | Repeated failures cause materially different recovery attempts                |
+| Progress quality    | The runtime detects when requests are not producing verified progress         |
+| Episode analysis    | Completed and failed tasks produce structured, privacy-filtered records       |
+| Candidate quality   | Improvements are judged against fixed fixtures and baseline metrics           |
+| Scoped promotion    | A candidate can be limited to a project, provider, worker role, or task class |
+| Rollback            | Post-promotion regressions automatically restore the known-good runtime       |
+| Memory safety       | Long-term memory contains validated, privacy-filtered records only            |
 
 ## 28. Core Autonomous Runtime Acceptance Criteria
 
 The following acceptance criteria are mandatory for the core autonomous runtime. They should be evaluated independently and as part of full end-to-end fixture tasks.
 
-| Capability | Acceptance criterion |
-|---|---|
-| **Specialized workers** | A representative task can assign architecture, implementation, debugging, testing, security, visual QA, performance, and release work to separate scoped workers, and each worker returns a durable handoff with evidence. |
-| **Self-healing loop** | Injected compiler, runtime, test, environment, provider, and merge failures cause classification, a materially different strategy, checkpoint backtracking where needed, continued validation, and no repeated identical loop. |
-| **Evidence-based completion** | A task cannot be marked complete from model text alone; completion links to passing tests, builds, screenshots, health checks, security results, device results, review findings, or validated artifacts. |
+| Capability                       | Acceptance criterion                                                                                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Specialized workers**          | A representative task can assign architecture, implementation, debugging, testing, security, visual QA, performance, and release work to separate scoped workers, and each worker returns a durable handoff with evidence.                              |
+| **Self-healing loop**            | Injected compiler, runtime, test, environment, provider, and merge failures cause classification, a materially different strategy, checkpoint backtracking where needed, continued validation, and no repeated identical loop.                          |
+| **Evidence-based completion**    | A task cannot be marked complete from model text alone; completion links to passing tests, builds, screenshots, health checks, security results, device results, review findings, or validated artifacts.                                               |
 | **Adaptive resource management** | A long-running fixture task crosses ordinary time, token, or usage thresholds and continues by compacting context, changing models, reducing concurrency, retrying transient failures, or repairing the environment rather than stopping automatically. |
-| **Self-development mode** | Nirman changes its own source only in an isolated worktree, builds and launches a candidate separately, runs health and smoke checks, promotes through the stable controller, and rolls back after an injected failure. |
-| **Project memory** | A later task can recall a validated architecture decision, previous fix, failed strategy, convention, and user preference while excluding credentials and protected content. |
-| **Environment repair** | A fixture with missing or incompatible SDKs, dependencies, ports, emulators, or toolchains is diagnosed and repaired or clearly escalated according to policy, with the repair recorded as evidence. |
+| **Self-development mode**        | Nirman changes its own source only in an isolated worktree, builds and launches a candidate separately, runs health and smoke checks, promotes through the stable controller, and rolls back after an injected failure.                                 |
+| **Project memory**               | A later task can recall a validated architecture decision, previous fix, failed strategy, convention, and user preference while excluding credentials and protected content.                                                                            |
+| **Environment repair**           | A fixture with missing or incompatible SDKs, dependencies, ports, emulators, or toolchains is diagnosed and repaired or clearly escalated according to policy, with the repair recorded as evidence.                                                    |
 
 A release cannot claim complete autonomous-runtime support until all seven criteria pass in isolated tests and in at least one combined end-to-end fixture task.
 
@@ -722,16 +722,16 @@ Implement incremental repository-map shards, dependency fingerprints, checkpoint
 
 ## 30. Audit Closure Evaluation Matrix
 
-| Audit area | Required evidence |
-|---|---|
-| Documentation consistency | Renumbered sections, one roadmap crosswalk, no duplicate role taxonomy |
-| Unattended autonomy | Routine project-local actions complete without approval pauses |
-| Terminal reliability | Persistent session, prompt handling, shell selection, multi-terminal logs |
-| Background resilience | Reboot, sleep/resume, notification fallback, fair scheduling |
-| Skills | Schema, scan, invocation, permissions, versioning, rollback |
-| Long-horizon coding | Incremental map, affected tests, retention, drift checks |
-| Swarm coordination | Decomposition heuristic, interface agreement, bounded nesting, reconciliation |
-| Preview visibility | Preview revision and nested execution tree visible together |
+| Audit area                | Required evidence                                                             |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| Documentation consistency | Renumbered sections, one roadmap crosswalk, no duplicate role taxonomy        |
+| Unattended autonomy       | Routine project-local actions complete without approval pauses                |
+| Terminal reliability      | Persistent session, prompt handling, shell selection, multi-terminal logs     |
+| Background resilience     | Reboot, sleep/resume, notification fallback, fair scheduling                  |
+| Skills                    | Schema, scan, invocation, permissions, versioning, rollback                   |
+| Long-horizon coding       | Incremental map, affected tests, retention, drift checks                      |
+| Swarm coordination        | Decomposition heuristic, interface agreement, bounded nesting, reconciliation |
+| Preview visibility        | Preview revision and nested execution tree visible together                   |
 
 ## M36: Runtime authority and autonomous recovery invariants
 
@@ -756,7 +756,6 @@ Implement the capability registry, technology planner, framework resolver, mixed
 Nirman is complete when a Windows user can create or open a supported local project, configure an AI provider, ask for a feature, review and approve the plan, observe structured file changes, run a local preview, execute validation, inspect evidence, undo the task, and recover the task after a controlled application restart. The output must remain a normal user-owned project that can be opened and built outside Nirman. Additionally, at least 6 of 8 frozen battery prompts (§35) must PASS under the no-human-intervention definition.
 
 The product is not considered autonomous-ready unless the runtime, rather than the model, remains the authority over lifecycle, permissions, sandboxing, storage, evidence, recovery, promotion, rollback, and termination.
-
 
 ## 32. End-to-End Autonomous Android Session
 
@@ -810,15 +809,15 @@ Every capability fixture can be generated from an instruction and optional scree
 
 The battery is a fixed set of eight natural-language prompts, frozen at first definition and never edited to make a result look better. It is run in full at the end of every milestone group. Its purpose is a single comparable number over time, not coverage — §35's category fixtures own coverage.
 
-| Id | Prompt | Primary stress |
-|---|---|---|
-| FIX-PROG-01 | A tip calculator | Pure UI and state |
-| FIX-PROG-02 | A todo list with local persistence | Local storage |
-| FIX-PROG-03 | A habit tracker with streaks and 8pm reminders | Scheduling and notifications |
-| FIX-PROG-04 | A weather app using a public REST API | Network and error states |
-| FIX-PROG-05 | A note-taking app with search | Query and list state |
-| FIX-PROG-06 | A photo gallery reading device storage | Runtime permissions |
-| FIX-PROG-07 | A pomodoro timer with a foreground service | Background execution |
+| Id          | Prompt                                         | Primary stress                     |
+| ----------- | ---------------------------------------------- | ---------------------------------- |
+| FIX-PROG-01 | A tip calculator                               | Pure UI and state                  |
+| FIX-PROG-02 | A todo list with local persistence             | Local storage                      |
+| FIX-PROG-03 | A habit tracker with streaks and 8pm reminders | Scheduling and notifications       |
+| FIX-PROG-04 | A weather app using a public REST API          | Network and error states           |
+| FIX-PROG-05 | A note-taking app with search                  | Query and list state               |
+| FIX-PROG-06 | A photo gallery reading device storage         | Runtime permissions                |
+| FIX-PROG-07 | A pomodoro timer with a foreground service     | Background execution               |
 | FIX-PROG-08 | An expense tracker with a chart and CSV export | Data visualization and file output |
 
 The ordering is deliberate: FIX-PROG-01 and 02 exercise UI and storage only; 03 to 05 add scheduling, network, and query state; 06 and 07 require runtime permissions and background execution; 08 combines data visualization with file output.
@@ -829,7 +828,7 @@ Target: at least 6 of 8 PASSED. Below that, the product is not autonomous regard
 
 Battery results are recorded per run with the source revision, toolchain lock, environment fingerprint, and evidence ids, so results across milestone groups are comparable. A battery result is never a completion decision; it is an aggregate observation (CLAUSE.EVIDENCE.CLAIM_SEPARATION applies unchanged).
 
-FIX-PROG-01..08 follow the existing FIX-* fixture id convention already used in this document (FIX-DEL-*). They are fixture ids in the development plan only and are not contract-bearing test identities.
+FIX-PROG-01..08 follow the existing `FIX-*` fixture id convention already used in this document (`FIX-DEL-*`). They are fixture ids in the development plan only and are not contract-bearing test identities.
 
 The battery is not a milestone. It is run as part of existing milestone group exit gates, particularly the §35 fixture coverage gate and the §31 v1 Definition of Done.
 
@@ -840,7 +839,6 @@ The Autonomous-build policy must allow routine project-local actions to continue
 ### Acceptance criteria
 
 Editing, dependency installation, terminal execution, emulator launch, testing, screenshots, repair, checkpoints, worker handoffs, reconciliation, and local artifact creation proceed automatically under the configured policy. Credentials, destructive operations, publishing, signing, protected paths, hard safety violations, and unrecoverable blockers remain gated or terminate safely.
-
 
 ## 37. Production Runtime Contracts and Lifecycle Authority
 
@@ -912,7 +910,6 @@ The user can start one Android goal, observe the live preview beside the executi
 ## 45. Integrated Production Readiness Gate
 
 Nirman is not production-ready until a complete Android fixture passes the following path without routine approval pauses: one instruction plus screenshots → contract extraction → technology selection → environment preparation → synthesis → worker/tool execution → emulator preview → failure injection and recovery → emulator validation → APK packaging → evidence report → task replay and checkpoint restore.
-
 
 ---
 
@@ -998,21 +995,21 @@ Run a clean-machine Android fixture matrix covering native Kotlin/Compose, Java/
 
 ## Integrated acceptance matrix — runtime (M39–M50)
 
-| Capability | Required proof |
-|---|---|
-| Construction contract | Validated versioned contract consumed by all workers |
-| Reducer/replay | Identical reconstructed state after restart |
-| Transactionality | Atomic commit/rollback and stale revision rejection |
-| Leases/capabilities | Expiry, scope, nonce, and revocation tests |
-| Toolchain authority | Clean-machine locked-toolchain build |
-| Provider supervision | Health, handshake, outage, restart, and privacy tests |
-| Code intelligence | Multi-language indexing and affected-test computation |
-| Mutation broker | Structured-only mutation and scope enforcement |
-| Android requirements | Permission/manifest/resource drift detection |
-| Repair registry | Classified fixtures with evidence-backed fixes |
-| Preview | Revision-bound Nirman-managed local Android emulator evidence |
-| Resource governance | Pressure tests without gate weakening |
-| Artifact completion | APK checksum, signing, environment, and validation proof |
+| Capability            | Required proof                                                |
+| --------------------- | ------------------------------------------------------------- |
+| Construction contract | Validated versioned contract consumed by all workers          |
+| Reducer/replay        | Identical reconstructed state after restart                   |
+| Transactionality      | Atomic commit/rollback and stale revision rejection           |
+| Leases/capabilities   | Expiry, scope, nonce, and revocation tests                    |
+| Toolchain authority   | Clean-machine locked-toolchain build                          |
+| Provider supervision  | Health, handshake, outage, restart, and privacy tests         |
+| Code intelligence     | Multi-language indexing and affected-test computation         |
+| Mutation broker       | Structured-only mutation and scope enforcement                |
+| Android requirements  | Permission/manifest/resource drift detection                  |
+| Repair registry       | Classified fixtures with evidence-backed fixes                |
+| Preview               | Revision-bound Nirman-managed local Android emulator evidence |
+| Resource governance   | Pressure tests without gate weakening                         |
+| Artifact completion   | APK checksum, signing, environment, and validation proof      |
 
 # M51–M58: Integrated Workflow and Quality Intelligence Milestones
 
@@ -1068,20 +1065,20 @@ Implement independent-fixture validation for learned repair patterns, bounded al
 
 ## Integrated acceptance matrix — autonomy (M51–M58)
 
-| Capability | Required proof |
-|---|---|
-| Workflow coordinator | Idempotent end-to-end session with restart recovery |
-| Preflight | Blocker/risk report before expensive work |
-| Quality gate | Independent findings and promotion blocking |
-| Failure modes | Deterministic classification and recovery fixtures |
-| Test traceability | Requirement-to-test-to-evidence matrix |
-| Drift detection | Contract and architecture mismatch detection |
-| Runtime analysis | Crash/ANR/Logcat fingerprinting linked to repair |
-| Dependency health | Compatibility, security, license, and lock checks |
-| Handbook/release report | Revision-bound generated documentation |
-| Worker metrics | Routing metrics without authority escalation |
-| Repair promotion | Independent validation before trusted reuse |
-| Scope integrity | Android-only generated-target audit |
+| Capability              | Required proof                                      |
+| ----------------------- | --------------------------------------------------- |
+| Workflow coordinator    | Idempotent end-to-end session with restart recovery |
+| Preflight               | Blocker/risk report before expensive work           |
+| Quality gate            | Independent findings and promotion blocking         |
+| Failure modes           | Deterministic classification and recovery fixtures  |
+| Test traceability       | Requirement-to-test-to-evidence matrix              |
+| Drift detection         | Contract and architecture mismatch detection        |
+| Runtime analysis        | Crash/ANR/Logcat fingerprinting linked to repair    |
+| Dependency health       | Compatibility, security, license, and lock checks   |
+| Handbook/release report | Revision-bound generated documentation              |
+| Worker metrics          | Routing metrics without authority escalation        |
+| Repair promotion        | Independent validation before trusted reuse         |
+| Scope integrity         | Android-only generated-target audit                 |
 
 ## M59–M61: Reasoning Visibility and Streaming Milestones
 
@@ -1105,16 +1102,16 @@ Implement Calm, Inspect, and Developer presentations, event replay without side 
 
 ## Integrated acceptance matrix — reasoning (M59–M61)
 
-| Capability | Required proof |
-|---|---|
-| Private reasoning boundary | No verbatim private reasoning in UI, storage, logs, handoffs, or exports |
-| Structured summary | Valid schema with constraints, decision, uncertainty, and next step |
-| Filtering | Deterministic redaction and withholding of unsafe summaries |
-| Streaming | Authenticated, ordered, durable, reconnectable delivery |
-| Runtime separation | Visible decisions cannot authorize tools or mutations |
-| Replay | Side-effect-free reconstruction from filtered events |
-| Status truthfulness | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
-| Back-pressure | UI disconnect cannot stop autonomous execution |
+| Capability                 | Required proof                                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| Private reasoning boundary | No verbatim private reasoning in UI, storage, logs, handoffs, or exports               |
+| Structured summary         | Valid schema with constraints, decision, uncertainty, and next step                    |
+| Filtering                  | Deterministic redaction and withholding of unsafe summaries                            |
+| Streaming                  | Authenticated, ordered, durable, reconnectable delivery                                |
+| Runtime separation         | Visible decisions cannot authorize tools or mutations                                  |
+| Replay                     | Side-effect-free reconstruction from filtered events                                   |
+| Status truthfulness        | Working, waiting, recovering, blocked, stale, complete, and safely failed are distinct |
+| Back-pressure              | UI disconnect cannot stop autonomous execution                                         |
 
 ## M62–M64: Brand and Asset Completion Milestones
 
@@ -1138,17 +1135,17 @@ Implement built APK extraction, asset presence and reachability checks, content-
 
 ## Integrated acceptance matrix — brand and asset completion (M62–M64)
 
-| Capability | Required proof |
-|---|---|
-| Brand intent | Versioned BrandManifest from user request and screenshots |
-| Asset planning | AssetManifest with explicit requested types and statuses |
-| Generation | Provider or approved local/vector fallback with provenance |
-| Integration | Correct Android resources, references, and manifest entries |
-| Preview | Current AssetManifest displayed in PreviewRevision |
-| Artifact inspection | APK contains requested assets and matching hashes |
-| Accessibility | Contrast, transparency, silhouette, and theme checks |
-| Change handling | Affected assets regenerate and stale evidence is invalidated |
-| Completion gate | Missing or placeholder-only requested branding blocks promotion |
+| Capability          | Required proof                                                  |
+| ------------------- | --------------------------------------------------------------- |
+| Brand intent        | Versioned BrandManifest from user request and screenshots       |
+| Asset planning      | AssetManifest with explicit requested types and statuses        |
+| Generation          | Provider or approved local/vector fallback with provenance      |
+| Integration         | Correct Android resources, references, and manifest entries     |
+| Preview             | Current AssetManifest displayed in PreviewRevision              |
+| Artifact inspection | APK contains requested assets and matching hashes               |
+| Accessibility       | Contrast, transparency, silhouette, and theme checks            |
+| Change handling     | Affected assets regenerate and stale evidence is invalidated    |
+| Completion gate     | Missing or placeholder-only requested branding blocks promotion |
 
 # 5A. Locked Implementation Stages
 
@@ -1180,50 +1177,50 @@ Only after Stages 1–3 pass their acceptance gates, add multiple workers, Git w
 
 ## 5B. Stack-lock implementation tasks
 
-| Task | Required result |
-|---|---|
-| Desktop shell | C#/.NET + WinUI 3 + Windows App SDK |
-| UI | C# + XAML with WinUI 3 Fluent Design |
-| UI state | Presentation-only MVVM or equivalent projection store |
-| Rust runtime | Tokio supervisor interfaces and typed commands/events |
-| Database | SQLite migrations, execution-ledger schema, SQLx evaluation |
-| Editor | Native WinUI editor surface |
-| Terminal | Native WinUI terminal surface with Rust ConPTY supervisor |
-| Provider | ModelGateway, adapters, streaming, capability detection, tool normalization |
-| Android | Toolchain manifest, JDK/Gradle/SDK/ADB/emulator health and build |
-| Windows | Restricted tokens, Job Objects, ACLs, environment filtering, process supervision |
-| Packaging | Nirman.exe and Windows installer path |
+| Task          | Required result                                                                  |
+| ------------- | -------------------------------------------------------------------------------- |
+| Desktop shell | C#/.NET + WinUI 3 + Windows App SDK                                              |
+| UI            | C# + XAML with WinUI 3 Fluent Design                                             |
+| UI state      | Presentation-only MVVM or equivalent projection store                            |
+| Rust runtime  | Tokio supervisor interfaces and typed commands/events                            |
+| Database      | SQLite migrations, execution-ledger schema, SQLx evaluation                      |
+| Editor        | Native WinUI editor surface                                                      |
+| Terminal      | Native WinUI terminal surface with Rust ConPTY supervisor                        |
+| Provider      | ModelGateway, adapters, streaming, capability detection, tool normalization      |
+| Android       | Toolchain manifest, JDK/Gradle/SDK/ADB/emulator health and build                 |
+| Windows       | Restricted tokens, Job Objects, ACLs, environment filtering, process supervision |
+| Packaging     | Nirman.exe and Windows installer path                                            |
 
 ## 5C. Sequencing invariant
 
 Swarm work and self-development cannot begin until the single-worker runtime passes restart, provider-failure, process-failure, emulator-failure, rollback, evidence, and APK artifact tests. This sequencing rule is mandatory even when later milestones are already specified.
 
-
 M9 establishes the first vertical preview implementation.
 M65–M79 harden and formalize the underlying runtime contracts.
 M80 is the first milestone permitted to claim `RUNTIME_CERTIFIED` autonomous Android end-to-end execution. Earlier milestones must never retroactively claim M80-level certification.
+
 ## M65–M80: Agent Execution Kernel and Long-Horizon Runtime Formalization
 
 These milestones formalize the autonomous runtime without changing Nirman’s Android-only generated target. They must be implemented after the foundation and durable-supervisor stages, and their gates must be tested with Android fixture projects and injected failures.
 
-| Milestone | Focus | Required result |
-|---|---|---|
-| M65 | AgentExecutionKernel and loop reducer | Observe, understand, plan, select, authorize, execute, observe result, update, evaluate, continue/recover/delegate/validate/complete |
-| M66 | SkillRuntime and composition | Discover, select, bind, execute, validate, compose compatible skills, and record SkillExecutionRecord |
-| M67 | Dynamic worker instances and AgentProfiles | Construct bounded workers from role, profile, skills, tools, workspace, permissions, resources, context, and recovery policy |
-| M68 | DelegationProtocol and knowledge ledger | Typed delegate/spawn/handoff/resume/cancel/replace/retry/escalate/merge operations and scoped KnowledgeArtifacts |
-| M69 | TaskBlackboard and WorkspaceLeaseManager | Controlled task blackboard, renewable workspace ownership, stale lease recovery, and no duplicate workspace writes |
-| M70 | Stateful ToolSessions and capability graph | Reconnectable terminal, ADB, emulator, debugger, LSP, and preview sessions mapped to required capabilities |
-| M71 | EnvironmentCapabilityPlanner | Classify prerequisites as AVAILABLE, REPAIRABLE, USER_REQUIRED, or UNAVAILABLE before expensive work |
-| M72 | ValidationPlanner | Select focused or expanded Android validation from changed files, symbols, graph impact, risk, requirements, and devices |
-| M73 | Mutation and regression intelligence | Predict affected behavior using call, route, dependency, traceability, and historical-failure relationships |
-| M74 | TrajectoryReplayEngine | Replay decisions and tool results against new models, prompts, skills, schemas, and runtimes without side effects |
-| M75 | SimulationExecutor | Provide clearly labeled dry-run predictions without mutating source, executing commands, or claiming observed evidence |
-| M76 | Deadlock and backpressure controls | Detect dependency/resource/approval cycles and reserve scarce Gradle, emulator, GPU, storage, and provider capacity |
-| M77 | Cancellation and independent pause/resume | Propagate cancellation through every descendant and preserve exact pause/resume state for workers and skills |
-| M78 | Decision, uncertainty, contradiction, and replanning services | Add structured decision nodes, fact states, contradiction revisions, and evidence-triggered plan recompilation |
-| M79 | ExecutionHistoryManager | Implement hot, warm, cold, and archived history with safe compaction and evidence-preserving garbage collection |
-| M80 | End-to-end autonomous-runtime certification | First milestone permitted to claim `RUNTIME_CERTIFIED` autonomous Android end-to-end execution: prove one long-running Android goal through dynamic allocation, failure recovery, replanning, emulator validation, required APK packaging or explicitly declared AAB packaging, replay, and history compaction |
+| Milestone | Focus                                                         | Required result                                                                                                                                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M65       | AgentExecutionKernel and loop reducer                         | Observe, understand, plan, select, authorize, execute, observe result, update, evaluate, continue/recover/delegate/validate/complete                                                                                                                                                                           |
+| M66       | SkillRuntime and composition                                  | Discover, select, bind, execute, validate, compose compatible skills, and record SkillExecutionRecord                                                                                                                                                                                                          |
+| M67       | Dynamic worker instances and AgentProfiles                    | Construct bounded workers from role, profile, skills, tools, workspace, permissions, resources, context, and recovery policy                                                                                                                                                                                   |
+| M68       | DelegationProtocol and knowledge ledger                       | Typed delegate/spawn/handoff/resume/cancel/replace/retry/escalate/merge operations and scoped KnowledgeArtifacts                                                                                                                                                                                               |
+| M69       | TaskBlackboard and WorkspaceLeaseManager                      | Controlled task blackboard, renewable workspace ownership, stale lease recovery, and no duplicate workspace writes                                                                                                                                                                                             |
+| M70       | Stateful ToolSessions and capability graph                    | Reconnectable terminal, ADB, emulator, debugger, LSP, and preview sessions mapped to required capabilities                                                                                                                                                                                                     |
+| M71       | EnvironmentCapabilityPlanner                                  | Classify prerequisites as AVAILABLE, REPAIRABLE, USER_REQUIRED, or UNAVAILABLE before expensive work                                                                                                                                                                                                           |
+| M72       | ValidationPlanner                                             | Select focused or expanded Android validation from changed files, symbols, graph impact, risk, requirements, and devices                                                                                                                                                                                       |
+| M73       | Mutation and regression intelligence                          | Predict affected behavior using call, route, dependency, traceability, and historical-failure relationships                                                                                                                                                                                                    |
+| M74       | TrajectoryReplayEngine                                        | Replay decisions and tool results against new models, prompts, skills, schemas, and runtimes without side effects                                                                                                                                                                                              |
+| M75       | SimulationExecutor                                            | Provide clearly labeled dry-run predictions without mutating source, executing commands, or claiming observed evidence                                                                                                                                                                                         |
+| M76       | Deadlock and backpressure controls                            | Detect dependency/resource/approval cycles and reserve scarce Gradle, emulator, GPU, storage, and provider capacity                                                                                                                                                                                            |
+| M77       | Cancellation and independent pause/resume                     | Propagate cancellation through every descendant and preserve exact pause/resume state for workers and skills                                                                                                                                                                                                   |
+| M78       | Decision, uncertainty, contradiction, and replanning services | Add structured decision nodes, fact states, contradiction revisions, and evidence-triggered plan recompilation                                                                                                                                                                                                 |
+| M79       | ExecutionHistoryManager                                       | Implement hot, warm, cold, and archived history with safe compaction and evidence-preserving garbage collection                                                                                                                                                                                                |
+| M80       | End-to-end autonomous-runtime certification                   | First milestone permitted to claim `RUNTIME_CERTIFIED` autonomous Android end-to-end execution: prove one long-running Android goal through dynamic allocation, failure recovery, replanning, emulator validation, required APK packaging or explicitly declared AAB packaging, replay, and history compaction |
 
 ## M65–M80 acceptance gates
 
@@ -1263,21 +1260,21 @@ The certification fixture should include a user instruction and optional screens
 
 These milestones implement build spec §53–§67 and technical architecture §59–§71 and §88. They follow the AgentExecutionKernel milestones M65–M80 and must be tested against Android fixture projects with injected failures. No milestone here may begin before the single-worker and durable-supervisor gates of Stages 1–3 have passed.
 
-| Milestone | Focus | Required result |
-|---|---|---|
-| M81 | Long-Horizon Cognitive Context | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService, AttentionProfiler, PlacementPlanner, RecallProbeService, HierarchicalSynthesizer |
-| M82 | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks; single-writer shared Android surfaces with `SharedSurfaceChangeRequest` applied semantically by SharedSurfaceApplier (BS §54.2; TA §60.1; ADR-225) — fixture: two workers adding different dependencies and one permission each integrate without a textual conflict, and a contradicting request is rejected with a reason |
-| M83 | User/Edit Reconciliation | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content |
-| M84 | Stateful E2E Scenario Engine | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all nine required scenario classes, determinism quarantine, unmarked-observable-requirement coverage (an unmarked requirement with observable behavior MUST appear in validation and proof coverage per BS §42.1) |
-| M85 | Advanced Verification | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection, PropertyProber bounded probes |
-| M86 | Regression Localization | Impact-graph localization, signature matching, checkpoint bisection, cause-scoped repair enforcement, escalation on unlocalized regression |
-| M87 | Adversarial Security and Supply Chain | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline |
-| M88 | Android Emulator E2E | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping |
-| M89 | Runtime Directives and Agent Debugger | DirectiveIntake with validation and decision-boundary application, PlanReconciler effect accounting, read-only RuntimeSnapshot, SurfaceTracer, DecisionTracer |
-| M90 | Historical Resource Profiling | Supervisor-level measurement, project/host-keyed profiles, ResourceExecutionProfile with honest confidence, capacity gating, DegradationDetector. Historical ResourceProfile measurements MUST influence scheduling and validation ordering without changing authority. |
-| M91 | External Event Gateway | TriggerRegistry, authentication, AdmissionController with ceiling capping, default-disabled webhook surface, complete firing audit |
-| M92 | Speculative Candidate Branching | Isolated candidate workspaces, admission conditions, evidence-only selection, escalation on tie, discard hygiene with retained signatures |
-| M93 | Documentation Coverage Certification | Ledger-based invariant verification for all ten invariants and a complete twelve-edge traceability chain for every capability |
+| Milestone | Focus                                       | Required result                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M81       | Long-Horizon Cognitive Context              | Hierarchical Repository Semantic Graph, WorkingSetPlanner, ContextOrchestrator, ContextCapacityPlanner, ContextFidelityManager, EvidenceFrontier, ContextIntegrityVerifier, RetrievalCompletenessChecker, Causal Execution Memory, RegroundingService, AttentionProfiler, PlacementPlanner, RecallProbeService, HierarchicalSynthesizer                                                                                                                |
+| M82       | Peer Coordination and Semantic Reservations | ReservationRegistry with the full conflict matrix, SurfaceIndex, StaleContractInvalidator, CommitBarrier freshness checks; single-writer shared Android surfaces with `SharedSurfaceChangeRequest` applied semantically by SharedSurfaceApplier (BS §54.2; TA §60.1; ADR-225) — fixture: two workers adding different dependencies and one permission each integrate without a textual conflict, and a contradicting request is rejected with a reason |
+| M83       | User/Edit Reconciliation                    | ProjectWatcher, fingerprint-based OriginClassifier, evidence invalidation on user edit, BaselineUpdater that never reverts user content                                                                                                                                                                                                                                                                                                                |
+| M84       | Stateful E2E Scenario Engine                | ScenarioRegistry, SeedDataProvisioner with recorded provenance, all nine required scenario classes, determinism quarantine, unmarked-observable-requirement coverage (an unmarked requirement with observable behavior MUST appear in validation and proof coverage per BS §42.1)                                                                                                                                                                      |
+| M85       | Advanced Verification                       | In-loop diagnostics and incremental compilation gate, assertion-before-implementation ordering, MutationProber vacuity rejection, PropertyProber bounded probes                                                                                                                                                                                                                                                                                        |
+| M86       | Regression Localization                     | Impact-graph localization, signature matching, checkpoint bisection, cause-scoped repair enforcement, escalation on unlocalized regression                                                                                                                                                                                                                                                                                                             |
+| M87       | Adversarial Security and Supply Chain       | AppSecurityScanner, exact-version dependency resolution with integrity hashes, SubstitutionDetector, SBOM and provenance, disposition discipline                                                                                                                                                                                                                                                                                                       |
+| M88       | Android Emulator E2E                        | DeviceMatrixResolver, DevicePool under backpressure, ScenarioDistributor, DivergenceAnalyzer, capability-status mapping                                                                                                                                                                                                                                                                                                                                |
+| M89       | Runtime Directives and Agent Debugger       | DirectiveIntake with validation and decision-boundary application, PlanReconciler effect accounting, read-only RuntimeSnapshot, SurfaceTracer, DecisionTracer                                                                                                                                                                                                                                                                                          |
+| M90       | Historical Resource Profiling               | Supervisor-level measurement, project/host-keyed profiles, ResourceExecutionProfile with honest confidence, capacity gating, DegradationDetector. Historical ResourceProfile measurements MUST influence scheduling and validation ordering without changing authority.                                                                                                                                                                                |
+| M91       | External Event Gateway                      | TriggerRegistry, authentication, AdmissionController with ceiling capping, default-disabled webhook surface, complete firing audit                                                                                                                                                                                                                                                                                                                     |
+| M92       | Speculative Candidate Branching             | Isolated candidate workspaces, admission conditions, evidence-only selection, escalation on tie, discard hygiene with retained signatures                                                                                                                                                                                                                                                                                                              |
+| M93       | Documentation Coverage Certification        | Ledger-based invariant verification for all ten invariants and a complete twelve-edge traceability chain for every capability                                                                                                                                                                                                                                                                                                                          |
 
 ## M81–M93 acceptance gates
 
@@ -1350,12 +1347,12 @@ To prevent duplicate implementation of the same capability across coarse (M0–M
 
 Refinement rule: when a coarse milestone and a refined milestone appear to overlap, the refined milestone's contract is authoritative. Coarse acceptance semantics are overridden by the refined milestone's exit gate. No capability may be implemented twice; the owning refined milestone is the single source of the executable contract.
 
-| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id |
-|---|---|---|---|---|
-| M11 | CONTRACT.RUNTIME.SCOPE | ADR-180 | TEST-GEN-001 | EV-GEN-001 |
-| M65 | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071, ADR-216 | TEST-GEN-001 | EV-GEN-001 |
-| M66 | CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 |
-| M69 | CONTRACT.RUNTIME.WORKSPACE | ADR-068 | TEST-RES-001 | EV-RES-001 |
+| Milestone | Implements ContractId                                 | Locking ADR               | Test id      | Evidence id |
+| --------- | ----------------------------------------------------- | ------------------------- | ------------ | ----------- |
+| M11       | CONTRACT.RUNTIME.SCOPE                                | ADR-180                   | TEST-GEN-001 | EV-GEN-001  |
+| M65       | CONTRACT.RUNTIME.AUTHORITY, CONTRACT.RUNTIME.EVIDENCE | ADR-066, ADR-071, ADR-216 | TEST-GEN-001 | EV-GEN-001  |
+| M66       | CONTRACT.RUNTIME.SKILL                                | ADR-154                   | TEST-SKL-001 | EV-SKL-001  |
+| M69       | CONTRACT.RUNTIME.WORKSPACE                            | ADR-068                   | TEST-RES-001 | EV-RES-001  |
 
 ## M81–M122 contract mapping
 
@@ -1363,38 +1360,38 @@ Each milestone may implement one or more registered contracts, but each contract
 
 Test and evidence identity follows the same rule. A contract's capability-level identities are the ones in build spec §67.15 and §5.7; a milestone may declare a narrower milestone-level pair (for example `TEST-SPEC-001` / `EV-SPEC-001` for M92 and `TEST-IB-001` / `EV-IB-001` for M107) only when this document states, in the milestone's own text, that the pair is a constituent of the capability-level pair and that the capability-level evidence is incomplete while the constituent is missing. The verifier requires that constituent statement for every milestone whose ids are not themselves capability-level ids.
 
-| Milestone | Implements ContractId | Locking ADR | Test id | Evidence id | Verifies |
-|---|---|---|---|---|---|
-| M81 | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT | ADR-140, ADR-141, ADR-155, ADR-214, ADR-215, ADR-216, ADR-219 | TEST-MEM-001 | EV-MEM-001 | Memory and context gate |
-| M82 | CONTRACT.RUNTIME.RESERVATION | ADR-142, ADR-143 | TEST-RES-001 | EV-RES-001 | Coordination gate |
-| M83 | CONTRACT.RUNTIME.RECONCILIATION | ADR-144 | TEST-RCN-001 | EV-RCN-001 | Reconciliation gate |
-| M84 | CONTRACT.RUNTIME.E2E | ADR-146 | TEST-E2E-001 | EV-E2E-001 | Verification gate |
-| M85 | CONTRACT.RUNTIME.VERIFICATION | ADR-148 | TEST-VER-001 | EV-VER-001 | Verification gate |
-| M86 | CONTRACT.RUNTIME.LOCALIZATION | ADR-147 | TEST-LOC-001 | EV-LOC-001 | Localization gate |
-| M87 | CONTRACT.RUNTIME.SUPPLY_CHAIN | ADR-149 | TEST-SEC-001 | EV-SEC-001 | Security and supply-chain gate |
-| M88 | CONTRACT.RUNTIME.DEVICE_MATRIX | ADR-150 | TEST-DEV-001 | EV-DEV-001 | Multi-device gate |
-| M89 | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER | ADR-145, ADR-152 | TEST-DIR-001 | EV-DIR-001 | Directive and debugger gate |
-| M90 | CONTRACT.RUNTIME.PROFILING | ADR-153 | TEST-DIR-001 | EV-DIR-001 | Resource profiling gate |
-| M91 | CONTRACT.RUNTIME.TRIGGER | ADR-151 | TEST-TRG-001 | EV-TRG-001 | Trigger gate |
-| M92 | CONTRACT.RUNTIME.SPECULATION | ADR-156 | TEST-SPEC-001 | EV-SPEC-001 | Speculation gate |
-| M93 | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.AGENT_BUILDABILITY | ADR-157 | TEST-INV-001 | EV-INV-001 | Documentation certification fixture |
-| M94 | CONTRACT.RUNTIME.REASONING | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | TEST-RSN-001 | EV-RSN-001 | Reasoning and delegation gate |
-| M95 | CONTRACT.RUNTIME.DELIBERATION | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | TEST-DEL-001 | EV-DEL-001 | Deep deliberation and provider-reasoning gate |
-| M96 | CONTRACT.RUNTIME.PROMPT_CONTRACT, extends CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180 | TEST-GEN-001 | EV-GEN-001 | Intent synthesis and no-template enforcement gate |
-| M107 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | ADR-194 | TEST-IB-001 | EV-IB-001 | Boundary schema, lifecycle, evidence, and reconciliation gate |
-| M108 | CONTRACT.RUNTIME.PREVIEW_SYNC | ADR-195 | TEST-PSYNC-001 | EV-PSYNC-001 | Preview synchronization protocol and first Android vertical slice |
-| M111 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | ADR-218 | TEST-RESOURCE-001 | EV-RESOURCE-001 | Runtime resource-integrity, adaptive scheduling, backpressure, physical resource protection, and liveness gate |
-| M112 | CONTRACT.RUNTIME.AGENT_TRUST | ADR-198 | TEST-TRUST-001 | EV-TRUST-001 | Agent-layer trust scanning and revocation gate |
-| M113 | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | ADR-199, ADR-219 | TEST-CONTEXT-001 | EV-CONTEXT-001 | Context compaction, cache, and telemetry governance gate |
-| M114 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | ADR-200 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate |
-| M115 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | ADR-201 | TEST-FCP-001 | EV-FCP-001 | Frontend–control-plane protocol and generated service adapter gate |
-| M116 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | ADR-202 | TEST-BG-001 | EV-BG-001 | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate |
-| M117 | CONTRACT.RUNTIME.APK_EXPORT | ADR-203 | TEST-APK-001 | EV-APK-001 | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate |
-| M118 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | ADR-206 | TEST-PLAT-001 | EV-PLAT-001 | Platform capability truth, cross-build admission, and native-validation gate |
-| M119 | extends CONTRACT.RUNTIME.SKILL | ADR-154 | TEST-SKL-001 | EV-SKL-001 | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
-| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |
-| M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |
-| M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |
+| Milestone | Implements ContractId                                            | Locking ADR                                                                              | Test id            | Evidence id      | Verifies                                                                                                                |
+| --------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| M81       | CONTRACT.RUNTIME.MEMORY, CONTRACT.RUNTIME.CONTEXT                | ADR-140, ADR-141, ADR-155, ADR-214, ADR-215, ADR-216, ADR-219                            | TEST-MEM-001       | EV-MEM-001       | Memory and context gate                                                                                                 |
+| M82       | CONTRACT.RUNTIME.RESERVATION                                     | ADR-142, ADR-143                                                                         | TEST-RES-001       | EV-RES-001       | Coordination gate                                                                                                       |
+| M83       | CONTRACT.RUNTIME.RECONCILIATION                                  | ADR-144                                                                                  | TEST-RCN-001       | EV-RCN-001       | Reconciliation gate                                                                                                     |
+| M84       | CONTRACT.RUNTIME.E2E                                             | ADR-146                                                                                  | TEST-E2E-001       | EV-E2E-001       | Verification gate                                                                                                       |
+| M85       | CONTRACT.RUNTIME.VERIFICATION                                    | ADR-148                                                                                  | TEST-VER-001       | EV-VER-001       | Verification gate                                                                                                       |
+| M86       | CONTRACT.RUNTIME.LOCALIZATION                                    | ADR-147                                                                                  | TEST-LOC-001       | EV-LOC-001       | Localization gate                                                                                                       |
+| M87       | CONTRACT.RUNTIME.SUPPLY_CHAIN                                    | ADR-149                                                                                  | TEST-SEC-001       | EV-SEC-001       | Security and supply-chain gate                                                                                          |
+| M88       | CONTRACT.RUNTIME.DEVICE_MATRIX                                   | ADR-150                                                                                  | TEST-DEV-001       | EV-DEV-001       | Multi-device gate                                                                                                       |
+| M89       | CONTRACT.RUNTIME.DIRECTIVE, CONTRACT.RUNTIME.DEBUGGER            | ADR-145, ADR-152                                                                         | TEST-DIR-001       | EV-DIR-001       | Directive and debugger gate                                                                                             |
+| M90       | CONTRACT.RUNTIME.PROFILING                                       | ADR-153                                                                                  | TEST-DIR-001       | EV-DIR-001       | Resource profiling gate                                                                                                 |
+| M91       | CONTRACT.RUNTIME.TRIGGER                                         | ADR-151                                                                                  | TEST-TRG-001       | EV-TRG-001       | Trigger gate                                                                                                            |
+| M92       | CONTRACT.RUNTIME.SPECULATION                                     | ADR-156                                                                                  | TEST-SPEC-001      | EV-SPEC-001      | Speculation gate                                                                                                        |
+| M93       | CONTRACT.RUNTIME.INVARIANTS, CONTRACT.RUNTIME.AGENT_BUILDABILITY | ADR-157                                                                                  | TEST-INV-001       | EV-INV-001       | Documentation certification fixture                                                                                     |
+| M94       | CONTRACT.RUNTIME.REASONING                                       | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218                                     | TEST-RSN-001       | EV-RSN-001       | Reasoning and delegation gate                                                                                           |
+| M95       | CONTRACT.RUNTIME.DELIBERATION                                    | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | TEST-DEL-001       | EV-DEL-001       | Deep deliberation and provider-reasoning gate                                                                           |
+| M96       | CONTRACT.RUNTIME.PROMPT_CONTRACT, extends CONTRACT.RUNTIME.SCOPE | ADR-181, ADR-180                                                                         | TEST-GEN-001       | EV-GEN-001       | Intent synthesis and no-template enforcement gate                                                                       |
+| M107      | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY                            | ADR-194                                                                                  | TEST-IB-001        | EV-IB-001        | Boundary schema, lifecycle, evidence, and reconciliation gate                                                           |
+| M108      | CONTRACT.RUNTIME.PREVIEW_SYNC                                    | ADR-195                                                                                  | TEST-PSYNC-001     | EV-PSYNC-001     | Preview synchronization protocol and first Android vertical slice                                                       |
+| M111      | CONTRACT.RUNTIME.RESOURCE_INTEGRITY                              | ADR-218                                                                                  | TEST-RESOURCE-001  | EV-RESOURCE-001  | Runtime resource-integrity, adaptive scheduling, backpressure, physical resource protection, and liveness gate          |
+| M112      | CONTRACT.RUNTIME.AGENT_TRUST                                     | ADR-198                                                                                  | TEST-TRUST-001     | EV-TRUST-001     | Agent-layer trust scanning and revocation gate                                                                          |
+| M113      | CONTRACT.RUNTIME.CONTEXT_GOVERNANCE                              | ADR-199, ADR-219                                                                         | TEST-CONTEXT-001   | EV-CONTEXT-001   | Context compaction, cache, and telemetry governance gate                                                                |
+| M114      | CONTRACT.RUNTIME.ANDROID_INTEGRITY                               | ADR-200                                                                                  | TEST-INTEGRITY-001 | EV-INTEGRITY-001 | Android runtime integrity and honest coverage gate                                                                      |
+| M115      | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE                          | ADR-201                                                                                  | TEST-FCP-001       | EV-FCP-001       | Frontend–control-plane protocol and generated service adapter gate                                                      |
+| M116      | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY                           | ADR-202                                                                                  | TEST-BG-001        | EV-BG-001        | Background continuity state machine, interruption recovery, fencing, reconciliation, and truthful projection gate       |
+| M117      | CONTRACT.RUNTIME.APK_EXPORT                                      | ADR-203                                                                                  | TEST-APK-001       | EV-APK-001       | Local APK export provenance, packaging-profile admission, hash equality, and post-copy verification gate                |
+| M118      | CONTRACT.RUNTIME.PLATFORM_CAPABILITY                             | ADR-206                                                                                  | TEST-PLAT-001      | EV-PLAT-001      | Platform capability truth, cross-build admission, and native-validation gate                                            |
+| M119      | extends CONTRACT.RUNTIME.SKILL                                   | ADR-154                                                                                  | TEST-SKL-001       | EV-SKL-001       | Durable skill package persistence, fail-closed capability-bound selection, durable invocation records, evidence binding |
+| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |
+| M121      | CONTRACT.RUNTIME.CONVERSATION_CONTEXT                            | ADR-212                                                                                  | TEST-CONV-001      | EV-CONV-001      | Durable Conversation Context                                                                                            |
+| M122      | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE                             | ADR-213                                                                                  | TEST-CHANGE-001    | EV-CHANGE-001    | Change Intelligence                                                                                                     |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all twelve §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure checks (which are additional to, not counted among, the twelve). It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, section-ownership violation, or structure violation.
 
@@ -1404,17 +1401,17 @@ M93 must additionally run the contract-graph verifier of build spec §67.11 acro
 
 The documentation-only hardening for Windows Android-emulator rendering and Rust control-plane intelligence is distributed as follows. These identities describe documentation change units. They do not assert runtime implementation or runtime certification.
 
-| Patch | Canonical owner | Supporting sections | Required evidence identity |
-|---|---|---|---|
-| `WIN-001` | TA §10.7 | TA §75, ADR-236 | Documentation conformance |
-| `WIN-002` | BS §71.1 | TA §75, SCHEMAS §2.110 | `TEST-PSYNC-001` / `EV-PSYNC-001` |
-| `WIN-003` | SCHEMAS §2.89 | TA §10.7, SCHEMAS §2.111 | Schema-parity conformance |
-| `WIN-004` | BS §71.0.1 | TA §10.7, ADR-236 | `TEST-PSYNC-001` / `EV-PSYNC-001` |
-| `CP-001` | TA §7.1 | BS §52, BS §72 | Scheduler replay fixture |
-| `CP-002` | TA §69.7 | TA §59, TA §77 | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
-| `CP-003` | BS §72.2 | TA §69, TA §77, ADR-236 | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
-| `CP-004` | TA §3.5 | TA §57.11, M5, M8 | Worker lifecycle fixture |
-| `DOC-001` | this section | TA §7, TA §10, TA §69, TA §75 | Documentation conformance |
+| Patch     | Canonical owner | Supporting sections           | Required evidence identity              |
+| --------- | --------------- | ----------------------------- | --------------------------------------- |
+| `WIN-001` | TA §10.7        | TA §75, ADR-236               | Documentation conformance               |
+| `WIN-002` | BS §71.1        | TA §75, SCHEMAS §2.110        | `TEST-PSYNC-001` / `EV-PSYNC-001`       |
+| `WIN-003` | SCHEMAS §2.89   | TA §10.7, SCHEMAS §2.111      | Schema-parity conformance               |
+| `WIN-004` | BS §71.0.1      | TA §10.7, ADR-236             | `TEST-PSYNC-001` / `EV-PSYNC-001`       |
+| `CP-001`  | TA §7.1         | BS §52, BS §72                | Scheduler replay fixture                |
+| `CP-002`  | TA §69.7        | TA §59, TA §77                | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
+| `CP-003`  | BS §72.2        | TA §69, TA §77, ADR-236       | `TEST-RESOURCE-001` / `EV-RESOURCE-001` |
+| `CP-004`  | TA §3.5         | TA §57.11, M5, M8             | Worker lifecycle fixture                |
+| `DOC-001` | this section    | TA §7, TA §10, TA §69, TA §75 | Documentation conformance               |
 
 Patch ownership does not reassign contract authority. `CONTRACT.RUNTIME.PREVIEW_SYNC` remains owned by M108 and
 `CONTRACT.RUNTIME.RESOURCE_INTEGRITY` by M111; the milestones above are the acceptance points, and ADR-236 remains
@@ -1481,15 +1478,15 @@ Each runs against a real Android fixture project with a configured
 `diminishingReturnThreshold` and no AI-usage budget of any kind, and each must
 produce the stated observable outcome.
 
-| Fixture | Injected condition | Required observable outcome |
-|---|---|---|
-| FIX-DEL-01 no-evidence loop | A question the model cannot resolve from the current observation set | The first observation-free pass raises an `EvidenceAcquisitionTrigger`; the next pass acquires evidence or changes approach; if evidence cannot be obtained, DiminishingReturnDetector or RepeatedFailureDetector forces delegation, branching, or escalation; the runtime never loops indefinitely and no fixed pass ceiling is involved |
-| FIX-DEL-02 no usage termination | A deliberation driven to consume many times the token, request, reasoning-pass, and wall-clock volume of any ordinary run while progress continues | Deliberation continues to `SUFFICIENT`; the ledger contains no usage-based outcome, refusal, throttle, or downgrade; `reasoningUsage` and `resourceUsage` are recorded as telemetry only |
-| FIX-DEL-03 forced compaction | Context compaction triggered mid-deliberation with several hypotheses rejected | Session resumes with active hypotheses and rejected strategies intact; no rejected hypothesis is re-derived or retested against unchanged evidence |
-| FIX-DEL-04 provider failover | The provider fails between passes of one deliberation | The session resumes from the last deliberation checkpoint with the same effort grant, evidence state, and required effort level. The replacement provider's reasoning capability is revalidated before continuation. If it supports the required level, continuation occurs at that level; otherwise the runtime selects another approved provider/model or terminates with a typed capability gap. Continuation state is never reset silently |
-| FIX-DEL-05 native reasoning normalization | Provider exposes native reasoning with a provider-specific effort parameter | NORMAL/EXTENDED/DEEP/EXHAUSTIVE runtime requests are translated into the provider's declared parameter space; the normalized request and granted capability are recorded; no provider-specific setting bypasses the runtime effort grant or authority |
-| FIX-DEL-06 reasoning usage accounting | Provider reports reasoning usage for one pass | Reported reasoning usage is recorded as telemetry attributed to the effort grant; the ledger distinguishes reported usage from runtime wall-clock and model-request counts; no execution decision reads it |
-| FIX-DEL-07 reasoning capability gap | Provider does not support the requested minimum reasoning effort | The runtime records the capability gap and either selects an approved compatible provider/model or terminates safely; it never claims the requested effort was performed |
+| Fixture                                   | Injected condition                                                                                                                                 | Required observable outcome                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIX-DEL-01 no-evidence loop               | A question the model cannot resolve from the current observation set                                                                               | The first observation-free pass raises an `EvidenceAcquisitionTrigger`; the next pass acquires evidence or changes approach; if evidence cannot be obtained, DiminishingReturnDetector or RepeatedFailureDetector forces delegation, branching, or escalation; the runtime never loops indefinitely and no fixed pass ceiling is involved                                                                                                      |
+| FIX-DEL-02 no usage termination           | A deliberation driven to consume many times the token, request, reasoning-pass, and wall-clock volume of any ordinary run while progress continues | Deliberation continues to `SUFFICIENT`; the ledger contains no usage-based outcome, refusal, throttle, or downgrade; `reasoningUsage` and `resourceUsage` are recorded as telemetry only                                                                                                                                                                                                                                                       |
+| FIX-DEL-03 forced compaction              | Context compaction triggered mid-deliberation with several hypotheses rejected                                                                     | Session resumes with active hypotheses and rejected strategies intact; no rejected hypothesis is re-derived or retested against unchanged evidence                                                                                                                                                                                                                                                                                             |
+| FIX-DEL-04 provider failover              | The provider fails between passes of one deliberation                                                                                              | The session resumes from the last deliberation checkpoint with the same effort grant, evidence state, and required effort level. The replacement provider's reasoning capability is revalidated before continuation. If it supports the required level, continuation occurs at that level; otherwise the runtime selects another approved provider/model or terminates with a typed capability gap. Continuation state is never reset silently |
+| FIX-DEL-05 native reasoning normalization | Provider exposes native reasoning with a provider-specific effort parameter                                                                        | NORMAL/EXTENDED/DEEP/EXHAUSTIVE runtime requests are translated into the provider's declared parameter space; the normalized request and granted capability are recorded; no provider-specific setting bypasses the runtime effort grant or authority                                                                                                                                                                                          |
+| FIX-DEL-06 reasoning usage accounting     | Provider reports reasoning usage for one pass                                                                                                      | Reported reasoning usage is recorded as telemetry attributed to the effort grant; the ledger distinguishes reported usage from runtime wall-clock and model-request counts; no execution decision reads it                                                                                                                                                                                                                                     |
+| FIX-DEL-07 reasoning capability gap       | Provider does not support the requested minimum reasoning effort                                                                                   | The runtime records the capability gap and either selects an approved compatible provider/model or terminates safely; it never claims the requested effort was performed                                                                                                                                                                                                                                                                       |
 
 Each fixture must also assert the two invariants that hold across all of them:
 the ledger contains zero project mutation events before the `AUTHORIZE` grant,
@@ -1505,16 +1502,15 @@ Certification requires a deliberately difficult Android fixture exercising the f
 
 Passing this fixture requires the deliberation runtime to demonstrably change the outcome. Because the milestone exists to demonstrate the complete mechanism, all three of the following are mandatory and each must be causally connected to the subsequent outcome:
 
-| Required demonstration | Causal requirement |
-|---|---|
-| Evidence-backed hypothesis refutation | A discriminating test result refutes a named hypothesis, and the refutation changes which strategy is selected |
-| Causal effort escalation | An observed condition triggers the escalation per the causal-escalation chain, and the additional deliberation at the granted level changes the outcome |
-| Evidence-backed strategy revision | A change in evidence or constraints causes the revision, cited on the rejected strategy |
+| Required demonstration                | Causal requirement                                                                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evidence-backed hypothesis refutation | A discriminating test result refutes a named hypothesis, and the refutation changes which strategy is selected                                          |
+| Causal effort escalation              | An observed condition triggers the escalation per the causal-escalation chain, and the additional deliberation at the granted level changes the outcome |
+| Evidence-backed strategy revision     | A change in evidence or constraints causes the revision, cited on the rejected strategy                                                                 |
 
 The M95 acceptance is progress-driven deliberation, evidence acquisition, hypothesis competition, counterexample search, diminishing-return detection, strategy revision, provider capability adaptation, durable continuation, and the absence of AI-usage-based termination. A run reaching completion while missing any one of the three does not certify this milestone. Nor does a run exhibiting all three as uncaused events: an escalation without a citing condition, a refutation without a discriminating test result, or a revision against an unchanged evidence and constraint set each fail independently of the run's final outcome.
 
 This is the anti-vacuity rule of build spec §57.5 (Assertion quality requirement) applied to the deliberation capability itself. An assertion set that passes against a runtime which never actually deliberated is vacuous evidence, exactly as an assertion set that passes against a deliberately broken implementation is vacuous evidence.
-
 
 ## M96 — IntentSynthesisPromptContract and no-template enforcement
 
@@ -1544,17 +1540,16 @@ Run a fixture that starts from one Android product concept and optional screensh
 
 ## M96–M99 acceptance matrix
 
-| Capability | Required proof |
-|---|---|
-| No-template synthesis | Negative prompt fixtures reject template, archetype, and non-Android proposals |
-| Intent contract | User intent, screenshots, assets, constraints, and uncertainty are persisted in a versioned contract |
-| Prompt authority boundary | Model output becomes a proposal and cannot authorize tools, mutations, or completion |
-| Preview identity | Every current PreviewRevision has project revision, checkpoint, source, asset, device, and evidence identity |
-| Truth labels | Predicted, simulated, requested, observed, verified, stale, and invalidated states remain distinct |
-| Last-known-good | Failed candidates preserve the previous valid preview and evidence |
-| Reconnect | UI restart, supervisor restart, and event replay reconstruct the same preview projection |
-| Final artifact | APK source, asset, preview, validation, checksum, and release evidence refer to the same revision |
-
+| Capability                | Required proof                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| No-template synthesis     | Negative prompt fixtures reject template, archetype, and non-Android proposals                               |
+| Intent contract           | User intent, screenshots, assets, constraints, and uncertainty are persisted in a versioned contract         |
+| Prompt authority boundary | Model output becomes a proposal and cannot authorize tools, mutations, or completion                         |
+| Preview identity          | Every current PreviewRevision has project revision, checkpoint, source, asset, device, and evidence identity |
+| Truth labels              | Predicted, simulated, requested, observed, verified, stale, and invalidated states remain distinct           |
+| Last-known-good           | Failed candidates preserve the previous valid preview and evidence                                           |
+| Reconnect                 | UI restart, supervisor restart, and event replay reconstruct the same preview projection                     |
+| Final artifact            | APK source, asset, preview, validation, checksum, and release evidence refer to the same revision            |
 
 ## M100 — Canonical state, artifact, and completion semantics
 
@@ -1596,19 +1591,19 @@ Choose one canonical owner for every machine-readable schema and make every impl
 
 ## M100–M105 acceptance matrix
 
-| Capability | Required proof |
-|---|---|
-| State separation | Lifecycle, assurance, capability, integration, signing, artifact, preview, and delivery fields are independent and reducer-tested |
-| Artifact policy | APK is the required local artifact; AAB is only produced when an explicit optional profile requests it |
-| Evidence dependency | Dependent evidence and completion claims invalidate after identity or policy changes |
-| Integration operationality | Required API/service behavior reaches its declared minimum operational state through supervised evidence |
-| External-effect safety | Unknown remote outcomes reconcile through idempotency or read-back before retry |
-| Resource attribution | Parent, child, shared, estimated, and unavailable usage are represented without double counting |
-| Capability maturity | `SUPPORTED` and `CERTIFIED` require profile, fixture, and current evidence identities |
-| Hidden-human dependency | Prompts and manual gates become explicit decisions or safe automatic actions, never silent waits |
-| Runtime certification | Runtime, Windows host, Android, recovery, security, preview, and artifact tests are separate from documentation certification |
-| Schema parity | Canonical schema fields, states, migrations, and authorities remain aligned across implementation documents |
-| Cross-entity preview | Source, assets, toolchain, artifact, emulator session, contract, and evidence identities all satisfy the current predicate |
+| Capability                 | Required proof                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| State separation           | Lifecycle, assurance, capability, integration, signing, artifact, preview, and delivery fields are independent and reducer-tested |
+| Artifact policy            | APK is the required local artifact; AAB is only produced when an explicit optional profile requests it                            |
+| Evidence dependency        | Dependent evidence and completion claims invalidate after identity or policy changes                                              |
+| Integration operationality | Required API/service behavior reaches its declared minimum operational state through supervised evidence                          |
+| External-effect safety     | Unknown remote outcomes reconcile through idempotency or read-back before retry                                                   |
+| Resource attribution       | Parent, child, shared, estimated, and unavailable usage are represented without double counting                                   |
+| Capability maturity        | `SUPPORTED` and `CERTIFIED` require profile, fixture, and current evidence identities                                             |
+| Hidden-human dependency    | Prompts and manual gates become explicit decisions or safe automatic actions, never silent waits                                  |
+| Runtime certification      | Runtime, Windows host, Android, recovery, security, preview, and artifact tests are separate from documentation certification     |
+| Schema parity              | Canonical schema fields, states, migrations, and authorities remain aligned across implementation documents                       |
+| Cross-entity preview       | Source, assets, toolchain, artifact, emulator session, contract, and evidence identities all satisfy the current predicate        |
 
 ## Implementation-status boundary
 
@@ -1640,13 +1635,13 @@ Implement `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, a
 
 ## M108 work items
 
-| Work item | Implements | Acceptance condition |
-|---|---|---|
-| Technology Adapter Runtime | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered as strategy and composition adapters; only `validatePlan`, `initializeProject`, `planBuild`, `classifyFailure`, `resolveBuildAdapter`, `resolveDeviceAdapter` exposed; no concrete execution operation on the technology adapter; `resolveBuildAdapter` and `resolveDeviceAdapter` are deterministic over the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities`; emitted `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` |
-| Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly |
-| Android Device Adapter | TA §73.12 | `AndroidDeviceAdapter` interface satisfied by every Nirman-managed local Android emulator implementation; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state |
-| Android Build Adapter | TA §73.13 | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority` |
-| Preview Panel Pipeline | TA §73.14 | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry (no `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` command namespace in BS §76.1) and by the contract-graph verifier (§67.11 semantic-documentation defect for such a registry row or for a concrete execution operation on the `AndroidTechnologyAdapter`) |
+| Work item                           | Implements                                     | Acceptance condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Technology Adapter Runtime          | TA §73.10; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` | Three internal adapter families (`NativeAndroidAdapter`, `JavaScriptAndroidAdapter`, `MixedAndroidAdapter`) registered as strategy and composition adapters; only `validatePlan`, `initializeProject`, `planBuild`, `classifyFailure`, `resolveBuildAdapter`, `resolveDeviceAdapter` exposed; no concrete execution operation on the technology adapter; `resolveBuildAdapter` and `resolveDeviceAdapter` are deterministic over the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities`; emitted `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` carry `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` or `deviceAdapterIdentity` |
+| Deterministic Preview Mode Resolver | TA §73.11; `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` | Pure-function resolver over `PreviewModeResolverInput` with the canonical rule table returning `PreviewModeResolverOutput`; mode values are limited to the §73.3 enumeration; resolver never mutates state; resolver output recorded as part of the `PreviewRequest` decision trace; no model, worker, UI, or prompt selects the preview mode directly                                                                                                                                                                                                                                                                                                                                                                 |
+| Android Device Adapter              | TA §73.12                                      | `AndroidDeviceAdapter` interface satisfied by every Nirman-managed local Android emulator implementation; every operation returns a typed observation carrying `adapterId`, `adapterVersion`, `deviceId`, `deviceSessionId`, `runtimeSessionId`, `environmentFingerprint`, `applicationStateFingerprint`, `evidenceReferences`, `failureClassification`, `invalidationDependencies`; operations do not write `PreviewProjection`, evidence identity, artifact promotion, or completion state                                                                                                                                                                                                                           |
+| Android Build Adapter               | TA §73.13                                      | `AndroidBuildAdapter` interface covering Gradle native, Gradle plus Metro or Expo, React Native, NDK or CMake, and mixed native plus JavaScript; returns `AndroidBuildObservation`; does not create a second build authority; does not bypass `ToolchainAuthority` or `ArtifactAuthority`                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Preview Panel Pipeline              | TA §73.14                                      | The legal UI→`PreviewCoordinator`→`AndroidTechnologyAdapter`→`AndroidBuildAdapter`/`AndroidDeviceAdapter`→observation→`PreviewSyncEvent`→`PreviewProjectionReducer`→`PreviewPanel` path is the only legal pipeline; `UI → ADB`, `UI → Gradle`, `UI → Metro or Expo`, `UI → emulator` are rejected by the typed command registry (no `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` command namespace in BS §76.1) and by the contract-graph verifier (§67.11 semantic-documentation defect for such a registry row or for a concrete execution operation on the `AndroidTechnologyAdapter`)                                                                                                                      |
 
 ## M108 acceptance chain
 
@@ -1677,19 +1672,19 @@ The dependency direction is unambiguous: the technology plan and toolchain lock 
 
 The `TEST-PSYNC-001` / `EV-PSYNC-001` acceptance harness MUST run the same event-store, reducer, projection, evidence, promotion, and replay tests over each row of the matrix. Each row is a profile instance of `AndroidCapabilityProfile` (with the new `adapterId`, `adapterVersion`, `technologyPlanHash`, `buildStrategyId`, `previewStrategyId`, `runtimeStrategyId`, `validationStrategyId` fields populated) and exercises one legal preview-mode branch from the §73.11 rule table.
 
-| Fixture | Required path |
-|---|---|
-| Kotlin + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Kotlin + Compose | `NativeAndroidAdapter`; `COMPOSE_RELOAD` for Compose-only changes with `sameNativeIdentity`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Java + Views | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| React Native | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Expo | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Native module | `MixedAndroidAdapter`; `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
-| NDK or CMake | `MixedAndroidAdapter` (composed Gradle plus NDK or CMake); `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL` |
-| Device API | `MixedAndroidAdapter`; `AndroidDeviceAdapter` supplies the device and runtime execution surface; native device APIs are selected according to the `AndroidTechnologyPlan` |
-| Native + JavaScript | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
-| Insufficient impact information (any row) | `CONSERVATIVE_FULL_REINSTALL` selected by §73.11 rule 7b with `decisionReason = INSUFFICIENT_IMPACT_INFORMATION` |
-| Known unsafe-to-fast-refresh (any row) | `FULL_APK_REINSTALL` selected by §73.11 rule 7a with `decisionReason = KNOWN_UNSAFE_TO_FAST_REFRESH` |
+| Fixture                                   | Required path                                                                                                                                                                                                     |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kotlin + Views                            | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL`                                                                                                                                         |
+| Kotlin + Compose                          | `NativeAndroidAdapter`; `COMPOSE_RELOAD` for Compose-only changes with `sameNativeIdentity`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL`                                                          |
+| Java + Views                              | `NativeAndroidAdapter`; `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL`                                                                                                                                         |
+| React Native                              | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Expo                                      | `JavaScriptAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL` |
+| Native module                             | `MixedAndroidAdapter`; `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL`                                                                                                                 |
+| NDK or CMake                              | `MixedAndroidAdapter` (composed Gradle plus NDK or CMake); `FULL_APK_REINSTALL` when ABI changes, otherwise `INCREMENTAL_APK_INSTALL`                                                                             |
+| Device API                                | `MixedAndroidAdapter`; `AndroidDeviceAdapter` supplies the device and runtime execution surface; native device APIs are selected according to the `AndroidTechnologyPlan`                                         |
+| Native + JavaScript                       | `MixedAndroidAdapter`; `RN_EXPO_FAST_REFRESH` for JavaScript or TypeScript-only changes with `sameNativeIdentity` and `healthyMetroExpoRuntime`, otherwise `INCREMENTAL_APK_INSTALL` or `FULL_APK_REINSTALL`      |
+| Insufficient impact information (any row) | `CONSERVATIVE_FULL_REINSTALL` selected by §73.11 rule 7b with `decisionReason = INSUFFICIENT_IMPACT_INFORMATION`                                                                                                  |
+| Known unsafe-to-fast-refresh (any row)    | `FULL_APK_REINSTALL` selected by §73.11 rule 7a with `decisionReason = KNOWN_UNSAFE_TO_FAST_REFRESH`                                                                                                              |
 
 The matrix is one parameterized test harness. M108 MUST NOT spawn nine separate test systems; the existing M108 fixture runner, the verifier, and the conformance battery must be extended to walk the matrix with `profileId`-keyed inputs.
 
@@ -1708,6 +1703,7 @@ Runtime certification: not claimed by this milestone. Runtime certification of t
 M109 implements the resilience and certification portion of build spec §71.4–§71.5 and technical architecture §75.3–§75.4. Add UI and supervisor fixtures for duplicate events, conflicting duplicate payloads, out-of-order delivery, missing sequence ranges, stale revisions, late device observations, stream loss, UI reconnect, supervisor restart, failed candidates, last-known-good preservation, rollback, recovery, and deterministic replay.
 
 M109 MUST also prove recovery from:
+
 - frozen frame
 - blank frame
 - sequence gap
@@ -1748,6 +1744,7 @@ Implement pre-admission scanning for skills, MCP-compatible tools, plugins, work
 Implement `ContextCachePolicy`, protected-context classes, provider attention adaptation — the per-model `AttentionReliabilityProfile` carried by `attentionCapabilities`, `AttentionProfiler` probing at profile save and checkpoints, `PlacementPlanner` producing the `placementPlan` layout with the cache breakpoint before the DENSE block, `RecallProbeService` verification, and `PREMISE_MISMATCH` learning (BS §53.11, TA §59.12) — provider context capacity fitting (`ContextCapacityPlanner`), compaction triggers, cache key compatibility, prefix caching, invalidation, privacy exclusion, telemetry disclosure, and causal lineage preservation across provider requests.
 
 `TEST-CONTEXT-001` validates long-horizon cognition and governance under adversarial conditions, exercising:
+
 - 1k-action long-horizon autonomous task
 - 10k-action extended autonomous task
 - Runtime restart and resume without decision loss
@@ -1780,61 +1777,63 @@ Implement the authenticated command registry, typed response and error envelopes
 **Exit gate:** when implemented, executable fixtures MUST prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization.
 
 ## M116 — Background continuity and interruption recovery
+
 Implement orthogonal UI, host, device, provider, lease, and reconciliation dimensions plus the deterministic aggregate precedence defined by the continuity contract. Wire continuity transitions through the authoritative projection and event replay path, while preserving the existing product lifecycle and completion authorities. Cover UI closure, UI reconnect, supervisor restart, host reboot, sleep/hibernate, shutdown, emulator session loss, provider/network outage, checkpoint resume, lease fencing, unknown-outcome reconciliation, and safe failure.
 **Exit gate:** executable fixtures prove that eligible work continues without an open UI, concurrent interruption dimensions do not overwrite one another, interrupted work resumes only from durable state, stale sessions cannot advance current state, unknown outcomes reconcile before retry, unavailable device/provider conditions map to operationality/session evidence, continuity appears in `ProjectionSnapshot`, and last-known-good evidence is preserved.
 
 ## M117 — Local APK export provenance and delivery admission
+
 Implement profile-bound local deployment export using `ExportVerificationRecord` with the `APKExportRecord` view, including artifact identity, packaging profile, source revision, checkpoint, source/destination file identities, request fingerprint, idempotency key, signing binding, validation and promotion decisions, reconciliation reference, failure evidence, destination identity, source/destination hashes, byte count, and copy state. Wire export state into the authoritative delivery projection. Preserve separate source/workspace, ZIP, and Git access as `SOURCE_ACCESS_ONLY`; when source access is exported, synthesize a verified `README.md` via `ProjectReadmeSynthesizer` (TA §47.4, §76.3; BS §78.3) and verify public API documentation consistency via `DocCodeMismatchDetector` (TA §47.4; BS §78.3).
 **Exit gate:** executable fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds or external deployment destinations, `UNKNOWN → RECONCILING` copy recovery, source/destination hash equality, idempotent retry protection, signing/validation/promotion linkage, delivery projection visibility, and refusal to treat source access as deployment completion.
 
 ## M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
+
 The historical M6 partial closure (M6 §9 work item 10; that source is no longer present) exposed six command-payload fields but left the remaining 22 `ExportVerificationRecord` fields reachable only through durable observation, not the command boundary. M117 must close this: the `ArtifactExport` command response envelope MUST surface the canonical `ExportVerificationRecord` in full at the command boundary (artifact/destination/source file identity, hashes, byte count, lifecycle state, post-copy verification, policy decision, signing/validation/promotion binding, reconciliation/failure evidence) — not merely the six request-side payload fields. This is required by ADR-203 (provenance-complete export). The `command_payload_field_coverage` verifier check added in M6 asserts response-side coverage by requiring `ArtifactExportResponsePayload` (`crates/nirman-ipc`) and the domain `ExportVerificationRecord` (`crates/nirman-domain`) to carry every field of the TA §74.3 block, so the command boundary cannot drift from the durable record. No second export record may be introduced; the command envelope references the single canonical `ExportVerificationRecord` owned by the `CanonicalSchemaRegistry`.
 
 ## M118 — Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures
 
 M118 implements build spec §79 and technical architecture §84 and locks ADR-206. It extends the existing `EnvironmentCapabilityPlanner` (M71), `ToolCapabilityGraph` (M70), `WorkspaceLeaseManager`, `ToolSessionRegistry`, and evidence dependency machinery. It must not create a second lifecycle, policy, evidence, preview, or completion authority, and it must not add a container, VM, WSL, or simulated substitute for the declared target platform.
 
-| Work item | Acceptance condition |
-|---|---|
-| Environment capability records | `EnvironmentCapabilityRecord`, `PlatformCapabilityEntry`, `ValidationEnvironment`, and `BuildGateRecord` have `CanonicalSchemaRegistry` entries, version compatibility, and ledger persistence bound to revision and environment fingerprint |
-| Target platform resolution | `TargetPlatformResolver` and `PlatformCapabilityRegistry` resolve the declared target before planning, record host and target as explicit fields, and reject undeclared targets |
-| Cross-build admission gate | the `CrossCompilationAuthority` decision point admits `TARGET_BUILD` only on a proven toolchain and refuses runtime-validation claims from a non-matching host before execution |
-| Native validation gate | the `NativeRuntimeValidationAuthority` gate requires a reserved `ValidationEnvironment` lease and bound evidence; absence reports `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass |
-| Worker contract platform fields | the scheduler honors `requiredHostPlatforms`, `requiredTargetPlatforms`, `requiredArchitectures`, `requiredCapabilities`, `requiredValidationEnvironment`, `crossCompilationAllowed`, `nativeExecutionRequired`, and `evidenceRequirements` |
-| Platform skills | `environment-preflight`, `environment-repair`, `windows-desktop-build`, `windows-runtime-validation`, `cross-platform-build-diagnostics`, and `android-toolchain` skill packages with declared capabilities, trigger conditions, permission-neutrality, and fixture sets |
-| Hallucination-prevention fixtures | `TEST-PLAT-001` implements build spec §79.13 fixtures A–D plus target-mismatch, scheduling, lease-loss, and matrix-version fixtures; evidence recorded as `EV-PLAT-001` |
-| Verifier conformance | contract-graph verifier checks: the six sealed platform capability clauses of BS §67.12, the ExtensionDeclarations of BS §37 and §52, the twelve-edge row for `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`, and cross-document identity of ADR-206, M118, TA §84, `TEST-PLAT-001`, and `EV-PLAT-001` |
+| Work item                         | Acceptance condition                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Environment capability records    | `EnvironmentCapabilityRecord`, `PlatformCapabilityEntry`, `ValidationEnvironment`, and `BuildGateRecord` have `CanonicalSchemaRegistry` entries, version compatibility, and ledger persistence bound to revision and environment fingerprint                                                   |
+| Target platform resolution        | `TargetPlatformResolver` and `PlatformCapabilityRegistry` resolve the declared target before planning, record host and target as explicit fields, and reject undeclared targets                                                                                                                |
+| Cross-build admission gate        | the `CrossCompilationAuthority` decision point admits `TARGET_BUILD` only on a proven toolchain and refuses runtime-validation claims from a non-matching host before execution                                                                                                                |
+| Native validation gate            | the `NativeRuntimeValidationAuthority` gate requires a reserved `ValidationEnvironment` lease and bound evidence; absence reports `USER_REQUIRED`/`UNAVAILABLE`, never a simulated pass                                                                                                        |
+| Worker contract platform fields   | the scheduler honors `requiredHostPlatforms`, `requiredTargetPlatforms`, `requiredArchitectures`, `requiredCapabilities`, `requiredValidationEnvironment`, `crossCompilationAllowed`, `nativeExecutionRequired`, and `evidenceRequirements`                                                    |
+| Platform skills                   | `environment-preflight`, `environment-repair`, `windows-desktop-build`, `windows-runtime-validation`, `cross-platform-build-diagnostics`, and `android-toolchain` skill packages with declared capabilities, trigger conditions, permission-neutrality, and fixture sets                       |
+| Hallucination-prevention fixtures | `TEST-PLAT-001` implements build spec §79.13 fixtures A–D plus target-mismatch, scheduling, lease-loss, and matrix-version fixtures; evidence recorded as `EV-PLAT-001`                                                                                                                        |
+| Verifier conformance              | contract-graph verifier checks: the six sealed platform capability clauses of BS §67.12, the ExtensionDeclarations of BS §37 and §52, the twelve-edge row for `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`, and cross-document identity of ADR-206, M118, TA §84, `TEST-PLAT-001`, and `EV-PLAT-001` |
 
 **Exit gate:** on the Windows host with the toolchain present and the matching validation environment absent (no emulator acceleration or no `ValidationEnvironment` lease), a "build and validate" task produces a verified artifact with the runtime state (`ANDROID_RUNTIME` or `WINDOWS_RUNTIME`) `= UNVERIFIED` and a durable `USER_REQUIRED`/`UNAVAILABLE` validation node carrying the continue/cannot-continue lists; a model or worker completion claim without target observation is durably rejected with the missing evidence cited; a revision or fingerprint change invalidates prior target evidence and re-closes the certification gate; the four-state invariant holds in the ledger for every executed task; independent work continued during the wait; and no fixture passes by simulation. Documentation graph certification is reported separately from runtime certification.
 
 ## M118 acceptance matrix
 
-| Capability | Required proof |
-|---|---|
-| Four-state invariant | host, target, validation, and certification states are distinct ledger fields and are never collapsed into one build or completion result |
-| Cross-build honesty | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` coexist in the same task record; aggregate status is at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` |
-| Deterministic classification | capability state changes only through observed preflight, an authorized repair, or an explicit user action — never model assertion |
-| Evidence binding | target evidence validates only against the matching environment fingerprint, target platform, and source revision |
-| Work splitting | independent host-platform work continues while the validation node waits; the wait is durable, cited, and resumable |
-| No substitute target | no container, VM, WSL, or simulated environment produces native-validation evidence |
+| Capability                   | Required proof                                                                                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Four-state invariant         | host, target, validation, and certification states are distinct ledger fields and are never collapsed into one build or completion result                             |
+| Cross-build honesty          | `ARTIFACT_BUILD = VERIFIED` and `WINDOWS_RUNTIME = UNVERIFIED` coexist in the same task record; aggregate status is at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` |
+| Deterministic classification | capability state changes only through observed preflight, an authorized repair, or an explicit user action — never model assertion                                    |
+| Evidence binding             | target evidence validates only against the matching environment fingerprint, target platform, and source revision                                                     |
+| Work splitting               | independent host-platform work continues while the validation node waits; the wait is durable, cited, and resumable                                                   |
+| No substitute target         | no container, VM, WSL, or simulated environment produces native-validation evidence                                                                                   |
 
 ## M119 — Platform Skill Registry Persistence and Fail-Closed Selection
 
 M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1) with durable platform skill package persistence and fail-closed selection against the `EnvironmentCapabilityRecord`. It extends the `EnvironmentCapabilityPlanner` (M118) and `DurableControlPlane` (M2) so that skill invocation records are revision- and fingerprint-bound, and that capability-bearing skills are denied admission when their required capabilities are not `AVAILABLE` or `REPAIRABLE` in the current environment record. It must not create a new authority; selection flows through the existing `ToolBroker`/`PolicyAuthority` admission path and the `EvidenceAuthority` binding and invalidation path (TA §84.3–§84.4).
 
-| Work item | Acceptance condition |
-|---|---|---|
-| Skill package persistence | `SkillPackage` (BS §23.11; restated TA §19.1), `SkillAdmission`, and `SkillInvocationRecord` (TA §19.1) have `CanonicalSchemaRegistry` entries (TA §36.1) with version compatibility; packages, admissions, and invocations persist through the M2 SQLite ledger with the fields those blocks define |
-| Fail-closed selection | the skill-selection use case (the orchestrator selection of BS §23.11 / TA §19.1, implemented in the Rust control plane) resolves required skill ids against the registry and the `EnvironmentCapabilityRecord`; an admitted capability-bearing skill requires each id in its `requiredCapabilities` (the BS §79.7 capability-id vocabulary) to classify `AVAILABLE` or `REPAIRABLE` in `capability_results`; absence produces a `SkillAdmission` with decision `BLOCKED` or `NOT_FOUND`, never inferred success |
-| Capability-bearing admission | a skill whose `requiredCapabilities` intersect a capability classified `USER_REQUIRED` or `UNAVAILABLE` in the environment record is blocked fail-closed (`SkillAdmission.decision = BLOCKED`) before any tool call or instruction load |
-|| Trust and scan gating | a package whose `SkillPackage.scanStatus` is not a completed scan, or whose `trustStatus` is revoked, receives `SkillAdmission.decision = NOT_INVOCABLE`; the built-in packages are the eighty-three v1 built-in skills, each loaded from its `skill.json` manifest with `scope: built_in` |
-| Durable invocation records | `SkillInvocationRecord` (TA §19.1) persists `invocationId`, `admissionId`, `skillVersion`, `sessionId`, `toolCallIds` with their policy outcomes, `evidenceIds`, `startedAt`/`completedAt`, and `outcome`; restart reloads records from the ledger |
-| Idempotency and versioning | re-saving the same package upserts; distinct versions coexist; `installedAt` and `lastUsedAt` are recorded |
-| Evidence binding | `SkillInvocationRecord.environmentFingerprint` and `projectRevision` bind the invocation to the same environment and revision identity as `BuildGateRecord.environment_id` and `revision`; a fingerprint or revision change sets `invalidatedBy` and invalidates dependent invocation evidence through the existing evidence dependency graph (TA §23, BS §5.7.4) |
-| Verifier conformance | contract-graph verifier checks: the twelve-edge row for `CONTRACT.RUNTIME.SKILL` and `CAP.ANDROID.SKILL_WORKFLOW` identity `M66`; the six platform capability clauses of BS §67.12 remain sealed; the `SkillPackage` schema fields appear in the registry entry |
+| Work item                    | Acceptance condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Skill package persistence    | `SkillPackage` (BS §23.11; restated TA §19.1), `SkillAdmission`, and `SkillInvocationRecord` (TA §19.1) have `CanonicalSchemaRegistry` entries (TA §36.1) with version compatibility; packages, admissions, and invocations persist through the M2 SQLite ledger with the fields those blocks define                                                                                                                                                                                                             |
+| Fail-closed selection        | the skill-selection use case (the orchestrator selection of BS §23.11 / TA §19.1, implemented in the Rust control plane) resolves required skill ids against the registry and the `EnvironmentCapabilityRecord`; an admitted capability-bearing skill requires each id in its `requiredCapabilities` (the BS §79.7 capability-id vocabulary) to classify `AVAILABLE` or `REPAIRABLE` in `capability_results`; absence produces a `SkillAdmission` with decision `BLOCKED` or `NOT_FOUND`, never inferred success |
+| Capability-bearing admission | a skill whose `requiredCapabilities` intersect a capability classified `USER_REQUIRED` or `UNAVAILABLE` in the environment record is blocked fail-closed (`SkillAdmission.decision = BLOCKED`) before any tool call or instruction load                                                                                                                                                                                                                                                                          |
+|                              | Trust and scan gating                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | a package whose `SkillPackage.scanStatus` is not a completed scan, or whose `trustStatus` is revoked, receives `SkillAdmission.decision = NOT_INVOCABLE`; the built-in packages are the eighty-three v1 built-in skills, each loaded from its `skill.json` manifest with `scope: built_in` |
+| Durable invocation records   | `SkillInvocationRecord` (TA §19.1) persists `invocationId`, `admissionId`, `skillVersion`, `sessionId`, `toolCallIds` with their policy outcomes, `evidenceIds`, `startedAt`/`completedAt`, and `outcome`; restart reloads records from the ledger                                                                                                                                                                                                                                                               |
+| Idempotency and versioning   | re-saving the same package upserts; distinct versions coexist; `installedAt` and `lastUsedAt` are recorded                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Evidence binding             | `SkillInvocationRecord.environmentFingerprint` and `projectRevision` bind the invocation to the same environment and revision identity as `BuildGateRecord.environment_id` and `revision`; a fingerprint or revision change sets `invalidatedBy` and invalidates dependent invocation evidence through the existing evidence dependency graph (TA §23, BS §5.7.4)                                                                                                                                                |
+| Verifier conformance         | contract-graph verifier checks: the twelve-edge row for `CONTRACT.RUNTIME.SKILL` and `CAP.ANDROID.SKILL_WORKFLOW` identity `M66`; the six platform capability clauses of BS §67.12 remain sealed; the `SkillPackage` schema fields appear in the registry entry                                                                                                                                                                                                                                                  |
 
 **Exit gate:** on the Windows host with no Windows `ValidationEnvironment` lease available, the M118 v1 built-in skill set loads exactly the verifier-derived host load set — the packages whose `skill.json` manifests grant host availability, recomputed from the manifests rather than fixed as a prose count; `environment-preflight` is admitted (no capabilities required); `windows-runtime-validation` is blocked fail-closed against the `WINDOWS_NATIVE_EXECUTION` = `UNAVAILABLE` capability result (no lease, no validation claim); a revoked or unscanned package receives `NOT_INVOCABLE`; invocation records survive supervisor restart with version pinning; and a changed environment fingerprint invalidates prior invocation evidence. Documentation graph certification is reported separately from runtime certification.
-
 
 ---
 
@@ -1843,6 +1842,7 @@ M119 extends the existing `CONTRACT.RUNTIME.SKILL` (ADR-154, BS §23, TA §19.1)
 Implements `CONTRACT.RUNTIME.CONTENT_INTELLIGENCE`.
 
 Deliver:
+
 - ContentRevision schema (with contentId, placeholderSchema, pluralizationModel, localeFallback, sourceLocale, translationStatus, contentProvenance, approvalState, invalidatedBy)
 - ContentDependency schema and ImpactGraph edge integration
 - Content schema (persisted logical content resource; BS §81.1, TA §85.1)
@@ -1853,7 +1853,7 @@ Deliver:
 - translation propagation across `supportedLocales`, written into Android locale resources through the mutation broker (no new locale mechanism)
 - accessibility content validation
 - transaction integration
-- generalized dependency graph invalidation (ContentRevision -> ContentDependency* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence)
+- generalized dependency graph invalidation (ContentRevision -> ContentDependency\* -> ImpactGraph -> affected UI / locale / accessibility / preview / tests / evidence)
 - boundary clause with Android locale resources and with regression localization (`CONTRACT.RUNTIME.LOCALIZATION`, BS §62): content regressions are cause-localized through §62, nothing more
 - `TEST-CONTENT-001`
 - `EV-CONTENT-001`
@@ -1879,6 +1879,7 @@ I. stale revision handling (content mutations referencing stale project revision
 Implements `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`.
 
 Deliver:
+
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
 - providerTransmissionPolicy delegation to ContextGovernance / ProviderContextEnvelope.transmissionDecision
@@ -1920,6 +1921,7 @@ L. crash during Continue resolution after one durable record is written; recover
 Implements `CONTRACT.RUNTIME.CHANGE_INTELLIGENCE`.
 
 Deliver:
+
 - atomic reporting unit definition: MutationReportUnit = committed ConstructionTransaction
 - ChangeReportRecord schema (with recordId, transactionId, projectRevisionAfter — the authoritative committed project revision represented by the record — status, report, failureDiagnostics, createdAt, updatedAt)
 - ChangeImpactReport schema (with reportId, projectionStatus — immutable and informational; ChangeReportRecord.status is the authoritative lifecycle state — requirementIds, causeType and causeId as the typed causal source from which why is projected, runtimeEffects, recommendationSource, recommendationBasis, requiredAuthority, generatedAt, projectionVersion)
@@ -1950,21 +1952,22 @@ G. stale revision and inconsistent-source rejection
 H. restart persistence
 I. recommended next step remains advisory
 J. projector failure and recovery lifecycle:
-   1. commit succeeds
-   2. report projection fails
-   3. INCOMPLETE record exists
-   4. parent transaction remains committed
-   5. recovery reconstructs report
-   6. COMPLETE report becomes immutable
-K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
-L. crash immediately after parent commit and before projection: after restart exactly one ChangeReportRecord exists for the transaction with status INCOMPLETE, recovery reconstructs it, and a repeated recovery scan creates no duplicate record
-M. the no-op commit boundary (ADR-251):
-   1. a transaction whose committed project-state witness set W equals its base witness set terminates without commit and mints no ProjectRevisionId
-   2. no ChangeReportRecord obligation is created for that no-op, so no committed record is ever required to carry a projectRevisionAfter equal to its base revision
-   3. a transaction whose only change is the toolchain lock or the dependency snapshot has a nonzero W-delta, commits, and mints exactly one revision
-   4. the committed-transaction event of clause 3 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
-   5. the tip is reconstructed after compaction and after restart from preserved committed-transaction provenance, without replaying discarded events
-   6. a committed-transaction event of a different project never contributes to this project's tip
+
+1.  commit succeeds
+2.  report projection fails
+3.  INCOMPLETE record exists
+4.  parent transaction remains committed
+5.  recovery reconstructs report
+6.  COMPLETE report becomes immutable
+    K. invalid status transition rejection (reject COMPLETE → INCOMPLETE and COMPLETE → modified)
+    L. crash immediately after parent commit and before projection: after restart exactly one ChangeReportRecord exists for the transaction with status INCOMPLETE, recovery reconstructs it, and a repeated recovery scan creates no duplicate record
+    M. the no-op commit boundary (ADR-251):
+7.  a transaction whose committed project-state witness set W equals its base witness set terminates without commit and mints no ProjectRevisionId
+8.  no ChangeReportRecord obligation is created for that no-op, so no committed record is ever required to carry a projectRevisionAfter equal to its base revision
+9.  a transaction whose only change is the toolchain lock or the dependency snapshot has a nonzero W-delta, commits, and mints exactly one revision
+10. the committed-transaction event of clause 3 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
+11. the tip is reconstructed after compaction and after restart from preserved committed-transaction provenance, without replaying discarded events
+12. a committed-transaction event of a different project never contributes to this project's tip
 
 ---
 
@@ -1973,6 +1976,7 @@ M. the no-op commit boundary (ADR-251):
 Implements the recovery-first autonomous continuity contract across the existing `RecoveryAuthority`, `AgentExecutionKernel`, `AndroidWorkflowCoordinator`, and `LifecycleAuthority`. It does not create a new authority, a new autonomous loop, or a second recovery system. It certifies that the existing architecture satisfies: recovery-first autonomous continuity, non-blocking notification, strategy-exhaustion without artificial goal termination, autonomous Android/kernel recovery binding, continued independent work while one dependency is blocked, anti-loop/anti-stall guarantees, and no AI-token/cost-based completion control.
 
 Deliver:
+
 - RecoveryAttempt schema fields: `strategyFingerprint`, `recoveryLevel`, `checkpointId`, `evidenceBefore`, `evidenceAfter`, `outcome`, `nextStrategy`, `continuationDecision` (nirman-schemas.md §2.14)
 - ADR-226 rule 4 amendment: blocked requirements at any recovery level continue independent work
 - BS §23.7 anti-loop: detected repetition forces materially different strategy class
@@ -2073,14 +2077,15 @@ also links the already-owned contract evidence below; it creates no second
 contract-level test or evidence identity and does not certify runtime behavior
 merely by passing documentation checks.
 
-| Edge | Required fixture assertion | Existing supporting evidence |
-|---|---|---|
-| Deliberation → Context assembly | `WorkerConnection.MODEL_CALL` reaches `ContextOrchestrator`; a stale context is rejected, re-grounded, and reassembled from durable state | `EV-IB-001`, `EV-MEM-001`, `EV-DEL-001` |
-| Deliberation → delegated worker | A deliberation result reaches `AgentExecutionKernel` as `REASONING_ARTIFACT`/`DELIBERATION_RECORD`; delegation reaches `WorkerRuntime` only after `AUTHORIZE`, `PolicyAuthority`, and the existing grant path | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
-| Diagnostics → Deliberation | A read-only diagnostic is admitted through `ToolBroker`, committed by `EvidenceAuthority`, invalidated when a dependency changes, and returned only through re-grounded `CYCLE_INPUT` | `EV-IB-001`, `EV-GEN-001`, `EV-DEL-001` |
-| Deliberation → goal execution | A sufficient deliberation returns a cited `ReasoningArtifact` to the kernel; it cannot reach execution without the existing `AgentProposal`, `AUTHORIZE`, and capability path, and remains in the canonical `HYPOTHESIZE`/`STRATEGIZE` states | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
+| Edge                            | Required fixture assertion                                                                                                                                                                                                                    | Existing supporting evidence            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Deliberation → Context assembly | `WorkerConnection.MODEL_CALL` reaches `ContextOrchestrator`; a stale context is rejected, re-grounded, and reassembled from durable state                                                                                                     | `EV-IB-001`, `EV-MEM-001`, `EV-DEL-001` |
+| Deliberation → delegated worker | A deliberation result reaches `AgentExecutionKernel` as `REASONING_ARTIFACT`/`DELIBERATION_RECORD`; delegation reaches `WorkerRuntime` only after `AUTHORIZE`, `PolicyAuthority`, and the existing grant path                                 | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
+| Diagnostics → Deliberation      | A read-only diagnostic is admitted through `ToolBroker`, committed by `EvidenceAuthority`, invalidated when a dependency changes, and returned only through re-grounded `CYCLE_INPUT`                                                         | `EV-IB-001`, `EV-GEN-001`, `EV-DEL-001` |
+| Deliberation → goal execution   | A sufficient deliberation returns a cited `ReasoningArtifact` to the kernel; it cannot reach execution without the existing `AgentProposal`, `AUTHORIZE`, and capability path, and remains in the canonical `HYPOTHESIZE`/`STRATEGIZE` states | `EV-IB-001`, `EV-RSN-001`, `EV-DEL-001` |
 
 Deliver:
+
 - OrchestrationWiringMatrix schema block (nirman-schemas.md §2.98): boundaryId, producer, consumer, schema, revisionId, taskId, workerId, correlationId, causationId, authority, persistenceEvent, evidenceRef, successTransition, failureTransition, recoveryTransition, staleBehavior, cancelBehavior, restartBehavior, operationRef, payloadSchemaRef, responseSchemaRef, protocolVersion, adapterOrBridgeRef, transactionDomain, permissionProfileRef, lifecyclePolicyRef, timeoutPolicy, cancellationPolicy, retryPolicy, compatibilityRef, invalidationDependencyRefs, downstreamEffectRefs
 - One adversarial fixture (TEST-ORCH-WIRING-001) proving the entire chain in one run, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, PreviewTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility
 - M51, M108, M109, M110, M123 updated to reference the wiring matrix as their cross-cutting contract
@@ -2168,7 +2173,6 @@ state. A worker replacement resumes from the last validated checkpoint.
 Documentation graph certification is reported separately from runtime
 certification.
 
-
 ---
 
 ## M125 — Long-Horizon Swarm Coordination Integrity
@@ -2178,6 +2182,7 @@ certification.
 **Prerequisites:** M76, M77, M78, M79, M80, M94, M110, M123, and M124.
 
 **Required results:**
+
 1. `INTERFACE_COMPLETE` pre-dispatch gate, `WorkerCompatibilityValidator` 4D audit (TA §71.8), and complete `InterfaceAgreement`.
 2. TaskGraph `ALL/ANY/QUORUM/OPTIONAL` join semantics and explicit failure propagation.
 3. Durable WorkerMessage delivery state, deduplication, ordering, priority, and redelivery/dead-letter behavior.
@@ -2192,6 +2197,7 @@ certification.
 12. Unified fault matrix spanning worker/message/lease/plan/reservation/provider/process/emulator/evidence/commit cut points.
 
 **Fixtures:**
+
 - `FIX-SWARM-01` fan-out/fan-in with ALL/ANY/QUORUM.
 - `FIX-SWARM-02` conflicting handoff against advanced project revision.
 - `FIX-SWARM-03` reservation deadlock A→B/B→A.
@@ -2222,4 +2228,3 @@ certification.
 **Global invariants:** no stale worker can create a consequential effect; no duplicate logical effect creates two authoritative outcomes; no deadlock persists while an eligible recovery strategy exists; no swarm stall is mistaken for process liveness; no plan revision permits execution against superseded premises; no completion decision is advanced by transport or model claims.
 
 **Exit gate:** all twenty-six fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
-

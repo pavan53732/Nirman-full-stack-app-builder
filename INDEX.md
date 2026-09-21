@@ -454,45 +454,45 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 
 | Milestone | Heading |
 |---|---|
-| M0 | §2 Delivery Milestones |
-| M1 | §2 Delivery Milestones |
-| M2 | §2 Delivery Milestones |
-| M3 | §2 Delivery Milestones |
-| M4 | §2 Delivery Milestones |
-| M5 | §2 Delivery Milestones |
-| M6 | §2 Delivery Milestones |
-| M7 | §2 Delivery Milestones |
-| M8 | §2 Delivery Milestones |
-| M9 | §2 Delivery Milestones |
-| M10 | §2 Delivery Milestones |
-| M11 | §2 Delivery Milestones |
-| M12 | §2 Delivery Milestones |
-| M13 | §2 Delivery Milestones |
-| M14 | §2 Delivery Milestones |
-| M15 | §2 Delivery Milestones |
-| M16 | §2 Delivery Milestones |
-| M17 | §2 Delivery Milestones |
-| M18 | §2 Delivery Milestones |
-| M19 | §2 Delivery Milestones |
-| M20 | §2 Delivery Milestones |
-| M21 | §2 Delivery Milestones |
-| M22 | §2 Delivery Milestones |
-| M23 | §2 Delivery Milestones |
-| M24 | §2 Delivery Milestones |
-| M25 | §2 Delivery Milestones |
-| M26 | §2 Delivery Milestones |
-| M27 | §2 Delivery Milestones |
-| M28 | §2 Delivery Milestones |
-| M29 | §2 Delivery Milestones |
-| M30 | §2 Delivery Milestones |
-| M31 | §2 Delivery Milestones |
-| M32 | §2 Delivery Milestones |
-| M33 | §2 Delivery Milestones |
-| M34 | §2 Delivery Milestones |
-| M35 | §2 Delivery Milestones |
-| M36 | §2 Delivery Milestones |
-| M37 | §2 Delivery Milestones |
-| M38 | §2 Delivery Milestones |
+| M0 | §3 Repository and Engineering Foundation |
+| M1 | §4 Nirman.exe WinUI Shell |
+| M2 | §5 Control Plane and Persistent State |
+| M3 | §6 Provider Runtime Foundation |
+| M4 | §7 Dynamic Android Project Synthesis and Local Runtime |
+| M5 | §8 Single-Worker Autonomous Development Loop |
+| M6 | §9 Permissions and Sandbox Profiles |
+| M7 | §10 Supervisor Survives UI Close/Restart |
+| M8 | §11 Multi-Worker Coordination |
+| M9 | §12 Android Emulator Runtime, Embedded Live Preview, and Visual Testing |
+| M10 | §13 Android Packaging |
+| M11 | §14 Android Capability Registry and Representative Profile Coverage |
+| M12 | §15 Advanced Extensibility |
+| M13 | Goal Mode and non-blocking background work |
+| M14 | Lifecycle hooks |
+| M15 | Scheduled automations |
+| M16 | Granular checkpoints and backtracking |
+| M17 | Context scaling and external-tool compatibility |
+| M18 | Durable task graph and nested execution tree |
+| M19 | Evidence-backed status and telemetry |
+| M20 | Autonomous validation coordinator |
+| M21 | Policy-boundary approvals and termination coordinator |
+| M22 | Provider-neutral AI settings and model gateway |
+| M23 | Controlled self-development loop |
+| M24 | Adaptive long-horizon provider execution |
+| M25 | Runtime supervisor and durable execution loop |
+| M26 | Graduated recovery ladder |
+| M27 | Self-observation and episode evaluation |
+| M28 | Self-improvement proposal manager |
+| M29 | Candidate canary, promotion, and rollback |
+| M30 | Canonical documentation and worker registry |
+| M31 | Autonomous-build policy and never-pause loop |
+| M32 | Persistent terminal subsystem |
+| M33 | Skills registry and invocation contract |
+| M34 | Windows lifecycle and multi-project resilience |
+| M35 | Long-horizon scale and unified execution surface |
+| M36 | Runtime authority and autonomous recovery invariants |
+| M37 | Android-only target contract |
+| M38 | Complete Android technology coverage |
 | M39 | AndroidConstructionContract and schema authority |
 | M40 | Pure session reducer and event replay |
 | M41 | ConstructionTransaction and commit barrier |
@@ -548,23 +548,9 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M91 | Long-Horizon Intelligence, Verification, and Documentation Certification |
 | M92 | Long-Horizon Intelligence, Verification, and Documentation Certification |
 | M93 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M94 | M81–M122 contract mapping |
-| M95 | M81–M122 contract mapping |
-| M96 | M81–M122 contract mapping |
-| M107 | M81–M122 contract mapping |
-| M108 | M81–M122 contract mapping |
-| M111 | M81–M122 contract mapping |
-| M112 | M81–M122 contract mapping |
-| M113 | M81–M122 contract mapping |
-| M114 | M81–M122 contract mapping |
-| M115 | M81–M122 contract mapping |
-| M116 | M81–M122 contract mapping |
-| M117 | M81–M122 contract mapping |
-| M118 | M81–M122 contract mapping |
-| M119 | M81–M122 contract mapping |
-| M120 | M81–M122 contract mapping |
-| M121 | M81–M122 contract mapping |
-| M122 | M81–M122 contract mapping |
+| M94 | Agent Reasoning Runtime and Bounded Delegation |
+| M95 | Deep Deliberation Runtime |
+| M96 | IntentSynthesisPromptContract and no-template enforcement |
 | M97 | Revision-bound PreviewCoordinator |
 | M98 | Truthful stepwise preview projection |
 | M99 | End-to-end synthesis and preview certification |
@@ -575,8 +561,22 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M104 | Hidden-human-dependency and runtime-proof fixtures |
 | M105 | Schema parity and cross-document conformance |
 | M106 | Documentation-verifier conformance |
+| M107 | Integration boundary contract and wiring conformance |
+| M108 | Preview synchronization protocol and first Android vertical slice |
 | M109 | Preview projection resilience and runtime-certification evidence |
 | M110 | Event-driven autonomous continuation and specialist gates |
+| M111 | Runtime resource integrity and adaptive execution |
+| M112 | Agent-layer trust boundary and extension security |
+| M113 | Context compaction and cache governance |
+| M114 | Android runtime integrity and honest coverage |
+| M115 | Frontend–control-plane protocol and generated service adapter |
+| M116 | Background continuity and interruption recovery |
+| M117 | Local APK export provenance and delivery admission |
+| M118 | Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures |
+| M119 | Platform Skill Registry Persistence and Fail-Closed Selection |
+| M120 | Content and Writing Intelligence |
+| M121 | Durable Conversation Context |
+| M122 | Change Intelligence |
 | M123 | Recovery-first autonomous continuity certification |
 | M124 | Orchestration wiring matrix and end-to-end pipeline certification |
 | M125 | Long-Horizon Swarm Coordination Integrity |
