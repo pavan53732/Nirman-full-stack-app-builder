@@ -128,9 +128,13 @@ problem, run the appropriate checks, fix it, and explain the cause.
 
 ### 3.1 Local-first execution
 
-The generated source code, project files, previews, tests, and builds should run locally whenever possible. Nirman may call cloud AI services when the user configures a cloud provider, but application execution should not depend on a hosted execution environment.
+The generated source code, project files, previews, tests, and builds MUST run locally. Nirman may call external cloud AI providers when the user configures a provider, but application execution MUST NOT depend on a hosted execution environment.
 
-Local-first does not automatically mean that all data remains local. Nirman supports only cloud-hosted, network-reachable AI providers; relevant prompts and project context may be sent to that provider. Nirman must clearly explain this distinction. Local, offline, on-device, and self-hosted model runtimes are not supported in any form (ADR-207), and no privacy mitigation may cite local models as an alternative.
+External provider-backed AI remains network-reachable and user-configured. Nirman's general-purpose reasoning, coding, vision, embeddings, and provider-backed model operations continue to use the external provider contract.
+
+Nirman MAY also run a bounded supervisor-local auxiliary decision engine under ADR-252. This local engine is not an external provider, is not a ProviderProfile, is not a ModelGateway endpoint, and is limited to the typed decision purposes explicitly defined by §66.10.1. Its outputs are advisory proposals and never runtime authority.
+
+Local auxiliary decision processing does not replace or weaken external-provider privacy disclosures for content sent to a cloud provider.
 
 ### 3.2 User-owned output
 
@@ -175,6 +179,8 @@ On first launch, Nirman should explain that it is a local desktop application an
 2. Continue in planning-only mode without an AI provider (`SessionProviderMode.PLANNING_ONLY`, §5.7.2).
 
 The setup wizard should check the local environment, detect installed versions of Node.js, package managers, Java, Gradle, Android SDK, platform-tools, emulator tooling, and identify which Android capabilities are available. A missing JDK, Android SDK, emulator engine, or system image is not reported to the user as something to install: Nirman provisions it. On first launch — before any project exists and without waiting for an AI provider — the supervisor's `ToolchainProvisioner` (technical architecture §49.4) downloads the pinned components into Nirman's own toolchain root, verifies every digest, creates the Nirman emulator device, boots it once, saves its snapshot, and proves readiness by rendering a first frame inside the Preview panel. The user performs at most three actions, each presented as a single decision on a screen that shows its consequence: accepting the Android SDK License Agreement together with the download and disk figures (once per machine; Nirman never accepts it on the user's behalf), confirming one elevation prompt when the hypervisor must be enabled or its driver installed, and — only when firmware virtualization is disabled — changing that one UEFI/BIOS setting, which no software can change. Nirman MUST NOT present an installation guide, a download link, or a command to run in place of provisioning, MUST NOT modify `ANDROID_HOME`, `JAVA_HOME`, or the user's `PATH`, and MUST NOT adopt an Android SDK or JDK already on the machine unless the user configures its path explicitly. Every remaining tool gap is reported as a diagnosed, classified prerequisite (§9.2, §79.4), never hidden behind a failed build.
+
+The same first-launch bootstrap MUST evaluate the shipped local auxiliary decision-engine profile. When `autoProvision = true` for a release-pinned profile, Nirman automatically acquires the declared model/runtime artifacts into the Nirman-managed local model root, verifies the signed manifest and SHA-256 digest, records license and model identity, executes the local-engine self-test, and registers the resulting profile. This requires no additional user action and proceeds independently of external provider configuration. Local-engine acquisition or self-test failure MUST be recorded as an optional capability condition and MUST NOT block Nirman startup, deterministic local operation, Android toolchain provisioning, planning-only mode, or external-provider configuration.
 
 ### 4.3 Chat interaction model
 
@@ -412,9 +418,21 @@ ReproducibilityLevel  = UNKNOWN | INPUTS_RECORDED | REBUILD_MATCHED |
 
 `CompletionState` is the value set of `CompletionDecision` and of the `completionState` field on `AutonomousAndroidSession` (§29.2; technical architecture §34). It is written only by the sole completion evaluator of §5.7.7: `NOT_EVALUATED` until the evaluator has run for the current revision; `NOT_COMPLETE` when the goal contract is not satisfied, including a technically certified artifact whose mandatory integration is unavailable; `COMPLETED` only when every §5.7.7 condition holds; `BLOCKED` and `USER_REQUIRED` for an unresolved blocking contradiction or a decision the user must make; `INVALIDATED` when a §5.7.4 dependency change retires a prior `COMPLETED`. `ProductLifecycleState.COMPLETED` mirrors `CompletionState.COMPLETED` and is never set ahead of it.
 
-`SessionProviderMode` is the value set of `AutonomousAndroidSession.providerMode` (§29.2; technical architecture §34) and is the only vocabulary for whether a session may call a model. `PLANNING_ONLY` is the §4.2 path with no `ProviderProfile` selected: project creation, opening, inspection, environment diagnostics, checkpoints, undo, preview of an already-built revision, and structured requirement capture remain available, and any operation that needs a model is reported as `USER_REQUIRED` with the provider setup as the resolution — never attempted, never simulated. `PROVIDER_CONFIGURED` means a `ProviderProfile` is selected whose last connection test has not passed for its current key, base URL, model ID, and mode (§8.1; ADR-208); it permits exactly what `PLANNING_ONLY` permits. `PROVIDER_VALIDATED` means the selected profile's `status` is `authenticated` (§80.5.5) from a passed test; Goal Mode (§27.1) and every model-backed operation require it. `OFFLINE` is the technical architecture §41 condition — a validated profile whose endpoint is currently unreachable — under which running work is preserved, checkpoints and history stay available, and model-backed steps wait or degrade per §26.1 rather than fail. The mode is derived by the control plane from the selected profile and the provider bridge state (technical architecture §48.1); it is never a global prerequisite: a `PLANNING_ONLY` or `PROVIDER_CONFIGURED` session is a complete, valid session, and the UI must not gate non-model features on provider validation.
+`SessionProviderMode` is the value set of `AutonomousAndroidSession.providerMode` (§29.2; technical architecture §34) and describes the availability of Nirman's external provider-backed model path only. It is not a global vocabulary for every local inference component.
+
+`PLANNING_ONLY` is the §4.2 path with no validated external `ProviderProfile`: project creation, opening, inspection, environment diagnostics, checkpoints, undo, preview of an already-built revision, structured requirement capture, and other deterministic local facilities remain available. Any operation that specifically requires an external provider-backed model is reported as `USER_REQUIRED` with provider setup as the resolution.
+
+`PROVIDER_CONFIGURED` means an external `ProviderProfile` is selected but its current credentials, base URL, model ID, or compatibility mode has not passed validation. It permits the same non-external-model work available to `PLANNING_ONLY`.
+
+`PROVIDER_VALIDATED` means the selected external provider profile has passed the required validation. Goal Mode and external-provider-backed model operations require it.
+
+`OFFLINE` means the validated external provider endpoint is currently unreachable. Existing deterministic local facilities and an admitted supervisor-local auxiliary decision engine remain independently governed and may continue to operate in this state; external-provider-backed operations wait or degrade under their provider recovery policy.
+
+The mode is derived by the control plane from the selected external provider profile and provider-bridge state. Local auxiliary decision-engine availability is represented by `LocalDecisionEngineProfile.healthState` and `admissionState` and MUST NOT change `SessionProviderMode`.
 
 `RUNNING` describes lifecycle or process activity; it does not imply `OBSERVED`, `VERIFIED`, or `COMPLETED`. `DELIVERED` proves a successful local handoff, not that every optional integration or release-signing condition passed. `CERTIFIED` is permitted only after the required executable fixtures and evidence gates pass.
+
+`SessionProviderMode` is never a global prerequisite: a `PLANNING_ONLY` or `PROVIDER_CONFIGURED` session is a complete, valid session, and it is never a global prerequisite for non-model features.
 
 ### 5.7.3 Canonical artifact and delivery policy
 
@@ -700,7 +718,7 @@ Nirman should allow users to configure their own AI provider without changing ap
 |---|---|
 | Provider label | User-defined friendly name |
 | Compatibility mode | One of `OPENAI_COMPATIBLE` or `ANTHROPIC_COMPATIBLE`, selected by the user per ADR-208 |
-| Base URL | Custom provider endpoint. MUST be a network-reachable cloud endpoint; localhost, loopback, and RFC-1918 private ranges MUST be rejected at configuration time per ADR-207. |
+| Base URL | Custom provider endpoint. MUST be a network-reachable cloud endpoint; localhost, loopback, and RFC-1918 private ranges MUST be rejected at configuration time per ADR-252. |
 | API key | Stored securely in the operating-system keychain |
 | Chat model ID | Model used for planning and code generation |
 | Vision model ID | Optional model used for screenshot and preview analysis |
@@ -742,7 +760,7 @@ A provider adapter should return a normalized result containing the model ID, re
 
 Nirman must clearly communicate whether project content is being sent to a cloud model. The user should be able to configure context policies that exclude selected files, folders, secrets, generated binaries, or sensitive project types.
 
-Only cloud-hosted, network-reachable AI providers are supported. Local, offline, on-device, and self-hosted model runtimes are out of scope per ADR-207.
+Only the external provider-backed AI path defined by §8.1 is represented as a provider. A bounded supervisor-local auxiliary decision engine permitted by ADR-252 is a separate internal capability and MUST NOT be represented as a provider, cloud-provider alternative, or self-hosted provider endpoint.
 
 ### 8.4 Credential rules
 
@@ -1023,7 +1041,7 @@ The first usable release should satisfy the following conditions:
 11. API keys do not appear in source files, logs, prompts, or exported projects.
 12. The user can export the resulting source code independently of Nirman.
 13. The application never requires cloud code execution for the supported Android workflow.
-14. The application clearly communicates when project content is sent to the user's configured cloud AI provider, and never claims local AI processing because no local model runtime exists (ADR-207).
+14. The application clearly communicates when project content is sent to the user's configured external cloud AI provider. It MUST NOT claim that arbitrary reasoning, coding, vision, embeddings, or general-purpose AI processing occur locally. When the ADR-252 local auxiliary decision engine is installed, the application MAY accurately state that bounded typed decisions are processed locally and MUST identify the engine/profile revision when provenance is exposed.
 
 ---
 
@@ -1184,7 +1202,7 @@ Dynamic mode selection and context capacity allocation are governed by twelve ma
 Nirman should be a polished, minimal Windows desktop application that puts a controlled autonomous software-development loop inside one workspace. Its differentiator should not be the existence of a chat box. Its differentiator should be the combination of:
 
 - Local project execution.
-- User-configurable cloud AI providers (cloud-only per ADR-207; no local model runtimes).
+- User-configurable external cloud AI providers for general-purpose AI, plus bounded supervisor-local auxiliary decisions under ADR-252.
 - Reliable structured code changes.
 - Live preview and visual inspection.
 - Tests and automatic repair attempts.
@@ -2619,6 +2637,8 @@ Raw secrets, private keys, and unfiltered prompts are never displayed. Blocked, 
 ### 45.2 DecisionTrace
 
 For each material autonomous decision, Nirman records a concise DecisionTrace containing decision ID, session/task/worker IDs, input references, constraints, candidate actions, selected action, deterministic policy checks, provider/model provenance, confidence, outcome event, and evidence IDs. Hidden chain-of-thought is not stored or exposed.
+
+For a local auxiliary decision, DecisionTrace MUST additionally record `LocalDecisionEngineProfile.profileId`, immutable `modelRevision`, `engineVersion`, `runtimeAdapterId`, `runtimeAdapterVersion`, proposal identity, decision purpose, decision primitive, calibration state, proposal status, and evidence references. `providerProfileId` MUST be absent for a local auxiliary decision and MUST NOT be synthesized.
 
 ### 45.3 ResourceGovernor
 
@@ -4218,6 +4238,22 @@ The agent selects the execution strategy for a goal, within policy. These are ke
 
 Strategy selection is a proposal. It never raises a permission ceiling, never suppresses an evidence requirement, and never converts a decision node into an assumption. Under `UNATTENDED` a required decision is never guessed: it is recorded as a `ClarificationRecord` or a `USER_REQUIRED` decision on the requirement it governs, and every requirement that does not depend on it continues (§29.4, §69.11; ADR-226) — the strategy never produces a waiting goal.
 
+### 66.10.1 Local fast-decision proposal path
+
+Nirman MAY use a supervisor-local `LocalDecisionEngine` to produce bounded typed proposals before or alongside reasoning, recovery, routing, or escalation decisions.
+
+The engine accepts only explicitly declared decision purposes and the typed primitives `CHOICE`, `SCORE`, and `NOUL`. It MUST produce `LocalDecisionProposal` records that contain model identity, immutable revision identity, input/context fingerprints, result, calibration state, status, and evidence references.
+
+A local proposal MAY reduce latency or narrow the next reasoning path. It MUST NOT authorize an operation, mutate workspace state, change permissions, promote an artifact, change completion state, or suppress required evidence.
+
+When the local engine is unavailable, disabled, degraded, not admitted, resource-constrained, or fails inference, the requesting component MUST continue through its normal deterministic or external-provider path where one exists. Local-engine failure MUST NOT become a task-completion failure solely because the optional engine was unavailable.
+
+The local engine is not a provider and MUST NOT alter `SessionProviderMode`, `ProviderProfile`, `ModelGateway`, or the external-provider request lifecycle.
+
+> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §2.130. Owner: BS §66.10.1.
+
+
+
 ### 66.11 Acceptance criteria
 
 The reasoning contract is satisfied only when a goal produces a recorded reasoning artifact with a cited selection basis before any mutation; when no verbatim private reasoning is persisted; when every executed action produces a reflection record; when a rejected hypothesis is retained with refuting evidence and not retested on the same evidence; when a capability invocation denied by policy returns to strategy selection with the denial recorded; when a delegation violating either ceiling invariant is denied; when a swarm revision passes the same authority path as any other action; and when every cycle terminates in exactly one declared termination state.
@@ -4362,9 +4398,9 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.SPECULATION | BS §65 | — | TA §88 | ADR-156 | M92 | INTERNAL |
 | CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-231 | M96 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218, ADR-252 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M93 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250 | M93 | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
@@ -6088,8 +6124,8 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 
 | Section | "Should" statement | Resolution | Criteria |
 |---|---|---|---|
-| BS §3.1 | "should run locally whenever possible" | MUST run locally; cloud AI is the only exception | When cloud AI is configured, model calls go to cloud; all build/test/preview runs local |
-| BS §3.1 | "Nirman may call cloud AI services when the user configures a cloud provider, but application execution should not depend on a hosted execution environment." | MUST NOT depend on hosted execution | Cloud AI may serve model calls only; build, test, preview, and package execution stay local |
+| BS §3.1 | "The generated source code, project files, previews, tests, and builds MUST run locally." | MUST run locally; external AI-provider calls are the only general-purpose model-network exception; bounded ADR-252 local auxiliary decisions are supervisor-local and do not alter application execution locality. | When cloud AI is configured, model calls go to cloud; all build/test/preview runs local; ADR-252 local auxiliary decisions run supervisor-local without external network access. |
+| BS §3.1 | "Nirman may call external cloud AI providers when the user configures a provider, but application execution MUST NOT depend on a hosted execution environment." | MUST NOT depend on hosted execution | External provider calls MAY serve AI operations; generated application execution, builds, tests, previews, and packaging remain local; ADR-252 local auxiliary decision processing is not hosted execution. |
 | BS §3.2 | "should always be able to access" | MUST provide access | User can always access project dir, source, Git, config, artifacts |
 | BS §3.2 | "The application should support ZIP export and Git repository export without requiring a Nirman account or proprietary hosting service." | MUST support ZIP and Git export account-free | Neither export path requires a Nirman account or a proprietary hosting service |
 | BS §3.3 | "should be able to see" | MUST display | Current task, plan, files changed, commands, test results, failure reasons |
@@ -7710,7 +7746,9 @@ USER_REQUEST
 → EXPORT VERIFICATION
 → COMPLETION EVALUATION
 
-Each arrow is a canonical executable boundary. No phase may be skipped, simulated, inferred from a later phase, or reported complete from model text. Repair re-enters at the earliest invalidated phase and invalidates downstream evidence.
+Each arrow is a canonical executable boundary. No phase may be skipped, simulated, inferred from a later phase, or reported complete from model text.
+
+The ADR-252 local auxiliary decision path is an optional internal proposal branch. It does not replace `REASONING CYCLE → PROVIDER REQUEST → PROVIDER STREAM` for external-provider-backed reasoning and does not constitute a new mandatory lifecycle stage. A `LocalDecisionProposal` may be consumed by existing decision, recovery, routing, or escalation stages only as non-authoritative input subject to their existing deterministic policy, evidence, revision, and completion gates. Repair re-enters at the earliest invalidated phase and invalidates downstream evidence.
 
 Reconciliation, recovery, provider failure, worker replacement, checkpoint
 restoration, evidence invalidation, preview synchronization, artifact export,

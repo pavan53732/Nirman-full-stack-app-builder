@@ -8,7 +8,7 @@
 
 **Embedded emulator preview** — The generated app renders inside Nirman's own window through a Nirman-managed local Android emulator (the Google Android Emulator, provisioned by Nirman on first launch, never bundled or built by Nirman); no physical device plays any role. — BS §69; TA §10; TA §49.4; ADR-221.
 
-**Nirman** — A Windows desktop application that autonomously plans, builds, previews, tests, repairs, packages, and exports Android applications from product intent using a user-configured cloud AI provider. — BS §1; BS §20.
+**Nirman** — A Windows desktop application that autonomously plans, builds, previews, tests, repairs, packages, and exports Android applications from product intent using external user-configured AI providers and, when admitted, a bounded supervisor-local auxiliary decision engine. — BS §1; BS §66.10.1.
 
 **Nirman.exe** — The C#/.NET WinUI 3 user-facing process; a presentation-only projection client of the control plane. — TA §57; ADR-108; ADR-201.
 
@@ -68,7 +68,7 @@
 
 **ReproducibilityLevel** — The vocabulary that grades how repeatable a build or validation is; named as its own field on the evidence contracts. — BS §5.7.2; TA §36.4.
 
-**SessionProviderMode** — The sole vocabulary for a session's provider situation: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`. — BS §5.7.2; TA §41.
+**SessionProviderMode** — The vocabulary for the availability of Nirman's external provider-backed model path: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`; supervisor-local auxiliary decision-engine availability is represented separately. — BS §5.7.2; TA §41.
 
 **SigningState** — The signing lifecycle of a build output, from `NOT_REQUIRED` and `UNSIGNED_DEBUG` upward. — BS §5.7.2; BS §5.7.9.
 
@@ -118,7 +118,7 @@
 
 **PreviewSyncEvent / PreviewProjection / PreviewProjectionReducer** — The durable preview events, the projection they reduce into, and the sole reducer; events apply by sequence and identity, not arrival time. — BS §71; TA §75; SCHEMAS §1.37.
 
-**ProviderProfile / ReasoningCapabilityProfile** — The stored provider configuration (secret references only, never keys) and its discovered reasoning capability; `maxReasoningTokens` is capability metadata, never a budget. — BS §80.5.5; TA §24.2; SCHEMAS §1.62; ADR-208.
+**ProviderProfile / ReasoningCapabilityProfile** — The stored provider configuration (secret references only, never keys) and its discovered reasoning capability; `ProviderProfile` represents an external network-reachable AI provider only.; `maxReasoningTokens` is capability metadata, never a budget. — BS §80.5.5; TA §24.2; SCHEMAS §1.62; ADR-208.
 
 **ReasoningArtifact / Hypothesis / CapabilityInvocation / DelegationGrant** — The records of the agent reasoning runtime: what was reasoned, hypothesised, invoked, and delegated under which grant. — BS §66; TA §71; SCHEMAS §1.27.
 
@@ -278,7 +278,7 @@
 
 **PlaceholderResidueDetector** — The pre-commit static analysis module detecting unexpanded stub markers (TODO, FIXME, NotImplementedError, Lorem ipsum) in generated code and XML resources. — TA §47.4; BS §43.1.
 
-**Planning-only mode / Offline Mode** — Operation without a validated provider, bound to `SessionProviderMode` values and never a global prerequisite. — BS §4; TA §41.
+**Planning-only mode / Offline Mode** — `PLANNING_ONLY` and `OFFLINE` describe absence or unavailability of the external provider-backed model path; deterministic local facilities and an admitted supervisor-local auxiliary decision engine are governed separately and do not change `SessionProviderMode`. — BS §5.7.2; TA §41; ADR-252.
 
 **PreviewCoordinator** — The service that owns preview promotion; `PreviewProjectionReducer` remains the sole projection reducer. — TA §50; TA §75.
 
@@ -347,6 +347,14 @@
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
 **ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
+
+**LocalDecisionEngine** — The supervisor-local bounded inference service that produces `LocalDecisionProposal` records and has no execution or policy authority. — TA §58.17; ADR-252.
+
+**LocalDecisionEngineProvisioner** — The supervisor-owned service that installs, verifies, profiles, self-tests, and admits the pinned auxiliary decision engine. — TA §49.5; ADR-252.
+
+**LocalDecisionEngineProfile** — The revision-pinned identity and admission/health record for a supervisor-local auxiliary decision engine. — SCHEMAS §2.129; TA §49.5.
+
+**LocalDecisionProposal** — A typed advisory decision produced by the supervisor-local auxiliary engine and consumed only as candidate input by existing deterministic decision/recovery/routing components. — BS §66.10.1; SCHEMAS §2.130; TA §58.17.
 
 **TruncatedFileDetector** — The pre-commit syntax continuity module verifying balanced delimiters, closed string literals, and the absence of EOF error nodes in generated files. — TA §47.4; BS §43.1.
 

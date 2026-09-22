@@ -103,7 +103,8 @@ Nirman is a **Windows-first desktop application** for building Android applicati
 |---|---|---|
 | Nirman host application | Windows desktop `.exe` | Chat, control plane, agents, local execution, preview, evidence, recovery, and artifact delivery |
 | Generated project | Android only | User-requested application synthesized and built by Nirman |
-| AI providers | Cloud, user configured | Planning, coding, reasoning, vision, embeddings, or other model services |
+| AI providers | External cloud, user configured | General-purpose planning, coding, reasoning, vision, embeddings, and other provider-backed model services |
+| Local auxiliary decision engine | Supervisor-local, release-pinned | Bounded typed decisions for registered classification/routing/recovery/escalation purposes; advisory only |
 | Code execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifact creation |
 
 No implementation may add a hosted web/server product, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, remote build execution, or any non-Android generated target. Local Nirman control-plane and supervisor processes, Android-internal development servers, JavaScript bundlers, and supporting services are permitted implementation components when they remain local and do not become independent generated product targets.
@@ -117,6 +118,10 @@ Nirman requires **no account, login, subscription, license fee, or hosted platfo
 > The model proposes; deterministic runtime authorities decide.
 
 Models, agents, workers, skills, plugins, MCP tools, frontend components, adapters, and verifiers may propose or report actions. They cannot grant permissions, mutate authoritative state directly, promote previews or artifacts, bypass policy, approve external effects, or mark work complete.
+
+The supervisor-local auxiliary decision engine is treated as a proposal generator, not an authority (ADR-252; BS §66.10.1; TA §58.17). Its output is evidence-bearing candidate input and cannot grant permission, execute tools, mutate project state, promote artifacts, alter completion state, or bypass policy/evidence gates.
+
+Workers MUST NOT load or invoke `LocalDecisionEngine` directly. M126 V1 exposes the engine only through supervisor-hosted consumers; a future worker-mediated invocation requires an explicit WorkerConnection contract.
 
 The authoritative local control plane owns task state, workers, leases, events, checkpoints, recovery, permissions, tool execution, evidence, preview promotion, artifact promotion, and completion decisions. The frontend is a presentation and command client. It is never a second state authority.
 
@@ -391,6 +396,8 @@ The verifier MUST reject count-based equivalence claims between these kinds.
 For any wiring/integration change, agents MUST prove producer, consumer, schema, boundary, authority, persistence, correlation/causation, lifecycle, cancellation, restart, recovery, invalidation, and evidence edges. A component is not considered integrated when its documentation only names it; its incoming/outgoing canonical boundaries must resolve.
 
 **Integration rule.** No named component is considered integrated merely because it exists. Integration requires: incoming boundary + outgoing boundary + canonical schema + authority + persistence + lifecycle + failure/recovery + cancellation + restart + invalidation + evidence + test identity. This rule applies to every component across the corpus (BS §84, TA §74.6, ADR-232, M124).
+
+A local auxiliary decision engine is integrated only when its provisioner, profile, request boundary, proposal schema, consumer, persistence, lifecycle, cancellation, restart behavior, invalidation, evidence, resource admission, fallback behavior, and test identity are all connected in the orchestration wiring matrix.
 
 When adding or changing a contract, update all required surfaces together:
 

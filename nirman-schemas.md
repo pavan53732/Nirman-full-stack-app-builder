@@ -4878,6 +4878,73 @@ RequirementDelta
 - timestamp
 ```
 
+### 2.129 LocalDecisionEngineProfile
+
+**Owner:** TA §49.5 · **Contract:** — · **Projected at:** TA §58.17
+
+```text
+LocalDecisionEngineProfile
+- profileId: string (uuid)
+- manifestVersion: string
+- engineId: string
+- engineVersion: string
+- modelId: string
+- modelRevision: string (immutable source revision; never a mutable branch or tag)
+- sourceRef: string (HTTPS manifest source reference)
+- modelSha256: string
+- modelByteSize: integer
+- licenseId: string
+- licenseHash: string
+- installPath: string
+- maxContextTokens: integer
+- decisionPrimitives: (CHOICE | SCORE | NOUL)[]
+- languageCodes: string[]
+- purposeSet: (FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION)[]
+- autoProvision: boolean
+- admissionState: DISABLED | EXPERIMENTAL | ACTIVE | QUARANTINED
+- healthState: NOT_INSTALLED | MANIFEST_VERIFIED | PROVISIONING | READY | DEGRADED | WAITING_NETWORK | FAILED_INTEGRITY | FAILED_RUNTIME | UNAVAILABLE
+- environmentId: string
+- runtimeAdapterId: string
+- runtimeAdapterVersion: string
+- manifestSha256: string
+- manifestSignatureKeyId: string
+- selfTestEvidenceId: string | null
+- lastLoadedAt: timestamp | null
+- lastVerifiedAt: timestamp | null
+- failureReason: string | null
+```
+
+### 2.130 LocalDecisionProposal
+
+**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
+
+```text
+LocalDecisionProposal
+- proposalId: string (uuid)
+- sessionId: string
+- taskId: string
+- workerId: string | null
+- purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION
+- decisionPrimitive: CHOICE | SCORE | NOUL
+- profileId: string
+- modelRevision: string
+- inputRevisionId: string
+- contextPackageHash: string
+- stateHash: string
+- choiceValue: string | null
+- choiceProbabilities: { option: string, probability: float }[] | null
+- scoreValue: float | null
+- scoreDistribution: { level: string, probability: float }[] | null
+- noulProbability: float | null
+- confidence: float | null
+- calibrationState: UNPROFILED | PROFILED | FAILED | INVALIDATED
+- calibrationProfileId: string | null
+- generatedAt: timestamp
+- expiresAt: timestamp
+- status: SHADOW_ONLY | PROPOSED | ACCEPTED_AS_INPUT | REJECTED | QUARANTINED | INVALIDATED
+- evidenceIds: string[]
+```
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -4990,6 +5057,8 @@ FailureContextPackage
 TargetPlatformSet
 AndroidToolchainManifest
 ChangeIntelligenceRecoveryJob
+LocalDecisionEngineProfile
+LocalDecisionProposal
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

@@ -448,6 +448,8 @@
 | `AssetManifestEntry` | §2.126 | TA §56.2 | — | — |
 | `FeedbackRecord` | §2.127 | TA §44.3.3 | — | — |
 | `RequirementDelta` | §2.128 | TA §44.3.3 | — | — |
+| `LocalDecisionEngineProfile` | §2.129 | TA §49.5 | — | TA §58.17 |
+| `LocalDecisionProposal` | §2.130 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -582,6 +584,7 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M123 | Recovery-first autonomous continuity certification |
 | M124 | Orchestration wiring matrix and end-to-end pipeline certification |
 | M125 | Long-Horizon Swarm Coordination Integrity |
+| M126 | Bounded local auxiliary decision engine and Laya certification |
 
 ## 5. ADR ranges
 
@@ -593,5 +596,5 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-050–ADR-099 | 50 | Accepted 50 |
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
-| ADR-200–ADR-249 | 50 | Accepted 50 |
-| ADR-250–ADR-251 | 2 | Accepted 2 |
+| ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
+| ADR-250–ADR-252 | 3 | Accepted 3 |

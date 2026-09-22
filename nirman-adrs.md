@@ -2619,7 +2619,8 @@ Specialist workers may handle orchestration, security, consistency, diff-aware p
 ## ADR-207: Nirman supports cloud AI providers only
 
 **Locks:** `CONTRACT.RUNTIME.INVARIANTS`
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** ADR-252
 **Decision:** Nirman supports only cloud-hosted, network-reachable AI providers configured by the user with an API key, base URL, and model ID. Local, offline, on-device, and self-hosted model runtimes are out of scope. A provider base URL resolving to localhost, 127.0.0.0/8, ::1, or an RFC-1918 private range MUST be rejected at configuration time. This does not restrict Nirman's own local control plane, supervisor, build tooling, or Android development servers, which remain local by design.
 **Rationale:** Local model runtimes have materially different context limits, tool-calling fidelity, structured-output reliability, and vision support. Supporting them as a first-class path would mean every capability claim carries an unstated "depending on your local model" qualifier, which conflicts with the evidence and capability-truth model. A single cloud provider contract keeps capability claims checkable.
 **Consequences:** BS §8.3 local-endpoint allowance is removed. BS §8.1 gains base-URL validation. Privacy mitigations may no longer cite local models. AGENTS.md §2 and README provider rows become cloud-only. ADR-019's provider-neutral interface is unaffected — neutrality is across cloud vendors, not across locality. Nirman itself remains local-first and requires no account or subscription (ADR-205, unchanged). Future reversal requires a new accepted ADR superseding this one.
@@ -3566,5 +3567,43 @@ through a superseding ADR.
 **Consequences:** `nirman-technical-architecture.md` §45.2 gains the authoritative committed-transaction event definition of clause 4; §45.3 states the no-op termination of clause 2, the project-scoped predicate of clause 5, and the commit-or-abort boundary of clause 1. ADR-242 §4, §5, and §8 are read together with this decision, which supplies the event definition they presuppose. `nirman-build-spec.md` §83.1 and technical architecture §87.1 are unchanged: the exactly-one obligation continues to apply to committed transactions, and aborted transactions continue to produce no completed change impact report. The verifier locks the normative content of every clause of this decision — clause 1's commit boundary and its necessity-not-sufficiency qualification, clause 2's no-op prohibition set, clause 3's exactly-one mint, clause 4's exactly-one atomic event and the ban on a commit event for an aborted transaction, clause 5's project-scoped predicate, clause 6's minimum recovery and compaction provenance, and clause 7's derived-representation rule — together with the TA §45.2 event payload contract, both amendment pointers, and the §3.1 declaration-validity and anchor-count rules. Removing or weakening any locked sentence is a certification defect, and each has a mutation case that proves the lock fails when it is weakened. M122 `TEST-CHANGE-001` gains the no-op termination and revision-tip reconstruction cases (paragraph M); these are specification fixtures, not runtime evidence, and M122's exit gate remains unevaluated until executable source and fixtures exist.
 
 **Reversal trigger:** Evidence that a legal runtime ordering produces a `ConstructionTransaction` whose committed project-state witness set is unchanged while still carrying authoritative product-state consequences that require a committed record, or evidence that the committed-transaction event of clause 4 cannot be emitted atomically with the commit under a legal crash ordering so that the tip becomes ambiguous.
+
+---
+
+## ADR-252: Permit a bounded Nirman-provisioned local auxiliary decision engine
+
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.REASONING`
+
+**Amends:** ADR-207
+
+**Status:** Accepted
+
+**Decision:** Nirman may provision and execute a bounded local auxiliary decision engine under supervisor control. The first supported implementation target is `convaiinnovations/laya-typed-decisions`, pinned by an immutable model revision and SHA-256 digest recorded in a Nirman-controlled signed release manifest.
+
+The local auxiliary decision engine is not a `ProviderProfile`, is not a provider adapter, does not use `ModelGateway` for inference, does not hold provider credentials, and does not establish a provider network connection.
+
+The local-engine runtime adapter is a separately versioned implementation dependency and MUST be identified by `runtimeAdapterId` and `runtimeAdapterVersion`. M126 MUST admit exactly one verified runtime adapter for the selected model revision before runtime certification. The adapter implementation, dependency closure, process boundary, and resource profile MUST be recorded in the release manifest; an unverified community conversion or runtime MUST NOT be silently substituted for the declared adapter.
+
+The local auxiliary decision engine is limited to typed decision primitives `CHOICE`, `SCORE`, and `NOUL`, and to explicitly registered purposes: `FAILURE_CLASSIFICATION`, `ROUTING`, `RECOVERY_CLASSIFICATION`, and `ESCALATION_RECOMMENDATION`. It is not a general text-generation, code-generation, vision, embedding, or deep-deliberation model.
+
+Every local-engine result is represented as a `LocalDecisionProposal`. A proposal is advisory input only. It MUST NOT authorize a command, grant a permission, mutate authoritative state, promote an artifact or preview, change a policy, alter a capability status, mark a task complete, override an evidence gate, or override any deterministic authority.
+
+Local-engine provisioning may occur automatically during Nirman's existing first-launch bootstrap. Provisioning MUST use a signed pinned manifest, HTTPS acquisition, SHA-256 verification, license metadata recording, isolated installation paths, and a post-install self-test. Model bytes MUST NOT be acquired from a mutable `latest` or `main` reference.
+
+Local-engine availability is optional. A provisioning failure, model-integrity failure, runtime failure, insufficient local resources, or unavailable local engine MUST NOT block Nirman startup, planning-only operation, external cloud-provider configuration, or deterministic local features. The runtime falls back to the existing non-local path or continues without the auxiliary proposal.
+
+The local auxiliary engine has its own lifecycle and health state and does not alter `SessionProviderMode`. `SessionProviderMode` continues to describe the availability of Nirman's external provider-backed model path only.
+
+The external provider contract remains cloud-hosted and network-reachable. Localhost, loopback, RFC-1918, and self-hosted provider endpoints remain rejected by the provider configuration path. The local auxiliary decision engine is an internal supervisor service and is not a provider endpoint.
+
+A locally provisioned model revision is immutable after admission. A change of model revision, model digest, runtime adapter version, manifest version, or decision contract invalidates prior local decision proposals that depend on the changed identity.
+
+Initial local-engine admission is `EXPERIMENTAL` and MUST remain non-authoritative until the dedicated milestone evidence proves deterministic behavior, reproducibility, resource behavior, security/provenance requirements, and decision-quality thresholds on representative Nirman fixtures. Promotion to `ACTIVE` requires the M126 exit gate.
+
+**Rationale:** Nirman already distinguishes external model reasoning from deterministic runtime authority. A bounded local typed-decision engine can provide low-latency classification and routing without introducing a second general-purpose reasoning stack or weakening the provider abstraction. Keeping it outside `ModelGateway` prevents provider semantics from becoming ambiguous while allowing automatic first-launch provisioning through the existing trusted bootstrap architecture.
+
+**Consequences:** `nirman-build-spec.md` narrows the meaning of `SessionProviderMode`, introduces the local auxiliary decision path, updates the local-first/provider boundary, and records local proposal semantics. `nirman-technical-architecture.md` gains `LocalDecisionEngine` and `LocalDecisionEngineProvisioner` as supervisor-owned components, a local-engine profile and proposal lifecycle, persistence records, boot admission, recovery, and orchestration wiring. `nirman-schemas.md` gains `LocalDecisionEngineProfile` and `LocalDecisionProposal`. `nirman-milestones.md` adds a contract-gated M126 milestone. `GLOSSARY.md`, `README.md`, and generated `INDEX.md` are updated to describe the new bounded capability. The existing ModelGateway provider contract remains external-provider-only.
+
+**Reversal trigger:** Reversal is justified if local-engine decisions fail the required Nirman fixture thresholds, cannot maintain reproducible model identity and provenance, materially violate resource-integrity constraints, introduce unacceptable security or supply-chain risk, or create a persistent architectural contradiction with the provider, authority, or evidence model.
 
 ---
