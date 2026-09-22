@@ -205,8 +205,8 @@ CASES = {
 
     # ---- check 10: orphan contract (the false-negative case)
     "orphan contract with a VALID class": (
-        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |",
-        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |\n"
+        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M93 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M93 | FOUNDATIONAL |\n"
         "| CONTRACT.RUNTIME.DEAD_TEST | BS §64 | — | TA §69 | ADR-153 | M90 | INTERNAL |",
         "orphan contract"),
     "cross-cutting contract unreachable from any capability": (
@@ -220,8 +220,8 @@ CASES = {
         "- nonOverriddenClauses: CLAUSE.AUTHORITY.NO_SELF_ELEVATION\n\nThis section extends §33",
         "undeclared extension"),
     "reasoning contract loses its milestone": (
-        BS, "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 |",
-        "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M999 |",
+        BS, "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218, ADR-252 | M94 |",
+        "| CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218, ADR-252 | M999 |",
         "dangling reference"),
     "reasoning architecture points at BS": (
         BS, "| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 |",
@@ -874,8 +874,8 @@ CASES = {
         "The Task Ledger is stored locally as a structured state file within the workspace",
         "semantic documentation"),
     "local-provider requests reintroduced in M22": (
-        DEV, "compatible cloud-provider requests (cloud-hosted providers only per ADR-207)",
-        "compatible local-provider requests",
+        DEV, "compatible cloud-provider requests.",
+        "compatible local-provider requests.",
         "semantic documentation"),
     "BrandAssetWorker reintroduced in architecture": (
         TA, "### 56.1 Asset execution under the canonical UI Worker", "### 56.1 BrandAssetWorker",
@@ -1506,8 +1506,8 @@ CASES = {
         "behavioral or accessibility correctness (BS §79.5; TA §474).",
         "dangling reference"),
     "registry and twelve-edge milestone cells disagree": (
-        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |",
-        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M94 | FOUNDATIONAL |",
+        BS, "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M93 | FOUNDATIONAL |",
+        "| CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M94 | FOUNDATIONAL |",
         "structure"),
     "schema block sits outside its group region": (
         SCHEMAS, "## 3. Canonical schema registry",
