@@ -34,6 +34,9 @@ __pycache__/
 .workbuddy/
 .workbuddy-ai/
 .kilocode/
+.freebuff/
+.kombai/
+scratch/
 
 # Credential stores and other secret material that a local agent host may write inside the
 # working tree (git credential helpers, provider tokens, signing keystores). The agent

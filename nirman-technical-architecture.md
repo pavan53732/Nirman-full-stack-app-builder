@@ -2137,7 +2137,7 @@ This section defines the components that implement the human-in-the-loop and aut
 
 `CorrectionMemoryStore` is a named partition of `ProjectMemoryStore` (§59.1, crate `nirman-context`) dedicated to user-confirmed correction facts: cases where the user explicitly rejected an agent output and provided the correct alternative. Every `CorrectionMemoryStore` entry must carry its source `FeedbackRecord.feedbackId`, the `EpisodeRecord.episodeId` of the task it corrects, and the original agent output. `MemoryWriter` applies the same validation rules as the parent `ProjectMemoryStore`; model-generated statements without durable user confirmation do not qualify as corrections.
 
-`FeedbackTriagePrioritizer` is a module in `nirman-control-plane` that prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue before routing them to worker dispatch. Priority is computed from feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and frequency of co-occurring feedback. The prioritizer produces an ordered dispatch list; `TaskScheduler` and `PolicyAuthority` govern the actual worker dispatch.
+`FeedbackTriagePrioritizer` is a module in `nirman-control-plane` that prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue before routing them to worker dispatch. Priority is computed from feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING), recency, affected-requirement criticality, and frequency of co-occurring feedback. The prioritizer produces an ordered dispatch list; `TaskScheduler` and `PolicyAuthority` govern the actual worker dispatch.
 
 ---
 
@@ -2498,7 +2498,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 1. *Boundary parsing:* Scans Kotlin, Java, and XML source files for declared safe-zone comments (`// nirman:protected-start` ... `// nirman:protected-end`) and `@NirmanProtected` annotations.
 2. *Pre-transaction violation check:* Validates every incoming `StructuredPatch` against the active protected line ranges; any patch that modifies, moves, or deletes tokens within a protected zone is rejected with `PROTECTED_ZONE_VIOLATION` before staging.
 
-**Fast micro-loop incremental compilation and validation.** To provide the sub-5-second feedback required by BS §52.3a's Tier 1 Inner Micro-Loop, `MicroLoopValidator` gates proposed mutations before transaction staging:
+**Fast micro-loop incremental compilation and validation.** To provide the sub-5-second feedback required by BS §52.3's Tier 1 Inner Micro-Loop, `MicroLoopValidator` gates proposed mutations before transaction staging:
 1. *In-memory AST validation:* Validates syntax, brace matching, and Compose annotations using Tree-sitter parsers, rejecting malformed constructs with instant syntax diagnostics.
 2. *Incremental module compiler dry-run:* Invokes an isolated, non-packaging Gradle compilation check (`compileDebugKotlin` targeting strictly the affected module) to verify type correctness, import resolution, and symbol bindings without packaging APKs or touching emulator runtimes.
 3. *Micro-fail-fast dispatch:* Emits a fingerprinted `MICRO_COMPILATION_ERROR` or `AST_VALIDATION_ERROR` and halts Tier 1 execution within 5 seconds on defects, handing diagnostic feedback back to the agent before disk staging or downstream invalidation occurs.
@@ -3518,6 +3518,7 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `AndroidSecurityIntelligenceService` | service | `nirman-android` | Named service grouping `AppSecurityScanner`, `SecurityRiskScorer`, and `SecurityAuditGenerator`; coordinates exploit-pattern detection, severity-weighted risk scoring, and pre-promotion security audit report generation for the generated Android application (§70.1; §70.3; BS §58.2) | risk score and audit report records via `FindingDispositionStore` | §70.3 |
 | `SecurityRiskScorer` | module | `nirman-android` | Severity-weighted aggregation of `AppSecurityScanner` findings into a structured `SecurityRiskScore` bound to the artifact revision; read-only projection — `ProvenanceRecorder` remains the sole promotion gate (§70.1; §70.3) | `SecurityRiskScore` record in `FindingDispositionStore` | §70.3 |
 | `SecurityAuditGenerator` | module | `nirman-android` | Composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact record attached before promotion; read-only projection — promotion authority remains with `ProvenanceRecorder` (§70.1; §70.3) | security audit report artifact record | §70.3 |
+| `FindingDispositionStore` | module | `nirman-android` | Records security and dependency findings as blocking or accepted with reason; ensures findings are never silently dropped before artifact promotion (§70.1; BS §58.5) | security finding disposition records | §70.1 |
 | `DependencyIntelligenceService` | service | `nirman-android` | Read-only coordination facade over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore`; routes typed dependency-intelligence queries from kernel workers and IPC command handlers to authoritative components without creating a second authority; `ProvenanceRecorder` remains the sole promotion gate (§53.8.1; BS §58.3) | none — read-only; proposals routed through `MutationBroker` | §53.8.1 |
 | `AndroidTestIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over test comprehension engines; routes on-demand test-to-code mapping, coverage gap analysis, untested branch detection, test intent extraction, assertion strength analysis, flakiness detection, fixture tracing, mock boundary validation, pyramid balance, and redundant test elimination without creating a second authority (BS §47.5) | none — read-only; proposals routed through `MutationBroker` | §53.5.1 |
 | `TestToCodeMappingEngine` | module | `nirman-android` | Bi-directional symbol-to-test and test-to-symbol mapping across unit, instrumentation, and scenario tests (§53.5.2) | none — analytical queries | §53.5.2 |
@@ -3608,12 +3609,12 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `UserPreferenceLearner` | module | `nirman-context` | Extracts validated user preference facts from confirmed `EpisodeRecord` decisions and `FeedbackRecord.kind = CORRECTION` items; writes to `ProjectMemoryStore` through `MemoryWriter` (§59.1); never writes preferences inferred from model summaries alone — durable user action or explicit confirmation is required provenance (§44.3.3) | `MemoryRecord`s (through `MemoryWriter`) | §44.3.3 |
 | `CodeStyleExtractor` | module | `nirman-android` | Analyzes committed source history and confirmed correction feedback to extract code style conventions; populates style-constraint fields in `SkillPackage` candidates (§19.1) that must pass full skill admission before becoming active constraints; never modifies existing admitted skills (§44.3.3) | none — proposals only; skill admission governed by §19.1 | §44.3.3 |
 | `CorrectionMemoryStore` | module | `nirman-context` | Named partition of `ProjectMemoryStore` (§59.1) for user-confirmed correction facts; every entry must carry source `FeedbackRecord.feedbackId`, `EpisodeRecord.episodeId`, and the original agent output; `MemoryWriter` validation rules apply; model-generated statements without durable user confirmation are ineligible (§44.3.3) | `MemoryRecord`s scoped to correction partition (through `MemoryWriter`) | §44.3.3 |
-| `FeedbackTriagePrioritizer` | module | `nirman-control-plane` | Prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue by feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING > ANNOTATION), recency, affected-requirement criticality, and co-occurrence frequency; produces an ordered dispatch list — `TaskScheduler` and `PolicyAuthority` govern actual worker dispatch (§44.3.3) | none — ordering only | §44.3.3 |
+| `FeedbackTriagePrioritizer` | module | `nirman-control-plane` | Prioritizes pending `FeedbackRecord` items from the `FeedbackIngestionPipeline` queue by feedback kind (CORRECTION > IMPLICIT_DISSATISFACTION > RATING), recency, affected-requirement criticality, and co-occurrence frequency; produces an ordered dispatch list — `TaskScheduler` and `PolicyAuthority` govern actual worker dispatch (§44.3.3) | none — ordering only | §44.3.3 |
 | `ThreeWayAstMergeEngine` | module | `nirman-android` | Structural 3-way Tree-sitter AST merge reconciling base generated code, user manual edits, and agent synthesis (§47.4; BS §4.5) | none — proposal producer; commits via `MutationBroker` | §47.4 |
 | `RegenerationSafeZoneMarker` | module | `nirman-android` | Statically parses and enforces protected code region boundaries (`// nirman:protected-start`) against mutation proposals (§47.4; BS §4.5, §43.2) | none — analytical safety check; evaluated by `MutationBroker` | §47.4 |
-| `MicroLoopValidator` | module | `nirman-android` | Pre-transaction AST syntax validation and isolated incremental compilation check enforcing sub-5s feedback for Tier 1 micro-loop (§47.4; BS §52.3a) | none — validation gate; evaluated before transaction staging | §47.4 |
+| `MicroLoopValidator` | module | `nirman-android` | Pre-transaction AST syntax validation and isolated incremental compilation check enforcing sub-5s feedback for Tier 1 micro-loop (§47.4; BS §52.3) | none — validation gate; evaluated before transaction staging | §47.4 |
 | `AndroidThreatSketchSynthesizer` | module | `nirman-android` | Generates structured threat models, attack surfaces, and negative E2E validation scenarios for security-sensitive archetypes (§70.7.6; BS §58.2b) | none — analytical security model producer | §70.7.6 |
-| `DependencyVulnerabilityAutomerger` | module | `nirman-android` | Bumps vulnerable patch dependencies in `libs.versions.toml` and orchestrates isolated smoke verification (§73.18.8; BS §28.7) | none — proposals committed via `MutationBroker` under `Security Worker` | §73.18.8 |
+| `DependencyVulnerabilityAutomerger` | module | `nirman-android` | Bumps vulnerable patch dependencies in `libs.versions.toml` and orchestrates isolated smoke verification (§73.18.8; BS §58.3) | none — proposals committed via `MutationBroker` under `Security Worker` | §73.18.8 |
 
 The §21 hierarchy resolves to these rows as follows: Lifecycle authority is `LifecycleAuthority`; Permission authority is `PolicyAuthority`; Sandbox authority is `PolicyAuthority` for the profiles of build spec §26.5, enforced by `ToolBroker`, `TerminalSupervisor`, and `WorkerRuntime` through restricted tokens and Job Objects; Storage authority is the SQLite execution ledger of §57.5, written only through `EventStore` and `ConstructionTransactionManager`; Evidence authority is `EvidenceAuthority`; Recovery authority is `RecoveryAuthority`; Promotion authority is `PreviewPromotionGate` for previews, `ArtifactAuthority` for artifacts, `CapabilityPromotionAuthority` for capability maturity, and `UpdateController` for self-update activation and rollback (§25.2). `Nirman.exe` hosts none of these rows; `NirmanWorker.exe` hosts only the `nirman-agents` rows; every other row runs inside `NirmanSupervisor.exe` (§3.5).
 
@@ -5063,7 +5064,7 @@ This section is the **canonical cycle state machine** and the single authority o
 
 The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.5 and feed the failure signatures of §63.4.
 
-`NegativePremiseStore` is the named partition within `ProjectMemoryStore` (§59.1) that indexes rejected hypotheses, failed AST patch fingerprints, and refuting evidence records. Before entering `STRATEGIZE` (§71.4) or authorizing a mutation proposal, `StrategySelector` queries `NegativePremiseStore` to prune candidate hypotheses that match known refuted premises, preventing repetitive regression cycles and redundant model deliberation (BS §52.3b).
+`NegativePremiseStore` is the named partition within `ProjectMemoryStore` (§59.1) that indexes rejected hypotheses, failed AST patch fingerprints, and refuting evidence records. Before entering `STRATEGIZE` (§71.4) or authorizing a mutation proposal, `StrategySelector` queries `NegativePremiseStore` to prune candidate hypotheses that match known refuted premises, preventing repetitive regression cycles and redundant model deliberation (BS §52.3).
 
 ### 71.6 CapabilityRegistry and discovery
 
@@ -5756,7 +5757,7 @@ UI → Metro or Expo
 UI → emulator
 UI → AndroidTechnologyAdapter.executeBuild | install | launch | reload |
     observeRuntime | captureScreenshot | captureUiHierarchy |
-    collectLogcat | runValidation
+    collectLogcat
 ```
 
 The §73.8 rule that the preview panel is a read model of durable control-plane events is preserved; the technology adapter and the build and device adapters do not change the panel authority, they only supply observations through the existing `PreviewSyncEvent` and `PreviewSyncEvidenceRecord` flow.
@@ -5771,7 +5772,7 @@ All Android intelligence services and analytical modules are **typed read-only p
 
 `AndroidProductIntelligenceService` creates no second authority. It does not directly mutate the `AndroidConstructionContract` or project source code; all mutation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). It does not maintain or expose a user-facing template catalog (`CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG`). It has no external cloud scraper or competitor crawler dependencies and consumes zero AI token/duration budgets (ADR-218, BS §72).
 
-### 73.15.1 ImplicitRequirementMiner
+#### 73.15.1 ImplicitRequirementMiner
 
 `ImplicitRequirementMiner` deterministically expands high-level user requests and explicit feature declarations into mandatory companion requirements:
 1. *Authentication companion expansion:* Expands login requirements to include password reset, secure session logout, token expiry handling, and account deletion pathways (Google Play account deletion mandate).
@@ -5779,7 +5780,7 @@ All Android intelligence services and analytical modules are **typed read-only p
 3. *Transactional interaction expansion:* Expands checkout, booking, or financial operations to include transaction confirmation modals, receipt display, offline idempotency guards, and network timeout recovery.
 4. *Contract injection:* Proposes inferred companion requirements into the `Feature model` of `AndroidConstructionContract` (BS §42.1) with explicit source attribution (`inferred: true`, `parentRequirementId`).
 
-### 73.15.2 RequirementConflictDetector
+#### 73.15.2 RequirementConflictDetector
 
 `RequirementConflictDetector` performs pre-construction semantic and architectural contradiction detection across proposed requirements before any transaction opens:
 1. *Architectural contradictions:* Detects conflicting architectural choices (e.g. offline-only requirement paired with real-time cloud collaboration; conflicting database persistence choices; conflicting state management paradigms).
@@ -5787,28 +5788,28 @@ All Android intelligence services and analytical modules are **typed read-only p
 3. *Permission and capability contradictions:* Flags conflicting Android capabilities (e.g. background location tracking declared without background service entitlement; exact alarm usage without `SCHEDULE_EXACT_ALARM` justification).
 4. *Conflict resolution guidance:* Emits structured contradiction diagnostics directly to `Requirements Planner`, triggering targeted clarification under BS §69.11 before code generation begins.
 
-### 73.15.3 RequirementTestabilityScorer
+#### 73.15.3 RequirementTestabilityScorer
 
 `RequirementTestabilityScorer` statically evaluates whether a synthesized requirement has deterministically observable post-conditions on Android:
 1. *Observability scoring:* Computes a testability score based on whether requirement acceptance criteria bind to observable UI elements (Compose semantics nodes), inspectable persistent storage (Room entity queries), interceptable local network doubles, or mockable system hardware sensors.
 2. *Ambiguity and unobservable assertion detection:* Flags vague requirements lacking concrete post-conditions (e.g. "app should feel snappy", "clean interface") and requires reformulation into verifiable metrics (e.g. frame render duration, text contrast ratio).
 3. *Pre-commit verification:* Complements `PlanCompletenessValidator` (BS §69.11) by ensuring only testable requirements advance to `AndroidConstructionContract` commitment.
 
-### 73.15.4 PersonaInferenceEngine
+#### 73.15.4 PersonaInferenceEngine
 
 `PersonaInferenceEngine` infers target stakeholder personas and ergonomic profiles from user intent and product descriptions:
 1. *Ergonomic profile derivation:* Determines primary usage contexts (e.g. on-the-go one-handed usage for transit apps requiring bottom-anchored controls and minimum 48dp touch targets; seated dual-hand usage for productivity apps).
 2. *Accessibility and visual profile:* Infers required contrast baselines, Dynamic Type font scaling ranges, and screen reader TalkBack content description priorities based on the intended audience (e.g. high-contrast, large-type defaults for senior/medical apps).
 3. *UX complexity calibration:* Recommends appropriate progressive disclosure levels (streamlined wizard flows for consumer apps vs dense data dashboards for technical utilities) to guide UI component composition without templates.
 
-### 73.15.5 AndroidDomainKnowledgeCatalog
+#### 73.15.5 AndroidDomainKnowledgeCatalog
 
 `AndroidDomainKnowledgeCatalog` provides a local, offline repository of idiomatic Android architecture patterns, entity models, and state-machine workflows:
 1. *Domain entity models:* Maintains standard relational Room entity schemas and relationships for common application domains (E-Commerce: Cart, Product, Order; Fitness: Workout, Exercise, Set; Productivity: Task, Project, Tag) to assist `Requirements Planner` in generating normalized schemas without user-facing templates.
 2. *Domain state-machine workflows:* Enforces standard Android lifecycle state transitions (e.g. Onboarding to Authentication to Dashboard; Cart to Checkout to PaymentConfirmation; Playback to Pause to Buffering) for comprehensive `ScenarioSynthesizer` (§62.1) coverage.
 3. *Zero-template compliance:* Operates strictly as internal reference heuristics for requirement and schema formulation; never exposes a template picker or pre-built skeleton app to the user (`CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG`).
 
-### 73.15.6 RegulatoryComplianceAnalyzer
+#### 73.15.6 RegulatoryComplianceAnalyzer
 
 `RegulatoryComplianceAnalyzer` evaluates declared permissions, target API levels, and data collection models against Google Play policies and regional privacy regulations:
 1. *Google Play policy verification:* Audits requirements against Google Play policies (Families Policy requirements for children's apps, Prominent Disclosure mandates for background location and health data, Account Deletion URL/in-app requirements).
@@ -5938,13 +5939,14 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 
 `AndroidPlatformTargetService` is the supervisor-owned, read-only aggregate query facade that coordinates Android OS platform-specific generation, Gradle configuration, shrinker rules, system integrations, and device fragmentation compliance. It exposes a typed query surface to platform engineering workers (`Android Platform Worker`, `Architecture Worker`, `Release Worker`) and registered IPC command handlers.
 
-`AndroidPlatformTargetService` coordinates six deterministic analytical and synthesis components:
+`AndroidPlatformTargetService` coordinates seven deterministic analytical and synthesis components:
 1. *Manifest permission derivation:* Invokes `ManifestPermissionDeriver` (§73.18.2) to statically derive required `<uses-permission>` tags and runtime permission requests based on framework API usage.
 2. *Gradle configuration synthesis:* Invokes `GradleConfigSynthesizer` (§73.18.3) to scaffold and maintain multi-module `build.gradle.kts`, `settings.gradle.kts`, and `libs.versions.toml` version catalogs.
 3. *Shrinker rule generation:* Invokes `ShrinkerRuleGenerator` (§73.18.4) to synthesize and validate ProGuard/R8 consumer rules for reflection, serialization, Room entities, and JNI entry points.
 4. *Notification channel setup:* Invokes `NotificationChannelSetup` (§73.18.5) to scaffold Android 8.0+ (API 26+) notification channel structures and Android 13+ (API 33+) `POST_NOTIFICATIONS` runtime permission flows.
 5. *Deep link and intent filter generation:* Invokes `DeepLinkIntentFilterGenerator` (§73.18.6) to generate `<intent-filter>` declarations in `AndroidManifest.xml` and Jetpack Compose Navigation 2.8+ type-safe deep links.
 6. *Target API deadline tracking:* Invokes `TargetApiDeadlineTracker` (§73.18.7) to verify that `targetSdk` satisfies current Google Play Store submission mandates and warn on approaching deprecation deadlines.
+7. *Dependency vulnerability automerging:* Invokes `DependencyVulnerabilityAutomerger` (§73.18.8) to bump vulnerable patch dependencies in `libs.versions.toml` and orchestrate isolated smoke verification.
 
 *Integration with established platform components:*
 `AndroidPlatformTargetService` directly integrates with and builds upon Nirman's established canonical platform analyzers: API level compliance and desugaring are enforced via `AndroidApiLevelValidator` (§47.4); Jetpack lifecycle flows are verified by `AndroidDataFlowAnalyzer` (§47.4) and the closed-world decision matrix (§73.2); background work execution is governed by `OfflineSyncProtocolPlanner` (§47.4) and WorkManager policies (§73.2); and multi-device matrix coverage is validated by `AndroidEmulatorScenarioCoordinator` (§65) against `DeviceMatrixEntry` profiles (BS §59.2).

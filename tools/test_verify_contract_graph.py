@@ -198,10 +198,10 @@ CASES = {
     "ADR Locks field removed": (
         ADRS, "**Locks:** `CONTRACT.RUNTIME.SPECULATION`\n\n", "", "reverse break"),
     "milestone mapping loses its contract": (
-        DEV, "| M91 | CONTRACT.RUNTIME.TRIGGER |", "| M91 | |", "reverse break"),
+        DEV, "| M91       | CONTRACT.RUNTIME.TRIGGER                                         |", "| M91       |                                                                  |", "reverse break"),
     "milestone mapping loses test id": (
-        DEV, "| M86 | CONTRACT.RUNTIME.LOCALIZATION | ADR-147 | TEST-LOC-001 |",
-        "| M86 | CONTRACT.RUNTIME.LOCALIZATION | ADR-147 |  |", "reverse break"),
+        DEV, "| M86       | CONTRACT.RUNTIME.LOCALIZATION                                    | ADR-147                                                                                  | TEST-LOC-001       |",
+        "| M86       | CONTRACT.RUNTIME.LOCALIZATION                                    | ADR-147                                                                                  |                    |", "reverse break"),
 
     # ---- check 10: orphan contract (the false-negative case)
     "orphan contract with a VALID class": (
@@ -293,7 +293,7 @@ CASES = {
         "**Status:** Accepted",
         "semantic documentation"),
     "M95 mapping loses its contract": (
-        DEV, "| M95 | CONTRACT.RUNTIME.DELIBERATION |", "| M95 | |", "reverse break"),
+        DEV, "| M95       | CONTRACT.RUNTIME.DELIBERATION                                    |", "| M95       |                                                                  |", "reverse break"),
 
     # ---- ADR-218 vocabulary cleanup (second pass): budget wording must not return
     "mutation budget reintroduced in broker validation list": (
@@ -414,7 +414,7 @@ CASES = {
     # a hand-edited count, or an all-PLANNED claim that the registry no longer
     # supports, is a semantic-documentation defect.
     "README capability count drifts from the §5.7 registry": (
-        README_MD, "All 27 registered capabilities are `PLANNED`.", "All 26 registered capabilities are `PLANNED`.",
+        README_MD, "All 28 registered capabilities are `PLANNED`.", "All 27 registered capabilities are `PLANNED`.",
         "semantic documentation"),
     "README claims all capabilities PLANNED while a §5.7 row says SUPPORTED": (
         BS, "| TEST-GEN-001 | EV-GEN-001 | PLANNED |", "| TEST-GEN-001 | EV-GEN-001 | SUPPORTED |",
@@ -1015,7 +1015,7 @@ CASES = {
         BS, "## 83. Change Intelligence Contract", "## 83. Diff Viewer Notes",
         "canonical identity"),
     "contract given a second owning milestone": (
-        DEV, "| M119 | extends CONTRACT.RUNTIME.SKILL |", "| M119 | CONTRACT.RUNTIME.SKILL |",
+        DEV, "| M119      | extends CONTRACT.RUNTIME.SKILL                                   |", "| M119      | CONTRACT.RUNTIME.SKILL                                           |",
         "reverse break"),
     "milestone-level evidence id loses its constituent statement": (
         DEV, "and `EV-GEN-001` is not complete for that capability while `EV-IB-001` is missing.", "",
@@ -1126,7 +1126,7 @@ CASES = {
         BS, "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 |",
         "| CONTRACT.RUNTIME.NOPROMPT | BS §69 |", "unregistered contract"),
     "intent contract loses its ADR": (
-        BS, "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 |",
+        BS, "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-231 | M96 |",
         "| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-000 | M96 |", "dangling reference"),
     "no-template clause loses its contract": (
         BS, "| CLAUSE.PROMPT_CONTRACT.NO_TEMPLATE_CATALOG | CONTRACT.RUNTIME.PROMPT_CONTRACT |",
@@ -1183,8 +1183,8 @@ CASES = {
         "structure"),
     "duplicate milestone registry identity": (
         DEV,
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |",
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |\n| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  |",
         "structure"),
 
     # ---- semantic documentation lint
@@ -1201,8 +1201,8 @@ CASES = {
     "semantic missing profile identity": (
         SCHEMAS, "- profileId", "- profileIdentifier", "semantic documentation"),
     "semantic duplicate milestone outcome": (
-        DEV, "| M38 | Certified Android profile coverage and production acceptance |",
-        "| M38 | Android capability registry and representative profile coverage |",
+        DEV, "| M38       | Certified Android profile coverage and production acceptance    |",
+        "| M38       | Android capability registry and representative profile coverage |",
         "semantic documentation"),
     "semantic missing approval precedence": (
         TA, "### 16.2.1 The Autonomous-build policy and approval precedence",
@@ -1662,15 +1662,15 @@ CASES = {
         "", "reverse break"),
     "remove M120 mapping": (
         DEV,
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |\n",
         "", "dangling reference"),
     "remove M121 mapping": (
         DEV,
-        "| M121 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | ADR-212 | TEST-CONV-001 | EV-CONV-001 | Durable Conversation Context |\n",
+        "| M121      | CONTRACT.RUNTIME.CONVERSATION_CONTEXT                            | ADR-212                                                                                  | TEST-CONV-001      | EV-CONV-001      | Durable Conversation Context                                                                                            |\n",
         "", "dangling reference"),
     "remove M122 mapping": (
         DEV,
-        "| M122 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | ADR-213 | TEST-CHANGE-001 | EV-CHANGE-001 | Change Intelligence |\n",
+        "| M122      | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE                             | ADR-213                                                                                  | TEST-CHANGE-001    | EV-CHANGE-001    | Change Intelligence                                                                                                     |\n",
         "", "dangling reference"),
     "wrong ADR in M120 contract": (
         BS,
@@ -1704,13 +1704,13 @@ CASES = {
         "duplicate authority"),
     "remove M120 test id": (
         DEV,
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 |",
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 |  | EV-CONTENT-001 |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  |                    | EV-CONTENT-001   |",
         "reverse break"),
     "duplicate milestone mapping rejected": (
         DEV,
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |",
-        "| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |\n| M120 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | ADR-211 | TEST-CONTENT-001 | EV-CONTENT-001 | Content and Writing Intelligence |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |",
+        "| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |\n| M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |",
         "structure"),
     "missing ChangeImpactReport provenance": (
         TA,
@@ -1921,7 +1921,7 @@ CASES = {
         "semantic documentation"),
     "§80.9 parameter count drifts from §80.3": (
         BS,
-        "§80.3 declares 55",
+        "§80.3 declares 59",
         "§80.3 declares 60",
         "semantic documentation"),
     "a skill requires a capability the closed vocabulary does not declare": (

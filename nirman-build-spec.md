@@ -3682,7 +3682,7 @@ The runtime provides a deterministic service that maps requirements to scenarios
 
 On-demand identification and risk prioritization of coverage gaps across requirements, state-space transitions, and AST source code is provided by `CoverageGapLocator` (TA §53.5.3), while untested control flow graph decision points are identified by `UntestedBranchDetector` (TA §53.5.4). Unresponsive or inert interactive controls during exploration are identified by `DeadControlDetector` (TA §62.1.1), while visual pathologies such as unrendered or blank viewports are caught by `BlankScreenDetector` (TA §73.5.2) before preview promotion.
 
-### 56.x Testing-strength requirements
+### 56.7 Testing-strength requirements
 
 Every completion-relevant E2EScenario MUST be evaluated across five dimensions:
 
@@ -3702,7 +3702,7 @@ Stateful verification is satisfied only when every functional requirement maps t
 
 A model claim, source inspection, successful compilation, static screenshot, or predicted UI state MUST NOT satisfy a behavioral acceptance condition when that condition is executable on the Android runtime.
 
-### 56.7 Per-stack UI validation framework binding
+### 56.8 Per-stack UI validation framework binding
 
 Each technology composition the resolver may select MUST declare its UI validation binding: Android Views → Espresso; Jetpack Compose → Compose UI Test; Expo/React Native → an out-of-process UI-tree driver. The binding is part of `AndroidTechnologyPlan` and MUST be resolved when the technology is resolved, not at test time. A composition with no declared binding MUST report `CAP.ANDROID.E2E_VERIFY` as `UNAVAILABLE` for that composition rather than silently downgrading to screenshot comparison. Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND; the technology adapter MUST NOT execute it. Results enter the evidence chain as an `Observation`; a passing test is evidence, never an independent completion decision. A test MUST NOT be weakened, skipped, or deleted to reach a passing state.
 
@@ -4345,7 +4345,7 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-141, ADR-155 | M81 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-155 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-219 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
@@ -4361,11 +4361,11 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.TRIGGER | BS §60 | — | TA §68 | ADR-151 | M91 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.SPECULATION | BS §65 | — | TA §88 | ADR-156 | M92 | INTERNAL |
 | CONTRACT.RUNTIME.SKILL | BS §23 | BS §52 | TA §19 | ADR-154 | M66 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-181 | M96 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.PROMPT_CONTRACT | BS §69 | — | TA §73 | ADR-231 | M96 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157 | M93 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-157 | M93 | INTERNAL |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250 | M93 | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |
@@ -4432,7 +4432,7 @@ M93 must verify the contract graph programmatically rather than by inspection. T
 
 The verifier must emit defects with the contract identifier, the sections involved, and the specific violated rule. Certification passes only when the verifier reports zero defects across all twelve contract-graph checks in both traversal directions and across its document-structure checks; document-structure checks are additional to, and never counted among, the twelve contract-graph checks.
 
-The document-structure checks are these three defect classes. Each is individually addressable in the verifier output exactly like the twelve above, and a defect in any of them fails certification:
+The document-structure checks are these four defect classes. Each is individually addressable in the verifier output exactly like the twelve above, and a defect in any of them fails certification:
 
 The schema-parity relation named in the semantic-documentation row is this: the technical architecture's `CanonicalSchemaRegistry` (technical architecture §36.1; the list itself is held at SCHEMAS §3.1) is the single list of registered schema identities, and every fenced field-list schema has exactly one block, in `nirman-schemas.md`, whose owner line names the owning section of this document or of the technical architecture (ADR-220). A registered schema MUST have identical field-name sets in every occurrence; since the block is the only occurrence, the relation is enforced as follows: every `Schema.field` reference in a canonical document names a field the block carries, every field count stated in the body text of a canonical document matches the block, and a projection line stands at every former fence site and agrees with the block's owner line. Where a merged block carries a field that only the technical architecture's copy carried, the field line says so (`(technical architecture §x addition; build spec §67.11)`) and a count stated by this document excludes it. A schema named in the registry with no field block, a block that drops or renames a field a canonical document still cites by name, or a schema fence outside `nirman-schemas.md`, is a semantic-documentation or structure defect.
 
@@ -4440,7 +4440,7 @@ The schema-parity relation named in the semantic-documentation row is this: the 
 |---|---|
 | Structure | Section numbering is non-contiguous, a registry table is empty or malformed, a §80.2 row misquotes its source sentence, ADR numbering has gaps, a fenced field block sits outside the physical group region that owns its section number, a registered canonical-schema identity has neither a field block nor an entry in the §3.1 prose-defined identity list, or an edge cell disagrees between §67.8 and §67.15 |
 | NO_AI_USAGE_AUTHORITY | The corpus MUST NOT introduce an authoritative Nirman-owned AI token, request, monetary, reasoning, pass, or autonomous-duration budget, nor any semantic alias of these (including but not limited to: AI quota, inference cost, model credit, reasoning credit, prompt cost, completion token, embedding cost, throughput token, context credit, token pool, request budget, cost cap, model allowance, reasoning allowance, pass allowance, duration allowance, autonomous budget, execution credit, token limit as execution control, or any field whose semantics are AI-usage-quantity-with-authority). Usage fields are telemetry only and carry no execution-authority semantics. Physical resource, provider technical-capacity, concurrency, liveness, and policy constraints remain permitted. |
-| schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; or a `BS §n`, `TA §n`, or `SCHEMAS §n` pointer in a canonical document names a section that the target document does not contain; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
+| Semantic documentation | schema field block, lifecycle set, single-committer statement, ContractId binding of an architecture section, schema-parity relation, banned execution-control token, homonym rule, or forbidden preview-pipeline path (technical architecture §73.14: a §76.1 command kind in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace, or a concrete execution operation on the `AndroidTechnologyAdapter`) declared in the verifier is violated; or a `BS §n`, `TA §n`, or `SCHEMAS §n` pointer in a canonical document names a section that the target document does not contain; skill instruction bodies (§79.7) carry the excluded host stack or a physical-device path |
 | Command payload coverage | An implementation-facing command payload under `crates/` lacks a policy-mandatory field of its canonical schema; reported as unevaluated, never as passed, when the source is absent |
 
 The verifier also accepts `--dump-registries`, which prints the parsed §5.7, §67.8, §67.12, §67.15, and milestone-mapping registries without changing the exit code; this is the only sanctioned way to inspect what the verifier believes the registries say.
@@ -4616,7 +4616,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE | BS §5 | BS §5 | TA §47 | TA §47.1 | BS §5 | TA §47.2 | TA §47.3 | ADR-180 | M11 | TEST-GEN-001 | EV-GEN-001 |
-| CONTRACT.RUNTIME.PROMPT_CONTRACT | CAP.ANDROID.GENERATE | BS §27 | BS §69 | TA §73 | TA §73.1 | BS §69 | TA §73.4 | TA §73.7 | ADR-181 | M96 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.PROMPT_CONTRACT | CAP.ANDROID.GENERATE | BS §27 | BS §69 | TA §73 | TA §73.1 | BS §69 | TA §73.4 | TA §73.7 | ADR-231 | M96 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
@@ -4648,7 +4648,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | N/A (INTERNAL predicate) | N/A (INTERNAL predicate) | BS §80 | N/A (INTERNAL predicate) | BS §80 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | N/A (INTERNAL predicate) | N/A (INTERNAL predicate) | BS §80 | N/A (INTERNAL predicate) | BS §80 | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-001 |
 | CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.3 | ADR-212 | M121 | TEST-CONV-001 | EV-CONV-001 |
 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.6 | ADR-213 | M122 | TEST-CHANGE-001 | EV-CHANGE-001 |
@@ -6418,7 +6418,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §68.3 | "Competing strategies are comparable and should be tried per §65" | MUST route to §65 speculative branching | When the deliberation runtime returns BRANCH |
 | BS §69.7 | "Nirman SHOULD expose meaningful validated stages rather than streaming every token" | MUST expose validated stages only | Never stream unverified file predictions or raw token output as progress |
 | TA §7.1 | "A scheduler tick should be deterministic and idempotent" | MUST be deterministic and idempotent | Two ticks over identical persisted state produce an identical launch set; a contract already in `Running` or `Launching` is never launched a second time; determinism is proven by replaying a recorded tick input and comparing the emitted launch set byte-for-byte |
-| TA §7.2 | "The scheduler MUST combine fair-share eligibility, project/task priority, dependency readiness, physical resource availability, validation urgency, historical ResourceProfile evidence, and starvation age into one deterministic scheduling decision" | MUST combine all eight factors into one deterministic decision | Historical ResourceProfile evidence is advisory routing data, never authority |
+| TA §7.2 | "The scheduler MUST combine fair-share eligibility, project/task priority, dependency readiness, physical resource availability, validation urgency, historical ResourceProfile evidence, and starvation age into one deterministic scheduling decision" | MUST combine all seven factors into one deterministic decision | Historical ResourceProfile evidence is advisory routing data, never authority |
 | TA §7.2 | "The scheduler SHOULD maintain a rolling operational measurement of queue wait, dispatch latency, worker-start latency, resource-pressure state, starvation age, recovery-caused churn, and validation reservation contention" | MUST maintain rolling operational measurements | Measurements remain subordinate to Scheduler, LifecycleAuthority, and ResourceIntegrityAuthority |
 | TA §7.2 | "The scheduler MUST reduce concurrency before violating resource-integrity limits and MUST preserve recovery/validation capacity where required" | MUST reduce concurrency before violating limits; MUST preserve recovery/validation capacity | Under the BS §26.6 constrained condition, new write-capable worker admission stops while validation and recovery tasks continue to be admitted |
 | TA §7.2 | "Initial defaults should be configurable and conservative" | MUST be configurable; the tabled values are the defaults | The eight values in the TA §7.2 table (write-capable workers per task 3, read-only workers per task 5, global active workers 8, heartbeat 10 s, stale threshold 60 s, no fixed completion lock, Android-profile-based disk quota, 3 repair strategy changes) are the shipped defaults and each is settable; no other value is assumed anywhere in the runtime |
@@ -6974,7 +6974,7 @@ Acceptance criteria:
 
 ### 80.6.9 Test-strength fixture extensions
 
-The fixture battery MUST include fault-injection and regression scenarios to satisfy §56.x testing-strength requirements:
+The fixture battery MUST include fault-injection and regression scenarios to satisfy §56.7 testing-strength requirements:
 
 - seeded-state corruption
 - permission denial
@@ -7850,7 +7850,7 @@ Every executable cross-component boundary MUST be:
 
 ### 84.4 M124 certification
 
-M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, PreviewTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility.
+M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and one adversarial fixture (`TEST-ORCH-WIRING-001`) proving the entire pipeline end-to-end, including: worker replacement, conflict, failed build, emulator restart, stale frame, recovery, revalidation, final completion, provider/model failure, stale ContextPackage, skill/capability mediation, WorkerConnection fencing, model-call cancellation, checkpoint invalidation, evidence invalidation, RenderTransport frame loss/reordering, UI snapshot/replay gap, preview input causality, artifact export/verification, policy change during execution, and integration-boundary version incompatibility.
 
 ---
 
