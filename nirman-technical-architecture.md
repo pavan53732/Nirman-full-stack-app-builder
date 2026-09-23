@@ -4192,7 +4192,7 @@ No local-engine output can bypass PolicyAuthority, ToolBroker, MutationBroker, C
 **Authoritative build-spec section:** §38 / §53  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §53. Extends §19 (Context Scaling Architecture) and §31 (Runtime Memory and Learning Boundaries), which remain the authority on retrieval modes and memory scopes. This section adds the assembly, orchestration, and re-grounding components.
+Implements build spec §53, which is canonical for the context-assembly, sufficiency-gate, context-integrity, attention-reliability, and re-grounding contract; this section defines only the implementing components and algorithms. Retrieval modes follow build spec §19 and §31; memory scopes, retention, and deletion follow the authority build spec §53 names (§38). This section adds the assembly, orchestration, and re-grounding components.
 
 ### 59.1 Components
 
@@ -4213,14 +4213,14 @@ The primary context architecture is coordinated by the `ContextOrchestrator` and
 | EvidenceRetriever | Queries the active EvidenceFrontier to prioritize unvalidated or contradicted claims |
 | DependencyExpander | Computes graph neighborhoods and affected compilation units from the ImpactGraph |
 | ContextCapacityPlanner | Fits the selected context representation to the provider's actual context capacity and tracks remaining admissible context capacity per request, without imposing a Nirman usage budget; bounds the DENSE block by the measured reliable recall span and records `attendabilityMap` |
-| AttentionProfiler | Runs the recall probe fixtures at provider profile save and at checkpoints; writes the per-model `AttentionReliabilityProfile` as evidence, never from declaration or self-report |
+| AttentionProfiler | Runs the recall probe fixtures on the structural cadence of build spec §53.11 (provider profile save, checkpoint creation, phase boundaries, every compaction, any `PREMISE_MISMATCH`); writes the per-model `AttentionReliabilityProfile` as evidence, never from declaration or self-report |
 | PlacementPlanner | Computes `placementPlan` per BS §53.11: cache-stable prefix, SPARSE breadth block, DENSE precision block, state digest, instruction; positions the cache breakpoint before the DENSE block |
 | RecallProbeService | Embeds deterministic recall probes with runtime-held expected answers, verifies responses by exact match, and emits probe evidence on structural events only |
 | ResourceIntegrityAuthority | Implements BS §72 (listed as `ResourceGovernor` in the §57.2 process topology and §51.3; same service): evaluates host, process, workspace, emulator, storage, concurrency, and liveness pressure and admits work against physical capacity; holds no AI-usage cap |
 | CacheManager | Manages prefix-cache checkpoints, structured KV caches, and cache hit optimization |
 | CompactionPlanner | Executes non-destructive semantic compaction of historical context |
 | RetrievalCompletenessChecker | Executes pre-model COVERAGE_CHECK verifying dependency, interface, and evidence completeness |
-| ContextIntegrityVerifier | Validates revision bindings (goal, project, plan, evidence) as an authoritative hard gate |
+| ContextIntegrityVerifier | Validates revision bindings (context, goal, project, plan, evidence) per build spec §53.4 and §53.7 as an authoritative hard gate |
 | HierarchicalSynthesizer | Subcomponent of ContextOrchestrator; derives the deterministic structural skeleton from RepositorySemanticGraph regions and maintains provenance-bearing interpreted summaries per skeleton level; owns no authority, holds no independent state, and mutates no source |
 
 > **Schema projection:** `ConstructionRequirement` is defined in `nirman-schemas.md` §1.81. Owner: BS §42.1.
@@ -4339,13 +4339,13 @@ The aggregate evaluation determines task eligibility:
 
 > **Schema projection:** `MemoryRecord` is defined in `nirman-schemas.md` §2.50. Owner: TA §59.5.
 
-`sourceEventIds` must be non-empty. MemoryWriter must reject a record with no source event, which structurally prevents model claims from becoming memory.
+`sourceEventIds` must be non-empty: MemoryWriter rejects a record with no source event, structurally enforcing the memory-write sourcing rule owned by build spec §53.2.
 
 ### 59.6 ContextOrchestrator algorithm and recovery
 
 The orchestrator executes the following deterministic sequence:
-1. **Integrity Preflight**: `ContextIntegrityVerifier` verifies that `goalRevision`, `projectRevision`, `planRevision`, and `evidenceRevision` match current authoritative ledger state.
-2. **Constraint & Decision Reservation**: Load active constraints and locked decisions from `ConstraintRegistry`. Required context can never be evicted.
+1. **Integrity Preflight**: `ContextIntegrityVerifier` verifies that `contextRevision`, `goalRevision`, `projectRevision`, `planRevision`, and `evidenceRevision` match current authoritative ledger state, per build spec §53.4.
+2. **Constraint & Decision Reservation**: Load active constraints and locked decisions from `ConstraintRegistry`; eviction rights are owned by build spec §53.5.
 3. **Working-Set Planning**: `WorkingSetPlanner` queries the `EvidenceFrontier` to identify unvalidated/contradicted claims, sets semantic and temporal anchors, and identifies the active working set.
 4. **Multi-Modal Retrieval**:
    - `ExactRetriever`: Pinned symbols and target files.
@@ -4358,7 +4358,7 @@ The orchestrator executes the following deterministic sequence:
    ```text
    CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
    ```
-   `RetrievalCompletenessChecker` evaluates context confidence. If confidence is `MEDIUM` or `LOW`, model invocation is prohibited and retrieval expands or re-grounds.
+   `RetrievalCompletenessChecker` evaluates context confidence. If confidence is `MEDIUM` or `LOW`, the invocation prohibition and remediation owned by build spec §53.4 apply.
 7. **Context Fusion**:
    Combine:
    - exact source
@@ -4372,12 +4372,12 @@ The orchestrator executes the following deterministic sequence:
    ```text
    EXACT → STRUCTURAL → SEMANTIC → SUMMARY
    ```
-   only for items whose fidelity rules permit transformation. Required `EXACT` items MUST remain `EXACT`. If non-essential items cannot fit within provider capacity, omissions are recorded in `omittedForCapacity`.
+   only for items whose fidelity rules permit transformation. Eviction, fidelity, and `omittedForCapacity` recording follow build spec §53.3 and §53.5.
 9. **Privacy Filtering**: `RedactionFilter` removes secrets, credentials, and private content.
 10. **Payload Assembly & Ledger Emission**: `ContextAssembler` serializes the manifest defined in BS §53.3 and emits the cryptographically hashed package to the event ledger.
 
 Recovery behavior:
-When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly. When attendability fails (`RECALL_PROBE_FAILED`, `PREMISE_MISMATCH`), the orchestrator records the failure in the `AttentionReliabilityProfile` and applies the strategy-changing ladder re-project → narrow step → select provider model by reliability → re-ground or escalate; the ladder is never expressed as a pass count and never pauses valid work.
+When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly. When attendability fails (`RECALL_PROBE_FAILED`, `PREMISE_MISMATCH`), the orchestrator records the failure in the `AttentionReliabilityProfile` and applies the response order and authority boundary owned by build spec §53.4 and §53.11 (re-project, narrow step, select provider model by reliability, re-ground or escalate; never a pass count, never a pause of valid work).
 
 ### 59.7 Hybrid Cognitive Context
 
@@ -4417,7 +4417,7 @@ The two paths are also physical regions of the transmitted request (BS §53.11):
 
 If a cache is invalid, cold, or unavailable, Nirman deterministically reconstructs the context from durable state and continues without degradation.
 
-The cache breakpoint always precedes the DENSE block. Cache hit-rate never justifies moving constraints, locked decisions, or `EXACT` targets into the cached prefix; the prefix may carry constraint identifiers, but the DENSE copy is authoritative for the request.
+CacheManager implements the cache-breakpoint and prefix/DENSE authority rules owned by build spec §53.11: the breakpoint precedes the DENSE block, a cache hit never moves DENSE content into the prefix, and the DENSE copy is authoritative for the request.
 
 ### 59.9 Re-grounding trigger conditions
 
@@ -4443,7 +4443,7 @@ Each plan step carries `requiredReliability`, derived from the size of its DENSE
 
 ### 59.13 Hierarchical project synthesis
 
-Implements build spec §53 over the §59.2 `RepositorySemanticGraph`. Owned by `ContextOrchestrator` through its `HierarchicalSynthesizer` subcomponent (§59.1). This section creates no authority and mutates no source.
+Implements build spec §53, which remains canonical for the context contract, over the §59.2 `RepositorySemanticGraph`. Owned by `ContextOrchestrator` through its `HierarchicalSynthesizer` subcomponent (§59.1). This section creates no authority and mutates no source.
 
 S1 Deterministic skeleton. The runtime MUST derive a deterministic structural skeleton by projecting graph regions onto the §59.2 containment hierarchy (Repository → Module → File → Symbol → Region → Exact source) with levels L0 system (Repository), L1 subsystem (Module), L2 unit (File), L3 detail (Symbol/Region). Skeleton derivation MUST use graph nodes and edges only; no model output participates in skeleton construction.
 
@@ -4467,7 +4467,7 @@ S8 Rebuildability. The synthesis artifact MUST be rebuildable from the graph plu
 **Authoritative build-spec section:** §54  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §54. Extends §8 (Workspace Isolation and Reconciliation) and §46 (Lease and Capability Runtime), which remain the authority on workspace leases. This section adds the semantic layer above file ownership.
+Implements build spec §54, which is canonical for reservation conflict rules, shared-surface single-writer semantics, stale-contract invalidation, and commit-barrier duties; this section defines only the implementing components. Extends §8 (Workspace Isolation and Reconciliation) and §46 (Lease and Capability Runtime), which remain the authority on workspace leases. This section adds the semantic layer above file ownership.
 
 ### 60.1 Components
 
@@ -4490,7 +4490,7 @@ granted   -> revoked      (authority decision)
 granted   -> invalidated  (surface changed under read_stable)
 ```
 
-Only the deterministic runtime performs state transitions. A worker may request, renew, and release, but never grant.
+Transition authority follows build spec §54.4 — only the deterministic runtime performs state transitions; a worker may request, renew, and release, but never grant. The machine below is the implementation projection.
 
 ### 60.3 Conflict matrix
 
@@ -4501,15 +4501,15 @@ Only the deterministic runtime performs state transitions. A worker may request,
 | delete | deny | deny | deny | n/a |
 | create | n/a | n/a | n/a | deny |
 
-A denial returns the holding worker and task so the requester can request a handoff rather than retry blindly.
+A denial returns the holding worker and task so the requester can request a handoff rather than retry blindly. The matrix is ConflictDetector's implementation projection of the conflict rule owned by build spec §54.2; cases build spec §54.2 does not specify (`create`, `read_stable`/`read_stable`) are implementation detail with no contract standing.
 
 ### 60.4 Invalidation propagation
 
-When a mutation commits on a surface, StaleContractInvalidator must find every `read_stable` reservation on that surface, mark each holder's dependent work `unvalidated`, clear affected validation evidence, and notify the holder's task. Work marked unvalidated cannot reach CommitBarrier until revalidated.
+When a mutation commits on a surface, StaleContractInvalidator implements the invalidation duties of build spec §54.3: it must find every `read_stable` reservation on that surface, mark each holder's dependent work `unvalidated`, clear affected validation evidence, and notify the holder's task. Work marked unvalidated cannot reach CommitBarrier until revalidated.
 
 ### 60.5 CommitBarrier checks
 
-At the barrier, in order: verify all reservations held by the proposal are still `granted`; verify no dependent surface changed after the proposal's validation timestamp; verify validation evidence exists for the changed surfaces; then apply the mutation transactionally through the reducer of §45. Any failed check rejects the proposal with a typed reason.
+At the barrier, in order: verify all reservations held by the proposal are still `granted`; verify no dependent surface changed after the proposal's validation timestamp; verify validation evidence postdates the last relevant surface change (build spec §54.5); then apply the mutation transactionally through the reducer of §45. Any failed check rejects the proposal with a typed reason.
 
 ### 60.6 Architecture tests
 
@@ -4521,7 +4521,7 @@ Coordination is correct only when two workers requesting `modify` on one symbol 
 **Authoritative build-spec section:** §55  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §55. No existing section covers concurrent human editing; this is a new runtime component that consumes the reservation layer of §60 and the mutation records of §45.
+Implements build spec §55, which is canonical for origin classification, reconciliation behavior, and prohibited behaviors; this section defines only the detecting and reconciling components. No existing section covers concurrent human editing; this is a new runtime component that consumes the reservation layer of §60 and the mutation records of §45.
 
 ### 61.1 Components
 
@@ -4535,9 +4535,9 @@ Implements build spec §55. No existing section covers concurrent human editing;
 
 ### 61.2 Origin classification algorithm
 
-For each observed change the classifier computes the file fingerprint and compares it to the fingerprint recorded by the last runtime mutation for that path. A match classifies RUNTIME. A mismatch on a path under an active runtime reservation classifies USER or EXTERNAL. Paths matching generated-output patterns and build directories classify GENERATED and are excluded from reconciliation and from context assembly.
+OriginClassifier implements the build spec §55.2 origin table. For each observed change the classifier computes the file fingerprint and compares it to the fingerprint recorded by the last runtime mutation for that path. A match classifies RUNTIME. A mismatch on a path under an active runtime reservation classifies USER or EXTERNAL. Paths matching generated-output patterns and build directories classify GENERATED and are excluded from reconciliation and from context assembly.
 
-Classification must never rely on modification time alone, because build steps and editors both rewrite timestamps.
+Origin classification follows build spec §55.2: mutation records and file fingerprints, never timestamps alone (build steps and editors rewrite timestamps).
 
 ### 61.3 Reconciliation sequence
 
@@ -4555,11 +4555,11 @@ observe change
 
 ### 61.4 Prohibited operations
 
-BaselineUpdater must never write the runtime's prior version over user content. The evidence store must not accept validation for a surface whose fingerprint changed after the validation ran. The completion authority of §23 must reject a completion claim citing pre-edit evidence.
+The components enforce the prohibitions owned by build spec §55.4: BaselineUpdater never writes the runtime's prior version over user content, the evidence store does not accept validation for a surface whose fingerprint changed after the validation ran, and the completion authority of §23 rejects a completion claim citing pre-edit evidence.
 
 ### 61.5 Attribution in evidence
 
-Every mutation record carries an `origin` field. Final reports must render user-originated changes distinctly from runtime-originated changes so the user is never told the runtime produced their own edit.
+Every mutation record carries an `origin` field. Final reports implement the attribution requirement of build spec §55.5, rendering user-originated changes distinctly from runtime-originated changes so the user is never told the runtime produced their own edit.
 
 ### 61.6 Architecture tests
 
@@ -4571,7 +4571,7 @@ Reconciliation is correct only when a user edit during an active run survives to
 **Authoritative build-spec section:** §56  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §56. Extends §35 (Complete Android Capability Fixture Contract) and §50 (Preview Coordinator and Android Runtime Validation), which remain the authority on emulator sessions and fixtures.
+Implements build spec §56, which is canonical for the required scenario classes, determinism, seed provenance, evidence requirements, and testing-strength semantics; this section defines its implementation. Extends §35 (Complete Android Capability Fixture Contract) and §50 (Preview Coordinator and Android Runtime Validation), which remain the authority on emulator sessions and fixtures.
 
 ### 62.1 Components
 
@@ -4585,12 +4585,12 @@ Implements build spec §56. Extends §35 (Complete Android Capability Fixture Co
 | ScenarioEvidenceWriter | Writes step results, screenshots, and Logcat windows |
 | ScreenGraphExplorer | Explores the installed application from the launch activity into a `ScreenGraph` (ADR-225) |
 | ScenarioSynthesizer | Derives `E2EScenario` steps for acceptance criteria and the nine scenario classes of build spec §56.3 from the `ScreenGraph` |
-| StateSpaceCoverageEvaluator | Evaluates state-transition coverage across five dimensions (behavioral correctness, state-transition coverage, resilience correctness, regression safety, negative proof) |
-| MetamorphicVerifier | Executes invariant/metamorphic checks (persistence-after-restart, rotation/state preservation, offline/online convergence, idempotent actions, repair-without-regression) |
+| StateSpaceCoverageEvaluator | Evaluates state-transition coverage across the five testing-strength dimensions of build spec §56.7 |
+| MetamorphicVerifier | Executes the invariant/metamorphic checks required by build spec §56.7 |
 | FaultInjectionCoordinator | Orchestrates fault-injection scenarios (permission denial, process death, configuration change, network loss, UI/runtime faults, persistence faults) |
 | DeterminismClassifier | Classifies scenario runs as DETERMINISTIC, FLAKY, or NONDETERMINISTIC based on repeated execution results |
 | DifferentialRegressionEvaluator | Reruns old passing scenarios after repair and detects regression patterns |
-| NegativeProofEvaluator | Validates that evidence is not invalid/stale/contradictory/missing/mismatched before completion |
+| NegativeProofEvaluator | Enforces the negative-proof dimension of build spec §56.7 before completion |
 | StartupRegressionTracker | Measures cold start launch latency (TTID/TTFD) and detects performance regressions (§62.1.2) |
 | MemoryLeakDetector | Evaluates heap growth and Activity retention across lifecycle churn and navigation (§62.1.3) |
 | TestDataLeakageDetector | Verifies persistent storage isolation, ensuring synthetic seed data does not survive teardown (§62.5.1) |
@@ -4614,7 +4614,7 @@ GoldenSnapshot
 → negative-proof evaluation
 → EvidenceLedger
 
-`ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` then maps each acceptance criterion and each required scenario class to a path in the graph and emits an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.4 exactly like authored ones.
+`ScreenGraphExplorer` runs before scenario synthesis on a `GoldenSnapshot`-restored device: it performs a bounded breadth-first exploration from the launch activity, taking each actionable element of the current `ScreenModel` once, deduplicating screens by `screenFingerprint`, recording every transition as an edge with its observed result, and stopping at `maxDepth`, `maxActionsPerScreen`, or an exhausted frontier. Exploration is observation, not validation: a crash or ANR met during exploration enters the failure-fingerprint path of §51.1, and an `EXTERNAL_INTENT` edge is recorded and not followed. `ScenarioSynthesizer` implements the derivation duty of build spec §56.2 — one `E2EScenario` per acceptance criterion and per required class of §56.3 — by mapping each to a path in the graph and emitting an `E2EScenario` whose `steps` name `ScreenModel` element identities and whose `assertions` name observable postconditions; `coveredRequirementIds` and `uncoveredRequirementIds` are written to the graph, and an uncovered requirement is reported to the planner as a `REPLAN` input rather than silently dropped. Synthesized scenarios pass through `ScenarioRegistry` and the determinism rule of §62.4 exactly like authored ones.
 
 ### 62.1.1 DeadControlDetector
 
@@ -4628,14 +4628,14 @@ GoldenSnapshot
 `StartupRegressionTracker` measures cold-start launch latency and tracks startup performance regressions across autonomous build cycles:
 1. *Launch milestone harvesting:* Ingests Android activity manager Logcat records (`Displayed` / `Fully drawn`) to measure Time to Initial Display (TTID) and Time to Full Display (TTFD) during `Cold start` scenario execution (BS §56.3).
 2. *Historical baseline comparison:* Evaluates observed startup metrics against the project profile's historical baseline stored in the execution ledger.
-3. *Regression gating:* Flags any regression exceeding 25% or violating the profile's latency ceiling as a `STARTUP_LATENCY_REGRESSION` finding, requiring optimization or explicit review before release packaging.
+3. *Regression gating:* Flags any regression exceeding the detector threshold (25% default, or the profile's latency ceiling) as a `STARTUP_LATENCY_REGRESSION` finding; the finding enters the evidence chain and is weighed per build spec §56.7 — it is not an independent completion gate.
 
 ### 62.1.3 MemoryLeakDetector
 
 `MemoryLeakDetector` performs runtime heap allocation analysis and Activity lifecycle leak verification:
 1. *Lifecycle churn orchestration:* Drives repeated configuration changes (portrait/landscape rotation), process backgrounding/foregrounding, and deep navigation traversal via `FaultInjectionCoordinator`.
 2. *Heap allocation inspection:* Triggers deterministic garbage collection via ADB and parses `dumpsys meminfo` heap distributions to inspect native and Dalvik heap growth across cycles.
-3. *Retained instance detection:* Identifies retained destroyed Activity instances, View hierarchies captured in static references, or unbonded coroutine scopes, emitting `MEMORY_LEAK_DETECTED` failure evidence to block invalid candidate promotion.
+3. *Retained instance detection:* Identifies retained destroyed Activity instances, View hierarchies captured in static references, or unbonded coroutine scopes, emitting `MEMORY_LEAK_DETECTED` failure evidence, which enters the evidence chain and is weighed under the negative-proof dimension of build spec §56.7.
 
 ### 62.1.4 ComposeIdlingBarrier
 
@@ -4672,17 +4672,17 @@ The runtime provides a deterministic service that computes reachability and anal
 
 > **Schema projection:** `ScenarioStep` is defined in `nirman-schemas.md` §2.51. Owner: TA §62.2.
 
-System events must include process death, configuration change, permission grant and deny, network loss, and app backgrounding, since these are the states single-screen validation misses. Each has a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.4). Alarm fire and notification delivery join the system-event set: `advanceClock` fires due alarms deterministically from the seeded basis, `collectNotifications` observes posted notifications, and `wait_for` accepts `notification present`; `StateProbe` executes `probe_state` steps against persisted state and posted notifications.
+The system-event set realizes the required scenario classes of build spec §56.3 — the states single-screen validation misses — through process death, configuration change, permission grant and deny, network loss, and app backgrounding. Each is backed by a dedicated `AndroidDeviceAdapter` operation (§73.12): `forceStop` for process death, `setOrientation` for configuration change, the permission path of the hygiene policy for grant and deny, `setNetworkState` for network loss, and `sendToBackground` for backgrounding; `wait_for` steps resolve through `waitFor`, never through a fixed sleep (§62.4). Alarm fire and notification delivery join the system-event set: `advanceClock` fires due alarms deterministically from the seeded basis, `collectNotifications` observes posted notifications, and `wait_for` accepts `notification present`; `StateProbe` executes `probe_state` steps against persisted state and posted notifications.
 
 ### 62.4 Determinism enforcement
 
 > **Schema projection:** `RequirementToImplementationGraph` is defined in `nirman-schemas.md` §2.104. Owner: TA §62.4.
 
-ScenarioExecutor must use explicit `wait_for` conditions and never fixed sleeps as synchronization. A scenario that passes and fails across repeated runs on the same revision and device must be marked `deterministic: false` and excluded from completion evidence until stabilized. State changes produced by a seeded clock advance, including clock-rendered text, are expected transitions when the same seed and advance reproduce the same post-state; they MUST NOT be classified FLAKY.
+Determinism marking and the exclusion of non-deterministic scenarios from completion evidence are governed by build spec §56.2; `ScenarioExecutor` enforces them through explicit `wait_for` conditions and never fixed sleeps as synchronization. State changes produced by a seeded clock advance, including clock-rendered text, are expected transitions when the same seed and advance reproduce the same post-state — an implementation projection of the seed-clock basis of build spec §56.4 — and MUST NOT be classified FLAKY.
 
 ### 62.5 Seed provenance
 
-SeedDataProvisioner records how each precondition was established. Seeded state is labeled in evidence so it cannot be mistaken for behavior the application produced, satisfying the honesty invariant of build spec §66.1.
+`SeedDataProvisioner` implements the seed-provenance requirement of build spec §56.4, recording how each precondition was established; seeded state is labeled in evidence so it cannot be mistaken for behavior the application produced.
 
 ### 62.5.1 TestDataLeakageDetector
 
@@ -4735,7 +4735,7 @@ The engine is correct only when a data-persistence scenario detects an app that 
 
 ### 62.10 Adapter-side resolution
 
-Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND. The technology adapter resolves the binding but MUST NOT execute the test. The build spec §56.7 in-process bindings (Espresso, Compose UI Test) execute through `runInstrumentation`: the adapter runs the resolved binding on-device and returns typed per-test results as `Observation`s, so assertion evidence for Views and Compose compositions enters the chain without an out-of-band runner. ADB is adapter-internal transport; no component outside the adapter emits ADB steps.
+Implements the adapter-binding rule of build spec §56.8 (CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND): test execution routes through `AndroidDeviceAdapter`. The technology adapter resolves the binding but MUST NOT execute the test. The build spec §56.7 in-process bindings (Espresso, Compose UI Test) execute through `runInstrumentation`: the adapter runs the resolved binding on-device and returns typed per-test results as `Observation`s, so assertion evidence for Views and Compose compositions enters the chain without an out-of-band runner. ADB is adapter-internal transport; no component outside the adapter emits ADB steps.
 
 ## 63. Regression Localization Service
 
@@ -4743,7 +4743,7 @@ Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC
 **Authoritative build-spec section:** §62  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §62. Extends §30 (Self-Improvement Manager) failure analysis and §58 mutation/regression intelligence, which remain the authority on predicting affected validation.
+Implements build spec §62, which is canonical for localization order, the repair constraint, the reproduce-first gate, and failure-signature learning; this section defines its implementation. Extends §30 (Self-Improvement Manager) failure analysis and §58 mutation/regression intelligence, which remain the authority on predicting affected validation.
 
 ### 63.1 Components
 
@@ -4770,19 +4770,19 @@ detect regression
   -> otherwise: record unlocalized_regression and escalate
 ```
 
-Bisection must reuse checkpoints from the two-tier checkpoint architecture of §18 rather than rebuilding, because full rebuild bisection is prohibitively expensive for Android projects.
+Bisection consumes existing checkpoints per build spec §62.3 — reuse when checkpoints are available rather than rebuilding — through the two-tier checkpoint architecture of §18; full rebuild bisection is prohibitively expensive for Android projects.
 
 `FailureContextPackage` is the bounded product of the localization pipeline: the Diagnostic Worker's root-cause hand-off containing the relevant error evidence, changed-file scope, environment identity, prior strategies, checkpoint, validation results, privacy classification, and next-action constraints.
 
 ### 63.3 Repair scoping
 
-The identified cause surface becomes the permitted repair scope. The mutation broker must reject a repair mutation outside that scope unless the planner records an explicit widening reason. `CauseRecorder` attaches the failure fingerprint shared with §51.1, so an identified cause enters `RepairPattern` lookup before model reasoning (ADR-225). An unlocalized regression escalates to the planner as a blocking input. This prevents broad regeneration from destroying validated work.
+Repair scoping follows build spec §62.4: the identified cause surface is the permitted repair scope, and the mutation broker rejects a repair mutation outside that scope unless the planner records an explicit widening reason. `CauseRecorder` attaches the failure fingerprint shared with §51.1, so an identified cause enters `RepairPattern` lookup before model reasoning (ADR-225). The reproduce-first gate of build spec §62.4 governs repair-transaction admission; `ReproScenario` execution uses the §62.1 engine. An unlocalized regression is handled exactly as build spec §62.4 provides: recorded and escalated to the planner rather than rewriting unrelated code, which is what destroys validated work.
 
 ### 63.4 Failure signature schema
 
 > **Schema projection:** `FailureSignature` is defined in `nirman-schemas.md` §2.52. Owner: TA §63.4.
 
-Signatures are written as FAILURE memory records per §59.5 and are project-scoped unless anonymized for runtime-improvement memory.
+Failure signatures implement build spec §62.5 — each links symptom, cause class, and successful repair — and are written as FAILURE memory records under the memory-record rules of build spec §53.2; records are project-scoped unless anonymized for runtime-improvement memory.
 
 ### 63.5 Architecture tests
 
@@ -4794,7 +4794,7 @@ Localization is correct only when an injected single-line regression is attribut
 **Authoritative build-spec section:** §57  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §57. Extends §53 (Integrated Workflow and Quality Services) and §58 ValidationPlanner, which remain the authority on selecting which validation to run. This section adds in-loop verification sequencing.
+Implements build spec §57, which is canonical for in-loop verification, assertion ordering, non-vacuity, and the verification method matrix; this section defines its sequencing implementation. Extends §53 (Integrated Workflow and Quality Services) and §58 ValidationPlanner, which remain the authority on selecting which validation to run. This section adds in-loop verification sequencing.
 
 ### 64.1 Components
 
@@ -4822,15 +4822,15 @@ structured mutation applied
   -> mutation marked verified, dependent work unblocked
 ```
 
-A mutation that has not passed this sequence is `unverified` and cannot be cited as evidence, cannot pass the CommitBarrier of §60, and cannot be included in a promoted artifact. Unit assertions execute on the host through `AndroidBuildAdapter` under the locked toolchain; scenario assertions execute through `ScenarioExecutor` (§62.1); every execution records a `VerificationRun`.
+As the implementation projection of the build spec §57.1 in-loop rule, a mutation that has not passed this sequence is `unverified` and cannot be cited as evidence, cannot pass the CommitBarrier of §60, and cannot be included in a promoted artifact. Unit assertions execute on the host through `AndroidBuildAdapter` under the locked toolchain; scenario assertions execute through `ScenarioExecutor` (§62.1); every execution records a `VerificationRun`.
 
 ### 64.3 Assertion ordering enforcement
 
-For a requirement with observable behavior, AssertionAuthor must persist the assertion with a `authoredAtRevision` preceding the implementation revision. VerificationLedger marks assertions authored after a passing implementation as `post_hoc`. The completion authority weights `post_hoc` assertions lower and must not accept them as sole evidence for a critical requirement.
+For a requirement with observable behavior, `AssertionAuthor` persists the assertion with `authoredAtRevision` preceding the implementation revision, implementing the test-before-code rule of build spec §57.3 (the assertion must fail before implementation and pass after; assertions authored after a passing implementation are marked `post_hoc` with the evidence weight that rule assigns).
 
 ### 64.4 Vacuity check
 
-For requirements marked critical, MutationProber must inject at least one fault into the implementation and confirm the assertion set fails. An assertion set that passes against the injected fault is recorded as `vacuous` and rejected as evidence.
+`MutationProber` implements the non-vacuity requirement of build spec §57.5 for critical logic: it injects at least one fault into the implementation, confirms the assertion set fails, and records a passing set as `vacuous`, rejected as evidence.
 
 ### 64.5 Verification record schema
 
@@ -4842,7 +4842,7 @@ The record carries the assertion's `authoredAtRevision` and `assertionTiming` (`
 
 Orchestration is correct only when a mutation introducing a compile error cannot advance; when an assertion authored after implementation is flagged `post_hoc`; when a vacuous assertion set for a critical requirement is rejected; when a property counterexample blocks the probed mutation; and when every promoted artifact contains only verified mutations.
 
-A repair is not verified by the newly passing assertion alone. Verification MUST compare the repaired revision against the failing revision and last-known-good revision, rerun the original failing scenario, rerun affected previously passing scenarios, and reject completion when any regression or invalid evidence dependency is detected.
+A repair is not verified by the newly passing assertion alone; repair verification follows build spec §56.7 (same-scenario re-execution from the deterministic starting state) and §57.6 (differential regression, stale or foreign evidence rejected). `VerificationLedger` records the comparison — repaired revision, failing revision, last-known-good revision, rerun original failing scenario, rerun affected previously passing scenarios — and rejects completion on any regression or invalid evidence dependency.
 
 ### 64.7 PropertyProber
 
@@ -4854,7 +4854,7 @@ A repair is not verified by the newly passing assertion alone. Verification MUST
 **Authoritative build-spec section:** §59  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §59. Extends §49 (Android Toolchain Authority and Environment) and §50 (Preview Coordinator), which remain the authority on device health and session lifecycle.
+Implements build spec §59, which is canonical for matrix declaration, the primary-profile rule, divergence semantics, and the capability-status mapping; this section defines its implementation. Extends §49 (Android Toolchain Authority and Environment) and §50 (Preview Coordinator), which remain the authority on device health and session lifecycle.
 
 ### 65.1 Components
 
@@ -4868,7 +4868,7 @@ Implements build spec §59. Extends §49 (Android Toolchain Authority and Enviro
 
 ### 65.2 Resolution and admission
 
-DeviceMatrixResolver must classify each declared entry as `available`, `unavailable`, or `user_required` before execution begins, using the toolchain authority of §49. `user_required` covers firmware settings, licensed images, and consents; `unavailable` covers what the host cannot provide. The run proceeds only when the primary device is available. Execution order is primary first, then declared-matrix order; the same matrix and scenario set always yield the same order. Unavailable secondary entries are recorded as declared coverage gaps, never as passes.
+Implementing build spec §59.2, `DeviceMatrixResolver` classifies each declared entry as `available`, `unavailable`, or `user_required` before execution begins, using the toolchain authority of §49 (`user_required` covers firmware settings, licensed images, and consents; `unavailable` covers what the host cannot provide). The run proceeds only when the primary profile is available, and unavailable secondary entries are declared coverage gaps, never passes — both rules owned by build spec §59.2. Execution order is primary first, then declared-matrix order; the same matrix and scenario set always yield the same order.
 
 ### 65.3 Pool constraints
 
@@ -4878,11 +4878,11 @@ DevicePool must respect the resource reservations of the backpressure controller
 
 > **Schema projection:** `ScenarioDivergence` is defined in `nirman-schemas.md` §2.54. Owner: TA §65.4.
 
-Default classification is `defect`. Classification as `environment_limitation` requires cited evidence that the failure originates in the device or vendor rather than the application. A divergence record stays open until the scenario agrees on every profile: repair re-runs the full matrix, not only the failing profile.
+Divergence classification follows build spec §59.4: a cross-profile divergence is a defect, not emulator noise, recorded with both profiles before repair. Default classification is `defect`; `environment_limitation` is an implementation-level annotation requiring cited evidence that the failure originates in the device or vendor rather than the application, and it does not change the defect outcome build spec §59.4 assigns. The record stays open until the scenario agrees on every profile: repair re-runs the full matrix, not only the failing profile.
 
 ### 65.5 Capability status mapping
 
-CoverageReporter maps results to the build spec §5.6 vocabulary: all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED`. The per-scenario-per-profile report rows are the coverage record; a primary pass with skips elsewhere is partial coverage, never full.
+`CoverageReporter` applies the capability-status mapping of build spec §59.5 using the build spec §5.6 vocabulary (a capability verified only on the primary profile is `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, not `SUPPORTED`). The per-outcome mapping — all matrix devices passed yields `SUPPORTED`; primary passed with declared gaps yields `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`; primary passed and a secondary failed yields `DEGRADED` with the divergence cited; primary unavailable yields `USER_REQUIRED` — is the implementation projection of that mapping. The per-scenario-per-profile report rows are the coverage record; partial-coverage reporting follows build spec §59.3.
 
 ### 65.6 Architecture tests
 
@@ -4894,7 +4894,7 @@ Coordination is correct only when a missing secondary device produces a declared
 **Authoritative build-spec section:** §61  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §61. Extends §7 (Scheduler and Background Execution) and §16 (Goal Mode and Long-Horizon Execution), which remain the authority on task lifecycle and cancellation semantics.
+Implements build spec §61, which is the sole authority on directive precedence, work preservation, and acceptance criteria; this section defines only the components, queueing, and the DirectiveEffect projection. Extends §7 (Scheduler and Background Execution) and §16 (Goal Mode and Long-Horizon Execution), which remain the authority on task lifecycle and cancellation semantics.
 
 ### 66.1 Components
 
@@ -4908,25 +4908,25 @@ Implements build spec §61. Extends §7 (Scheduler and Background Execution) and
 
 ### 66.2 Application at decision boundaries
 
-A directive is applied only at a kernel decision point, never inside a mutation, tool call, or transaction. The kernel drains DirectiveQueue at each decision point, applies directives in issue order, and records the applied set in the event ledger before selecting the next action.
+Application timing — decision-point only, never inside a mutation, tool call, or transaction — is owned by build spec §61.3; the kernel implements it: DirectiveQueue is drained at each decision point, directives are applied in issue order, and the applied set is recorded in the event ledger before selecting the next action.
 
 ### 66.3 Validation rules
 
-DirectiveValidator must reject a directive that requests raising a permission ceiling, bypassing an evidence requirement, approving its own decision node, disabling a policy gate, or marking a requirement complete. Rejection is recorded with the reason and surfaced to the user; a rejected directive never partially applies.
+The rejection grounds — policy gates, permission ceilings, evidence requirements, safety boundaries — are owned by build spec §61.4; DirectiveValidator enforces that list (additionally rejecting a directive that approves its own decision node or marks a requirement complete, as application-level projections of those grounds), records each rejection with the reason, surfaces it to the user, and never partially applies a rejected directive.
 
 ### 66.4 Plan reconciliation outcomes
 
 > **Schema projection:** `DirectiveEffect` is defined in `nirman-schemas.md` §2.55. Owner: TA §66.4.
 
-PlanReconciler must classify every in-flight step. Validated work not touched by the directive stays validated; work whose premise the directive removed becomes `abandoned`; work whose assumptions changed becomes `invalidated` and requires revalidation before promotion.
+The outcome classes — remains valid, unvalidated, abandoned — are owned by build spec §61.5; PlanReconciler classifies every in-flight step into them, and work whose assumptions changed is recorded `invalidated` (the §61.5 unvalidated class) and requires revalidation before promotion.
 
 ### 66.5 Interaction with re-grounding
 
-After a directive is applied, RegroundingService of §59 must run so the new constraint appears in every subsequent ContextPackage. A directive that is registered but absent from the next context package is a defect.
+Re-grounding after application is a build spec §61.3 obligation (per §53.8); this section wires RegroundingService (§59) into it so the new constraint appears in every subsequent ContextPackage. A directive registered but absent from the next context package fails the build spec §61.6 acceptance clause.
 
 ### 66.6 Architecture tests
 
-The service is correct only when a directive issued mid-run alters subsequent behavior without restart; when a directive requesting a permission increase is rejected with a recorded reason; when the DirectiveEffect record accounts for every in-flight step; and when the constraint appears in the next assembled context.
+Architecture tests mirror the acceptance criteria of build spec §61.6 and add one implementation check: the applied DirectiveEffect record accounts for every in-flight step.
 
 ## 67. Agent Runtime Debugger
 
@@ -4934,7 +4934,7 @@ The service is correct only when a directive issued mid-run alters subsequent be
 **Authoritative build-spec section:** §63  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §63. Extends §17 (Lifecycle Hook Dispatcher) and §55 (Private Reasoning and Visible ReasoningStream Architecture), which remain the authority on the privacy boundary.
+Implements build spec §63, which is canonical for inspectable state, the debugger operations, the read-only default, and acceptance criteria; this section defines only the components, the RuntimeSnapshot projection, and the ledger read paths. Extends §17 (Lifecycle Hook Dispatcher) and §55 (Private Reasoning and Visible ReasoningStream Architecture), which remain the authority on the privacy boundary.
 
 ### 67.1 Components
 
@@ -4950,15 +4950,15 @@ Implements build spec §63. Extends §17 (Lifecycle Hook Dispatcher) and §55 (P
 
 > **Schema projection:** `RuntimeSnapshot` is defined in `nirman-schemas.md` §2.56. Owner: TA §67.2.
 
-The snapshot contains the context package manifest, not the assembled prompt text, and contains tool inputs and outputs, not model reasoning tokens.
+As the implementation projection of the build spec §63.2/§63.3 boundary, the snapshot carries the context package manifest (never assembled prompt text) and tool inputs and outputs (never model reasoning tokens).
 
 ### 67.3 Privacy enforcement
 
-The debugger reads from the event ledger and the reasoning stream's structured events only. It must have no access path to private reasoning tokens, which are never persisted per §55. This makes the privacy boundary structural rather than policy-based.
+The privacy boundary of build spec §63.3 is enforced structurally: the debugger's only read paths are the event ledger and the reasoning stream's structured events, so private reasoning tokens (never persisted per §55) are unreachable by construction.
 
 ### 67.4 Read-only guarantee
 
-All debugger operations except pause and resume are read-only queries against the ledger. The debugger has no mutation broker handle, no permission to write project files, and no authority to alter evidence or completion state.
+The read-only default of build spec §63.5 holds here: outside pause and resume, every debugger operation is a ledger query, and the debugger holds no mutation broker handle, no file-write permission, and no authority over authority decisions, evidence, or completion state.
 
 ### 67.5 Reconstruction from ledger
 
@@ -4966,7 +4966,7 @@ Because the runtime is event-sourced through the reducer of §45, SurfaceTracer 
 
 ### 67.6 Architecture tests
 
-The debugger is correct only when a live run pauses at the next decision point rather than mid-mutation; when a mutation traces to a cited requirement and decision; when a completed session is inspectable from the ledger alone; and when no debugger operation produces a project mutation or evidence change.
+Architecture tests mirror the acceptance criteria of build spec §63.6 and add one implementation check: a completed session is fully inspectable from the ledger alone.
 
 ## 68. External Trigger Gateway
 
@@ -4974,7 +4974,7 @@ The debugger is correct only when a live run pauses at the next decision point r
 **Authoritative build-spec section:** §60  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §60. Extends §7 (Scheduler and Background Execution), which remains the authority on time-based initiation. This section adds externally originated admission.
+Implements build spec §60, which is canonical for authority constraints, default posture, auditability, and acceptance criteria; this section defines only the gateway implementation. Extends §7 (Scheduler and Background Execution), which remains the authority on time-based initiation. This section adds externally originated admission.
 
 ### 68.1 Components
 
@@ -5002,11 +5002,11 @@ trigger fires
   -> create task with permissions capped at ceiling
 ```
 
-The created task's permission ceiling is the minimum of the trigger ceiling and the project policy ceiling. A trigger can never widen permissions.
+The cap formula — task ceiling = min(trigger ceiling, project policy ceiling) — implements the never-widen rule owned by build spec §60.3.
 
 ### 68.3 Default-disabled network surface
 
-Triggers with source `external_webhook` are disabled at registration and require an explicit user enablement recorded in the decision trace. The gateway must not open a listening network surface while no webhook trigger is enabled.
+Default-disabled posture and explicit recorded enablement are owned by build spec §60.4 for external network-originated triggers; this section implements them for the network-originated source (`external_webhook`) and additionally guarantees no listening network surface exists while no webhook trigger is enabled.
 
 ### 68.4 Audit record schema
 
@@ -5014,11 +5014,11 @@ Triggers with source `external_webhook` are disabled at registration and require
 
 ### 68.5 Isolation from authority
 
-The gateway may create tasks. It may not approve decision nodes, promote artifacts, grant tool permissions, or mark requirements complete. All such operations remain with the deterministic authorities of §23 and §27.
+The authority constraints — no permission grants, no ceiling raises, no decision-node approvals, no policy-gate bypasses, no artifact promotions — are owned by build spec §60.3; the gateway implements them by being able only to create tasks, with all other operations remaining with the deterministic authorities of §23 and §27.
 
 ### 68.6 Architecture tests
 
-The gateway is correct only when a disabled webhook trigger opens no network surface; when an over-scoped request is rejected with a typed reason and audited; when an admitted task's ceiling equals the minimum of trigger and policy ceilings; and when every firing has an audit record.
+Architecture tests mirror the acceptance criteria of build spec §60.6 and add two implementation checks: the rejection reason is typed, and an admitted task's ceiling equals min(trigger ceiling, policy ceiling).
 
 ## 69. Resource Profiler
 
@@ -5026,7 +5026,7 @@ The gateway is correct only when a disabled webhook trigger opens no network sur
 **Authoritative build-spec section:** §64  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §64. Extends §3 (Process Model) and the resource governance of §51, which remain the authority on process supervision and reservation enforcement.
+Implements build spec §64, which is the sole authority on profile records, honest estimation, degradation detection, and acceptance criteria; this section defines only instrumentation, the ResourceExecutionProfile projection, and the capacityVerdict gate. Extends §3 (Process Model) and the resource governance of §51, which remain the authority on process supervision and reservation enforcement.
 
 ### 69.1 Components
 
@@ -5040,25 +5040,25 @@ Implements build spec §64. Extends §3 (Process Model) and the resource governa
 
 ### 69.2 Measurement boundaries
 
-Measurement must wrap the supervised process, not the model's description of it. Each Gradle invocation, emulator boot, instrumentation run, packaging step, static analysis pass, and provider call is timed by the supervisor and written to ProfileStore with the host and project fingerprint.
+Measurement must wrap the supervised process, not the model's description of it. The measured operation classes are those of build spec §64.1 (this implementation additionally instruments packaging steps and static-analysis passes); each is timed by the supervisor and written to ProfileStore keyed by host and project fingerprint per build spec §64.2.
 
 ### 69.3 Estimation contract
 
 > **Schema projection:** `ResourceExecutionProfile` is defined in `nirman-schemas.md` §2.58. Owner: TA §69.3.
 
-A `ResourceExecutionProfile` describes the physical execution demand of a plan revision on this host — CPU, memory, disk, emulator slots, concurrency, build pressure, and the duration observed for the same operation classes — so that `ResourceIntegrityAuthority` (§59, BS §72) can admit it. It carries no token, request, price, or monetary field; AI usage is telemetry and is never an input to admission (BS §72). An operation class with fewer than the configured minimum samples must report `unprofiled` and must not receive a fabricated numeric estimate, satisfying the honesty invariant of build spec §66.1.
+The profile's field set (with confidence and sample counts), physical-demand-only scope, and forbidden fields are owned by build spec §64.3; the unprofiled-below-minimum-samples honesty invariant is owned by build spec §64.4. This subsection defines the `ResourceExecutionProfile` projection that carries them — CPU, memory, disk, emulator slots, concurrency, build pressure, observed duration, confidence, and sample counts — feeding `ResourceIntegrityAuthority` (§59, BS §72); AI usage is telemetry and never an input to admission (BS §72).
 
 ### 69.4 Planning integration
 
-When `capacityVerdict` is not `fits`, the kernel must reduce scope, reorder work to lower peak concurrency, or surface the constraint as a decision node before execution. Beginning work that the `ResourceExecutionProfile` predicts will exhaust the host is prohibited. `exceeds_declared_time_bound` is returned only when the user has declared an explicit time bound for the goal (the user-declared time bound of BS §64.3) and the observed duration of the same operations predicts that it cannot be met; it is surfaced as a decision node for the user and never terminates, degrades, or blocks a goal that has no declared bound — there is no default autonomous-goal completion deadline (§7.2, ADR-218).
+The over-capacity obligations — reduce scope, re-sequence work, or surface the constraint, and never begin work predicted to exhaust the host — are owned by build spec §64.3; this section implements them via the `capacityVerdict` gate. `exceeds_declared_time_bound` is the implementation projection of the user-declared time bound of BS §64.3: it is returned only when the user has declared an explicit time bound for the goal and the observed duration of the same operations predicts it cannot be met; it is surfaced as a decision node and never terminates, degrades, or blocks a goal that has no declared bound (§7.2, ADR-218).
 
 ### 69.5 Degradation signals
 
-DegradationDetector compares recent samples to the stored p90. Sustained regression raises a host-health signal consumed by the recovery ladder of §28, since such drift commonly indicates disk pressure, a corrupted Gradle cache, or a degraded emulator image rather than an application defect.
+The degradation-detection obligation — sustained drift from the profile raises a host or project health signal — is owned by build spec §64.5; this section implements it by comparing recent samples to the stored p90 and feeding the recovery ladder of §28, since such drift commonly indicates disk pressure, a corrupted cache, or a degraded emulator rather than an application defect.
 
 ### 69.6 Architecture tests
 
-Profiling is correct only when repeated identical fixture runs converge to stable profiles; when an over-capacity plan is reduced or surfaced before execution; when an unprofiled operation is reported as unprofiled; and when injected disk pressure raises a host-health signal rather than an application defect.
+Architecture tests mirror the acceptance criteria of build spec §64.6 and add one implementation check: injected disk pressure surfaces as a host-health signal, not an application defect.
 
 ### 69.7 Performance measurement ownership
 
@@ -5102,13 +5102,13 @@ Implements build spec §58. Extends §39 (Sandbox and Process Separation) and §
 
 > **Schema projection:** `ResolvedDependency` is defined in `nirman-schemas.md` §2.59. Owner: TA §70.2.
 
-A verdict other than `verified` blocks the build. A `hash_mismatch` against a previously recorded hash is treated as a supply-chain event, not a transient failure, and must be surfaced rather than auto-retried.
+Dependency blocking follows build spec §58.3: a verdict other than `verified` blocks the build. A `hash_mismatch` against a previously recorded hash is treated as a supply-chain event, not a transient failure, and must be surfaced rather than auto-retried.
 
 ### 70.3 Application security checks
 
 `AppSecurityScanner` must run before packaging and must check the categories enumerated in build spec §58.2, operating on the generated sources and merged manifest rather than on model claims about them. Each finding records the file, location, category, and severity. In addition to the §58.2 enumerated categories, `AppSecurityScanner` applies exploit-pattern matching against a deterministic catalog of known Android exploit patterns (intent-redirection chains, fragment injection, unsafe broadcast receivers, exported provider access without read/write permission guards, and Parcel deserialization gadgets), producing a typed `ExploitPatternFinding` per match.
 
-After `AppSecurityScanner` completes, `SecurityRiskScorer` aggregates all findings by severity and category into a structured `SecurityRiskScore` (critical count, high count, medium count, low count, overall risk level, and blocking status) bound to the artifact revision. `SecurityRiskScore` is a read-only projection; `ProvenanceRecorder` remains the sole promotion gate.
+After `AppSecurityScanner` completes, `SecurityRiskScorer` aggregates findings per build spec §58.2 — by severity, with the category breakdown as an implementation elaboration — into a structured `SecurityRiskScore` (critical count, high count, medium count, low count, overall risk level, and blocking status) bound to the artifact revision. `SecurityRiskScore` is a read-only projection; `ProvenanceRecorder` remains the sole promotion gate.
 
 `SecurityAuditGenerator` then composes `FindingDispositionStore` records, the `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact that is attached to the artifact record before promotion. The security audit report is a read-only projection artifact; promotion authority remains with `ProvenanceRecorder`. Together, `AppSecurityScanner`, `SecurityRiskScorer`, and `SecurityAuditGenerator` constitute the `AndroidSecurityIntelligenceService` referenced by BS §58.2.
 
@@ -5116,11 +5116,11 @@ After `AppSecurityScanner` completes, `SecurityRiskScorer` aggregates all findin
 
 > **Schema projection:** `ArtifactProvenance` is defined in `nirman-schemas.md` §2.60. Owner: TA §70.4.
 
-ProvenanceRecorder must refuse to mark an artifact promotable when the SBOM is incomplete or any finding lacks a disposition.
+`ProvenanceRecorder` enforces the promotion bar of build spec §58.4 and the disposition-completeness rule of §58.5, refusing to mark an artifact promotable when the SBOM is incomplete or any finding lacks a disposition.
 
 ### 70.5 Disposition discipline
 
-Every finding must terminate in `blocking` or `accepted_with_reason`. The store must reject a disposition with an empty reason, which structurally prevents silent suppression. The final report renders all findings and dispositions.
+`FindingDispositionStore` structurally enforces the disposition discipline of build spec §58.5: every finding terminates in `blocking` or `accepted_with_reason`, the store rejects a disposition with an empty reason — preventing silent suppression — and the final report renders all findings and dispositions.
 
 ### 70.6 Architecture tests
 
@@ -5183,7 +5183,7 @@ The runtime is correct only when a hardcoded secret blocks packaging; when an un
 **Authoritative build-spec section:** BS §66  
 **Role:** implementation of the named contract; adds no normative clause to it.
 
-Implements build spec §66. Extends §58 (Agent Execution Kernel and Runtime Formalization) and §21 (Authority Hierarchy and Recovery Invariants), which remain the authority on the execution loop and on who decides. This section adds the reasoning components that drive the existing loop. It introduces no second loop and no second authority.
+Implements build spec §66, which is canonical for the reasoning contract, except the fine-grained cycle state machine of §71.4, which is canonical over cycle transitions (ADR-230; build spec §52.2 is the coarse durable projection and §66.3 the contract-level cycle, whose single `OBSERVE` name projects onto the canonical machine's `OBSERVE` and `OBSERVE_RESULT`). Extends §58 (Agent Execution Kernel and Runtime Formalization) and §21 (Authority Hierarchy and Recovery Invariants), which remain the authority on the execution loop and on who decides. This section adds the reasoning components that drive the existing loop. It introduces no second loop and no second authority.
 
 ### 71.1 Position in the runtime
 
@@ -5230,7 +5230,7 @@ The reasoning engine sits above the kernel and below nothing. It cannot reach th
 
 > **Schema projection:** `ReasoningArtifact` is defined in `nirman-schemas.md` §1.27. Owner: BS §66.2.
 
-The store must reject an artifact with an empty `selectionBasis`, which structurally prevents unjustified strategy selection. No field of this record holds model reasoning text; `selectedStrategy` and `expectedEffect` are declarative statements, not transcripts.
+The store structurally enforces the `selectionBasis` admissibility rule of build spec §66.2 — the basis must cite evidence, constraints, or prior failure signatures, never bare reasoning prose, so a basis that cites nothing is inadmissible even when non-empty — rejecting an inadmissible artifact and so preventing unjustified strategy selection. No field of this record holds model reasoning text; `selectedStrategy` and `expectedEffect` are declarative statements, not transcripts.
 
 ### 71.4 Cycle state machine
 
@@ -5254,7 +5254,7 @@ This section is the **canonical cycle state machine** and the single authority o
 
 > **Schema projection:** `Hypothesis` is defined in `nirman-schemas.md` §1.29. Owner: BS §66.6.
 
-The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without an evidence reference, must refuse to retest a `REJECTED` hypothesis against unchanged evidence, and must expose whether an untested discriminating test remains so the kernel can prefer testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records per §59.5 and feed the failure signatures of §63.4.
+`HypothesisManager` enforces the hypothesis-evidence rules of build spec §66.6: no `SUPPORTED` or `REJECTED` without an evidence reference, no retest of a `REJECTED` hypothesis against unchanged evidence, and untested discriminating tests exposed so the kernel prefers testing over untargeted repair. Rejected hypotheses are written as FAILURE memory records under the memory-record rules of build spec §53.2 and feed the failure signatures of §63.4.
 
 `NegativePremiseStore` is the named partition within `ProjectMemoryStore` (§59.1) that indexes rejected hypotheses, failed AST patch fingerprints, and refuting evidence records. Before entering `STRATEGIZE` (§71.4) or authorizing a mutation proposal, `StrategySelector` queries `NegativePremiseStore` to prune candidate hypotheses that match known refuted premises, preventing repetitive regression cycles and redundant model deliberation (BS §52.3).
 
@@ -5262,7 +5262,7 @@ The manager must refuse to mark a hypothesis `SUPPORTED` or `REJECTED` without a
 
 > **Schema projection:** `CapabilityDescriptor` is defined in `nirman-schemas.md` §2.61. Owner: TA §71.6.
 
-Discovery is a query, not a grant. `discoverCapabilities(objective, constraints, environment)` returns descriptors whose availability is computed from the toolchain authority of §49 and the environment planner, with permissions still evaluated at invocation. A newly registered skill or tool becomes discoverable without modifying the reasoning engine, which is what makes the runtime extensible rather than hardcoded.
+Discovery is a query, not a grant, per build spec §66.7: `discoverCapabilities(objective, constraints, environment)` returns descriptors whose availability is computed from the toolchain authority of §49 and the environment planner, with permissions still evaluated at invocation. A newly registered skill or tool becomes discoverable without modifying the reasoning engine, which is what makes the runtime extensible rather than hardcoded.
 
 ### 71.7 Invocation and delegation persistence
 
@@ -5285,7 +5285,7 @@ child.depth                 = parent.depth + 1  ≤  maxDepth
 child.workspaceScope        ⊆ parent.workspaceScope
 ```
 
-Any violation denies the grant with a typed reason. `parent.admissibleResourceCapacity` is the parent's currently admissible physical capacity as evaluated by ResourceIntegrityAuthority (§59, BS §72) net of aggregate outstanding child resource reservations; the manager must recompute it at issue time rather than trusting a cached value, since sibling grants and host pressure change it. `executionTimeout` is a liveness bound for a hung child, not an AI-usage or goal-duration budget. Revoking a parent grant must cascade to every descendant, reusing the cancellation propagation of §58.
+Any violation denies the grant with a typed reason. `parent.admissibleResourceCapacity` is the parent's currently admissible physical capacity as evaluated by ResourceIntegrityAuthority (§59, BS §72) net of aggregate outstanding child resource reservations; the manager must recompute it at issue time rather than trusting a cached value, since sibling grants and host pressure change it. `executionTimeout` retains its build spec §66.8 semantics — a liveness bound for a hung child, not an AI-usage or goal-duration budget. Revoking a parent grant must cascade to every descendant, reusing the cancellation propagation of §58.
 
 **Pre-dispatch worker compatibility validation.** Before `DelegationManager` issues a `DelegationGrant`, `WorkerCompatibilityValidator` executes a 4-dimensional compatibility audit:
 1. *Context Capacity Match:* The task's assembled `ContextPackage` size must not exceed the candidate model profile's verified attendable context capacity ($C_{\text{task\_package}} \le C_{\text{model\_context}}$).
@@ -5377,7 +5377,7 @@ There is no budget manager. No component owns an AI-usage ceiling, reserves or s
 
 DeliberationRecordStore must reject a record whose `passCount` exceeds one while `continuationReasons` has fewer entries than the additional passes, and must reject any record containing verbatim model reasoning in a text field. No field of either schema is a reasoning transcript.
 
-`reasoningUsage.accountingStatus` distinguishes provider-`reported` usage, runtime-`estimated` usage, and `unavailable` usage. The runtime never fabricates provider-reported reasoning usage: when the provider does not expose reasoning-token accounting, the record states `estimated` or `unavailable`, and estimates remain telemetry that can never satisfy a sufficiency or certification requirement. `reasoningUsage`, `resourceUsage`, `passCount`, and `toollessPassCount` are observational fields: no component reads them to authorize, refuse, pause, or terminate a pass.
+`reasoningUsage.accountingStatus` distinguishes provider-`reported` usage, runtime-`estimated` usage, and `unavailable` usage. The store implements the accounting rules of build spec §68.2: it never fabricates provider-reported reasoning usage — when the provider does not expose reasoning-token accounting, the record states `estimated` or `unavailable`, and estimates remain telemetry that can never satisfy a sufficiency or certification requirement — and `reasoningUsage`, `resourceUsage`, `passCount`, and `toollessPassCount` are observational fields no component reads to authorize, deny, throttle, pause, or terminate a pass.
 
 **Reasoning reproducibility contract.** To ensure deterministic replay, audit verification, and regression tracking across deliberation passes without capturing verbatim chain-of-thought, every pass recorded in `DeliberationRecord` points to its underlying `providerRequestRefs: requestId[]`. The runtime deterministically binds:
 1. `requestHash`: The SHA-256 digest of the normalized prompt assembly, system instruction, and schema contract.
@@ -5444,7 +5444,7 @@ enter deliberation (from HYPOTHESIZE or STRATEGIZE)
   -> return control to AgentReasoningEngine (kernel)
 ```
 
-The loop has no path from a pass directly to execution. Sufficiency returns to the reasoning engine, which emits the ReasoningArtifact and submits it for authorization. The loop has no usage-exhaustion path and no fixed pass ceiling: a pass is never refused because of tokens, requests, cost, reasoning tokens, pass count, or elapsed time. An observation-free pass is a signal to obtain evidence, not a termination condition. Anti-thrash protection comes from DiminishingReturnDetector, RepeatedFailureDetector, and StrategyChangeRequired. Physical resource pressure is handled by ResourceIntegrityAuthority (BS §72) — a pass waits, is rescheduled, or is checkpointed — and never by the deliberation runtime terminating itself.
+The loop has no path from a pass directly to execution. Sufficiency returns to the reasoning engine, which emits the ReasoningArtifact and submits it for authorization. The loop implements the no-usage-budget and evidence-acquisition-trigger rules of build spec §68.4 and §68.8: it has no usage-exhaustion path and no fixed pass ceiling, a pass is never refused because of tokens, requests, cost, reasoning tokens, pass count, or elapsed time, an observation-free pass is a signal to obtain evidence, never a termination condition, and anti-thrash protection comes from the build spec §68.13 detectors (DiminishingReturnDetector, RepeatedFailureDetector, StrategyChangeRequired), never a pass count. The termination outcomes are owned by build spec §68.14 (`SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, `ABANDONED`); this loop records `SUFFICIENT` and `NO_PROGRESS`, and escalation and abandonment follow the build spec §68.14 paths. Physical resource pressure is handled by ResourceIntegrityAuthority (BS §72) — a pass waits, is rescheduled, or is checkpointed — and never by the deliberation runtime terminating itself.
 
 - `ExplorationStrategySelector` — The deliberation component that decides between exploiting known repair patterns and exploring speculative solutions.
 
@@ -5454,7 +5454,7 @@ The loop has no path from a pass directly to execution. Sufficiency returns to t
 
 ### 72.5 ReasoningEffortSelector
 
-The selector computes the granted level as the minimum of the requested level, the policy ceiling for the task's risk class, the level the currently available execution capacity (physical resource integrity, BS §72) admits, and the level the routed provider actually supports, raised to the task's minimum required effort from its requirements, uncertainty, and risk. The grant is issued under an `effortGrantId`; the grant, the requested level, and the binding constraint are recorded, so a downgrade is visible rather than silent. AI usage is not an input: there is no remaining budget, and no grant is ever refused or lowered because of tokens, requests, cost, or elapsed time.
+The selector computes the granted level as the minimum of the requested level, the policy ceiling for the task's risk class, the level the currently available execution capacity (physical resource integrity, BS §72) admits, and the level the routed provider actually supports, raised to the task's minimum required effort from its requirements, uncertainty, and risk. The grant is issued under an `effortGrantId`; the grant, the requested level, and the binding constraint are recorded, so a downgrade is visible rather than silent. AI usage is not an input to the grant, per build spec §68.5: there is no remaining budget, and no grant is ever refused or lowered because of tokens, requests, cost, or elapsed time.
 
 The selector must have no capability to raise a permission ceiling and no path to the policy engine's grant functions. Effort and permission are separate axes by construction.
 
@@ -5479,7 +5479,7 @@ These values must remain separately auditable.
 
 The evaluator implements the build spec §68.7 conjunction. It consults the required-evidence set for the change's risk class, the uncertainty threshold for that class, strategy stability across the last pass, the presence of a validation plan, and whether HypothesisEvaluator reports an untested discriminating test.
 
-A stated confidence value is an input to uncertainty only and can never satisfy the conjunction alone. For a change classified high-risk the evaluator must refuse sufficiency while architectural impact, dependency impact, affected-symbol analysis, regression plan, or validation plan is absent.
+The evaluator implements the build spec §68.7 conjunction: a stated confidence value is an input to uncertainty only and can never satisfy it alone, and sufficiency is refused while any required-evidence element for the change's risk class is absent — for a change classified high-risk, architectural impact, dependency impact, affected-symbol analysis, regression plan, or validation plan.
 
 ### 72.7 HypothesisEvaluator and StrategyCritic
 
@@ -5487,7 +5487,7 @@ HypothesisEvaluator enumerates candidates, obtains a discriminating test per can
 
 StrategyCritic runs before authorization at DEEP and above for the change classes enumerated in build spec §68.10. It holds no mutation broker handle, no evidence-approval capability, and no completion authority. Its output is a rejection finding or a list of evidence requests routed back through EvidenceAcquisitionPlanner.
 
-**Pre-implementation counterfactual fault audit.** When executing adversarial critique for Android project strategies at `DEEP` and `EXHAUSTIVE` deliberation, `StrategyCritic` must systematically evaluate counterfactual failure modes across 5 canonical Android operational hazards:
+**Pre-implementation counterfactual fault audit.** When executing adversarial critique for Android project strategies at `DEEP` and `EXHAUSTIVE` deliberation, `StrategyCritic` implements the counterfactual fault audit owned by build spec §68.10: the critique must explicitly evaluate its five operational hazards — schema regression, lifecycle mismatch, concurrency race hazards, offline-first divergence, and dependency breaking changes — realized for Android projects through five canonical operational checks (implementation projection):
 1. *Process death & state recreation:* Evaluates whether in-memory states survive OS process termination when backgrounded, requiring explicit `SavedStateHandle` or `rememberSaveable` state hoisting.
 2. *Runtime permission denial:* Evaluates whether revoking runtime permissions (e.g., `POST_NOTIFICATIONS`, `ACCESS_FINE_LOCATION`, `CAMERA`) crashes the app or triggers graceful unblocked fallback UI with rationale presentation.
 3. *Network offline & degradation:* Evaluates behavior during immediate airplane mode or socket timeouts, ensuring data access routes through Room offline-first caching and StateFlow streams rather than unbuffered HTTP calls.
@@ -5539,7 +5539,7 @@ No failure mode permits presenting an unvalidated leading strategy as sufficient
 
 The runtime is correct only when an agent request for EXHAUSTIVE under a policy ceiling of EXTENDED is granted EXTENDED with the constraint recorded; when a deliberation that has consumed arbitrarily many tokens, requests, reasoning passes, and hours continues while progress remains possible and no usage-exhaustion outcome exists in the ledger; when an observation-free pass raises an evidence-acquisition trigger and the following pass acquires evidence or changes approach; when a strategy retried against unchanged evidence raises StrategyChangeRequired; when physical memory pressure injected mid-deliberation causes the pass to be checkpointed and resumed rather than terminated; when a high-risk change is refused sufficiency with a stated confidence of 0.95 and a missing regression plan; when a discriminating test refutes the leading hypothesis and the selected strategy changes as a result; when a counterexample finding returns the cycle to strategy selection without mutating the project; when an escalated model executes under the identical permission ceiling; when a forced context compaction preserves active hypotheses and rejected strategies and the session resumes without re-deriving them; when consecutive passes of flat uncertainty reaching the **configured** `diminishingReturnThreshold` produce NO_PROGRESS and an approach change rather than a further plain pass; when the ledger shows zero project mutation events between deliberation entry and the kernel `AUTHORIZE` grant; when an effort escalation carries a `grantDecisionReason` citing the observed condition that triggered it; and when no deliberation record in the ledger contains verbatim model reasoning.
 
-The threshold is configuration, not a runtime constant. No component may hardcode a pass count for `NO_PROGRESS`: the classification is a function of the configured threshold, the measured per-pass movement, and consecutive-pass semantics. A test fixture supplies its own threshold value, and a runtime that behaves identically regardless of the configured value has not implemented the detector.
+Implements the configured-threshold rule of build spec §68.13: the threshold is configuration, not a runtime constant, and no component may hardcode a pass count for `NO_PROGRESS` — the classification is a function of the configured threshold, the measured per-pass movement, and consecutive-pass semantics. A test fixture supplies its own threshold value, and a runtime that behaves identically regardless of the configured value has not implemented the detector.
 
 ## 73. IntentSynthesisPromptContract and Truthful Preview Architecture
 
@@ -7114,7 +7114,7 @@ Steps 1–8 are kernel events in the event store (§45.2), so replay reconstruct
 | Runtime restart mid-speculation | Replay restores every `CandidateBranch` from events; candidates in `pending` resume or are marked `failed` from lease state; no candidate is re-created against a different `parentRevision` |
 | Winner reconciliation conflicts with the main workspace | Handled by the §8.3 reconciliation algorithm; the winner is not committed until the commit barrier (§45.4) passes |
 
-A losing candidate's validation is never cited as completion evidence, and a losing candidate's code never appears in a promoted artifact (`CLAUSE.SPECULATE.DISCARD_HYGIENE`).
+`CandidateDiscarder` and every commit and completion gate enforce `CLAUSE.SPECULATE.DISCARD_HYGIENE` (build spec §65.5).
 
 ### 88.6 Architecture tests
 
