@@ -293,7 +293,7 @@ SkillPackage
 **Canonical count authority.** The numbers that appear in these documents name four distinct things and MUST NOT be conflated:
 
 - `SkillInventoryCount` = the number of discoverable `/skills/*/SKILL.md` packages on disk. The v1 baseline is eighty-three; this is a runtime-loader fact, not a capability count.
-- `CapabilityRegistry` size = the number of registered capability contracts in BS §5.7 (twenty-seven). Capabilities are normative product abilities with required contracts, test identity, and evidence identity; they are not skill packages.
+- `CapabilityRegistry` size = the number of registered capability contracts in BS §5.7 (twenty-eight). Capabilities are normative product abilities with required contracts, test identity, and evidence identity; they are not skill packages.
 - `SkillPackage` = one admitted skill (one `SKILL.md` plus its `skill.json` manifest). A skill names `requiredCapabilities` (drawn from the closed capability-id vocabulary of BS §79.7) and an open `requiredTools` vocabulary; it is a reusable worker instruction package, not a capability.
 - `SkillInvocation` = one runtime use of an admitted skill, recorded as `SkillInvocationRecord`. Invocation count is telemetry, not a count of skills or capabilities.
 
@@ -1214,8 +1214,8 @@ AndroidTechnologyPlan
 - revision: string (hash)
 - capabilityProfileId: string (AndroidCapabilityProfile identity, build spec §5.7.1; the composition and toolchainLock this plan resolves to)
 - requestedCapabilities: string[] (CAP.ANDROID.* identifiers the goal requires)
-- selectedLanguages: ("kotlin" | "java" | "typescript" | "javascript" | "cpp" | "c")[]
-- uiSystem: ("jetpack_compose" | "android_views" | "react_native" | "expo" | "mixed")?
+- selectedLanguages: ("kotlin" | "java" | "cpp" | "c")[]
+- uiSystem: ("jetpack_compose" | "android_views" | "mixed")?
 - nativeModules: string[] (Maven coordinates or npm package names)
 - buildSystem: ("gradle_kotlin" | "gradle_groovy")?
 - gradleVersion: string (semver)?
