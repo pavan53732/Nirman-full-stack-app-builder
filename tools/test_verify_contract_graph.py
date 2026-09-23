@@ -2180,6 +2180,46 @@ CASES = {
         "only when the transaction commits and its committed project-state",
         "iff the committed project-state",
         "semantic documentation"),
+    "LDE LocalDecisionProposal moved out of Group 1": (
+        SCHEMAS,
+        "### 1.79 LocalDecisionProposal",
+        "### 2.130 LocalDecisionProposal",
+        "semantic documentation"),
+    "LDE LocalDecisionProposal lost acceptanceOutcome field": (
+        SCHEMAS,
+        "- acceptanceOutcome: NOT_EVALUATED | ACCEPTED | BELOW_THRESHOLD | INVALID | FALLBACK_REQUIRED",
+        "- legacyOutcome: string",
+        "semantic documentation"),
+    "LDE state conflation: DEGRADED treated as admission state": (
+        TA,
+        "`admissionState` and `healthState` are orthogonal state dimensions and MUST NOT be conflated.",
+        "admissionState transitions through ACTIVE -> DEGRADED -> QUARANTINED.",
+        "semantic documentation"),
+    "LDE M126 lost acceptance profile reference": (
+        DEV,
+        "`LocalDecisionAcceptanceProfile` in `nirman-schemas.md` §1.80.",
+        "acceptance profile defined in documentation.",
+        "semantic documentation"),
+    "LDE global confidence threshold invented in AGENTS": (
+        AGENTS_MD,
+        "Agents MUST NOT invent a global confidence threshold for local auxiliary decisions",
+        "Agents MAY use a global confidence threshold of 0.85 for all decisions",
+        "semantic documentation"),
+    "LDE acceptance profile criteria conflation (missing evaluationCriteria)": (
+        SCHEMAS,
+        "- evaluationCriteria:",
+        "- metrics:",
+        "semantic documentation"),
+    "LDE persistence table missing from TA §57.5": (
+        TA,
+        "local_decision_acceptance_profiles,\n",
+        "",
+        "semantic documentation"),
+    "LDE TA §58.17 acceptance profile missing FROZEN status": (
+        TA,
+        "status = FROZEN",
+        "status = ACTIVE",
+        "semantic documentation"),
 }
 
 
@@ -2819,6 +2859,32 @@ def main():
     results.append(("positive: verifier CLI dumps M120-M122 milestone registrations",
                     parsed_ok and m120_cli_ok and m121_cli_ok and m122_cli_ok,
                     f"m120={m120_cli_ok} m121={m121_cli_ok} m122={m122_cli_ok}"))
+
+    # POSITIVE CONFORMANCE: LDE and LocalDecisionAcceptanceProfile certify
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-lde-") as tmp:
+        _copy_fixture(tmp, RUST_SOURCES)
+        required_lde = (
+            (BS, "> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79. Owner: BS §66.10.1."),
+            (BS, "> **Schema projection:** `LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80. Owner: BS §66.10.1."),
+            (TA, "> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79. Owner: BS §66.10.1."),
+            (TA, "> **Schema projection:** `LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80. Owner: BS §66.10.1."),
+            (SCHEMAS, "### 1.79 LocalDecisionProposal"),
+            (SCHEMAS, "### 1.80 LocalDecisionAcceptanceProfile"),
+            (SCHEMAS, "### 2.129 LocalDecisionEngineProfile"),
+            (DEV, "`LDE-ACP-001` is represented by `LocalDecisionAcceptanceProfile` in `nirman-schemas.md` §1.80."),
+            (DEV, "LDE-ACP-001@1"),
+            (GLOSSARY, "**LocalDecisionAcceptanceProfile** — The immutable, versioned acceptance-criteria record"),
+            (GLOSSARY, "SCHEMAS §1.79; TA §58.17."),
+            (AGENTS_MD, "Agents MUST treat `LocalDecisionEngineProfile.admissionState` and `healthState` as separate dimensions."),
+            (TA, "local_decision_acceptance_profiles"),
+            (BS, "Local auxiliary decision fallback matrix"),
+        )
+        present_lde = all(token in open(os.path.join(tmp, doc), encoding="utf-8").read()
+                          for doc, token in required_lde)
+        rc_lde, out_lde = run(tmp)
+        results.append(("positive: LDE proposal, acceptance profile, and state orthogonality certify",
+                        present_lde and rc_lde == 0 and CERTIFIED_RE.search(out_lde) is not None,
+                        f"exit={rc_lde}"))
 
     expected_checks = {
         "duplicate authority", "unregistered contract", "undeclared extension",

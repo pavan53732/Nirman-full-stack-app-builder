@@ -1846,6 +1846,57 @@ LoopHeartbeat
 
 `stateEntered` carries the **coarse durable-projection vocabulary** of build spec §52.2, not the fine-grained cycle states of technical architecture §71.4. Every technical architecture §71.4 cycle state projects onto exactly one of these nine names through the total, surjective table in build spec §52.2, so a heartbeat exists for every cycle transition and `LOOP_HUNG` can always name a last coarse state. The fine state is recoverable from the accompanying kernel event, which records the technical architecture §71.4 state; the heartbeat is the supervisor's liveness projection and is deliberately coarser (ADR-230).
 
+### 1.79 LocalDecisionProposal
+
+**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
+
+```text
+LocalDecisionProposal
+- proposalId: string (uuid)
+- sessionId: string
+- taskId: string
+- workerId: string | null
+- purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION
+- decisionPrimitive: CHOICE | SCORE | NOUL
+- profileId: string
+- modelRevision: string
+- inputRevisionId: string
+- contextPackageHash: string
+- stateHash: string
+- choiceValue: string | null
+- choiceProbabilities: { option: string, probability: float (0.0-1.0) }[] | null
+- scoreValue: float | null
+- scoreDistribution: { level: string, probability: float (0.0-1.0) }[] | null
+- noulProbability: float (0.0-1.0) | null
+- confidence: float (0.0-1.0) | null
+- calibrationState: UNPROFILED | PROFILED | FAILED | INVALIDATED
+- calibrationProfileId: string | null
+- decisionAcceptanceProfileId: string
+- acceptanceOutcome: NOT_EVALUATED | ACCEPTED | BELOW_THRESHOLD | INVALID | FALLBACK_REQUIRED
+- generatedAt: timestamp
+- expiresAt: timestamp
+- status: SHADOW_ONLY | PROPOSED | ACCEPTED_AS_INPUT | REJECTED | QUARANTINED | INVALIDATED
+- evidenceIds: string[]
+```
+
+### 1.80 LocalDecisionAcceptanceProfile
+
+**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
+
+```text
+LocalDecisionAcceptanceProfile
+- profileId: string (immutable versioned identity; e.g. LDE-ACP-001@1)
+- targetLocalDecisionEngineProfileId: string
+- targetModelRevision: string
+- targetRuntimeAdapterVersion: string
+- fixtureSetId: string
+- criterionSetRevision: string
+- runtimeCriteria: { purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION; decisionPrimitive: CHOICE | SCORE | NOUL; calibrationRequired: boolean; minConfidence: float (0.0-1.0) | null; minPrimaryProbability: float (0.0-1.0) | null; maxChoiceOptions: integer | null; probabilityNormalizationTolerance: float (0.0-1.0) | null }[]
+- evaluationCriteria: { purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION; decisionPrimitive: CHOICE | SCORE | NOUL; minAccuracy: float (0.0-1.0); maxFalsePositiveRate: float (0.0-1.0); maxFalseNegativeRate: float (0.0-1.0); maxExpectedCalibrationError: float (0.0-1.0) | null; maxBrierScore: float (0.0-1.0) | null }[]
+- immutableDigest: string (SHA-256 over the canonical serialized acceptance profile)
+- status: DRAFT | FROZEN | RETIRED
+```
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -4897,9 +4948,11 @@ LocalDecisionEngineProfile
 - licenseHash: string
 - installPath: string
 - maxContextTokens: integer
+- maxChoiceOptions: integer | null
 - decisionPrimitives: (CHOICE | SCORE | NOUL)[]
 - languageCodes: string[]
 - purposeSet: (FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION)[]
+- decisionAcceptanceProfileId: string
 - autoProvision: boolean
 - admissionState: DISABLED | EXPERIMENTAL | ACTIVE | QUARANTINED
 - healthState: NOT_INSTALLED | MANIFEST_VERIFIED | PROVISIONING | READY | DEGRADED | WAITING_NETWORK | FAILED_INTEGRITY | FAILED_RUNTIME | UNAVAILABLE
@@ -4912,37 +4965,6 @@ LocalDecisionEngineProfile
 - lastLoadedAt: timestamp | null
 - lastVerifiedAt: timestamp | null
 - failureReason: string | null
-```
-
-### 2.130 LocalDecisionProposal
-
-**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
-
-```text
-LocalDecisionProposal
-- proposalId: string (uuid)
-- sessionId: string
-- taskId: string
-- workerId: string | null
-- purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION
-- decisionPrimitive: CHOICE | SCORE | NOUL
-- profileId: string
-- modelRevision: string
-- inputRevisionId: string
-- contextPackageHash: string
-- stateHash: string
-- choiceValue: string | null
-- choiceProbabilities: { option: string, probability: float }[] | null
-- scoreValue: float | null
-- scoreDistribution: { level: string, probability: float }[] | null
-- noulProbability: float | null
-- confidence: float | null
-- calibrationState: UNPROFILED | PROFILED | FAILED | INVALIDATED
-- calibrationProfileId: string | null
-- generatedAt: timestamp
-- expiresAt: timestamp
-- status: SHADOW_ONLY | PROPOSED | ACCEPTED_AS_INPUT | REJECTED | QUARANTINED | INVALIDATED
-- evidenceIds: string[]
 ```
 
 ## 3. Canonical schema registry
@@ -5059,6 +5081,7 @@ AndroidToolchainManifest
 ChangeIntelligenceRecoveryJob
 LocalDecisionEngineProfile
 LocalDecisionProposal
+LocalDecisionAcceptanceProfile
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

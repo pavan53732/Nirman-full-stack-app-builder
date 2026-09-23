@@ -116,7 +116,7 @@ Nirman's production installation consists of exactly three executables (ADR-222)
 
 **Worker host.** A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`. `WorkerRuntime` spawns one `NirmanWorker.exe` per worker lease after the lease and its launch intent are committed, assigns the process to its own Job Object before it is resumed — `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, an active-process limit of 1 so the worker cannot spawn, and the worker process memory limit of build spec §80.3 (default 2 GB) — and starts it as an AppContainer process with a filtered environment: a LowBox token created with no network capability, so the kernel refuses every socket, and with a per-lease container SID, so the kernel refuses every file that carries no access-control entry for that SID — the supervisor never writes one on a workspace, the toolchain root, or the ledger, and only the versioned application directory carries the read-and-execute entry for `ALL APPLICATION PACKAGES` that lets the worker binary load. The sandbox capability report of §9.2 marks the worker host's filesystem isolation, network restriction, process limit, and memory limit active only after the M6 worker-host fixture has observed each refusal. The worker holds no provider credential, opens no network connection, opens no file in any workspace or toolchain directory, and spawns no process. Everything it knows arrives over its `WorkerConnection` (§57.11) and everything it wants leaves the same way. A `MODEL_CALL` names the purpose of the request and the context items it needs by reference — files, symbols, observations, memory entries, and its own hypotheses, rejected strategies, effort grant, and pending evidence triggers as the constraint-class content of §72.9; the supervisor's `ContextOrchestrator` assembles the `ContextPackage` (§59.6), `ModelGateway` resolves the credential and makes the provider request (§48), and the worker receives the normalized response events and the context manifest — never the assembled package, the raw provider request, or the key. A `PROPOSAL` is an `AgentProposal` (§58.3) that the kernel's AUTHORIZE step (§58.2) passes to `PolicyAuthority` and `ToolBroker`; the outcome returns as a `PROPOSAL_RESULT` carrying the decision and, for an executed action, the observation identity and content the worker cites in its next request. The declared execution profile of build spec §26.5 governs those tool executions — the workspace paths, network category, and process quota of the Gradle, adb, or shell processes the supervisor runs on the worker's behalf; the worker host process itself always runs under the fixed profile above, whatever profile its contract declares, and the pre-M7 allowance of §57.2 to host the control-plane modules inside `Nirman.exe` never extends to a worker: from M5, the first milestone that runs one, every worker is a `NirmanWorker.exe` process spawned by whichever process hosts the control plane.
 
-**Placement rule.** A component of §58, §71, or §72 is worker-hosted when its only inputs and outputs are messages: `PrivateReasoningRuntime`, `AgentReasoningEngine`, `HypothesisManager`, `StrategySelector`, `ReflectionEngine`, `StructuredReasoningSummarizer`, and every §72.2 component except the three that grant, persist, or store. A component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted: the whole of §58 including `AgentLoopReducer`, `WorkerRuntime`, `SwarmPlanner`, and `DelegationProtocol`, together with `CapabilityRegistry`, `CapabilityBroker`, `DelegationManager`, `SwarmGraphManager`, `ReasoningStreamFilter`, `ReasoningEffortSelector`, `DeliberationContinuationManager`, `DeliberationRecordStore`, `ContextOrchestrator`, `ModelGateway`, and `ToolBroker`. A worker-hosted component that needs one of these — a capability query, an effort grant, a model escalation chosen by `DeliberationModelRouter`, a record to persist — sends the corresponding `WorkerConnection` message and receives the supervisor's answer; the effort level and the model profile a `MODEL_CALL` names are requests the supervisor admits or reduces under the worker's unchanged permission ceiling. The kernel's OBSERVE, UNDERSTAND, PLAN, and SELECT_ACTION stages are filled by the worker's `ReasoningArtifact`s and proposed action (§71.1); AUTHORIZE through EVALUATE_PROGRESS run in the supervisor, and `AgentLoopRecord` (§58.3) is written only there. ADR-119's separation of loop state from process lifecycle state is therefore a process boundary: the loop state lives in the supervisor's ledger and survives the worker, and the worker process is disposable.
+**Placement rule.** A component of §58, §71, or §72 is worker-hosted when its only inputs and outputs are messages: `PrivateReasoningRuntime`, `AgentReasoningEngine`, `HypothesisManager`, `StrategySelector`, `ReflectionEngine`, `StructuredReasoningSummarizer`, and every §72.2 component except the three that grant, persist, or store. A component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted: the whole of §58 including `AgentLoopReducer`, `WorkerRuntime`, `SwarmPlanner`, and `DelegationProtocol`, together with `CapabilityRegistry`, `CapabilityBroker`, `DelegationManager`, `SwarmGraphManager`, `ReasoningStreamFilter`, `ReasoningEffortSelector`, `DeliberationContinuationManager`, `DeliberationRecordStore`, `ContextOrchestrator`, `ModelGateway`, and `ToolBroker`. A worker-hosted component that needs one of these — a capability query, an effort grant, a model escalation chosen by `DeliberationModelRouter`, a record to persist — sends the corresponding `WorkerConnection` message and receives the supervisor's answer; the effort level and the model profile a `MODEL_CALL` names are requests the supervisor admits or reduces under the worker's unchanged permission ceiling. The kernel's OBSERVE, UNDERSTAND, PLAN, and SELECT_ACTION stages are filled by the worker's `ReasoningArtifact`s and proposed action (§71.1); AUTHORIZE through EVALUATE_PROGRESS run in the supervisor, and `AgentLoopRecord` (§58.3) is written only there. ADR-119's separation of loop state from process lifecycle state is therefore a process boundary: the loop state lives in the supervisor's ledger and survives the worker, and the worker process is disposable. This supervisor-hosting rule explicitly includes §58.17 `LocalDecisionEngine` and `LocalDecisionProposalValidator`; neither component is loaded into `NirmanWorker.exe`, despite the implementation crate name `nirman-kernel`.
 
 **Lifecycle.** A worker process lives for one lease attempt: launched when the lease is granted, exited when the worker reaches `COMPLETED`, `FAILED`, `TIMED_OUT`, or `CANCELLED` (§5.2), never pooled or reused across leases. Its one-time launch token is delivered on its standard input, never on the command line or in the environment; it connects to the per-lease pipe named in that token, completes the `WorkerConnection` handshake, and sends a heartbeat every worker heartbeat interval (build spec §26.3, 10 seconds). The supervisor declares a worker dead only from both signals of §5.2 — the process handle and heartbeat freshness: a process exit is a worker crash (§32; §27.4: preserve the workspace, record the interruption, requeue or recover), and a live process past the stale threshold (60 seconds) is terminated through `TerminateJobObject` and follows the same path. Cancellation (§58.11) is cooperative first — a `CANCEL` message the worker acknowledges after sending its last artifact — then forced through the Job Object. Resumption never depends on a paused process being alive: every artifact a worker produced is already in the ledger, so the supervisor terminates a paused worker whenever the resource policy of build spec §26.3 needs the memory and relaunches a fresh process from durable state on resume. Workers do not outlive the supervisor — closing the supervisor closes every worker Job Object — and the recovery scan of §57.4 treats a lease whose process is gone as a worker crash. A worker that exits, hangs, leaks, or is replaced never takes another worker, the supervisor, or the UI with it, and never leaves a descendant: it has none.
 
@@ -2683,15 +2683,33 @@ Provisioning MUST:
 8. persist the resulting `LocalDecisionEngineProfile`; and
 9. admit the engine only when all required integrity and runtime checks pass.
 
+The frozen `LocalDecisionAcceptanceProfile` used for admission and proposal validation MUST be persisted in `local_decision_acceptance_profiles` by its exact immutable `profileId`. Proposal replay MUST resolve the exact stored acceptance-profile version; a mutable or reconstructed acceptance profile is not sufficient for replay or evidence validation.
+
 A local-engine profile MUST NOT use a mutable `main`, `latest`, floating branch, or unpinned model alias as its identity.
 
 The first-launch bootstrap MAY provision the engine automatically. No additional user installation workflow is required. Provisioning is independent of external provider configuration and MAY proceed while `SessionProviderMode` is `PLANNING_ONLY`.
 
-Local-engine runtime states are:
+Local-engine health-state progression is:
 
 `NOT_INSTALLED → MANIFEST_VERIFIED → PROVISIONING → READY`
 
 with `DEGRADED`, `WAITING_NETWORK`, `FAILED_INTEGRITY`, `FAILED_RUNTIME`, and `UNAVAILABLE` side states.
+
+`admissionState` and `healthState` are orthogonal state dimensions and MUST NOT be conflated.
+
+`admissionState` determines whether a local-engine profile is admitted for use:
+- `DISABLED` — the profile cannot be loaded or invoked;
+- `EXPERIMENTAL` — the profile may execute only under the M126 experimental/shadow constraints;
+- `ACTIVE` — the profile may provide normal advisory proposals when health and acceptance requirements pass;
+- `QUARANTINED` — the profile is not admitted for new inference.
+
+`healthState` determines the current operational condition of an admitted profile. `READY` permits inference. `DEGRADED`, `UNAVAILABLE`, and all failure/provisioning states are non-ready states and require the consumer's declared fallback.
+
+`DEGRADED` is a health state, not an admission state and MUST NOT be represented as an `ACTIVE → DEGRADED` admission transition.
+
+`QUARANTINED` is an admission decision. A quarantined profile MUST NOT load for new inference and MUST NOT produce `ACCEPTED_AS_INPUT` proposals.
+
+Re-entry from `QUARANTINED` requires the applicable profile validation and admission gate again; a quarantined profile MUST NOT return directly to `ACTIVE` merely because the immediate failure condition disappears.
 
 The engine MUST NOT block supervisor startup, deterministic runtime operation, toolchain provisioning, project creation, planning-only mode, or external-provider configuration.
 
@@ -3390,7 +3408,8 @@ brand_manifests, asset_manifest_entries,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
-local_decision_engine_profiles, local_decision_proposals,
+local_decision_engine_profiles, local_decision_acceptance_profiles,
+local_decision_proposals,
 build_gate_records, skill_admissions, skill_invocation_records,
 resource_integrity_records, background_continuity_records
 ```
@@ -4074,24 +4093,32 @@ It has no direct workspace access, no direct filesystem authority, no provider c
 
 > **Schema projection:** `LocalDecisionEngineProfile` is defined in `nirman-schemas.md` §2.129. Owner: TA §49.5.
 >
-> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §2.130. Owner: BS §66.10.1.
+> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79. Owner: BS §66.10.1.
+>
+> **Schema projection:** `LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80. Owner: BS §66.10.1.
 
 The local execution path is:
 
 ```text
 Decision request
 → profile admission
-→ resource admission
+→ health/resource admission
 → input/context fingerprint
 → local inference
 → typed result validation
+→ acceptance-profile evaluation
 → LocalDecisionProposal
-→ deterministic consumer
+→ consumer-declared fallback or deterministic consumer
 ```
 
-The proposal is valid only while its profile revision, model revision, input revision, context hash, state hash, purpose, and calibration state remain valid.
+The proposal is valid only while its profile identity, model revision, input revision, context package identity, state hash, purpose, calibration state, decision-acceptance profile identity, and freshness (`expiresAt`) remain valid.
 
 A proposal is rejected or invalidated when:
+- the decision-acceptance profile identity or criterion-set revision changes;
+- the proposal's admission or health preconditions are no longer satisfied;
+- the applicable acceptance predicate changes;
+- the profile is no longer `ACTIVE` when the consumer requires active local admission;
+- calibration requirements of the acceptance profile are no longer satisfied;
 - the model revision changes;
 - the local profile is disabled or quarantined;
 - the underlying project revision changes;
@@ -4101,6 +4128,18 @@ A proposal is rejected or invalidated when:
 - calibration is invalid;
 - required evidence is no longer fresh; or
 - the current time is at or after `expiresAt`.
+
+`ACCEPTED_AS_INPUT` is permitted only when:
+1. `admissionState = ACTIVE`;
+2. `healthState = READY`;
+3. the profile/model/runtime identity matches the current admitted identity;
+4. the proposal passes primitive-domain validation;
+5. required calibration conditions pass;
+6. the applicable `LocalDecisionAcceptanceProfile` has `status = FROZEN`, its exact `profileId` matches `decisionAcceptanceProfileId`, and its target model/profile/runtime identities match the currently admitted identity;
+7. `acceptanceOutcome = ACCEPTED`;
+8. revision, context, state, and freshness checks all pass.
+
+`EXPERIMENTAL` and `QUARANTINED` profiles MUST NOT produce `ACCEPTED_AS_INPUT`.
 
 Local-engine failure classes are deterministic: `ENGINE_UNAVAILABLE`, `PROFILE_NOT_ADMITTED`, `RESOURCE_NOT_ADMITTED`, `MODEL_INTEGRITY_FAILURE`, `MODEL_RUNTIME_FAILURE`, `INVALID_RESULT`, and `PROPOSAL_STALE`.
 
@@ -6311,8 +6350,10 @@ Required critical orchestration subgraphs additionally include:
 
 | Traversal | Producer | Consumer | Schema | Authority | Persistence | Failure / Recovery | Invalidation | Test |
 |---|---|---|---|---|---|---|---|---|
-| `LDE-INPUT` | DecisionNodeManager / recovery classifier / router | LocalDecisionEngine | LocalDecisionEngineProfile + typed decision request | Supervisor runtime admission | local_decision_engine_profiles | profile/resource/runtime failure → fallback | profile revision / input state change | TEST-LDE-001 |
-| `LDE-OUTPUT` | LocalDecisionEngine | DecisionNodeManager / recovery classifier / router | LocalDecisionProposal | Deterministic consumer authority | local_decision_proposals | invalid/stale/quarantined proposal → reject | model revision / context hash / state hash / revision change | TEST-LDE-001 |
+| `LDE-INPUT` | DecisionNodeManager / recovery classifier / router | LocalDecisionEngine | LocalDecisionEngineProfile + LocalDecisionAcceptanceProfile + typed decision request | Supervisor runtime admission | local_decision_engine_profiles + local_decision_acceptance_profiles | profile/resource/runtime/acceptance-profile failure → consumer-declared fallback | profile/model/runtime-adapter/acceptance-profile identity or input-state change | TEST-LDE-001 |
+| `LDE-OUTPUT` | LocalDecisionEngine | DecisionNodeManager / recovery classifier / router | LocalDecisionProposal + LocalDecisionAcceptanceProfile | Deterministic consumer authority | local_decision_proposals + local_decision_acceptance_profiles | invalid/stale/below-acceptance/quarantined/mismatched-profile proposal → reject/fallback | model/profile/runtime-adapter/acceptance-profile revision, context hash, state hash, input revision, `expiresAt` | TEST-LDE-001 |
+
+The consumer-declared fallback is part of the owning decision contract. A consumer with no explicit fallback declaration is an integration defect and MUST NOT invent fallback behavior at implementation time.
 
 The local fast-decision traversal is an optional internal branch. It does not create a provider request edge and does not replace the mandatory provider-backed reasoning traversal of BS §84.1.
 

@@ -252,6 +252,16 @@
 
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
 
+**LocalDecisionAcceptanceProfile** — The immutable, versioned acceptance-criteria record used to evaluate a local auxiliary decision by purpose and primitive. — BS §66.10.1; SCHEMAS §1.80; M126.
+
+**LocalDecisionEngine** — The supervisor-local bounded inference service that produces `LocalDecisionProposal` records and has no execution or policy authority. — TA §58.17; ADR-252.
+
+**LocalDecisionEngineProfile** — The revision-pinned identity and admission/health record for a supervisor-local auxiliary decision engine. — SCHEMAS §2.129; TA §49.5.
+
+**LocalDecisionEngineProvisioner** — The supervisor-owned service that installs, verifies, profiles, self-tests, and admits the pinned auxiliary decision engine. — TA §49.5; ADR-252.
+
+**LocalDecisionProposal** — A typed advisory decision produced by the supervisor-local auxiliary engine and consumed only as candidate input by existing deterministic decision/recovery/routing components. — BS §66.10.1; SCHEMAS §1.79; TA §58.17.
+
 **ManifestPermissionDeriver** — The static permission analysis module deriving required `<uses-permission>` tags and scaffolding modern ActivityResultContracts runtime permission flows from framework API calls. — TA §73.18.2; BS §43.1.
 
 **LoopHeartbeat** — The ledger stamp every kernel transition writes so the supervisor can tell a moving loop from a merely live process; a `RUNNING` task without one inside the stall detection window is retired as `LOOP_HUNG` and re-leased. — BS §29.4; TA §57.4; SCHEMAS §1.78; ADR-226.
@@ -347,14 +357,6 @@
 **Toolchain lock / AndroidToolchainManifest** — The pinned Android toolchain identity recorded per capability profile and project. — BS §5.7.1; TA §49; ADR-163.
 
 **ToolchainProvisioner** — The supervisor service that turns a Windows machine with no JDK, Android SDK, emulator, or system image into a ready toolchain and a snapshotted, frame-proven emulator, with at most three user actions and no installation guide. — TA §49.4; BS §4.2; ADR-221.
-
-**LocalDecisionEngine** — The supervisor-local bounded inference service that produces `LocalDecisionProposal` records and has no execution or policy authority. — TA §58.17; ADR-252.
-
-**LocalDecisionEngineProvisioner** — The supervisor-owned service that installs, verifies, profiles, self-tests, and admits the pinned auxiliary decision engine. — TA §49.5; ADR-252.
-
-**LocalDecisionEngineProfile** — The revision-pinned identity and admission/health record for a supervisor-local auxiliary decision engine. — SCHEMAS §2.129; TA §49.5.
-
-**LocalDecisionProposal** — A typed advisory decision produced by the supervisor-local auxiliary engine and consumed only as candidate input by existing deterministic decision/recovery/routing components. — BS §66.10.1; SCHEMAS §2.130; TA §58.17.
 
 **TruncatedFileDetector** — The pre-commit syntax continuity module verifying balanced delimiters, closed string literals, and the absence of EOF error nodes in generated files. — TA §47.4; BS §43.1.
 

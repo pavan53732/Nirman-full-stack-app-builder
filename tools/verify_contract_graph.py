@@ -3975,6 +3975,150 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "ADR-197 supersession",
               "ADR-197 must be marked Superseded by ADR-218 while retaining its text")
 
+    # Bounded local auxiliary decision engine and acceptance profile checks (ADR-252, M126, BS §66.10.1, TA §49.5, TA §58.17).
+    agents_md = docs.get("agents", "")
+    glossary_md = docs.get("glossary", "")
+
+    # 1. LocalDecisionProposal is Build-Spec-owned and Group 1 (§1.79)
+    if "### 1.79 LocalDecisionProposal" not in sch or "**Owner:** BS §66.10.1" not in sch:
+        D.add("semantic documentation", "LDE LocalDecisionProposal ownership",
+              "LocalDecisionProposal must be owned by BS §66.10.1 and placed in Group 1 as §1.79")
+
+    # 2. LocalDecisionEngineProfile is TA-owned and Group 2 (§2.129)
+    if "### 2.129 LocalDecisionEngineProfile" not in sch or "**Owner:** TA §49.5" not in sch:
+        D.add("semantic documentation", "LDE LocalDecisionEngineProfile ownership",
+              "LocalDecisionEngineProfile must be owned by TA §49.5 and placed in Group 2 as §2.129")
+
+    # 3. LocalDecisionAcceptanceProfile is registered and has exactly one canonical field block (§1.80)
+    if "### 1.80 LocalDecisionAcceptanceProfile" not in sch or "**Owner:** BS §66.10.1" not in sch:
+        D.add("semantic documentation", "LDE LocalDecisionAcceptanceProfile schema",
+              "LocalDecisionAcceptanceProfile must be defined as SCHEMAS §1.80 in Group 1")
+    i_csr = sch.find("### 3.1 CanonicalSchemaRegistry")
+    if i_csr >= 0:
+        reg_fence = sch[i_csr:].split("```text\nCanonicalSchemaRegistry\n", 1)[-1].split("```", 1)[0]
+        if "LocalDecisionAcceptanceProfile" not in reg_fence.splitlines():
+            D.add("semantic documentation", "LDE LocalDecisionAcceptanceProfile registration",
+                  "LocalDecisionAcceptanceProfile must be registered in CanonicalSchemaRegistry")
+
+    # 4. LocalDecisionProposal reference resolves to SCHEMAS §1.79
+    if "`LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79" not in bs or \
+       "`LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79" not in ta or \
+       "SCHEMAS §1.79; TA §58.17" not in glossary_md:
+        D.add("semantic documentation", "LDE LocalDecisionProposal resolution",
+              "LocalDecisionProposal references in BS, TA, and GLOSSARY must resolve to SCHEMAS §1.79")
+
+    # 5. LocalDecisionAcceptanceProfile reference resolves to SCHEMAS §1.80
+    if "`LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80" not in bs or \
+       "`LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80" not in ta or \
+       "`LocalDecisionAcceptanceProfile` in `nirman-schemas.md` §1.80" not in dev or \
+       "SCHEMAS §1.80; M126" not in glossary_md:
+        D.add("semantic documentation", "LDE LocalDecisionAcceptanceProfile resolution",
+              "LocalDecisionAcceptanceProfile references in BS, TA, M126, and GLOSSARY must resolve to SCHEMAS §1.80")
+
+    # 6. decisionAcceptanceProfileId is present in profile and proposal
+    eng_fields = _parse_field_block(sch, "LocalDecisionEngineProfile") or []
+    prop_fields = _parse_field_block(sch, "LocalDecisionProposal") or []
+    if "decisionAcceptanceProfileId" not in eng_fields:
+        D.add("semantic documentation", "LDE LocalDecisionEngineProfile fields",
+              "LocalDecisionEngineProfile must include decisionAcceptanceProfileId")
+    if "decisionAcceptanceProfileId" not in prop_fields:
+        D.add("semantic documentation", "LDE LocalDecisionProposal fields",
+              "LocalDecisionProposal must include decisionAcceptanceProfileId")
+
+    # 7. acceptanceOutcome is present in proposal
+    if "acceptanceOutcome" not in prop_fields:
+        D.add("semantic documentation", "LDE LocalDecisionProposal fields",
+              "LocalDecisionProposal must include acceptanceOutcome")
+
+    # 8. expiresAt is present in proposal and used by TA §58.17
+    if "expiresAt" not in prop_fields:
+        D.add("semantic documentation", "LDE LocalDecisionProposal freshness",
+              "LocalDecisionProposal must include expiresAt")
+    s5817 = ta.split("### 58.17", 1)[-1].split("\n## ", 1)[0] if "### 58.17" in ta else ""
+    if "expiresAt" not in s5817:
+        D.add("semantic documentation", "LDE proposal expiration",
+              "TA §58.17 must enforce freshness validation against expiresAt")
+
+    # 9. admissionState and healthState are not conflated
+    s495 = ta.split("### 49.5", 1)[-1].split("\n## ", 1)[0] if "### 49.5" in ta else ""
+    if "`admissionState` and `healthState` are orthogonal state dimensions and MUST NOT be conflated" not in s495:
+        D.add("semantic documentation", "LDE state orthogonality",
+              "TA §49.5 must define admissionState and healthState as orthogonal dimensions")
+
+    # 10. QUARANTINED belongs to admissionState, not healthState
+    eng_block = sch.split("### 2.129 LocalDecisionEngineProfile", 1)[-1].split("```text", 1)[-1].split("```", 1)[0] if "### 2.129 LocalDecisionEngineProfile" in sch else ""
+    if "admissionState: DISABLED | EXPERIMENTAL | ACTIVE | QUARANTINED" not in eng_block:
+        D.add("semantic documentation", "LDE admission states",
+              "LocalDecisionEngineProfile.admissionState must contain QUARANTINED")
+    if "QUARANTINED" in eng_block.split("- healthState:")[1].splitlines()[0]:
+        D.add("semantic documentation", "LDE health states",
+              "LocalDecisionEngineProfile.healthState must not contain QUARANTINED")
+
+    # 11. EXPERIMENTAL cannot produce ACCEPTED_AS_INPUT
+    if "`EXPERIMENTAL` and `QUARANTINED` profiles MUST NOT produce `ACCEPTED_AS_INPUT`" not in s5817:
+        D.add("semantic documentation", "LDE ACCEPTED_AS_INPUT gate",
+              "TA §58.17 must prohibit EXPERIMENTAL and QUARANTINED profiles from producing ACCEPTED_AS_INPUT")
+
+    # 12. LDE wiring includes acceptance-profile identity and invalidation
+    s7461 = ta.split("### 74.6.1", 1)[-1].split("\n## ", 1)[0] if "### 74.6.1" in ta else ""
+    if "LocalDecisionAcceptanceProfile" not in s7461 or "consumer-declared fallback" not in s7461:
+        D.add("semantic documentation", "LDE traversal wiring",
+              "TA §74.6.1 must wire LocalDecisionAcceptanceProfile and mandate consumer-declared fallback")
+
+    # 13. M126 references the acceptance-profile schema
+    m126_text = dev.split("## M126:", 1)[-1].split("\n## ", 1)[0] if "## M126:" in dev else ""
+    if "`LocalDecisionAcceptanceProfile` in `nirman-schemas.md` §1.80" not in m126_text:
+        D.add("semantic documentation", "M126 acceptance profile schema reference",
+              "M126 must reference LocalDecisionAcceptanceProfile in nirman-schemas.md §1.80")
+
+    # 14. LDE-ACP-001@1 is frozen/versioned before fixture execution
+    if "freeze `LDE-ACP-001@1` with predeclared runtime-acceptance" not in m126_text or \
+       "Thresholds MUST be fixed before execution" not in m126_text:
+        D.add("semantic documentation", "M126 acceptance profile freezing",
+              "M126 must record that LDE-ACP-001@1 is immutable and frozen before fixture execution")
+
+    # 15. No global confidence threshold is invented
+    if "Agents MUST NOT invent a global confidence threshold for local auxiliary decisions" not in agents_md:
+        D.add("semantic documentation", "LDE confidence threshold policy",
+              "AGENTS.md must prohibit inventing a global confidence threshold for local auxiliary decisions")
+
+    # 16. No low-confidence => domain-drift rule exists
+    if "MUST NOT equate a low-confidence proposal with domain drift" not in agents_md or \
+       "it is not evidence of domain drift by itself" not in bs:
+        D.add("semantic documentation", "LDE domain drift policy",
+              "AGENTS.md and BS §66.10.1 must forbid treating low confidence by itself as domain drift")
+
+    # 17. LocalDecisionAcceptanceProfile separates runtimeCriteria and evaluationCriteria
+    acp_fields = _parse_field_block(sch, "LocalDecisionAcceptanceProfile") or []
+    if "runtimeCriteria" not in acp_fields or "evaluationCriteria" not in acp_fields:
+        D.add("semantic documentation", "LDE criteria separation",
+              "LocalDecisionAcceptanceProfile must separate runtimeCriteria and evaluationCriteria")
+
+    # 18. local_decision_acceptance_profiles is persisted in TA §57.5
+    s575 = ta.split("### 57.5", 1)[-1].split("### 57.6", 1)[0] if "### 57.5" in ta else ""
+    if "local_decision_acceptance_profiles" not in s575:
+        D.add("semantic documentation", "LDE persistence",
+              "TA §57.5 must include local_decision_acceptance_profiles in the execution ledger table list")
+
+    # 19. TA §58.17 requires status = FROZEN for acceptance profile
+    if "status = FROZEN" not in s5817:
+        D.add("semantic documentation", "LDE FROZEN profile requirement",
+              "TA §58.17 must require LocalDecisionAcceptanceProfile with status = FROZEN at ACCEPTED_AS_INPUT")
+
+    # 20. TA §74.6.1 wires local_decision_acceptance_profiles in persistence
+    if "local_decision_acceptance_profiles" not in s7461:
+        D.add("semantic documentation", "LDE traversal wiring persistence",
+              "TA §74.6.1 must persist local_decision_acceptance_profiles in LDE-INPUT and LDE-OUTPUT")
+
+    # 21. BS §66.10.1 specifies INVALID_RESULT and the fallback matrix
+    s66101 = bs.split("### 66.10.1", 1)[-1].split("### 66.11", 1)[0] if "### 66.10.1" in bs else ""
+    if "INVALID_RESULT" not in s66101:
+        D.add("semantic documentation", "LDE failure class INVALID_RESULT",
+              "BS §66.10.1 must record un-decodable outputs as INVALID_RESULT")
+    if "Local auxiliary decision fallback matrix" not in s66101:
+        D.add("semantic documentation", "LDE fallback matrix",
+              "BS §66.10.1 must define the Local auxiliary decision fallback matrix")
+
 
 # Vocabulary that no skill instruction body may carry. The host stack is
 # C#/.NET + WinUI 3 + Rust (ADR-108, ADR-117; AGENTS.md §17) and the only

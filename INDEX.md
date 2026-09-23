@@ -318,6 +318,8 @@
 | `ClarificationRecord` | §1.76 | BS §69.11 | CONTRACT.RUNTIME.PROMPT_CONTRACT | — |
 | `SharedSurfaceChangeRequest` | §1.77 | BS §54.2 | CONTRACT.RUNTIME.RESERVATION | — |
 | `LoopHeartbeat` | §1.78 | BS §29.4 | CONTRACT.RUNTIME.AUTHORITY | TA §57.4 |
+| `LocalDecisionProposal` | §1.79 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
+| `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -449,7 +451,6 @@
 | `FeedbackRecord` | §2.127 | TA §44.3.3 | — | — |
 | `RequirementDelta` | §2.128 | TA §44.3.3 | — | — |
 | `LocalDecisionEngineProfile` | §2.129 | TA §49.5 | — | TA §58.17 |
-| `LocalDecisionProposal` | §2.130 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section

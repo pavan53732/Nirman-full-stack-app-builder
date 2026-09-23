@@ -2638,7 +2638,7 @@ Raw secrets, private keys, and unfiltered prompts are never displayed. Blocked, 
 
 For each material autonomous decision, Nirman records a concise DecisionTrace containing decision ID, session/task/worker IDs, input references, constraints, candidate actions, selected action, deterministic policy checks, provider/model provenance, confidence, outcome event, and evidence IDs. Hidden chain-of-thought is not stored or exposed.
 
-For a local auxiliary decision, DecisionTrace MUST additionally record `LocalDecisionEngineProfile.profileId`, immutable `modelRevision`, `engineVersion`, `runtimeAdapterId`, `runtimeAdapterVersion`, proposal identity, decision purpose, decision primitive, calibration state, proposal status, and evidence references. `providerProfileId` MUST be absent for a local auxiliary decision and MUST NOT be synthesized.
+For a local auxiliary decision, DecisionTrace MUST additionally record `LocalDecisionEngineProfile.profileId`, immutable `modelRevision`, `engineVersion`, `runtimeAdapterId`, `runtimeAdapterVersion`, `decisionAcceptanceProfileId`, proposal identity, decision purpose, decision primitive, calibration state, proposal status, acceptance outcome, and evidence references. `providerProfileId` MUST be absent for a local auxiliary decision and MUST NOT be synthesized.
 
 ### 45.3 ResourceGovernor
 
@@ -4242,15 +4242,81 @@ Strategy selection is a proposal. It never raises a permission ceiling, never su
 
 Nirman MAY use a supervisor-local `LocalDecisionEngine` to produce bounded typed proposals before or alongside reasoning, recovery, routing, or escalation decisions.
 
-The engine accepts only explicitly declared decision purposes and the typed primitives `CHOICE`, `SCORE`, and `NOUL`. It MUST produce `LocalDecisionProposal` records that contain model identity, immutable revision identity, input/context fingerprints, result, calibration state, status, and evidence references.
+The engine accepts only explicitly declared decision purposes and the typed primitives `CHOICE`, `SCORE`, and `NOUL`.
 
-A local proposal MAY reduce latency or narrow the next reasoning path. It MUST NOT authorize an operation, mutate workspace state, change permissions, promote an artifact, change completion state, or suppress required evidence.
+Every successfully decoded typed result MUST be represented as a `LocalDecisionProposal` and MUST satisfy all of the following before it can be consumed:
+1. schema and primitive-domain validation;
+2. profile admission and runtime-health validation;
+3. model/profile/revision/context/state identity validation;
+4. freshness validation against `expiresAt`;
+5. calibration-policy validation;
+6. evaluation against the versioned decision-acceptance profile identified by `decisionAcceptanceProfileId`.
 
-When the local engine is unavailable, disabled, degraded, not admitted, resource-constrained, or fails inference, the requesting component MUST continue through its normal deterministic or external-provider path where one exists. Local-engine failure MUST NOT become a task-completion failure solely because the optional engine was unavailable.
+A model output that cannot be decoded into the required typed primitive fields MUST be recorded as the deterministic `INVALID_RESULT` failure class and MUST NOT be represented as an accepted `LocalDecisionProposal`.
+
+The acceptance profile is purpose- and primitive-specific and contains two distinct classes of criteria.
+
+`runtimeCriteria` govern individual-proposal acceptance. They define applicable calibration requirements, minimum confidence or primary-probability requirements, maximum supported choice cardinality, and probability-normalization tolerance.
+
+`evaluationCriteria` govern population-level model/profile evaluation. Accuracy, false-positive rate, false-negative rate, Expected Calibration Error, and Brier score are evaluation metrics and MUST NOT be interpreted as per-proposal confidence or acceptance values.
+
+The acceptance predicate for an individual proposal MUST use only the applicable `runtimeCriteria`.
+
+`CHOICE` acceptance evaluates the declared choice probabilities and/or confidence. `SCORE` acceptance evaluates the declared score distribution and/or confidence. `NOUL` acceptance evaluates the declared `noulProbability` and/or confidence. A raw SCORE value MUST NOT be interpreted as confidence.
+
+Exactly one typed result branch MUST be populated for each proposal:
+- `CHOICE` → `choiceValue` and `choiceProbabilities`;
+- `SCORE` → `scoreValue` and `scoreDistribution`;
+- `NOUL` → `noulProbability`.
+Inactive result branches MUST be null.
+
+All probability-bearing values MUST be finite and MUST lie within [0,1].
+
+For `CHOICE`, every element of `choiceProbabilities` MUST identify one option and the probabilities MUST satisfy the normalization tolerance declared by the applicable decision-acceptance profile.
+
+For `SCORE`, every element of `scoreDistribution` MUST identify one score level and the probabilities MUST satisfy the normalization tolerance declared by the applicable decision-acceptance profile.
+
+For `NOUL`, `noulProbability` is the calibrated probability associated with the declared proposition and MUST NOT be interpreted as engine availability or result validity.
+
+`confidence`, when present, is an uncertainty signal evaluated according to the acceptance profile; it is not evidence of domain drift by itself.
+
+A proposal MAY reduce latency or narrow the next reasoning path. It MUST NOT authorize an operation, mutate workspace state, change permissions, promote an artifact, change completion state, alter a capability status, or suppress required evidence.
+
+A proposal MUST NOT receive `ACCEPTED_AS_INPUT` status until the validator confirms that its acceptance predicate passed against the currently valid `decisionAcceptanceProfileId`. A proposal that is malformed, stale, uncalibrated when calibration is required, below its registered acceptance criterion, or otherwise invalid MUST NOT be consumed as accepted local evidence.
+
+`acceptanceOutcome=ACCEPTED` means that `LocalDecisionProposal` has passed the currently valid decision-acceptance profile for its declared purpose and primitive. It is a validation outcome only and does not grant authority, certify evidence, authorize mutation, or mark completion.
+
+`acceptanceOutcome=BELOW_THRESHOLD`, `INVALID`, or `FALLBACK_REQUIRED` is non-consumable as accepted local decision input.
+
+`status=ACCEPTED_AS_INPUT` MUST require `acceptanceOutcome=ACCEPTED`. No other proposal status may be interpreted as equivalent to acceptance.
+
+Each local-engine consumer MUST declare its fallback sequence in its owning contract. Fallback behavior MUST NOT be inferred from provider availability alone. Where the consumer's declared fallback sequence contains these paths, they are evaluated in their declared order:
+1. deterministic classification or rule evaluation;
+2. validated external-provider deliberation through `ModelGateway`;
+3. unresolved / `USER_REQUIRED`, with task state and evidence preserved.
+
+#### Local auxiliary decision fallback matrix
+
+The M126 local-decision consumers use the following purpose-specific fallback sequences:
+
+| Decision purpose | First fallback | Second fallback | Terminal condition |
+|---|---|---|---|
+| `FAILURE_CLASSIFICATION` | deterministic failure fingerprint/classification rules | validated external-provider classification | preserve state; `USER_REQUIRED` only when the unresolved classification blocks required progress |
+| `ROUTING` | deterministic routing policy and task-graph constraints | validated external-provider routing recommendation | preserve state and resolve through the owning routing contract |
+| `RECOVERY_CLASSIFICATION` | deterministic recovery/failure rules | validated external-provider recovery recommendation | preserve state; `USER_REQUIRED` when recovery cannot safely proceed autonomously |
+| `ESCALATION_RECOMMENDATION` | deterministic escalation policy | validated external-provider escalation recommendation | preserve state and surface `USER_REQUIRED` when escalation is required to continue |
+
+A local proposal MUST never select the fallback itself. The consumer and its owning deterministic authority select and commit the fallback outcome.
+
+A missing fallback declaration for a local-engine consumer is a documentation/integration defect.
+
+A local-engine failure MUST NOT become a task-completion failure solely because the optional engine was unavailable.
 
 The local engine is not a provider and MUST NOT alter `SessionProviderMode`, `ProviderProfile`, `ModelGateway`, or the external-provider request lifecycle.
 
-> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §2.130. Owner: BS §66.10.1.
+> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79. Owner: BS §66.10.1.
+>
+> **Schema projection:** `LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80. Owner: BS §66.10.1.
 
 
 
@@ -4671,9 +4737,9 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.TRIGGER | CAP.ANDROID.AUTOMATED_START | BS §60 | BS §60 | TA §68 | TA §68.4 | BS §60 | TA §68.4 | TA §68.6 | ADR-151 | M91 | TEST-TRG-001 | EV-TRG-001 |
 | CONTRACT.RUNTIME.SPECULATION | CAP.ANDROID.QUALITY_GATE | BS §65 | BS §65 | TA §88 | TA §88.2 | BS §65 | TA §88.4 | TA §88.5 | ADR-156 | M92 | TEST-VER-001 | EV-VER-001 |
 | CONTRACT.RUNTIME.SKILL | CAP.ANDROID.SKILL_WORKFLOW | BS §23 | BS §23 | TA §19 | TA §19.1 | BS §23 | TA §19.1 | TA §19.1 | ADR-154 | M66 | TEST-SKL-001 | EV-SKL-001 |
-| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167 | M94 | TEST-RSN-001 | EV-RSN-001 |
+| CONTRACT.RUNTIME.REASONING | CAP.ANDROID.AUTONOMOUS_REASONING | BS §66 | BS §66 | TA §71 | TA §71.3 | BS §66 | TA §71.7 | TA §71.9 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218, ADR-252 | M94 | TEST-RSN-001 | EV-RSN-001 |
 | CONTRACT.RUNTIME.DELIBERATION | CAP.ANDROID.DEEP_PROBLEM_SOLVING | BS §68 | BS §68 | TA §72 | TA §72.3 | BS §68 | TA §72.9 | TA §72.10 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | TEST-DEL-001 | EV-DEL-001 |
-| CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.INVARIANTS | CAP.ANDROID.CERTIFIED_RELEASE | BS §67 | BS §67 | TA §23 | TA §23.3 | BS §67 | TA §23.3 | BS §67.2 | ADR-157, ADR-252 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | CAP.ANDROID.GENERATE | BS §70 | BS §70 | TA §74 | TA §74.1 | BS §70 | TA §74.2 | TA §74.3 | ADR-194 | M107 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | CAP.ANDROID.RESOURCE_AWARE_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-218 | M111 | TEST-RESOURCE-001 | EV-RESOURCE-001 |
