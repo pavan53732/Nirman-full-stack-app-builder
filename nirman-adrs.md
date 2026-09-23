@@ -3607,3 +3607,34 @@ Initial local-engine admission is `EXPERIMENTAL` and MUST remain non-authoritati
 **Reversal trigger:** Reversal is justified if local-engine decisions fail the required Nirman fixture thresholds, cannot maintain reproducible model identity and provenance, materially violate resource-integrity constraints, introduce unacceptable security or supply-chain risk, or create a persistent architectural contradiction with the provider, authority, or evidence model.
 
 ---
+## ADR-253: Canonical construction requirements remain under ConstraintRegistry authority
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** `ConstraintRegistry` is the sole admission and persistence authority for canonical `ConstructionRequirement` records. It assigns one stable `requirementId` and preserves project/contract applicability with monotonic requirement revision, explicit or inferred origin, source-feature/message/evidence provenance, parent/derivation lineage, acceptance criteria, lifecycle state, and supersession. `AndroidConstructionContract.requirementIds`, `ConversationRequirementIndex.canonicalRequirementId`, requirement-to-implementation traceability, scenarios, evidence, proof, completion, clarification dependencies, and deltas reuse that identity. `ImplicitRequirementMiner` and model workers may propose requirements but cannot admit them or place requirement records inside `FeatureModel`.
+
+**Rationale:** The corpus named `ConstraintRegistry` as the settled-requirement authority but lacked the canonical record and admission boundary. A typed record closes that gap without transferring authority to conversation, feature, or Android-contract projections.
+
+**Consequences:** SCHEMAS §1.81 defines `ConstructionRequirement`; BS §42.1 defines admission and contract-revision rules; TA §59.1 defines persistence and consumers. The untyped `AndroidConstructionContract.inferredRequirements: string[]` is replaced by canonical `requirementIds`. All capability states remain `PLANNED`; these documentation changes are not runtime evidence.
+
+**Reversal trigger:** A later accepted authority decision replaces `ConstraintRegistry` with a single explicitly migrated canonical owner and supplies deterministic identity migration for every consumer.
+
+---
+
+## ADR-254: Durable provider-request provenance and attempt reconciliation
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`, `CONTRACT.RUNTIME.EVIDENCE`
+
+**Status:** Accepted
+
+**Decision:** The supervisor records one metadata-only `ProviderRequestProvenance` for each logical provider request and one `ProviderRequestAttempt` for each externally issued attempt. Every attempt references its own `ExternalEffectRecord`; uncertain outcomes retain the existing `UNKNOWN → RECONCILING → RESOLVED` authority. `ModelRequest` remains transient, `ModelEvent` owns normalized stream/outcome events, `UsageRecord` owns usage attribution, `ProviderContextEnvelope` owns transmitted-context policy, and `ContextPackage` owns assembled context integrity. Provenance retention is local, project-scoped, and user-controlled; it never stores credentials, sensitive headers, raw private reasoning, excluded content, or unnecessary raw provider payloads.
+
+**Rationale:** Existing request, event, usage, context, and external-effect records did not provide one durable logical-request identity across attempts or a narrowly scoped local provenance retention lifecycle.
+
+**Consequences:** TA §24.4 and §24.6 define logical and attempt lineage, TA §45.2 defines local retention/deletion, TA §57.5 registers the ledger tables, and SCHEMAS §2.130–§2.131 define the records. Retention cannot delete records needed by active work, recovery, unresolved reconciliation, evidence, or usage attribution. Capability states remain `PLANNED` until executable fixtures prove runtime behavior.
+
+**Reversal trigger:** A future accepted record subsumes the same logical-request and attempt lineage without collapsing any existing owner boundary and includes a deterministic migration and retention proof.
+
+---

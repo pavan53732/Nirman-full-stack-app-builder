@@ -1338,7 +1338,7 @@ AndroidConstructionContract
 - originalRequest: string
 - screenshotRefs: string[]
 - explicitConstraints: string[]
-- inferredRequirements: string[]
+- requirementIds: string[] (canonical ConstraintRegistry requirement IDs)
 - assumptions: string[]
 - unresolvedAmbiguities: string[]
 - features: FeatureModel[]
@@ -1655,6 +1655,7 @@ Conversation
 - messages
 - attachments
 - requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/ConstraintRegistry records
+- requirementProposals: List<ConversationRequirement>  // conversation-local proposals; never canonical requirements
 - decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry/MemoryStore records
 - acceptedSuggestions
 - rejectedSuggestions
@@ -1673,12 +1674,18 @@ Conversation
 
 ```text
 ConversationRequirement
-- requirementId
-- status
+- proposalId
+- proposedStatement
+- proposedAcceptanceCriteria
+- proposalStatus: PROPOSED | SUBMITTED | ADMITTED | REJECTED | WITHDRAWN
+- canonicalRequirementId: string | null
 - sourceMessageId
 - sourceEvidenceIds
-- supersedes
-- supersededBy
+- proposedParentRequirementIds
+- proposedDerivationKinds
+- proposedBy
+- submittedAt: timestamp | null
+- resolvedAt: timestamp | null
 ```
 
 ### 1.71 ConversationDecision
@@ -1896,6 +1903,37 @@ LocalDecisionAcceptanceProfile
 - immutableDigest: string (SHA-256 over the canonical serialized acceptance profile)
 - status: DRAFT | FROZEN | RETIRED
 ```
+
+### 1.81 ConstructionRequirement
+
+**Owner:** BS §42.1 · **Contract:** CONTRACT.RUNTIME.AGENT_BUILDABILITY · **Projected at:** TA §59.1
+
+```text
+ConstructionRequirement
+- requirementId: string (uuid; canonical ConstraintRegistry identity)
+- projectId: string
+- contractId: string
+- requirementRevision: integer
+- applicableContractRevisions: string[] (AndroidConstructionContract.revision values)
+- statement: string
+- mandatory: boolean
+- originKind: EXPLICIT | INFERRED
+- sourceFeatureIds: string[]
+- sourceMessageIds: string[]
+- sourceEvidenceIds: string[]
+- parentRequirementIds: string[]
+- derivationKinds: (INFERRED_COMPANION | SPLIT | MERGE)[]
+- acceptanceCriteria: string[]
+- admissionSourceId: string
+- admittedByAuthority: string (ConstraintRegistry)
+- admittedAt: timestamp
+- state: ACTIVE | SUPERSEDED | INVALIDATED
+- supersedes: string[]
+- supersededBy: string[]
+- createdAt: timestamp
+- updatedAt: timestamp
+```
+
 
 ## 2. Schemas owned by the Technical Architecture
 
@@ -4967,6 +5005,78 @@ LocalDecisionEngineProfile
 - failureReason: string | null
 ```
 
+### 2.130 ProviderRequestProvenance
+
+**Owner:** TA §24.4 · **Contract:** — · **Projected at:** —
+
+```text
+ProviderRequestProvenance
+- provenanceId: string (uuid)
+- logicalRequestId: string (uuid)
+- taskId: string
+- workerId: string
+- sessionId: string
+- conversationId: string | null
+- correlationId: string
+- causationId: string
+- promptClass: COORDINATOR | WORKER | SKILL | DELIBERATION | REVIEW
+- promptContractId: string
+- promptContractVersion: string
+- runtimeInstructionArtifactId: string | null
+- runtimeInstructionArtifactHash: string | null
+- templateId: string | null
+- templateVersion: string | null
+- templateHash: string | null
+- contextId: string
+- contextIntegrityHash: string
+- goalRevision: string | null
+- planRevision: string | null
+- projectRevision: string | null
+- evidenceRevision: string | null
+- providerProfileId: string
+- modelId: string
+- providerAdapterId: string
+- providerAdapterVersion: string
+- providerNeutralRequestHash: string
+- retryEquivalenceFingerprint: string
+- requestSettingsHash: string
+- toolSchemaHash: string | null
+- structuredOutputSchemaHash: string | null
+- privacyClassification: string
+- providerContextEnvelopeRef: string
+- localRetentionClass: SESSION | PROJECT | USER_PINNED
+- deletionStatus: ACTIVE | DELETED
+- invalidationDependencyRefs: string[]
+- attemptIds: string[]
+- normalizedResponseEventRefs: string[]
+- proposalRefs: string[]
+- validationEvidenceRefs: string[]
+- schemaVersion: string
+- createdAt: timestamp
+- updatedAt: timestamp
+```
+
+### 2.131 ProviderRequestAttempt
+
+**Owner:** TA §24.6 · **Contract:** — · **Projected at:** —
+
+```text
+ProviderRequestAttempt
+- attemptId: string (uuid)
+- provenanceId: string
+- logicalRequestId: string
+- attemptNumber: integer
+- externalEffectId: string
+- modelRequestId: string (ModelRequest.requestId; reused by ModelEvent.requestId)
+- providerRequestId: string | null (provider-issued request identifier; reused by UsageRecord.providerRequestId when available)
+- backgroundOperationId: string | null
+- usageRecordIds: string[]
+- responseId: string | null
+- startedAt: timestamp
+- completedAt: timestamp | null
+```
+
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -5082,6 +5192,9 @@ ChangeIntelligenceRecoveryJob
 LocalDecisionEngineProfile
 LocalDecisionProposal
 LocalDecisionAcceptanceProfile
+ConstructionRequirement
+ProviderRequestProvenance
+ProviderRequestAttempt
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

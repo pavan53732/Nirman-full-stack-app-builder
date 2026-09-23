@@ -565,11 +565,11 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
 
-The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible cloud-provider requests. It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
+The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible cloud-provider requests. Persist metadata-only `ProviderRequestProvenance` for each logical request and a `ProviderRequestAttempt` for every externally issued attempt, with one linked `ExternalEffectRecord` per attempt, normalized events, usage references, provider IDs, retention class, and restart-safe reconciliation. It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
 
 Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
 
-**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage and request IDs without exposing the key.
+**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage, logical-request/attempt lineage, external-effect reconciliation, retention behavior, and provider request IDs without exposing the key or persisting excluded content.
 
 ## M23: Controlled self-development loop
 
@@ -923,9 +923,9 @@ These milestones extend the existing Nirman roadmap with the accepted constructi
 
 ## M39 — AndroidConstructionContract and schema authority
 
-Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, Android requirements, emulator profile matrix, validation model, and artifact model. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
+Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, canonical `requirementIds`, emulator profile matrix, validation model, and artifact model. Implement the `ConstraintRegistry` admission path and canonical `ConstructionRequirement` record with stable identity, explicit/inferred origin, source-feature and source-message/evidence lineage, derivation, acceptance criteria, monotonic requirement revisions, applicable contract-revision bindings, admission provenance, state, and supersession. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
 
-**Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; all downstream workers consume the same contract; contract versions can be migrated and replayed.
+**Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; every mandatory feature resolves to at least one active canonical requirement in the same contract revision; inferred companions remain proposals until `ConstraintRegistry` admission; conversation indexing and downstream implementation traceability reuse the same canonical requirement ID; all downstream workers consume the same contract; contract versions can be migrated and replayed.
 
 ## M40 — Pure session reducer and event replay
 
@@ -1041,7 +1041,7 @@ Implement `FailureModeRegistry` with triggers, prevention checks, classification
 
 ## M55 — Acceptance-test traceability
 
-Implement `TestTraceabilityService` mapping every mandatory contract requirement to acceptance criteria, tests, devices, results, evidence, and artifact revisions. Support honest skipped, blocked, flaky, and not-applicable states.
+Implement `TestTraceabilityService` mapping every mandatory canonical `ConstructionRequirement.requirementId` to its acceptance criteria, implementation nodes, scenarios, tests, devices, results, evidence, proof, completion, and artifact revisions. Support honest skipped, blocked, flaky, and not-applicable states.
 
 **Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception.
 
@@ -1517,7 +1517,7 @@ This is the anti-vacuity rule of build spec §57.5 (Assertion quality requiremen
 
 Implement the shared prompt-builder contract for coordinator, worker, skill, review, and deliberation prompts. Prompts must extract Android product intent, distinguish facts from assumptions, propose an Android technology plan without a framework or template choice, and produce schema-validated proposals rather than executable commands. Add negative fixtures for template-selection requests, app-archetype assumptions, non-Android target proposals, and model claims that predicted work was executed.
 
-Integrate `AndroidProductIntelligenceService` (TA §73.15; BS §42.1) into the intent extraction and specification formalization pipeline: expand explicit feature declarations with mandatory companion requirements via `ImplicitRequirementMiner` (TA §73.15.1), detect pre-construction semantic and architectural contradictions via `RequirementConflictDetector` (TA §73.15.2), score requirement testability and observable post-conditions via `RequirementTestabilityScorer` (TA §73.15.3), derive stakeholder personas and ergonomic profiles via `PersonaInferenceEngine` (TA §73.15.4), inform idiomatic Room schemas and state-machine transitions via `AndroidDomainKnowledgeCatalog` (TA §73.15.5), and audit Google Play policy and regulatory constraints via `RegulatoryComplianceAnalyzer` (TA §73.15.6).
+Integrate `AndroidProductIntelligenceService` (TA §73.15; BS §42.1) into the intent extraction and specification formalization pipeline: propose mandatory companion `ConstructionRequirement` candidates for deterministic `ConstraintRegistry` admission via `ImplicitRequirementMiner` (TA §73.15.1), detect pre-construction semantic and architectural contradictions via `RequirementConflictDetector` (TA §73.15.2), score requirement testability and observable post-conditions via `RequirementTestabilityScorer` (TA §73.15.3), derive stakeholder personas and ergonomic profiles via `PersonaInferenceEngine` (TA §73.15.4), inform idiomatic Room schemas and state-machine transitions via `AndroidDomainKnowledgeCatalog` (TA §73.15.5), and audit Google Play policy and regulatory constraints via `RegulatoryComplianceAnalyzer` (TA §73.15.6).
 
 **Exit gate:** prompt fixtures reject user-facing template selection, reject non-Android generated targets, preserve user intent and uncertainty, and route every accepted proposal through schema validation, policy, ToolBroker, transaction, observation, and evidence authorities. Ranking fixtures present more than four MUST-ask candidates and prove the same four are selected on every run and the ordering is recomputable from `ClarificationRecord` fields and recorded requirement statuses.
 
@@ -1884,7 +1884,7 @@ Deliver:
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
 - providerTransmissionPolicy delegation to ContextGovernance / ProviderContextEnvelope.transmissionDecision
-- requirement/decision/suggestion records (with requirementId, decisionId, suggestionId, status, sourceMessageId, sourceEvidenceIds, supersedes, supersededBy, locked, proposedBy, acceptedAt, rejectedAt, resultingTaskIds)
+- conversation-local requirement proposal, decision, and suggestion records; requirement proposals carry `proposalId`, proposed wording/criteria, source lineage, admission status, and nullable `canonicalRequirementId`, and never become settled requirements without `ConstraintRegistry` admission
 - ConversationMessage, ConversationTaskLink, ConversationRequirementIndex, ConversationDecisionIndex, and ConversationRebaseRecord schemas (TA §86.1), registered in the CanonicalSchemaRegistry (TA §36.1); a ConversationRebaseRecord is written for every RECONCILE/REBASE and USER_REQUIRED outcome
 - active-goal binding
 - project-revision binding

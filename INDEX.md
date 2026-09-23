@@ -320,6 +320,7 @@
 | `LoopHeartbeat` | §1.78 | BS §29.4 | CONTRACT.RUNTIME.AUTHORITY | TA §57.4 |
 | `LocalDecisionProposal` | §1.79 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
+| `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -451,6 +452,8 @@
 | `FeedbackRecord` | §2.127 | TA §44.3.3 | — | — |
 | `RequirementDelta` | §2.128 | TA §44.3.3 | — | — |
 | `LocalDecisionEngineProfile` | §2.129 | TA §49.5 | — | TA §58.17 |
+| `ProviderRequestProvenance` | §2.130 | TA §24.4 | — | — |
+| `ProviderRequestAttempt` | §2.131 | TA §24.6 | — | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -598,4 +601,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-252 | 3 | Accepted 3 |
+| ADR-250–ADR-254 | 5 | Accepted 5 |

@@ -18,6 +18,10 @@
 
 **SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; ADR-117.
 
+**ProviderRequestProvenance** — The durable metadata-only record for one logical provider request across attempts, with context, prompt-contract, model, adapter, response, retention, and validation lineage but no credentials, private reasoning, or unnecessary raw payload. — TA §24.4; SCHEMAS §2.130.
+
+**ProviderRequestAttempt** — One externally issued attempt under a logical provider request, linked to its own `ExternalEffectRecord`, model events, provider IDs, and usage records. — TA §24.6; SCHEMAS §2.131.
+
 **WorkerConnection** — The per-lease authenticated named pipe between the supervisor's `WorkerRuntime` and one `NirmanWorker.exe`, carrying `MODEL_CALL`, `PROPOSAL`, results, artifacts, heartbeats, and cancellation. — TA §57.11; SCHEMAS §2.90; ADR-222.
 
 ## 2. Registries and document machinery
@@ -31,6 +35,10 @@
 **ClauseId / Clause Registry** — A stable identifier for one normative clause, with its owning contract, authority section, value, and seal state. — BS §67.12.
 
 **Component and authority registry** — The TA §57.12 table that gives every authority and every cross-document component name its kind, crate, owned decisions, committed records, and defining section; alias rows name the owner they stand for and carry no crate. — TA §57.12; ADR-223.
+
+**ConstructionRequirement** — The canonical settled construction requirement admitted and stored by `ConstraintRegistry`, carrying stable identity, monotonic requirement revision, applicable contract revisions, source/derivation lineage, acceptance criteria, and supersession state. — BS §42.1; SCHEMAS §1.81.
+
+**ConstraintRegistry** — The sole authority that admits and stores canonical construction requirements and settled locked decisions; consumers reference its identities rather than creating competing requirement records. — BS §42.1; TA §59.1.
 
 **ContractId / Contract Authority Registry** — A stable identifier for one normative contract with exactly one authoritative section; every other section that addresses it is a declared extension. The `ContractId` values are registered in the BS §67.8 Contract Authority Registry, whose rules are stated in BS §67.7. — BS §67.7; BS §67.8.
 
@@ -96,7 +104,7 @@
 
 **ContextPackage** — The placed, gated, and recall-verified context assembled for a provider request. — BS §53; TA §59; SCHEMAS §1.16.
 
-**Conversation / ConversationDecision / ConversationRequirement** — The durable development aggregate with revision-bound Continue semantics and evidence-referencing requirements and decisions. — BS §82; TA §86; SCHEMAS §1.69; ADR-212.
+**Conversation / ConversationDecision / ConversationRequirement** — The durable development aggregate with revision-bound Continue semantics; `ConversationRequirement` is a proposal envelope whose admitted result references, but never replaces, the canonical `ConstructionRequirement`. — BS §82; TA §86; SCHEMAS §1.69; ADR-212.
 
 **DeliberationRecord** — The record of a deep-deliberation pass; deliberation depth is adaptive and carries no fixed pass ceiling. — BS §68; TA §72; SCHEMAS §1.33; ADR-218.
 

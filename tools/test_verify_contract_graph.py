@@ -2220,6 +2220,24 @@ CASES = {
         "status = FROZEN",
         "status = ACTIVE",
         "semantic documentation"),
+    # ---- canonical requirement and provider-provenance documentation locks
+    "canonical requirement identity removed": (
+        SCHEMAS, "- requirementId: string (uuid; canonical ConstraintRegistry identity)",
+        "- requirementId: string", "semantic documentation"),
+    "untyped inferred requirements restored": (
+        SCHEMAS, "- requirementIds: string[] (canonical ConstraintRegistry requirement IDs)",
+        "- inferredRequirements: string[]", "semantic documentation"),
+    "provider attempt external effect link removed": (
+        SCHEMAS, "- externalEffectId: string", "- effectReference: string",
+        "semantic documentation"),
+    "provider provenance retention owner removed": (
+        TA, "Local execution-ledger retention is owned by storage authority",
+        "Local execution-ledger retention is implementation-defined",
+        "semantic documentation"),
+    "conversation proposal promoted to canonical authority": (
+        TA, "`ConversationRequirement` is a proposal envelope owned by Conversation, not a canonical construction requirement",
+        "`ConversationRequirement` is a canonical construction requirement owned by Conversation",
+        "semantic documentation"),
 }
 
 

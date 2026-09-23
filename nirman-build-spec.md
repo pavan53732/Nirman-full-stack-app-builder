@@ -2402,8 +2402,9 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 | Contract area | Required contents |
 |---|---|
 | Application identity | Display name, package ID, namespace, version, description, branding intent, privacy classification |
-| Intent model | Original request, screenshot references, explicit constraints, inferred requirements, assumptions, unresolved ambiguities |
+| Intent model | Original request, screenshot references, explicit constraints, assumptions, unresolved ambiguities, and requirement-source provenance |
 | Feature model | User stories, feature IDs, dependencies, mandatory/optional status, acceptance tests, affected screens |
+| Requirement model | Canonical `ConstructionRequirement` records admitted and stored by `ConstraintRegistry`, with stable requirement IDs, source-feature lineage, explicit/inferred origin, derivation lineage, requirement revisions, applicable contract revisions, supersession, mandatory classification, admission provenance, and acceptance criteria |
 | UI model | Screens, components, navigation, visual states, interactions, accessibility semantics, localization, theme behavior |
 | Data model | Entities, relationships, persistence choice, migrations, caching, synchronization, offline and corruption recovery behavior |
 | Integration model | APIs, authentication, notifications, storage, camera, media, sensors, maps, biometrics, payments, and native services |
@@ -2412,6 +2413,14 @@ Every autonomous build session MUST produce a versioned AndroidConstructionContr
 | Device matrix | Nirman-managed local Android emulator profiles, API levels, orientations, densities, tablet/phone coverage |
 | Validation model | Unit, integration, UI, visual, accessibility, performance, security, runtime, and release checks |
 | Artifact model | APK variants, signing policy, version code, checksums, evidence requirements, export destinations |
+
+> **Schema projection:** `ConstructionRequirement` is defined in `nirman-schemas.md` §1.81. Owner: BS §42.1.
+
+`ConstraintRegistry` remains the sole canonical authority and durable registry for settled construction requirements and locked decisions. The `AndroidConstructionContract.requirementIds` collection references the canonical `ConstructionRequirement.requirementId` values applicable to that contract revision; the contract does not create a second requirement authority or store a competing copy.
+
+`ConstructionRequirement.sourceFeatureIds` owns the feature-to-requirement relation. It supports one feature producing multiple requirements and a shared requirement serving multiple features. `originKind` distinguishes explicit from inferred requirements; `parentRequirementIds` and `derivationKinds` preserve inferred-companion, split, and merge provenance independently of supersession. Only requirements admitted by `ConstraintRegistry` are canonical. `ImplicitRequirementMiner` and model workers produce proposals only. A requirement retains its `requirementId` when its wording, acceptance criteria, source lineage, or applicability changes; `ConstraintRegistry` increments `requirementRevision` and atomically records the revised value and affected `AndroidConstructionContract.revision` bindings. A semantic replacement that must coexist for historical traceability receives a new `requirementId` and links through `supersedes`/`supersededBy`. Removal sets the prior record to `SUPERSEDED` or `INVALIDATED`; canonical history is never rewritten in place.
+
+Before a construction contract is admitted, every mandatory `FeatureModel` MUST map to at least one `ACTIVE` canonical requirement listed in `requirementIds`, and every listed requirement MUST be bound to the same project and contract and include the construction contract revision in `applicableContractRevisions`. A mandatory feature with no current canonical requirement is a construction-contract defect. Completion remains requirement-centric: feature coverage resolves through `ConstructionRequirement` to `RequirementToImplementationGraph`, scenarios, current evidence, `ProofSynthesis`, and `CompletionDecision`.
 
 A feature without an explicit optional marking is mandatory. A mandatory requirement with observable behavior is critical by default; downgrade from critical requires explicit recorded rationale, and model output MUST NOT silently downgrade or omit this classification.
 
@@ -4449,14 +4458,14 @@ The following `ContractId` values are the registered normative contracts of this
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216 | M65 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216, ADR-253, ADR-254 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071, ADR-254 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-155 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-219 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RECONCILIATION | BS §55 | — | TA §61 | ADR-144 | M83 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.E2E | BS §56 | BS §59 | TA §62 | ADR-146 | M84 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.E2E | BS §56 | BS §59 | TA §62 | ADR-146, ADR-253 | M84 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.VERIFICATION | BS §57 | BS §47 | TA §64 | ADR-148 | M85 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.LOCALIZATION | BS §62 | — | TA §63 | ADR-147 | M86 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.SUPPLY_CHAIN | BS §58 | — | TA §70 | ADR-149 | M87 | CROSS_CUTTING |
@@ -4471,14 +4480,14 @@ The following `ContractId` values are the registered normative contracts of this
 | CONTRACT.RUNTIME.REASONING | BS §66 | BS §68 | TA §71 | ADR-167, ADR-168, ADR-169, ADR-170, ADR-171, ADR-218, ADR-252 | M94 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.DELIBERATION | BS §68 | — | TA §72 | ADR-172, ADR-173, ADR-174, ADR-175, ADR-176, ADR-177, ADR-178, ADR-179, ADR-184, ADR-218 | M95 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.INVARIANTS | BS §67 | BS §80 | TA §23 | ADR-157, ADR-252 | M93 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250 | M93 | INTERNAL |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | BS §80 | — | N/A (INTERNAL predicate) | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250, ADR-253 | M93 | INTERNAL |
 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | BS §70 | — | TA §74 | ADR-194 | M107 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.PREVIEW_SYNC | BS §71 | — | TA §75 | ADR-195 | M108 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | BS §72 | — | TA §77 | ADR-218 | M111 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.AGENT_TRUST | BS §73 | — | TA §78 | ADR-198 | M112 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199, ADR-219 | M113 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | BS §74 | — | TA §79 | ADR-199, ADR-219, ADR-254 | M113 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | BS §81 | — | TA §85 | ADR-211 | M120 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212 | M121 | CROSS_CUTTING |
+| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212, ADR-253 | M121 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | BS §83 | — | TA §87 | ADR-213 | M122 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | BS §75 | — | TA §80 | ADR-200 | M114 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76 | — | TA §81 | ADR-201 | M115 | CROSS_CUTTING |
@@ -4723,14 +4732,14 @@ Classification is a declaration of the contract's role, not an exemption from re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | CAP.ANDROID.GENERATE | BS §5 | BS §5 | TA §47 | TA §47.1 | BS §5 | TA §47.2 | TA §47.3 | ADR-180 | M11 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.PROMPT_CONTRACT | CAP.ANDROID.GENERATE | BS §27 | BS §69 | TA §73 | TA §73.1 | BS §69 | TA §73.4 | TA §73.7 | ADR-231 | M96 | TEST-GEN-001 | EV-GEN-001 |
-| CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066 | M65 | TEST-GEN-001 | EV-GEN-001 |
-| CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071 | M65 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.AUTHORITY | CAP.ANDROID.GENERATE | BS §33 | BS §33 | TA §21 | TA §27.1 | BS §33 | TA §23.1 | TA §28 | ADR-066, ADR-253, ADR-254 | M65 | TEST-GEN-001 | EV-GEN-001 |
+| CONTRACT.RUNTIME.EVIDENCE | CAP.ANDROID.GENERATE | BS §37 | BS §37 | TA §23 | TA §23.3 | BS §37 | TA §23.3 | TA §28 | ADR-071, ADR-254 | M65 | TEST-GEN-001 | EV-GEN-001 |
 | CONTRACT.RUNTIME.MEMORY | CAP.ANDROID.LONG_HORIZON | BS §38 | BS §38 | TA §59 | TA §59.2 | BS §38 | TA §59.5 | TA §59.6 | ADR-140 | M81 | TEST-MEM-001 | EV-MEM-001 |
 | CONTRACT.RUNTIME.CONTEXT | CAP.ANDROID.LONG_HORIZON | BS §53 | BS §53 | TA §59 | TA §59.3 | BS §53 | TA §59.5 | TA §59.6 | ADR-141, ADR-219 | M81 | TEST-MEM-001 | EV-MEM-001 |
 | CONTRACT.RUNTIME.WORKSPACE | CAP.ANDROID.PARALLEL | BS §22 | BS §22 | TA §8 | TA §8.1 | BS §22 | TA §8.2 | TA §8.3 | ADR-068 | M69 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RESERVATION | CAP.ANDROID.PARALLEL | BS §54 | BS §54 | TA §60 | TA §60.2 | BS §54 | TA §60.4 | TA §60.6 | ADR-143 | M82 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RECONCILIATION | CAP.ANDROID.USER_COEDIT | BS §55 | BS §55 | TA §61 | TA §61.2 | BS §55 | TA §61.5 | TA §61.6 | ADR-144 | M83 | TEST-RCN-001 | EV-RCN-001 |
-| CONTRACT.RUNTIME.E2E | CAP.ANDROID.E2E_VERIFY | BS §56 | BS §56 | TA §62 | TA §62.2 | BS §56 | TA §62.5 | TA §62.6 | ADR-146 | M84 | TEST-E2E-001 | EV-E2E-001 |
+| CONTRACT.RUNTIME.E2E | CAP.ANDROID.E2E_VERIFY | BS §56 | BS §56 | TA §62 | TA §62.2 | BS §56 | TA §62.5 | TA §62.6 | ADR-146, ADR-253 | M84 | TEST-E2E-001 | EV-E2E-001 |
 | CONTRACT.RUNTIME.VERIFICATION | CAP.ANDROID.QUALITY_GATE | BS §57 | BS §57 | TA §64 | TA §64.5 | BS §57 | TA §64.5 | TA §64.6 | ADR-148 | M85 | TEST-VER-001 | EV-VER-001 |
 | CONTRACT.RUNTIME.LOCALIZATION | CAP.ANDROID.REGRESSION_REPAIR | BS §62 | BS §62 | TA §63 | TA §63.4 | BS §62 | TA §63.4 | TA §63.5 | ADR-147 | M86 | TEST-LOC-001 | EV-LOC-001 |
 | CONTRACT.RUNTIME.SUPPLY_CHAIN | CAP.ANDROID.SECURE_RELEASE | BS §58 | BS §58 | TA §70 | TA §70.4 | BS §58 | TA §70.4 | TA §70.6 | ADR-149 | M87 | TEST-SEC-001 | EV-SEC-001 |
@@ -4748,15 +4757,15 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.PREVIEW_SYNC | CAP.ANDROID.LIVE_PREVIEW | BS §71 | BS §71 | TA §75 | TA §75.1 | BS §71 | TA §75.2 | TA §75.3 | ADR-195 | M108 | TEST-PSYNC-001 | EV-PSYNC-001 |
 | CONTRACT.RUNTIME.RESOURCE_INTEGRITY | CAP.ANDROID.RESOURCE_AWARE_AUTONOMY | BS §72 | BS §72 | TA §77 | TA §77.1 | BS §72 | TA §77.2 | TA §77.3 | ADR-218 | M111 | TEST-RESOURCE-001 | EV-RESOURCE-001 |
 | CONTRACT.RUNTIME.AGENT_TRUST | CAP.ANDROID.TRUSTED_EXTENSIONS | BS §73 | BS §73 | TA §78 | TA §78.1 | BS §73 | TA §78.2 | TA §78.3 | ADR-198 | M112 | TEST-TRUST-001 | EV-TRUST-001 |
-| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199, ADR-219 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
+| CONTRACT.RUNTIME.CONTEXT_GOVERNANCE | CAP.ANDROID.CONTEXT_GOVERNANCE | BS §74 | BS §74 | TA §79 | TA §79.1 | BS §74 | TA §79.2 | TA §79.3 | ADR-199, ADR-219, ADR-254 | M113 | TEST-CONTEXT-001 | EV-CONTEXT-001 |
 | CONTRACT.RUNTIME.ANDROID_INTEGRITY | CAP.ANDROID.RUNTIME_INTEGRITY | BS §75 | BS §75 | TA §80 | TA §80.1 | BS §75 | TA §80.2 | TA §80.3 | ADR-200 | M114 | TEST-INTEGRITY-001 | EV-INTEGRITY-001 |
 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | CAP.ANDROID.FRONTEND_CONTROL_PLANE | BS §76 | BS §76 | TA §81 | TA §81.1 | BS §76 | TA §81.2 | TA §81.3 | ADR-201 | M115 | TEST-FCP-001 | EV-FCP-001 |
 | CONTRACT.RUNTIME.BACKGROUND_CONTINUITY | CAP.ANDROID.BACKGROUND_CONTINUITY | BS §77 | BS §77 | TA §82 | TA §82.1 | BS §77 | TA §82.2 | TA §82.3 | ADR-202 | M116 | TEST-BG-001 | EV-BG-001 |
 | CONTRACT.RUNTIME.APK_EXPORT | CAP.ANDROID.APK_DELIVERY | BS §78 | BS §78 | TA §83 | TA §83.1 | BS §78 | TA §83.2 | TA §83.3 | ADR-203 | M117 | TEST-APK-001 | EV-APK-001 |
 | CONTRACT.RUNTIME.PLATFORM_CAPABILITY | CAP.PLATFORM.CAPABILITY_TRUTH | BS §79 | BS §79 | TA §84 | TA §84.1 | BS §79 | TA §84.2 | TA §84.4 | ADR-206 | M118 | TEST-PLAT-001 | EV-PLAT-001 |
-| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | N/A (INTERNAL predicate) | N/A (INTERNAL predicate) | BS §80 | N/A (INTERNAL predicate) | BS §80 | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250 | M93 | TEST-INV-001 | EV-INV-001 |
+| CONTRACT.RUNTIME.AGENT_BUILDABILITY | CAP.ANDROID.CERTIFIED_RELEASE | BS §80 | BS §80 | N/A (INTERNAL predicate) | N/A (INTERNAL predicate) | BS §80 | N/A (INTERNAL predicate) | BS §80 | ADR-231, ADR-234, ADR-243, ADR-248, ADR-249, ADR-250, ADR-253 | M93 | TEST-INV-001 | EV-INV-001 |
 | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE | CAP.ANDROID.CONTENT_INTELLIGENCE | BS §81 | BS §81 | TA §85 | TA §85.1 | BS §81 | TA §85.3 | TA §85.4 | ADR-211 | M120 | TEST-CONTENT-001 | EV-CONTENT-001 |
-| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.3 | ADR-212 | M121 | TEST-CONV-001 | EV-CONV-001 |
+| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | CAP.ANDROID.CONVERSATION_CONTEXT | BS §82 | BS §82 | TA §86 | TA §86.1 | BS §82 | TA §86.2 | TA §86.3 | ADR-212, ADR-253 | M121 | TEST-CONV-001 | EV-CONV-001 |
 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | CAP.ANDROID.CHANGE_INTELLIGENCE | BS §83 | BS §83 | TA §87 | TA §87.1 | BS §83 | TA §87.5 | TA §87.6 | ADR-213 | M122 | TEST-CHANGE-001 | EV-CHANGE-001 |
 
 Every section reference in this table is document-qualified. A reference is written `BS §n` or `BS §n.m` to address this build specification, and `TA §n` or `TA §n.m` to address the technical architecture. The document namespace is part of the reference identity: an unqualified `§n.m` is not resolvable, because the same number exists in both documents with different content.
@@ -6882,6 +6891,8 @@ This is the field-level schema of the §42.1 `AndroidConstructionContract` (ADR-
 
 > **Schema projection:** `FeatureModel` is defined in `nirman-schemas.md` §1.55. Owner: BS §80.5.3.
 
+> **Schema projection:** `ConstructionRequirement` is defined in `nirman-schemas.md` §1.81. Owner: BS §42.1.
+
 > **Schema projection:** `DataModel` is defined in `nirman-schemas.md` §1.56. Owner: BS §80.5.3.
 
 > **Schema projection:** `IntegrationSpec` is defined in `nirman-schemas.md` §1.57. Owner: BS §80.5.3.
@@ -7618,6 +7629,8 @@ Task/Project = execution authority
 Storage authority separation:
 - Conversation: durable conversation lineage and conversation-owned records (messages, attachments, suggestions, revision bindings).
 - MemoryStore (TA §59.1) for semantic memory, ContextOrchestrator (TA §59.1) for assembled context, and ConstraintRegistry (TA §59.1) for settled requirements and locked decisions: the canonical semantic, context, and requirement/decision authorities. No `ContextStore`, `RequirementStore`, or `DecisionStore` component exists; those words in earlier drafts named these three.
+`ConversationRequirement` is a conversation-local proposal envelope only. It may preserve the user/model wording and proposed acceptance criteria before admission, but it is not a settled requirement and cannot be consumed as one. `proposalStatus = ADMITTED` is valid only after `ConstraintRegistry` returns a canonical `ConstructionRequirement.requirementId`, recorded as `canonicalRequirementId`. Rejection or withdrawal creates no canonical identity.
+
 Conversation references and indexes canonical requirements and decisions via typed lineage indices (`ConversationRequirementIndex`, `ConversationDecisionIndex`); it does NOT duplicate or maintain competing copies of their canonical storage.
 
 ### 82.1 Revision consistency and Continue state machine

@@ -1469,6 +1469,33 @@ def check_semantic_documentation(docs, R, D, root="."):
                           ("No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace", "BS §76.1 namespace rule")):
         if anchor not in (ta if label.startswith("TA") else bs):
             D.add("semantic documentation", "forbidden preview pipeline path", f"{label} is missing")
+    # Canonical requirement identity and provider-provenance structure are
+    # documentation contracts. Runtime lineage/reconciliation correctness is
+    # deliberately left to executable fixtures once source exists.
+    required_contract_tokens = (
+        (docs["schemas"], "SCHEMAS", "### 1.81 ConstructionRequirement"),
+        (docs["schemas"], "SCHEMAS", "- requirementId: string (uuid; canonical ConstraintRegistry identity)"),
+        (docs["schemas"], "SCHEMAS", "- requirementIds: string[] (canonical ConstraintRegistry requirement IDs)"),
+        (bs, "BS §42.1", "`ConstraintRegistry` remains the sole canonical authority"),
+        (ta, "TA §59.1", "`ConstraintRegistry` persists canonical `ConstructionRequirement` records"),
+        (ta, "TA §73.15.1", "`ImplicitRequirementMiner` cannot write `ConstraintRegistry` or `AndroidConstructionContract` directly"),
+        (docs["schemas"], "SCHEMAS", "- requirementProposals: List<ConversationRequirement>  // conversation-local proposals; never canonical requirements"),
+        (docs["schemas"], "SCHEMAS", "- canonicalRequirementId: string | null"),
+        (ta, "TA §86.1", "`ConversationRequirement` is a proposal envelope owned by Conversation, not a canonical construction requirement"),
+        (docs["schemas"], "SCHEMAS", "### 2.130 ProviderRequestProvenance"),
+        (docs["schemas"], "SCHEMAS", "### 2.131 ProviderRequestAttempt"),
+        (docs["schemas"], "SCHEMAS", "- externalEffectId: string"),
+        (ta, "TA §24.6", "Every externally issued attempt references its `ExternalEffectRecord`"),
+        (ta, "TA §45.2", "Local execution-ledger retention is owned by storage authority"),
+    )
+    for text, where, token in required_contract_tokens:
+        if token not in text:
+            D.add("semantic documentation", "requirement/provenance contract",
+                  f"{where} lacks required contract token: {token}")
+    if "- inferredRequirements: string[]" in docs["schemas"]:
+        D.add("semantic documentation", "requirement/provenance contract",
+              "AndroidConstructionContract must reference canonical requirementIds; untyped inferredRequirements is forbidden")
+
     # The TA §74.5 certification report must carry the §67.11 status vocabulary
     # verbatim; a PASSED/FAILED result would hide the with-skips state.
     report = re.search(r"```text\s*\nDocumentationCertificationReport\s*\n(.+?)\n```", fta, re.S)
