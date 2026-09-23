@@ -3338,13 +3338,13 @@ Performance degradation MUST be classified separately from functional correctnes
 
 **Status:** Accepted
 
-**Decision:** `CanonicalSchemaRegistry` membership is machine-checkable. A name is registered if and only if it (a) owns a fenced field-list block in `nirman-schemas.md`, or (b) is enumerated in the §3.1 prose-defined identity list with its defining section. The §67.11 defect rule is amended accordingly: a registered name with neither a block nor an enumeration entry is a structure defect, and an enumeration entry whose identity gains a field block must be removed in the same change. The fifteen identities registered without blocks are enumerated at §3.1 rather than rewritten as invented field blocks.
+**Decision:** `CanonicalSchemaRegistry` membership is machine-checkable. A name is registered if and only if it (a) owns a fenced field-list block in `nirman-schemas.md`, or (b) is enumerated in the §3.1 prose-defined identity list with its defining section. The §67.11 defect rule is amended accordingly: a registered name with neither a block nor an enumeration entry is a structure defect, and an enumeration entry whose identity gains a field block must be removed in the same change. The twenty-five identities registered without blocks are enumerated at §3.1 rather than rewritten as invented field blocks.
 
-**Rationale:** The registry grew by ADR accretion while §67.11 already declared a block-less registration a defect; fifteen names satisfied neither side and the verifier could not see the contradiction. Authoring retroactive field blocks for prose-defined normative identities would fabricate authority (build spec §67.12's no-hallucination discipline); an enumerable declared exception keeps the registry closed without inventing schema content.
+**Rationale:** The registry grew by ADR accretion while §67.11 already declared a block-less registration a defect; twenty-five names satisfied neither side and the verifier could not see the contradiction. Authoring retroactive field blocks for prose-defined normative identities would fabricate authority (build spec §67.12's no-hallucination discipline); an enumerable declared exception keeps the registry closed without inventing schema content.
 
 **Consequences:** `nirman-schemas.md` §3.1 carries the membership rule and the prose-defined identity enumeration; build spec §67.11 names the new structure-defect classes; technical architecture §36.1 defers membership enumeration to §3.1; ADR-189 is amended; the verifier certifies registry closure.
 
-**Reversal trigger:** Any of the fifteen prose-defined identities acquiring an authoritative field shape at implementation time — the block is then written and the identity leaves the exception list in the same change.
+**Reversal trigger:** Any of the twenty-five prose-defined identities acquiring an authoritative field shape at implementation time — the block is then written and the identity leaves the exception list in the same change.
 
 ---
 
