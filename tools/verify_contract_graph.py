@@ -1812,9 +1812,9 @@ def check_semantic_documentation(docs, R, D, root="."):
                 or "- networkPath: DIRECT | SYSTEM_PROXY | PAC\n" not in m_tpr.group(1):
             D.add("semantic documentation", "host architecture",
                   "ToolchainProvisioningRecord must carry hostArchitecture: X64, a HOST_UNSUPPORTED component result (BS §79.17), and networkPath: DIRECT | SYSTEM_PROXY | PAC (TA §49.4)")
-    if m_221 and "Google publishes a Windows ARM64 build of the Android Emulator" not in m_221:
+    if m_221 and "Upstream emulator availability alone no longer activates Windows ARM64 support" not in m_221:
         D.add("semantic documentation", "host architecture",
-              "ADR-221's reversal trigger must name the publication of a Windows ARM64 emulator (BS §79.17)")
+              "ADR-221's reversal trigger must reflect that upstream emulator availability alone no longer activates ARM64 support (ADR-257)")
     # Native Android scope (ADR-257): React Native, Expo, and JavaScriptAndroidAdapter are retired.
     m_257 = adr_blocks(dec).get(257, "")
     if not m_257:
@@ -1832,6 +1832,42 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "scope lock", "TA must not retain JavaScriptAndroidAdapter; native Android only (ADR-257)")
     if "RN_EXPO_FAST_REFRESH" in ta or (sch and "RN_EXPO_FAST_REFRESH" in sch):
         D.add("semantic documentation", "scope lock", "TA and nirman-schemas.md must not retain RN_EXPO_FAST_REFRESH (ADR-257)")
+    retired_scope_tokens = (
+        "React Native",
+        "Expo/React Native",
+        "React Native/Expo",
+        "RN_EXPO_FAST_REFRESH",
+        "JavaScriptAndroidAdapter",
+        "healthyMetroExpoRuntime",
+        "Gradle plus Metro or Expo",
+        "mixed native plus JavaScript",
+        "Windows ARM64 build-only support",
+        "partial ARM64 support",
+        "ARM64 reduced-capability mode",
+        "ARM64 JDK/toolchain provisioning",
+    )
+    for doc_name, doc_key in (
+            ("nirman-build-spec.md", "bs"),
+            ("nirman-technical-architecture.md", "ta"),
+            ("nirman-milestones.md", "dev"),
+            ("AGENTS.md", "agents"),
+    ):
+        doc_content = docs.get(doc_key, "")
+        for tok in retired_scope_tokens:
+            if tok in doc_content:
+                D.add("semantic documentation", "scope lock",
+                      f"{doc_name} must not contain retired token '{tok}' (ADR-257)")
+    if sch:
+        for tok in retired_scope_tokens:
+            if tok in sch:
+                D.add("semantic documentation", "scope lock",
+                      f"nirman-schemas.md must not contain retired token '{tok}' (ADR-257)")
+    adr_all = adr_blocks(dec)
+    for adr_num in (21, 76, 180, 221):
+        b = adr_all.get(adr_num, "")
+        if not b or "Amended by ADR-257" not in b:
+            D.add("semantic documentation", "scope lock",
+                  f"ADR-{adr_num:03d} must be amended by ADR-257 (ADR-257)")
     # Integration fault scenarios and ContractDouble boundary (ADR-258).
     m_258 = adr_blocks(dec).get(258, "")
     if not m_258:
@@ -4214,6 +4250,10 @@ SKILL_BODY_BANNED = (
     "Tauri", "Electron", "React ", "React/", "TypeScript", "Vite", "WebView",
     "physical device", "physical Android device", "attached device", "USB device",
 )
+SKILL_STORE_PUBLICATION_BANNED = (
+    "create products in the Play Console",
+    "create products in the Google Play Console",
+)
 
 
 CONTRACT_SECTIONS = ("Trigger", "Required capabilities", "Preconditions",
@@ -4269,6 +4309,10 @@ def check_skill_bodies(docs, D, repo_root):
                 D.add("semantic documentation", f"skill {name}",
                       f"body carries {token.strip()!r}: excluded host stack or physical-device "
                       f"path (ADR-108, ADR-117, BS §4.4, AGENTS.md §17)")
+        for token in SKILL_STORE_PUBLICATION_BANNED:
+            if token.lower() in body.lower():
+                D.add("semantic documentation", f"skill {name}",
+                      f"body carries {token!r}: skill must not claim external store publication authority; console-side configuration is user-owned")
     for name in sorted(set(bodies) - set(names)):
         D.add("semantic documentation", f"skill {name}",
               "SKILL.md body exists but the skill is not registered in BS §79.7")

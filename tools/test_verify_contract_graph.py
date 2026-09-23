@@ -440,7 +440,7 @@ CASES = {
         "Missing tools are reported with an installation guide",
         "semantic documentation"),
     "BS §9.2 offers an installation reference for the Android toolchain": (
-        BS, "only a tool outside that toolchain — Git, or a Node.js version manager the project explicitly declares — may be reported with an official installation reference",
+        BS, "only a tool outside that toolchain — Git, or a host build dependency the project explicitly declares — may be reported with an official installation reference",
         "every missing tool is reported with an official installation reference",
         "semantic documentation"),
     "TA §10.7 lets PreviewHost open the emulator control channel": (
@@ -511,6 +511,22 @@ CASES = {
     "TA retains RN_EXPO_FAST_REFRESH": (
         TA, "The mode values `COMPOSE_RELOAD`",
         "The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`",
+        "semantic documentation"),
+    "TA retains React Native in technology resolver": (
+        TA, "Compose, Views, NDK/CMake native modules, or a mixed native architecture only as",
+        "Compose, Views, React Native, NDK/CMake native modules, or a mixed native architecture only as",
+        "semantic documentation"),
+    "TA retains Metro in build adapter": (
+        TA, "The same interface MUST cover: Gradle native Kotlin/Java; Android Views; Jetpack Compose; mixed Kotlin/Java and Views/Compose; NDK or CMake native modules; Android Gradle plugins and platform services (ADR-257).",
+        "The same interface MUST cover: Gradle plus Metro or Expo; React Native; NDK or CMake; and mixed native plus JavaScript.",
+        "semantic documentation"),
+    "BS §79.17 claims Windows ARM64 build-only support": (
+        BS, "Windows ARM64 is OUT_OF_SCOPE",
+        "Windows ARM64 build-only support is enabled",
+        "semantic documentation"),
+    "ADR-021 missing ADR-257 amendment notice": (
+        ADRS, "**Amended by ADR-257:** React Native, Expo, Metro, JavaScript hybrid architectures, and Windows ARM64 support described below are retired and must not be implemented.\n\n",
+        "",
         "semantic documentation"),
     "TA §3.5 lets a worker run as a Tokio task inside the supervisor": (
         TA, "A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`.",
@@ -1777,6 +1793,12 @@ CASES = {
         ANDROID_SKILL,
         "observation bound to the environment fingerprint.",
         "observation bound to the environment fingerprint, or a physical device observation.",
+        "semantic documentation",
+        SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill body claims store publication authority": (
+        "crates/nirman-skills/skills/android/android-payments-expert/SKILL.md",
+        "Nirman does not create, modify, or publish products in Google Play Console.",
+        "Configure Google Play Console: create products in the Play Console.",
         "semantic documentation",
         SKILL_SOURCES + SKILL_MANIFESTS),
     "registered skill without a body": (

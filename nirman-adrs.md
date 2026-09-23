@@ -256,6 +256,7 @@ User mental model: one Nirman application, not two applications.
 ## ADR-021: Let the configured AI select the complete Android implementation
 
 **Status:** Accepted  
+**Amended by ADR-257:** React Native, Expo, Metro, JavaScript hybrid architectures, and Windows ARM64 support described below are retired and must not be implemented.
 **Decision:** The product core builds Android applications end to end from user instructions, screenshots, assets, existing project files, emulator requirements, and integrations. The user does not select a framework or template. The technology resolver may choose and combine Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, and mixed architectures according to the requirements and validation evidence. The Windows desktop application is the development host, not a generated target.
 
 **Reasoning:** Android applications vary widely in UI technology, device integration, performance, background behavior, packaging, and native dependencies. The configured AI must select the implementation rather than forcing the user to understand the technology stack in advance.
@@ -892,7 +893,9 @@ the parent contract, or integrate changes.
 
 ## ADR-076: Revision-bound preview fallback hierarchy
 
-**Status:** Accepted · **Amended by:** ADR-236
+**Status:** Accepted · **Amended by:** ADR-236, ADR-257
+
+**Amended by ADR-257:** React Native, Expo, Metro, JavaScript hybrid architectures, and Windows ARM64 support described below are retired and must not be implemented.
 
 **Decision:** PreviewCoordinator selects incremental emulator install, Compose reload, React Native/Expo refresh, APK reinstall, Nirman-managed local Android emulator execution, headless smoke test, or diagnostic preview according to the change and selected technology.
 
@@ -1351,6 +1354,8 @@ the parent contract, or integrate changes.
 ## ADR-114: Nirman orchestrates externally managed Android toolchains
 
 **Status:** Accepted
+
+**Amended by ADR-257:** React Native, Expo, Metro, JavaScript hybrid architectures, and Windows ARM64 support described below are retired and must not be implemented.
 
 **Decision:** Nirman resolves, validates, isolates, and supervises JDK, Gradle, AGP, Kotlin, Java, Android SDK, ADB, emulator, NDK/CMake, and selected Node/Metro/Expo tooling. It does not replace these ecosystems.
 
@@ -2240,6 +2245,8 @@ the parent contract, or integrate changes.
 
 **Status:** Accepted
 
+**Amended by ADR-257:** React Native, Expo, Metro, JavaScript hybrid architectures, and Windows ARM64 support described below are retired and must not be implemented.
+
 **Decision:** `Project.targetPlatforms` must equal exactly `["android"]` at every revision, enforced at project construction rather than stated as intent. The runtime rejects a project whose target list is empty, contains any other value, or pairs `android` with a second platform. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the technology resolver, not additional targets. No resolver path, worker role, or capability may produce a non-Android deployable.
 
 **Rationale:** A generic platform field with a documented intention drifts. Nirman's scope boundary is its most load-bearing product decision, and a configuration value able to widen it silently would let a web or server target enter through the data model without any decision being recorded.
@@ -2851,6 +2858,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 **Status:** Accepted
 **Locks:** `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
 **Amends:** ADR-210 (builds on ADR-206)
+**Amended by ADR-257:** Upstream emulator availability alone no longer activates Windows ARM64 support. Supporting another host architecture requires a new explicit product-scope ADR and complete host certification.
 
 **Decision:** The Nirman-managed local Android emulator is the Google Android Emulator distributed through the Android SDK repository, running Google APIs x86_64 system images. On first launch, before any project exists and without waiting for an AI provider, the supervisor's `ToolchainProvisioner` (TA §49.4) downloads the pinned JDK, command-line tools, platform-tools, build-tools, platform, emulator, and system image into Nirman's own toolchain root, verifies every digest, creates the Nirman emulator device, boots it once, saves its snapshot, and proves readiness by delivering one frame through the `RenderTransport` (TA §10.7) into the Preview panel. The user performs at most three actions — accepting the Android SDK License Agreement together with the download and disk figures, confirming one elevation prompt for hypervisor enablement, and, only when firmware virtualization is disabled, changing that one UEFI/BIOS setting — each a durable `USER_REQUIRED` decision, never an installation guide. Nirman MUST NOT bundle, fork, patch, rebuild, or redistribute the emulator, a system image, or any Android SDK component, whether inside its installer or through a Nirman-operated server; MUST NOT accept the SDK licence on the user's behalf; MUST NOT write `ANDROID_HOME`, `JAVA_HOME`, or the user's `PATH`; and MUST NOT adopt an SDK or JDK already on the machine unless the user configures its path explicitly. The frame path is fixed as supervisor-owned: one loopback gRPC channel per emulator session opened by the supervisor, frames stamped with the revision binding and delivered to PreviewHost through a shared-memory ring (30 frames per second, drop-oldest) announced by volatile `FrameNotice` messages that are never logged or replayed — frames are pixels, `PreviewSyncEvent`s mark only stream-state changes and evidence captures — presented on a WinUI 3 `SwapChainPanel` with a `WriteableBitmap` fallback and painted as live only under a `CONNECTED` projection with a bound stamp, input returning through `PreviewInteraction`; WebRTC is the permitted upgrade under the same stamps and gate. The per-user root of every Nirman path is the fixed literal `C:\Nirman\<sid8>\` (BS §79.14).
 
@@ -2858,7 +2866,7 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Consequences:** TA §49.4 defines the provisioner, the toolchain root, the pinned manifest, the three user actions, preflight, readiness, the provisioning state machine and its mapping onto the four-state vocabulary, and the evidence record; `ToolchainProvisioningManifest` and `ToolchainProvisioningRecord` (SCHEMAS §2.87, §2.88) are its records. TA §10.7 gains the transport mechanics and `RenderTransport` (SCHEMAS §2.89) becomes a schema block. BS §4.2 replaces the installation guide with provisioning and BS §9.2 routes Android-toolchain diagnostics to the provisioning state. M4 and M9 gain the provisioning and transport work items and M9's exit gate requires a provisioned-from-empty machine. The verifier rejects the return of an installation-guide remedy for the Android toolchain, a §49.4 that permits bundling, a `RenderTransport` without its owner-line block, and an ADR-221 without these terms. Nothing here changes what counts as evidence: readiness, like every preview claim, is proven by an observed frame under CLAUSE.PREVIEW_SYNC.EVIDENCE_BOUND, and a machine without acceleration remains capped at `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` (BS §79.16).
 
-**Reversal trigger:** Google publishes a Windows ARM64 build of the Android Emulator through the SDK repository (the manifest then adds the package and BS §79.17's ARM64 limitation lapses without a design change); Google stops distributing Windows builds of the Android Emulator or Google APIs x86_64 system images through the SDK repository, or the SDK licence stops permitting programmatic download under the user's acceptance; or a Windows-hosted engine other than the Google Android Emulator is proven to render, accept input, and expose Google Play services with equivalent revision-binding and evidence guarantees, in which case a superseding ADR names the new engine and this record's provisioning flow is re-targeted at it.
+**Reversal trigger:** Google stops distributing Windows builds of the Android Emulator or Google APIs x86_64 system images through the SDK repository, or the SDK licence stops permitting programmatic download under the user's acceptance; or a Windows-hosted engine other than the Google Android Emulator is proven to render, accept input, and expose Google Play services with equivalent revision-binding and evidence guarantees, in which case a superseding ADR names the new engine and this record's provisioning flow is re-targeted at it. Upstream emulator availability alone no longer activates Windows ARM64 support (ADR-257).
 
 ---
 

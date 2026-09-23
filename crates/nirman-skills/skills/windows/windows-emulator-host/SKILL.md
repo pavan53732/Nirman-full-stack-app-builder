@@ -72,16 +72,14 @@ starves the host — or the host must be assessed before a device-dependent run.
 ## Failure classification
 - - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
-- HOST_UNSUPPORTED — no emulator is published for this host architecture; reported
-  with that reason and never substituted.
+- HOST_OUT_OF_SCOPE — Windows host architecture is not x64 (ADR-257); preflight terminates immediately without toolchain provisioning, project construction, build-only mode, or export.
 - NO_ACCELERATION — the hypervisor is absent or unusable; the emulator is not started
   unaccelerated without saying so.
 - IMAGE_MISMATCH — the selected image does not match the host architecture.
 - BOOT_TIMEOUT — the emulator did not reach a usable state within the bound.
 
 ## Recovery
-- An unsupported host is reported with its reason and build, static analysis, and
-  export continue under the split rule; no substitute runtime is presented.
+- A host architecture other than Windows x64 is rejected as HOST_OUT_OF_SCOPE; execution halts immediately without toolchain provisioning, project construction, build-only mode, or export (ADR-257).
 - Missing acceleration is repaired at the hypervisor configuration, and until then the
   run is blocked rather than run slowly and silently.
 - A boot timeout is escalated with the last observed boot signal rather than retried

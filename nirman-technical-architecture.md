@@ -102,11 +102,11 @@ Development servers, test runners, package managers, emulators, browsers, and bu
 
 The process manager must support cancellation of the whole process tree, not only the parent process. It must capture stdout and stderr separately, enforce output limits, and preserve the final diagnostic output when a process is terminated.
 
-Job handles MUST be created with handle inheritance DISABLED. If a child inherits the handle, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE does not reap the tree when the parent exits, because an open handle keeps the job alive. Termination MUST NOT rely on parent-child process-tree walking alone. A grandchild assigned to its own nested job, or reparented after its parent exits, is missed. Assignment to the supervisor job at spawn is the only durable containment. Every spawned build, emulator, Android-runtime, and package-manager process MUST be assigned to the job BEFORE it is resumed. The gradlew.bat → java.exe and Metro/Expo → node.exe shapes are the cases that leak. A leaked Gradle daemon holds file locks and corrupts the next run; supervisor restart MUST reconcile orphaned descendants from the ledger before starting new work.
+Job handles MUST be created with handle inheritance DISABLED. If a child inherits the handle, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE does not reap the tree when the parent exits, because an open handle keeps the job alive. Termination MUST NOT rely on parent-child process-tree walking alone. A grandchild assigned to its own nested job, or reparented after its parent exits, is missed. Assignment to the supervisor job at spawn is the only durable containment. Every spawned build, emulator, Android-runtime, and toolchain process MUST be assigned to the job BEFORE it is resumed. The gradlew.bat → java.exe shapes are the primary cases that require containment. A leaked Gradle daemon holds file locks and corrupts the next run; supervisor restart MUST reconcile orphaned descendants from the ledger before starting new work.
 
 ### 3.5 Process inventory and inter-process edges
 
-Nirman's production installation consists of exactly three executables (ADR-222). Every other process Nirman runs — the emulator, Gradle and the JDK, adb, ConPTY shells, Node when a project declares it — is an external tool spawned and supervised by the supervisor under §3.4, never a Nirman executable.
+Nirman's production installation consists of exactly three executables (ADR-222). Every other process Nirman runs — the emulator, Gradle and the JDK, adb, ConPTY shells, native toolchain executables — is an external tool spawned and supervised by the supervisor under §3.4, never a Nirman executable.
 
 | Executable | Language | Instances | Started by | Holds |
 |---|---|---|---|---|
@@ -561,7 +561,7 @@ The primary perception channel of the autonomous loop is the `ScreenModel` deriv
 
 The project synthesizer builds a project graph from the goal contract, visual specification, existing files, assets, emulator requirements, integrations, and validation plan. It selects or composes the required Android technologies and creates the project structure, screens, navigation, state, data layer, permissions, services, tests, build configuration, and artifact profile.
 
-The technology resolver must treat all Android implementation styles as available capabilities. It may select Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native modules, Gradle plugins, background services, device APIs, or a mixed architecture. Its decision must be based on the requested behavior, screenshot evidence, performance needs, device APIs, offline requirements, build constraints, dependency compatibility, and validation evidence—not on a fixed user-facing template list. Because the Nirman-managed emulator runs an x86_64 system image, the resolver prefers dependencies that ship x86_64 native libraries and records any arm64-only native dependency in the `AndroidTechnologyPlan` as an environment requirement of the emulator profile (build spec §79.17).
+The technology resolver must treat all Android implementation styles as available capabilities. It may select Java, Kotlin, Android Views, Jetpack Compose, custom NDK/CMake native modules, Gradle plugins, background services, device APIs, or a mixed native architecture (ADR-257). Its decision must be based on the requested behavior, screenshot evidence, performance needs, device APIs, offline requirements, build constraints, dependency compatibility, and validation evidence—not on a fixed user-facing template list. Because the Nirman-managed emulator runs an x86_64 system image, the resolver prefers dependencies that ship x86_64 native libraries and records any arm64-only native dependency in the `AndroidTechnologyPlan` as an environment requirement of the emulator profile (build spec §79.17).
 
 The plan record is the build spec §80.5.1 `AndroidTechnologyPlan`, field for field; the build spec is the canonical owner and the typed definition is the single block named below:
 
@@ -702,7 +702,7 @@ Diagnostics should distinguish missing, incompatible, inaccessible, unverified, 
 
 ### 11.3 Android runtime abstraction
 
-The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, Nirman-managed local Android emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
+The runtime should expose Android-focused interfaces for process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, NDK/CMake native module builds, Nirman-managed local Android emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts. The Windows desktop host supplies the local process and sandbox implementation; the generated-project contract remains Android-specific and technology-neutral.
 
 ---
 
@@ -929,7 +929,7 @@ The `Checkpoint.validity`, `knownGood`, and `retentionClass` fields are the dura
 
 Checkpoint storage must use a retention policy for long-running sessions. Every task retains the initial source checkpoint, the last known-good checkpoint, all checkpoints referenced by an active recovery strategy, and a configurable number of recent task checkpoints. Older intermediate checkpoints should be compacted into content-addressed snapshots or pruned only when no active branch, preview, recovery attempt, or evidence record references them. Before deletion, the system must verify that a full restore path remains available.
 
-Android tasks should use profile-based quotas for JavaScript, native, emulator and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
+Android tasks should use profile-based quotas for native compilation, NDK/CMake, emulator and combined build workflows. The quota manager must account for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints. It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints.
 
 Backtracking should restore a known-good checkpoint before trying a materially different strategy. The recovery manager should keep a strategy history:
 
@@ -1792,7 +1792,7 @@ Routine project-local actions are allowed under the Autonomous-build policy (bui
 
 ## 35. Complete Android Capability Fixture Contract
 
-The test harness must include generated-from-instruction fixtures for JavaScript-driven Android, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery. These fixtures validate AI technology selection and composition; they are not user-facing templates.
+The test harness must include generated-from-instruction fixtures for Kotlin, Java, Android Views, Jetpack Compose, mixed native architectures, custom NDK/CMake native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery (ADR-257). These fixtures validate AI technology selection and composition; they are not user-facing templates.
 
 ## 36. Production Runtime Contract Architecture
 
@@ -2344,7 +2344,7 @@ Discover workspace → normalize root and exclusions → classify Android files
 → resolve toolchain and identity → full semantic graph before mutation
 ```
 
-The ingestion service understands Kotlin, Java, XML, manifests, Gradle files, JavaScript/TypeScript, native modules, resources, assets, SQL, JSON, YAML, TOML, lockfiles, signing configuration, emulator metadata, and test sources.
+The ingestion service understands Kotlin, Java, XML, manifests, Gradle files, NDK/CMake native modules, resources, assets, SQL, JSON, YAML, TOML, lockfiles, signing configuration, emulator metadata, and test sources.
 
 **Ingestion Stages:**
 
@@ -2641,7 +2641,7 @@ The gateway normalizes Chat Completions, Responses-style, and message-oriented p
 
 `ToolchainAuthority` resolves the technology plan to a verified `AndroidToolchainLock`. It checks versions, file hashes, licenses, paths, compatibility constraints, and required environment variables before any build or preview command. The lock MUST bind to the `toolchainLock` field set defined in BS §5.7.1 (AGP, Gradle wrapper, JDK vendor + major, compileSdk, targetSdk, minSdk, Build Tools, Kotlin, Compose BOM, NDK when applicable). Incompatible combinations MUST be rejected at preflight naming the violated constraint, before any build starts.
 
-The isolated environment controls JDK, Gradle, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, Node/package manager when selected, Metro/Expo when selected, temporary directories, Gradle caches, package caches, and project-local configuration. Host PATH and unrelated user configuration are not trusted.
+The isolated environment controls JDK, Gradle, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, temporary directories, Gradle caches, and project-local configuration (ADR-257). Host PATH and unrelated user configuration are not trusted.
 
 Hypervisor preflight MUST be a precondition of emulator readiness. The isolated environment MUST record firmware virtualization enabled, hypervisor platform present, and conflicting hypervisor consumers before emulator launch.
 
@@ -2770,7 +2770,7 @@ Change classification → preview mode selection → build/install/reload
 → PreviewRevision commit or stale/failure event
 ```
 
-The coordinator supports incremental emulator install, Compose reload, React Native/Expo fast refresh, full APK reinstall, Nirman-managed local Android emulator execution, headless smoke tests, and diagnostic-only source preview. Diagnostic preview can support recovery but can never satisfy final completion.
+The coordinator supports incremental emulator install, Compose reload, full APK reinstall, Nirman-managed local Android emulator execution, headless smoke tests, and diagnostic-only source preview. Diagnostic preview can support recovery but can never satisfy final completion.
 
 A `PreviewRevision` includes source revision, artifact hash, device serial/profile, API level, build variant, technology-plan hash, preview mode, launch timestamp, health status, screenshot IDs, and Logcat evidence.
 
@@ -2782,7 +2782,7 @@ A `PreviewRevision` includes source revision, artifact hash, device serial/profi
 
 `AndroidRepairRegistry` maps structured failure fingerprints to repair strategies. Each pattern contains classifier, severity, likely cause, allowed scope, preconditions, operation type, recovery-attempt policy (`recoveryAttemptPolicy`), checkpoint rule, validation command, and evidence requirements.
 
-Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle/dependency conflicts, resource and manifest errors, DEX/R8 failures, NDK/native-module failures, Metro/Expo failures, emulator/ADB/install failures, runtime crashes, permission errors, visual/accessibility issues, and APK/signing failures.
+Patterns cover JDK/Gradle/AGP/Kotlin/Compose compatibility, missing SDKs, Gradle/dependency conflicts, resource and manifest errors, DEX/R8 failures, NDK/native-module failures, emulator/ADB/install failures, runtime crashes, permission errors, visual/accessibility issues, and APK/signing failures.
 
 A learned repair can be promoted into the trusted registry only after repeated successful validation across independent fixtures. Model suggestions remain untrusted until promoted by deterministic evidence.
 
@@ -2792,7 +2792,7 @@ Repairs get cheaper over time (ADR-225). Each registry entry is a `RepairPattern
 
 ### 51.2 DecisionTrace service
 
-The service records concise decision summaries without hidden chain-of-thought. It stores inputs, constraints, candidate actions, selected action, policy checks, provider/model provenance, confidence, outcome, and evidence references. The UI can show why a technology, worker, repair, checkpoint, preview mode, or provider was selected.
+The service records concise decision summaries without hidden chain-of-thought. It stores inputs, constraints, candidate actions, selected action, deterministic procedure identity (`decisionProcedureId` and `decisionProcedureVersion`), evaluation criteria record (`orderedCriteriaApplied` and `firstDiscriminatingCriterion`), policy checks, provider/model provenance, confidence, outcome, and evidence references. The UI can show why a technology, worker, repair, checkpoint, preview mode, or provider was selected.
 
 ### 51.3 ResourceGovernor
 
@@ -5584,7 +5584,7 @@ Project.generatedOutputs ⊆ {APK, AAB, Android source project}
 Project.deploymentArtifacts ⊆ {APK} ∪ {AAB when PackagingProfile explicitly requires AAB}
 ```
 
-`generatedOutputs` includes source representation and internal build artifacts; it is not synonymous with deployment delivery. A ZIP, Git bundle, or Android source project remains user-owned source/workspace access and cannot satisfy an APK delivery requirement. The resolver may select Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence.
+`generatedOutputs` includes source representation and internal build artifacts; it is not synonymous with deployment delivery. A ZIP, Git bundle, or Android source project remains user-owned source/workspace access and cannot satisfy an APK delivery requirement. The resolver may select Kotlin, Java, Compose, Views, NDK/CMake native modules, or a mixed native architecture only as an implementation consequence of the user’s intent, environment capabilities, and validation evidence (ADR-257).
 
 **Closed-world Android Jetpack architectural decision matrix.** `AndroidTechnologyResolver` lowers functional requirement classifications to standard modern Android Jetpack components deterministically. The runtime rejects proposals attempting to introduce non-standard or deprecated architectures:
 
@@ -5739,7 +5739,7 @@ The preview architecture must pass tests proving that:
 
 ### 73.10 Android technology adapter contract
 
-The §73.2 `AndroidTechnologyResolver` selects Kotlin, Java, Compose, Views, React Native/Expo, native modules, or a mixed architecture only as an implementation consequence of the user's intent, environment capabilities, and validation evidence. Every resulting `AndroidTechnologyPlan` MUST resolve to exactly one registered `AndroidTechnologyAdapter` implementation.
+The §73.2 `AndroidTechnologyResolver` selects Kotlin, Java, Compose, Views, NDK/CMake native modules, or a mixed native architecture only as an implementation consequence of the user's intent, environment capabilities, and validation evidence (ADR-257). Every resulting `AndroidTechnologyPlan` MUST resolve to exactly one registered `AndroidTechnologyAdapter` implementation.
 
 `AndroidTechnologyAdapter` is a strategy/composition resolver and does not execute concrete preview, build, artifact, device, runtime, observation, validation, or failure-classification operations. `AndroidBuildAdapter` and `AndroidDeviceAdapter` are the sole concrete execution surfaces. Each concrete preview operation has exactly one execution authority: `AndroidBuildAdapter` for build and artifact operations, or `AndroidDeviceAdapter` for device and runtime operations. The technology adapter resolves those authorities but never executes their concrete operations. The technology adapter is not a second execution surface and is not a second authority.
 
@@ -5874,7 +5874,7 @@ Build execution is bound to a canonical `AndroidBuildAdapter` interface. The int
 
 > **Schema projection:** `AndroidBuildObservation` is defined in `nirman-schemas.md` §2.70. Owner: TA §73.13.
 
-The same interface MUST cover: Gradle native; Gradle plus Metro or Expo; React Native; NDK or CMake; and mixed native plus JavaScript. `AndroidBuildAdapter` is invoked by `PreviewCoordinator` through the `AndroidTechnologyAdapter` selected for the `AndroidTechnologyPlan`; it does not create a separate build authority, and it does not bypass `ToolchainAuthority` or `ArtifactAuthority`. A revision, toolchain update, environment fingerprint change, or adapter version change invalidates dependent observations and completion claims.
+The same interface MUST cover: Gradle native Kotlin/Java; Android Views; Jetpack Compose; mixed Kotlin/Java and Views/Compose; NDK or CMake native modules; Android Gradle plugins and platform services (ADR-257). `AndroidBuildAdapter` is invoked by `PreviewCoordinator` through the `AndroidTechnologyAdapter` selected for the `AndroidTechnologyPlan`; it does not create a separate build authority, and it does not bypass `ToolchainAuthority` or `ArtifactAuthority`. A revision, toolchain update, environment fingerprint change, or adapter version change invalidates dependent observations and completion claims.
 
 ### 73.14 Rendering principle and UI pipeline
 

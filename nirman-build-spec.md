@@ -101,7 +101,7 @@ A user should be able to create an Android application by describing its goal, s
 
 A user should also be able to open an existing Android project, ask Nirman to understand the codebase, and request targeted changes. The application should create a checkpoint before significant work and show a summary of changed files.
 
-The Android generation system must synthesize projects dynamically from the user’s instructions and reference screenshots. It may use internal framework bootstraps, component libraries, or build profiles to improve reliability, but users must not be limited to selecting from a fixed template catalog. The framework resolver should choose or compose the appropriate Android implementation—such as Expo/React Native, native Android, Kotlin/Jetpack Compose, or a mixed project—based on requirements, device capabilities, dependencies, and validation needs.
+The Android generation system must synthesize projects dynamically from the user’s instructions and reference screenshots. It may use internal framework bootstraps, component libraries, or build profiles to improve reliability, but users must not be limited to selecting from a fixed template catalog. The framework resolver should choose or compose the appropriate native Android implementation—such as Kotlin/Jetpack Compose, Kotlin/Android Views, Java/Android Views, mixed Kotlin/Java, or a native Android project with NDK/CMake modules when required (ADR-257)—based on requirements, device capabilities, dependencies, and validation needs.
 
 ### 2.3 Example user requests
 
@@ -206,7 +206,7 @@ The live preview MUST use a Nirman-managed local Android emulator as the sole ca
 
 Physical Android devices are outside Nirman product scope and MUST NOT be a validation, preview, recovery, completion, or fallback dependency; the generated application renders inside Nirman's own embedded preview surface on the Nirman-managed local Android emulator.
 
-The live preview MUST show the selected device, build/install state, Metro or native development-server output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
+The live preview MUST show the selected device, build/install state, native build and development output, connection status, runtime errors, Logcat output, reload controls, and the current project revision.
 
 The default project workspace should show the running application preview and the live execution surface together. The preview occupies the primary visual area, while a resizable execution panel shows the task graph, nested worker steps, terminal streams, checkpoints, approvals, validation evidence, and current next action. Users may collapse or expand the execution panel, but the relationship between the running application and the work producing it must remain visible without navigating to a separate screen.
 
@@ -247,23 +247,23 @@ Nirman should focus exclusively on Android applications, but it must not behave 
 
 The generator should synthesize the project structure, screens, navigation, state model, data layer, permissions, services, assets, design system, tests, build configuration, and validation plan for each request. Internal bootstraps may accelerate project creation, but they are implementation mechanisms rather than user-facing limitations.
 
-The framework resolver may select or compose Expo/React Native, native Android, Kotlin/Jetpack Compose, or a mixed architecture when the requirements justify it. The user should be able to say what the application must do without first knowing which framework or template to select.
+The framework resolver may select or compose Kotlin/Jetpack Compose, Kotlin/Android Views, Java/Android Views, mixed Kotlin/Java, or a native Android project with NDK/CMake modules when required (ADR-257). The user should be able to say what the application must do without first knowing which framework or template to select.
 
 ### 5.2 Complete Android technology coverage
 
-Nirman must be designed to build all categories of Android applications end to end. The technology resolver must treat Android technologies as available implementation capabilities, not as future product tiers or user-selected templates. It must be able to choose and combine Java, Kotlin, Jetpack Compose, Android Views, Expo/React Native, custom native modules, Gradle plugins, background services, Bluetooth, NFC, camera and media, location, sensors, widgets, foreground services, WorkManager, push notifications, billing, maps, accessibility services, databases, networking stacks, authentication, offline storage, and complex device APIs.
+Nirman must be designed to build all categories of Android applications end to end. The technology resolver must treat Android technologies as available implementation capabilities, not as future product tiers or user-selected templates. It must be able to choose and combine Java, Kotlin, Jetpack Compose, Android Views, Android native modules using NDK/CMake, Gradle plugins, background services, Bluetooth, NFC, camera and media, location, sensors, widgets, foreground services, WorkManager, push notifications, billing, maps, accessibility services, databases, networking stacks, authentication, offline storage, and complex device APIs.
 
-The resolver selects the architecture from the user’s requirements and screenshots, then creates or modifies the complete project. It may choose a JavaScript layer, a native layer, or a mixed architecture, and it may introduce native modules whenever the requested capability requires them. The user does not need to know which technologies are required before starting.
+The resolver selects the architecture from the user’s requirements and screenshots, then creates or modifies the complete project. It may choose Kotlin/Compose, Java/Views, mixed Kotlin/Java, or a native Android architecture with NDK/CMake native modules whenever the requested capability requires them. The user does not need to know which technologies are required before starting.
 
 ### 5.3 Android scope boundary
 
 The product core has one generated target: Android applications. The desktop application is only the local development environment and never becomes a generated project target. All project synthesis, previews, validation flows, toolchains, artifacts, and autonomous workflows must resolve to an Android project.
 
-The system may use framework-required local build tooling, such as a JavaScript bundler or development server, only as an internal Android build dependency. These tools are never exposed as independent project-generation profiles.
+Generated Android projects use native Gradle build tooling; cross-platform JavaScript bundlers and development servers are out of scope under ADR-257. Internal Android build tools are never exposed as independent project-generation profiles.
 
 ### 5.4 Complete Android coverage contract
 
-No category of Android application is excluded by product intent. The system must support consumer applications, business applications, marketplaces, media applications, communication applications, productivity tools, offline-first applications, location and sensor applications, device-integrated applications, background-service applications, accessibility-focused applications, games where the selected runtime supports them, and applications requiring mixed JavaScript/native or fully native implementations.
+No category of Android application is excluded by product intent. The system must support consumer applications, business applications, marketplaces, media applications, communication applications, productivity tools, offline-first applications, location and sensor applications, device-integrated applications, background-service applications, accessibility-focused applications, games where the selected runtime supports them, and applications requiring mixed Kotlin/Java or fully native NDK/CMake implementations.
 
 When a requested capability requires a missing SDK, device, vendor tool, native dependency, signing configuration, or external service, the runtime must diagnose and repair the environment where authorized, select an approved alternative, continue with a degraded but explicit mode, or report a precise technical blocker. It must not silently narrow the product scope because the user did not choose a predefined framework.
 
@@ -297,7 +297,7 @@ Project.targetPlatforms == ["android"]        for every project, at every revisi
 
 The runtime must reject at construction any project whose `targetPlatforms` is empty, contains any value other than `android`, or contains `android` alongside another platform. Generic platform fields exist so the data model is stable, never so a second target can be introduced by configuration.
 
-A field, template, resolver path, worker role, or capability that would produce a non-Android deployable is out of scope regardless of how it is labelled. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, React Native, Expo, native modules — are implementation styles selected by the resolver, not additional targets. A JavaScript bundler or development server used by such a framework is an internal Android build dependency per §5.4 and never a web deliverable.
+A field, template, resolver path, worker role, or capability that would produce a non-Android deployable is out of scope regardless of how it is labelled. Framework choices that run on Android — Kotlin, Java, Jetpack Compose, Android Views, NDK/CMake native modules — are native implementation styles selected by the resolver, not additional targets. Cross-platform application frameworks, JavaScript hybrid runtimes, and web deliverables are out of scope (ADR-257).
 
 ### 5.6 Android Capability Coverage Matrix
 
@@ -383,7 +383,7 @@ Capability status is not sufficient to identify the exact Android environment in
 
 `toolchainLock` defines the concrete Android toolchain versions pinned for this profile: AGP, Gradle wrapper, JDK vendor + major, compileSdk, targetSdk, minSdk, Build Tools, Kotlin, Compose BOM, and NDK when applicable. The lock MUST be resolved and recorded per project revision and MUST contribute to the environment fingerprint that binds preview and evidence currentness (CLAUSE.PLATFORM.EVIDENCE_ENV_BINDING, CLAUSE.PREVIEW_SYNC.IDENTITY_MATCH). A pinned JDK MUST be used with a per-process JAVA_HOME; Nirman MUST NOT depend on or mutate the machine-wide JAVA_HOME. These versions have hard mutual constraints — a given AGP requires a minimum Gradle and a specific JDK major and caps usable compileSdk. Incompatible combinations MUST be rejected at preflight naming the violated constraint, before any build starts. Record concrete versions as the CURRENT lock with an explicit revision date, not as permanent truth.
 
-A profile may describe an internally selected composition of Java, Kotlin, Compose, Views, React Native/Expo, native modules, device APIs, or mixed technologies. It is an implementation identity, not a user-facing template, archetype, starter project, or framework picker. Android technologies and frameworks are implementation mechanisms; certification occurs against capability profiles, not individual framework names. `SUPPORTED` or `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` may be reported only for the declared profile and its evidence; support must not be generalized to every possible Android project.
+A profile may describe an internally selected composition of Java, Kotlin, Compose, Views, NDK/CMake native modules, device APIs, or mixed native technologies. It is an implementation identity, not a user-facing template, archetype, starter project, or framework picker. Android technologies and frameworks are implementation mechanisms; certification occurs against capability profiles, not individual framework names. `SUPPORTED` or `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS` may be reported only for the declared profile and its evidence; support must not be generalized to every possible Android project.
 
 ### 5.7.2 Canonical maturity and operational state separation
 
@@ -587,9 +587,9 @@ Nirman should be composed as a Windows-first desktop application with independen
 ├────────────────────────────────────────────────────────────┤
 │ Provider Adapter │ Project Index │ Policy Engine │ Checkpoint │
 ├────────────────────────────────────────────────────────────┤
-│ Local Runtime: Node │ Package Manager │ Git │ Build Tools    │
+│ Local Runtime: JDK │ Gradle │ Android SDK │ Build Tools      │
 ├────────────────────────────────────────────────────────────┤
-│ Android project │ Android runtime │ Expo/React Native │ APK artifacts │
+│ Android project │ Android runtime │ Views / Compose │ APK artifacts │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -630,7 +630,7 @@ The interface should maintain a clear distinction between generated text and exe
 
 ### 6.3 Local runtime
 
-The local runtime manages Android project processes and development tools. It should be responsible for starting and stopping Metro or native development servers, managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK artifacts.
+The local runtime manages Android project processes and development tools. It should be responsible for managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK artifacts.
 
 It should never assume that a tool exists. Before invoking a command, it should verify the required executable and display a diagnostic if the environment is incomplete.
 
@@ -786,12 +786,12 @@ Nirman should detect the presence and versions of tools required by the selected
 
 | Project type | Example required tools |
 |---|---|
-| Android JavaScript project | Node.js, package manager, Metro or bundler runtime |
-| Android build | Node.js, package manager, Java, Gradle, Android SDK, platform-tools, Nirman-managed local Android emulator |
-| Expo Android | Node.js, package manager, Java, Android SDK, Nirman-managed local Android emulator when used |
+| Android Kotlin/Views project | Java, Gradle, Android Gradle Plugin, Android SDK, platform-tools, Nirman-managed local Android emulator |
+| Android Jetpack Compose project | Java, Gradle, Kotlin, Compose compiler/BOM, Android SDK, Nirman-managed local Android emulator |
+| Native module project (NDK/CMake) | Java, Gradle, Android SDK, NDK, CMake, Nirman-managed local Android emulator |
 | Git export | Git executable and repository permissions |
 
-The diagnostic screen should distinguish between installed, missing, outdated, misconfigured, and inaccessible tools. For the Android toolchain and the Nirman-managed local Android emulator, the state is the provisioning state of technical architecture §49.4 and the remedy is Nirman's own provisioning run, surfaced as a single action; only a tool outside that toolchain — Git, or a Node.js version manager the project explicitly declares — may be reported with an official installation reference.
+The diagnostic screen should distinguish between installed, missing, outdated, misconfigured, and inaccessible tools. For the Android toolchain and the Nirman-managed local Android emulator, the state is the provisioning state of technical architecture §49.4 and the remedy is Nirman's own provisioning run, surfaced as a single action; only a tool outside that toolchain — Git, or a host build dependency the project explicitly declares — may be reported with an official installation reference.
 
 Diagnostics are per-tool state. Platform capability state — what this host can build, cross-build, and validate for a declared target platform — is a separate classification defined by §79 and recorded in the `EnvironmentCapabilityRecord`. A tool being installed on the host does not by itself establish target-platform runtime capability, validation capability, or certification capability.
 
@@ -959,7 +959,7 @@ Nirman/
 │   ├── compatible-provider/
 │   └── capability-detection/
 ├── android_bootstraps/
-│   ├── expo-react-native/
+│   ├── android-native-views/
 │   ├── android-native-compose/
 │   └── android-device-profiles/
 ├── storage/
@@ -1016,7 +1016,7 @@ Add Git export, Android debug/release build artifacts, APK packaging, signing co
 
 ### Phase 7: Android generation
 
-Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, and mixed architectures, together with environment diagnostics, Nirman-managed local Android emulator connection information, Android logs, and APK build workflows where the local environment supports them.
+Add autonomous Android technology resolution across native Android, Kotlin/Compose, Java/Views, NDK/CMake native modules, and mixed native architectures (ADR-257), together with environment diagnostics, Nirman-managed local Android emulator connection information, Android logs, and APK build workflows where the local environment supports them.
 
 **Exit criteria:** Nirman can create and build a supported Android project and clearly identify environmental limitations.
 
@@ -1752,7 +1752,7 @@ Android preview should use an emulator-manager abstraction that reports Nirman-m
 
 ### 26.11 Toolchain version management
 
-Nirman should not rely on one globally installed toolchain. Each Android project should declare required versions or compatible ranges for Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator images, Expo or React Native tooling, and selected native build dependencies.
+Nirman should not rely on one globally installed toolchain. Each Android project should declare required versions or compatible ranges for Java, Gradle, Android Gradle Plugin, Kotlin, Android SDK, platform-tools, emulator system images, and NDK/CMake when required (ADR-257).
 
 The runtime should resolve a project toolchain through a version manager, portable installation, or explicitly configured local path. Each project receives isolated environment variables, cache paths, process scopes, and toolchain bindings so incompatible projects cannot silently change one another’s environment. Two projects with incompatible versions must be able to run without silently changing one another’s environment.
 
@@ -1760,7 +1760,7 @@ The environment record should contain executable paths, detected versions, sourc
 
 ### 26.12 Android runtime abstraction
 
-Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and emulator control, Logcat capture, Gradle and Metro execution, quotas, and APK artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
+Although Nirman runs as a Windows desktop application, its generated target is Android. Runtime operations should use an Android-focused interface defining process launch, termination, filesystem policy, environment discovery, port management, emulator and emulator control, Logcat capture, Gradle execution, quotas, and APK artifact handling. The desktop host may use Windows-specific process and sandbox implementations, but the generated-project contract remains Android-specific.
 
 ### 26.13 Background approvals and notifications
 
@@ -2211,7 +2211,7 @@ Routine project-local actions continue automatically under the Autonomous-build 
 
 ### 29.8 Full Android capability acceptance
 
-The product must validate AI-selected generation across JavaScript-driven Android projects, Java, Kotlin, Android Views, Jetpack Compose, mixed architectures, custom native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery. These are internal acceptance categories, not user-facing templates.
+The product must validate AI-selected generation across Kotlin, Java, Android Views, Jetpack Compose, mixed native architectures, custom NDK/CMake native modules, background services, WorkManager, notifications, camera and media, location and sensors, Bluetooth and NFC, offline-first storage, API-heavy applications, authentication and permissions, tablet and multi-orientation layouts, device-integrated applications, and APK delivery. These are internal acceptance categories, not user-facing templates.
 
 ---
 
@@ -2308,7 +2308,7 @@ An operation capability is required for actions such as installing a risky depen
 
 ## 34. Android Project Ingestion and Integrity
 
-The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, JavaScript package manifests where selected, native-module boundaries, Nirman-managed local Android emulator configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
+The project-ingestion layer must understand Android source files, Gradle settings, manifests, resources, assets, fonts, localization, NDK/CMake native-module boundaries, Nirman-managed local Android emulator configuration, generated build directories, secrets, keystores, local properties, environment files, Git state, and uncommitted changes.
 
 The layer must apply hard exclusions, canonical path normalization, project-root boundaries, scope fingerprints, content hashes, and revision checks. Before reconciliation, preview installation, packaging, or self-development promotion, it must detect external changes and revalidate the active project revision. A stale or mismatched revision must be rejected rather than silently overwritten.
 
@@ -2500,7 +2500,7 @@ Autonomous error intelligence and proven repair selection are coordinated by `An
 
 ### 43.1 Language-Neutral Android Code Intelligence
 
-Nirman MUST use a language-neutral Android code-intelligence layer with adapters for Kotlin, Java, XML, Android manifests, Gradle Kotlin DSL, Gradle Groovy, TypeScript, JavaScript, C/C++ native modules, JSON, YAML, TOML, SQL, and lockfiles.
+Nirman MUST use a language-neutral Android code-intelligence layer with adapters for Kotlin, Java, XML, Android manifests, Gradle Kotlin DSL, Gradle Groovy, C/C++ native modules, JSON, YAML, TOML, SQL, and lockfiles.
 
 The graph MUST track files, modules, symbols, references, Gradle dependencies, manifest permissions, resource references, navigation routes, native-module boundaries, test-to-source relationships, API-level compatibility, and generated artifacts. Lightweight indexing may support discovery and browsing; full semantic indexing is required before high-impact mutation, reconciliation, packaging, signing, or promotion.
 
@@ -2519,7 +2519,6 @@ Model output MUST pass through the mutation broker. Direct model writes to proje
 | Kotlin/Java | PSI, AST, symbol-aware patch, or validated structured generation |
 | XML/manifest/resources | Schema-aware XML transformation |
 | Gradle Kotlin DSL/Groovy | Parser-aware or block-aware transformation followed by syntax validation |
-| TypeScript/JavaScript | TypeScript AST or parser-aware transformation |
 | C/C++ native module | Clang/parser-aware transformation where available |
 | JSON/YAML/TOML | Schema-validated serialization |
 | Unknown/generated/vendor file | Isolated whole-file replacement followed by syntax, build, and integrity validation |
@@ -2550,7 +2549,6 @@ The live preview coordinator MUST select a preview mode appropriate to the selec
 |---|---|---|
 | Incremental emulator install | Native changes that compile successfully | Install result, process health, screenshot |
 | Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
-| React Native/Expo fast refresh | JavaScript/TypeScript-only change | Metro/Expo health, rendered screen, screenshot |
 | Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
 | Nirman-managed local Android emulator preview | Canonical Android live-preview runtime | Emulator identity, install, launch, interaction, capture, Logcat |
 | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
@@ -2653,7 +2651,7 @@ Raw secrets, private keys, and unfiltered prompts are never displayed. Blocked, 
 
 ### 45.2 DecisionTrace
 
-For each material autonomous decision, Nirman records a concise DecisionTrace containing decision ID, session/task/worker IDs, input references, constraints, candidate actions, selected action, deterministic policy checks, provider/model provenance, confidence, outcome event, and evidence IDs. Hidden chain-of-thought is not stored or exposed.
+For each material autonomous decision, Nirman records a concise DecisionTrace containing decision ID, session/task/worker IDs, input references, constraints, candidate actions, selected action, deterministic procedure identity (`decisionProcedureId` and `decisionProcedureVersion`), evaluation criteria record (`orderedCriteriaApplied` and `firstDiscriminatingCriterion`), deterministic policy checks, provider/model provenance, confidence, outcome event, and evidence IDs. Hidden chain-of-thought is not stored or exposed.
 
 For a local auxiliary decision, DecisionTrace MUST additionally record `LocalDecisionEngineProfile.profileId`, immutable `modelRevision`, `engineVersion`, `runtimeAdapterId`, `runtimeAdapterVersion`, `decisionAcceptanceProfileId`, proposal identity, decision purpose, decision primitive, calibration state, proposal status, acceptance outcome, and evidence references. `providerProfileId` MUST be absent for a local auxiliary decision and MUST NOT be synthesized.
 
@@ -2741,7 +2739,7 @@ Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The
 | Preflight area | Required checks |
 |---|---|
 | Provider | Authentication, protocol, model capabilities, context limit, vision/tool support, privacy policy |
-| Toolchain | JDK, Gradle, Android Gradle Plugin, Kotlin, SDK, build tools, platform tools, NDK/CMake, Node/Metro/Expo when needed |
+| Toolchain | JDK, Gradle, Android Gradle Plugin, Kotlin, SDK, build tools, platform tools, and NDK/CMake when needed (ADR-257) |
 | Workspace | Writable scope, disk space, project fingerprint, lockfiles, credentials exclusion, checkpoint capacity |
 | Device | Nirman-managed local Android emulator, API level, ABI, storage, ADB health, orientation, required hardware capabilities |
 | Dependencies | Availability, compatibility, vulnerability/license policy, lockfile status, native build requirements |
@@ -3019,11 +3017,10 @@ The following stack is the implementation baseline for Nirman. It does not chang
 | Credentials | Windows Credential Manager and DPAPI-backed secure storage |
 | Version control | Git and Git worktrees |
 | Android toolchain | JDK, Gradle, AGP, Android SDK, ADB, emulator, NDK/CMake when required |
-| JavaScript Android toolchain | Node and npm/pnpm/yarn, Metro, Expo/React Native only when selected |
 | Packaging | MSIX installer, with optional MSI packaging |
 | Update flow | User-initiated MSIX App Installer check from Settings; never automatic (ADR-239) |
 
-Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP, Android SDK, ADB, emulator, Node, Metro, Expo, native compilers, or Git.
+Nirman orchestrates the Android ecosystem; it does not replace JDK, Gradle, AGP, Android SDK, ADB, emulator, native compilers, or Git.
 
 ### 51.2 Two-executable production architecture
 
@@ -3741,7 +3738,7 @@ A model claim, source inspection, successful compilation, static screenshot, or 
 
 ### 56.8 Per-stack UI validation framework binding
 
-Each technology composition the resolver may select MUST declare its UI validation binding: Android Views → Espresso; Jetpack Compose → Compose UI Test; Expo/React Native → an out-of-process UI-tree driver. The binding is part of `AndroidTechnologyPlan` and MUST be resolved when the technology is resolved, not at test time. A composition with no declared binding MUST report `CAP.ANDROID.E2E_VERIFY` as `UNAVAILABLE` for that composition rather than silently downgrading to screenshot comparison. Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND; the technology adapter MUST NOT execute it. Results enter the evidence chain as an `Observation`; a passing test is evidence, never an independent completion decision. A test MUST NOT be weakened, skipped, or deleted to reach a passing state.
+Each technology composition the resolver may select MUST declare its UI validation binding: Android Views → Espresso; Jetpack Compose → Compose UI Test; native Android mixed View/Compose surfaces → both applicable bindings (ADR-257). The binding is part of `AndroidTechnologyPlan` and MUST be resolved when the technology is resolved, not at test time. A composition with no declared binding MUST report `CAP.ANDROID.E2E_VERIFY` as `UNAVAILABLE` for that composition rather than silently downgrading to screenshot comparison. Test execution MUST route through `AndroidDeviceAdapter` per CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND; the technology adapter MUST NOT execute it. Results enter the evidence chain as an `Observation`; a passing test is evidence, never an independent completion decision. A test MUST NOT be weakened, skipped, or deleted to reach a passing state.
 
 ## 57. Advanced Verification Architecture
 
@@ -5004,7 +5001,7 @@ The deliberation contract is satisfied only when an agent request for a higher e
 
 Nirman MUST begin every new Android application session from the user’s intent, product concept, natural-language requirements, optional screenshots, supplied assets, device requirements, privacy constraints, and requested integrations. The user MUST NOT be required to choose an app archetype, framework, technology, starter template, or project template.
 
-The technology resolver MUST infer and compose the Android implementation from evidence. It may select native Android, Kotlin/Compose, Java/Views, React Native/Expo, native modules, or a mixed Android architecture when the requirements justify that choice. These are implementation strategies, not user-facing choices or templates.
+The technology resolver MUST infer and compose the Android implementation from evidence. It may select native Android, Kotlin/Compose, Java/Views, mixed Kotlin/Java, or a native Android project with NDK/CMake modules when required (ADR-257). These are implementation strategies, not user-facing choices or templates.
 
 Internal bootstraps, dependency starters, component libraries, generated resource scaffolds, and build profiles MAY be used to make construction reliable. They MUST remain implementation details, MUST be selected by the runtime, and MUST NOT constrain the user’s app concept or be presented as the source of the product design.
 
@@ -5637,7 +5634,7 @@ Every command must be registered with `commandKind`, `requestSchemaRef`, `respon
 
 The lifecycle commands additionally accept the UI-level aliases `PauseTask`, `CancelTask`, `ResumeTask`, and `SubmitInstruction` (same authority, transaction domain, and projection effect as their canonical forms). The registry above is the complete set of twenty-nine canonical command kinds admitted by the authenticated boundary; the four lifecycle UI aliases are alternate external spellings and do not create additional `commandKind` registry entries. Commands not listed are rejected before a domain transaction begins.
 
-For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins. No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace: the `preview.*` command kinds dispatch only to `PreviewCoordinator`, and the UI reaches ADB, Gradle, Metro or Expo, and the emulator solely through the technical architecture §73.14 pipeline; a registry row in one of those namespaces is a contract-graph verifier defect (§67.11).
+For `artifact.export`, source/workspace access and deployment delivery are distinct branches. The deployment branch requires a verified declared artifact, an immutable `PackagingProfile`, `deploymentDelivery` consistent with that profile, and `destinationKind: LOCAL_WINDOWS_FILESYSTEM`; external deployment destinations are rejected. The source-access branch may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence or completion. Unknown commands, commands missing a schema or authority, and commands outside the authenticated project scope are rejected before a domain transaction begins. No command kind is registered in an `adb.`, `gradle.`, `metro.`, `expo.`, or `emulator.` namespace: the `preview.*` command kinds dispatch only to `PreviewCoordinator`, and the UI reaches ADB, Gradle, and the emulator solely through the technical architecture §73.14 pipeline (retired cross-platform bundler namespaces remain strictly forbidden per ADR-257); a registry row in one of those namespaces is a contract-graph verifier defect (§67.11).
 
 ### 76.2 Response and error envelopes
 
@@ -6246,7 +6243,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §6.2 | "The frontend should contain the chat workspace, project selector, file tree, editor, preview frame, terminal panel, test panel, provider settings, environment diagnostics, and export controls" | MUST contain all listed areas | Frontend MUST have all listed areas |
 | BS §6.2 | "The interface should maintain a clear distinction between generated text and executed actions." | MUST distinguish generated text from executed actions | A statement that a command will run is visually distinct from a record that it ran |
 | BS §6.3 | "It should never assume that a tool exists" | MUST verify before invoke | Runtime MUST verify executable before invoking |
-| BS §6.3 | "It should be responsible for starting and stopping Metro or native development servers, managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK artifacts." | MUST own every listed runtime responsibility | The local runtime is the single owner of the listed process, device, and artifact operations |
+| BS §6.3 | "It should be responsible for managing Gradle and Android build processes, reading Logcat and process output, enforcing timeouts, checking ports, managing emulators and devices, running tests, capturing screenshots, and collecting APK artifacts." | MUST own every listed runtime responsibility | The local runtime is the single owner of the listed process, device, and artifact operations |
 | BS §6.3 | "Before invoking a command, it should verify the required executable and display a diagnostic if the environment is incomplete." | MUST verify the executable before invoking | A missing executable produces a diagnostic instead of an invocation |
 | BS §6.4 | "The agent orchestrator should be a stateful task engine rather than a single prompt call" | MUST be stateful | Orchestrator MUST maintain all listed state categories |
 | BS §6.4 | "It should maintain:" | MUST maintain the enumerated state | The items listed in §6.4 are the maintained set |
@@ -6350,10 +6347,10 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.10 | "Android preview should use an emulator-manager abstraction" | MUST use the abstraction | Reporting emulator identity, connection state, platform version, architecture, available storage, hot-reload state, logs, and build/install status |
 | BS §26.10 | "the protocol should allow multiple emulator sessions later" | MUST design for multiple; MAY implement one initially | Protocol and schemas carry an emulator session identifier from the outset so multi-session needs no breaking change |
 | BS §26.11 | "Nirman should not rely on one globally installed toolchain" | MUST NOT rely on a global toolchain | Per-project resolution is mandatory |
-| BS §26.11 | "Each Android project should declare required versions or compatible ranges" | MUST declare | For Node.js, package manager, Java, Gradle, Android SDK, platform-tools, emulator images, Expo/React Native tooling, and native build dependencies. Recorded in `toolchainLock` (§5.7.1) |
+| BS §26.11 | "Each Android project should declare required versions or compatible ranges" | MUST declare | For Java, Gradle, Android Gradle Plugin, Kotlin, Android SDK, platform-tools, emulator system images, and NDK/CMake when required (ADR-257). Recorded in `toolchainLock` (§5.7.1) |
 | BS §26.11 | "The runtime should resolve a project toolchain through a version manager, portable installation, or explicitly configured local path" | MUST resolve by one of the three | In that precedence order. Unresolvable toolchain fails the build with a diagnostic; it never falls back to a global install |
 | BS §26.11 | "The environment record should contain executable paths, detected versions, source of installation, compatibility result, and reproducibility status" | MUST contain all five | Bound to the environment fingerprint used for evidence |
-| BS §26.12 | "Runtime operations should use an Android-focused interface" | MUST use the Android interface | Defining process launch, termination, filesystem policy, environment discovery, port management, emulator control, Logcat capture, Gradle and Metro execution, quotas, and APK handling |
+| BS §26.12 | "Runtime operations should use an Android-focused interface" | MUST use the Android interface | Defining process launch, termination, filesystem policy, environment discovery, port management, emulator control, Logcat capture, Gradle execution, quotas, and APK handling |
 | BS §26.13 | "the control plane should create a durable approval request with an expiry policy" | MUST create durable with expiry | Clock expiry default 24 hours per §80.3, range 1-168 hours, per project; context expiry is immediate when the bound action, task state, or policy changes; whichever comes first. Survives UI restart |
 | BS §26.13 | "The desktop application should display it on return" | MUST display on reconnect | Pending approvals shown immediately on UI reconnect, before any other task interaction |
 | BS §26.13 | "The user should be able to approve once, approve matching actions for the session, deny once, deny the task, or pause the task" | MUST offer all five options | Session-scoped approval binds to the exact action signature and expires with the session |
@@ -6454,7 +6451,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §2.2 | "They should be able to continue modifying it through natural language without losing manual editing control" | MUST preserve manual edits | User edits are reconciled per §26.4, never silently overwritten |
 | BS §2.2 | "A user should also be able to open an existing Android project" | MUST support opening existing projects | Ingestion per §34 with a repository map before any mutation |
 | BS §2.2 | "The application should create a checkpoint before significant work and show a summary of changed files" | MUST checkpoint and summarise | Significant means multi-file or any mutation outside a single targeted patch |
-| BS §2.2 | "The framework resolver should choose or compose the appropriate Android implementation" | MUST resolve from requirements | Never from a fixed template catalog offered to the user |
+| BS §2.2 | "The framework resolver should choose or compose the appropriate native Android implementation" | MUST resolve from requirements | Never from a fixed template catalog offered to the user |
 | BS §6 | "should be composed as a Windows-first desktop application with independent internal modules" | MUST use independent modules | Per the §51 locked stack and §23.18 component boundaries |
 | BS §6 | "The architecture should allow the project runtime and agent system to evolve without coupling the interface to one particular AI provider" | MUST decouple UI from runtime | UI holds presentation state only per ADR-116; runtime evolution MUST NOT require UI change |
 | BS §7 | "The AI model should interact with Nirman through structured tools" | MUST use the tool protocol | Every model-initiated action passes the Tool Gateway per §23.18 |
@@ -6647,10 +6644,10 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §10.5 | "It should first create a buildable Android shell, then implement the visual and behavioral contract, then integrate data and device capabilities, and finally harden the project" | MUST synthesize in these four stages | Each stage produces a checkpoint and evidence; a later stage never begins before the prior stage's checkpoint exists; hardening covers tests, visual comparison, packaging, signing-boundary checks, and recovery |
 | TA §10.6 | "Test data should be synthetic by default" | MUST default to synthetic test data | Real user data enters an emulator only on explicit per-instance user action; personal credentials, host-side secrets, and unapproved emulator data are never reused |
 | TA §11.1 | "Each project should declare required tool versions or compatible ranges" | MUST declare a version or range per required tool | An undeclared tool version is a resolution failure, not an implicit "use whatever is on PATH" |
-| TA §11.1 | "The runtime should resolve those requirements through local version managers, portable installations, or configured executable paths, then isolate each project" | MUST resolve from those three sources and MUST isolate | Isolation uses environment filtering, cache separation, process scopes, and toolchain bindings; two projects needing different Node, Java, Android SDK, Rust, or package-manager versions run without changing global state |
+| TA §11.1 | "The runtime should resolve those requirements through local version managers, portable installations, or configured executable paths, then isolate each project" | MUST resolve from those three sources and MUST isolate | Isolation uses environment filtering, cache separation, process scopes, and toolchain bindings; two projects needing different Java, Gradle, Android SDK, NDK, or Rust toolchain versions run without changing global state |
 | TA §11.1 | "A project environment record should include" the tabled fields | MUST include all eleven fields | `projectId`, `operatingSystem`, `executablePaths`, `detectedVersions`, `requestedVersions`, `resolutionSource`, `compatibilityStatus`, `reproducibilityStatus`, `maxPathLength`, `longPathPolicyEnabled`, `lastVerifiedAt` |
 | TA §11.2 | "Diagnostics should distinguish missing, incompatible, inaccessible, unverified, and healthy tools" | MUST classify every tool into exactly one of the five | A failed build names the missing executable or incompatible version and states the next action; "build failed" without the classification is a defect |
-| TA §11.3 | "The runtime should expose Android-focused interfaces for" the fourteen listed concerns | MUST expose all fourteen | Process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, JavaScript bundling when selected, native module builds, emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts; the Windows host supplies the process and sandbox implementation while the generated-project contract stays Android-specific and technology-neutral |
+| TA §11.3 | "The runtime should expose Android-focused interfaces for" the fourteen listed concerns | MUST expose all fourteen | Process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, native module builds, emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts; the Windows host supplies the process and sandbox implementation while the generated-project contract stays Android-specific and technology-neutral |
 | TA §11.4 | "The runtime should expose a `TerminalSession` abstraction instead of treating every command as a one-shot shell call" | MUST use `TerminalSession` for all command execution | The fifteen tabled fields are populated per session; state that depends on working directory, environment variables, virtual-environment activation, package-manager state, or a running dev server is preserved across commands; session environment changes are explicit and recorded, never inferred from shell output |
 | TA §11.4 | "It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision" | MUST answer only prompts the task policy declares safe; MUST otherwise terminate safely and request a decision | An undeclared prompt is never answered by inference or by the model; dev servers and emulators are registered as long-running processes and are never classified as hung commands |
 | TA §12.1 | "The control plane should emit events such as `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, and `task_completed`" | MUST emit at least the twelve named event types | `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, `task_completed`; "such as" is not an invitation to omit any of the twelve, and additional types are permitted |
@@ -6667,7 +6664,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §17 | "Hooks should be classified as blocking or non-blocking" | MUST classify every hook as exactly one | A blocking hook's failure halts the triggering operation; a non-blocking hook's failure is recorded and the operation proceeds; an unclassified hook is treated as blocking |
 | TA §18 | "The checkpoint manager should maintain file-level snapshots and task-level revisions" | MUST maintain both tiers | `FileCheckpoint` carries `checkpointId`, `taskId`, `filePaths`, `contentHashes`, `parentRevision`, `createdAt`; `TaskCheckpoint` carries `checkpointId`, `taskId`, `projectRevision`, `workerWorkspaces`, `metadataSnapshot`, `previewRevision`, `validationSnapshot`, `createdAt`; neither tier substitutes for the other |
 | TA §18 | "Older intermediate checkpoints should be compacted into content-addressed snapshots or pruned only when no active branch, preview, recovery attempt, or evidence record references them" | MUST NOT prune a referenced checkpoint | Every task always retains the initial source checkpoint, the last known-good checkpoint, all checkpoints referenced by an active recovery strategy, and a configurable number of recent task checkpoints; a full restore path is verified to remain available before any deletion |
-| TA §18 | "Android tasks should use profile-based quotas for JavaScript, native, emulator and combined build workflows" | MUST apply a profile-based quota per workflow kind | The quota accounts for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints together, per the TA §7.2 combined-storage default |
+| TA §18 | "Android tasks should use profile-based quotas for native compilation, NDK/CMake, emulator and combined build workflows" | MUST apply a profile-based quota per workflow kind | The quota accounts for worktrees, dependency stores, Gradle caches, APK artifacts, emulator images, logs, screenshots, and checkpoints together, per the TA §7.2 combined-storage default |
 | TA §18 | "It should prefer deduplicated content-addressed storage and cleanup of rebuildable caches before deleting checkpoints" | MUST exhaust rebuildable-cache cleanup before deleting any checkpoint | Gradle caches, dependency stores, and emulator images are reclaimed first; a checkpoint is deleted only when cache reclamation cannot satisfy the quota |
 | TA §18 | "Backtracking should restore a known-good checkpoint before trying a materially different strategy" | MUST restore before switching strategy | A strategy change applied on top of a failed working tree is prohibited; the `RecoveryAttempt` record's eighteen fields capture what changed, and the planner rejects an attempt substantially identical to a previous failed one |
 | TA §19 | "The context engine exposes an Adaptive Context Architecture operating across six provider-independent strategies" | MUST expose exactly the six tabled modes (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`; BS §19.1) | Mode selection follows the twelve BS §19.1 dimensions; every mode works against any provider; a large-context estimate above the provider's actual capacity falls back to semantic/exact retrieval and records the capacity-driven omissions |
@@ -7994,10 +7991,10 @@ M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and on
 ## References
 
 [1]: https://learn.microsoft.com/en-us/windows/apps/winui/ "WinUI 3 Documentation"
-[2]: https://react.dev/ "React Documentation"
-[3]: https://www.typescriptlang.org/docs/ "TypeScript Documentation"
-[4]: https://docs.expo.dev/ "Expo Documentation"
-[5]: https://reactnative.dev/docs/getting-started "React Native Documentation"
+[2]: https://developer.android.com/kotlin "Android Kotlin Documentation"
+[3]: https://developer.android.com/jetpack/compose "Jetpack Compose Documentation"
+[4]: https://developer.android.com/guide/topics/ui "Android Views Documentation"
+[5]: https://developer.android.com/ndk/guides "Android NDK Documentation"
 [6]: https://git-scm.com/doc "Git Documentation"
 
 ---

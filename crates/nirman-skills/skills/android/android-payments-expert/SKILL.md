@@ -40,9 +40,11 @@ transaction (BS §50).
 1. Analyze payment requirements: identify product types (consumable,
    non-consumable, subscription), pricing tiers, subscription periods,
    and upgrade/downgrade rules.
-2. Configure Google Play Console: create products in the Play Console,
-   define pricing, set up subscription base plans and offers, and
-   configure tax rates.
+2. Generate and validate the Android billing integration, local product-ID
+   configuration contract, test fixtures, and user-facing documentation.
+   Nirman does not create, modify, or publish products in Google Play Console.
+   Console-side product creation remains an external user-owned prerequisite
+   represented as a durable environment requirement.
 3. Implement the billing client: use BillingClient with PurchasesUpdatedListener
    to handle purchase flows. Connect to the billing service with
    startConnection.
@@ -117,7 +119,7 @@ Emits `PaymentsIntegrationResult` from `PaymentsIntegrationRequest` (§23 SkillP
 
 ## Fixtures
 - Step 1 produces its expected outcome — Analyze payment requirements: identify product types (consumable,
-- Step 2 produces its expected outcome — Configure Google Play Console: create products in the Play Console,
+- Step 2 produces its expected outcome — Generate and validate the Android billing integration, local product-ID configuration contract, test fixtures, and user-facing documentation. Nirman does not create, modify, or publish products in Google Play Console.
 - Step 3 produces its expected outcome — Implement the billing client: use BillingClient with PurchasesUpdatedListener
 - Step 4 produces its expected outcome — Implement the purchase flow: use launchBillingFlow to initiate
 - Step 5 produces its expected outcome — Implement purchase verification: verify purchases on the backend using
