@@ -3293,6 +3293,8 @@ Nirman uses C#/.NET with WinUI 3 and Windows App SDK for the Windows desktop app
 
 Rust with Tokio owns the authoritative local runtime and control plane. SQLite is the execution ledger. SQLx is the preferred asynchronous access layer, with rusqlite permitted only when isolated safely from Tokio scheduling.
 
+The host and control-plane toolchains are version-pinned. The C#/.NET host targets the .NET 10.0 LTS line (C# 14) with the Windows App SDK 2.x stable line (minimum 2.4) and the Rust control plane is built on the 2024 edition, stable channel, minimum 1.98, with Tokio 1.53 and SQLx 0.9 as the pinned library lines. These floors are the canonical implementation targets; the exact patch versions are locked, not chosen ad hoc: the M0 repository foundation commits `global.json`, `rust-toolchain.toml`, a committed `Cargo.lock`, and NuGet package lock files that pin the exact versions within these lines, and the local certification gate fails a build that bypasses them (development plan M0, "C#/.NET, WinUI 3, Windows App SDK, and Rust conventions"). Upgrading a pinned line is a specification change to this section, not an incidental dependency bump. The Android toolchain is deliberately not version-pinned here: its versions are resolved at provision time into the digest-verified `AndroidToolchainLock` (§49.4; build spec §5.7.1), which is the sole version authority for JDK, Gradle, AGP, Kotlin, SDK, build tools, and emulator components.
+
 The Windows runtime uses native APIs including ConPTY, restricted process tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, and resource quotas.
 
 The Android toolchain remains externally installed or managed by Nirman's toolchain authority.
