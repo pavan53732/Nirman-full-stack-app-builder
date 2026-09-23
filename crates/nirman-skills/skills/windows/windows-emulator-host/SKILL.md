@@ -101,7 +101,7 @@ Emits `EmulatorHostResult` from `EmulatorHostRequest` (§23 SkillPackage contrac
 
 ## Fixtures
 - Emulator boots accelerated on a supported host
-- ARM64 host reported UNAVAILABLE with its reason
+- ARM64 host reported HOST_OUT_OF_SCOPE (Windows host architecture is not x64; do not provision or run Nirman)
 - Hypervisor absent — blocked, not started unaccelerated
 - Mismatched system image refused
 - Boot timeout with the last signal recorded

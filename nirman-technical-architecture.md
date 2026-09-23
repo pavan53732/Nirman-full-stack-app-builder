@@ -2672,7 +2672,7 @@ C:\Nirman\<sid8>\tc\
 2. *Hypervisor enablement*, when preflight (§49.1; build spec §79.16) finds firmware virtualization enabled but no usable accelerator. The supervisor relaunches itself elevated — `NirmanSupervisor.exe --elevated-hypervisor-setup`, one UAC prompt whose text names the exact change — and enables Windows Hypervisor Platform when Hyper-V, VBS/HVCI, WSL2, or Windows Sandbox is active on the host, otherwise installs the Android Emulator Hypervisor Driver from the SDK repository; never both. HAXM is never provisioned. A required restart is a `USER_REQUIRED` resume condition, and provisioning resumes from durable state after the restart without user action.
 3. *Firmware virtualization* disabled in UEFI/BIOS. No software can change it. Nirman names the setting for the detected firmware vendor, blocks emulator readiness on that single condition, and continues every non-emulator step under the split rule of build spec §79.4.
 
-**Preflight.** Host architecture first: on a Windows ARM64 host the manifest's `EMULATOR` and `SYSTEM_IMAGE` components resolve to `HOST_UNSUPPORTED` because the SDK repository publishes no Windows ARM64 emulator (build spec §79.17); the provisioner installs the ARM64 JDK and the remaining components, records the emulator capability as `UNAVAILABLE` with that reason, and never downloads or launches an emulator for a mismatched host. Disk: the free space on the toolchain drive must be at least 2.5 × the manifest's total download size (archives, unpacked trees, first snapshot); otherwise `FAILED_DISK` with the exact figures as a `USER_REQUIRED` decision, never a partial install. Network: the manifest sources must be reachable; otherwise `WAITING_NETWORK` with automatic retry and backoff — a condition independent of `SessionProviderMode.OFFLINE`, which concerns the AI provider only. Downloads are resumable. The downloader honours the Windows system proxy: it resolves each manifest URL through the WinHTTP proxy configuration and the signed-in user's Internet Options (explicit proxy, PAC script, or WPAD), in that precedence, and records the path it used as `ToolchainProvisioningRecord.networkPath` (`DIRECT`, `SYSTEM_PROXY`, or `PAC`) together with the proxy host when one applied. It never reads a proxy from `HTTP_PROXY`/`HTTPS_PROXY` environment variables, never prompts for proxy credentials, and never stores them: a proxy that demands authentication the operating system does not supply, a TLS-intercepting proxy whose certificate the Windows trust store does not hold, or a captive portal is reported as `WAITING_NETWORK` with the proxy host and the observed HTTP status or TLS failure, so that the user sees which network component blocked the download, and provisioning resumes automatically when a probe succeeds. A digest is verified after every download regardless of the path, so an intercepting proxy that alters an archive yields `FAILED_INTEGRITY`, never an installed component. Real-time scanning over the toolchain root is recorded per build spec §79.15.
+**Preflight.** Host architecture first: Nirman requires a 64-bit x86-64 host (`hostArchitecture = X64`). On a Windows ARM64 host, host preflight resolves the host to `HOST_OUT_OF_SCOPE` (build spec §79.17; ADR-257); the provisioner stops before acquiring or installing any toolchain component, records the environment capability as `HOST_OUT_OF_SCOPE`, and never downloads or launches tools or emulators for an unsupported host. Disk: the free space on the toolchain drive must be at least 2.5 × the manifest's total download size (archives, unpacked trees, first snapshot); otherwise `FAILED_DISK` with the exact figures as a `USER_REQUIRED` decision, never a partial install. Network: the manifest sources must be reachable; otherwise `WAITING_NETWORK` with automatic retry and backoff — a condition independent of `SessionProviderMode.OFFLINE`, which concerns the AI provider only. Downloads are resumable. The downloader honours the Windows system proxy: it resolves each manifest URL through the WinHTTP proxy configuration and the signed-in user's Internet Options (explicit proxy, PAC script, or WPAD), in that precedence, and records the path it used as `ToolchainProvisioningRecord.networkPath` (`DIRECT`, `SYSTEM_PROXY`, or `PAC`) together with the proxy host when one applied. It never reads a proxy from `HTTP_PROXY`/`HTTPS_PROXY` environment variables, never prompts for proxy credentials, and never stores them: a proxy that demands authentication the operating system does not supply, a TLS-intercepting proxy whose certificate the Windows trust store does not hold, or a captive portal is reported as `WAITING_NETWORK` with the proxy host and the observed HTTP status or TLS failure, so that the user sees which network component blocked the download, and provisioning resumes automatically when a probe succeeds. A digest is verified after every download regardless of the path, so an intercepting proxy that alters an archive yields `FAILED_INTEGRITY`, never an installed component. Real-time scanning over the toolchain root is recorded per build spec §79.15.
 
 **Readiness.** After installation the provisioner creates the AVD from the Nirman device profile with `avdmanager` (fixed hardware profile: phone, 1080 × 2400, 420 dpi, 4 GB RAM, host GPU with SwiftShader fallback per §10.7), cold-boots it headless once, waits for `sys.boot_completed`, saves the quick-boot snapshot, and runs the readiness probe: `adb` responsive, the emulator control endpoint answering `getStatus`, and one identity-valid frame delivered through the `RenderTransport` and accepted by the supervisor-side preview readiness predicate; PreviewHost painting is an additional presentation-health observation. Readiness is proven only by that frame, recorded as `ToolchainProvisioningRecord.readinessEvidenceId` (screenshot plus the `PreviewSyncEvent` that carried it); a run that installs everything but delivers no frame is `PROVISIONED_UNVERIFIED`, never `READY`.
 
@@ -3570,8 +3570,7 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `RequirementAuthority` | service | `nirman-android` | Android requirement evaluation: capability and permission inference, manifest and resource validation, and repair selection from `AndroidRepairRegistry` (§51.1) — the "Android requirement authority" of build spec §76.1 (`android.requirements.evaluate`, M47) | requirement evaluation and repair-selection events; the repair itself runs through `RecoveryAuthority` and `ConstructionTransactionManager` | §44.2, §51.1 |
 | `AndroidTechnologyResolver` | service | `nirman-android` | Selection of the `AndroidTechnologyPlan` from requirements and evidence, never from a template (§73.2, §73.10) | proposes the plan; `ConstructionTransactionManager` commits it with the revision | §73.2 |
 | `NativeAndroidAdapter` | module | `nirman-android` | The Kotlin or Java, Views or Compose, Gradle implementation family of `AndroidTechnologyAdapter` (§73.10; M108) | resolutions only | §73.10 |
-| `JavaScriptAndroidAdapter` | module | `nirman-android` | The React Native or Expo implementation family of `AndroidTechnologyAdapter` (§73.10) | resolutions only | §73.10 |
-| `MixedAndroidAdapter` | module | `nirman-android` | The native-plus-JavaScript-plus-native-module implementation family of `AndroidTechnologyAdapter` (§73.10) | resolutions only | §73.10 |
+| `MixedAndroidAdapter` | module | `nirman-android` | The mixed Kotlin-plus-Java-plus-NDK/CMake native implementation family of `AndroidTechnologyAdapter` (§73.10; M108) | resolutions only | §73.10 |
 | `TaskScheduler` | service | `nirman-control-plane` | Runnable-task selection, resource reservation, worker launch requests, heartbeat and stale-process detection, fair share (§7.1, §7.2), and schedule firing (§16.4) | `tasks` claims, `handoffs`, schedule runs | §7.1, §16.4 |
 | `WorkerRegistry` | service | `nirman-control-plane` | The canonical worker roles of §6.5 and each worker's `WorkerContract` (build spec §23.4) | `workers`, `worker_contracts` | §6.5 |
 | `WorkerRuntime` | service | `nirman-kernel` | Spawns and supervises one `NirmanWorker.exe` per lease and holds the supervisor end of `WorkerConnection` (§3.5, §57.11) | `process_records` for worker processes | §3.5, §57.11 |
@@ -5752,7 +5751,7 @@ AndroidTechnologyAdapter operations
 
 `resolveBuildAdapter()` and `resolveDeviceAdapter()` MUST resolve from the locked `AndroidTechnologyPlan`, `AndroidToolchainLock`, and `AndroidDeviceCapabilities` state, not from mutable runtime state. The selected identities are returned as registered adapter identities; selection itself remains deterministic and auditable. A change to the locked plan, toolchain, or device capabilities invalidates prior resolution results; `PreviewCoordinator` MUST re-resolve before dispatching any concrete operation. Resolution results do not constitute a second mutable authority; the registered `AndroidBuildAdapter` and `AndroidDeviceAdapter` returned by resolution remain the sole execution authorities for their respective operations.
 
-The three internal implementation families registered at M108 are execution strategies, not user-facing framework choices. The §73.2 no-template rule remains binding; the resolver never surfaces these family names to the user as a framework picker.
+The internal implementation families registered at M108 are execution strategies, not user-facing framework choices. The §73.2 no-template rule remains binding; the resolver never surfaces these family names to the user as a framework picker. Generated applications are native Android only (ADR-257).
 
 ```text
 NativeAndroidAdapter (internal implementation family)
@@ -5762,21 +5761,14 @@ NativeAndroidAdapter (internal implementation family)
   resolveBuildAdapter (Gradle native), resolveDeviceAdapter
   (AndroidDeviceAdapter for Nirman-managed local emulator session)
 
-JavaScriptAndroidAdapter (internal implementation family)
-- composition: React Native or Expo, Metro or Expo runtime, native Gradle shell
-- adapterId prefix: nirman.adapter.javascript
-- operations: validatePlan, initializeProject, planBuild, classifyFailure,
-  resolveBuildAdapter (Gradle plus Metro or Expo), resolveDeviceAdapter
-  (AndroidDeviceAdapter for Nirman-managed local emulator session)
-
 MixedAndroidAdapter (internal implementation family)
-- composition: native plus JavaScript plus native modules, NDK or CMake
-  when selected, device APIs
+- composition: mixed Kotlin and Java, native modules using NDK or CMake
+  when selected, Android platform APIs and services
 - adapterId prefix: nirman.adapter.mixed
 - operations: validatePlan, initializeProject, planBuild, classifyFailure,
-  resolveBuildAdapter (composed Gradle plus Metro or Expo plus NDK or
-  CMake), resolveDeviceAdapter (AndroidDeviceAdapter for the
-  Nirman-managed local Android emulator)
+  resolveBuildAdapter (composed Gradle native plus NDK or CMake),
+  resolveDeviceAdapter (AndroidDeviceAdapter for the Nirman-managed
+  local Android emulator)
 ```
 
 The `AndroidTechnologyAdapter` registry is part of the toolchain lock surface. A revision, toolchain update, environment fingerprint change, or compatibility-rule change invalidates dependent resolution results and completion claims; the adapter registry entry, `adapterVersion`, and `technologyPlanHash` together identify a reproducible selection context. The `PreviewSyncEvent` payload defined in build spec §71.1 carries `adapterId`, `adapterVersion`, `technologyPlanHash`, and the resolved `buildAdapterIdentity` and `deviceAdapterIdentity` as required event fields when the event is emitted by an adapter-mediated operation; the §71 `PreviewSyncEvidenceRecord` carries the same fields per observation. This extends §71.1; it does not redefine the `PreviewSyncEvent` schema.
@@ -5789,7 +5781,7 @@ The preview mode is selected by a deterministic resolver over a recorded input s
 
 > **Schema projection:** `PreviewModeResolverOutput` is defined in `nirman-schemas.md` §2.67. Owner: TA §73.11.
 
-The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in §73.3 and build spec §69.4. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
+The mode values `COMPOSE_RELOAD`, `INCREMENTAL_APK_INSTALL`, `FULL_APK_REINSTALL`, `HEADLESS_SMOKE`, `DIAGNOSTIC_SOURCE_ONLY`, `USER_REQUIRED`, and `BLOCKED` are the `PreviewRevision.previewMode` enumeration declared on the field in §73.3 and build spec §69.4. `CONSERVATIVE_FULL_REINSTALL` is part of that enumeration as a refinement of `FULL_APK_REINSTALL`: it is a full reinstall selected specifically because the impact information was insufficient to prove a faster safe path, not because a faster safe path was proven unsafe. Its presence makes the resolver's "unknown" outcome distinguishable from a "known unsafe" outcome and is recorded as part of the `PreviewRequest` decision trace.
 
 Canonical predicates (typed, evidence-bound, not free-form):
 
@@ -5806,18 +5798,6 @@ sameNativeIdentity:
   Two native identity evaluations are sameNativeIdentity when their fingerprints
   are equal under the canonical comparison defined by the Android toolchain lock
   authority. Any mismatch in the components above yields sameNativeIdentity = false.
-
-healthyMetroExpoRuntime:
-  requires a current runtime or device observation tied to the same
-  deviceSessionId and runtimeSessionId, with:
-  - environmentFingerprint equal to the recorded toolchain environment
-  - applicationStateFingerprint equal to the last accepted PreviewRevision
-  - sourceFingerprint compatible with the recorded source revision
-  - native identity fingerprint matching sameNativeIdentity
-  - no recorded fault, crash, or transport-loss observation in the current
-    runtime session
-  An observation older than the current PreviewRevision freshness window or
-  bound to a different session does not satisfy healthyMetroExpoRuntime.
 ```
 
 Canonical rule table (applied in order; first match wins):
@@ -5843,21 +5823,18 @@ Canonical rule table (applied in order; first match wins):
 5. Compose-only compatible change detected, sameNativeIdentity holds,
    and a compatible runtime session is available
    -> COMPOSE_RELOAD
-6. JavaScript or TypeScript-only change with sameNativeIdentity and
-   healthyMetroExpoRuntime
-   -> RN_EXPO_FAST_REFRESH
-7a. Known unsafe-to-fast-refresh state detected (signing mismatch,
-    ABI mismatch, manifest version conflict, runtime fault unacknowledged,
-    or compatibility-rule denial) but a clean rebuild is permitted
+6a. Known unsafe state detected (signing mismatch, ABI mismatch,
+    manifest version conflict, runtime fault unacknowledged, or
+    compatibility-rule denial) but a clean rebuild is permitted
     -> FULL_APK_REINSTALL
-7b. Insufficient impact information to prove a reload-safe or
-    fast-refresh-safe surface; no rule above fired
+6b. Insufficient impact information to prove a reload-safe surface;
+    no rule above fired
     -> CONSERVATIVE_FULL_REINSTALL
-8. Recognized incompatibility with no permitted rebuild path
+7. Recognized incompatibility with no permitted rebuild path
     -> BLOCKED
 ```
 
-The "unknown" outcome and the "known unsafe" outcome are explicitly distinct: rule 7a is recorded with reason `KNOWN_UNSAFE_TO_FAST_REFRESH`; rule 7b is recorded with reason `INSUFFICIENT_IMPACT_INFORMATION`. The resolver MUST distinguish them in the `decisionReason` field so that the `PreviewRequest` decision trace and downstream repair logic do not conflate them.
+The "unknown" outcome and the "known unsafe" outcome are explicitly distinct: rule 6a is recorded with reason `KNOWN_UNSAFE`; rule 6b is recorded with reason `INSUFFICIENT_IMPACT_INFORMATION`. The resolver MUST distinguish them in the `decisionReason` field so that the `PreviewRequest` decision trace and downstream repair logic do not conflate them.
 
 A resolver output is recorded as part of the `PreviewRequest` decision trace. The mode returned is one of the `PreviewRevision.previewMode` values enumerated on the field in §73.3 and build spec §69.4; introducing new mode identifiers requires a versioned contract update through ADR-195. The resolver MUST NOT mutate authoritative state; it returns a decision, and `PreviewCoordinator` owns the resulting lifecycle transition.
 

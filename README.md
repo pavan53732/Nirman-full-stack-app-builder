@@ -34,9 +34,9 @@ Nirman has one host application target and one generated project target.
 | Local auxiliary intelligence | Supervisor-local, release-pinned | Bounded typed decisions for routing/classification/recovery/escalation; advisory only |
 | Execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifacts |
 
-Nirman must not become a web app builder, Windows app generator, PWA generator, cloud execution service, remote build service, Docker-based system, container-based system, VM-based system, WSL-based system, or generic multi-platform generator. JavaScript bundlers, development servers, native modules, and supporting services are allowed only when they are dependencies of Nirman or of a generated Android project.
+Nirman must not become a web app builder, Windows app generator, PWA generator, cloud execution service, remote build service, Docker-based system, container-based system, VM-based system, WSL-based system, or generic multi-platform generator. Native modules, build plugins, and supporting services are allowed only when they are dependencies of Nirman or of a generated Android project.
 
-The user does not select a fixed template or framework as the primary creation action. The user describes the desired Android application. The technology resolver chooses or composes the implementation style—such as Kotlin, Java, Android Views, Jetpack Compose, React Native/Expo, native modules, or a mixed architecture—according to the requirements and validation evidence.
+The user does not select a fixed template or framework as the primary creation action. The user describes the desired Android application. The technology resolver chooses or composes the implementation style—such as Kotlin, Java, Android Views, Jetpack Compose, Android native modules, Android platform services, or a mixed native Android architecture—according to the requirements and validation evidence.
 
 ## What Nirman does, end to end
 

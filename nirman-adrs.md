@@ -3668,4 +3668,26 @@ Initial local-engine admission is `EXPERIMENTAL` and MUST remain non-authoritati
 
 **Reversal trigger:** Executable evidence establishes a simpler model that preserves stale-write rejection, complete dependency invalidation, per-attempt external-effect reconciliation, and deletion safety under every legal crash ordering.
 
+## ADR-257: Lock Windows 10/11 x64 builder host and native Android-only generated architectures
+
+**Locks:** `CONTRACT.RUNTIME.SCOPE`, `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`, `CONTRACT.RUNTIME.PROMPT_CONTRACT`, `CONTRACT.RUNTIME.INVARIANTS`
+
+**Status:** Accepted
+
+**Amends:** ADR-210, ADR-221
+
+**Decision:**
+1. The Nirman builder host contract is locked strictly to 64-bit Windows 10/11 x64 (`hostArchitecture = X64`). Windows ARM64 is OUT_OF_SCOPE. Host preflight accepts only `hostArchitecture = X64` and stops before toolchain acquisition with a truthful unsupported host result (`HOST_OUT_OF_SCOPE`). Nirman MUST NOT claim build-only, partial, emulated, remote, containerized, WSL, physical-device, or reduced-capability ARM64 support.
+2. The generated target application architecture is locked strictly to native Android. Permitted implementation technologies are Kotlin, Java, Android Views, Jetpack Compose, native modules using NDK/CMake, Android Gradle plugins, and Android platform APIs and background services.
+3. React Native, Expo, Metro, JavaScript-based hybrid wrappers, Flutter, Cordova, Ionic, and other cross-platform application frameworks are formally retired and declared out of scope. `JavaScriptAndroidAdapter`, mixed native-plus-JavaScript adapters, and `RN_EXPO_FAST_REFRESH` preview mode are removed. Technology resolution selects only among permitted native Android architecture profiles.
+
+**Rationale:**
+Retaining partial Windows ARM64 toolchain provisioning created an unfulfillable promise: the Android SDK publishes no Windows ARM64 Android Emulator, so runtime validation on ARM64 was impossible without violating the invariant forbidding substitute emulators, containers, or remote devices. Stopping cleanly at preflight provides an honest boundary. Similarly, retaining React Native, Expo, and Metro runtime branches diluted Nirman's native Android focus, doubled toolchain surface area (Node, package managers, Metro bundler), and contradicted the native Android-only scope.
+
+**Consequences:**
+BS §79.17 and TA §49.4 enforce preflight rejection on non-x64 hosts; `ToolchainProvisioningRecord.hostArchitecture` is locked to `X64`. TA §57.12, §73.10, and §73.11 remove `JavaScriptAndroidAdapter`, `healthyMetroExpoRuntime`, and `RN_EXPO_FAST_REFRESH`. SCHEMAS §1.20 and §2.67 remove `RN_EXPO_FAST_REFRESH`. Milestones M22 and M108 parameterize exclusively over native Android fixtures. `README.md` and `AGENTS.md` explicitly reflect these scope boundaries.
+
+**Reversal trigger:**
+An explicit, versioned product decision and architecture record expanding Nirman's product boundary to additional host platforms or non-native mobile runtimes, accompanied by complete toolchain provisioning, emulator runtime, and evidence validation specifications; not merely upstream availability of a Windows ARM64 emulator or third-party framework updates.
+
 ---

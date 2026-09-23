@@ -1786,37 +1786,52 @@ def check_semantic_documentation(docs, R, D, root="."):
                 ("**Reversal trigger:**", "carry a Reversal trigger")):
             if needle not in m_221:
                 D.add("semantic documentation", "toolchain provisioning", f"ADR-221 must {why}")
-    # Host CPU architecture (BS §79.17; ADR-221): Nirman installs and builds on
-    # x86-64 and ARM64 Windows, but the SDK repository publishes no Windows
-    # ARM64 emulator, so the emulator capability on an ARM64 host is
-    # UNAVAILABLE with a stated reason — never a substitute, never a spinner.
+    # Host CPU architecture (BS §79.17; ADR-257): Nirman requires a Windows
+    # 10/11 x64 host. Windows ARM64 is OUT_OF_SCOPE and rejected at preflight.
     m_arch = _section_text(bs, "79.17")
     if m_arch is None:
         D.add("semantic documentation", "host architecture",
-              "BS §79.17 (Host CPU architecture; ADR-221) is missing")
+              "BS §79.17 (Host CPU architecture; ADR-257) is missing")
     else:
         for needle, why in (
-                ("no Windows ARM64 build of the Android Emulator is published", "state the ARM64 unavailability reason verbatim"),
-                ("MUST NOT attempt to download or run an emulator or system image whose host architecture does not match",
-                 "forbid provisioning a mismatched-architecture emulator"),
-                ("MUST NOT present an x86-64 emulator running under the emulation layer, a container, a VM, WSL, a remote machine, or a physical device as a substitute",
-                 "forbid every substitute runtime on an ARM64 host"),
-                ("at most `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`", "cap completion on an ARM64 host"),
+                ("Windows 10/11 x64 (ADR-257)", "lock host contract to Windows 10/11 x64"),
+                ("accept only `hostArchitecture = X64`", "require hostArchitecture = X64 at preflight"),
+                ("Windows ARM64 is OUT_OF_SCOPE", "declare Windows ARM64 OUT_OF_SCOPE"),
+                ("truthful unsupported host result (`HOST_OUT_OF_SCOPE`)", "require truthful HOST_OUT_OF_SCOPE result"),
+                ("MUST NOT claim build-only, partial, emulated, remote, containerized, WSL, physical-device, or reduced-capability ARM64 support",
+                 "forbid partial or substitute ARM64 support"),
                 ("MUST prefer dependencies that ship x86_64 native libraries", "make the resolver prefer x86_64 native dependencies")):
             if needle not in m_arch:
-                D.add("semantic documentation", "host architecture", f"BS §79.17 must {why} (ADR-221)")
-    if m_prov is not None and "`HOST_UNSUPPORTED`" not in m_prov:
+                D.add("semantic documentation", "host architecture", f"BS §79.17 must {why} (ADR-257)")
+    if m_prov is not None and "resolves the host to `HOST_OUT_OF_SCOPE`" not in m_prov:
         D.add("semantic documentation", "host architecture",
-              "TA §49.4 preflight must resolve the emulator and system image to HOST_UNSUPPORTED on a Windows ARM64 host (BS §79.17)")
+              "TA §49.4 preflight must resolve a Windows ARM64 host to HOST_OUT_OF_SCOPE (BS §79.17; ADR-257)")
     if sch:
         m_tpr = re.search(r"\nToolchainProvisioningRecord\n((?:- .*\n|[ \t]+.*\n)+)", sch)
-        if not m_tpr or "- hostArchitecture: X64 | ARM64\n" not in m_tpr.group(1) or "HOST_UNSUPPORTED" not in m_tpr.group(1) \
+        if not m_tpr or "- hostArchitecture: X64\n" not in m_tpr.group(1) or "HOST_UNSUPPORTED" not in m_tpr.group(1) \
                 or "- networkPath: DIRECT | SYSTEM_PROXY | PAC\n" not in m_tpr.group(1):
             D.add("semantic documentation", "host architecture",
-                  "ToolchainProvisioningRecord must carry hostArchitecture: X64 | ARM64, a HOST_UNSUPPORTED component result (BS §79.17), and networkPath: DIRECT | SYSTEM_PROXY | PAC (TA §49.4)")
+                  "ToolchainProvisioningRecord must carry hostArchitecture: X64, a HOST_UNSUPPORTED component result (BS §79.17), and networkPath: DIRECT | SYSTEM_PROXY | PAC (TA §49.4)")
     if m_221 and "Google publishes a Windows ARM64 build of the Android Emulator" not in m_221:
         D.add("semantic documentation", "host architecture",
               "ADR-221's reversal trigger must name the publication of a Windows ARM64 emulator (BS §79.17)")
+    # Native Android scope (ADR-257): React Native, Expo, and JavaScriptAndroidAdapter are retired.
+    m_257 = adr_blocks(dec).get(257, "")
+    if not m_257:
+        D.add("semantic documentation", "scope lock", "ADR-257 is missing from nirman-adrs.md")
+    else:
+        for needle, why in (
+                ("**Status:** Accepted", "be Accepted"),
+                ("`CONTRACT.RUNTIME.SCOPE`", "lock CONTRACT.RUNTIME.SCOPE"),
+                ("`CONTRACT.RUNTIME.PLATFORM_CAPABILITY`", "lock CONTRACT.RUNTIME.PLATFORM_CAPABILITY"),
+                ("`hostArchitecture = X64`", "lock host architecture to X64"),
+                ("`JavaScriptAndroidAdapter`", "retire JavaScriptAndroidAdapter")):
+            if needle not in m_257:
+                D.add("semantic documentation", "scope lock", f"ADR-257 must {why}")
+    if "`JavaScriptAndroidAdapter`" in ta:
+        D.add("semantic documentation", "scope lock", "TA must not retain JavaScriptAndroidAdapter; native Android only (ADR-257)")
+    if "RN_EXPO_FAST_REFRESH" in ta or (sch and "RN_EXPO_FAST_REFRESH" in sch):
+        D.add("semantic documentation", "scope lock", "TA and nirman-schemas.md must not retain RN_EXPO_FAST_REFRESH (ADR-257)")
     # Process model (TA §3.5; ADR-222): every worker is its own NirmanWorker.exe
     # process with no authority, credential, file, socket, or child; the
     # supervisor fulfils every model call and executes every proposal. A
@@ -3530,7 +3545,7 @@ def check_semantic_documentation(docs, R, D, root="."):
               "TA §14 'Local IPC' row must name authenticated named pipes as the production transport, never WebSocket as an alternative")
     # (c) previewMode enumeration is declared on the PreviewRevision field in
     # both canonical blocks and includes CONSERVATIVE_FULL_REINSTALL (TA §73.11).
-    m22_modes = ("RN_EXPO_FAST_REFRESH", "COMPOSE_RELOAD", "INCREMENTAL_APK_INSTALL", "FULL_APK_REINSTALL",
+    m22_modes = ("COMPOSE_RELOAD", "INCREMENTAL_APK_INSTALL", "FULL_APK_REINSTALL",
                  "CONSERVATIVE_FULL_REINSTALL", "HEADLESS_SMOKE", "DIAGNOSTIC_SOURCE_ONLY", "USER_REQUIRED", "BLOCKED")
     for label, text, where in ((("schema document", sch, "the PreviewRevision block (owner BS §69.4)"),) if sch
                                else (("build spec", bs, "BS §69.4"), ("technical architecture", ta, "TA §73.3"))):

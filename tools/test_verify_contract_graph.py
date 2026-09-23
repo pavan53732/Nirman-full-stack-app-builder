@@ -480,18 +480,29 @@ CASES = {
     "the RenderTransport block loses its frameNotice field": (
         SCHEMAS, "- frameNotice: volatile FrameNotice projection; not durable event state\n  - frameNoticeId\n  - previewSurfaceId\n  - ringSlot\n  - frameStamp\n", "",
         "semantic documentation"),
-    # BS §79.17: a Windows ARM64 host gets an honest UNAVAILABLE emulator, not
-    # a substitute runtime and not a mismatched download.
-    "BS §79.17 lets an ARM64 host run the x86-64 emulator under the emulation layer as a substitute": (
-        BS, "MUST NOT present an x86-64 emulator running under the emulation layer, a container, a VM, WSL, a remote machine, or a physical device as a substitute",
-        "MAY present an x86-64 emulator running under the emulation layer as a substitute",
+    # BS §79.17 (ADR-257): Windows ARM64 host is OUT_OF_SCOPE and rejects partial or substitute runtimes.
+    "BS §79.17 claims partial or substitute ARM64 support": (
+        BS, "MUST NOT claim build-only, partial, emulated, remote, containerized, WSL, physical-device, or reduced-capability ARM64 support",
+        "MAY claim build-only, partial, emulated, remote, containerized, WSL, physical-device, or reduced-capability ARM64 support",
         "semantic documentation"),
     "TA §49.4 downloads the emulator regardless of host architecture": (
-        TA, "resolve to `HOST_UNSUPPORTED` because the SDK repository publishes no Windows ARM64 emulator",
+        TA, "resolves the host to `HOST_OUT_OF_SCOPE` (build spec §79.17; ADR-257)",
         "resolve normally on every host",
         "semantic documentation"),
     "the ToolchainProvisioningRecord loses hostArchitecture": (
-        SCHEMAS, "- hostArchitecture: X64 | ARM64\n", "",
+        SCHEMAS, "- hostArchitecture: X64\n", "",
+        "semantic documentation"),
+    "ADR-257 missing from nirman-adrs.md": (
+        ADRS, "## ADR-257: Lock Windows 10/11 x64 builder host and native Android-only generated architectures\n",
+        "## ADR-999: Lock Windows 10/11 x64 builder host and native Android-only generated architectures\n",
+        "semantic documentation"),
+    "TA retains JavaScriptAndroidAdapter": (
+        TA, "The mixed Kotlin-plus-Java-plus-NDK/CMake native implementation family",
+        "| `JavaScriptAndroidAdapter` | module | `nirman-android` | Retired | resolutions only | §73.10 |\nThe mixed Kotlin-plus-Java-plus-NDK/CMake native implementation family",
+        "semantic documentation"),
+    "TA retains RN_EXPO_FAST_REFRESH": (
+        TA, "The mode values `COMPOSE_RELOAD`",
+        "The mode values `RN_EXPO_FAST_REFRESH`, `COMPOSE_RELOAD`",
         "semantic documentation"),
     "TA §3.5 lets a worker run as a Tokio task inside the supervisor": (
         TA, "A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`.",
@@ -1762,8 +1773,8 @@ CASES = {
         SKILL_SOURCES + SKILL_MANIFESTS),
     "registered skill without a body": (
         BS,
-        "| `android-toolchain` | Node, package manager,",
-        "| `android-ghost` | placeholder | none |\n| `android-toolchain` | Node, package manager,",
+        "| `android-toolchain` | Java, Gradle, Android SDK, platform tools,",
+        "| `android-ghost` | placeholder | none |\n| `android-toolchain` | Java, Gradle, Android SDK, platform tools,",
         "semantic documentation",
         SKILL_SOURCES + SKILL_MANIFESTS),
 

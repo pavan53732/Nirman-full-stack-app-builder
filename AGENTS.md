@@ -97,19 +97,19 @@ Before reporting completion, the agent must verify the actual diff and filesyste
 
 ## 2. Product identity and target boundary
 
-Nirman is a **Windows-first desktop application** for building Android applications. Nirman itself is not an Android application and is not a web application. The final product target for Nirman is a Windows desktop executable and installer. An installable APK is the minimum output produced by Nirman for a user-owned Android project; an AAB is produced only when the active PackagingProfile requires `APK_AND_AAB`.
+Nirman is a **Windows-first desktop application** for building Android applications on **Windows 10/11 x64 hosts only**. Nirman itself is not an Android application and is not a web application. The final product target for Nirman is a Windows desktop executable and installer for 64-bit x86-64 Windows. Windows ARM64 is OUT_OF_SCOPE and rejected at host preflight. An installable APK is the minimum output produced by Nirman for a user-owned Android project; an AAB is produced only when the active PackagingProfile requires `APK_AND_AAB`.
 
 | Layer | Target | Responsibility |
 |---|---|---|
-| Nirman host application | Windows desktop `.exe` | Chat, control plane, agents, local execution, preview, evidence, recovery, and artifact delivery |
-| Generated project | Android only | User-requested application synthesized and built by Nirman |
+| Nirman host application | Windows desktop `.exe` (x64 only) | Chat, control plane, agents, local execution, preview, evidence, recovery, and artifact delivery |
+| Generated project | Native Android only | User-requested application synthesized and built by Nirman |
 | AI providers | External cloud, user configured | General-purpose planning, coding, reasoning, vision, embeddings, and other provider-backed model services |
 | Local auxiliary decision engine | Supervisor-local, release-pinned | Bounded typed decisions for registered classification/routing/recovery/escalation purposes; advisory only |
-| Code execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifact creation |
+| Code execution | Local Windows x64 machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifact creation |
 
-No implementation may add a hosted web/server product, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, remote build execution, or any non-Android generated target. Local Nirman control-plane and supervisor processes, Android-internal development servers, JavaScript bundlers, and supporting services are permitted implementation components when they remain local and do not become independent generated product targets.
+No implementation may add a hosted web/server product, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, remote build execution, or any non-Android generated target. The generated target is native Android and only native Android. Permitted implementation technologies include Kotlin, Java, Android Views, Jetpack Compose, Android native modules (NDK/CMake), Gradle plugins, Android device APIs, and Android background services. React Native, Expo, Flutter, Cordova, Ionic, web wrappers, and other cross-platform application frameworks are outside current scope (ADR-257). Local Nirman control-plane and supervisor processes and supporting services are permitted implementation components when they remain local and do not become independent generated product targets.
 
-Nirman must remain instruction-driven. The user describes the Android application and may provide screenshots or assets. The resolver selects and composes the required Android technologies. Do not expose a fixed template catalog as the primary creation path or narrow the product to one framework. Internal bootstraps are implementation details and cannot become user-facing product limits.
+Nirman must remain instruction-driven. The user describes the Android application and may provide screenshots or assets. The resolver selects and composes the required Android technologies among permitted native Android architectures. Do not expose a fixed template catalog as the primary creation path or narrow the product to one framework. Internal bootstraps are implementation details and cannot become user-facing product limits. Native Android-only does not mean Compose-only.
 
 Nirman requires **no account, login, subscription, license fee, or hosted platform** for local use. This is a binding product invariant (Build Spec §1.5; ADR-205). No feature, integration, or workflow may introduce a mandatory account, subscription, license fee, or hosted-platform dependency for Nirman itself. AI provider access (API keys, base URLs, model IDs) is supplied and paid for by the user directly with their chosen provider; Nirman does not proxy, resell, or charge for provider usage. Any proposal that would add such a dependency must stop and report the conflict rather than implementing it.
 
