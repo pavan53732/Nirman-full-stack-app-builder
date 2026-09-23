@@ -38,6 +38,8 @@
 
 **ConstructionRequirement** — The canonical settled construction requirement admitted and stored by `ConstraintRegistry`, carrying stable identity, monotonic requirement revision, applicable contract revisions, source/derivation lineage, acceptance criteria, and supersession state. — BS §42.1; SCHEMAS §1.81.
 
+**LockedDecision** — The canonical settled decision admitted, revisioned, superseded, and stored by `ConstraintRegistry`; conversation proposals and semantic-memory projections do not own its authority. — BS §42.1; TA §59.1; SCHEMAS §1.82.
+
 **ConstraintRegistry** — The sole authority that admits and stores canonical construction requirements and settled locked decisions; consumers reference its identities rather than creating competing requirement records. — BS §42.1; TA §59.1.
 
 **ContractId / Contract Authority Registry** — A stable identifier for one normative contract with exactly one authoritative section; every other section that addresses it is a declared extension. The `ContractId` values are registered in the BS §67.8 Contract Authority Registry, whose rules are stated in BS §67.7. — BS §67.7; BS §67.8.

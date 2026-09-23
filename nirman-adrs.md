@@ -3638,3 +3638,34 @@ Initial local-engine admission is `EXPERIMENTAL` and MUST remain non-authoritati
 **Reversal trigger:** A future accepted record subsumes the same logical-request and attempt lineage without collapsing any existing owner boundary and includes a deterministic migration and retention proof.
 
 ---
+## ADR-255: Canonical locked decisions remain under ConstraintRegistry authority
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.CONVERSATION_CONTEXT`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** `ConstraintRegistry` is the sole admission and persistence authority for canonical `LockedDecision` records. It assigns stable `decisionId` values, increments `decisionRevision`, and owns scope, source provenance, lifecycle, invalidation, and supersession. `ConversationDecision` is a proposal envelope and `ConversationDecisionIndex.canonicalDecisionId` is a reference. `MemoryRecord.class = DECISION` is a retrieval projection only. Neither Conversation nor Memory may admit, lock, revise, unlock, invalidate, or supersede a canonical decision.
+
+**Rationale:** The corpus named `ConstraintRegistry` as the settled-decision authority while retaining a conversation record shaped like an authoritative decision and a semantic-memory decision class. Explicit proposal, index, retrieval, and canonical roles prevent competing authority.
+
+**Consequences:** SCHEMAS §1.82 defines `LockedDecision`; BS §42.1 and §82 define authority and proposal boundaries; TA §59.1 and §86.1 define persistence and indexing. Capability states remain `PLANNED`.
+
+**Reversal trigger:** A future accepted authority migration replaces `ConstraintRegistry` and deterministically migrates every canonical decision identity, revision, index, memory projection, and dependent context package.
+
+---
+
+## ADR-256: Requirement-delta invalidation and provider-attempt recovery closure
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.BACKGROUND_CONTINUITY`, `CONTRACT.RUNTIME.CONTEXT_GOVERNANCE`
+
+**Status:** Accepted
+
+**Decision:** A `RequirementDelta` is a proposal against an observed canonical requirement revision. `ConstraintRegistry` alone admits it, rejects stale targets, updates canonical revision/applicability, and returns the admitted identity and revision. Admission invalidates every dependent implementation, scenario, evidence, proof, completion, preview, and artifact projection until revalidation. Provider retries, failovers, cancellations, timeouts, disconnects, background operations, and restart recovery preserve one attempt record and one `ExternalEffectRecord` per issuance; unknown outcomes block retry until reconciliation. Provenance deletion is dependency-gated and tombstoned.
+
+**Rationale:** Stable identities are insufficient unless stale updates are rejected and dependent proof is invalidated. Provider lineage is insufficient unless every uncertain network boundary has deterministic restart and reconciliation behavior.
+
+**Consequences:** SCHEMAS §2.128 and §2.130–§2.131 gain revision, admission, recovery, and retention fields; TA §24.6, §44.3.3, and §45.2 define behavior; M22 and M55 define future executable fixtures. Documentation conformance is not runtime evidence.
+
+**Reversal trigger:** Executable evidence establishes a simpler model that preserves stale-write rejection, complete dependency invalidation, per-attempt external-effect reconciliation, and deletion safety under every legal crash ordering.
+
+---

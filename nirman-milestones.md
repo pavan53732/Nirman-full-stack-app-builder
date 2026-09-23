@@ -569,7 +569,7 @@ The ModelGateway must normalize Chat Completions, Responses-style, message-orien
 
 Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
 
-**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage, logical-request/attempt lineage, external-effect reconciliation, retention behavior, and provider request IDs without exposing the key or persisting excluded content.
+**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage, logical-request/attempt lineage, external-effect reconciliation, retention behavior, and provider request IDs without exposing the key or persisting excluded content. Fixtures MUST cover cancellation before and after issuance, timeout with unknown outcome, disconnect during stream, bridge crash, provider background continuation, rate-limit retry, provider/model failover, restart before reconciliation, duplicate-response suppression, usage attribution per attempt, deletion blocked by each retention dependency class, tombstoning after dependencies close, and proof that credentials, sensitive headers, raw private reasoning, excluded content, and unnecessary payloads never enter provenance.
 
 ## M23: Controlled self-development loop
 
@@ -923,7 +923,7 @@ These milestones extend the existing Nirman roadmap with the accepted constructi
 
 ## M39 — AndroidConstructionContract and schema authority
 
-Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, canonical `requirementIds`, emulator profile matrix, validation model, and artifact model. Implement the `ConstraintRegistry` admission path and canonical `ConstructionRequirement` record with stable identity, explicit/inferred origin, source-feature and source-message/evidence lineage, derivation, acceptance criteria, monotonic requirement revisions, applicable contract-revision bindings, admission provenance, state, and supersession. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
+Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, canonical `requirementIds`, emulator profile matrix, validation model, and artifact model. Implement canonical `LockedDecision` identity and revision under the same `ConstraintRegistry` authority, while treating Conversation and Memory records as proposal/index and retrieval projections only. Implement the `ConstraintRegistry` admission path and canonical `ConstructionRequirement` record with stable identity, explicit/inferred origin, source-feature and source-message/evidence lineage, derivation, acceptance criteria, monotonic requirement revisions, applicable contract-revision bindings, admission provenance, state, and supersession. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
 
 **Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; every mandatory feature resolves to at least one active canonical requirement in the same contract revision; inferred companions remain proposals until `ConstraintRegistry` admission; conversation indexing and downstream implementation traceability reuse the same canonical requirement ID; all downstream workers consume the same contract; contract versions can be migrated and replayed.
 
@@ -1043,7 +1043,7 @@ Implement `FailureModeRegistry` with triggers, prevention checks, classification
 
 Implement `TestTraceabilityService` mapping every mandatory canonical `ConstructionRequirement.requirementId` to its acceptance criteria, implementation nodes, scenarios, tests, devices, results, evidence, proof, completion, and artifact revisions. Support honest skipped, blocked, flaky, and not-applicable states.
 
-**Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception.
+**Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception. A stale `RequirementDelta` is rejected; an admitted revision invalidates affected implementation, scenarios, evidence, proof, preview, completion, and artifact projections until revalidation.
 
 ## M56 — Architecture and contract drift detection
 
@@ -1884,7 +1884,7 @@ Deliver:
 - Conversation aggregate (with expectedProjectRevision, conversationRevision)
 - message/attachment persistence (with contentHash, mimeType, sizeBytes, storageOwner, privacyClassification, deletionStatus, projectIsolation, providerTransmissionPolicy, revisionBinding)
 - providerTransmissionPolicy delegation to ContextGovernance / ProviderContextEnvelope.transmissionDecision
-- conversation-local requirement proposal, decision, and suggestion records; requirement proposals carry `proposalId`, proposed wording/criteria, source lineage, admission status, and nullable `canonicalRequirementId`, and never become settled requirements without `ConstraintRegistry` admission
+- conversation-local requirement, decision, and suggestion proposal records; requirement and decision proposals carry proposal identity, proposed content, source lineage, admission status, and nullable canonical IDs, and never become settled requirements or locked decisions without `ConstraintRegistry` admission
 - ConversationMessage, ConversationTaskLink, ConversationRequirementIndex, ConversationDecisionIndex, and ConversationRebaseRecord schemas (TA §86.1), registered in the CanonicalSchemaRegistry (TA §36.1); a ConversationRebaseRecord is written for every RECONCILE/REBASE and USER_REQUIRED outcome
 - active-goal binding
 - project-revision binding

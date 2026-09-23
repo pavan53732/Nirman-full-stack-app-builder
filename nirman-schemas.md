@@ -1656,7 +1656,8 @@ Conversation
 - attachments
 - requirements: List<ConversationRequirementIndex>  // lineage index referencing canonical MemoryStore/ConstraintRegistry records
 - requirementProposals: List<ConversationRequirement>  // conversation-local proposals; never canonical requirements
-- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry/MemoryStore records
+- decisions: List<ConversationDecisionIndex>        // lineage index referencing canonical ConstraintRegistry records
+- decisionProposals: List<ConversationDecision>     // conversation-local proposals; never canonical locked decisions
 - acceptedSuggestions
 - rejectedSuggestions
 - activeGoal
@@ -1694,12 +1695,17 @@ ConversationRequirement
 
 ```text
 ConversationDecision
-- decisionId
-- status
+- proposalId
+- proposedStatement
+- proposedRationale
+- proposalStatus: PROPOSED | SUBMITTED | ADMITTED | REJECTED | WITHDRAWN
+- canonicalDecisionId: string | null
 - sourceMessageId
 - sourceEvidenceIds
-- supersedes
-- locked
+- proposedSupersedesDecisionIds
+- proposedBy
+- submittedAt: timestamp | null
+- resolvedAt: timestamp | null
 ```
 
 ### 1.72 ConversationSuggestion
@@ -1930,6 +1936,31 @@ ConstructionRequirement
 - state: ACTIVE | SUPERSEDED | INVALIDATED
 - supersedes: string[]
 - supersededBy: string[]
+- createdAt: timestamp
+- updatedAt: timestamp
+```
+
+
+### 1.82 LockedDecision
+
+**Owner:** BS §42.1 · **Contract:** CONTRACT.RUNTIME.AUTHORITY · **Projected at:** TA §59.1
+
+```text
+LockedDecision
+- decisionId: string (uuid; canonical ConstraintRegistry identity)
+- decisionRevision: integer
+- projectId: string
+- statement: string
+- rationale: string
+- scope: PROJECT | CONTRACT | REQUIREMENT | EXECUTION_POLICY
+- sourceMessageIds: string[]
+- sourceEvidenceIds: string[]
+- sourceProposalIds: string[]
+- state: ACTIVE | SUPERSEDED | INVALIDATED
+- supersedes: string[]
+- supersededBy: string[]
+- admittedByAuthority: string (ConstraintRegistry)
+- admittedAt: timestamp
 - createdAt: timestamp
 - updatedAt: timestamp
 ```
@@ -4961,9 +4992,14 @@ RequirementDelta
 - deltaId
 - sourceFeedbackId
 - targetRequirementId: string | null
+- targetRequirementRevision: integer | null
 - deltaKind: add | modify | remove | clarify
 - description: string
 - proposedAcceptanceCriteria: string[]
+- proposedApplicableContractRevisions: string[]
+- proposalStatus: PROPOSED | ADMITTED | REJECTED
+- admittedRequirementId: string | null
+- admittedRequirementRevision: integer | null
 - timestamp
 ```
 
@@ -5045,7 +5081,8 @@ ProviderRequestProvenance
 - privacyClassification: string
 - providerContextEnvelopeRef: string
 - localRetentionClass: SESSION | PROJECT | USER_PINNED
-- deletionStatus: ACTIVE | DELETED
+- deletionStatus: ACTIVE | DELETION_REQUESTED | DELETED
+- retentionDependencyRefs: list of { dependencyKind: ACTIVE_TASK | PENDING_RETRY | UNRESOLVED_EXTERNAL_EFFECT | RECOVERY | EVIDENCE | USAGE_ATTRIBUTION | AUDIT_HOLD, dependencyId }
 - invalidationDependencyRefs: string[]
 - attemptIds: string[]
 - normalizedResponseEventRefs: string[]
@@ -5066,12 +5103,18 @@ ProviderRequestAttempt
 - provenanceId: string
 - logicalRequestId: string
 - attemptNumber: integer
+- retryReason: INITIAL | TRANSIENT_FAILURE | RATE_LIMIT | CONTINUATION | RECONCILED_RETRY | FAILOVER
+- providerProfileId: string
+- modelId: string
 - externalEffectId: string
 - modelRequestId: string (ModelRequest.requestId; reused by ModelEvent.requestId)
 - providerRequestId: string | null (provider-issued request identifier; reused by UsageRecord.providerRequestId when available)
 - backgroundOperationId: string | null
 - usageRecordIds: string[]
 - responseId: string | null
+- attemptState: PREPARED | ISSUED | STREAMING | COMPLETED | FAILED | CANCELLED | UNKNOWN | RECONCILING | RESOLVED
+- terminalModelEventRef: string | null
+- reconciliationEvidenceRefs: string[]
 - startedAt: timestamp
 - completedAt: timestamp | null
 ```
@@ -5193,6 +5236,7 @@ LocalDecisionEngineProfile
 LocalDecisionProposal
 LocalDecisionAcceptanceProfile
 ConstructionRequirement
+LockedDecision
 ProviderRequestProvenance
 ProviderRequestAttempt
 ```

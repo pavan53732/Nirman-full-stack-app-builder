@@ -856,8 +856,8 @@ CASES = {
         "ChangeReportRecord\n- recordId\n- transactionId\n- projectRevision\n",
         "semantic documentation"),
     "ConversationDecision loses evidence provenance": (
-        SCHEMAS, "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n- sourceEvidenceIds\n",
-        "ConversationDecision\n- decisionId\n- status\n- sourceMessageId\n",
+        SCHEMAS, "- canonicalDecisionId: string | null\n- sourceMessageId\n- sourceEvidenceIds\n",
+        "- canonicalDecisionId: string | null\n- sourceMessageId\n",
         "semantic documentation"),
     "forward traversal claims runtime implementation again": (
         BS, "Forward traversal proves that every registered capability has a complete declared contract and certification traceability chain",
@@ -1645,7 +1645,7 @@ CASES = {
         "", "dangling reference"),
     "remove Conversation contract row": (
         BS,
-        "| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212 | M121 | CROSS_CUTTING |\n",
+        "| CONTRACT.RUNTIME.CONVERSATION_CONTEXT | BS §82 | — | TA §86 | ADR-212, ADR-253, ADR-255 | M121 | CROSS_CUTTING |\n",
         "", "unregistered contract"),
     "remove Change contract row": (
         BS,
@@ -2237,6 +2237,24 @@ CASES = {
     "conversation proposal promoted to canonical authority": (
         TA, "`ConversationRequirement` is a proposal envelope owned by Conversation, not a canonical construction requirement",
         "`ConversationRequirement` is a canonical construction requirement owned by Conversation",
+        "semantic documentation"),
+    "conversation decision promoted to canonical authority": (
+        TA, "`ConversationDecision` is a proposal envelope owned by Conversation, not a canonical locked decision",
+        "`ConversationDecision` is a canonical locked decision owned by Conversation",
+        "semantic documentation"),
+    "memory decision projection promoted to authority": (
+        TA, "derived semantic-memory projection and has no admission, locking, revision, supersession, or invalidation authority",
+        "canonical decision authority",
+        "semantic documentation"),
+    "requirement delta revision guard removed": (
+        SCHEMAS, "- targetRequirementRevision: integer | null", "",
+        "semantic documentation"),
+    "provider attempt uncertain state removed": (
+        SCHEMAS, "- attemptState: PREPARED | ISSUED | STREAMING | COMPLETED | FAILED | CANCELLED | UNKNOWN | RECONCILING | RESOLVED",
+        "- attemptState: PREPARED | ISSUED | STREAMING | COMPLETED | FAILED | CANCELLED | RESOLVED",
+        "semantic documentation"),
+    "provider retention dependencies removed": (
+        SCHEMAS, "- retentionDependencyRefs: list of { dependencyKind: ACTIVE_TASK | PENDING_RETRY | UNRESOLVED_EXTERNAL_EFFECT | RECOVERY | EVIDENCE | USAGE_ATTRIBUTION | AUDIT_HOLD, dependencyId }", "",
         "semantic documentation"),
 }
 

@@ -321,6 +321,7 @@
 | `LocalDecisionProposal` | §1.79 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
+| `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -601,4 +602,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-254 | 5 | Accepted 5 |
+| ADR-250–ADR-256 | 7 | Accepted 7 |
