@@ -5119,6 +5119,64 @@ ProviderRequestAttempt
 - completedAt: timestamp | null
 ```
 
+### 2.132 ContractDoubleScenario
+
+**Owner:** TA §74.1 · **Contract:** CONTRACT.RUNTIME.INTEGRATION_BOUNDARY · **Projected at:** —
+
+```text
+ContractDoubleScenario
+- scenarioId
+- contractDoubleId
+- integrationId
+- requestMatcherRef
+- responseSchemaRef
+- responseFixtureRef
+- faultMode: SUCCESS | VALIDATION_ERROR | AUTHENTICATION_FAILURE | AUTHORIZATION_FAILURE | RATE_LIMIT | RETRY_AFTER | TIMEOUT | DISCONNECT_BEFORE_HEADERS | DISCONNECT_DURING_BODY | MALFORMED_RESPONSE | PARTIAL_RESPONSE | DUPLICATE_RESPONSE | OUT_OF_ORDER_RESPONSE | UNKNOWN_SUBMISSION_OUTCOME | SCHEMA_EVOLUTION
+- deterministicClock
+- latencyProfile
+- invocationLimit
+- expectedClientBehavior
+- coveredRequirementIds
+- evidenceLabel: DOUBLE_BACKED
+```
+
+### 2.133 AndroidArtifactInspectionRecord
+
+**Owner:** TA §74.3 · **Contract:** CONTRACT.RUNTIME.INTEGRATION_BOUNDARY · **Projected at:** —
+
+```text
+AndroidArtifactInspectionRecord
+- inspectionId
+- artifactId
+- artifactFingerprint
+- projectRevisionId
+- toolchainLockId
+- artifactKind: APK | AAB
+- packageName
+- versionCode
+- versionName
+- minSdk
+- targetSdk
+- signingIdentityRef
+- manifestDigest
+- dexDigests
+- resourceTableDigest
+- nativeLibraryInventory
+- abiInventory
+- permissionInventory
+- exportedComponentInventory
+- assetManifestComparison
+- embeddedSecretFindings
+- debuggable
+- backupPolicy
+- cleartextPolicy
+- unexpectedEntries
+- sbomRef
+- result: PASS | FAIL | BLOCKED
+- evidenceIds
+- inspectedAt
+```
+
 
 ## 3. Canonical schema registry
 
@@ -5239,6 +5297,8 @@ ConstructionRequirement
 LockedDecision
 ProviderRequestProvenance
 ProviderRequestAttempt
+ContractDoubleScenario
+AndroidArtifactInspectionRecord
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).

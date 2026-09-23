@@ -455,6 +455,8 @@
 | `LocalDecisionEngineProfile` | §2.129 | TA §49.5 | — | TA §58.17 |
 | `ProviderRequestProvenance` | §2.130 | TA §24.4 | — | — |
 | `ProviderRequestAttempt` | §2.131 | TA §24.6 | — | — |
+| `ContractDoubleScenario` | §2.132 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
+| `AndroidArtifactInspectionRecord` | §2.133 | TA §74.3 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -602,4 +604,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-257 | 8 | Accepted 8 |
+| ADR-250–ADR-259 | 10 | Accepted 10 |

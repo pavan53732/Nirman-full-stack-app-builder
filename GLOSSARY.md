@@ -86,6 +86,8 @@
 
 **AndroidCapabilityProfile** — The internal capability-profile identity (`profileId`, toolchain lock, device matrix, evidence and fixture identities, derived status). — BS §5.7.1; SCHEMAS §1.1.
 
+**AndroidArtifactInspectionRecord** — The canonical content-inspection evidence record binding package coordinates, signing identity, archive digests, native library and permission inventories, and security policy checks before artifact promotion or export. — TA §74.3; SCHEMAS §2.133; ADR-259.
+
 **AndroidConstructionContract** — The canonical contract that binds a construction session's intent, technology plan, and acceptance to one revision. — BS §42; SCHEMAS §1.54; ADR-158.
 
 **AndroidTechnologyPlan** — The record that resolves a session to one technology composition and toolchain lock through exactly one registered `AndroidTechnologyAdapter`. — BS §80.5.1; TA §73.10; SCHEMAS §1.48.
@@ -105,6 +107,8 @@
 **Content / ContentRevision / ContentRevisionDraft / ContentMutation** — The persisted product-content resource, its admitted revisions, and the draft-only proposal a mutation carries. — BS §81; TA §85; SCHEMAS §1.66; ADR-211.
 
 **ContextPackage** — The placed, gated, and recall-verified context assembled for a provider request. — BS §53; TA §59; SCHEMAS §1.16.
+
+**ContractDoubleScenario** — The typed record defining deterministic external-service simulation scenarios across 15 closed fault modes for integration boundary testing. — TA §74.1; SCHEMAS §2.132; ADR-258.
 
 **Conversation / ConversationDecision / ConversationRequirement** — The durable development aggregate with revision-bound Continue semantics; `ConversationRequirement` is a proposal envelope whose admitted result references, but never replaces, the canonical `ConstructionRequirement`. — BS §82; TA §86; SCHEMAS §1.69; ADR-212.
 

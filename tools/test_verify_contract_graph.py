@@ -496,6 +496,14 @@ CASES = {
         ADRS, "## ADR-257: Lock Windows 10/11 x64 builder host and native Android-only generated architectures\n",
         "## ADR-999: Lock Windows 10/11 x64 builder host and native Android-only generated architectures\n",
         "semantic documentation"),
+    "ADR-258 missing from nirman-adrs.md": (
+        ADRS, "## ADR-258: Deterministic integration fault scenarios and ContractDouble boundary\n",
+        "## ADR-998: Deterministic integration fault scenarios and ContractDouble boundary\n",
+        "semantic documentation"),
+    "ADR-259 missing from nirman-adrs.md": (
+        ADRS, "## ADR-259: Canonical Android artifact content inspection and evidence binding\n",
+        "## ADR-997: Canonical Android artifact content inspection and evidence binding\n",
+        "semantic documentation"),
     "TA retains JavaScriptAndroidAdapter": (
         TA, "The mixed Kotlin-plus-Java-plus-NDK/CMake native implementation family",
         "| `JavaScriptAndroidAdapter` | module | `nirman-android` | Retired | resolutions only | §73.10 |\nThe mixed Kotlin-plus-Java-plus-NDK/CMake native implementation family",

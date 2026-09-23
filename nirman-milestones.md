@@ -351,10 +351,11 @@ Package supported Android projects as installable APK artifacts; produce an AAB 
 4. Add build logs, checksums, and artifact scanning.
 5. Add release review and explicit publish/signing approval.
 6. Add Nirman-managed local Android emulator installation validation.
+7. Add `AndroidArtifactInspector` content inspection generating canonical `AndroidArtifactInspectionRecord` (SCHEMAS §2.133, TA §74.3) with negative tampered-artifact fixtures (corrupted manifest, modified DEX digest, unmasked embedded secrets, unauthorized permissions, debuggable release build).
 
 ### Exit gate
 
-A supported Android project can be built into an installable APK artifact, or an AAB artifact only when the active PackagingProfile requires `APK_AND_AAB`; the artifact path and checksum are recorded, secrets are scanned, and the user can install or locate the result without a hosted build service.
+A supported Android project can be built into an installable APK artifact, or an AAB artifact only when the active PackagingProfile requires `APK_AND_AAB`; the artifact path and checksum are recorded, secrets are scanned, `AndroidArtifactInspector` emits an authoritative `AndroidArtifactInspectionRecord` validating archive digests and security properties, and the user can install or locate the result without a hosted build service.
 
 ---
 
@@ -362,7 +363,7 @@ A supported Android project can be built into an installable APK artifact, or an
 
 ### Objectives
 
-Implement the internal Android capability registry and profile identity used for AI-driven selection and composition. Record technology composition, toolchain locks, emulator profile matrices, fixtures, known exclusions, and evidence status for representative Java, Kotlin, Android Views, Jetpack Compose, Expo/React Native, custom native-module, device-API, and mixed-architecture profiles. This milestone establishes profile-level support evidence; it does not claim universal production coverage.
+Implement the internal Android capability registry and profile identity used for AI-driven selection and composition. Record technology composition, toolchain locks, emulator profile matrices, fixtures, known exclusions, and evidence status for representative Java, Kotlin, Android Views, Jetpack Compose, Room/WorkManager offline, custom native-module, device-API, and mixed-architecture profiles. This milestone establishes profile-level support evidence; it does not claim universal production coverage.
 
 ### Work items
 
@@ -372,10 +373,11 @@ Implement the internal Android capability registry and profile identity used for
 4. Add Android logs, install, reload, and build status.
 5. Add APK build profiles where the local environment supports them.
 6. Add signing configuration with secrets stored outside project source.
+7. Add `AndroidArtifactInspectionRecord` generation and verification across representative profiles.
 
 ### Exit gate
 
-A supported mobile fixture can be generated, launched on one Nirman-managed local Android emulator, tested with synthetic data, and built into a local artifact with clear environment diagnostics.
+A supported mobile fixture can be generated, launched on one Nirman-managed local Android emulator, tested with synthetic data, built into a local artifact with clear environment diagnostics, and verified with valid `AndroidArtifactInspectionRecord` evidence.
 
 ---
 
@@ -569,7 +571,7 @@ The ModelGateway must normalize Chat Completions, Responses-style, message-orien
 
 Provider capability detection must distinguish native reasoning support, supported effort levels, maximum reasoning-token capacity when known, reasoning-usage reporting, and continuation support.
 
-**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage, logical-request/attempt lineage, external-effect reconciliation, retention behavior, and provider request IDs without exposing the key or persisting excluded content. Fixtures MUST cover cancellation before and after issuance, timeout with unknown outcome, disconnect during stream, bridge crash, provider background continuation, rate-limit retry, provider/model failover, restart before reconciliation, duplicate-response suppression, usage attribution per attempt, deletion blocked by each retention dependency class, tombstoning after dependencies close, and proof that credentials, sensitive headers, raw private reasoning, excluded content, and unnecessary payloads never enter provenance.
+**Exit gate:** The user can configure a provider manually, test the selected model, detect text/vision/tool/structured-output/streaming/cancellation/context/reasoning capabilities, verify the supported reasoning-effort levels, run a multi-turn request, execute a tool call, **exercise fragmented provider deltas through to a complete normalized response with cancellation and reconnect, verify that no partial delta executes**, and inspect normalized usage, logical-request/attempt lineage, external-effect reconciliation, retention behavior, and provider request IDs without exposing the key or persisting excluded content. Fixtures MUST cover cancellation before and after issuance, timeout with unknown outcome, disconnect during stream, bridge crash, provider background continuation, rate-limit retry, provider/model failover, restart before reconciliation, duplicate-response suppression, usage attribution per attempt, deletion blocked by each retention dependency class, tombstoning after dependencies close, and proof that credentials, sensitive headers, raw private reasoning, excluded content, and unnecessary payloads never enter provenance. Fixtures MUST include the 10-point provider crash-order matrix, asserting clean recovery and reconciliation when a crash or process termination occurs: (1) before issuance, (2) immediately after issuance, (3) after provider acknowledgement, (4) during streaming, (5) after terminal response but before `ModelEvent` persistence, (6) after `ModelEvent` but before `UsageRecord`, (7) after usage but before reconciliation completion, (8) during cancellation, (9) during failover, and (10) while deletion is requested.
 
 ## M23: Controlled self-development loop
 
@@ -625,7 +627,7 @@ Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225) and `EpisodicRepa
 
 Before promoting any APK or AAB artifact, `SecurityRiskScorer` (TA §70.3; BS §58.2) must aggregate all `AppSecurityScanner` findings into a `SecurityRiskScore`, and `SecurityAuditGenerator` (TA §70.3; BS §58.2) must produce a security audit report artifact covering all finding dispositions, risk score, SBOM completeness, and artifact provenance. An artifact without a complete security audit report or with an unresolved blocking finding must not be promoted as a deliverable (BS §58.5). Dependency-intelligence queries from the artifact release gate — health status, finding enumeration, SBOM completeness, and disposition record lookup — are coordinated via `DependencyIntelligenceService` (TA §53.8.1; BS §58.3).
 
-**Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains.
+**Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains. Recovery ladder behavior is proven across all 10 provider crash points, reconciling pending attempts before retrying or escalating.
 
 ## M27: Self-observation and episode evaluation
 
@@ -692,7 +694,7 @@ Implement the single Autonomous-build policy (BS §23.3, §23.7; TA §16.2.1; AD
 
 Implement the never-pause rules of ADR-226: the repeated-action guard (BS §23.7) routes to `RecoveryAuthority` and never issues `task.pause`; `LoopHeartbeat` (BS §29.4; SCHEMAS §1.78) is stamped on every kernel transition and scanned by `SupervisorLifecycle` (TA §57.4); a `RUNNING` task without a transition inside the stall detection window is retired and re-leased with fingerprint `LOOP_HUNG`; a worker rejected `EVIDENCE_NOT_ACQUIRED` for the configured consecutive count is recycled; a level-8/9 requirement records its decision while independent requirements continue and the goal reports `PARTIALLY_BLOCKED` only when nothing independent remains. Fixtures: a fixture worker that repeats one failing command is moved up the ladder within one stall window and the task never enters `PAUSED`; a fixture worker whose process heartbeats but whose kernel emits no transition is retired at the window and the task resumes on a fresh lease; a two-requirement fixture with one requirement blocked at level 8 completes the other and reports `PARTIALLY_BLOCKED` with the decision attached.
 
-Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the session-scoped `ContractDouble` (BS §76.5; TA §74.1; SCHEMAS §2.95). Fixtures: a MUST-ask question left unanswered past the wait policy yields `PROCEEDED_ON_DEFAULT`, `ASSUMED` dependent requirements, and an unblocked build; a late answer replans through a `refocus` directive without a restart; an application declaring an integration with no backend completes its offline and error scenarios `DOUBLE_BACKED` while the real service stays `SPECIFIED`; the double is unreachable from any non-loopback address.
+Implement answer-or-proceed (BS §69.11; SCHEMAS §1.76; ADR-225) and the session-scoped `ContractDouble` (BS §76.5; TA §74.1; SCHEMAS §2.95). Fixtures: a MUST-ask question left unanswered past the wait policy yields `PROCEEDED_ON_DEFAULT`, `ASSUMED` dependent requirements, and an unblocked build; a late answer replans through a `refocus` directive without a restart; an application declaring an integration with no backend completes its offline and error scenarios `DOUBLE_BACKED` while the real service stays `SPECIFIED`; the double is unreachable from any non-loopback address. Implement typed `ContractDoubleScenario` fixtures (`TEST-INT-DOUBLE-001`; TA §74.1, SCHEMAS §2.132; ADR-258) covering the 15 closed fault modes (`SUCCESS`, `VALIDATION_ERROR`, `AUTHENTICATION_FAILURE`, `AUTHORIZATION_FAILURE`, `RATE_LIMIT`, `RETRY_AFTER`, `TIMEOUT`, `DISCONNECT_BEFORE_HEADERS`, `DISCONNECT_DURING_BODY`, `MALFORMED_RESPONSE`, `PARTIAL_RESPONSE`, `DUPLICATE_RESPONSE`, `OUT_OF_ORDER_RESPONSE`, `UNKNOWN_SUBMISSION_OUTCOME`, `SCHEMA_EVOLUTION`). Fixture proves deterministic scenario selection and asserts that all produced evidence is tagged `DOUBLE_BACKED` and never promotes `IntegrationOperationality` of a real external service to `FUNCTIONAL`.
 
 **Exit gate:** A background fixture task completes a dependency install, local commit, build, preview restart, and repair without approval pauses, while deployment, signing, credential access, destructive commands, and remote pushes remain hard-gated.
 
@@ -925,13 +927,13 @@ These milestones extend the existing Nirman roadmap with the accepted constructi
 
 Implement the versioned AndroidConstructionContract, including intent, screenshots, features, UI, data, integrations, technology plan, canonical `requirementIds`, emulator profile matrix, validation model, and artifact model. Implement canonical `LockedDecision` identity and revision under the same `ConstraintRegistry` authority, while treating Conversation and Memory records as proposal/index and retrieval projections only. Implement the `ConstraintRegistry` admission path and canonical `ConstructionRequirement` record with stable identity, explicit/inferred origin, source-feature and source-message/evidence lineage, derivation, acceptance criteria, monotonic requirement revisions, applicable contract-revision bindings, admission provenance, state, and supersession. Add strict schema validation, migrations, source references for inferences, and explicit distinction between user facts and model proposals.
 
-**Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; every mandatory feature resolves to at least one active canonical requirement in the same contract revision; inferred companions remain proposals until `ConstraintRegistry` admission; conversation indexing and downstream implementation traceability reuse the same canonical requirement ID; all downstream workers consume the same contract; contract versions can be migrated and replayed.
+**Exit gate:** every new session produces a valid contract; malformed or unknown fields are rejected; every mandatory feature resolves to at least one active canonical requirement in the same contract revision; inferred companions remain proposals until `ConstraintRegistry` admission; conversation indexing and downstream implementation traceability reuse the same canonical requirement ID; all downstream workers consume the same contract; contract versions can be migrated and replayed. Fixtures prove requirement admission and stable identity: user prompt intent converts through `ConversationRequirement` proposal → `ConstraintRegistry` admission → `ConstructionRequirement` with stable identity, preserving message origin lineage.
 
 ## M40 — Pure session reducer and event replay
 
 Implement the side-effect-free session reducer, append-only event store, monotonic event sequences, transition validation, and crash reconstruction. Add impossible-transition tests and replay tests.
 
-**Exit gate:** forced supervisor termination followed by restart reconstructs the same session state from durable events and checkpoints.
+**Exit gate:** forced supervisor termination followed by restart reconstructs the same session state from durable events and checkpoints. Event replay fixtures include all 10 crash points from the provider crash-order matrix (M22), verifying that replay after crashes at any request stage cleanly reconstructs session state with zero duplicate effects or phantom records.
 
 ## M41 — ConstructionTransaction and commit barrier
 
@@ -947,7 +949,7 @@ Implement renewable SessionLease records, progress-aware heartbeat renewal, work
 
 ## M43 — AndroidToolchainManifest and clean-machine authority
 
-Implement Android toolchain discovery, lock generation, version/hash/license validation, isolated environment construction, environment snapshots, and authorized toolchain repair for JDK, Gradle, AGP, Kotlin, SDK, build tools, platform tools, NDK, CMake, ADB, emulator, Node/package manager, and selected React Native/Expo tooling.
+Implement Android toolchain discovery, lock generation, version/hash/license validation, isolated environment construction, environment snapshots, and authorized toolchain repair for JDK, Gradle, AGP, Kotlin, SDK, build tools, platform tools, NDK, CMake, and ADB.
 
 **Exit gate:** a clean-machine fixture builds using only the locked Android toolchain; host PATH and unrelated SDK installations cannot change the result.
 
@@ -1043,7 +1045,7 @@ Implement `FailureModeRegistry` with triggers, prevention checks, classification
 
 Implement `TestTraceabilityService` mapping every mandatory canonical `ConstructionRequirement.requirementId` to its acceptance criteria, implementation nodes, scenarios, tests, devices, results, evidence, proof, completion, and artifact revisions. Support honest skipped, blocked, flaky, and not-applicable states.
 
-**Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception. A stale `RequirementDelta` is rejected; an admitted revision invalidates affected implementation, scenarios, evidence, proof, preview, completion, and artifact projections until revalidation.
+**Exit gate:** no mandatory requirement can be reported complete without an executable validation path or an explicit governed exception. A stale `RequirementDelta` is rejected; an admitted revision invalidates affected implementation, scenarios, evidence, proof, preview, completion, and artifact projections until revalidation. Fixtures MUST include: (1) forward round-trip and reverse traceability fixture, exercising the chain from `source message → ConversationRequirement proposal → ConstraintRegistry admission → ConstructionRequirement → AndroidConstructionContract.requirementIds → RequirementToImplementationGraph → Scenario → ValidationResult → EvidenceRecord → ProofSynthesis → CompletionDecision → promoted APK`, followed by reverse lookup from APK evidence back to the originating conversation message; and (2) requirement revision invalidation fixture, executing mutations across each dimension of the requirement invalidation matrix (TA §44.3.3.1: `statement`, `mandatory`, `acceptanceCriteria`, `sourceFeatureLineage`, `applicability`, `privacyClassification`, `integrationRequirement`, `deviceRequirement`) and asserting the exact invalidation cascade across downstream mappings, scenarios, tests, evidence, proof, completion, preview, and artifacts.
 
 ## M56 — Architecture and contract drift detection
 
@@ -1059,7 +1061,7 @@ Implement generated project handbooks, release-intelligence reports, Logcat/ANR/
 
 ## M58 — Validated repair promotion and final integration
 
-Implement independent-fixture validation for learned repair patterns, bounded alternative strategy branches, and end-to-end regression testing across native, Compose, Java/Views, React Native/Expo, native modules, offline data, permissions, emulators, Nirman-managed local Android emulators, provider failures, toolchain failures, and artifact gates.
+Implement independent-fixture validation for learned repair patterns, bounded alternative strategy branches, and end-to-end regression testing across native, Compose, Java/Views, Room/WorkManager offline, native modules, permissions, emulators, Nirman-managed local Android emulators, provider failures, toolchain failures, and artifact gates.
 
 **Exit gate:** capability support is reported from passing fixtures and retained evidence, not module counts or unsupported percentages.
 
@@ -1537,7 +1539,7 @@ Implement the side-by-side Android preview and execution/evidence surface with `
 
 Run a fixture that starts from one Android product concept and optional screenshots, selects the implementation autonomously, constructs code and branding assets, updates the Nirman-managed local Android emulator preview through real revisions, injects build, install, runtime, and stale-revision failures, recovers from a checkpoint, and produces an APK whose source, assets, preview, tests, and evidence identities match.
 
-**Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK.
+**Exit gate:** the complete path passes without a user-facing template or framework picker, with no fake execution status, and with a revision-bound evidence report proving the promoted APK. The fixture verifies end-to-end forward and reverse requirement traceability, proving that every promoted feature links back to admitted `ConstructionRequirement` records and source conversation messages.
 
 ## M96–M99 acceptance matrix
 
@@ -1695,7 +1697,7 @@ Parameterized coverage: seven technology profiles specified as `AndroidCapabilit
 
 Runtime certification: not claimed by this milestone. Runtime certification of the profiles requires `TEST-PSYNC-001` fixture executions against matching environment fingerprints, toolchain locks, emulator sessions, and source revisions per ADR-195, and is tracked separately. The current device-preview behavior depends on a running Nirman-managed local Android emulator session and the runtime adapter implementations; neither is asserted by this documentation milestone.
 
-**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, Nirman-managed local Android emulator runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The fixture MUST also prove frame timing, dropped-frame delta, sequence-gap detection, frozen/blank frame detection, and presentation-surface health evidence. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
+**Exit gate:** one real Android fixture completes the full path from chat intent to durable task/goal, requirements and acceptance criteria, agent plan, authorized worker execution, source revision, build, APK, Nirman-managed local Android emulator runtime, observed evidence, validated promotion, durable synchronization event sequence, and reconstructed preview panel projection. The fixture must prove that a model statement, successful build, or worker progress message cannot make the panel show a current running preview, and that every displayed claim retains causal provenance. The fixture MUST also prove frame timing, dropped-frame delta, sequence-gap detection, frozen/blank frame detection, and presentation-surface health evidence. Room migration path matrix fixtures validate migrations across schema version increments (`oldVersion → intermediate paths → currentVersion`), asserting preserved rows, transformed column mapping, non-null default values, foreign key integrity, index re-creation, interrupted migration rollback, corrupt db handling, downgrade rejection, and prohibition of unauthorized destructive migrations. The contract-graph verifier §67.11 reports zero defects; `CLAUSE.PREVIEW_SYNC.ADAPTER_BOUND` and `CLAUSE.PREVIEW_SYNC.MODE_RESOLVER` are reported SEALED in §67.12. Each row of the M108 parameterized fixture matrix is parameterized into `TEST-PSYNC-001` and defines the required evidence shape and resolver branch. This milestone does not assert runtime execution or runtime certification of every row. Runtime execution of individual profiles is tracked separately and may certify only when the matching toolchain, environment, device/runtime session, source revision, and evidence requirements are actually satisfied.
 
 ## M109 — Preview projection resilience and runtime-certification evidence
 
@@ -1773,7 +1775,7 @@ Implement independent collection and validation for applicable Play Integrity, A
 
 Implement the authenticated command registry, typed response and error envelopes, command-to-use-case-to-authority-to-transaction mappings, projection snapshots, subscription replay, snapshot cutover, backpressure, stale-command handling, and generated Android service adapter.
 
-**Exit gate:** when implemented, executable fixtures MUST prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization.
+**Exit gate:** when implemented, executable fixtures MUST prove every initial command kind, scope and authorization rejection, idempotency, stale revision behavior, typed error mapping, cancellation, timeout, reconnect, event-gap recovery, supervisor restart, SQLite rollback, optimistic-state separation, and generated Android service error normalization. Offline synchronization conflict fixtures evaluate repository resilience across the conflict matrix: local update vs remote update, deleted locally vs modified remotely, duplicate outbox replay, lost server ack, clock skew, auth expiry mid-batch, reconnect during active batch, idempotency key reuse, and process death during replay.
 
 ## M116 — Background continuity and interruption recovery
 
@@ -1783,7 +1785,7 @@ Implement orthogonal UI, host, device, provider, lease, and reconciliation dimen
 ## M117 — Local APK export provenance and delivery admission
 
 Implement profile-bound local deployment export using `ExportVerificationRecord` with the `APKExportRecord` view, including artifact identity, packaging profile, source revision, checkpoint, source/destination file identities, request fingerprint, idempotency key, signing binding, validation and promotion decisions, reconciliation reference, failure evidence, destination identity, source/destination hashes, byte count, and copy state. Wire export state into the authoritative delivery projection. Preserve separate source/workspace, ZIP, and Git access as `SOURCE_ACCESS_ONLY`; when source access is exported, synthesize a verified `README.md` via `ProjectReadmeSynthesizer` (TA §47.4, §76.3; BS §78.3) and verify public API documentation consistency via `DocCodeMismatchDetector` (TA §47.4; BS §78.3).
-**Exit gate:** executable fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds or external deployment destinations, `UNKNOWN → RECONCILING` copy recovery, source/destination hash equality, idempotent retry protection, signing/validation/promotion linkage, delivery projection visibility, and refusal to treat source access as deployment completion.
+**Exit gate:** executable fixtures prove required APK delivery, optional declared AAB behavior, rejection of undeclared artifact kinds or external deployment destinations, `UNKNOWN → RECONCILING` copy recovery, source/destination hash equality, idempotent retry protection, signing/validation/promotion linkage, delivery projection visibility, and refusal to treat source access as deployment completion. `AndroidArtifactInspector` generates `AndroidArtifactInspectionRecord` (SCHEMAS §2.133, TA §74.3; ADR-259) before deployment admission; negative fixtures assert rejection on archive tampering, manifest digest mismatch, modified DEX digest, signature mismatch, unexpected native binaries, or embedded plaintext secrets; and release fixtures prove that debug-only diagnostics and validation instrumentation (TA §73.17, BS §76.7) are stripped from release APK artifacts.
 
 ## M117 command-boundary closure (resolves open contract-gap work item from M6 §9)
 
@@ -1967,6 +1969,7 @@ J. projector failure and recovery lifecycle:
 10. the committed-transaction event of clause 3 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
 11. the tip is reconstructed after compaction and after restart from preserved committed-transaction provenance, without replaying discarded events
 12. a committed-transaction event of a different project never contributes to this project's tip
+    N. requirement revision invalidation handling: verifies that requirement mutations admitted under `RequirementDelta` propagate through `ChangeIntelligenceEngine` and the impact graph according to the requirement revision invalidation matrix (TA §44.3.3.1), invalidating dependent tests, evidence, preview, and artifacts.
 
 ---
 

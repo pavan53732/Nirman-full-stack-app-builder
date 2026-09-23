@@ -1832,6 +1832,41 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "scope lock", "TA must not retain JavaScriptAndroidAdapter; native Android only (ADR-257)")
     if "RN_EXPO_FAST_REFRESH" in ta or (sch and "RN_EXPO_FAST_REFRESH" in sch):
         D.add("semantic documentation", "scope lock", "TA and nirman-schemas.md must not retain RN_EXPO_FAST_REFRESH (ADR-257)")
+    # Integration fault scenarios and ContractDouble boundary (ADR-258).
+    m_258 = adr_blocks(dec).get(258, "")
+    if not m_258:
+        D.add("semantic documentation", "integration faults", "ADR-258 is missing from nirman-adrs.md")
+    else:
+        for needle, why in (
+                ("**Status:** Accepted", "be Accepted"),
+                ("`CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`", "lock CONTRACT.RUNTIME.INTEGRATION_BOUNDARY"),
+                ("`CONTRACT.RUNTIME.EVIDENCE`", "lock CONTRACT.RUNTIME.EVIDENCE"),
+                ("`ContractDoubleScenario`", "define ContractDoubleScenario"),
+                ("`DOUBLE_BACKED`", "require DOUBLE_BACKED evidence label")):
+            if needle not in m_258:
+                D.add("semantic documentation", "integration faults", f"ADR-258 must {why}")
+    if sch and "ContractDoubleScenario" not in sch:
+        D.add("semantic documentation", "integration faults", "ContractDoubleScenario schema is missing from nirman-schemas.md (ADR-258)")
+    if "ContractDoubleScenario" not in ta:
+        D.add("semantic documentation", "integration faults", "TA §74.1 must project ContractDoubleScenario (ADR-258)")
+    # Canonical Android artifact content inspection (ADR-259).
+    m_259 = adr_blocks(dec).get(259, "")
+    if not m_259:
+        D.add("semantic documentation", "artifact inspection", "ADR-259 is missing from nirman-adrs.md")
+    else:
+        for needle, why in (
+                ("**Status:** Accepted", "be Accepted"),
+                ("`CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`", "lock CONTRACT.RUNTIME.INTEGRATION_BOUNDARY"),
+                ("`CONTRACT.RUNTIME.EVIDENCE`", "lock CONTRACT.RUNTIME.EVIDENCE"),
+                ("`CONTRACT.RUNTIME.PLATFORM_CAPABILITY`", "lock CONTRACT.RUNTIME.PLATFORM_CAPABILITY"),
+                ("`AndroidArtifactInspectionRecord`", "define AndroidArtifactInspectionRecord"),
+                ("`AndroidArtifactInspector`", "reference AndroidArtifactInspector")):
+            if needle not in m_259:
+                D.add("semantic documentation", "artifact inspection", f"ADR-259 must {why}")
+    if sch and "AndroidArtifactInspectionRecord" not in sch:
+        D.add("semantic documentation", "artifact inspection", "AndroidArtifactInspectionRecord schema is missing from nirman-schemas.md (ADR-259)")
+    if "AndroidArtifactInspectionRecord" not in ta:
+        D.add("semantic documentation", "artifact inspection", "TA §74.3 must project AndroidArtifactInspectionRecord (ADR-259)")
     # Process model (TA §3.5; ADR-222): every worker is its own NirmanWorker.exe
     # process with no authority, credential, file, socket, or child; the
     # supervisor fulfils every model call and executes every proposal. A

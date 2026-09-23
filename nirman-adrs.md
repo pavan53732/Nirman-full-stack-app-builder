@@ -3691,3 +3691,49 @@ BS §79.17 and TA §49.4 enforce preflight rejection on non-x64 hosts; `Toolchai
 An explicit, versioned product decision and architecture record expanding Nirman's product boundary to additional host platforms or non-native mobile runtimes, accompanied by complete toolchain provisioning, emulator runtime, and evidence validation specifications; not merely upstream availability of a Windows ARM64 emulator or third-party framework updates.
 
 ---
+
+## ADR-258: Deterministic integration fault scenarios and ContractDouble boundary
+
+**Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.EVIDENCE`
+
+**Status:** Accepted
+
+**Decision:**
+1. External service integration boundaries use typed `ContractDoubleScenario` records (SCHEMAS §2.132, TA §74.1) defining deterministic simulation scenarios across 15 closed fault modes: `SUCCESS`, `VALIDATION_ERROR`, `AUTHENTICATION_FAILURE`, `AUTHORIZATION_FAILURE`, `RATE_LIMIT`, `RETRY_AFTER`, `TIMEOUT`, `DISCONNECT_BEFORE_HEADERS`, `DISCONNECT_DURING_BODY`, `MALFORMED_RESPONSE`, `PARTIAL_RESPONSE`, `DUPLICATE_RESPONSE`, `OUT_OF_ORDER_RESPONSE`, `UNKNOWN_SUBMISSION_OUTCOME`, and `SCHEMA_EVOLUTION`.
+2. Scenario selection is deterministic, derived from integration characteristics (auth type, read/write, retry safety, idempotency, streaming, pagination, offline requirements, sensitive data, acceptance criteria) with an explicit record of why each fault mode is applicable or excluded.
+3. Evidence produced from `ContractDouble` execution is permanently labeled `DOUBLE_BACKED`. `EvidenceAuthority` MUST NEVER count `DOUBLE_BACKED` evidence toward promoting an external integration to `FUNCTIONAL` for a real service.
+4. No new virtualization authority is created; `ContractDouble` remains supervisor-hosted under existing integration analysis and evidence authorities.
+
+**Rationale:**
+Testing external service integrations solely against happy-path mocks or ad-hoc stubs leaves mobile apps vulnerable to real-world edge cases (network drops, rate limits, schema changes). Formalizing typed scenarios and deterministic fault selection ensures exhaustive integration testing while strictly preventing mock evidence from masquerading as verified real-world operationality.
+
+**Consequences:**
+TA §74.1 adds the scenario-selection procedure and `ContractDoubleScenario` projection. SCHEMAS §2.132 defines the schema and registers it in `CanonicalSchemaRegistry`. BS §70 and §76 require fault-mode coverage for integration boundaries. Milestone M31 adds `TEST-INT-DOUBLE-001`.
+
+**Reversal trigger:**
+An architectural revision replacing local loopback simulation with an alternative deterministic verification mechanism approved by product and security authorities.
+
+---
+
+## ADR-259: Canonical Android artifact content inspection and evidence binding
+
+**Locks:** `CONTRACT.RUNTIME.INTEGRATION_BOUNDARY`, `CONTRACT.RUNTIME.EVIDENCE`, `CONTRACT.RUNTIME.PLATFORM_CAPABILITY`
+
+**Status:** Accepted
+
+**Decision:**
+1. Packaging, preview promotion, and local export delivery require comprehensive structural and content inspection of candidate APK and AAB binaries via `AndroidArtifactInspector`, emitting a canonical `AndroidArtifactInspectionRecord` (SCHEMAS §2.133, TA §74.3).
+2. The inspection record binds package coordinates (`packageName`, `versionCode`, `versionName`, `minSdk`, `targetSdk`), cryptographic signing identity (`signingIdentityRef`), digests (`manifestDigest`, `dexDigests`, `resourceTableDigest`), native library inventory (`nativeLibraryInventory`, `abiInventory`), security posture (`permissionInventory`, `exportedComponentInventory`, `debuggable`, `backupPolicy`, `cleartextPolicy`), asset fidelity (`assetManifestComparison`), static secret scan (`embeddedSecretFindings`), unexpected archive entries (`unexpectedEntries`), and SBOM reference (`sbomRef`).
+3. `AndroidArtifactInspectionRecord` produces evidence only. It is committed to `EvidenceAuthority` and evaluated by `PreviewPromotionGate` and `ArtifactAuthority`. The inspector does not possess independent promotion authority.
+4. Tampered, corrupted, debug-signed release, or secret-leaking artifacts fail inspection (`result: FAIL`) and block promotion and export.
+
+**Rationale:**
+Relying solely on build exit codes or file hashes is insufficient to prove artifact correctness and security. Autonomous builders must inspect the internal contents of the compiled archive (manifest, bytecode, resources, native binaries, signatures) before promotion to guarantee conformity to the construction contract and eliminate security vulnerabilities before export.
+
+**Consequences:**
+TA §74.3 and BS §78 incorporate mandatory artifact inspection before promotion or deployment. SCHEMAS §2.133 defines `AndroidArtifactInspectionRecord` and adds it to `CanonicalSchemaRegistry`. Milestones M10, M11, and M117 add positive and negative inspection fixtures.
+
+**Reversal trigger:**
+A product architecture change replacing container archive inspection with an alternative verified binary attestation standard.
+
+---
