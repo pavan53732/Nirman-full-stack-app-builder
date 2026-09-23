@@ -505,6 +505,10 @@ Integration values required by generated Android applications MUST be classified
 
 The hardcoded secret scanner (§58.2) blocks unclassified credential-like strings and any `BUILD_INJECTED` or `SERVER_HELD_SECRET` values discovered in source or decompiled APKs, while validating that `PUBLIC_CLIENT_CONFIG` items carry package/fingerprint restriction evidence.
 
+When a generated Android application consumes an AI, LLM, inference, embedding, speech, or other model-backed service, that service is a generated-application external integration, not Nirman's own AI provider path. Its endpoint identity, authentication profile, credential reference, data-transmission policy, privacy policy, runtime behavior, and failure/recovery policy MUST remain bound to the generated application's declared `AndroidServiceIntegration`.
+
+A generated application's AI-service configuration MUST NOT reuse Nirman's `ProviderProfile`, `SessionProviderMode`, provider credential references, `ModelGateway` lifecycle, or Nirman provider operationality state as though the application were an internal client of the Nirman provider path. Nirman's configured AI provider remains the provider for Nirman itself; any AI service consumed by the generated application is independently declared and governed.
+
 ### 5.7.6 External-effect reconciliation
 
 Every remote or externally visible side effect MUST be represented by an `ExternalEffectRecord` with an idempotency key, target identity, authority grant, request fingerprint, request state, response reference, compensation plan, and local transaction. The record MUST reference the applicable `IntegrationBoundaryContract`. If the response is lost after transmission may have occurred, the runtime MUST reconcile by idempotency key or read-back before retrying or declaring failure. Local rollback MUST NOT be described as undoing a remote effect unless compensation evidence proves it.
