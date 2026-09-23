@@ -33,9 +33,12 @@ starves the host — or the host must be assessed before a device-dependent run.
 - resource_probe
 
 ## Procedure
-1. Determine the host architecture and whether the SDK repository publishes an
-   emulator for it; where it does not, the emulator capability is UNAVAILABLE with
-   that stated reason and is never substituted.
+1. Determine the host architecture first. If the host is not Windows x64,
+   terminate preflight as `HOST_OUT_OF_SCOPE` before SDK/emulator discovery,
+   provisioning, project construction, build-only mode, or export (ADR-257).
+   Only on an accepted Windows x64 host, determine whether the SDK repository
+   publishes the selected emulator package; where it does not, the emulator
+   capability is UNAVAILABLE with that stated reason and is never substituted.
 2. Probe hypervisor platforms and confirm acceleration is actually usable, not merely
    installed.
 3. Confirm the selected system image matches the host architecture and the declared
