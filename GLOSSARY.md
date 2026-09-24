@@ -212,7 +212,7 @@
 
 **Backtracking / two-tier checkpoints** — File-tier and task-tier restore points that let the runtime rewind without losing evidence lineage. — TA §18; BS §11.
 
-**BlankScreenDetector** — The preview validation module evaluating frame luminescence, pixel entropy, and Compose semantics trees to detect blank, unrendered, or solid-color canvases. — TA §73.5.2; BS §56.5.
+**BlankScreenDetector** — The preview validation module evaluating frame luminescence, pixel entropy, and Compose semantics trees to detect blank, unrendered, or solid-color canvases. — TA §73.5.2; BS §56.6.
 
 **BuildReproducibilityChecker** — The artifact verification module executing independent multi-pass clean builds to verify deterministic byte-for-byte and archive equality under `ArtifactAuthority`. — TA §83.4; BS §42.1.
 
@@ -234,7 +234,7 @@
 
 **DataMinimizationChecker** — The static compliance module auditing detected PII and sensor access against the application's declared functional requirements to prevent over-collection. — TA §70.7.3; BS §43.1.
 
-**DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.3.
+**DeadControlDetector** — The UI exploration module verifying that interactive Compose controls produce observable state transitions or feedback rather than behaving as inert elements. — TA §62.1.1; BS §56.6.
 
 **DeepLinkIntentFilterGenerator** — The navigation and intent module generating manifest `<intent-filter>` declarations and Navigation Compose type-safe deep links. — TA §73.18.6; BS §43.1.
 
@@ -308,7 +308,7 @@
 
 **PrivacyPolicyGenerator** — The documentation synthesis module generating legally grounded privacy policies and Google Play Data Safety declaration responses from AST evidence. — TA §70.7.4; BS §43.1.
 
-**ProjectReadmeSynthesizer** — The documentation engine synthesizing truthful, deterministic README.md files for exported Android projects. — TA §47.4; TA §76.3; BS §83.
+**ProjectReadmeSynthesizer** — The documentation engine synthesizing truthful, deterministic README.md files for exported Android projects. — TA §47.4; TA §76.3; BS §78.3.
 
 **QueryPerformanceAnalyzer** — The static analysis module detecting N+1 queries in Room DAOs, recommending indices for multi-column queries, and verifying SQL parameter binding against SQL injection. — TA §47.4; BS §43.1.
 
@@ -402,7 +402,7 @@
 
 **Negative proof** — The requirement that invalid, stale, contradictory, missing, or mismatched evidence must prevent completion. — BS §56.7.
 
-**ReproScenario** — An executable reproduction scenario confirming a reported bug or user feedback regression before opening an autonomous repair transaction. — BS §62.4; TA §44.3.3.
+**ReproScenario** — An executable reproduction scenario confirming a reported bug or user feedback regression before opening an autonomous repair transaction. — BS §62.4; TA §63.3.
 
 **Same-scenario repair replay** — The mandatory requirement to retain and rerun the original failing scenario from its deterministic starting state after repair. — BS §80.6.9; ADR-240.
 
