@@ -425,7 +425,7 @@
 
 **Interface completeness gate** — The deterministic pre-dispatch check that an interface agreement contains all work-shape-required fields or explicit INAPPLICABLE reasons and is revision/context bound. — build spec §23.4; ADR-243.
 
-**Plan assignment migration** — The deterministic classification of active worker assignments after plan supersession as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. — build spec §27.11; technical architecture §58.12; ADR-243.
+**Plan assignment migration** — The deterministic classification of active worker assignments after plan supersession as RETAIN, REBASE, QUIESCE, CANCEL, or REPLACE. — build spec §52.13; technical architecture §58.12; ADR-243.
 
 **Swarm coordination integrity** — The property that concurrent workers can only act through current leases, complete interfaces, durable messages, revision-bound context, semantic reservations, reconciliation, and deterministic recovery. — technical architecture §58.5–58.13; ADR-244.
 

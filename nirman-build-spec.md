@@ -3374,6 +3374,8 @@ A contradiction detector must identify conflicting requirements, stale assumptio
 
 The `PlanCompiler` and `Replanner` must produce plan revisions when evidence, environment, requirements, toolchain, worker availability, or validation results invalidate the current plan. Each plan revision must record `planRevision`, `supersedesPlan`, reason, trigger evidence, affected nodes, and migration/recovery action.
 
+When `planRevision` is superseded, every in-flight assignment MUST be classified before its next consequential action as `RETAIN`, `REBASE`, `QUIESCE`, `CANCEL`, or `REPLACE`. `RETAIN` requires unchanged premises and compatible graph scope; `REBASE` requires a fresh ContextPackage and interface agreement; `QUIESCE` prevents new consequential actions while preserving artifacts; `CANCEL` releases resources and preserves outputs; `REPLACE` fences the old lease and creates a fresh assignment. No stale plan revision may reach authorization.
+
 ### 52.14 Execution history tiers
 
 Long-running Android sessions must not retain every event, terminal output, screenshot, failed strategy, intermediate plan, and checkpoint in active memory. The `ExecutionHistoryManager` must provide:
@@ -8002,5 +8004,3 @@ M124 (milestone document) delivers the `OrchestrationWiringMatrix` schema and on
 **Document owner:** Nirman product team  
 **Recommended application name:** Nirman  
 **Recommended first release:** Windows desktop application for local Android application generation, Nirman-managed local Android emulator preview, testing, repair, packaging, and APK export
-
-When `planRevision` is superseded, every in-flight assignment MUST be classified before its next consequential action as `RETAIN`, `REBASE`, `QUIESCE`, `CANCEL`, or `REPLACE`. `RETAIN` requires unchanged premises and compatible graph scope; `REBASE` requires a fresh ContextPackage and interface agreement; `QUIESCE` prevents new consequential actions while preserving artifacts; `CANCEL` releases resources and preserves outputs; `REPLACE` fences the old lease and creates a fresh assignment. No stale plan revision may reach authorization.
