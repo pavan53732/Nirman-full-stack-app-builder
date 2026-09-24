@@ -66,13 +66,13 @@
 
 **Capability status (BS §5.6)** — The explanatory glossary label for the derived capability status (`SUPPORTED`, `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `PLANNED`) computed from maturity and operational inputs, never asserted directly. — BS §5.6; BS §5.7.1.
 
-**CapabilityMaturity** — The explanatory name for the `SPECIFIED | IMPLEMENTED | VERIFIED | CERTIFIED | …` vocabulary; a capability is never promoted without runtime evidence. — BS §5.7.2; BS §5.7.9.
+**CapabilityMaturity** — The explanatory name for the `SPECIFIED | IMPLEMENTED | VERIFIED | CERTIFIED | …` vocabulary; a capability is never promoted without runtime evidence. — BS §5.7.2.
 
 **CompletionState / CompletionDecision** — The recorded outcome of the completion predicate, including `NOT_COMPLETE`; certification is not completion. — BS §5.7.2; BS §5.7.7; TA §36.4.
 
-**DeliveryState** — The export lifecycle from `NOT_REQUESTED` to an exported, provenance-complete artifact. — BS §5.7.2; BS §78.
+**DeliveryState** — The export lifecycle from `NOT_REQUESTED` to an exported, provenance-complete artifact. — BS §5.7.2.
 
-**IntegrationState** — The operationality vocabulary of an external integration (`NOT_REQUIRED` … `BLOCKED`), aggregated in `IntegrationOperationality`. — BS §5.7.2; BS §5.7.5; SCHEMAS §1.3.
+**IntegrationState** — The operationality vocabulary of an external integration (`NOT_REQUIRED` … `BLOCKED`), aggregated in `IntegrationOperationality`. — BS §5.7.2; SCHEMAS §2.72.
 
 **ProductLifecycleState** — The authoritative session lifecycle enum, mapped name by name to the TA §36.2 state machine. — BS §5.7.2; BS §33.2; TA §36.2.
 
@@ -80,7 +80,7 @@
 
 **SessionProviderMode** — The vocabulary for the availability of Nirman's external provider-backed model path: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`; supervisor-local auxiliary decision-engine availability is represented separately. — BS §5.7.2; TA §41.
 
-**SigningState** — The signing lifecycle of a build output, from `NOT_REQUIRED` and `UNSIGNED_DEBUG` upward. — BS §5.7.2; BS §5.7.9.
+**SigningState** — The signing lifecycle of a build output, from `NOT_REQUIRED` and `UNSIGNED_DEBUG` upward. — BS §5.7.2.
 
 ## 4. Runtime records
 
@@ -158,13 +158,13 @@
 
 **AndroidAppObservabilityService** — The supervisor-owned, read-only aggregate query facade coordinating structured logging, in-app crash reporting, performance metrics, system tracing, debug diagnostics screens, and analytics event schemas across the generated application. — TA §73.17.1; BS §43.1.
 
-**AndroidArchitectureReasoningService** — The static architectural what-if analysis service that traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface (affected files, modules, tests, evidence) for a proposed architectural change before any `ConstructionTransaction` opens. Read-only and advisory; no authority, no AI-usage budget. — TA §47.5.2; BS §43.3.
+**AndroidArchitectureReasoningService** — The static architectural what-if analysis service that traverses the `AndroidSymbolGraph` and `ImpactGraph` to compute a hypothetical impact surface (affected files, modules, tests, evidence) for a proposed architectural change before any `ConstructionTransaction` opens. Read-only and advisory; no authority, no AI-usage budget. — TA §47.5.2; BS §43.1.
 
 **AndroidCircularDependencyDetector** — The graph analysis service detecting cycles across Gradle modules, dependency injection graphs, and database entity relationships. — TA §47.4; BS §23.4.
 
 **AndroidCodeIntelligenceService** — The supervisor-owned, read-only aggregate service exposing a typed query interface over `AndroidSymbolGraph`, `SemanticCodeFingerprintEngine`, `EpisodicRepairPatternCatalog`, and the project `ImpactGraph` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority. — TA §47.5.1; BS §43.1.
 
-**AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4; BS §53.11.
+**AndroidDataFlowAnalyzer** — The static analysis service computing intra-procedural control flow, lifecycle binding safety, and data-flow taint tracking across Android source files. — TA §47.4.
 
 **AndroidDataIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Room schema design, migration verification, query performance inspection, and offline-first synchronization planning. — TA §47.5.4; BS §43.1.
 
@@ -180,9 +180,9 @@
 
 **AndroidPrivacyIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying Personal Identifiable Information (PII) classification, personal data flow tracking, data minimization checking, privacy policy generation, and open-source license notice composition. — TA §70.7.1; BS §43.1.
 
-**AndroidThreatSketchSynthesizer** — The security modeling module that derives attack surface maps, trust boundaries, and negative E2E scenarios for security-sensitive archetypes. — TA §70.7.6; BS §58.2b.
+**AndroidThreatSketchSynthesizer** — The security modeling module that derives attack surface maps, trust boundaries, and negative E2E scenarios for security-sensitive archetypes. — TA §70.7.6.
 
-**AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1; BS §69.11.
+**AndroidProductIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying requirement elicitation, spec formalization, spec-to-build traceability, and offline domain knowledge. — TA §73.15; BS §42.1.
 
 **AndroidRepairIntelligenceService** — The supervisor-owned, read-only aggregate query facade unifying error intelligence, failure classification, proven repair pattern lookup, and recovery guidance. — TA §51.4; BS §42.4.
 
@@ -190,7 +190,7 @@
 
 **AndroidSymbolGraph** — The deterministic multi-language AST symbol dependency and call graph spanning Kotlin, Java, and XML resource files. — TA §47.3.
 
-**AndroidTechnologyAdapter** — The resolution-only adapter (six operations) through which a technology plan reaches a concrete `AndroidBuildAdapter` or `AndroidDeviceAdapter`; it performs no build, install, or observation work itself. — TA §73.10; TA §73.12; TA §73.13.
+**AndroidTechnologyAdapter** — The resolution-only adapter (six operations) through which a technology plan reaches a concrete `AndroidBuildAdapter` or `AndroidDeviceAdapter`; it performs no build, install, or observation work itself. — TA §73.10; TA §73.13.
 
 **AndroidTestIntelligenceService** — The supervisor-owned, read-only aggregate query facade exposing on-demand test and coverage comprehension across test-to-code mapping, prioritized coverage gaps, untested branches, semantic test intent, assertion quality, flakiness detection, fixture tracing, mock boundaries, pyramid balance, and redundant test elimination. — TA §53.5.1; BS §47.5.
 
@@ -254,7 +254,7 @@
 
 **FeatureUsageTracker** — The telemetry module scaffolding local feature adoption counters, first-use flags, and interaction frequency tracking via Jetpack DataStore. — TA §73.17.8; BS §43.1.
 
-**FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8; BS §47.5.
+**FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8.
 
 **FlakyTestSignatureDetector** — The static test analysis module detecting non-deterministic timing, unseeded randomness, unconfined coroutine dispatchers, and missing Compose synchronization anti-patterns before execution. — TA §53.5.7; BS §57.5.
 
@@ -354,13 +354,13 @@
 
 **TargetApiDeadlineTracker** — The policy tracking module validating target SDK compliance against Google Play Store submission deadlines and flagging approaching deprecations. — TA §73.18.7; BS §43.1.
 
-**TestIntentExtractor** — The deterministic inbound test parser extracting semantic behavioral intents from test declarations, annotations, and assertions. — TA §53.5.5; BS §47.5.
+**TestIntentExtractor** — The deterministic inbound test parser extracting semantic behavioral intents from test declarations, annotations, and assertions. — TA §53.5.5.
 
-**TestPyramidBalanceAnalyzer** — The structural analysis module computing test tier cardinality across Unit, Integration, and E2E Scenarios, and flagging inverted test pyramid anti-patterns. — TA §53.5.10; BS §47.5.
+**TestPyramidBalanceAnalyzer** — The structural analysis module computing test tier cardinality across Unit, Integration, and E2E Scenarios, and flagging inverted test pyramid anti-patterns. — TA §53.5.10.
 
 **TestDataLeakageDetector** — The state isolation module verifying that synthetic seed data, mock tokens, and test fixtures do not survive teardown into persistent app storage. — TA §62.5.1; BS §56.4.
 
-**TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2; BS §47.5.
+**TestToCodeMappingEngine** — The bi-directional mapping module resolving symbols to tests and tests to symbols across unit, instrumentation, and scenario tests. — TA §53.5.2.
 
 **ThirdPartyIntegrationAnalyzer** — The integration verification module validating third-party SDK wrappers, credential storage boundaries, circuit breakers, and webhook HMAC signature checks. — TA §74.7.3; BS §43.1.
 
@@ -382,7 +382,7 @@
 
 **WorkerCompatibilityValidator** — The pre-dispatch gate verifying worker context capacity, multimodal vision requirements, schema fidelity, and sandbox isolation profile before assignment. — TA §71.8.
 
-**WorkerFailoverReconstitutionProtocol** — The deterministic protocol executed by the supervisor when recovering from a worker crash, anomaly eviction, or preemption event. — TA §58.1.
+**WorkerFailoverReconstitutionProtocol** — The deterministic protocol executed by the supervisor when recovering from a worker crash, anomaly eviction, or preemption event. — TA §58.1.1.
 
 **Worker lease / operation capability** — The renewable lease that fences a session's workers and the single-use capability that authorises a sensitive operation. — TA §36.3; TA §46.
 

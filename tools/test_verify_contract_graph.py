@@ -2640,6 +2640,38 @@ def main():
                    lambda tmp: _rw(tmp, TA, lambda t: t + "\nSee SCHEMAS §9.9 for the field list.\n"),
                    expect="semantic documentation")
 
+    # ---- D3 citation integrity (F2-F5 / F1 / D3(d) classes) ----------------
+    # Every case below leaves the corpus structurally valid — the section it
+    # names still exists — so only a rule that reads the target section's
+    # CONTENT, or the document's tail, can catch it. Each one pins either an
+    # adjudicated citation fix or one of the new rules, so a regression in
+    # either the rule or the fix fails the battery.
+    _topology_case("a glossary citation is repointed to an existing section that never names the term",
+                   lambda tmp: _rw(tmp, GLOSSARY, lambda t: t.replace(
+                       "— TA §47.5.2; BS §43.1.", "— TA §47.5.2; BS §43.3.", 1)),
+                   expect="semantic documentation")
+    _topology_case("a cited section's heading title stops naming the identity it is cited for",
+                   lambda tmp: _rw(tmp, TA, lambda t: t.replace(
+                       "### 62.2 ScreenGraph Analysis Service", "### 62.2 Rendering pipeline notes", 1)),
+                   expect="semantic documentation")
+    _topology_case("a milestone pointer is repointed to an existing section that never names the term",
+                   lambda tmp: _rw(tmp, DEV, lambda t: t.replace(
+                       "`WorkerFailoverReconstitutionProtocol` (TA §58.1.1)",
+                       "`WorkerFailoverReconstitutionProtocol` (TA §58.1)", 1)),
+                   expect="semantic documentation")
+    _topology_case("a citation names a lettered section that does not exist",
+                   lambda tmp: _rw(tmp, GLOSSARY, lambda t: t.replace(
+                       "— TA §70.7.6.", "— TA §70.7.6b.", 1)),
+                   expect="semantic documentation")
+    _topology_case("the plan-assignment migration rule is weakened in its owning section",
+                   lambda tmp: _rw(tmp, BS, lambda t: t.replace(
+                       "every in-flight assignment MUST be classified",
+                       "every in-flight assignment is classified", 1)),
+                   expect="semantic documentation")
+    _topology_case("normative content is appended after the document-owner footer",
+                   lambda tmp: _rw(tmp, BS, lambda t: t + "\nA late paragraph MUST NOT appear after the footer.\n"),
+                   expect="structure")
+
     # POSITIVE: renumbering a registry heading (together with the citations
     # that point at it, so no §-reference dangles, and keeping subsection
     # order ascending) must not break registry location, because headings

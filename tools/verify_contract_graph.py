@@ -779,11 +779,11 @@ def check_dangling(R, docs, D):
     # Canonical §-pointers in the milestone document resolve to real sections.
     def _sec_set(text, levels):
         return set(re.findall(levels, text, re.M))
-    bs_all = _sec_set(docs.get("bs", ""), r"^#{2,4} (\d+(?:\.\d+)*)[.: ]")
-    ta_all = _sec_set(docs.get("ta", ""), r"^#{2,4} (\d+(?:\.\d+)*)[.: ]")
-    sch_all = _sec_set(docs.get("schemas", ""), r"^#{2,3} (\d+(?:\.\d+)*) ")
+    bs_all = _sec_set(docs.get("bs", ""), r"^#{2,4} (\d+(?:\.\d+)*[a-z]?)[.: ]")
+    ta_all = _sec_set(docs.get("ta", ""), r"^#{2,4} (\d+(?:\.\d+)*[a-z]?)[.: ]")
+    sch_all = _sec_set(docs.get("schemas", ""), r"^#{2,3} (\d+(?:\.\d+)*[a-z]?) ")
     targets = {"BS": bs_all, "TA": ta_all, "SCHEMAS": sch_all}
-    for m in re.finditer(r"(?<![A-Za-z])(BS|TA|SCHEMAS) §(\d+(?:\.\d+)*)", docs["dev"]):
+    for m in re.finditer(r"(?<![A-Za-z])(BS|TA|SCHEMAS) §(\d+(?:\.\d+)*[a-z]?)", docs["dev"]):
         if m.group(2) not in targets[m.group(1)]:
             D.add("dangling reference", "milestone document",
                   f"{m.group(1)} §{m.group(2)} does not exist in the referenced document")
@@ -3665,7 +3665,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     # or a comma-continued list after such a qualifier). Development-plan
     # references are not resolved (its sections are milestone-numbered).
     m22_schemas, m22_glossary = docs.get("schemas", ""), docs.get("glossary", "")
-    m22_heads = {k: set(m.group(1) for m in re.finditer(r"^#{2,4}\s+(\d+(?:\.\d+)*)\b", t, re.M))
+    m22_heads = {k: set(m.group(1) for m in re.finditer(r"^#{2,4}\s+(\d+(?:\.\d+)*[a-z]?)\b", t, re.M))
                  for k, t in (("bs", bs), ("ta", ta), ("schemas", m22_schemas), ("glossary", m22_glossary))}
     # ADR-220 qualifiers: SCHEMAS §/schemas § resolve against nirman-schemas.md;
     # MILESTONES §/milestones § are aliases of development plan §/DP § (the
@@ -3676,7 +3676,7 @@ def check_semantic_documentation(docs, R, D, root="."):
                 (r"\b(?:MILESTONES|milestones)\s+§$", "dev"), (r"nirman-milestones\.md`?\s+§$", "dev"),
                 (r"\b(?:SCHEMAS|schemas)\s+§$", "schemas"), (r"nirman-schemas\.md`?\s+§$", "schemas"))
     m22_list = re.compile(r"(build spec|BS|technical architecture|TA|development plan|DP|SCHEMAS|schemas|MILESTONES|milestones)"
-                          r"\s+§\d+(?:\.\d+)*(?:,\s*§\d+(?:\.\d+)*)*,?\s*(?:and\s+)?$")
+                          r"\s+§\d+(?:\.\d+)*[a-z]?(?:,\s*§\d+(?:\.\d+)*[a-z]?)*,?\s*(?:and\s+)?$")
     m22_doc_of = {"build spec": "bs", "BS": "bs", "technical architecture": "ta", "TA": "ta",
                   "development plan": "dev", "DP": "dev", "SCHEMAS": "schemas", "schemas": "schemas",
                   "MILESTONES": "dev", "milestones": "dev"}
@@ -3686,7 +3686,7 @@ def check_semantic_documentation(docs, R, D, root="."):
     for label, key, text in (("build spec", "bs", bs), ("technical architecture", "ta", ta),
                              ("schema document", "schemas", m22_schemas), ("glossary", "glossary", m22_glossary)):
         seen = set()
-        for m in re.finditer(r"§\s*(\d+(?:\.\d+)*)", text):
+        for m in re.finditer(r"§\s*(\d+(?:\.\d+)*[a-z]?)", text):
             num = m.group(1)
             pre = text[max(0, m.start() - 30):m.start() + 1]
             target = key
@@ -4659,9 +4659,9 @@ def check_schema_registry_closure(docs, R, D):
     # learns nothing. The whole clause list is scanned, not just the line,
     # because a declaration's defining sentence may wrap onto a continuation
     # line — a defect the line-anchored scan above would miss entirely.
-    bs_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["bs"], re.M))
-    ta_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*)[.: ]", docs["ta"], re.M))
-    for m in re.finditer(r"^- `([A-Za-z0-9]+)` — [^\n]*?(build spec|technical architecture) §(\d+(?:\.\d+)*)", region, re.M):
+    bs_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*[a-z]?)[.: ]", docs["bs"], re.M))
+    ta_secs = set(re.findall(r"^#{2,4} (\d+(?:\.\d+)*[a-z]?)[.: ]", docs["ta"], re.M))
+    for m in re.finditer(r"^- `([A-Za-z0-9]+)` — [^\n]*?(build spec|technical architecture) §(\d+(?:\.\d+)*[a-z]?)", region, re.M):
         name, which, ptr = m.group(1), m.group(2), m.group(3)
         owner_doc = docs["bs"] if which == "build spec" else docs["ta"]
         owner_secs = bs_secs if which == "build spec" else ta_secs
@@ -4673,6 +4673,85 @@ def check_schema_registry_closure(docs, R, D):
             D.add("structure", name,
                   f"§3.1 prose-defined declaration points at {which} §{ptr}, whose body never names `{name}`; "
                   "a declaration must point at the section that actually defines the identity (ADR-241)")
+
+
+def check_citation_identity(docs, D):
+    """D3(a): a citation must resolve to a section that actually NAMES the
+    cited identity.
+
+    This is the ADR-241 §3.1 declaration rule (check_schema_registry_closure)
+    applied to the two hand-written reference surfaces that rule does not
+    cover: the GLOSSARY.md entries and the inline component pointers of
+    nirman-milestones.md. A citation that resolves to an existing section
+    whose body never names the term — and whose heading title is not the
+    prose form of it — is a misdirected pointer: the reader follows it and
+    learns nothing. Existence is NOT checked here; a citation whose heading
+    is absent belongs to the section-reference rule, so the two never
+    double-report the same line.
+
+    The title comparison is a false-positive guard, not a convenience. It
+    accepts both the prose form of the identity ("ScreenGraph Analysis
+    Service" for `ScreenGraphAnalysisService`) and a compound heading that
+    names it among others (TA §53.6 "ArchitectureDriftDetector and
+    ContractDriftDetector"). Four legitimate citations depend on it: TA §62.2,
+    BS §56.6, TA §31.3 (prose form) and TA §53.6 (compound); a body-only
+    screen reports all four as defects and would force a wrong "fix".
+    """
+    def norm(s):
+        return re.sub(r"[^a-z0-9]", "", s.lower())
+
+    def title_map(text):
+        out = {}
+        for m in re.finditer(r"^(#{2,4})\s+§?(\d+(?:\.\d+)*[a-z]?)[.: ]\s*(.*\S)\s*$", text, re.M):
+            out.setdefault(m.group(2), m.group(3))
+        return out
+
+    text_of = {"bs": docs.get("bs", ""), "ta": docs.get("ta", ""), "schemas": docs.get("schemas", "")}
+    doc_name = {"bs": "build spec", "ta": "technical architecture", "schemas": "schema document"}
+    titles = {k: title_map(v) for k, v in text_of.items()}
+
+    def misdirected(tag, num, term):
+        """A reason string when the citation exists but never names the term."""
+        body = _section_text(text_of[tag], num)
+        if body is None:
+            return None                      # absent heading: owned by the section-reference rule
+        if f"`{term}`" in body or term in body:
+            return None                      # named in the body
+        title = titles[tag].get(num, "")
+        if norm(title) == norm(term) or term in re.split(r"[^A-Za-z0-9]+", title):
+            return None                      # named by the heading title: prose form, or one of several
+        return (f"{doc_name[tag]} §{num} ({title!r}), whose body never names it and whose "
+                f"heading title does not name it either")
+
+    def citations(text):
+        for m in re.finditer(r"(build spec|technical architecture|schema document|BS|TA|SCHEMAS)"
+                             r"\s*§\s*(\d+(?:\.\d+)*[a-z]?)", text, re.I):
+            yield {"build spec": "bs", "bs": "bs", "technical architecture": "ta",
+                   "ta": "ta", "schema document": "schemas", "schemas": "schemas"}[m.group(1).lower()], m.group(2)
+
+    # (a) GLOSSARY.md: the bold entry name is the cited identity.
+    for i, line in enumerate(docs.get("glossary", "").split("\n"), 1):
+        m = re.match(r"^\*\*([A-Za-z][A-Za-z0-9_.]*)\*\*\s+—\s+(.*)$", line)
+        if not m:
+            continue
+        term, rest = m.group(1), m.group(2)
+        for tag, num in citations(rest):
+            why = misdirected(tag, num, term)
+            if why:
+                D.add("semantic documentation", "citation identity",
+                      f"GLOSSARY.md line {i}: `{term}` cites {why}; a citation must point at the section "
+                      "that actually defines the identity (ADR-241 §3.1 pattern)")
+
+    # (b) nirman-milestones.md inline component pointers: `Ident` (…citations…).
+    for i, line in enumerate(docs.get("dev", "").split("\n"), 1):
+        for m in re.finditer(r"`([A-Z][A-Za-z0-9]*)`\s*\(([^()]*§[^()]*)\)", line):
+            term, group = m.group(1), m.group(2)
+            for tag, num in citations(group):
+                why = misdirected(tag, num, term)
+                if why:
+                    D.add("semantic documentation", "citation identity",
+                          f"nirman-milestones.md line {i}: `{term}` cites {why}; a citation must point at the "
+                          "section that actually defines the identity (ADR-241 §3.1 pattern)")
 
 
 def check_orchestration_hardening(docs, D):
@@ -4890,6 +4969,30 @@ def check_commit_boundary_locks(docs, D):
         if not ok:
             D.add("semantic documentation", where, msg)
 
+
+
+def check_plan_assignment_migration_lock(docs, D):
+    """D3(c): F1 regression lock for the plan-assignment migration rule.
+
+    The rule (RETAIN / REBASE / QUIESCE / CANCEL / REPLACE) was introduced
+    outside every section — after `## References` and the document-owner
+    footer — and relocated into build spec §52.13 by the F1 adjudication,
+    because §52.13 owns plan recompilation and the revision record. This lock
+    pins the relocated sentences inside that section: deleting, weakening, or
+    re-moving the rule is a semantic-documentation defect, not an editorial
+    act. The comparison normalizes whitespace, so re-wrapping the paragraph
+    does not break it.
+    """
+    bs = docs.get("bs", "")
+    for needle, msg in (
+        ("When `planRevision` is superseded, every in-flight assignment MUST be classified before its next "
+         "consequential action as `RETAIN`, `REBASE`, `QUIESCE`, `CANCEL`, or `REPLACE`.",
+         "build spec §52.13 no longer carries the plan-assignment migration rule (F1 regression)"),
+        ("No stale plan revision may reach authorization.",
+         "build spec §52.13 no longer carries the migration rule's closing prohibition (F1 regression)"),
+    ):
+        if not _sec_has(bs, "52.13", needle):
+            D.add("semantic documentation", "52.13", msg)
 
 
 def check_android_intelligence_output_boundary(docs, D):
@@ -5150,6 +5253,39 @@ def check_document_topology(docs, D, root):
                       f"owner section {wdoc} §{wsec} carries no projection line for {name} (nirman-schemas.md §{ssec})")
 
 
+    # (d) Document-tail integrity — the physical defect class F1 belonged to.
+    # The build spec once carried the plan-assignment migration rule after
+    # `## References` and the document-owner footer, i.e. outside every
+    # numbered section, where no ownership rule could see it. A document tail
+    # holds link definitions, a rule, and the owner footer; it may not hold
+    # normative content. "Normative" follows the convention this tool already
+    # applies to authority markers (check (b) above): an upper-case requirement
+    # keyword (MUST / MUST NOT / SHALL / NEVER / REQUIRED). The rule flags
+    # requirement statements only: README.md and AGENTS.md close with a prose
+    # sentence after their link definitions, and conformance fixtures append
+    # tables and fences at a document's end as a construction shortcut — none
+    # of those is a requirement statement. A stray schema fence is already
+    # owned by the ADR-220 fence-home rule, which is the check that can judge
+    # it in context.
+    tail_boundary = re.compile(r"^(?:##\s+References\b|\*\*Document owner:\*\*)", re.M)
+    tail_normative = re.compile(r"\b(?:MUST NOT|MUST|SHALL|NEVER|REQUIRED)\b")
+    for key in DOC_REGISTRY:
+        text = docs.get(key, "")
+        if not text:
+            continue
+        b = tail_boundary.search(text)
+        if not b:
+            continue
+        for offset, line in enumerate(text[b.start():].split("\n")[1:], 1):
+            stripped = line.strip()
+            if not stripped or not tail_normative.search(line):
+                continue
+            lineno = text[:b.start()].count("\n") + 1 + offset
+            D.add("structure", DOCS[key],
+                  f"line {lineno} carries a requirement statement after the References/footer boundary "
+                  f"({stripped[:70]!r}); the tail holds link definitions, a rule, and the owner footer only")
+
+
 def _section_text(text, num):
     """Body of heading `num` (e.g. "29.2") up to the next heading of the same or
     higher level; None when the heading does not exist."""
@@ -5349,8 +5485,10 @@ def verify(root):
     check_semantic_documentation(docs, R, D, root)
     check_structure(docs, R, D)
     check_schema_registry_closure(docs, R, D)
+    check_citation_identity(docs, D)
     check_orchestration_hardening(docs, D)
     check_commit_boundary_locks(docs, D)
+    check_plan_assignment_migration_lock(docs, D)
     check_document_topology(docs, D, root)
     check_android_intelligence_output_boundary(docs, D)
     check_index_drift(docs, R, D)
