@@ -5940,10 +5940,11 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-ui-form-validation` | form validation in a generated Android application — when validation fires, message quality and placement, server errors mapped back to fields, and disabled states with a stated reason | `HOST_TOOL_OBSERVATION` |
 | `android-ui-navigation-routing` | navigation and routing in a generated Android application — route structure and deep linking, back and up behaviour, state preserved across navigation, and guards on restricted destinations | `HOST_TOOL_OBSERVATION` |
 | `android-ui-list-performance` | list and scroll performance in a generated Android application — view recycling and stable keys, item work kept off the scroll path, image loading and decode cost, and frame health measured under scroll | `HOST_TOOL_OBSERVATION` |
+| `android-end-to-end-validation-orchestrator` | end-to-end validation orchestration for a generated Android application — derive the applicable validation domain set from the settled requirement set, order those domains by dependency, invoke each one, reconcile their outcomes against the requirement set, and emit one aggregate readiness result that names every domain not evaluated | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_RELEASE_VALIDATION` |
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the eighty-three built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the eighty-four built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -6057,6 +6058,7 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `android-ui-form-validation` | `HOST_TOOL_OBSERVATION`, `ANDROID_UI_OBSERVATION` |
 | `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
 | `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
+| `android-end-to-end-validation-orchestrator` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_INTERACTION_EXECUTION`, `ANDROID_RELEASE_VALIDATION` |
 
 Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `conditionalCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. The manifest MUST split the skill's row above, not restate it: `requiredCapabilities` carries the row's unconditional ids and `conditionalCapabilities` groups its conditionally-gated ids by the condition the row's prose qualifier names (for example `emulator_steps`), and together the two MUST equal that row exactly. `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 
@@ -6069,7 +6071,7 @@ The capability table above classifies every capability id by the evidence that p
 | Class | Count | Meaning |
 |---|---|---|
 | Visual perception required | 18 | requires UI-hierarchy, screenshot, or accessibility observation |
-| Runtime perception required, non-visual | 15 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
+| Runtime perception required, non-visual | 16 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
 | Perception not required | 25 | gated only by build-toolchain or host observation |
 
 The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
@@ -6086,7 +6088,7 @@ MUST explicitly state why runtime perception is unnecessary.
 The verifier MUST fail on any unresolved mismatch. This section MUST contain
 zero open inconsistency records in a documentation-certified corpus.
 
-`requiredTools` is an open vocabulary: the 83 skill packages name 144 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
+`requiredTools` is an open vocabulary: the 84 skill packages name 147 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
 
 ### 79.8 Validation Environment as a First-Class Resource
 

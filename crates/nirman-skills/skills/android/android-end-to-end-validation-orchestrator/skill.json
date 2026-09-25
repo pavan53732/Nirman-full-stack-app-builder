@@ -1,0 +1,31 @@
+{
+  "skillId": "android-end-to-end-validation-orchestrator",
+  "name": "Android End-to-End Validation Orchestrator",
+  "description": "Android end-to-end validation orchestration: compose every applicable validation skill over the settled requirement set, enforce ordering and dependency, and prove no domain was silently skipped (BS \u00a779.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Test and QA Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "end_to_end_validation",
+    "validation_completeness",
+    "release_readiness_orchestration"
+  ],
+  "requiredTools": [
+    "validation_orchestrator",
+    "coverage_matrix_ledger",
+    "evidence_gap_reporter"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_INTERACTION_EXECUTION",
+    "ANDROID_RELEASE_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "EndToEndValidationRequest",
+  "outputSchema": "EndToEndValidationResult",
+  "sourcePath": "SKILL.md"
+}
