@@ -1254,10 +1254,9 @@ CASES = {
         BS, "AAB generation is an optional separately declared release artifact",
         "AAB generation is not declared",
         "semantic documentation"),
-    "semantic undeclared lifecycle-like declaration": (
-        BS, "ProductLifecycleState =", "AuditLifecycleState =", "semantic documentation"),
-    "semantic orthogonal state vocabulary accepted": (
-        BS, "AssuranceState        = UNKNOWN", "AssuranceState        = UNKNOWN", "semantic documentation"),
+    "semantic canonical ProductLifecycleState declaration weakened": (
+        BS, "ProductLifecycleState = CREATED | PLANNING | SYNTHESIZING | IMPLEMENTING |\n                        PREVIEWING | VALIDATING | RECOVERING | PACKAGING |\n                        COMPLETED | BLOCKED | USER_REQUIRED | CANCELLED |\n                        SAFELY_FAILED",
+        "ProductLifecycleState = CREATED", "semantic documentation"),
     "semantic state vocabulary weakened": (
         BS, "AssuranceState        = UNKNOWN",
         "AssuranceStatus       = UNKNOWN",
@@ -2612,6 +2611,20 @@ def main():
                     f"exit={rc} expected={expect!r} got={sorted(failed_checks(out))}",
                     expect if hit else None)
 
+    # Positive mutation: a formatting-only change to the existing orthogonal
+    # CompletionState declaration must leave certification unchanged.
+    with tempfile.TemporaryDirectory(prefix="hermes-cg-positive-") as tmp:
+        _copy_fixture(tmp, ())
+        path = os.path.join(tmp, BS)
+        text = open(path, encoding="utf-8").read()
+        old = "CompletionState       = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |\n                        USER_REQUIRED | INVALIDATED"
+        new = "CompletionState = NOT_EVALUATED | NOT_COMPLETE | COMPLETED | BLOCKED |\n                        USER_REQUIRED | INVALIDATED"
+        if old not in text:
+            raise AssertionError("positive CompletionState formatting anchor missing")
+        open(path, "w", encoding="utf-8").write(text.replace(old, new, 1))
+        rc, out = run(tmp)
+        results.append(("positive: orthogonal CompletionState formatting", rc == 0,
+                        "" if rc == 0 else f"exit={rc} got={sorted(failed_checks(out))}"))
     # The battery is subprocess-bound — each case runs the verifier as a fresh
     # process — so a thread pool parallelises it without contending for the
     # GIL. Cases are independent (isolated temp roots) and results are

@@ -2255,65 +2255,47 @@ def check_semantic_documentation(docs, R, D, root="."):
         D.add("semantic documentation", "autonomous loop",
               "TA §34.4 must require frontierDelta and remainingUnproven in every handoff (ADR-225)")
 
-    # Lifecycle declaration closure is restricted to the two canonical lifecycle
-    # declarations. Orthogonal state vocabularies retain their existing owners.
-    def _authoritative_fence(text, heading):
-        start = text.find(heading)
-        if start < 0:
+    # Lifecycle identity (BS §26.14 / §33.2, TA §5.1 / §36.2, AGENTS.md): the
+    # task-execution state set is defined once in BS §26.14 and implemented
+    # name-for-name in TA §5.1; the session lifecycle is defined once in BS
+    # §33.2 and restated verbatim in TA §36.2; every §5.7.2 ProductLifecycleState
+    # value appears in the §33.2 mapping table; and exactly one component is
+    # named as the committer.
+    def _fence_after(text, heading):
+        i = text.find(heading)
+        if i < 0:
             return None
-        match = re.search(r"```text\n(.*?)```", text[start:], re.S)
-        return match.group(1) if match else None
-
-    def _state_declarations(text, heading):
-        block = _authoritative_fence(text, heading)
-        if not block:
-            return {}
-        return {m.group(1): m.group(2).strip()
-                for m in re.finditer(r"^([A-Z][A-Za-z0-9]*State)\s*=\s*(.+)$", block, re.M)}
-
-    bs_task = _authoritative_fence(bs, "### 26.14 Continuous execution state machine")
-    ta_task = _authoritative_fence(ta, "### 5.1 Task state machine")
+        m = re.search(r"```text\n(.*?)```", text[i:], re.S)
+        return m.group(1) if m else None
+    def _states(block):
+        return set(re.findall(r"\b[A-Z][A-Z_]{3,}\b", block or ""))
+    bs_task = _states(_fence_after(bs, "### 26.14 Continuous execution state machine"))
+    ta_task = _states(_fence_after(ta, "### 5.1 Task state machine"))
     if not bs_task or not ta_task:
         D.add("semantic documentation", "task-execution state set",
-              "BS §26.14 or TA §5.1 authoritative state declaration is missing")
-    else:
-        bs_task_names = set(re.findall(r"\b[A-Z][A-Z_]{3,}\b", bs_task))
-        ta_task_names = set(re.findall(r"\b[A-Z][A-Z_]{3,}\b", ta_task))
-        if bs_task_names != ta_task_names:
-            D.add("semantic documentation", "task-execution state set",
-                  f"TA §5.1 must implement BS §26.14 name for name (BS only {sorted(bs_task_names - ta_task_names)}, "
-                  f"TA only {sorted(ta_task_names - bs_task_names)})")
-
-    bs_session = _authoritative_fence(bs, "### 33.2 Authoritative lifecycle")
-    ta_session = _authoritative_fence(ta, "### 36.2 Lifecycle authority")
-    if not bs_session or not ta_session:
+              "BS §26.14 or TA §5.1 state-machine fence not found")
+    elif bs_task != ta_task:
+        D.add("semantic documentation", "task-execution state set",
+              f"TA §5.1 must implement BS §26.14 name for name (BS only {sorted(bs_task - ta_task)}, "
+              f"TA only {sorted(ta_task - bs_task)})")
+    bs_sess = _fence_after(bs, "### 33.2 Authoritative lifecycle")
+    ta_sess = _fence_after(ta, "### 36.2 Lifecycle authority")
+    if not bs_sess or not ta_sess or bs_sess.strip() != ta_sess.strip():
         D.add("semantic documentation", "session lifecycle",
-              "BS §33.2 or TA §36.2 authoritative lifecycle declaration is missing")
+              "TA §36.2 must restate the BS §33.2 session lifecycle verbatim")
+    pls = re.search(r"ProductLifecycleState = ((?:[A-Z_]+\s*\|\s*)+[A-Z_]+)", bs)
+    sec332 = bs[bs.find("### 33.2 Authoritative lifecycle"):bs.find("### 33.3")]
+    if not pls or "| §33.2 session state | §5.7.2 `ProductLifecycleState` |" not in sec332:
+        D.add("semantic documentation", "lifecycle mapping",
+              "BS §33.2 must carry the session-state ↔ ProductLifecycleState mapping table")
     else:
-        bs_decl = _state_declarations(bs, "### 33.2 Authoritative lifecycle")
-        ta_decl = _state_declarations(ta, "### 36.2 Lifecycle authority")
-        if bs_decl.get("ProductLifecycleState") != ta_decl.get("ProductLifecycleState"):
-            D.add("semantic documentation", "session lifecycle",
-                  "TA §36.2 must restate BS §33.2 ProductLifecycleState values verbatim")
-        if "ProductLifecycleState" not in bs_decl or "ProductLifecycleState" not in ta_decl:
-            D.add("semantic documentation", "session lifecycle",
-                  "BS §33.2 and TA §36.2 must each declare ProductLifecycleState")
-
-    allowed_lifecycle = {"TaskExecutionState", "ProductLifecycleState"}
-    for label, heading, text in (
-            ("BS §26.14", "### 26.14 Continuous execution state machine", bs),
-            ("TA §5.1", "### 5.1 Task state machine", ta),
-            ("BS §33.2", "### 33.2 Authoritative lifecycle", bs),
-            ("TA §36.2", "### 36.2 Lifecycle authority", ta)):
-        block = _authoritative_fence(text, heading)
-        if not block:
-            continue
-        for name in re.findall(r"^([A-Z][A-Za-z0-9]*State)\s*=", block, re.M):
-            if name not in allowed_lifecycle:
-                D.add("semantic documentation", "lifecycle declaration",
-                      f"{label} declares undeclared lifecycle-like state `{name}`; only "
-                      "TaskExecutionState and ProductLifecycleState are canonical lifecycle declarations")
-
+        mapped = set()
+        for row in re.findall(r"^\| `[^\n]*\| ([^\n]*) \|$", sec332, re.M):
+            mapped.update(re.findall(r"`([A-Z_]+)`", row))
+        for value in re.findall(r"[A-Z_]+", pls.group(1)):
+            if value not in mapped:
+                D.add("semantic documentation", "lifecycle mapping",
+                      f"ProductLifecycleState value {value} is missing from the BS §33.2 mapping table")
     # ADR-227: one worker taxonomy of twenty-one roles. The three role tables
     # (BS §22.1, BS §23.4, TA §6.5) must carry the identical set, the set must
     # be the ADR-227 twenty-one, and no capitalised "<Name> Worker" phrase may
