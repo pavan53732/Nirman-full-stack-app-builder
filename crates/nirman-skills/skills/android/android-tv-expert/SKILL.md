@@ -70,9 +70,9 @@ transaction (BS §50).
   * Exactly one element holds focus at a time, and it is always visible.
   * Focus and scroll position survive navigation and process recreation.
   * Overscan is respected: no actionable content sits in the unsafe
-  *   border region.
+    border region.
   * Playback responds to media transport keys in the background as well
-  *   as in the foreground.
+    as in the foreground.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -113,13 +113,13 @@ Emits `TvAppResult` from `TvAppResultRequest` (§23 SkillPackage contract):
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Design for the D-pad first: every destination is reachable by
-- Step 2 produces its expected outcome — Make focus unambiguous: exactly one element holds focus, the focused
-- Step 3 produces its expected outcome — Preserve focus memory: returning to a browse row restores the row and
-- Step 4 produces its expected outcome — Lay out for ten feet: generous margins, large type, high contrast, and
-- Step 5 produces its expected outcome — Build the browse and detail surfaces with Compose for TV components,
-- Step 6 produces its expected outcome — Publish content to the home screen through channels and watch next,
-- Step 7 produces its expected outcome — Verify with the remote on a TV emulator image: traverse every screen
+- Step 1 produces its expected outcome — Design for the D-pad first: every destination is reachable by directional movement, with no control that requires a touch pointer.
+- Step 2 produces its expected outcome — Make focus unambiguous: exactly one element holds focus, the focused element is visually distinguished by scale and elevation, and focus order is explicit rather than inferred from layout order.
+- Step 3 produces its expected outcome — Preserve focus memory: returning to a browse row restores the row and the item that were last focused, and scroll position survives a detail round trip.
+- Step 4 produces its expected outcome — Lay out for ten feet: generous margins, large type, high contrast, and a limited number of items per row so the screen reads from a couch.
+- Step 5 produces its expected outcome — Build the browse and detail surfaces with Compose for TV components, using the card and immersive list patterns that the TV library provides rather than phone-oriented list primitives.
+- Step 6 produces its expected outcome — Publish content to the home screen through channels and watch next, so continued viewing and recommendations appear outside the app.
+- Step 7 produces its expected outcome — Verify with the remote on a TV emulator image: traverse every screen by D-pad alone, confirm focus never lands on a non-actionable element, and confirm playback responds to transport keys.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

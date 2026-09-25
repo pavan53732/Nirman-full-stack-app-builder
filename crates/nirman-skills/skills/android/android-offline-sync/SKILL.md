@@ -64,7 +64,7 @@ writes, or stale data after reconnecting.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - LOST_WRITE — a queued write did not reach the server and was not reported.
 - DUPLICATE_WRITE — a replay applied an already-applied write.
@@ -78,7 +78,7 @@ writes, or stale data after reconnecting.
   server after the fact.
 - A silent overwrite is fixed by comparing versions before writing, and the detected
   conflict is surfaced to the user rather than resolved invisibly.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -66,7 +66,7 @@ publisher identity shown at install does not match what was expected.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - UNSIGNED_BINARY — a shipped binary carries no signature.
 - CHAIN_UNTRUSTED — the signing chain does not reach a trusted root.
@@ -80,7 +80,7 @@ publisher identity shown at install does not match what was expected.
   never shipped on the strength of the old signature.
 - A missing timestamp is fixed by using a timestamp service, and where none is
   reachable the release is blocked rather than shipped untimestamped.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

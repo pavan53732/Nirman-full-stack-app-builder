@@ -64,7 +64,7 @@ workspace layout and its access control must be verified.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - ROOT_MISMATCH — the resolved root differs from the configured one.
 - ACCESS_TOO_BROAD — an account that must not reach the workspace can.
@@ -77,7 +77,7 @@ workspace layout and its access control must be verified.
 - A non-atomic write is fixed with a write-then-rename, not by checking the file size
   afterwards.
 - Overbroad access is corrected on the directory, not by trusting callers to stay out.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

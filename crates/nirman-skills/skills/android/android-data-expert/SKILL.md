@@ -67,13 +67,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Room queries returning Flow are reactive — the UI automatically
-  *   updates when data changes. Use this for real-time UI.
+    updates when data changes. Use this for real-time UI.
   * All database operations run on Dispatchers.IO — Room enforces this
-  *   for suspend functions and Flow queries.
+    for suspend functions and Flow queries.
   * Migrations are additive by default — avoid destructive migrations in
-  *   production. Document every migration with the schema change.
+    production. Document every migration with the schema change.
   * DataStore is the only persistence mechanism for new simple data —
-  *   SharedPreferences is legacy and MUST NOT be used for new code.
+    SharedPreferences is legacy and MUST NOT be used for new code.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -114,13 +114,13 @@ Emits `DataLayerResult` from `DataLayerRequest` (§23 SkillPackage contract):
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze data requirements: identify entities, relationships, query
-- Step 2 produces its expected outcome — Design the Room schema: define entities (with primary keys, indices,
-- Step 3 produces its expected outcome — Handle migrations: use Migration classes for schema changes,
-- Step 4 produces its expected outcome — Implement DataStore: use Proto DataStore for typed data with schema
-- Step 5 produces its expected outcome — Design the repository layer: coordinate Room (local) and API (remote)
-- Step 6 produces its expected outcome — Handle background data operations: use WorkManager for periodic sync,
-- Step 7 produces its expected outcome — Test the data layer: use Room.inMemoryDatabaseBuilder for DAO tests,
+- Step 1 produces its expected outcome — Analyze data requirements: identify entities, relationships, query patterns, offline needs, sync frequency, and data volume.
+- Step 2 produces its expected outcome — Design the Room schema: define entities (with primary keys, indices, foreign keys), DAOs (with suspend functions, Flow-returning queries, transactions), and the RoomDatabase class.
+- Step 3 produces its expected outcome — Handle migrations: use Migration classes for schema changes, fallbackToDestructiveMigration only for development. Every migration MUST be tested with a migration test.
+- Step 4 produces its expected outcome — Implement DataStore: use Proto DataStore for typed data with schema evolution, Preferences DataStore for simple key-value pairs. Never use SharedPreferences for new code.
+- Step 5 produces its expected outcome — Design the repository layer: coordinate Room (local) and API (remote) data sources. Implement `offline-first` by emitting local data first, then fetching remote and updating local.
+- Step 6 produces its expected outcome — Handle background data operations: use WorkManager for periodic sync, expedited work for immediate sync, with proper constraints (network type, battery).
+- Step 7 produces its expected outcome — Test the data layer: use Room.inMemoryDatabaseBuilder for DAO tests, AndroidJUnit4 for instrumented tests with real database.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -65,7 +65,7 @@ literal values, one-off components, or a theme that breaks in dark mode.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - LITERAL_INSTEAD_OF_TOKEN — a token exists and a literal was used.
 - OFF_SCALE_VALUE — spacing or typography does not land on the declared scale.
@@ -79,7 +79,7 @@ literal values, one-off components, or a theme that breaks in dark mode.
   override for the failing surface.
 - A re-implemented component is replaced with the library one, and any genuinely needed
   difference is added to the library rather than kept as a one-off.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

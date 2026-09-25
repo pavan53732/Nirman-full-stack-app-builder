@@ -66,7 +66,7 @@ that do not say what is wrong, or a submit button that is disabled with no expla
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CLIENT_ONLY_RULE — a rule is enforced only on the client.
 - MESSAGE_UNSPECIFIC — a message names the rule rather than what is wrong.
@@ -80,7 +80,7 @@ that do not say what is wrong, or a submit button that is disabled with no expla
   the rule more politely.
 - An unmapped server error is surfaced at the form level immediately, not logged for
   later while the user sees nothing.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

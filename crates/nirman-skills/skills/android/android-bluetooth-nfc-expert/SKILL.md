@@ -67,14 +67,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * BLE scanning is battery-intensive — stop scanning when not needed.
-  *   Use ScanSettings.SCAN_MODE_LOW_POWER for background scanning.
+    Use ScanSettings.SCAN_MODE_LOW_POWER for background scanning.
   * BLE connections are limited — Android supports a limited number of
-  *   simultaneous BLE connections. Disconnect when not needed.
+    simultaneous BLE connections. Disconnect when not needed.
   * NFC requires foreground — NFC operations require the app to be in the
-  *   foreground. Use enableReaderMode for reliable NFC reading.
+    foreground. Use enableReaderMode for reliable NFC reading.
   * Bluetooth permissions changed in API 31 — BLUETOOTH_SCAN,
-  *   BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE replaced the old
-  *   BLUETOOTH and BLUETOOTH_ADMIN permissions.
+    BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE replaced the old
+    BLUETOOTH and BLUETOOTH_ADMIN permissions.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -116,13 +116,13 @@ Emits `BluetoothNFCResult` from `BluetoothNFCRequest` (§23 SkillPackage contrac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze connectivity requirements: identify the protocol (BLE, Classic
-- Step 2 produces its expected outcome — Implement BLE scanning: use BluetoothLeScanner with ScanFilter
-- Step 3 produces its expected outcome — Implement BLE connections: use BluetoothGatt for GATT connections,
-- Step 4 produces its expected outcome — Implement BLE peripheral: use BluetoothGattServer for GATT server,
-- Step 5 produces its expected outcome — Implement NFC: use NfcAdapter for NFC operations, NdefMessage
-- Step 6 produces its expected outcome — Handle permissions: request BLUETOOTH_SCAN, BLUETOOTH_CONNECT,
-- Step 7 produces its expected outcome — Test connectivity features: use BLE emulator for scanning/connections,
+- Step 1 produces its expected outcome — Analyze connectivity requirements: identify the protocol (BLE, Classic Bluetooth, NFC), device roles (central, peripheral, reader, card), and data transfer needs.
+- Step 2 produces its expected outcome — Implement BLE scanning: use BluetoothLeScanner with ScanFilter and ScanSettings. Handle scan results in ScanCallback, stop scanning after timeout to save battery.
+- Step 3 produces its expected outcome — Implement BLE connections: use BluetoothGatt for GATT connections, discover services with discoverServices, read/write characteristics with readCharacteristic/writeCharacteristic.
+- Step 4 produces its expected outcome — Implement BLE peripheral: use BluetoothGattServer for GATT server, create BluetoothGattService with characteristics, handle read/write requests in BluetoothGattServerCallback.
+- Step 5 produces its expected outcome — Implement NFC: use NfcAdapter for NFC operations, NdefMessage for NDEF data, enableReaderMode for reader/writer mode, HostApduService for HCE.
+- Step 6 produces its expected outcome — Handle permissions: request BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE (API 31+), NFC permission. Handle location permission for BLE scanning (API 30 and below).
+- Step 7 produces its expected outcome — Test connectivity features: use BLE emulator for scanning/connections, test NFC with physical tags, verify permission flows.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

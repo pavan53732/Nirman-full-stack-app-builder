@@ -65,7 +65,7 @@ a task with assistive technology.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CONTROL_UNREACHABLE — a control cannot be reached by keyboard.
 - KEYBOARD_TRAP — focus can enter a control but not leave it.
@@ -79,7 +79,7 @@ a task with assistive technology.
   only appears on hover.
 - A contrast failure is fixed in the colour values, not by enlarging the text until
   the measured ratio passes.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

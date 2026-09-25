@@ -67,15 +67,15 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Permissions are granular and requested at the point of use, never in
-  *   a startup batch.
+    a startup batch.
   * Missing Health Connect is reported with an install path, never
-  *   treated as empty data.
+    treated as empty data.
   * Writes are idempotent: a retry with the same record id does not
-  *   duplicate a record.
+    duplicate a record.
   * A denied permission degrades the feature; it never blocks the rest of
-  *   the app and never fabricates a value.
+    the app and never fabricates a value.
   * Health data is handled as sensitive: no health value is written to
-  *   logs, memory records, or crash reports.
+    logs, memory records, or crash reports.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `HealthIntegrationResult` from `HealthIntegrationResultRequest` (§23 Skil
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Determine the data path: Health Connect as the on-device store for
-- Step 2 produces its expected outcome — Declare granular permissions for exactly the record types used, and
-- Step 3 produces its expected outcome — Check availability explicitly: Health Connect may be absent or not
-- Step 4 produces its expected outcome — Write records with a client-generated record id and a deterministic
-- Step 5 produces its expected outcome — Read with aggregations and time ranges rather than fetching entire
-- Step 6 produces its expected outcome — For live tracking, run an exercise session through Health Services:
-- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator: grant and deny each
+- Step 1 produces its expected outcome — Determine the data path: Health Connect as the on-device store for records the user owns, and Health Services for live exercise and passive sensor sampling while a session runs.
+- Step 2 produces its expected outcome — Declare granular permissions for exactly the record types used, and request them at the point of use rather than at startup.
+- Step 3 produces its expected outcome — Check availability explicitly: Health Connect may be absent or not updated, and the app must offer the install path instead of failing silently.
+- Step 4 produces its expected outcome — Write records with a client-generated record id and a deterministic time range so a retry is idempotent rather than duplicative.
+- Step 5 produces its expected outcome — Read with aggregations and time ranges rather than fetching entire histories into memory; page large reads.
+- Step 6 produces its expected outcome — For live tracking, run an exercise session through Health Services: declare the exercise type and data types up front, sample at the required rate, and keep the session in a foreground service with a visible ongoing notification.
+- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator: grant and deny each permission, confirm the denial path degrades gracefully, and confirm written records read back with the same values and time ranges.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

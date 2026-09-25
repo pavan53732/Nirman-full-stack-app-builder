@@ -67,14 +67,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Secrets are never hardcoded — use the Android key store system or user-provided
-  *   keystores. The `Security Worker` scans for and rejects hardcoded
-  *   secrets.
+    keystores. The `Security Worker` scans for and rejects hardcoded
+    secrets.
   * Biometric authentication requires a fallback — not all devices have
-  *   biometrics enrolled. Always provide device credential fallback.
+    biometrics enrolled. Always provide device credential fallback.
   * Network security config is mandatory for API 28+ — cleartext traffic
-  *   is blocked by default on API 28+. Explicitly configure exceptions.
+    is blocked by default on API 28+. Explicitly configure exceptions.
   * Debuggable flag is false in release — the `Release Worker` MUST
-  *   verify `android:debuggable="false"` in the release manifest.
+    verify `android:debuggable="false"` in the release manifest.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -115,12 +115,12 @@ Emits `SecurityImplementationResult` from `SecurityImplementationRequest` (§23 
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze security requirements: identify sensitive data (tokens,
-- Step 2 produces its expected outcome — Implement secure storage: use EncryptedSharedPreferences for
-- Step 3 produces its expected outcome — Implement biometric authentication: use BiometricPrompt with
-- Step 4 produces its expected outcome — Configure network security: use `network-security-config.xml` to
-- Step 5 produces its expected outcome — Handle app signing: use the Nirman-managed debug keystore for
-- Step 6 produces its expected outcome — Audit the app: use `Security Worker` to scan for hardcoded secrets,
+- Step 1 produces its expected outcome — Analyze security requirements: identify sensitive data (tokens, PII, credentials), authentication needs (biometric, PIN, password), network security requirements, and compliance needs.
+- Step 2 produces its expected outcome — Implement secure storage: use EncryptedSharedPreferences for key-value data, EncryptedFile for file data, the Android key store system for cryptographic keys. Never store secrets in plaintext.
+- Step 3 produces its expected outcome — Implement biometric authentication: use BiometricPrompt with CryptoObject for cryptographic operations, handle authentication errors gracefully, provide fallback to device credentials.
+- Step 4 produces its expected outcome — Configure network security: use `network-security-config.xml` to restrict cleartext traffic, pin certificates for production, and disable debug-overrides in release builds.
+- Step 5 produces its expected outcome — Handle app signing: use the Nirman-managed debug keystore for development, a user-provided release keystore for production. Document the signing configuration in the SigningIdentityBinding (BS §5.7.3).
+- Step 6 produces its expected outcome — Audit the app: use `Security Worker` to scan for hardcoded secrets, insecure network configurations, exported components without permissions, and debuggable flags in release builds.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

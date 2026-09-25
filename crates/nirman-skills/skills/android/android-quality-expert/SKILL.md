@@ -63,13 +63,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Quality gates are enforced on every build — lint, Detekt, and Ktlint run on
-  *    every build. Failures block artifact promotion.
+    every build. Failures block artifact promotion.
   * Custom rules are documented — any disabled rule or custom rule has
-  *    a documented rationale in the ReasoningArtifact.
+    a documented rationale in the ReasoningArtifact.
   * Auto-correct is preferred — Ktlint and Detekt auto-fix are applied
-  *    before manual review. Only unfixable issues surface to the user.
+    before manual review. Only unfixable issues surface to the user.
   * Quality is measured, not assumed — the `Security Worker` runs static
-  *    analysis and reports findings as evidence, not as model claims.
+    analysis and reports findings as evidence, not as model claims.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -110,12 +110,12 @@ Emits `QualityConfigurationResult` from `QualityConfigurationRequest` (§23 Skil
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze quality requirements: identify coding standards, lint rules,
-- Step 2 produces its expected outcome — Configure Android Lint: enable `abortOnError = true` for CI, disable
-- Step 3 produces its expected outcome — Configure Detekt: define detekt.yml with rule thresholds
-- Step 4 produces its expected outcome — Configure Ktlint: define .editorconfig for code style, enable
-- Step 5 produces its expected outcome — Enforce quality gates: fail the build on lint errors, Detekt
-- Step 6 produces its expected outcome — Document quality decisions: record which rules are disabled and why
+- Step 1 produces its expected outcome — Analyze quality requirements: identify coding standards, lint rules, and static analysis tools to apply.
+- Step 2 produces its expected outcome — Configure Android Lint: enable `abortOnError = true`, disable irrelevant checks, and create custom lint rules for project-specific patterns. Run `./gradlew lint` on every build.
+- Step 3 produces its expected outcome — Configure Detekt: define detekt.yml with rule thresholds (complexity, long classes, function length), enable auto-correct for safe fixes, and run `./gradlew detekt` on every build.
+- Step 4 produces its expected outcome — Configure Ktlint: define .editorconfig for code style, enable ktlintFormat for auto-formatting, and run `./gradlew ktlintCheck` on every build.
+- Step 5 produces its expected outcome — Enforce quality gates: fail the build on lint errors, Detekt threshold breaches, or Ktlint violations. The QualityGate (CAP.ANDROID.QUALITY_GATE) MUST pass before artifact promotion.
+- Step 6 produces its expected outcome — Document quality decisions: record which rules are disabled and why in the ReasoningArtifact (BS §66.2).
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

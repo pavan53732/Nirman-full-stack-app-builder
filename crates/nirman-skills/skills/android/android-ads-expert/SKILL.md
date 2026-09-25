@@ -69,15 +69,15 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * A failed or withheld ad never blocks, hides, or degrades app
-  *   functionality.
+    functionality.
   * Consent is collected before personalized ads and is honoured in every
-  *   ad request; consent state is durable evidence.
+    ad request; consent state is durable evidence.
   * Rewarded ads grant the reward only on a verified completion callback,
-  *   never on impression alone.
+    never on impression alone.
   * Only test ad units are used in verification; live inventory is never
-  *   exercised by an automated run.
+    exercised by an automated run.
   * Ads are labeled; a sponsored placement is never presented as organic
-  *   content.
+    content.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -119,13 +119,13 @@ Emits `AdsIntegrationResult` from `AdsIntegrationResultRequest` (§23 SkillPacka
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Declare the app id in the manifest and initialize the SDK once, early,
-- Step 2 produces its expected outcome — Pick the format that fits the surface: banner for persistent low-value
-- Step 3 produces its expected outcome — Load ahead of the moment of display and handle the full lifecycle:
-- Step 4 produces its expected outcome — Never gate a functional outcome on an ad: a failed load, an
-- Step 5 produces its expected outcome — Wire consent and privacy: collect consent where required before
-- Step 6 produces its expected outcome — Label paid or sponsored content visibly, and keep ad controls clear of
-- Step 7 produces its expected outcome — Verify with test ad units on the Nirman-managed emulator: exercise
+- Step 1 produces its expected outcome — Declare the app id in the manifest and initialize the SDK once, early, and off the critical startup path so a slow ad network cannot delay first frame.
+- Step 2 produces its expected outcome — Pick the format that fits the surface: banner for persistent low-value placement, interstitial at natural task boundaries only, rewarded where the user opts in for a defined benefit, and native where the ad must adopt the surrounding design.
+- Step 3 produces its expected outcome — Load ahead of the moment of display and handle the full lifecycle: onAdLoaded, onAdFailedToLoad, onAdImpression, and onAdClicked are each handled, and a failed load simply leaves the slot empty.
+- Step 4 produces its expected outcome — Never gate a functional outcome on an ad: a failed load, an unavailable network, or a user who declines consent leaves the app fully usable.
+- Step 5 produces its expected outcome — Wire consent and privacy: collect consent where required before personalized ads, honour the consent state in the ad request, and respect the advertising identifier when it is unavailable.
+- Step 6 produces its expected outcome — Label paid or sponsored content visibly, and keep ad controls clear of the app's own controls so a tap is never ambiguous.
+- Step 7 produces its expected outcome — Verify with test ad units on the Nirman-managed emulator: exercise load success, load failure, impression, click, and rewarded grant, and confirm the app behaves correctly when ads are unavailable.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

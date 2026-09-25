@@ -70,13 +70,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Purchases are verified server-side — never trust client-side purchase
-  *    data alone. Verify with the Google Play Developer API.
+    data alone. Verify with the Google Play Developer API.
   * Purchases are acknowledged within 3 days — unacknowledged purchases
-  *    are automatically refunded. Acknowledge after granting the entitlement.
+    are automatically refunded. Acknowledge after granting the entitlement.
   * Subscription status is checked on app start — always query active
-  *    purchases on launch to sync entitlement state.
+    purchases on launch to sync entitlement state.
   * Test purchases use test card numbers — use the Google Play test
-  *    environment for development. Never use real cards in testing.
+    environment for development. Never use real cards in testing.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -118,13 +118,13 @@ Emits `PaymentsIntegrationResult` from `PaymentsIntegrationRequest` (§23 SkillP
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze payment requirements: identify product types (consumable,
-- Step 2 produces its expected outcome — Generate and validate the Android billing integration, local product-ID configuration contract, test fixtures, and user-facing documentation. Nirman does not create, modify, or publish products in Google Play Console.
-- Step 3 produces its expected outcome — Implement the billing client: use BillingClient with PurchasesUpdatedListener
-- Step 4 produces its expected outcome — Implement the purchase flow: use launchBillingFlow to initiate
-- Step 5 produces its expected outcome — Implement purchase verification: verify purchases on the backend using
-- Step 6 produces its expected outcome — Handle subscription status: use queryPurchasesAsync to check active
-- Step 7 produces its expected outcome — Test billing features: use Google Play's test environment with
+- Step 1 produces its expected outcome — Analyze payment requirements: identify product types (consumable, non-consumable, subscription), pricing tiers, subscription periods, and upgrade/downgrade rules.
+- Step 2 produces its expected outcome — Generate and validate the Android billing integration, local product-ID configuration contract, test fixtures, and user-facing documentation. Nirman does not create, modify, or publish products in Google Play Console. Console-side product creation remains an external user-owned prerequisite represented as a durable environment requirement.
+- Step 3 produces its expected outcome — Implement the billing client: use BillingClient with PurchasesUpdatedListener to handle purchase flows. Connect to the billing service with startConnection.
+- Step 4 produces its expected outcome — Implement the purchase flow: use launchBillingFlow to initiate purchases, handle BillingResponseCode, and acknowledge purchases with acknowledgePurchase.
+- Step 5 produces its expected outcome — Implement purchase verification: verify purchases on the backend using the Google Play Developer API, validate purchase tokens, and grant entitlements.
+- Step 6 produces its expected outcome — Handle subscription status: use queryPurchasesAsync to check active subscriptions, handle subscription lifecycle (active, canceled, in grace period, on hold, expired).
+- Step 7 produces its expected outcome — Test billing features: use Google Play's test environment with test card numbers, test subscription scenarios (cancel, resume, refund), and verify purchase acknowledgment.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

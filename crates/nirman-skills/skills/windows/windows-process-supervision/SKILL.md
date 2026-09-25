@@ -67,7 +67,7 @@ duplicated, restarting repeatedly, or outliving its owner.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - INVENTORY_MISMATCH — a process is missing, extra, or duplicated.
 - UNMANAGED_PROCESS — a process is running that no owner supervises.
@@ -82,7 +82,7 @@ duplicated, restarting repeatedly, or outliving its owner.
   chance to flush, then terminated deliberately.
 - An unmanaged process is brought under supervision or removed; it is not left
   running because nothing claims it.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -67,7 +67,7 @@ condition.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - DEEP_LINK_UNRESOLVED — a link opened the wrong destination or nothing from a cold
   start.
@@ -82,7 +82,7 @@ condition.
   from the default screen after the fact.
 - A back trap is fixed by correcting the stack, not by intercepting back and forcing an
   exit from an arbitrary depth.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

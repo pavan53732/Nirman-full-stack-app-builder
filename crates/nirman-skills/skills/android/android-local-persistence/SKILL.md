@@ -64,7 +64,7 @@ without bound on device.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - NON_TRANSACTIONAL_WRITE — a multi-record write can leave a partial state.
 - UNMIGRATED_SCHEMA — the on-device version was not read or migrated.
@@ -78,7 +78,7 @@ without bound on device.
   the whole cache when storage runs low.
 - A sensitive value found in a plain store is moved and the plain copy is removed; the
   finding is not closed by deleting only the live row.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

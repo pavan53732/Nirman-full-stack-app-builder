@@ -8,7 +8,7 @@ UI code with proper semantics, validate translation fidelity against the
 original design (BS §79.7; BS §50; ADR-225 ScreenModel).
 
 ## Trigger
-This skill is requested when figma-to-Compose translation — parse Figma design files (nodes, components, styles, constraints, assets), extract design tokens (colors, typography, spacing, corner radius), map to Compose equivalents (Modifier, Box, Row, Column, Text, theme, Material3), generate pixel-flavored Compose UI code with proper semantics, validate translation fidelity against the original design (BS §79.7; BS §50; ADR-225 ScreenModel).. It does not replace a worker role — it supplies the domain
+This skill is requested when figma-to-Compose translation — parse Figma design files (nodes, components, styles, constraints, assets), extract design tokens (colors, typography, spacing, corner radius), map to Compose equivalents (Modifier, Box, Row, Column, Text, theme, Material3), generate pixel-flavored Compose UI code with proper semantics, validate translation fidelity against the original design (BS §79.7; BS §50; ADR-225 ScreenModel). It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -70,15 +70,15 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Design import requires DESIGN_IMPORT; a missing Figma token or file is
-  *   USER_REQUIRED, never a guessed layout.
+    USER_REQUIRED, never a guessed layout.
   * Generated Compose code MUST pass through the normal `UI Worker` preview
-  *   and validation pipeline before integration — design import alone does
-  *   not satisfy the BrandAssetCompletionGate (BS §50.7).
+    and validation pipeline before integration — design import alone does
+    not satisfy the BrandAssetCompletionGate (BS §50.7).
   * Figma access tokens are stored per the credential rules (BS §8.4) and
-  *   are never persisted in project records.
+    are never persisted in project records.
   * Translation fidelity is measured, not assumed — a generated screen that
-  *   does not meet the fidelity threshold routes through RecoveryAuthority for
-  *   repair, not silent acceptance.
+    does not meet the fidelity threshold routes through RecoveryAuthority for
+    repair, not silent acceptance.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -119,13 +119,13 @@ Emits `DesignImportResult` from `DesignImportRequest` (§23 SkillPackage contrac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Obtain the design source: either a Figma file (via access token and the
-- Step 2 produces its expected outcome — Parse the design structure: identify screens, components, variants,
-- Step 3 produces its expected outcome — Extract design tokens: colors (light/dark), typography (font family,
-- Step 4 produces its expected outcome — Map to Compose equivalents: each Figma frame becomes a Composable
-- Step 5 produces its expected outcome — Generate Compose code: produce pixel-flavored Kotlin that matches the
-- Step 6 produces its expected outcome — Validate translation fidelity: render the generated Compose code in the
-- Step 7 produces its expected outcome — Integrate into the project: place generated Composables in the workspace,
+- Step 1 produces its expected outcome — Obtain the design source: either a Figma file (via access token and the Figma API) or a local design-export file (JSON, PDF, or image with vision-assisted extraction).
+- Step 2 produces its expected outcome — Parse the design structure: identify screens, components, variants, constraints, and layout grids.
+- Step 3 produces its expected outcome — Extract design tokens: colors (light/dark), typography (font family, size, weight, line height), spacing scales, corner radii, elevation, and semantic color roles.
+- Step 4 produces its expected outcome — Map to Compose equivalents: each Figma frame becomes a Composable function; each Figma component becomes a reusable Composable; Figma auto-layout becomes Row/Column/Box with Modifier spacing; Figma styles become MaterialTheme tokens.
+- Step 5 produces its expected outcome — Generate Compose code: produce pixel-flavored Kotlin that matches the design within the defined fidelity threshold.
+- Step 6 produces its expected outcome — Validate translation fidelity: render the generated Compose code in the Preview surface and compare against the original design using the ScreenModel/ScreenGraph pipeline (ADR-225). Measure structural similarity, color delta, typographic match, and spatial alignment.
+- Step 7 produces its expected outcome — Integrate into the project: place generated Composables in the workspace, update the BrandManifest/AssetManifest (BS §50.3), and refresh the preview.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -64,7 +64,7 @@ suspected to be structural rather than in the query text.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - UNSTABLE_KEY — a primary key derives from mutable data.
 - MISSING_CONSTRAINT — a rule the database could enforce is only checked in
@@ -80,7 +80,7 @@ suspected to be structural rather than in the query text.
   duplicates it in every caller.
 - An unused index is dropped after confirming no query uses it, since it costs writes
   while serving nothing.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

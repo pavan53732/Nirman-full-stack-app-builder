@@ -65,16 +65,16 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * No unwrap or panic on a reachable error path in control-plane code; a
-  *   panic in a long-lived process is a defect, not an error-handling
-  *   strategy.
+    panic in a long-lived process is a defect, not an error-handling
+    strategy.
   * Every task is owned and joinable; no task outlives its owner silently.
   * Every wait is bounded; an unbounded wait is a hang waiting to happen.
   * Named-pipe framing is versioned; a peer speaking an older version is
-  *   rejected explicitly, never partially parsed.
+    rejected explicitly, never partially parsed.
   * No secret, credential, or user content is written to a log, a memory
-  *   record, or a crash report.
+    record, or a crash report.
   * An unverified path is reported as unverified; a successful compile is
-  *   not evidence of correct concurrent behavior.
+    not evidence of correct concurrent behavior.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -116,14 +116,14 @@ Emits `ControlPlaneResult` from `ControlPlaneResultRequest` (§23 SkillPackage c
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Keep crate boundaries honest: one crate per responsibility,
-- Step 2 produces its expected outcome — Put every long-running or concurrent path on an explicit async runtime
-- Step 3 produces its expected outcome — Cancel and bound deliberately: every spawned task is joinable, every
-- Step 4 produces its expected outcome — Model failure as typed errors with context, not as strings, so a
-- Step 5 produces its expected outcome — Build interprocess communication on named pipes with framed messages,
-- Step 6 produces its expected outcome — Log structurally: stable event names, typed fields, and correlation
-- Step 7 produces its expected outcome — Test at the boundary that matters: unit tests for pure logic,
-- Step 8 produces its expected outcome — Verify on the host: build with static analysis enabled, run the suite,
+- Step 1 produces its expected outcome — Keep crate boundaries honest: one crate per responsibility, dependencies pointing one way, and no cycle between crates.
+- Step 2 produces its expected outcome — Put every long-running or concurrent path on an explicit async runtime and name it; nothing spawns a detached task that nobody owns.
+- Step 3 produces its expected outcome — Cancel and bound deliberately: every spawned task is joinable, every wait has a bound, and shutdown is a coordinated sequence rather than a process kill.
+- Step 4 produces its expected outcome — Model failure as typed errors with context, not as strings, so a caller can distinguish retryable from terminal without parsing a message.
+- Step 5 produces its expected outcome — Build interprocess communication on named pipes with framed messages, explicit versioning, and defined behavior for peer disconnection.
+- Step 6 produces its expected outcome — Log structurally: stable event names, typed fields, and correlation identifiers — never secrets, tokens, or user content.
+- Step 7 produces its expected outcome — Test at the boundary that matters: unit tests for pure logic, integration tests at the pipe and process boundaries, and static analysis in the build rather than in review.
+- Step 8 produces its expected outcome — Verify on the host: build with static analysis enabled, run the suite, and confirm the binaries start, connect, and shut down cleanly.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -64,14 +64,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * CameraX is the camera API of choice — it handles device-specific
-  *    quirks and lifecycle automatically. Avoid Camera2 for new code.
+    quirks and lifecycle automatically. Avoid Camera2 for new code.
   * Media3 is the playback library of choice — it handles background
-  *    playback, media sessions, and notifications. Avoid MediaPlayer.
+    playback, media sessions, and notifications. Avoid MediaPlayer.
   * Coil is the image loading library of choice — it integrates with
-  *    Compose, handles caching, and respects lifecycle. Avoid Glide for
-  *    new Compose code.
+    Compose, handles caching, and respects lifecycle. Avoid Glide for
+    new Compose code.
   * Media permissions are requested at point-of-use — request camera
-  *    permission when the user taps the camera button, not at app start.
+    permission when the user taps the camera button, not at app start.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -112,12 +112,12 @@ Emits `MediaImplementationResult` from `MediaImplementationRequest` (§23 SkillP
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze media requirements: identify camera needs (photo, video,
-- Step 2 produces its expected outcome — Implement CameraX: use ProcessCameraProvider for camera lifecycle,
-- Step 3 produces its expected outcome — Implement Media3/ExoPlayer: use ExoPlayer for media playback,
-- Step 4 produces its expected outcome — Implement image loading: use Coil for Compose (AsyncImage),
-- Step 5 produces its expected outcome — Handle media permissions: CAMERA, RECORD_AUDIO, READ_MEDIA_IMAGES,
-- Step 6 produces its expected outcome — Test media features: use CameraX FakeImageCapture for unit tests,
+- Step 1 produces its expected outcome — Analyze media requirements: identify camera needs (photo, video, scan), playback needs (audio, video, streaming), and image loading needs (remote, local, caching).
+- Step 2 produces its expected outcome — Implement CameraX: use ProcessCameraProvider for camera lifecycle, PreviewView for preview, ImageCapture for photos, VideoCapture for video. Handle camera permissions and lifecycle.
+- Step 3 produces its expected outcome — Implement Media3/ExoPlayer: use ExoPlayer for media playback, MediaSessionService for background playback, MediaNotification for playback notifications. Handle audio focus and media buttons.
+- Step 4 produces its expected outcome — Implement image loading: use Coil for Compose (AsyncImage), with memory cache, disk cache, and placeholder/error images. Respect image size constraints to avoid OOM.
+- Step 5 produces its expected outcome — Handle media permissions: CAMERA, RECORD_AUDIO, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO (API 33+). Request permissions with ActivityResultContracts.RequestPermission.
+- Step 6 produces its expected outcome — Test media features: use CameraX FakeImageCapture for unit tests, AndroidJUnit4 for instrumented tests with real camera.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

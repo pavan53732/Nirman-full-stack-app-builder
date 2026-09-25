@@ -67,7 +67,7 @@ something outside its grant.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - GRANT_EXCEEDED — the worker reached something outside its declared grant.
 - CREDENTIAL_REACHABLE — the worker could read credentials it must not see.
@@ -81,7 +81,7 @@ something outside its grant.
   not merely confirm the worker failed to read it this time.
 - A successful escape is escalated as a security defect and the configuration is not
   used until it is fixed.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -73,7 +73,7 @@ starves the host — or the host must be assessed before a device-dependent run.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - HOST_OUT_OF_SCOPE — Windows host architecture is not x64 (ADR-257); preflight terminates immediately without toolchain provisioning, project construction, build-only mode, or export.
 - NO_ACCELERATION — the hypervisor is absent or unusable; the emulator is not started
@@ -87,7 +87,7 @@ starves the host — or the host must be assessed before a device-dependent run.
   run is blocked rather than run slowly and silently.
 - A boot timeout is escalated with the last observed boot signal rather than retried
   indefinitely.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

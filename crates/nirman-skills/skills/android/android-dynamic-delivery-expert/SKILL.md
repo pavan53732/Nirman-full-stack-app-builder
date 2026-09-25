@@ -69,14 +69,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Dynamic feature modules are optional — the app MUST function without
-  *   on-demand modules. Gracefully handle module unavailability.
+    on-demand modules. Gracefully handle module unavailability.
   * On-demand modules require Play Store — dynamic delivery only works
-  *   through the Play Store. Use internal app sharing for testing.
+    through the Play Store. Use internal app sharing for testing.
   * Asset packs have size limits — install-time asset packs are limited
-  *   to 1 GB. Use fast-follow for larger assets.
+    to 1 GB. Use fast-follow for larger assets.
   * Module requests are monitored — SplitInstallManager provides
-  *   real-time status updates. Handle all status values (pending,
-  *   downloading, installed, failed, canceled).
+    real-time status updates. Handle all status values (pending,
+    downloading, installed, failed, canceled).
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `DynamicDeliveryResult` from `DynamicDeliveryRequest` (§23 SkillPackage c
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze delivery requirements: identify which features can be deferred
-- Step 2 produces its expected outcome — Create dynamic feature modules: use `com.android.dynamic-feature`
-- Step 3 produces its expected outcome — Configure Play Feature Delivery: use `<dist:module dist:title="...">`
-- Step 4 produces its expected outcome — Configure Play Asset Delivery: use `<dist:install-time>`,
-- Step 5 produces its expected outcome — Request on-demand modules: use SplitInstallManager to request
-- Step 6 produces its expected outcome — Manage asset packs: use AssetPackManager to fetch asset packs,
-- Step 7 produces its expected outcome — Test dynamic delivery: use internal app sharing for testing, test
+- Step 1 produces its expected outcome — Analyze delivery requirements: identify which features can be deferred (on-demand), which are needed immediately (install-time), and which are device-conditional.
+- Step 2 produces its expected outcome — Create dynamic feature modules: use `com.android.dynamic-feature` plugin, define `dist:module` metadata, and configure delivery options in the module manifest.
+- Step 3 produces its expected outcome — Configure Play Feature Delivery: use `<dist:module dist:title="...">` with `dist:on-demand` or `dist:instant` attributes. Define conditions (`dist:device-feature`, `dist:min-sdk`, `dist:user-countries`).
+- Step 4 produces its expected outcome — Configure Play Asset Delivery: use `<dist:install-time>`, `<dist:fast-follow>`, or `<dist:on-demand>` for asset packs. Define asset pack metadata in build.gradle.kts.
+- Step 5 produces its expected outcome — Request on-demand modules: use SplitInstallManager to request module installation, handle SplitInstallRequest, monitor SplitInstallSessionStatus, and handle errors.
+- Step 6 produces its expected outcome — Manage asset packs: use AssetPackManager to fetch asset packs, handle AssetPackStatus, and access downloaded assets with AssetPackLocation.
+- Step 7 produces its expected outcome — Test dynamic delivery: use internal app sharing for testing, test on-demand module requests, test asset pack delivery, and verify module uninstall behavior.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -70,7 +70,7 @@ or failed integrity and the reason must be established rather than guessed.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - WAITING_NETWORK — an authenticating, intercepting, or captive portal proxy blocked
   the download; reported with the host and observed status.
@@ -86,7 +86,7 @@ or failed integrity and the reason must be established rather than guessed.
   never relaxed to let the archive through.
 - A credential-demanding proxy is escalated to the user as a configuration decision,
   because this skill does not handle credentials.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

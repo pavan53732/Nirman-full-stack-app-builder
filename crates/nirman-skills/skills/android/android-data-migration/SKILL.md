@@ -64,7 +64,7 @@ ran.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CHAIN_GAP — no path exists from a version present in the field.
 - APPLIED_TWICE — a migration ran more than once.
@@ -79,7 +79,7 @@ ran.
   migration is never declared successful on a spot check of a few rows.
 - An irreversible step without a restore path is blocked until a verified restore path
   exists, rather than proceeding because a backup is assumed.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

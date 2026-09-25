@@ -66,7 +66,7 @@ not at all, or a token is stale.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - TOKEN_UNREGISTERED — a token was acquired but never confirmed registered.
 - STALE_TOKEN_RETAINED — a rotated token left the old one registered.
@@ -80,7 +80,7 @@ not at all, or a token is stale.
   not truncated until it fits.
 - A delivery-dependent path is fixed by adding an in-app source of the same
   information, not by retrying delivery harder.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -66,7 +66,7 @@ or provider and local records disagree.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - DUPLICATE_CHARGE — one intent produced two charges.
 - UNVERIFIED_WEBHOOK — a webhook was processed without a verified signature.
@@ -80,7 +80,7 @@ or provider and local records disagree.
   processed on trust because it came from the expected address.
 - A reconciliation mismatch is resolved against the provider's record, and the local
   transition that caused it is corrected rather than patched in the table.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

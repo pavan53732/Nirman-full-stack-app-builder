@@ -66,17 +66,17 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * A diagnosis is bound to evidence; a hypothesis without an evidence
-  *   reference is reported as a hypothesis, not a cause.
+    reference is reported as a hypothesis, not a cause.
   * Observation is read-only with respect to the failure: reproducing a
-  *   fault must not mutate the state that produced it.
+    fault must not mutate the state that produced it.
   * Correlation is not causation; a log line near a failure is not an
-  *   explanation of it.
+    explanation of it.
   * No secret, credential, or user content is copied into a diagnostic
-  *   artifact, a log, or a crash dump.
+    artifact, a log, or a crash dump.
   * A dump is collected only where a crash is the failure, and is
-  *   recorded as an artifact with its retention rule.
+    recorded as an artifact with its retention rule.
   * An unverified fix is reported as unverified; a restart that hides a
-  *   fault is not a repair.
+    fault is not a repair.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,14 +117,14 @@ Emits `DiagnosticsResult` from `DiagnosticsResultRequest` (§23 SkillPackage con
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Reproduce under observation: capture the exact command, working
-- Step 2 produces its expected outcome — Separate the processes under test: the desktop application, the
-- Step 3 produces its expected outcome — Inspect the named-pipe transport first: connection establishment,
-- Step 4 produces its expected outcome — Inspect ConPTY streams: confirm the console host is attached, that
-- Step 5 produces its expected outcome — Inspect Job Object state: which limits are configured, which were
-- Step 6 produces its expected outcome — Inspect process supervision: expected process count, restart count,
-- Step 7 produces its expected outcome — Collect the durable evidence: relevant event-log entries, structured
-- Step 8 produces its expected outcome — State the finding with its evidence reference, and distinguish a
+- Step 1 produces its expected outcome — Reproduce under observation: capture the exact command, working directory, environment, and account that produced the failure.
+- Step 2 produces its expected outcome — Separate the processes under test: the desktop application, the supervisor, and the workers — a symptom in one is frequently a cause in another.
+- Step 3 produces its expected outcome — Inspect the named-pipe transport first: connection establishment, framing, and which side closed and why.
+- Step 4 produces its expected outcome — Inspect ConPTY streams: confirm the console host is attached, that output is being drained, and that a full buffer is not the real fault.
+- Step 5 produces its expected outcome — Inspect Job Object state: which limits are configured, which were hit, which processes remain inside the job, and whether a termination was a limit kill.
+- Step 6 produces its expected outcome — Inspect process supervision: expected process count, restart count, and the reason recorded for each restart.
+- Step 7 produces its expected outcome — Collect the durable evidence: relevant event-log entries, structured log lines with their correlation identifiers, and a crash dump only where a crash is the failure.
+- Step 8 produces its expected outcome — State the finding with its evidence reference, and distinguish a diagnosed cause from a merely correlated symptom.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -69,7 +69,7 @@ merge conflict, or a shipped resource that should have been removed.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - UNRESOLVABLE_QUALIFIER — a qualifier combination the platform cannot
   resolve, causing a silent fallback.

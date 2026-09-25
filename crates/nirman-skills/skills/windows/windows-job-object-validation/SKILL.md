@@ -68,7 +68,7 @@ job it was assigned to.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - LIMIT_NOT_APPLIED — a declared limit is absent from the job object.
 - CONTAINMENT_BREACH — a process that must be inside the job was found outside it.
@@ -83,7 +83,7 @@ job it was assigned to.
   durable; the kill is never reported as a plain process exit.
 - A nesting violation is resolved by following the assignment rule, not by allowing
   the assignment and ignoring the rule.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

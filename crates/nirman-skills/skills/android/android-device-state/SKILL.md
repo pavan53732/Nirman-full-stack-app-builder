@@ -70,7 +70,7 @@ that cannot be reproduced.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - UNRECONCILABLE — the device could not be brought to the declared target
   state; the divergence is named, not suppressed.

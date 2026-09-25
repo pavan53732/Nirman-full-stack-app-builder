@@ -70,7 +70,7 @@ under load.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CONNECTION_FAILED — the pipe could not be established, with which side failed
   and why.
@@ -86,7 +86,7 @@ under load.
   accept malformed input.
 - A version mismatch is resolved by explicit negotiation, never by guessing the
   layout from the message body.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

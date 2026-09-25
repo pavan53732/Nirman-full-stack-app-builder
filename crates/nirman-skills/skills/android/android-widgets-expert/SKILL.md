@@ -65,14 +65,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * RemoteViews supports a limited view set — only TextView, ImageView,
-  *    Button, ProgressBar, ListView, GridView, StackView, AdapterViewFlipper,
-  *    FrameLayout, LinearLayout, RelativeLayout, and AnalogClock are supported.
+    Button, ProgressBar, ListView, GridView, StackView, AdapterViewFlipper,
+    FrameLayout, LinearLayout, RelativeLayout, and AnalogClock are supported.
   * Widget updates are batched — the system throttles widget updates.
-  *    Use WorkManager for reliable periodic updates.
+    Use WorkManager for reliable periodic updates.
   * Widget configuration is per-widget — each widget instance has its own
-  *    configuration. Store configuration with the widget ID as key.
+    configuration. Store configuration with the widget ID as key.
   * Widgets are not interactive — use PendingIntent for user interactions.
-  *    Only one PendingIntent per view is supported.
+    Only one PendingIntent per view is supported.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -113,13 +113,13 @@ Emits `WidgetsResult` from `WidgetsRequest` (§23 SkillPackage contract):
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze widget requirements: identify widget size (small, medium,
-- Step 2 produces its expected outcome — Define the widget provider: create AppWidgetProvider subclass,
-- Step 3 produces its expected outcome — Design the widget layout: use RemoteViews with supported views
-- Step 4 produces its expected outcome — Implement the widget service: use RemoteViewsService for collection
-- Step 5 produces its expected outcome — Handle widget updates: use AppWidgetManager.updateAppWidget to
-- Step 6 produces its expected outcome — Add widget configuration: use AppWidgetManager.ACTION_APPWIDGET_CONFIGURE
-- Step 7 produces its expected outcome — Test widget features: use the widget host emulator, test different
+- Step 1 produces its expected outcome — Analyze widget requirements: identify widget size (small, medium, large), update frequency, data source, and user interaction needs.
+- Step 2 produces its expected outcome — Define the widget provider: create AppWidgetProvider subclass, declare it in the manifest with android.appwidget.action.APPWIDGET_UPDATE intent filter, and define the widget metadata XML.
+- Step 3 produces its expected outcome — Design the widget layout: use RemoteViews with supported views (TextView, ImageView, Button, ListView, GridView). Define responsive layouts for different sizes using `layout-w<N>dp` qualifiers.
+- Step 4 produces its expected outcome — Implement the widget service: use RemoteViewsService for collection widgets (ListView, GridView), RemoteViewsFactory for data binding.
+- Step 5 produces its expected outcome — Handle widget updates: use AppWidgetManager.updateAppWidget to refresh the widget. Schedule periodic updates with WorkManager or AlarmManager.
+- Step 6 produces its expected outcome — Add widget configuration: use AppWidgetManager.ACTION_APPWIDGET_CONFIGURE intent for configuration activity. Store configuration per widget ID.
+- Step 7 produces its expected outcome — Test widget features: use the widget host emulator, test different sizes, test update behavior, and verify configuration flow.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

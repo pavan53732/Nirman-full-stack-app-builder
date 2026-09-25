@@ -6,7 +6,7 @@ the Nirman-managed local Android emulator, native dependencies, and signing
 only runtime surface (BS §4.4).
 
 ## Trigger
-This skill is requested when node, package manager, Java, Gradle, Android SDK, platform tools, the Nirman-managed local Android emulator, native dependencies, and signing (BS §79.7). The emulator rendered inside Nirman's embedded preview is the only runtime surface (BS §4.4).. It does not replace a worker role — it supplies the domain
+This skill is requested when node, package manager, Java, Gradle, Android SDK, platform tools, the Nirman-managed local Android emulator, native dependencies, and signing (BS §79.7). The emulator rendered inside Nirman's embedded preview is the only runtime surface (BS §4.4). It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -75,24 +75,24 @@ MUST be reported.
   statement the evidence above has to support:
 
   * Runtime evidence requires an emulator observation bound to the environment fingerprint.
-  *   A missing or unstartable emulator is USER_REQUIRED, never a simulated
-  *   device and never a substitute runtime.
+    A missing or unstartable emulator is USER_REQUIRED, never a simulated
+    device and never a substitute runtime.
   * Versions are observed, never taken from the project's declaration; a
-  *   declared version is a request, not a fact.
+    declared version is a request, not a fact.
   * A version mismatch is reported as USER_REQUIRED or REPAIRABLE — the
-  *   toolchain is never silently downgraded, upgraded, or substituted to
-  *   make a check pass.
+    toolchain is never silently downgraded, upgraded, or substituted to
+    make a check pass.
   * Emulator and system-image packages are provisioned from the SDK
-  *   repository; Nirman MUST NOT bundle, fork, patch, rebuild, or
-  *   redistribute the emulator engine (ADR-221).
+    repository; Nirman MUST NOT bundle, fork, patch, rebuild, or
+    redistribute the emulator engine (ADR-221).
   * On a host architecture the SDK repository does not serve an emulator
-  *   for, the emulator capability is UNAVAILABLE with that stated reason;
-  *   build, static analysis, and export continue, and validation evidence
-  *   honestly remains absent (BS §79.17).
+    for, the emulator capability is UNAVAILABLE with that stated reason;
+    build, static analysis, and export continue, and validation evidence
+    honestly remains absent (BS §79.17).
   * Key material is handled through the signing authority; this skill never
-  *   holds, logs, or generates release signing credentials.
+    holds, logs, or generates release signing credentials.
   * Toolchain repair routes through the environment-repair skill and
-  *   policy; loading this skill grants no repair authority.
+    policy; loading this skill grants no repair authority.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -134,14 +134,14 @@ Emits `AndroidToolchainManifest` from `AndroidToolchainRequest` (§23 SkillPacka
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Enumerate every component with an observed version: JDK, Gradle, the
-- Step 2 produces its expected outcome — Resolve the SDK root explicitly from the environment record. A tool
-- Step 3 produces its expected outcome — Verify SDK license acceptance state; an unaccepted license makes the
-- Step 4 produces its expected outcome — Confirm the emulator package matches the declared target: the system
-- Step 5 produces its expected outcome — Verify signing material: a debug keystore for development builds, and
-- Step 6 produces its expected outcome — Lock the observation into the AndroidToolchainManifest — observed
-- Step 7 produces its expected outcome — Build or validate only when the required capabilities are AVAILABLE,
-- Step 8 produces its expected outcome — Re-enumerate after any repair, because a repaired toolchain is a new
+- Step 1 produces its expected outcome — Enumerate every component with an observed version: JDK, Gradle, the Android SDK and its installed platforms and build tools, platform tools, the NDK where native code is built, and Node with its package manager where the project uses them.
+- Step 2 produces its expected outcome — Resolve the SDK root explicitly from the environment record. A tool found only because of shell search order is a misconfiguration, not a working toolchain.
+- Step 3 produces its expected outcome — Verify SDK license acceptance state; an unaccepted license makes the component unusable and is reported, not clicked through.
+- Step 4 produces its expected outcome — Confirm the emulator package matches the declared target: the system image ABI and API level correspond to the target platform, an AVD exists, and acceleration is available through a usable hypervisor.
+- Step 5 produces its expected outcome — Verify signing material: a debug keystore for development builds, and for release only the configured signing identity, never a credential the skill creates or stores.
+- Step 6 produces its expected outcome — Lock the observation into the AndroidToolchainManifest — observed versions, resolved paths, and fingerprints — so every later build and evidence record binds to a single toolchain identity.
+- Step 7 produces its expected outcome — Build or validate only when the required capabilities are AVAILABLE, and bind the result to the manifest and the environment fingerprint.
+- Step 8 produces its expected outcome — Re-enumerate after any repair, because a repaired toolchain is a new identity and the previous manifest no longer describes it.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

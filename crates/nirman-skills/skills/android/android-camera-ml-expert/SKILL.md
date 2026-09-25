@@ -69,13 +69,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * CameraX is the camera API of choice — it handles device-specific
-  *   quirks and lifecycle automatically. Avoid Camera2 for new code.
+    quirks and lifecycle automatically. Avoid Camera2 for new code.
   * ML Kit runs on-device — no network connection is required for ML Kit
-  *   features. Models are bundled with the app.
+    features. Models are bundled with the app.
   * ImageAnalysis frames are throttled — ML Kit processing is synchronous.
-  *   Drop frames if processing takes longer than the frame interval.
+    Drop frames if processing takes longer than the frame interval.
   * Camera permissions are requested at point-of-use — request camera
-  *   permission when the user taps the camera button, not at app start.
+    permission when the user taps the camera button, not at app start.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `CameraMLResult` from `CameraMLRequest` (§23 SkillPackage contract):
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze camera/ML requirements: identify the use case (barcode scanning,
-- Step 2 produces its expected outcome — Set up CameraX: use ProcessCameraProvider for camera lifecycle,
-- Step 3 produces its expected outcome — Implement ML Kit features: use BarcodeScanning, FaceDetection,
-- Step 4 produces its expected outcome — Process camera frames: use ImageAnalysis.Analyzer with CameraX
-- Step 5 produces its expected outcome — Integrate custom models: use TensorFlow Lite with the GPU delegate
-- Step 6 produces its expected outcome — Handle camera permissions: request CAMERA permission, handle
-- Step 7 produces its expected outcome — Test camera/ML features: use CameraX FakeImageCapture for unit
+- Step 1 produces its expected outcome — Analyze camera/ML requirements: identify the use case (barcode scanning, face detection, text recognition, image labeling, custom model), camera requirements (front/back, resolution), and performance needs.
+- Step 2 produces its expected outcome — Set up CameraX: use ProcessCameraProvider for camera lifecycle, PreviewView for preview, ImageCapture for photos, ImageAnalysis for ML processing.
+- Step 3 produces its expected outcome — Implement ML Kit features: use BarcodeScanning, FaceDetection, TextRecognition, ImageLabeling, PoseDetection. Configure detector settings (speed vs accuracy, min face size).
+- Step 4 produces its expected outcome — Process camera frames: use ImageAnalysis.Analyzer with CameraX ImageProxy. Convert ImageProxy to InputImage for ML Kit. Handle frame throttling for performance.
+- Step 5 produces its expected outcome — Integrate custom models: use TensorFlow Lite with the GPU delegate for acceleration. Convert models to TFLite format, optimize with quantization.
+- Step 6 produces its expected outcome — Handle camera permissions: request CAMERA permission, handle permission denial gracefully, provide fallback UI.
+- Step 7 produces its expected outcome — Test camera/ML features: use CameraX FakeImageCapture for unit tests, test ML Kit with sample images, verify performance on different devices.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

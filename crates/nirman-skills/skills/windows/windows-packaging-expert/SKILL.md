@@ -66,16 +66,16 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * A declared capability is a real requirement; a capability declared
-  *   speculatively is a defect.
+    speculatively is a defect.
   * The signature is verified on the produced package, never assumed from
-  *   a successful sign step.
+    a successful sign step.
   * Version is monotonic, and a rebuild is distinguishable from a change.
   * Install, update, and uninstall are each verified on a clean target; an
-  *   unverified lifecycle step is reported as unverified.
+    unverified lifecycle step is reported as unverified.
   * Uninstall removes what install created, except data the user chose to
-  *   keep.
+    keep.
   * No credential or signing secret is written to a log, an artifact, or
-  *   a memory record.
+    a memory record.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -116,14 +116,14 @@ Emits `PackagingResult` from `PackagingResultRequest` (§23 SkillPackage contrac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Declare the package manifest completely and truthfully: identity,
-- Step 2 produces its expected outcome — Choose the packaging model deliberately: a packaged MSIX for store or
-- Step 3 produces its expected outcome — Sign with a certificate whose subject matches the declared publisher,
-- Step 4 produces its expected outcome — Version monotonically: a package version never goes backwards, and a
-- Step 5 produces its expected outcome — Test the installer on a clean target: install, launch, verify the
-- Step 6 produces its expected outcome — Test the update path explicitly: install the previous version, apply
-- Step 7 produces its expected outcome — Verify uninstall completeness: nothing install created is left behind,
-- Step 8 produces its expected outcome — Capture the artifacts of record: the package, its signature, its
+- Step 1 produces its expected outcome — Declare the package manifest completely and truthfully: identity, publisher, version, target device family, and only the capabilities the application actually requires.
+- Step 2 produces its expected outcome — Choose the packaging model deliberately: a packaged MSIX for store or sideload distribution, or an unpackaged build for development loops, and never mix the two in one artifact.
+- Step 3 produces its expected outcome — Sign with a certificate whose subject matches the declared publisher, then verify the signature on the produced package rather than trusting the build step that claims to have signed it.
+- Step 4 produces its expected outcome — Version monotonically: a package version never goes backwards, and a rebuild of identical content is distinguishable from a content change.
+- Step 5 produces its expected outcome — Test the installer on a clean target: install, launch, verify the installed layout and entry points, then uninstall and verify removal.
+- Step 6 produces its expected outcome — Test the update path explicitly: install the previous version, apply the new one, and confirm user data and settings survive the upgrade.
+- Step 7 produces its expected outcome — Verify uninstall completeness: nothing install created is left behind, except data the user explicitly chose to keep.
+- Step 8 produces its expected outcome — Capture the artifacts of record: the package, its signature, its version, and the install, update, and uninstall outcomes.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

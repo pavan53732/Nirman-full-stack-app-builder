@@ -66,7 +66,7 @@ back, that data survives, and that the rollback itself works.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - NO_KNOWN_GOOD — no retained package to roll back to; escalated, never improvised.
 - ROLLBACK_FAILED — the rollback did not restore a working install.
@@ -80,7 +80,7 @@ back, that data survives, and that the rollback itself works.
   is fixed to separate data from install permanently.
 - A skipped validation is corrected in the staging path, not by trusting the package
   because it came from the usual source.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

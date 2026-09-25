@@ -75,7 +75,7 @@ intermittent, or absent.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - TRANSPORT_FAILURE — DNS, connection, or TLS failed before HTTP.
 - CONTRACT_DIVERGENCE — the response does not match the contract the app

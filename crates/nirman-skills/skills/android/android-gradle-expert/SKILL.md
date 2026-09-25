@@ -65,13 +65,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Version catalogs are the single source of truth — dependencies are
-  *    referenced via `libs.*`, never hardcoded as `group:artifact:version`.
+    referenced via `libs.*`, never hardcoded as `group:artifact:version`.
   * Convention plugins are used for shared build logic — each module
-  *    applies a convention plugin, not raw `android {}` blocks.
+    applies a convention plugin, not raw `android {}` blocks.
   * Signing config is separate from build logic — the `Release Worker`
-  *    manages signing identity, not the Gradle script.
+    manages signing identity, not the Gradle script.
   * ProGuard/R8 rules are tested — release builds are tested on the
-  *    emulator to catch reflection/serialization issues.
+    emulator to catch reflection/serialization issues.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -112,12 +112,12 @@ Emits `BuildSystemConfigurationResult` from `BuildSystemConfigurationRequest` (�
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze build requirements: identify build variants (debug, release,
-- Step 2 produces its expected outcome — Set up version catalogs: define libs.versions.toml with versions,
-- Step 3 produces its expected outcome — Create convention plugins: use `build-logic` module with
-- Step 4 produces its expected outcome — Configure build variants: define debug, release, and optional
-- Step 5 produces its expected outcome — Configure ProGuard/R8: define `proguard-rules.pro` for release builds,
-- Step 6 produces its expected outcome — Optimize build: enable build cache, configuration cache, parallel
+- Step 1 produces its expected outcome — Analyze build requirements: identify build variants (debug, release, staging), dependency groups, and build optimization needs.
+- Step 2 produces its expected outcome — Set up version catalogs: define libs.versions.toml with versions, libraries, and bundles. Use libs.android.gradle.plugin syntax for plugins, libs.bundles.compose for grouped dependencies.
+- Step 3 produces its expected outcome — Create convention plugins: use `build-logic` module with convention.gradle.kts files for Android library, Android app, and Compose configuration. Avoid duplicating build logic across modules.
+- Step 4 produces its expected outcome — Configure build variants: define debug, release, and optional staging variants with different application IDs, signing configs, and build config fields.
+- Step 5 produces its expected outcome — Configure ProGuard/R8: define `proguard-rules.pro` for release builds, keep rules for reflection-based libraries, and test with `minifyEnabled = true` on debug for early detection.
+- Step 6 produces its expected outcome — Optimize build: enable build cache, configuration cache, parallel execution, and non-transitive R classes. Use Gradle build scans for bottleneck identification.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

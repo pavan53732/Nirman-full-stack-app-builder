@@ -64,7 +64,7 @@ state and the cause is in how state is held rather than in how it is rendered.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - DERIVED_STATE_STORED — a computed value is stored as if it were owned state.
 - DUPLICATE_SOURCE_OF_TRUTH — the same fact is held in two places.
@@ -78,7 +78,7 @@ state and the cause is in how state is held rather than in how it is rendered.
   duration until the symptom stops appearing.
 - An update race is resolved with an explicit ordering or merge rule, not by relying on
   the order the calls happen to return in.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -67,7 +67,7 @@ classified, and recovered from rather than leaving the system in an unknown stat
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CRASH_UNCLASSIFIED — the exit state does not establish a cause.
 - DUMP_UNAVAILABLE — a crash occurred and no dump was captured where one was required.
@@ -81,7 +81,7 @@ classified, and recovered from rather than leaving the system in an unknown stat
   decide, the transaction is marked unknown rather than assumed committed.
 - Repeated work is fixed at the resume boundary, and the boundary is proven by a
   crash-during-work fixture rather than by inspection.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

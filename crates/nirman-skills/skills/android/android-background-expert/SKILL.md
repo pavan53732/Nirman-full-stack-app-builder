@@ -66,14 +66,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * WorkManager is the default for background work — it handles Doze,
-  *    App Standbox, and OEM-specific battery optimizations automatically.
+    App Standbox, and OEM-specific battery optimizations automatically.
   * Foreground services require a persistent notification — the user must
-  *    be aware of ongoing background work. Never start a foreground service
-  *    without a notification.
+    be aware of ongoing background work. Never start a foreground service
+    without a notification.
   * Exact alarms require SCHEDULE_EXACT_ALARM permission — use
-  *    setExactAndAllowWhileIdle sparingly, as it bypasses Doze.
+    setExactAndAllowWhileIdle sparingly, as it bypasses Doze.
   * Background execution limits (API 30+) restrict background starts —
-  *    use foreground services or WorkManager for reliable execution.
+    use foreground services or WorkManager for reliable execution.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -115,12 +115,12 @@ Emits `BackgroundWorkResult` from `BackgroundWorkRequest` (§23 SkillPackage con
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze background requirements: identify the work type (deferred,
-- Step 2 produces its expected outcome — Select the right tool: WorkManager for deferrable, guaranteed
-- Step 3 produces its expected outcome — Define WorkManager constraints: setRequiredNetworkType,
-- Step 4 produces its expected outcome — Implement the Worker class: extend CoroutineWorker for suspend
-- Step 5 produces its expected outcome — Handle foreground services: declare foregroundServiceType in the
-- Step 6 produces its expected outcome — Test background work: use WorkManagerTestInitHelper for unit tests,
+- Step 1 produces its expected outcome — Analyze background requirements: identify the work type (deferred, immediate, periodic, long-running), constraints (network, battery, storage), and whether the user needs to perceive the work.
+- Step 2 produces its expected outcome — Select the right tool: WorkManager for deferrable, guaranteed execution; foreground services for immediate, user-visible work; the Android alarm service only for exact-time alarms (clocks, reminders).
+- Step 3 produces its expected outcome — Define WorkManager constraints: setRequiredNetworkType, setRequiresBatteryNotLow, setRequiresStorageNotLow, setRequiresDeviceIdle. Use setExpedited for immediate work (subject to quota).
+- Step 4 produces its expected outcome — Implement the Worker class: extend CoroutineWorker for suspend support, Worker for synchronous work. Return `Result.success()`, `Result.retry()`, or `Result.failure()`.
+- Step 5 produces its expected outcome — Handle foreground services: declare foregroundServiceType in the manifest (media, location, dataSync, etc.), show a persistent notification, and handle the API 34 foreground service permissions.
+- Step 6 produces its expected outcome — Test background work: use WorkManagerTestInitHelper for unit tests, TestDriver for constraint satisfaction testing.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

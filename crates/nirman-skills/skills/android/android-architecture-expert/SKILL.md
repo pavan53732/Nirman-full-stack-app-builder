@@ -65,11 +65,11 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Unidirectional data flow: state flows down, events flow up. Never
-  *   bypass the ViewModel/Presenter to mutate state directly.
+    bypass the ViewModel/Presenter to mutate state directly.
   * Each layer depends only on layers below it — the UI layer never
-  *   accesses data sources directly.
+    accesses data sources directly.
   * Repositories are the single source of truth — ViewModels/UseCases
-  *   access data only through repositories.
+    access data only through repositories.
   * DI is consistent across the project — do not mix Hilt and Koin.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
@@ -112,13 +112,13 @@ Emits `ArchitectureDesignResult` from `ArchitectureDesignRequest` (§23 SkillPac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze the product intent and identify architectural requirements:
-- Step 2 produces its expected outcome — Select the architectural pattern: MVI for complex state machines with
-- Step 3 produces its expected outcome — Define the layer structure: UI layer (Composables/ViewModels/Activities),
-- Step 4 produces its expected outcome — Design dependency injection: use Hilt for compile-time safety on
-- Step 5 produces its expected outcome — Define module boundaries: by feature (recommended) or by layer. Each
-- Step 6 produces its expected outcome — Implement the repository pattern: single source of truth for each
-- Step 7 produces its expected outcome — Document the architecture decision in the ReasoningArtifact
+- Step 1 produces its expected outcome — Analyze the product intent and identify architectural requirements: complexity scale, team size (single developer vs multi-module), data sources, offline requirements, and testing strategy.
+- Step 2 produces its expected outcome — Select the architectural pattern: MVI for complex state machines with predictable state transitions; MVVM for simpler screens with ViewModel + StateFlow; avoid MVP unless integrating with legacy code.
+- Step 3 produces its expected outcome — Define the layer structure: UI layer (Composables/ViewModels/Activities), Domain layer (UseCases/Interactors — optional for simple apps), Data layer (Repositories, DataSources, APIs, DAOs).
+- Step 4 produces its expected outcome — Design dependency injection: use Hilt for compile-time safety on complex projects, Koin for simplicity on smaller projects, or manual DI (AppContainer/ServiceLocator) for minimal overhead.
+- Step 5 produces its expected outcome — Define module boundaries: by feature (recommended) or by layer. Each module has its own build configuration files, DI module, and internal API.
+- Step 6 produces its expected outcome — Implement the repository pattern: single source of truth for each entity, with remote and local data sources coordinated through the repository.
+- Step 7 produces its expected outcome — Document the architecture decision in the ReasoningArtifact (BS §66.2) with the selected pattern, rationale, and trade-offs.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

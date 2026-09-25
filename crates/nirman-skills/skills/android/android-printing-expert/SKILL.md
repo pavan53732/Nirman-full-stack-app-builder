@@ -68,15 +68,15 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Printing goes through the platform framework; no direct printer
-  *   protocol or vendor SDK path bypasses it.
+    protocol or vendor SDK path bypasses it.
   * An unsupported print option is absent from the options, never
-  *   presented and then ignored.
+    presented and then ignored.
   * Large documents paginate lazily; content is not fully materialized in
-  *   memory before printing.
+    memory before printing.
   * Job outcome is reported truthfully, including failure and user
-  *   cancellation.
+    cancellation.
   * A print capability that is unavailable is reported as unavailable;
-  *   printing is never claimed to have succeeded without a completed job.
+    printing is never claimed to have succeeded without a completed job.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `PrintJobResult` from `PrintJobResultRequest` (§23 SkillPackage contract)
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Choose the right surface: hand content to the system print framework
-- Step 2 produces its expected outcome — Implement a print adapter that matches the content type: a document
-- Step 3 produces its expected outcome — Render paginated output to PDF through the platform PDF APIs for
-- Step 4 produces its expected outcome — Expose honest print options: page range, copies, color mode, and
-- Step 5 produces its expected outcome — Let the user reach the system print preview before committing; the app
-- Step 6 produces its expected outcome — Track the print job: observe queued, started, completed, failed, and
-- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator with a print service available:
+- Step 1 produces its expected outcome — Choose the right surface: hand content to the system print framework rather than talking to a printer directly, so every print service the user has installed can produce it.
+- Step 2 produces its expected outcome — Implement a print adapter that matches the content type: a document adapter that paginates text and vector content, or a photo adapter for images that must preserve resolution.
+- Step 3 produces its expected outcome — Render paginated output to PDF through the platform PDF APIs for documents; generate the pages lazily so a large document does not materialize in memory at once.
+- Step 4 produces its expected outcome — Expose honest print options: page range, copies, color mode, and orientation, each supported only where the adapter can actually honour it.
+- Step 5 produces its expected outcome — Let the user reach the system print preview before committing; the app supplies a job name and content, and the platform owns the preview and the destination choice.
+- Step 6 produces its expected outcome — Track the print job: observe queued, started, completed, failed, and cancelled states, and report the outcome to the user in the app's own vocabulary.
+- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator with a print service available: produce a multi-page document, confirm pagination and page range behave, and confirm cancellation and failure are reported.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

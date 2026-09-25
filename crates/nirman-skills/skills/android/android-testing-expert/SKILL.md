@@ -71,13 +71,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Every Composable has a testTag — Compose UI tests locate nodes by
-  *   tag, not by text or position. Tags are stable across recomposition.
+    tag, not by text or position. Tags are stable across recomposition.
   * Screenshot tests have golden images — Paparazzi/Roborazzi compare
-  *   against stored golden images. Changes require explicit golden update.
+    against stored golden images. Changes require explicit golden update.
   * Unit tests are deterministic — use TestDispatcher and runTest
-  *   to eliminate timing flakiness. Never use Thread.sleep in tests.
+    to eliminate timing flakiness. Never use Thread.sleep in tests.
   * Integration tests use in-memory databases — never test against a
-  *   production database. Room.inMemoryDatabaseBuilder provides isolation.
+    production database. Room.inMemoryDatabaseBuilder provides isolation.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -118,13 +118,13 @@ Emits `TestingStrategyResult` from `TestingStrategyRequest` (§23 SkillPackage c
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze testing requirements: identify unit test targets (ViewModels,
-- Step 2 produces its expected outcome — Write unit tests: use JUnit 5 with runTest for coroutine tests,
-- Step 3 produces its expected outcome — Write Compose UI tests: use createAndroidComposeRule for
-- Step 4 produces its expected outcome — Write screenshot tests: use Paparazzi for pixel-perfect verification
-- Step 5 produces its expected outcome — Write integration tests: use Room.inMemoryDatabaseBuilder for DAO
-- Step 6 produces its expected outcome — Manage test fixtures: use TestFixture pattern for reusable test
-- Step 7 produces its expected outcome — Run tests in CI: configure Gradle to run unit tests on every build,
+- Step 1 produces its expected outcome — Analyze testing requirements: identify unit test targets (ViewModels, UseCases, Repositories), integration test targets (DAOs, API clients), and UI test targets (Composables, navigation flows).
+- Step 2 produces its expected outcome — Write unit tests: use JUnit 5 with runTest for coroutine tests, MockK for mocking, Turbine for Flow assertions. Test ViewModels by collecting state flows and asserting emitted values.
+- Step 3 produces its expected outcome — Write Compose UI tests: use createAndroidComposeRule for ComposeTestRule, onNodeWithTag for finding nodes (requires testTag), performClick, assertIsDisplayed. Test recomposition by performing actions and asserting state changes.
+- Step 4 produces its expected outcome — Write screenshot tests: use Paparazzi for pixel-perfect verification without a device, Roborazzi for screenshot comparison with tolerance thresholds. Store golden images in version control.
+- Step 5 produces its expected outcome — Write integration tests: use Room.inMemoryDatabaseBuilder for DAO tests, MockWebServer for API tests, AndroidJUnit4 for instrumented tests on the emulator.
+- Step 6 produces its expected outcome — Manage test fixtures: use TestFixture pattern for reusable test data, TestDispatcher for controlling coroutine execution in tests.
+- Step 7 produces its expected outcome — Run tests on every build: configure Gradle to run unit tests on every build, instrumented tests on the emulator, screenshot tests before artifact promotion.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

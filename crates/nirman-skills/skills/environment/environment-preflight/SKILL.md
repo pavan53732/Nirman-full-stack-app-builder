@@ -5,7 +5,7 @@ native dependencies; classify executable and validation capabilities;
 produce the environment fingerprint (BS §79.7).
 
 ## Trigger
-This skill is requested when identify host and target; inspect toolchain, SDKs, runtimes, and native dependencies; classify executable and validation capabilities; produce the environment fingerprint (BS §79.7).. It does not replace a worker role — it supplies the domain
+This skill is requested when identify host and target; inspect toolchain, SDKs, runtimes, and native dependencies; classify executable and validation capabilities; produce the environment fingerprint (BS §79.7). It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -66,22 +66,22 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * The model never sets or raises a capability state; the planner
-  *   classifies from observation
-  *   (CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION).
+    classifies from observation
+    (CLAUSE.PLATFORM.DETERMINISTIC_CLASSIFICATION).
   * A missing tool is reported as such — never silently substituted and
-  *   never hard-coded as unavailable.
+    never hard-coded as unavailable.
   * Host environment, target platform, validation platform, and
-  *   certification status stay distinct and are never collapsed into one
-  *   build, validation, or completion result
-  *   (CLAUSE.PLATFORM.HOST_TARGET_SEPARATION).
+    certification status stay distinct and are never collapsed into one
+    build, validation, or completion result
+    (CLAUSE.PLATFORM.HOST_TARGET_SEPARATION).
   * Compiling on the host, or cross-compiling for a target, never
-  *   establishes native target-runtime capability, runtime validation, or
-  *   certification (CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE).
+    establishes native target-runtime capability, runtime validation, or
+    certification (CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE).
   * Containers, virtual machines, the Windows subsystem for Linux, and
-  *   simulated or remote environments never substitute for the declared
-  *   target's native validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
+    simulated or remote environments never substitute for the declared
+    target's native validation (CLAUSE.PLATFORM.NO_SUBSTITUTE_TARGET).
   * Preflight is read-only: it inspects and classifies, and it never
-  *   repairs, installs, or mutates the environment it observes.
+    repairs, installs, or mutates the environment it observes.
   * Output is the record and its fingerprint; it is evidence, not a claim.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
@@ -123,14 +123,14 @@ Emits `EnvironmentCapabilityRecord` from `EnvironmentPreflightInput` (§23 Skill
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Observe the host: operating system and version, CPU architecture,
-- Step 2 produces its expected outcome — Enumerate every required tool by probing it and capturing an observed
-- Step 3 produces its expected outcome — Detect the configuration that changes behavior: search-path order,
-- Step 4 produces its expected outcome — Classify the network path as DIRECT, SYSTEM_PROXY, or PAC from the
-- Step 5 produces its expected outcome — Run the deterministic EnvironmentCapabilityPlanner against the
-- Step 6 produces its expected outcome — Record each capability as AVAILABLE, REPAIRABLE, USER_REQUIRED, or
-- Step 7 produces its expected outcome — Persist the EnvironmentCapabilityRecord — durable and fingerprinted,
-- Step 8 produces its expected outcome — Publish the fingerprint so every later artifact, observation, and
+- Step 1 produces its expected outcome — Observe the host: operating system and version, CPU architecture, available memory and disk, and whether hardware virtualization is present and usable by a hypervisor.
+- Step 2 produces its expected outcome — Enumerate every required tool by probing it and capturing an observed version string — SDKs, compilers, runtimes, package managers, and platform tools. A version declared by the repository is not evidence.
+- Step 3 produces its expected outcome — Detect the configuration that changes behavior: search-path order, SDK roots, environment overrides, and whether a proxy sits in the network path.
+- Step 4 produces its expected outcome — Classify the network path as DIRECT, SYSTEM_PROXY, or PAC from the host's own configuration. Report an authenticating or intercepting proxy by name and observed status; never prompt for and never store proxy credentials (TA §49.4).
+- Step 5 produces its expected outcome — Run the deterministic EnvironmentCapabilityPlanner against the observed facts for the declared target, producing one classification per capability id of the §79.3 matrix.
+- Step 6 produces its expected outcome — Record each capability as AVAILABLE, REPAIRABLE, USER_REQUIRED, or UNAVAILABLE, with the reason and the observation that produced it.
+- Step 7 produces its expected outcome — Persist the EnvironmentCapabilityRecord — durable and fingerprinted, superseding the previous record only when the environment identity actually changed.
+- Step 8 produces its expected outcome — Publish the fingerprint so every later artifact, observation, and evidence record can bind to it, and report blocked capabilities with their resume conditions rather than as failures of the goal.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

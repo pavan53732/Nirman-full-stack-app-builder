@@ -69,13 +69,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Every shortcut launches a destination that stands alone with a
-  *   correct synthesized back stack.
+    correct synthesized back stack.
   * Shortcut ids are stable; a rebuilt id is a new shortcut and loses its
-  *   rank and pin.
+    rank and pin.
   * Dynamic shortcuts track app state; a shortcut pointing at deleted
-  *   data is removed, never left dangling.
+    data is removed, never left dangling.
   * Published count limits are respected and the most likely destinations
-  *   are ranked first.
+    are ranked first.
   * Shortcuts are verified by cold launch, not merely declared.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
@@ -118,13 +118,13 @@ Emits `ShortcutResult` from `ShortcutResultRequest` (§23 SkillPackage contract)
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Choose the shortcut kind: static for entry points that never change,
-- Step 2 produces its expected outcome — Give every shortcut a stable id, a short and long label, and an icon
-- Step 3 produces its expected outcome — Bind each shortcut to a deep link into a real destination, and make
-- Step 4 produces its expected outcome — Keep dynamic shortcuts current: update or remove them as the
-- Step 5 produces its expected outcome — Respect the published limits on how many dynamic and pinned shortcuts
-- Step 6 produces its expected outcome — Declare capabilities for assistant entry where a voice or assistant
-- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator: long-press to reveal
+- Step 1 produces its expected outcome — Choose the shortcut kind: static for entry points that never change, dynamic for context-dependent destinations, and pinned only where the user explicitly asks to keep one.
+- Step 2 produces its expected outcome — Give every shortcut a stable id, a short and long label, and an icon that is a recognizable adaptive icon rather than a cropped launcher glyph.
+- Step 3 produces its expected outcome — Bind each shortcut to a deep link into a real destination, and make that destination stand alone: it must be reachable directly, with the correct back stack synthesized, not only by in-app navigation.
+- Step 4 produces its expected outcome — Keep dynamic shortcuts current: update or remove them as the underlying data changes, so a shortcut never points at something that no longer exists.
+- Step 5 produces its expected outcome — Respect the published limits on how many dynamic and pinned shortcuts the launcher will show, and rank the most likely destinations first, because the surplus is dropped.
+- Step 6 produces its expected outcome — Declare capabilities for assistant entry where a voice or assistant invocation is a natural way to reach the same destination, and map them to the same deep-link targets.
+- Step 7 produces its expected outcome — Verify on the Nirman-managed emulator: long-press to reveal shortcuts, launch each one cold, confirm the destination and the back stack, and confirm a stale shortcut is removed or updated.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

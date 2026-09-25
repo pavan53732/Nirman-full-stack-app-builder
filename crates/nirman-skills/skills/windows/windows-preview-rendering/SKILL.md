@@ -66,7 +66,7 @@ health must be proven before the preview is relied on.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - STREAM_STALLED — frames stopped arriving; the surface is marked stale, not shown as
   live.
@@ -81,7 +81,7 @@ health must be proven before the preview is relied on.
   last frame displayed as if it were current.
 - A mismatch is fixed in the render path, not by refreshing until the frames happen to
   agree.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

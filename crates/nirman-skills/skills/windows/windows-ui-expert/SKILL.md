@@ -66,15 +66,15 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * The UI never blocks on a long-running operation; work runs off the UI
-  *   thread and reports progress back to it.
+    thread and reports progress back to it.
   * State lives in the view model and survives view recreation; a
-  *   re-navigated view never resets silently.
+    re-navigated view never resets silently.
   * Every control is reachable and operable by keyboard, and focus is
-  *   always visible.
+    always visible.
   * Theme, contrast, and text scaling follow the system; a hard-coded
-  *   color, size, or contrast pair is a defect.
+    color, size, or contrast pair is a defect.
   * An unverified view is reported as unverified — building is not
-  *   verification, and a host build never stands in for native validation.
+    verification, and a host build never stands in for native validation.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -115,13 +115,13 @@ Emits `WindowsUiResult` from `WindowsUiResultRequest` (§23 SkillPackage contrac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Establish the window and navigation shell first: one window, a
-- Step 2 produces its expected outcome — Structure each view as a view model behind a thin XAML view: the view
-- Step 3 produces its expected outcome — Bind data rather than assigning it in code-behind, and choose the
-- Step 4 produces its expected outcome — Apply Fluent design: consistent spacing and typography, the platform
-- Step 5 produces its expected outcome — Make the surface accessible: every control has an accessible name,
-- Step 6 produces its expected outcome — Handle the window lifecycle: persist and restore window size and
-- Step 7 produces its expected outcome — Verify on the host: launch the built application, traverse every
+- Step 1 produces its expected outcome — Establish the window and navigation shell first: one window, a navigation surface, and a defined back behavior.
+- Step 2 produces its expected outcome — Structure each view as a view model behind a thin XAML view: the view binds, the view model holds state and commands, and neither reaches into the other's internals.
+- Step 3 produces its expected outcome — Bind data rather than assigning it in code-behind, and choose the binding mode deliberately — one-time for static content, one-way for display, and two-way only where the user edits in place.
+- Step 4 produces its expected outcome — Apply Fluent design: consistent spacing and typography, the platform accent and theme resources, and light, dark, and high-contrast appearance that follows the system setting.
+- Step 5 produces its expected outcome — Make the surface accessible: every control has an accessible name, focus order follows reading order, everything is operable by keyboard alone, and the layout respects the user's text-scaling setting.
+- Step 6 produces its expected outcome — Handle the window lifecycle: persist and restore window size and position, respond to a theme change at runtime, and keep state across suspend and resume.
+- Step 7 produces its expected outcome — Verify on the host: launch the built application, traverse every view, exercise keyboard-only navigation, and confirm appearance in light, dark, and high contrast.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

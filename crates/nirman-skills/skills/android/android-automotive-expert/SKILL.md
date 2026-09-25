@@ -64,14 +64,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Only platform templates are rendered; a bespoke automotive screen is
-  *   rejected by the car host and is a defect.
+    rejected by the car host and is a defect.
   * Item counts, action counts, and step depth stay within the
-  *   distraction limits for the current driving state.
+    distraction limits for the current driving state.
   * Parked-only surfaces are unreachable while the vehicle is in motion.
   * Text contrast and touch target sizing meet the automotive night and
-  *   day requirements in both color modes.
+    day requirements in both color modes.
   * An unverified driving state or template is reported as unverified,
-  *   never assumed from the phone form factor.
+    never assumed from the phone form factor.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -113,13 +113,13 @@ Emits `AutomotiveAppResult` from `AutomotiveAppResultRequest` (§23 SkillPackage
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Choose the app category the platform permits for the car: navigation,
-- Step 2 produces its expected outcome — Model the UI as a stack of templates, not as free-form screens: pick
-- Step 3 produces its expected outcome — Honour the distraction constraints: the number of items that may be
-- Step 4 produces its expected outcome — Gate parked-only content on the driving state; a parked app's richer
-- Step 5 produces its expected outcome — For navigation apps, provide the navigation template with live
-- Step 6 produces its expected outcome — Implement media browsing and playback through the media template, so
-- Step 7 produces its expected outcome — Verify on an automotive emulator image: exercise every template, the
+- Step 1 produces its expected outcome — Choose the app category the platform permits for the car: navigation, parked apps (point of interest, charging, parking), or media. A category outside these is not distributable to a car host.
+- Step 2 produces its expected outcome — Model the UI as a stack of templates, not as free-form screens: pick from the list, grid, message, pane, and navigation templates and respect the item and action limits of each.
+- Step 3 produces its expected outcome — Honour the distraction constraints: the number of items that may be shown while driving, the step depth allowed in a driving task, and the requirement that a task be completable within the permitted steps.
+- Step 4 produces its expected outcome — Gate parked-only content on the driving state; a parked app's richer surfaces appear only when the car is stationary.
+- Step 5 produces its expected outcome — For navigation apps, provide the navigation template with live routing, lane guidance, and turn-by-turn updates through the navigation manager rather than a bespoke renderer.
+- Step 6 produces its expected outcome — Implement media browsing and playback through the media template, so the car host can control playback from its own hardware controls.
+- Step 7 produces its expected outcome — Verify on an automotive emulator image if the Nirman-managed emulator provisions one: exercise every template, the parked and driving states, and the day and night color constraints of the car host. If the automotive system image is not available, the template structure and distraction-constraint compliance are verified by static analysis against the Car App Library contract and reported as not runtime-verified.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

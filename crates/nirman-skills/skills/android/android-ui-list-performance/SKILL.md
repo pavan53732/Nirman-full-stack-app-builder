@@ -66,7 +66,7 @@ grows as the user scrolls.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - NO_RECYCLING — the list holds a view per record rather than recycling.
 - UNSTABLE_KEYS — item identity derives from position, so reordering reuses view state.
@@ -80,7 +80,7 @@ grows as the user scrolls.
   on reuse to hide the mismatch.
 - Unbounded memory is fixed in the recycling or the image cache, not by reducing the
   page size so users scroll less.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

@@ -70,13 +70,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Firebase configuration is per-project — each Nirman project has its own
-  *   Firebase project. Never reuse configuration across projects.
+    Firebase project. Never reuse configuration across projects.
   * Authentication state is reactive — use AuthStateListener to react to
-  *   sign-in/sign-out events. Never cache credentials locally.
+    sign-in/sign-out events. Never cache credentials locally.
   * Firestore offline persistence is enabled by default — data is available
-  *   offline and syncs when connectivity returns.
+    offline and syncs when connectivity returns.
   * FCM tokens can change — always register the latest token with the app
-  *   server. Handle token refresh in onNewToken.
+    server. Handle token refresh in onNewToken.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `FirebaseIntegrationResult` from `FirebaseIntegrationRequest` (§23 SkillP
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze Firebase requirements: identify authentication methods,
-- Step 2 produces its expected outcome — Configure Firebase project: create a Firebase project in the console,
-- Step 3 produces its expected outcome — Implement Firebase Authentication: use FirebaseAuth for email/password,
-- Step 4 produces its expected outcome — Implement Cloud Firestore: define collections and documents, use
-- Step 5 produces its expected outcome — Implement Cloud Messaging: extend FirebaseMessagingService to handle
-- Step 6 produces its expected outcome — Configure Analytics and Crashlytics: use FirebaseAnalytics for
-- Step 7 produces its expected outcome — Test Firebase features: use Firebase Emulator Suite for local testing,
+- Step 1 produces its expected outcome — Analyze Firebase requirements: identify authentication methods, database structure, messaging needs, analytics events, and storage requirements.
+- Step 2 produces its expected outcome — Configure Firebase project: create a Firebase project in the console, register the Android app, download the configuration file, and add the Firebase SDK to the project.
+- Step 3 produces its expected outcome — Implement Firebase Authentication: use FirebaseAuth for email/password, Google Sign-In, Facebook Login, or phone authentication. Handle authentication state with AuthStateListener.
+- Step 4 produces its expected outcome — Implement Cloud Firestore: define collections and documents, use FirebaseFirestore for CRUD operations, enable offline persistence, and use SnapshotListener for real-time updates.
+- Step 5 produces its expected outcome — Implement Cloud Messaging: extend FirebaseMessagingService to handle token registration, message reception, and notification display.
+- Step 6 produces its expected outcome — Configure Analytics and Crashlytics: use FirebaseAnalytics for event logging, FirebaseCrashlytics for crash reporting. Add custom keys and user properties for debugging.
+- Step 7 produces its expected outcome — Test Firebase features: use Firebase Emulator Suite for local testing, Firebase Test Lab for device testing.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

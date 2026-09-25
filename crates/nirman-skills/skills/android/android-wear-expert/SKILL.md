@@ -69,13 +69,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Wear OS apps are standalone — they run independently on the watch.
-  *   Companion apps are optional, not required.
+    Companion apps are optional, not required.
   * Round screen insets are mandatory — use BoxInsetLayout or Compose
-  *   contentPadding to avoid content being cut off on round screens.
+    contentPadding to avoid content being cut off on round screens.
   * Complications have data limits — complication data is limited in size.
-  *   Keep data concise and update only when necessary.
+    Keep data concise and update only when necessary.
   * Tiles are limited to one per app — each app can have only one tile.
-  *   Design the tile to show the most relevant information.
+    Design the tile to show the most relevant information.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -116,13 +116,13 @@ Emits `WearOSResult` from `WearOSRequest` (§23 SkillPackage contract):
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze Wear OS requirements: identify the app type (standalone,
-- Step 2 produces its expected outcome — Set up the Wear OS module: create a Wear OS module in the project,
-- Step 3 produces its expected outcome — Design the Wear OS UI: use Compose for Wear with Scaffold,
-- Step 4 produces its expected outcome — Implement complications: use ComplicationProviderService to provide
-- Step 5 produces its expected outcome — Implement tiles: use TileService to provide quick-access information.
-- Step 6 produces its expected outcome — Access health services: use HealthServicesClient for heart rate,
-- Step 7 produces its expected outcome — Test Wear OS features: use the Wear OS emulator (round, square),
+- Step 1 produces its expected outcome — Analyze Wear OS requirements: identify the app type (standalone, companion), screen size (round, square), and health data needs.
+- Step 2 produces its expected outcome — Set up the Wear OS module: create a Wear OS module in the project, add the Wear OS dependencies, and configure the manifest with the Wear OS feature declaration.
+- Step 3 produces its expected outcome — Design the Wear OS UI: use Compose for Wear with Scaffold, TimeText, ScalingLazyColumn, SwipeToDismissBox. Handle round screen insets with BoxInsetLayout.
+- Step 4 produces its expected outcome — Implement complications: use ComplicationProviderService to provide data to watch faces. Define complication types (short text, long text, small image, ranged value) and update on data change.
+- Step 5 produces its expected outcome — Implement tiles: use TileService to provide quick-access information. Define tile layout with TileLayout, handle tile requests with onTileRequest.
+- Step 6 produces its expected outcome — Access health services: use HealthServicesClient for heart rate, step count, location. Request health permissions, handle sensor availability.
+- Step 7 produces its expected outcome — Test Wear OS features: use the Wear OS emulator (round, square), test complications on watch faces, test tiles, and verify health sensor access.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

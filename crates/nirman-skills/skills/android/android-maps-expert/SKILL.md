@@ -67,12 +67,12 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Maps API key is restricted — restrict the API key to the app's package
-  *   name and SHA-1 fingerprint. Never expose the API key in version control.
+    name and SHA-1 fingerprint. Never expose the API key in version control.
   * Location permissions are requested at point-of-use — request foreground
-  *   location when the user needs location, background location only when
-  *   the feature requires it.
+    location when the user needs location, background location only when
+    the feature requires it.
   * Geofences have a minimum radius — geofences smaller than 100 meters may
-  *   not trigger reliably. Use dwell time to reduce false positives.
+    not trigger reliably. Use dwell time to reduce false positives.
   * Map view lifecycle is managed — call onResume, onPause, onDestroy,
   *  onLowMemory on MapView to avoid memory leaks.
 - Every claim reduced to an observable: what was seen, on which device or
@@ -115,13 +115,13 @@ Emits `MapsIntegrationResult` from `MapsIntegrationRequest` (§23 SkillPackage c
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze maps requirements: identify map display needs, marker types,
-- Step 2 produces its expected outcome — Configure Google Maps: create a Google Cloud project, enable the Maps
-- Step 3 produces its expected outcome — Implement the map view: use SupportMapFragment or MapView with
-- Step 4 produces its expected outcome — Add markers and overlays: use MarkerOptions for points of interest,
-- Step 5 produces its expected outcome — Implement location tracking: use FusedLocationProviderClient for
-- Step 6 produces its expected outcome — Implement geofencing: use GeofencingClient to add/remove geofences,
-- Step 7 produces its expected outcome — Test maps features: use Google Maps emulator extensions, test location
+- Step 1 produces its expected outcome — Analyze maps requirements: identify map display needs, marker types, location tracking requirements, geofence regions, and custom styling.
+- Step 2 produces its expected outcome — Configure Google Maps: create a Google Cloud project, enable the Maps SDK for Android, obtain an API key, and add it to the manifest.
+- Step 3 produces its expected outcome — Implement the map view: use SupportMapFragment or MapView with GoogleMap callback. Configure map type, zoom controls, and compass settings.
+- Step 4 produces its expected outcome — Add markers and overlays: use MarkerOptions for points of interest, Polyline for routes, Polygon for regions, GroundOverlay for image overlays.
+- Step 5 produces its expected outcome — Implement location tracking: use FusedLocationProviderClient for location updates, request location permissions, handle foreground and background location access.
+- Step 6 produces its expected outcome — Implement geofencing: use GeofencingClient to add/remove geofences, handle geofence transitions with BroadcastReceiver, and define geofence expiration and dwell time.
+- Step 7 produces its expected outcome — Test maps features: use Google Maps emulator extensions, test location with mock locations, verify geofence transitions.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -73,7 +73,7 @@ lost state, duplicated work, or work running after its scope ended.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - STATE_LOST — state that must survive recreation did not.
 - DUPLICATE_WORK — collection or work restarted on recreation, producing two

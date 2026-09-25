@@ -67,12 +67,12 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * The instant bundle stays inside the size budget; a bundle that
-  *   exceeds it is reported as a packaging defect, not shipped anyway.
+    exceeds it is reported as a packaging defect, not shipped anyway.
   * URL entry is verified end to end; an unverified app link is a defect.
   * No background service, alarm, or persistent identifier is used in the
-  *   instant runtime.
+    instant runtime.
   * State created in the instant session survives the transition to the
-  *   installed app.
+    installed app.
   * Install is offered; it is never forced as the only way to continue.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
@@ -115,13 +115,13 @@ Emits `InstantAppResult` from `InstantAppResultRequest` (§23 SkillPackage contr
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Decide what the instant experience covers: one well-scoped entry
-- Step 2 produces its expected outcome — Split the build so the instant path is small: an instant-enabled base
-- Step 3 produces its expected outcome — Map URLs: declare intent filters with autoVerify, serve the asset
-- Step 4 produces its expected outcome — Adapt to the instant runtime: no background services, no persistent
-- Step 5 produces its expected outcome — Persist state where the installed app can read it back, so a user who
-- Step 6 produces its expected outcome — Offer install at a natural completion point, and hand over state on
-- Step 7 produces its expected outcome — Verify the real artifact: install and launch the instant bundle from
+- Step 1 produces its expected outcome — Decide what the instant experience covers: one well-scoped entry point, reachable by URL, that demonstrates the app without an install.
+- Step 2 produces its expected outcome — Split the build so the instant path is small: an instant-enabled base module plus dynamic feature modules for the rest, keeping the downloaded instant bundle inside the size budget.
+- Step 3 produces its expected outcome — Map URLs: declare intent filters with autoVerify, serve the asset links JSON, and confirm the link opens the instant experience rather than a browser.
+- Step 4 produces its expected outcome — Adapt to the instant runtime: no background services, no persistent device identifiers, and permissions granted through the instant runtime rather than the installed model.
+- Step 5 produces its expected outcome — Persist state where the installed app can read it back, so a user who installs does not lose what they did in the instant session.
+- Step 6 produces its expected outcome — Offer install at a natural completion point, and hand over state on install through the shared storage the platform provides for this transition.
+- Step 7 produces its expected outcome — Verify the real artifact: install and launch the instant bundle from its URL on the Nirman-managed emulator, measure the downloaded size, and confirm the handover preserves state.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

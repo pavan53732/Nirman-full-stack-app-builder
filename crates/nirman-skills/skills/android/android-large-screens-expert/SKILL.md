@@ -71,13 +71,13 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * State survives configuration change — rotation, resizing, and folding
-  *   must never reset a screen or lose scroll position.
+    must never reset a screen or lose scroll position.
   * Every layout branch is reachable and verified; an unverified size
-  *   class is reported as unverified, never assumed to mirror another.
+    class is reported as unverified, never assumed to mirror another.
   * No interactive control is placed across a FULL occlusion hinge.
   * Media and sensor resources follow focus, not mere visibility.
   * The app does not lock orientation or aspect ratio to escape the
-  *   large-screen gates (BS §79.7 large-screen quality).
+    large-screen gates (BS §79.7 large-screen quality).
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -118,13 +118,13 @@ Emits `LargeScreenLayoutResult` from `LargeScreenLayoutResultRequest` (§23 Skil
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Read the device posture and window metrics from the WindowManager
-- Step 2 produces its expected outcome — Choose the canonical layout for the size class: one pane with bottom
-- Step 3 produces its expected outcome — Hoist the size class into composition as a single derived value and
-- Step 4 produces its expected outcome — For foldables, treat HALF_OPENED as a distinct state: avoid placing
-- Step 5 produces its expected outcome — Support multi-window and multi-resume: the app may be visible but not
-- Step 6 produces its expected outcome — Implement drag and drop between panes and from outside the app where
-- Step 7 produces its expected outcome — Verify at every size class on the Nirman-managed local emulator:
+- Step 1 produces its expected outcome — Read the device posture and window metrics from the WindowManager APIs: current WindowSizeClass (COMPACT, MEDIUM, EXPANDED), the window width and height DPs, and for foldables the FoldingFeature state (FLAT or HALF_OPENED), its orientation, and its occlusion type.
+- Step 2 produces its expected outcome — Choose the canonical layout for the size class: one pane with bottom navigation in COMPACT, one pane with a navigation rail in MEDIUM, and a two-pane list-detail with a navigation drawer in EXPANDED.
+- Step 3 produces its expected outcome — Hoist the size class into composition as a single derived value and branch on it. Never measure the screen directly to pick a layout — the size class is the contract.
+- Step 4 produces its expected outcome — For foldables, treat HALF_OPENED as a distinct state: avoid placing interactive controls across a hinge whose occlusion type is FULL, and reflow table-like content into separated panes when the fold is vertical.
+- Step 5 produces its expected outcome — Support multi-window and multi-resume: the app may be visible but not focused, so pause camera, video, and location on loss of focus rather than on onPause of the visible lifecycle alone.
+- Step 6 produces its expected outcome — Implement drag and drop between panes and from outside the app where the layout invites it, using the platform drag framework with a meaningful clip description and a visible drop target.
+- Step 7 produces its expected outcome — Verify at every size class on the Nirman-managed local emulator: resize the window, fold and unfold the device, rotate it, and assert that state is preserved and no content is occluded.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

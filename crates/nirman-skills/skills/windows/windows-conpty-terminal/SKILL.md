@@ -68,7 +68,7 @@ is relied on.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - ATTACH_FAILED — the console host did not attach to the session.
 - BUFFER_STALL — output was produced but not drained; the buffer filled.
@@ -81,7 +81,7 @@ is relied on.
   characters that do not decode.
 - A lost exit code is fixed in the propagation path; the caller never infers success
   from a missing code.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

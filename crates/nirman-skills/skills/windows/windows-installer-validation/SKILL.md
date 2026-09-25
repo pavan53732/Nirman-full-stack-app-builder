@@ -69,7 +69,7 @@ install, repaired, upgraded, and removed — with each path verified rather than
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - ELEVATION_REQUIRED — a declared per-user install demanded elevation.
 - INSTALL_FAILED — installation did not complete or the product did not launch.
@@ -83,7 +83,7 @@ install, repaired, upgraded, and removed — with each path verified rather than
   accepting elevation for a per-user install.
 - Lost settings across an upgrade are fixed in the migration step, and the upgrade is
   re-proven from the declared prior version.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

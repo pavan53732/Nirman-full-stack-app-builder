@@ -65,7 +65,7 @@ session and the attributing process must be named.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - ATTRIBUTION_FAILED — resource use could not be attributed to a process.
 - UNBOUNDED_GROWTH — memory or disk grew without bound across the session.
@@ -79,7 +79,7 @@ session and the attributing process must be named.
   lowering the free-space threshold.
 - Unresolved contention is escalated with the samples taken, rather than reported as
   a slow host with no attribution.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

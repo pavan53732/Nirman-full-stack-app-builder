@@ -68,14 +68,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * State is hoisted, not duplicated — a single source of truth per piece
-  *   of state. Avoid passing mutable state down the tree.
+    of state. Avoid passing mutable state down the tree.
   * Modifiers are order-sensitive — `padding().background()` differs from
-  *   `background().padding()`. Document the intended visual effect.
+    `background().padding()`. Document the intended visual effect.
   * Side effects never run in composable scope directly — use effect handlers.
   * Every interactive Composable has a testTag for E2E verification
-  *   (CAP.ANDROID.E2E_VERIFY) and a contentDescription for accessibility.
+    (CAP.ANDROID.E2E_VERIFY) and a contentDescription for accessibility.
   * Recomposition is structural equality-based — use `key()` in lists and
-  *   avoid unstable lambda captures.
+    avoid unstable lambda captures.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -116,13 +116,13 @@ Emits `ComposeBuildResult` from `ComposeBuildRequest` (§23 SkillPackage contrac
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze the design intent and map to Compose UI structure: identify
-- Step 2 produces its expected outcome — Design state hoisting: determine what state lives at what level
-- Step 3 produces its expected outcome — Build the Composable tree: use Box, Row, Column, LazyColumn,
-- Step 4 produces its expected outcome — Apply Material3 theming: use MaterialTheme.colorScheme,
-- Step 5 produces its expected outcome — Handle side effects correctly: use LaunchedEffect, DisposableEffect,
-- Step 6 produces its expected outcome — Add semantics for accessibility and testing: Modifier.semantics,
-- Step 7 produces its expected outcome — Validate in Preview: use `@Preview` composables and the live Preview
+- Step 1 produces its expected outcome — Analyze the design intent and map to Compose UI structure: identify screens, navigation destinations, reusable components, and state requirements.
+- Step 2 produces its expected outcome — Design state hoisting: determine what state lives at what level (remember, mutableStateOf, StateFlow, ViewModel), following unidirectional data flow. Avoid lifting state higher than its consumers.
+- Step 3 produces its expected outcome — Build the Composable tree: use Box, Row, Column, LazyColumn, LazyRow, ConstraintLayout as appropriate. Compose modifiers in the correct order — modifier order affects behavior.
+- Step 4 produces its expected outcome — Apply Material3 theming: use MaterialTheme.colorScheme, MaterialTheme.typography, MaterialTheme.spacing. Support dynamic color on Android 12+ with graceful fallback.
+- Step 5 produces its expected outcome — Handle side effects correctly: use LaunchedEffect, DisposableEffect, produceState, derivedStateOf, snapshotFlow — never launch coroutines directly in composable scope.
+- Step 6 produces its expected outcome — Add semantics for accessibility and testing: Modifier.semantics, Modifier.testTag, contentDescription. Every interactive element MUST have a semantic action and a test tag.
+- Step 7 produces its expected outcome — Validate in Preview: use `@Preview` composables and the live Preview surface to verify rendering before integration.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

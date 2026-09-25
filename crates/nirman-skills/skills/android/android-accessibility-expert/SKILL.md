@@ -65,14 +65,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Every non-text interactive element has a content description —
-  *   contentDescription is required for accessibility. Empty descriptions
-  *   are only for decorative elements.
+    contentDescription is required for accessibility. Empty descriptions
+    are only for decorative elements.
   * Touch targets are 48dp minimum — smaller targets are flagged by the
-  *   Accessibility Scanner and MUST be enlarged.
+    Accessibility Scanner and MUST be enlarged.
   * Color is not the sole indicator — information conveyed with color
-  *   (errors, selection) has an additional visual indicator (icon, text).
+    (errors, selection) has an additional visual indicator (icon, text).
   * Dynamic content changes are announced — use `Modifier.semantics {
-  *   liveRegion = LiveRegionMode.Polite }` for status updates.
+    liveRegion = LiveRegionMode.Polite }` for status updates.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -114,12 +114,12 @@ Emits `AccessibilityImplementationResult` from `AccessibilityImplementationReque
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze accessibility requirements: identify user journeys that need
-- Step 2 produces its expected outcome — Add content descriptions: every non-text element (images, icons,
-- Step 3 produces its expected outcome — Ensure touch target sizing: every interactive element is at least
-- Step 4 produces its expected outcome — Verify color contrast: text-to-background contrast ratio is 4.5:1
-- Step 5 produces its expected outcome — Add semantic roles: use `Modifier.semantics { role = Role.Button }`
-- Step 6 produces its expected outcome — Test with TalkBack: enable TalkBack and verify every screen is
+- Step 1 produces its expected outcome — Analyze accessibility requirements: identify user journeys that need TalkBack support, interactive elements, and dynamic content.
+- Step 2 produces its expected outcome — Add content descriptions: every non-text element (images, icons, buttons) has a contentDescription. Decorative elements are marked with `Modifier.clearAndSetSemantics {}`.
+- Step 3 produces its expected outcome — Ensure touch target sizing: every interactive element is at least 48dp × 48dp. Use `Modifier.minimumInteractiveComponentSize()` or `Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)`.
+- Step 4 produces its expected outcome — Verify color contrast: text-to-background contrast ratio is 4.5:1 for normal text, 3:1 for large text. Use the Accessibility Scanner to verify.
+- Step 5 produces its expected outcome — Add semantic roles: use `Modifier.semantics { role = Role.Button }` for custom interactive elements. Group related elements with `Modifier.semantics(mergeDescendants = true)`.
+- Step 6 produces its expected outcome — Test with TalkBack: enable TalkBack and verify every screen is navigable, every action is announced, and every state change is communicated. Use AccessibilityScanner for automated checks.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

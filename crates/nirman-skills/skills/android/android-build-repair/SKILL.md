@@ -72,7 +72,7 @@ classified and repaired at its cause rather than worked around.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CONFIGURATION_ERROR — the build script or plugin configuration is invalid.
 - RESOLUTION_CONFLICT — dependencies could not be resolved to one version.

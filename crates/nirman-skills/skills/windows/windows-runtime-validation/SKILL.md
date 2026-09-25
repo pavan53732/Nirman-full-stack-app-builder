@@ -5,7 +5,7 @@ supervision, Job Objects, isolation, restart/recovery, credential
 storage, installer/uninstaller behavior (BS §79.7).
 
 ## Trigger
-This skill is requested when native Windows runtime validation — startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior (BS §79.7).. It does not replace a worker role — it supplies the domain
+This skill is requested when native Windows runtime validation — startup, IPC, ConPTY, process supervision, Job Objects, isolation, restart/recovery, credential storage, installer/uninstaller behavior (BS §79.7). It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -61,11 +61,11 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * The output field simulated is fixed to false; a skill that cannot
-  *   observe a real native process must not emit a pass.
+    observe a real native process must not emit a pass.
   * Build evidence is never reinterpreted as runtime evidence
-  *   (BS §79.10).
+    (BS §79.10).
   * A missing environment is a truthful USER_REQUIRED/UNAVAILABLE node,
-  *   not a substitute target.
+    not a substitute target.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -106,13 +106,13 @@ Emits `WindowsBuildVerdict` from `WindowsRuntimeValidationRequest` (§23 SkillPa
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Verify a durable ValidationEnvironment lease exists for a native Windows
-- Step 2 produces its expected outcome — Launch the built executable on the native host and confirm a real process
-- Step 3 produces its expected outcome — Observe startup behaviour: the time to a usable state, the ready or exit
-- Step 4 produces its expected outcome — Exercise the named-pipe transport: the connection is established, a framed
-- Step 5 produces its expected outcome — Exercise the ConPTY surface where the run hosts a console: the console host
-- Step 6 produces its expected outcome — Exercise recovery deliberately: terminate a supervised process and confirm
-- Step 7 produces its expected outcome — Bind the observations to evidence and update the validation gate, with
+- Step 1 produces its expected outcome — Verify a durable ValidationEnvironment lease exists for a native Windows target (BS §79.8); no lease, no validation claim.
+- Step 2 produces its expected outcome — Launch the built executable on the native host and confirm a real process identity — the process exists, carries the expected image, and is owned by the supervisor.
+- Step 3 produces its expected outcome — Observe startup behaviour: the time to a usable state, the ready or exit signal observed, and any diagnostic output produced before that point.
+- Step 4 produces its expected outcome — Exercise the named-pipe transport: the connection is established, a framed message is exchanged, and the connection is torn down cleanly.
+- Step 5 produces its expected outcome — Exercise the ConPTY surface where the run hosts a console: the console host attaches, output drains rather than filling, and the child's exit code reaches the caller.
+- Step 6 produces its expected outcome — Exercise recovery deliberately: terminate a supervised process and confirm it is restarted with a recorded reason, then confirm a coordinated shutdown leaves nothing orphaned.
+- Step 7 produces its expected outcome — Bind the observations to evidence and update the validation gate, with simulated fixed to false.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

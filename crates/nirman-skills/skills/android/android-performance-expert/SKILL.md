@@ -69,14 +69,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Baseline Profiles are generated, not hand-written — use the
-  *   `benchmark-macro` library to capture user journeys and generate
-  *   profiles.
+    `benchmark-macro` library to capture user journeys and generate
+    profiles.
   * Memory leaks are failures — LeakCanary detections route through
-  *   RecoveryAuthority for repair, not silent acceptance.
+    RecoveryAuthority for repair, not silent acceptance.
   * Frame budget is 16ms — any operation exceeding this causes jank.
-  *   Profile with Systrace/Android Studio Profiler to identify offenders.
+    Profile with Systrace/Android Studio Profiler to identify offenders.
   * Network calls are paginated — never load unbounded datasets in a
-  *   single request. Use Paging 3 for Compose integration.
+    single request. Use Paging 3 for Compose integration.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -117,13 +117,13 @@ Emits `PerformanceOptimizationResult` from `PerformanceOptimizationRequest` (§2
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Establish performance baselines: measure startup time (cold, warm,
-- Step 2 produces its expected outcome — Optimize startup: use Baseline Profiles to pre-compile hot paths,
-- Step 3 produces its expected outcome — Optimize UI rendering: use Compose derivedStateOf to avoid
-- Step 4 produces its expected outcome — Optimize memory: detect leaks with LeakCanary, use WeakReference
-- Step 5 produces its expected outcome — Optimize network: use HTTP/2, connection pooling, response caching,
-- Step 6 produces its expected outcome — Measure with Macrobenchmark: write MacrobenchmarkTest for startup,
-- Step 7 produces its expected outcome — Monitor in production: use Firebase Performance Monitoring for
+- Step 1 produces its expected outcome — Establish performance baselines: measure startup time (cold, warm, hot), frame rendering (16ms budget), memory footprint, and network latency before optimization.
+- Step 2 produces its expected outcome — Optimize startup: use Baseline Profiles to pre-compile hot paths, lazy-initialize dependencies with `App Startup` library, reduce Application.onCreate work, and defer non-critical initialization.
+- Step 3 produces its expected outcome — Optimize UI rendering: use Compose derivedStateOf to avoid unnecessary recomposition, `key()` in lazy lists, remember for expensive calculations, and avoid layout nesting depth.
+- Step 4 produces its expected outcome — Optimize memory: detect leaks with LeakCanary, use WeakReference for listeners, avoid static references to Activities/Contexts, and profile allocations with Android Studio Profiler.
+- Step 5 produces its expected outcome — Optimize network: use HTTP/2, connection pooling, response caching, and pagination for large datasets. Use Coil for image loading with memory and disk caching.
+- Step 6 produces its expected outcome — Measure with Macrobenchmark: write MacrobenchmarkTest for startup, scroll jank, and frame timing. Run on real devices for accurate results.
+- Step 7 produces its expected outcome — Monitor in production: use Firebase Performance Monitoring for real-user metrics, custom traces for critical user journeys.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

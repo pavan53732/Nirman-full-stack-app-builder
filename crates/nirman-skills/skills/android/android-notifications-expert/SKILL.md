@@ -66,14 +66,14 @@ transaction (BS §50).
   statement the evidence above has to support:
 
   * Notification channels are immutable after creation — channel settings
-  *    (importance, sound) can only be changed by the user after creation.
-  *    Create channels on app start.
+    (importance, sound) can only be changed by the user after creation.
+    Create channels on app start.
   * Notifications require a small icon — every notification MUST have a
-  *    small icon. Use a transparent icon for the notification shade.
+    small icon. Use a transparent icon for the notification shade.
   * POST_NOTIFICATIONS is required on API 33+ — notifications are blocked
-  *    without this permission. Request at point-of-use, not at app start.
+    without this permission. Request at point-of-use, not at app start.
   * Notification actions have a maximum of 3 — only the first 3 actions
-  *    are displayed. Prioritize the most important actions.
+    are displayed. Prioritize the most important actions.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -114,13 +114,13 @@ Emits `NotificationsResult` from `NotificationsRequest` (§23 SkillPackage contr
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Analyze notification requirements: identify notification types,
-- Step 2 produces its expected outcome — Create notification channels: use NotificationManager.createNotificationChannel
-- Step 3 produces its expected outcome — Build notifications: use NotificationCompat.Builder with small icon,
-- Step 4 produces its expected outcome — Add actions and replies: use Notification.Action for user actions,
-- Step 5 produces its expected outcome — Handle notification groups: use setGroup to group related notifications,
-- Step 6 produces its expected outcome — Request notification permission: use POST_NOTIFICATIONS permission
-- Step 7 produces its expected outcome — Test notifications: verify channel settings, test on multiple API levels,
+- Step 1 produces its expected outcome — Analyze notification requirements: identify notification types, channel importance, user actions, and grouping strategy.
+- Step 2 produces its expected outcome — Create notification channels: use NotificationManager.createNotificationChannel with appropriate importance level (HIGH, DEFAULT, LOW, MIN). Set channel name, description, sound, and vibration pattern.
+- Step 3 produces its expected outcome — Build notifications: use NotificationCompat.Builder with small icon, title, content text, priority, and category. Add large icon, content image, and style (BigTextStyle, InboxStyle, MediaStyle, MessagingStyle).
+- Step 4 produces its expected outcome — Add actions and replies: use Notification.Action for user actions, RemoteInput for inline replies. Handle action intents with PendingIntent.
+- Step 5 produces its expected outcome — Handle notification groups: use setGroup to group related notifications, setGroupSummary for group summary. Use MessagingStyle for conversation notifications.
+- Step 6 produces its expected outcome — Request notification permission: use POST_NOTIFICATIONS permission (API 33+), request at point-of-use, handle permission denial gracefully.
+- Step 7 produces its expected outcome — Test notifications: verify channel settings, test on multiple API levels, test permission flows, and verify notification delivery.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

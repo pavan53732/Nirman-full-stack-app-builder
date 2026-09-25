@@ -8,7 +8,7 @@ ADR-117). The host stack is exactly the one those ADRs lock; no web-wrapper
 desktop shell is part of this skill's scope (AGENTS.md §17).
 
 ## Trigger
-This skill is requested when c#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust control-plane integration for Windows x64 — Nirman.exe packaging, NirmanSupervisor.exe packaging, the named-pipe SupervisorConnection, native Windows runtime integration, and installer generation (BS §79.7, ADR-108, ADR-117). The host stack is exactly the one those ADRs lock; no web-wrapper desktop shell is part of this skill's scope (AGENTS.md §17).. It does not replace a worker role — it supplies the domain
+This skill is requested when c#/.NET / WinUI 3 / Windows App SDK / XAML host build plus Rust control-plane integration for Windows x64 — Nirman.exe packaging, NirmanSupervisor.exe packaging, the named-pipe SupervisorConnection, native Windows runtime integration, and installer generation (BS §79.7, ADR-108, ADR-117). The host stack is exactly the one those ADRs lock; no web-wrapper desktop shell is part of this skill's scope (AGENTS.md §17). It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -72,13 +72,13 @@ continues rather than being blocked with it.
   statement the evidence above has to support:
 
   * Never claims runtime validation: the output field
-  *   runtimeValidationClaimed is fixed to false. A successful build is an
-  *   artifact-production result, not a runtime-validation result
-  *   (BS §79.5, §79.10); runtime validation belongs to
-  *   windows-runtime-validation.
+    runtimeValidationClaimed is fixed to false. A successful build is an
+    artifact-production result, not a runtime-validation result
+    (BS §79.5, §79.10); runtime validation belongs to
+    windows-runtime-validation.
   * No substitute execution target is introduced or implied.
   * A failed build is reported with the diagnostic reference; it is never
-  *   represented as success.
+    represented as success.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 
@@ -119,13 +119,13 @@ Emits `WindowsBuildVerdict` from `WindowsDesktopBuildRequest` (§23 SkillPackage
 - unverified: outcomes this run could not verify, named rather than assumed
 
 ## Fixtures
-- Step 1 produces its expected outcome — Consume the current EnvironmentCapabilityRecord; verify
-- Step 2 produces its expected outcome — Resolve the toolchain identities actually in use — the .NET SDK version,
-- Step 3 produces its expected outcome — Build the Rust control-plane crates for the x64 target and confirm each
-- Step 4 produces its expected outcome — Build Nirman.exe and NirmanSupervisor.exe against the Windows App SDK, and
-- Step 5 produces its expected outcome — Verify the named-pipe SupervisorConnection is wired between the two
-- Step 6 produces its expected outcome — Bundle the outputs and generate the installer, then confirm the bundle
-- Step 7 produces its expected outcome — Emit build-gate evidence bound to the environment fingerprint, with
+- Step 1 produces its expected outcome — Consume the current EnvironmentCapabilityRecord; verify WINDOWS_HOST_TOOLCHAIN is AVAILABLE and bind the build to the environment fingerprint before any compiler runs.
+- Step 2 produces its expected outcome — Resolve the toolchain identities actually in use — the .NET SDK version, the MSBuild version, and the Rust toolchain — and record each observed version rather than trusting the manifest that requested them.
+- Step 3 produces its expected outcome — Build the Rust control-plane crates for the x64 target and confirm each expected artifact was produced, so a partially built control plane is never bundled.
+- Step 4 produces its expected outcome — Build Nirman.exe and NirmanSupervisor.exe against the Windows App SDK, and confirm the packaged host is the stack those ADRs lock, with no web-wrapper desktop shell introduced.
+- Step 5 produces its expected outcome — Verify the named-pipe SupervisorConnection is wired between the two executables: the pipe name each side expects, and that the supervisor binds and the desktop application connects.
+- Step 6 produces its expected outcome — Bundle the outputs and generate the installer, then confirm the bundle contains every component the manifest declares and nothing it does not.
+- Step 7 produces its expected outcome — Emit build-gate evidence bound to the environment fingerprint, with runtimeValidationClaimed fixed to false.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

@@ -63,7 +63,7 @@ handling of secrets must be reviewed before a trust boundary is relied on.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - MISPLACED_CREDENTIAL — a credential lives outside its intended store.
 - OVERBROAD_ACCESS — a principal that must not read the credential can.
@@ -78,7 +78,7 @@ handling of secrets must be reviewed before a trust boundary is relied on.
   checked for other copies.
 - Overbroad access is narrowed at the access control list rather than relying on the
   caller not to read it.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

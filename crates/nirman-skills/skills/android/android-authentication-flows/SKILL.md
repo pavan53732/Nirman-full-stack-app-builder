@@ -66,7 +66,7 @@ stuck in a refresh loop, or left in a state where the app looks signed in but is
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - CREDENTIAL_EXPOSED — a credential or token was found in a log, URL, or plain
   store.
@@ -81,7 +81,7 @@ stuck in a refresh loop, or left in a state where the app looks signed in but is
   adding backoff until the user stops noticing.
 - Silent expiry is fixed by surfacing the state in the UI, not by refreshing more
   aggressively in the background.
-- - One retry is permitted after a repair that materially changed the input; an
+- One retry is permitted after a repair that materially changed the input; an
   identical action is never re-run against unchanged evidence.
 
 ## Output contract

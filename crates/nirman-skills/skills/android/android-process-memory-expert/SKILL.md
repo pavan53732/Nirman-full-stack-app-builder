@@ -72,7 +72,7 @@ memory budget a screen must stay within.
   target behaviour drawn from a host observation.
 
 ## Failure classification
-- - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
+- BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - LEAK_CONFIRMED — retained heap grows across cycles with a named retaining
   path.
