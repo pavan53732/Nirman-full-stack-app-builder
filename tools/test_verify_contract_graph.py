@@ -2239,6 +2239,21 @@ CASES = {
         "### 1.84 SupervisorConnection",
         "### 1.84 SupervisorConnectionRenamed",
         "structure"),
+    "the LaunchSession field block is renamed while its projections remain": (
+        SCHEMAS,
+        "### 1.85 LaunchSession",
+        "### 1.85 LaunchSessionRenamed",
+        "structure"),
+    "the FrameStamp field block is renamed while its projections remain": (
+        SCHEMAS,
+        "### 1.86 FrameStamp",
+        "### 1.86 FrameStampRenamed",
+        "structure"),
+    "FrameStamp.frameSequence is dropped while the equality reference remains": (
+        SCHEMAS,
+        "FrameStamp\n- frameSequence\n",
+        "FrameStamp\n- frameSequenceRenamed\n",
+        "semantic documentation"),
     "a dotted reference to an undeclared operation is added": (
         TA,
         "`AndroidDeviceAdapter.captureUiHierarchy` produces the raw hierarchy",

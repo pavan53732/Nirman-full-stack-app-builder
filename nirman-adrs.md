@@ -3751,3 +3751,27 @@ TA §74.3 and BS §78 incorporate mandatory artifact inspection before promotion
 A product architecture change replacing container archive inspection with an alternative verified binary attestation standard.
 
 ---
+
+
+## ADR-260: LaunchSession and FrameStamp are canonical schema identities
+
+**Locks:** `CONTRACT.RUNTIME.PREVIEW_SYNC`
+
+**Status:** Accepted
+
+**Decision:**
+1. `LaunchSession` is a first-class schema identity whose canonical field list lives in `nirman-schemas.md` §1.85 (owner TA §10.7). It carries no independent status field or lifecycle: launch state is derived from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`.
+2. `FrameStamp` is promoted from the nested §2.89 transport restatement into the canonical field list at `nirman-schemas.md` §1.86 (same owner, same contract) and is volatile transport metadata — never durable evidence, never an event, never a promotion input.
+3. The §2.89 nested restatement moves to §1.86 under the single-location rule (ADR-220); the transport block keeps only the `frameStamp` field line.
+4. No authority, lifecycle, completion, or promotion semantics change; no new authority is created.
+
+**Rationale:**
+The preview runtime chain of build spec §69.4.1 named `LaunchSession` and `FrameStamp` without canonical schema identities, so the `AndroidRuntimeObservation.launchSessionId` binding and the `FrameQualityObservation.frameSequence` equality could not resolve to registered field lists. Registering both as single-location identities makes the chain machine-resolvable while preserving the volatile classification of transport metadata.
+
+**Consequences:**
+SCHEMAS §1.85 (12 fields), §1.86 (18 fields), and §3.1; BS §69.4.1 mapping rows including the `LaunchTransactionCommitted` commit mapping; TA §10.7 projection lines and the LaunchSession/FrameStamp binding paragraph — persistence in the §36.5 transaction family, recovery/reconciliation via `DeviceTransaction.observationState` and `ExternalEffectTransaction.reconciliationState`, cancellation and restart under the existing lifecycle and external-effect compensation path, invalidation on a newer `previewRevisionId`, device loss, or artifact-fingerprint mismatch, evidence binding via `launchSessionId` with dependent-evidence invalidation, and M9 plus mutation-battery test ownership. `FrameStamp` must never be treated as durable evidence.
+
+**Reversal trigger:**
+A preview architecture change that removes the supervisor-owned render transport, replaces frame identity stamping with a different canonical mechanism, or relocates launch-session identity, persistence, or the launch commit mapping into another canonical owner (device-session or task-lifecycle family), making §1.85, §1.86, the §69.4.1 mapping, and the §10.7 bindings obsolete.
+
+---

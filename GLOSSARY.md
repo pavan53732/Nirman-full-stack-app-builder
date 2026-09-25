@@ -122,9 +122,13 @@
 
 **Frame-quality observation** — Revision-bound diagnostic evidence describing frame timing, drops, sequence continuity, visual freeze/blank conditions, and presentation-surface health without becoming preview truth. — TA §10.7; SCHEMAS §2.110; ADR-236.
 
+**FrameStamp** — The 18-field volatile transport metadata identity stamped on each delivered frame (frame sequence, capture time, device/emulator/runtime identity, revision and state fingerprints, geometry); it is never durable evidence, never an event, and never a promotion input. — TA §10.7; SCHEMAS §1.86.
+
 **IntegrationBoundaryContract** — The persisted envelope that identifies source, destination, adapter, authority, operation, and transaction domain for an integration boundary. — BS §70; TA §74; SCHEMAS §1.36.
 
 **IntegrationOperationality** — The aggregated connectivity, authentication, availability, functional, and acceptance states of one integration. — BS §5.7.5; SCHEMAS §1.3.
+
+**LaunchSession** — The first-class session identity of one application launch on the Nirman-managed local Android emulator, binding the preview revision, artifact, device session, and install/launch effect records; it carries no independent status lifecycle — launch state derives from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`. — TA §10.7; SCHEMAS §1.85.
 
 **PackagingProfile** — The canonical artifact and delivery policy (required APK, optionally declared AAB). — BS §5.7.3; SCHEMAS §1.2.
 

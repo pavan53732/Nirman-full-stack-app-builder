@@ -324,6 +324,8 @@
 | `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
 | `PreflightReport` | §1.83 | TA §53.2 | CONTRACT.RUNTIME.EVIDENCE | BS §47.2, TA §53.2 |
 | `SupervisorConnection` | §1.84 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
+| `LaunchSession` | §1.85 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
+| `FrameStamp` | §1.86 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |
@@ -606,4 +608,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-259 | 10 | Accepted 10 |
+| ADR-250–ADR-260 | 11 | Accepted 11 |

@@ -5077,11 +5077,13 @@ stage of that chain is a mapping onto an existing canonical identity:
 | ConstructionRevision | `ProjectRevisionId` / the latest committed `ConstructionTransaction` |
 | BuildArtifact | `ArtifactSet` / `ArtifactRecord` plus `AndroidBuildObservation` |
 | BuildArtifactValidated | `ValidationResult` |
-| InstallTransaction, InstallTransactionCommitted, LaunchSession, LaunchTransactionCommitted | install/launch effects carried by `ExternalEffectRecord` plus device-transaction state |
+| InstallTransaction, InstallTransactionCommitted | install effects carried by `ExternalEffectRecord` plus device-transaction state (`DeviceTransaction.observationState` advancing to `INSTALLED`) |
+| LaunchSession | the launch session identity `LaunchSession` (`nirman-schemas.md` §1.85) |
+| LaunchTransactionCommitted | the launch effect's commit: the launch `ExternalEffectRecord` committed with `LaunchSession.committedAt` (`nirman-schemas.md` §1.85) written and `DeviceTransaction.observationState` (`nirman-schemas.md` §2.35) at `LAUNCHED` |
 | AndroidApplicationProcess | `applicationProcessId` |
 | RuntimeStateObservation | `AndroidRuntimeObservation` |
 | FrameCapture | an `AndroidDeviceAdapter` operation |
-| FrameStamp | volatile transport metadata, not durable evidence |
+| FrameStamp | `FrameStamp` (`nirman-schemas.md` §1.86) — volatile transport metadata, not durable evidence |
 | RenderTransport, PreviewHost, PreviewProjection, EvidenceRecord | these identities remain canonical as already defined |
 
 No stage may substitute simulated UI, source rendering, detached emulator windows,

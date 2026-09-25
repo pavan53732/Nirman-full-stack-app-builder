@@ -2007,6 +2007,51 @@ SupervisorConnection
 - reconnect_policy
 ```
 
+### 1.85 LaunchSession
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
+
+```text
+LaunchSession
+- launchSessionId
+- previewRevisionId
+- projectRevisionId
+- artifactId
+- artifactFingerprint
+- emulatorSessionId
+- deviceId
+- applicationProcessId
+- deviceSessionId
+- externalEffectId
+- startedAt
+- committedAt
+```
+
+### 1.86 FrameStamp
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
+
+```text
+FrameStamp
+- frameSequence
+- capturedAt
+- monotonicTimestamp
+- deviceId
+- emulatorSessionId
+- runtimeSessionId
+- renderTransportGeneration
+- previewRevisionId
+- projectRevisionId
+- artifactFingerprint
+- deviceStateFingerprint
+- applicationStateFingerprint
+- runtimeObservationId
+- interactionCausalityId
+- width
+- height
+- pixelFormat
+- pixelBufferGeneration
+```
 
 ## 2. Schemas owned by the Technical Architecture
 
@@ -3989,29 +4034,11 @@ RenderTransport
   - frameStamp
   - droppedFrameCount
 - frameStamp: volatile FrameStamp identity projection; not durable evidence
-  - frameSequence
-  - capturedAt
-  - monotonicTimestamp
-  - deviceId
-  - emulatorSessionId
-  - runtimeSessionId
-  - renderTransportGeneration
-  - previewRevisionId
-  - projectRevisionId
-  - artifactFingerprint
-  - deviceStateFingerprint
-  - applicationStateFingerprint
-  - runtimeObservationId
-  - interactionCausalityId
-  - width
-  - height
-  - pixelFormat
-  - pixelBufferGeneration
 - createdAt
 - closedAt
 ```
 
-`frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; their field sets are owned by §2.111 (`FrameNotice`) and by the `FrameStamp` identity bound in §2.110 (`FrameQualityObservation.frameStampId`), and are restated here for transport readability only, not as independent definitions. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
+`frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; `FrameNotice`'s field set is owned by §2.111, and `FrameStamp`'s canonical field list is defined at §1.86 (volatile transport metadata, never durable evidence); the `FrameStamp` identity consumed by `FrameQualityObservation.frameStampId` is bound in §2.110. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
 
 ### 2.90 WorkerConnection
 
@@ -5474,6 +5501,8 @@ WorkerLease
 WorkspaceLease
 PreflightReport
 SupervisorConnection
+LaunchSession
+FrameStamp
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
