@@ -1123,6 +1123,11 @@ CASES = {
         "crates/nirman-skills/skills/android/android-toolchain/SKILL.md",
         "emulator steps, `ANDROID_EMULATOR_EXECUTION`)", "emulator steps, `WINDOWS_NATIVE_EXECUTION`)",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill manifest capability union drifts from the §79.7 row": (
+        "crates/nirman-skills/skills/android/android-toolchain/skill.json",
+        '"requiredCapabilities": [\n    "ANDROID_BUILD_TOOLCHAIN"\n  ]',
+        '"requiredCapabilities": [\n    "ANDROID_BUILD_TOOLCHAIN",\n    "ANDROID_UI_OBSERVATION"\n  ]',
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "skill body drops a contract section": (
         "crates/nirman-skills/skills/android/android-compose-expert/SKILL.md",
         "## Recovery\n", "",

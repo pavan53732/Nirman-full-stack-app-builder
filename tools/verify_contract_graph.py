@@ -4450,10 +4450,11 @@ def check_skill_bodies(docs, D, repo_root):
     for name in sorted(set(bodies) - set(names)):
         D.add("semantic documentation", f"skill {name}",
               "SKILL.md body exists but the skill is not registered in BS §79.7")
-    # Manifests (BS §79.7): skill.json beside each body, built_in scope,
-    # requiredCapabilities equal to the §79.7 row, drawn from the closed
-    # capability-id vocabulary, compatibleWorkerRoles drawn from the ADR-227
-    # twenty-one, no permission requests, no ledger state.
+    # Manifests (BS §79.7): skill.json beside each body, built_in scope, the
+    # union of requiredCapabilities and conditionalCapabilities equal to the
+    # §79.7 row, drawn from the closed capability-id vocabulary,
+    # compatibleWorkerRoles drawn from the ADR-227 twenty-one, no permission
+    # requests, no ledger state.
     import json as _json
     sec = m.group(0)
     vocab = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \| ", sec, re.M))
@@ -4523,7 +4524,8 @@ def check_skill_bodies(docs, D, repo_root):
             D.add("semantic documentation", f"skill {name}", f"manifest names capability ids outside the §79.7 vocabulary: {unknown}")
         if name in declared and caps != declared[name]:
             D.add("semantic documentation", f"skill {name}",
-                  f"manifest requiredCapabilities {sorted(caps)} differ from the §79.7 row {sorted(declared[name])}")
+                  f"manifest capabilities {sorted(caps)} (the union of requiredCapabilities and "
+                  f"conditionalCapabilities) differ from the §79.7 row {sorted(declared[name])}")
         for fld in ("scanStatus", "trustStatus", "enabled", "installedAt", "lastUsedAt"):
             if fld in man:
                 D.add("semantic documentation", f"skill {name}", f"manifest carries ledger-state field {fld}; the registry owns it")
