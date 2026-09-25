@@ -1965,6 +1965,48 @@ LockedDecision
 - updatedAt: timestamp
 ```
 
+### 1.83 PreflightReport
+
+**Owner:** TA §53.2 · **Contract:** CONTRACT.RUNTIME.EVIDENCE · **Projected at:** BS §47.2, TA §53.2
+
+```text
+PreflightReport
+- report_id
+- session_id
+- technology_plan_hash
+- environment_snapshot_id
+- checks[]
+  - area
+  - status
+  - severity
+  - probability
+  - blocker
+  - evidence_ids
+  - mitigation
+  - fallback
+  - autonomous_repair_allowed
+- overall_status
+```
+
+### 1.84 SupervisorConnection
+
+**Owner:** TA §57.3 · **Contract:** CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE · **Projected at:** BS §76, TA §57.3
+
+```text
+SupervisorConnection
+- connection_id
+- ui_instance_id
+- supervisor_instance_id
+- protocol_version
+- installation_identity
+- authenticated_user_scope
+- project_scope
+- last_event_sequence
+- heartbeat_state
+- supervisor_health
+- reconnect_policy
+```
+
 
 ## 2. Schemas owned by the Technical Architecture
 
@@ -2855,7 +2897,7 @@ AgentLoopRecord
 - project_revision
 - last_observation_id
 - last_proposal_id
-- progress_status
+- progress_status: CONTINUE | RECOVER | REPLAN | DELEGATE | COMPLETE
 - retry_strategy
 - cancellation_scope
 - created_at
@@ -5184,7 +5226,7 @@ AndroidArtifactInspectionRecord
 
 **Owner:** TA §36.1 · **Contract:** — · **Projected at:** —
 
-The registered schema identities (ADR-189). Registry membership is fixed by this list and is machine-checkable (ADR-241): every name below either owns a fenced field-list block in this document or is enumerated in the prose-defined identity list that follows the block. Per-schema metadata (owner, contract, projection) stands at each field block's own header; the contract-family registry rows are fixed in technical architecture §36.1.
+The registered schema identities (ADR-189). Registry membership is fixed by this list and is machine-checkable (ADR-241): every name below either owns a fenced field-list block in this document or is enumerated in the prose-defined identity list that follows the block. Per-schema metadata (owner, contract, projection) stands at each field block's own header; the contract-family registry rows are fixed in technical architecture §36.1. Fence taxonomy (ADR-220): fences in this document set are field-list, enumeration, vocabulary, diagram, or flow fences; only field-list fences are schema blocks under the single-location rule, and a field block is defined by the field-line grammar — an owner line plus field lines. Blocks under three-level headings are field blocks inside the block set — the owner, block, and projection scans apply to them — and are not exempt; only enumeration, vocabulary, diagram, and flow fences are exempt, and those do not move.
 
 ```text
 CanonicalSchemaRegistry
@@ -5299,6 +5341,139 @@ ProviderRequestProvenance
 ProviderRequestAttempt
 ContractDoubleScenario
 AndroidArtifactInspectionRecord
+ProviderContextEnvelope
+SigningIdentityBinding
+ContractCompatibility
+Project
+AgentTask
+ActionRecord
+TaskResult
+WorkerMessage
+WorkingSet
+SemanticReservation
+E2EScenario
+DeviceMatrixEntry
+ExternalTrigger
+RuntimeDirective
+RegressionCase
+ResourceProfile
+CandidateBranch
+ReasoningArtifact
+ReflectionRecord
+Hypothesis
+CapabilityInvocation
+DelegationGrant
+ExtensionDeclaration
+DeliberationRecord
+SkillDeliberationProfile
+PreviewSyncEvent
+PreviewProjection
+PreviewProjectionReducer
+PreviewSyncEvidenceRecord
+ScreenSpec
+ComponentSpec
+InteractionSpec
+ScreenState
+FeatureModel
+DataModel
+IntegrationSpec
+TaskPhase
+TaskNode
+WorkerAssignment
+ReasoningCapabilityProfile
+RequestSettings
+RetryPolicy
+TaskContract
+AndroidDeviceProfile
+InteractionExecutor
+Device
+VisualReference
+PreviewSurface
+PreviewInteraction
+EnvironmentRecord
+GoalContract
+Schedule
+FileCheckpoint
+TaskCheckpoint
+RecoveryAttempt
+PositionalRecallCell
+ExternalToolConnection
+ModelRequest
+ReasoningSettings
+ModelEvent
+ToolCallRequest
+SelfDevContract
+EpisodeRecord
+ImprovementProposal
+DeviceStateFingerprint
+ApplicationStateFingerprint
+EnvironmentStateFingerprint
+LocalTransaction
+DeviceTransaction
+ExternalEffectTransaction
+SigningOperation
+CertificateInspection
+AndroidLanguageAdapter
+ProviderAdapter
+AgentExecutionKernel
+AgentLoopRecord
+AgentProposal
+AgentProfile
+SkillExecutionRecord
+KnowledgeRelation
+KnowledgeArtifact
+ToolSession
+ValidationPlan
+MemoryRecord
+ScenarioStep
+FailureSignature
+VerificationRun
+ScenarioDivergence
+DirectiveEffect
+RuntimeSnapshot
+TriggerFiring
+ResourceExecutionProfile
+ResolvedDependency
+ArtifactProvenance
+CapabilityDescriptor
+DeliberationSession
+PreviewRequest
+AndroidTechnologyAdapter
+AndroidTechnologyAdapterResolution
+PreviewModeResolverInput
+PreviewModeResolverOutput
+AndroidDeviceAdapter
+AndroidBuildAdapter
+AndroidBuildObservation
+BoundaryOperationProjection
+AndroidServiceIntegration
+UiHierarchyObservation
+DocumentationCertificationReport
+ToolchainProvisioningManifest
+ToolchainProvisioningRecord
+RenderTransport
+WorkerConnection
+OrchestrationWiringMatrix
+ScreenGraphAnalysisRecord
+RequirementCoverageReport
+ProjectMemoryEntry
+AndroidSemanticState
+StateSpaceCoverageModel
+ScenarioValidationMatrix
+RequirementToImplementationGraph
+ProofSynthesis
+ArchitectureFitnessReport
+RepairExperimentationRecord
+DeviceMatrixRiskProfile
+AndroidRuntimeObservation
+FrameQualityObservation
+WorkerHandoff
+SwarmPlan
+InterfaceAgreement
+WorkerLease
+WorkspaceLease
+PreflightReport
+SupervisorConnection
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
@@ -5315,7 +5490,7 @@ The registered identities below are prose-defined normative records: their shape
 - `ProjectionSnapshot` — normative shape prose-defined at technical architecture §57.3; no projected field block (ADR-241).
 - `ResourceIntegrityRecord` — normative shape prose-defined at build spec §72; no projected field block (ADR-241).
 - `AgentTrustAssessment` — normative shape prose-defined at technical architecture §78.1; no projected field block (ADR-241).
-- `ContextCachePolicy` — normative shape prose-defined at build spec §53.5; no projected field block (ADR-241).
+- `ContextCachePolicy` — normative shape prose-defined at build spec §74; no projected field block (ADR-241).
 - `AndroidRuntimeIntegrityObservation` — normative shape prose-defined at build spec §75; no projected field block (ADR-241).
 - `PlatformCapabilityEntry` — normative shape prose-defined at technical architecture §84.1; no projected field block (ADR-241).
 - `AssetManifest` — normative shape prose-defined at build spec §50.3; no projected field block (ADR-241).

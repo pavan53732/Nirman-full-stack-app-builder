@@ -16,7 +16,7 @@
 
 **NirmanWorker.exe** — The Rust reasoning host the supervisor spawns once per worker lease: an AppContainer process in its own Job Object with no authority, credential, file, socket, or child, whose only input and output is its `WorkerConnection`. — TA §3.5; TA §57.11; ADR-222.
 
-**SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; ADR-117.
+**SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; TA §57.3; SCHEMAS §1.84; ADR-117.
 
 **ProviderRequestProvenance** — The durable metadata-only record for one logical provider request across attempts, with context, prompt-contract, model, adapter, response, retention, and validation lineage but no credentials, private reasoning, or unnecessary raw payload. — TA §24.4; SCHEMAS §2.130.
 
@@ -127,6 +127,8 @@
 **IntegrationOperationality** — The aggregated connectivity, authentication, availability, functional, and acceptance states of one integration. — BS §5.7.5; SCHEMAS §1.3.
 
 **PackagingProfile** — The canonical artifact and delivery policy (required APK, optionally declared AAB). — BS §5.7.3; SCHEMAS §1.2.
+
+**PreflightReport** — The deterministic feasibility report `PreflightService` and `RiskAndFeasibilityEngine` produce before expensive generation begins, covering provider, toolchain, workspace, device, dependency, requirement, permission, signing, storage, and validation-capacity checks. — BS §47.2; TA §53.2; SCHEMAS §1.83.
 
 **PreviewRevision** — The revision-bound record of every preview panel state, with the closed `previewMode` enumeration. — BS §69.4; TA §73; SCHEMAS §1.35.
 
@@ -240,7 +242,7 @@
 
 **Deep deliberation** — Adaptive multi-pass reasoning whose depth is decided by the runtime, never by a pass counter or an AI-usage budget. — BS §68; TA §72; ADR-218.
 
-**DependencyIntelligenceService** — The supervisor-owned, read-only coordination facade exposing a unified typed query interface over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority; `ProvenanceRecorder` remains the sole promotion gate. — TA §53.8.1; BS §58.3.
+**DependencyIntelligenceService** — The supervisor-owned, read-only coordination facade exposing a unified typed query interface over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore` to the agent kernel and registered IPC command handlers. Routes all mutation proposals through `MutationBroker`; creates no second authority; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion. — TA §53.8.1; BS §58.3.
 
 **DependencyVulnerabilityAutomerger** — The automated security upgrade coordinator resolving and verifying non-breaking patch updates for dependencies with known CVEs. — TA §73.18.8; BS §28.7.
 
@@ -332,7 +334,7 @@
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
 
-**SecurityAuditGenerator** — The report synthesizer that composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact attached to the artifact record before promotion. Read-only projection; `ProvenanceRecorder` remains the sole promotion gate. Part of the `AndroidSecurityIntelligenceService` service. — TA §70.1; TA §70.3; BS §58.2.
+**SecurityAuditGenerator** — The report synthesizer that composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact attached to the artifact record before promotion. Read-only projection; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion. Part of the `AndroidSecurityIntelligenceService` service. — TA §70.1; TA §70.3; BS §58.2.
 
 **SecurityRiskScorer** — The severity-weighted aggregation component that transforms `AppSecurityScanner` findings into a structured `SecurityRiskScore` (critical, high, medium, low counts; overall risk level; blocking status) bound to the artifact revision. Read-only projection; no authority over promotion. Part of the `AndroidSecurityIntelligenceService` aggregate. — TA §70.1; TA §70.3; BS §58.2.
 

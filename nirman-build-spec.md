@@ -2436,26 +2436,6 @@ Pre-construction requirement elicitation, companion requirement expansion, and c
 
 Every mutation, dependency change, toolchain repair, preview promotion, signing operation, and artifact promotion MUST be represented by a ConstructionTransaction.
 
-```text
-ConstructionTransaction
-├── transaction_id
-├── session_id
-├── task_id
-├── worker_id
-├── provider_profile_id
-├── model_id
-├── trace_id
-├── base_project_revision
-├── pre_mutation_checkpoint_id
-├── requested_operations
-├── required_permissions
-├── policy_decision
-├── candidate_revision
-├── validation_evidence_ids
-├── commit_result
-└── rollback_result
-```
-
 The transaction lifecycle is:
 
 ```text
@@ -2733,6 +2713,8 @@ APK packaging and evidence promotion
 The coordinator MUST persist each boundary as a durable event and MUST be able to resume from the last validated boundary after a supervisor, worker, provider, emulator, or host interruption.
 
 ### 47.2 PreflightReport and feasibility gate
+
+> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §1.83. Owner: TA §53.2.
 
 Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The report evaluates the selected or candidate technology plan against the local environment, project constraints, provider capabilities, privacy policy, emulator availability, and expected validation work.
 
@@ -3234,21 +3216,7 @@ Every invocation must produce a `SkillExecutionRecord` containing the skill vers
 
 A worker role defines responsibility. An `AgentProfile` defines how a particular instance operates:
 
-```text
-AgentProfile
-├── model profile
-├── reasoning mode
-├── context strategy
-├── skill set
-├── tool set
-├── permission profile
-├── generation parameters
-├── maximum child count
-├── resource policy
-├── recovery policy
-├── validation policy
-└── memory policy
-```
+> **Schema projection:** `AgentProfile` is defined in `nirman-schemas.md` §2.44. Owner: TA §58.3.
 
 A worker instance must be constructed from a role, task contract, profile, skills, model, tools, workspace lease, permission profile, resource profile, context profile, parent task, and recovery policy. Dynamic creation must remain bounded and must not expand permissions or workspace scope.
 
@@ -3835,7 +3803,7 @@ The existing sections protect the host. They do not verify that the generated ap
 
 Before packaging, the runtime must verify the generated application for hardcoded secrets and API keys, insecure network configuration including cleartext traffic, exported components without permission guards, insecure data storage of sensitive values, unsafe WebView configuration, unguarded intent handling, over-broad permission requests, debuggable release configuration, and missing certificate handling for pinned endpoints.
 
-The `AndroidSecurityIntelligenceService` aggregate (TA §70.1; TA §70.3) implements these checks through three coordinated components: `AppSecurityScanner` performs the enumerated checks above and applies deterministic exploit-pattern matching against known Android attack patterns; `SecurityRiskScorer` aggregates findings by severity into a structured risk score bound to the artifact revision; and `SecurityAuditGenerator` produces a security audit report artifact covering all finding dispositions, risk score, SBOM completeness, and artifact provenance before promotion. Every finding must reach `FindingDispositionStore` as blocking or accepted-with-reason (§58.5); a finding must never be silently dropped. `ProvenanceRecorder` remains the sole promotion gate.
+The `AndroidSecurityIntelligenceService` aggregate (TA §70.1; TA §70.3) implements these checks through three coordinated components: `AppSecurityScanner` performs the enumerated checks above and applies deterministic exploit-pattern matching against known Android attack patterns; `SecurityRiskScorer` aggregates findings by severity into a structured risk score bound to the artifact revision; and `SecurityAuditGenerator` produces a security audit report artifact covering all finding dispositions, risk score, SBOM completeness, and artifact provenance before promotion. Every finding must reach `FindingDispositionStore` as blocking or accepted-with-reason (§58.5); a finding must never be silently dropped. `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 ### 58.2b Pre-generation Threat Sketch
 
@@ -4456,7 +4424,7 @@ Where ambiguity exists, certification fails and the document set is corrected. A
 
 ### 67.8 Contract Authority Registry
 
-The following `ContractId` values are the registered normative contracts of this document set — the Contract Authority Registry. Each row names the single authoritative section, the declared extensions, the implementing architecture section, the locking ADR, and the implementing milestone. This table is the resolution source for the §67.7 Contract authority rules and the addressing source for §67.3.
+The following `ContractId` values are the registered normative contracts of this document set — the Contract Authority Registry. Each row names the single authoritative section, the declared extensions, the implementing architecture section, the locking ADR, and the implementing milestone. The ADR cell names the primary structural lock; the complete lock set of a contract is the union of the `Locks:` fields of every ADR that names the contract — machine-readable in `nirman-adrs.md` and the authoritative lock edge for §67.15. This table is the resolution source for the §67.7 Contract authority rules and the addressing source for §67.3.
 
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
@@ -4729,7 +4697,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 
 ### 67.15 Twelve-edge resolution table
 
-§67.3 defines the chain. This table makes every edge individually addressable so forward traversal is resolved by lookup rather than by reading. Each row is one registered contract; each column is one edge. A cell carrying `N/A (INTERNAL predicate)` is an explicit deterministic value, not a blank: it records that an INTERNAL-class predicate contract is enforced corpus-wide and owns no section, schema, or persistence artifact of that edge's class; the §67.8 registry cells use the same value for the same edges.
+§67.3 defines the chain. This table makes every edge individually addressable so forward traversal is resolved by lookup rather than by reading. Each row is one registered contract; each column is one edge. A cell carrying `N/A (INTERNAL predicate)` is an explicit deterministic value, not a blank: it records that an INTERNAL-class predicate contract is enforced corpus-wide and owns no section, schema, or persistence artifact of that edge's class; the §67.8 registry cells use the same value for the same edges. The ADR cell names the primary/structural lock only; the complete lock set is each ADR's own `Locks:` field, which is machine-readable and is the authoritative edge. Cell agreement with §67.8 follows two rules: the milestone cell is an equality — the milestones document names one canonical owning milestone per contract, and it is the milestone in the contract's §67.8 row — while the ADR and architecture cells use containment: a §67.8 cell may carry declared extensions beyond the §67.15 edge, and every §67.15 value must appear in §67.8. A Failure/recovery cell MAY resolve to a subsection titled "Architecture tests" where the subsystem's failure/recovery contract is its architecture-test section; this is the declared convention for those contracts.
 
 | ContractId | Capability | Requirement | Build spec | Architecture | Schema | Authority | Persistence | Failure/recovery | ADR | Milestone | Test | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4742,7 +4710,7 @@ Classification is a declaration of the contract's role, not an exemption from re
 | CONTRACT.RUNTIME.WORKSPACE | CAP.ANDROID.PARALLEL | BS §22 | BS §22 | TA §8 | TA §8.1 | BS §22 | TA §8.2 | TA §8.3 | ADR-068 | M69 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RESERVATION | CAP.ANDROID.PARALLEL | BS §54 | BS §54 | TA §60 | TA §60.2 | BS §54 | TA §60.4 | TA §60.6 | ADR-143 | M82 | TEST-RES-001 | EV-RES-001 |
 | CONTRACT.RUNTIME.RECONCILIATION | CAP.ANDROID.USER_COEDIT | BS §55 | BS §55 | TA §61 | TA §61.2 | BS §55 | TA §61.5 | TA §61.6 | ADR-144 | M83 | TEST-RCN-001 | EV-RCN-001 |
-| CONTRACT.RUNTIME.E2E | CAP.ANDROID.E2E_VERIFY | BS §56 | BS §56 | TA §62 | TA §62.2 | BS §56 | TA §62.5 | TA §62.6 | ADR-146, ADR-253 | M84 | TEST-E2E-001 | EV-E2E-001 |
+| CONTRACT.RUNTIME.E2E | CAP.ANDROID.E2E_VERIFY | BS §56 | BS §56 | TA §62 | TA §62.2 | BS §56 | TA §62.6 | TA §62.9 | ADR-146, ADR-253 | M84 | TEST-E2E-001 | EV-E2E-001 |
 | CONTRACT.RUNTIME.VERIFICATION | CAP.ANDROID.QUALITY_GATE | BS §57 | BS §57 | TA §64 | TA §64.5 | BS §57 | TA §64.5 | TA §64.6 | ADR-148 | M85 | TEST-VER-001 | EV-VER-001 |
 | CONTRACT.RUNTIME.LOCALIZATION | CAP.ANDROID.REGRESSION_REPAIR | BS §62 | BS §62 | TA §63 | TA §63.4 | BS §62 | TA §63.4 | TA §63.5 | ADR-147 | M86 | TEST-LOC-001 | EV-LOC-001 |
 | CONTRACT.RUNTIME.SUPPLY_CHAIN | CAP.ANDROID.SECURE_RELEASE | BS §58 | BS §58 | TA §70 | TA §70.4 | BS §58 | TA §70.4 | TA §70.6 | ADR-149 | M87 | TEST-SEC-001 | EV-SEC-001 |
@@ -5083,25 +5051,38 @@ Every preview panel state MUST be represented by a revision-bound `PreviewRevisi
 
 A preview is current only when its active branch, project revision, promotion lineage, checkpoint, source fingerprint, contract version, technology plan, asset manifest, artifact fingerprint, emulator state fingerprint, application state fingerprint, and environment state fingerprint are compatible with the active session. "Newest revision" is never sufficient to establish authority. A preview with a mismatched or unknown identity MUST be labelled `STALE` and MUST NOT satisfy completion.
 
+The runtime pipeline of technical architecture §73.4 projects onto the durable authority state (`previewAuthorityState`, `nirman-schemas.md` §1.35) as follows:
+
+| Pipeline stage (technical architecture §73.4) | `previewAuthorityState` |
+|---|---|
+| `NOT_REQUESTED` | — (no preview request exists; no authority state) |
+| `REQUEST_AUTHORIZED` | `REQUESTED` |
+| `BUILDING`, `BUILD_OBSERVED` | `BUILDING` |
+| `INSTALLING`, `INSTALL_OBSERVED` | `INSTALLING` |
+| `LAUNCHING` | `LAUNCHING` |
+| `RUNNING_OBSERVED`, `INTERACTION_OBSERVED`, `VALIDATING` | `OBSERVING` |
+| `PROMOTED_CURRENT` | `CONNECTED` |
+| `FAILED_CANDIDATE` | `BLOCKED` |
+| `STALE` | `STALE` |
+| `INVALIDATED` | `INVALIDATED` |
+| `RECOVERING` | `LOST` |
+
 ### 69.4.1 Canonical Android Preview Runtime Contract
 
-Every Android preview MUST resolve through exactly one canonical runtime chain:
+Every Android preview MUST resolve through exactly one canonical runtime chain, and every
+stage of that chain is a mapping onto an existing canonical identity:
 
-ConstructionRevision
-→ BuildArtifact
-→ BuildArtifactValidated
-→ InstallTransaction
-→ InstallTransactionCommitted
-→ LaunchSession
-→ LaunchTransactionCommitted
-→ AndroidApplicationProcess
-→ RuntimeStateObservation
-→ FrameCapture
-→ FrameStamp
-→ RenderTransport
-→ PreviewHost
-→ PreviewProjection
-→ EvidenceRecord
+| Stage | Canonical identity |
+|---|---|
+| ConstructionRevision | `ProjectRevisionId` / the latest committed `ConstructionTransaction` |
+| BuildArtifact | `ArtifactSet` / `ArtifactRecord` plus `AndroidBuildObservation` |
+| BuildArtifactValidated | `ValidationResult` |
+| InstallTransaction, InstallTransactionCommitted, LaunchSession, LaunchTransactionCommitted | install/launch effects carried by `ExternalEffectRecord` plus device-transaction state |
+| AndroidApplicationProcess | `applicationProcessId` |
+| RuntimeStateObservation | `AndroidRuntimeObservation` |
+| FrameCapture | an `AndroidDeviceAdapter` operation |
+| FrameStamp | volatile transport metadata, not durable evidence |
+| RenderTransport, PreviewHost, PreviewProjection, EvidenceRecord | these identities remain canonical as already defined |
 
 No stage may substitute simulated UI, source rendering, detached emulator windows,
 synthetic screenshots, or model-generated state for the canonical live runtime.
@@ -5375,7 +5356,7 @@ A degraded frame path MAY continue displaying the last-known-good frame, but the
 
 A frame-quality measurement MAY trigger deterministic recovery, diagnostic classification, transport adaptation, or physical-resource adaptation. It MUST NOT bypass policy, evidence, identity, revision, or promotion gates (BS §72).
 
-`PreviewSyncEvent` is the only event shape that can update the preview projection. A worker result, model message, terminal output, raw device callback, or UI action must first be normalized into this schema or remain informational. A live emulator frame is not an event: frames reach PreviewHost as volatile `FrameNotice` display messages (technical architecture §10.7) that are never appended to the durable event log or replayed, and `PreviewSyncEvent`s mark only stream-state transitions (`STREAM_RECONNECTED`, `STREAM_GAP`) and evidence captures (`OBSERVATION_CAPTURED`). A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED` and the frame's stamp binds the projection's candidate revision, device, and artifact. `PreviewProjectionReducer` is the only component that derives the panel’s preview state from durable events. `PreviewSyncEvidenceRecord` proves which event range and identity produced a displayed stage; it is not a substitute for the underlying device, process, visual, test, artifact, or promotion evidence.
+`PreviewSyncEvent` is the only event shape that can update the preview projection. A worker result, model message, terminal output, raw device callback, or UI action must first be normalized into this schema or remain informational. A live emulator frame is not an event: frames reach PreviewHost as volatile `FrameNotice` display messages (technical architecture §10.7) that are never appended to the durable event log or replayed, and the frame-transport events (`STREAM_RECONNECTED`, `STREAM_GAP`) are limited to frame-transport stream-state changes, with `OBSERVATION_CAPTURED` reserved for evidence capture. A frame MUST NOT be painted as live unless the reduced projection's `streamStatus` is `CONNECTED` and the frame's stamp binds the projection's candidate revision, device, and artifact. `PreviewProjectionReducer` is the only component that derives the panel’s preview state from durable events. `PreviewSyncEvidenceRecord` proves which event range and identity produced a displayed stage; it is not a substitute for the underlying device, process, visual, test, artifact, or promotion evidence.
 
 `PreviewProjection` is evaluated as independent dimensions rather than a single success value: goal, execution, source, build, artifact, installation, runtime, device, interaction, validation, evidence, recovery, promotion, and display. For example, `buildState: SUCCEEDED`, `artifactState: APK_AVAILABLE`, `installationState: INSTALLED`, `runtimeState: RUNNING`, `validationState: IN_PROGRESS`, `evidenceState: PARTIAL`, and `promotionState: NOT_PROMOTED` may coexist. No dimension implies completion of another dimension.
 
@@ -5578,6 +5559,8 @@ Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, sta
 **ContractId:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 
+> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §1.84. Owner: TA §57.3.
+
 `FrontendControlPlaneContract` is the registered identity of this section's normative contract family. Its authoritative field shape is the command-registry and envelope contract fixed by §76.1, §76.2, and §76.3; it carries no projected field block while that shape is declared pending (ADR-241).
 
 The desktop frontend is a presentation client of the authoritative local control plane. The canonical path is:
@@ -5660,7 +5643,7 @@ The transaction owner is the backend use-case handler. Local task, checkpoint, p
 
 ### 76.5 Android service-integration adapter
 
-A generated Android application that uses a supporting API, authentication service, or datastore must declare `AndroidServiceIntegration` with `requestSchemaRef`, `responseSchemaRef`, `errorSchemaRef`, `authState`, `credentialReference`, `baseEndpointIdentity`, `datastoreOwner`, `offlinePolicy`, `retryPolicy`, `timeoutPolicy`, `idempotencyPolicy`, `tokenRefreshPolicy`, `privacyPolicy`, `networkPolicy`, and functional scenario IDs. Its generated API client and adapter are separate from Nirman’s desktop IPC client. Android integration failures become application evidence or declared blockers; they cannot mutate Nirman’s control-plane authority.
+A generated Android application that uses a supporting API, authentication service, or datastore must declare an integration specification (`IntegrationSpec`, SCHEMAS §1.57) whose `requestSchemaRef`, `responseSchemaRef`, `errorSchemaRef`, `authState`, `credentialReference`, `endpointIdentity`, `offlinePolicy`, `retryPolicy`, `timeoutPolicy`, `idempotencyPolicy`, `privacyPolicy`, `networkPolicy`, and `functionalScenarioIds` carry the integration's declared contract; the supervisor records the corresponding `AndroidServiceIntegration` (SCHEMAS §2.72), whose `datastoreOwner` names the datastore partition. Its generated API client and adapter are separate from Nirman’s desktop IPC client. Android integration failures become application evidence or declared blockers; they cannot mutate Nirman’s control-plane authority.
 
 A declared integration whose backend is absent, unreachable, or credential-gated does not block the loop (ADR-225). The supervisor starts a session-scoped `ContractDouble` (technical architecture §74.1): a loopback-only stub generated from `requestSchemaRef`, `responseSchemaRef`, and `errorSchemaRef`, reached from the guest through the emulator's host alias, serving declared fixtures and recording every exchange. Deterministic edge and failure scenarios are simulated via typed `ContractDoubleScenario` records (technical architecture §74.1, SCHEMAS §2.132; ADR-258) covering the 15 closed fault modes. Evidence produced against a double is labeled `DOUBLE_BACKED`; it proves the application's handling of the declared contract, including its error and offline paths, and never promotes `IntegrationState` past `SPECIFIED` for the real service — that promotion still requires the real endpoint or a `USER_REQUIRED` credential decision. A double is not a hosted service (§1.5), is never reachable off the host, and is stopped with the session.
 
@@ -6082,8 +6065,8 @@ The capability table above classifies every capability id by the evidence that p
 | Class | Count | Meaning |
 |---|---|---|
 | Visual perception required | 18 | requires UI-hierarchy, screenshot, or accessibility observation |
-| Runtime perception required, non-visual | 25 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
-| Perception not required | 15 | gated only by build-toolchain or host observation |
+| Runtime perception required, non-visual | 15 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
+| Perception not required | 25 | gated only by build-toolchain or host observation |
 
 The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 
@@ -6359,7 +6342,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.14 | "Long-running tasks should use an explicit state machine" | MUST use the §26.14 state machine | The listed states and transitions are binding. No informal loop may substitute |
 | BS §26.14 | "Every state transition should be persisted with a reason and event reference" | MUST persist both | A transition without a reason and event reference is rejected by the reducer |
 | BS §23.1 | "should automatically create a concise project-context file in every managed workspace" | MUST create | On workspace creation, before the first task runs |
-| BS §23.1 | "This file should contain the project purpose, supported commands, framework conventions, architecture overview, important directories, testing instructions, environment assumptions, and known constraints" | MUST contain all seven categories | Product intent, architecture, commands, conventions, constraints, known issues, validation — per the §23.1 table |
+| BS §23.1 | "This file should contain the project purpose, supported commands, framework conventions, architecture overview, important directories, testing instructions, environment assumptions, and known constraints" | MUST contain all eight listed items, mapped onto the seven categories of the §23.1 table | Product intent, architecture, commands, conventions, constraints, known issues, validation — per the §23.1 table |
 | BS §23.1 | "It should remain short enough to load frequently" | MUST remain within the context-file size limit | Hard context-file size ceiling: 8,000 tokens. Content beyond it moves to linked documentation |
 | BS §23.1 | "should link to deeper documentation when more context is needed" | MUST link, not inline | References by relative path; the context file never embeds full documents |
 | BS §23.1 | "should also maintain a durable execution plan for long-running tasks" | MUST maintain | For any task exceeding one worker delegation or one build cycle |
@@ -6521,14 +6504,14 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §27.10 | "Nirman should continue working until the goal is complete or until a defined stop condition is reached" | MUST continue to goal or defined stop | No implicit stop exists |
 | BS §27.10 | "Token, request, cost, and elapsed-time telemetry never ends, pauses, throttles, or degrades a goal" | MUST treat usage as telemetry; MUST NOT auto-end, pause, throttle, or degrade on it | Consistent with §22.2 and CLAUSE.RESOURCE.NO_AI_USAGE_AUTHORITY; physical pressure adapts per §72 |
 | BS §27.10 | "It should present a completion classification" | MUST classify every ending | Never claim "worked until complete" when a limit or error caused the stop |
-| BS §27.11 | "The tree should show the parent goal, phases, sub-tasks, worker handoffs, commands, previews, tests, builds, security checks, visual checks, repair attempts, approvals, and checkpoint operations" | MUST show all ten node types | Each expandable to its evidence record |
+| BS §27.11 | "The tree should show the parent goal, phases, sub-tasks, worker handoffs, commands, previews, tests, builds, security checks, visual checks, repair attempts, approvals, and checkpoint operations" | MUST show all thirteen node types | Each expandable to its evidence record |
 | BS §27.11 | "the default autonomous validation loop should be" the §27.11 sequence | MUST follow the default loop | Deviation requires a recorded reason on the task |
 | BS §27.11 | "Nirman should not ask for approval for every small, reversible operation inside an approved workspace" | MUST NOT over-prompt | Reversible in-workspace operations proceed under the active profile |
 | BS §27.11 | "It should request a decision only at defined policy boundaries" | MUST request only at policy boundaries | Protected-file access, risky dependency, external directory, destructive command, network publish, signing |
 | BS §27.11 | "Physical process, memory, disk, and concurrency pressure causes adaptation, throttling, or checkpointing per §72; token, cost, request, and elapsed-time telemetry is informational and causes no execution change" | MUST adapt to physical pressure; MUST NOT act on usage telemetry | Not a fixed completion lock; usage telemetry has no execution-authority semantics |
 | BS §27.11 | "The user should be able to reopen each evidence item from the result" | MUST make evidence reopenable | Every claim in a result links to its durable evidence record |
 | BS §28.2 | "The runtime should continue automatically whenever a safe new strategy is available" | MUST continue while safe strategies remain | Repeating the same command, patch, prompt, or model route is not a new attempt |
-| BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recovery strategies, validation results, resource telemetry, user corrections, and final classification" | MUST record all nine | For every completed, failed, recovered, cancelled, or escalated task |
+| BS §28.3 | "Episode records should summarize the goal class, project profile, provider profile, plan, worker roles, actions, failures, recovery strategies, validation results, resource telemetry, user corrections, and final classification" | MUST record all twelve | For every completed, failed, recovered, cancelled, or escalated task |
 | BS §28.3 | "The runtime should measure goal completion, evidence completeness, regression rate, recovery success, strategy diversity, repair efficiency, tool reliability, provider reliability, self-update safety, attention reliability (§53.11), and human intervention rate" | MUST measure all eleven | Visible for diagnosis |
 | BS §28.3 | "These metrics should be visible for diagnosis and should not be optimized at the expense of correctness or safety" | MUST NOT optimise metrics over correctness | A metric improvement that weakens a gate is a regression |
 | BS §28.4 | "Nirman must distinguish runtime improvement proposals from reusable skill learning." | MUST distinguish improvement proposals from skill learning; candidates preserve evidence lineage, generalized triggers, tools/capabilities, worker-role compatibility, validation, and limitations; successful tasks do not self-activate skills | §28.4–§28.6 pipeline; EpisodeRecord lineage |
@@ -6649,7 +6632,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §11.1 | "The runtime should resolve those requirements through local version managers, portable installations, or configured executable paths, then isolate each project" | MUST resolve from those three sources and MUST isolate | Isolation uses environment filtering, cache separation, process scopes, and toolchain bindings; two projects needing different Java, Gradle, Android SDK, NDK, or Rust toolchain versions run without changing global state |
 | TA §11.1 | "A project environment record should include" the tabled fields | MUST include all eleven fields | `projectId`, `operatingSystem`, `executablePaths`, `detectedVersions`, `requestedVersions`, `resolutionSource`, `compatibilityStatus`, `reproducibilityStatus`, `maxPathLength`, `longPathPolicyEnabled`, `lastVerifiedAt` |
 | TA §11.2 | "Diagnostics should distinguish missing, incompatible, inaccessible, unverified, and healthy tools" | MUST classify every tool into exactly one of the five | A failed build names the missing executable or incompatible version and states the next action; "build failed" without the classification is a defect |
-| TA §11.3 | "The runtime should expose Android-focused interfaces for" the fourteen listed concerns | MUST expose all fourteen | Process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, native module builds, emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts; the Windows host supplies the process and sandbox implementation while the generated-project contract stays Android-specific and technology-neutral |
+| TA §11.3 | "The runtime should expose Android-focused interfaces for" the twelve listed concerns | MUST expose all twelve | Process execution, filesystem policy, environment discovery, Java/Kotlin compilation, Gradle execution, native module builds, emulator management, Logcat, quotas, screenshots, signing-boundary checks, and APK artifacts; the Windows host supplies the process and sandbox implementation while the generated-project contract stays Android-specific and technology-neutral |
 | TA §11.4 | "The runtime should expose a `TerminalSession` abstraction instead of treating every command as a one-shot shell call" | MUST use `TerminalSession` for all command execution | The fifteen tabled fields are populated per session; state that depends on working directory, environment variables, virtual-environment activation, package-manager state, or a running dev server is preserved across commands; session environment changes are explicit and recorded, never inferred from shell output |
 | TA §11.4 | "It should answer only declared safe prompts using a task policy; otherwise it should terminate safely, capture the prompt, and classify the task as requiring a decision" | MUST answer only prompts the task policy declares safe; MUST otherwise terminate safely and request a decision | An undeclared prompt is never answered by inference or by the model; dev servers and emulators are registered as long-running processes and are never classified as hung commands |
 | TA §12.1 | "The control plane should emit events such as `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, and `task_completed`" | MUST emit at least the twelve named event types | `task_started`, `plan_created`, `worker_started`, `tool_requested`, `approval_requested`, `tool_started`, `tool_completed`, `checkpoint_created`, `validation_completed`, `recovery_started`, `worker_failed`, `task_completed`; "such as" is not an invitation to omit any of the twelve, and additional types are permitted |
@@ -6671,7 +6654,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §18 | "Backtracking should restore a known-good checkpoint before trying a materially different strategy" | MUST restore before switching strategy | A strategy change applied on top of a failed working tree is prohibited; the `RecoveryAttempt` record's eighteen fields capture what changed, and the planner rejects an attempt substantially identical to a previous failed one |
 | TA §19 | "The context engine exposes an Adaptive Context Architecture operating across six provider-independent strategies" | MUST expose exactly the six tabled modes (`EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED`; BS §19.1) | Mode selection follows the twelve BS §19.1 dimensions; every mode works against any provider; a large-context estimate above the provider's actual capacity falls back to semantic/exact retrieval and records the capacity-driven omissions |
 | TA §24.1 | "The adapters must preserve provider-specific data in a raw-response envelope while also producing a normalized internal response" together with the adapter's `supportedInputModalities`, `supportedOutputModalities`, `streamingSupported`, and the bound `ProviderProfile` capability fields | MUST report input modalities, output modalities, streaming support, and `declaredContextTokens` per adapter and profile | Mode selection derives from these reported capabilities, project size, privacy policy, task type, and user preference — never from provider name |
-| TA §19 | "The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode" | MUST record all six | An untraceable context package is a defect; when the large-context estimate exceeds the provider's context capacity the planner falls back to retrieval mode and never silently truncates critical files |
+| TA §19 | "The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode" | MUST record all seven | An untraceable context package is a defect; when the large-context estimate exceeds the provider's context capacity the planner falls back to retrieval mode and never silently truncates critical files |
 | TA §19 | "It updates changed files and affected dependency regions instead of rebuilding the entire map after every action" | MUST update incrementally | A full rebuild after every action is prohibited; correctness of the incremental path is proven by comparing an incrementally-updated map against a full rebuild on the same revision |
 | TA §19 | "Large projects use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction" | MUST apply all five above the configured large-project threshold | Below the threshold the simple path is permitted; the threshold is a §80.3 configurable default |
 | TA §19 | "The map manager exposes freshness, shard size, rebuild progress, and stale-region warnings to the task runtime" | MUST expose all four | A planner reading a stale region receives the warning with the content; silently serving stale map data is a defect |
@@ -6763,8 +6746,8 @@ Every "configurable" parameter in the specification has a default value defined 
 | Unprofiled DENSE block bound | 25% of declared context | 10-50% | Per provider profile |
 | Screenshot comparison threshold | 0.95 similarity | 0.80-0.99 | Per project |
 | Visual diff threshold | 5% pixel diff | 1-20% | Per project |
-| Visual comparison normalization | Canonical emulator screenshot dimensions, orientation, density, and color-space normalization; no unrecorded preprocessing | Per project |
-| Dynamic-region policy | Explicitly declared masked regions only; undeclared dynamic content remains diffable | Per visual baseline |
+| Visual comparison normalization | Canonical emulator screenshot dimensions, orientation, density, and color-space normalization; no unrecorded preprocessing | N/A | Per project |
+| Dynamic-region policy | Explicitly declared masked regions only; undeclared dynamic content remains diffable | N/A | Per visual baseline |
 | Cold-start latency threshold (TTID) | 1500 ms | 1000-3000 ms | Per device profile |
 | Frozen-frame ratio ceiling | 0.1% | 0.01%-0.5% | Per device profile |
 | Janky-frame ratio ceiling | 5.0% | 1.0%-10.0% | Per device profile |
@@ -6779,7 +6762,7 @@ Every "configurable" parameter in the specification has a default value defined 
 | Liveness timeout — build step (silence, not duration) | 600 seconds | 60-3600 seconds | Per project |
 | Liveness timeout — ADB command | 60 seconds | 10-600 seconds | Per project |
 | Liveness timeout — emulator operation | 300 seconds | 60-1800 seconds | Per project |
-| Consecutive `EVIDENCE_NOT_ACQUIRED` rejections before worker recycle | 3 | 2-10 | Per project |
+| Consecutive `EVIDENCE_NOT_ACQUIRED` rejections before worker recycle | 3 | 3 | Per project |
 | Approval expiry | 24 hours | 1-168 hours | Per project |
 | Notification cooldown | 60 seconds | 5-600 seconds | Per project |
 | Log retention | 30 days | 7-365 days | Per project |
@@ -7227,18 +7210,18 @@ does not template:
 | Prompt class | Required by | Templated in §80.8? |
 |---|---|---|
 | system | §69.2 | yes, indirectly — §80.8.1–§80.8.4 are system prompts by role |
-| coordinator | §69.2; technical architecture §73.1 | **yes, indirectly — §80.8.1 is the coordinator prompt** |
+| coordinator | §69.2; technical architecture §73.1 | **yes — derived through §80.8.1** |
 | worker | §69.2; technical architecture §73.1 | **no** — owner-pending |
 | skill | §69.2; technical architecture §73.1 | **no** — owner-pending |
 | deliberation | §69.2; technical architecture §73.1 | **no** — owner-pending |
 | review | technical architecture §73.1 | **no** — owner-pending |
-| release-evaluation prompt set | milestones §M30 development plan §16.3, via the §80.2 row for DP §16.3 | **yes** — derived, see below |
+| release-evaluation prompt set | development plan §16.3, via the §80.2 row for DP §16.3 | **yes — a derived evaluation fixture set**, see below |
 
 Five templates are provided below: planning, code generation, validation, repair, and context compaction. Each is a normative minimum-content instruction pattern for the purpose it names. The runtime MUST use each template as the base instruction for that purpose, preserving its owning contract invariants, and MAY add role-specific material on top; it MUST NOT replace the template wholesale, and it MUST NOT use a template outside the purpose it names. They are not a mapping onto the six contract classes above, and no such mapping is derivable from the corpus: nothing states that the planning template is the coordinator prompt, or that any template serves the worker, skill, deliberation, or review class.
 
 **What is recovered from the corpus.** The classes are not inventions of this table; each is named authoritatively, and for four of them the surrounding structure is derivable:
 
-- **release-evaluation prompt set — fully derived, no longer owner-pending.** The set is fixed by development plan §16.3, which requires every release to run "a fixed set of prompts" and score seven dimensions. That set is the eight `Prompt:` lines of §80.6.1–§80.6.8 (`FIX-PROG-01`–`FIX-PROG-08`), and the seven scored dimensions are the ones the §80.2 row for DP §16.3 already lists. Nothing further is needed to execute it.
+- **release-evaluation prompt set — a derived evaluation fixture set, no longer owner-pending.** The set is fixed by development plan §16.3, which requires every release to run "a fixed set of prompts" and score seven dimensions. That set is the eight `Prompt:` lines of §80.6.1–§80.6.8 (`FIX-PROG-01`–`FIX-PROG-08`), and the seven scored dimensions are the ones the §80.2 row for DP §16.3 already lists. Nothing further is needed to execute it.
 - **worker — payload fully specified.** §69.2 fixes the seven items a worker prompt MUST receive: contract version, project revision, checkpoint, relevant evidence, assigned scope, allowed capabilities, unresolved questions.
 - **deliberation — outcome vocabulary closed.** Every deliberation prompt must terminate in exactly one recorded outcome: `SUFFICIENT`, `NO_PROGRESS`, `ESCALATED`, or `ABANDONED`, with `BRANCH` routing to speculative branching. No usage-based outcome exists.
 - **review — role vocabulary closed.** The reviewer roles are diagnostic, security, and architecture, plus the integration reviewer that proposes an integration patch during reconciliation.
@@ -7486,12 +7469,14 @@ The agent-buildability contract is satisfied only when:
 3. Every vague procedure has a concrete step-by-step replacement
 4. Every referenced schema has a complete field definition
 5. Every system prompt has a defined template. This criterion is satisfied
-   only for the templates §80.8 provides. Five prompt classes named by §69.2
-   and technical architecture §73.1 — coordinator, worker, skill, deliberation,
-   and review — plus the fixed release-evaluation prompt set are bound by
-   contract but not templated, and §80.8 records them as owner-pending. The
-   criterion is therefore met for the templated surface and openly unmet for
-   the rest; it is not met corpus-wide.
+   only for the templates §80.8 provides. The four role prose templates named
+   by §69.2 and technical architecture §73.1 — worker, skill, deliberation,
+   and review — remain bound by contract but not templated and are recorded
+   owner-pending in §80.8; the coordinator prompt is derived through §80.8.1,
+   and the release-evaluation set is a derived evaluation fixture set. The
+   criterion is therefore met for the templated and derived surfaces and
+   openly unmet for the four owner-pending role templates; it is not met
+   corpus-wide.
 6. Every runtime decision has explicit criteria. §80.4 supplies ordered
    criteria for five orchestration decision classes — recovery strategy
    selection (§80.4.1, bound to the technical architecture §28.1 ladder),

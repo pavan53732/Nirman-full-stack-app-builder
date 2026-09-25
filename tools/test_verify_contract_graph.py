@@ -1881,6 +1881,41 @@ CASES = {
         "   ├── CONTINUE\n   ├── RECOVER",
         "   ├── CONTINUE\n   ├── VALIDATE\n   ├── RECOVER",
         "semantic documentation"),
+    "TA §58.2 reintroduces the withdrawn VALIDATE cycle branch": (
+        TA,
+        "  ├── CONTINUE\n  ├── RECOVER\n  ├── DELEGATE",
+        "  ├── CONTINUE\n  ├── VALIDATE\n  ├── RECOVER\n  ├── DELEGATE",
+        "semantic documentation"),
+    "the ProgressEvaluator row reintroduces VALIDATE": (
+        TA,
+        "classifies a cycle as CONTINUE, RECOVER, DELEGATE, REPLAN, or COMPLETE",
+        "classifies a cycle as CONTINUE, VALIDATE, RECOVER, DELEGATE, REPLAN, or COMPLETE",
+        "semantic documentation"),
+    "AgentLoopRecord.progress_status regains the withdrawn VALIDATE branch": (
+        SCHEMAS,
+        "- progress_status: CONTINUE | RECOVER | REPLAN | DELEGATE | COMPLETE",
+        "- progress_status: CONTINUE | VALIDATE | RECOVER | REPLAN | DELEGATE | COMPLETE",
+        "semantic documentation"),
+    "§71.1 returns to the three-member event scope wording": (
+        BS,
+        "and the frame-transport events (`STREAM_RECONNECTED`, `STREAM_GAP`) are limited to frame-transport stream-state changes, with `OBSERVATION_CAPTURED` reserved for evidence capture.",
+        "and `PreviewSyncEvent`s mark only stream-state transitions (`STREAM_RECONNECTED`, `STREAM_GAP`) and evidence captures (`OBSERVATION_CAPTURED`).",
+        "semantic documentation"),
+    "an event type is dropped from the §71.2 table": (
+        BS,
+        "| `STREAM_GAP` |",
+        "| `STREAM_GAP_ALT` |",
+        "semantic documentation"),
+    "the PreviewSyncEvent enum gains an unregistered event type": (
+        SCHEMAS,
+        "STREAM_RECONNECTED",
+        "STREAM_RECONNECTED\nSTREAM_BACKPRESSURE",
+        "semantic documentation"),
+    "M65 reintroduces the withdrawn validate cycle branch": (
+        DEV,
+        "continue/recover/delegate/replan/complete",
+        "continue/recover/delegate/validate/complete",
+        "semantic documentation"),
     "LoopHeartbeat stops carrying the nine coarse states": (
         SCHEMAS,
         "- stateEntered: OBSERVE | UNDERSTAND | PLAN |",
@@ -1930,8 +1965,8 @@ CASES = {
         "semantic documentation"),
     "the release-evaluation prompt set row is dropped from §80.8": (
         BS,
-        "| release-evaluation prompt set | milestones §M30 development plan §16.3, "
-        "via the §80.2 row for DP §16.3 | **yes** — derived, see below |\n",
+        "| release-evaluation prompt set | development plan §16.3, "
+        "via the §80.2 row for DP §16.3 | **yes — a derived evaluation fixture set**, see below |\n",
         "",
         "semantic documentation"),
     "a fixture is referenced with no §80.6 definition or attribution": (
@@ -2153,6 +2188,62 @@ CASES = {
         "- activeCheckpointId\n- providerProfileId",
         "- activeCheckpointId\n- currentRevision\n- providerProfileId",
         "structure"),
+    # ADR-251 clause 7 is the canonical derived-member declaration: while it
+    # stands, `Project.currentRevision` references pass the field-reference
+    # check; withdrawing the declaration re-arms them as defects.
+    "the derived-member declaration is withdrawn while references remain": (
+        ADRS,
+        "`Project.currentRevision` remains a logical storage-authority projection, not a persisted `Project` field",
+        "The derived current-tip representation remains a logical storage-authority projection, not a persisted `Project` field",
+        "semantic documentation"),
+
+    # Operations are a separate namespace: a declared operation satisfies a
+    # dotted reference, a renamed or undeclared one does not.
+    "a declared operation is renamed while dotted references remain": (
+        SCHEMAS,
+        "- captureUiHierarchy() -> UiHierarchyResult",
+        "- captureScreenHierarchy() -> UiHierarchyResult",
+        "semantic documentation"),
+    # PreflightReport and SupervisorConnection (registered by G1.3) must be
+    # checkable in both directions: projections without blocks fail, and
+    # dotted references to undeclared members fail.
+    "a dotted reference to an undeclared PreflightReport member is added": (
+        BS,
+        "Before expensive generation begins, Nirman MUST produce a `PreflightReport`.",
+        "Before expensive generation begins, Nirman MUST produce a `PreflightReport` and validate `PreflightReport.bogusField`.",
+        "semantic documentation"),
+    "a dotted reference to an undeclared SupervisorConnection member is added": (
+        TA,
+        "it reconnects through `SupervisorConnection` and reconstructs",
+        "it reconnects through `SupervisorConnection`, validates `SupervisorConnection.bogusField`, and reconstructs",
+        "semantic documentation"),
+    "the PreflightReport field block is renamed while its projections remain": (
+        SCHEMAS,
+        "### 1.83 PreflightReport",
+        "### 1.83 PreflightReportRenamed",
+        "structure"),
+    # G5: the three-level schema blocks (§2.97.1, §2.103.1) flow through the
+    # same owner/block/projection scans as two-level blocks.
+    "the ReasoningStreamEvent block loses its Owner line": (
+        SCHEMAS,
+        "**Owner:** TA §55.2 · **Contract:** — · **Projected at:** TA §55.2",
+        "**Owned-by:** TA §55.2 · **Contract:** — · **Projected at:** TA §55.2",
+        "structure"),
+    "the ScenarioValidationMatrix owner section drops its projection sentence": (
+        TA,
+        "`ScenarioValidationMatrix` is defined in `nirman-schemas.md` §2.103.1.",
+        "`ScenarioValidationMatrix` is described in `nirman-schemas.md` §2.103.1.",
+        "structure"),
+    "the SupervisorConnection field block is renamed while its projections remain": (
+        SCHEMAS,
+        "### 1.84 SupervisorConnection",
+        "### 1.84 SupervisorConnectionRenamed",
+        "structure"),
+    "a dotted reference to an undeclared operation is added": (
+        TA,
+        "`AndroidDeviceAdapter.captureUiHierarchy` produces the raw hierarchy",
+        "`AndroidDeviceAdapter.captureUiHierarchy` and `AndroidDeviceAdapter.pressHome` produce the raw hierarchy",
+        "semantic documentation"),
 
     # ---- ADR-251 normative-body locks. One case per locked sentence, so each
     # lock is proven to fail when its sentence is weakened rather than merely

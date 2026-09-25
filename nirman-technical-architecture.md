@@ -1796,7 +1796,7 @@ The test harness must include generated-from-instruction fixtures for Kotlin, Ja
 
 ## 36. Production Runtime Contract Architecture
 
-The production runtime is divided into deterministic authorities and model-driven proposal services. The model gateway proposes plans, edits, tool calls, recovery strategies, and improvement proposals. The supervisor, lifecycle authority, permission authority, sandbox authority, storage authority, evidence authority, recovery authority, promotion authority, and termination authority decide what can execute and what counts as complete.
+The production runtime is divided into deterministic authorities and model-driven proposal services. The model gateway proposes plans, edits, tool calls, recovery strategies, and improvement proposals. The supervisor, lifecycle authority, permission authority, sandbox authority, storage authority, evidence authority, recovery authority, and promotion authority decide what can execute and what counts as complete; termination is owned by the `LifecycleAuthority`.
 
 ### 36.1 Canonical runtime contracts
 
@@ -2584,7 +2584,7 @@ Responsibilities:
 4. *API level and anti-pattern enforcement:* Queries `AndroidApiLevelValidator` (§47.4) and `AndroidAntiPatternDetector` (§47.4) to verify `minSdk` compatibility and prevent banned Android constructs (`AsyncTask`, unremembered `mutableStateOf`).
 5. *Mock residue scanning:* Queries `MockResidualDetector` (§47.4) before release packaging to prevent test doubles and fake in-memory repositories from leaking into production source sets.
 
-`AndroidGenerationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all generation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidGenerationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all generation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 47.5.4 AndroidDataIntelligenceService
 
@@ -2596,7 +2596,7 @@ Responsibilities:
 3. *Query optimization and index analysis:* Invokes `QueryPerformanceAnalyzer` (§47.4) to eliminate N+1 query patterns, recommend composite indices, and prevent SQL injection.
 4. *Offline sync and outbox verification:* Invokes `OfflineSyncProtocolPlanner` (§47.4) to validate reactive Flow repositories, WorkManager background synchronization, and conflict resolution policies.
 
-`AndroidDataIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all data layer mutations route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidDataIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all data layer mutations route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 ---
 
@@ -2809,7 +2809,7 @@ The service records concise decision summaries without hidden chain-of-thought. 
 4. *Error trace normalization:* Ingests heterogeneous compiler, Gradle, ADB, and runtime diagnostics through `RuntimeTraceAnalyzer` (§53.7) to produce redacted, LLM-ready failure summaries.
 5. *Oscillation and thrashing prevention:* Consults `RepairOscillationDetector` (§58.1.1) to arrest cyclical patch regressions.
 
-`AndroidRepairIntelligenceService` holds no authority and creates no second authority. It is a read-only query facade; it does not directly mutate project source or bypass policy; all repair proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidRepairIntelligenceService` holds no authority and creates no second authority. It is a read-only query facade; it does not directly mutate project source or bypass policy; all repair proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 ---
 
@@ -2845,24 +2845,7 @@ The coordinator must be idempotent at every boundary. Replaying a scheduling or 
 
 `PreflightService` gathers deterministic host, provider, workspace, toolchain, device, dependency, requirements, and resource facts. `RiskAndFeasibilityEngine` converts those facts into a `PreflightReport`.
 
-```text
-PreflightReport
-├── report_id
-├── session_id
-├── technology_plan_hash
-├── environment_snapshot_id
-├── checks[]
-│   ├── area
-│   ├── status
-│   ├── severity
-│   ├── probability
-│   ├── blocker
-│   ├── evidence_ids
-│   ├── mitigation
-│   ├── fallback
-│   └── autonomous_repair_allowed
-└── overall_status
-```
+> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §1.83. Owner: TA §53.2.
 
 Routine environment repairs may be dispatched through authorized capabilities. The report must distinguish unavailable credentials, policy restrictions, required device absence, provider limitations, and repairable local deficiencies.
 
@@ -2916,7 +2899,7 @@ Responsibilities:
 - Exposes typed query endpoints for bi-directional test-to-code mapping, prioritized coverage gaps, untested CFG decision branches, semantic test intent, static assertion quality scoring, flakiness signatures, fixture dependency impact, mock boundary conformance, test pyramid balance, and redundant test elimination.
 - Routes each query to the respective deterministic module (`TestToCodeMappingEngine`, `CoverageGapLocator`, `UntestedBranchDetector`, `TestIntentExtractor`, `AssertionStrengthAnalyzer`, `FlakyTestSignatureDetector`, `FixtureDependencyTracer`, `MockAndStubBoundaryAnalyzer`, `TestPyramidBalanceAnalyzer`, `RedundantTestDetector`) and returns typed, read-only analytical records.
 - Operates 100% locally on the Windows host with zero token, monetary, or reasoning budgets (ADR-218; BS §72).
-- Operates as a read-only query facade that holds no authority and creates no second authority. Never mutates project code, executes unauthorized test runners, or overrides deterministic quality gates; all mutation proposals pass through `MutationBroker` and `ConstructionTransactionManager` (BS §43.2), and `ProvenanceRecorder` remains the sole promotion gate.
+- Operates as a read-only query facade that holds no authority and creates no second authority. Never mutates project code, executes unauthorized test runners, or overrides deterministic quality gates; all mutation proposals pass through `MutationBroker` and `ConstructionTransactionManager` (BS §43.2), and `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 ### 53.5.2 TestToCodeMappingEngine
 
@@ -3016,7 +2999,7 @@ Responsibilities:
 - Accepts typed dependency-intelligence queries (dependency health status, finding enumeration, version resolution status, substitution flag status, SBOM completeness, disposition record lookup) from kernel workers and registered IPC commands.
 - Routes each query to the authoritative component and returns a typed read-only result.
 - Never writes authoritative state; all dependency mutations pass through the `MutationBroker` and `ConstructionTransactionManager` as governed by BS §43.2.
-- Does not create a second authority; `ProvenanceRecorder` remains the sole promotion gate.
+- Does not create a second authority; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 ### 53.9 ProjectHandbookService and ReleaseReportService
 
@@ -3070,30 +3053,8 @@ The summarizer must produce concise, decision-relevant information: objective, c
 
 ### 55.2 ReasoningStreamEvent
 
-> **Schema projection:** Field block authoritative at SCHEMAS §2.97.1. This section carries event type vocabulary and runtime/producer constraints only. Owner: TA §55.2.
+> **Schema projection:** `ReasoningStreamEvent` is defined in `nirman-schemas.md` §2.97.1. Owner: TA §55.2. This section carries event type vocabulary and runtime/producer constraints only.
 
-```text
-ReasoningStreamEvent
-├── event_id
-├── sequence
-├── session_id
-├── task_id
-├── worker_id
-├── trace_id
-├── project_revision
-├── event_type
-├── status
-├── title
-├── summary
-├── rationale_summary
-├── uncertainty_summary
-├── action_category
-├── policy_reference_ids
-├── evidence_ids
-├── redaction_flags
-├── created_at
-└── supersedes_event_id
-```
 
 Allowed event types are `UNDERSTANDING`, `CONSTRAINT`, `PLAN`, `ALTERNATIVE`, `DECISION`, `ACTION`, `OBSERVATION`, `RECOVERY`, `EVIDENCE`, `NEXT_STEP`, `WAITING`, and `COMPLETION`. Runtime events remain distinct from reasoning events. A reasoning event can explain a proposed action, but only a validated runtime event can authorize or prove that action.
 
@@ -3367,20 +3328,7 @@ The first implementation may host the Rust control-plane modules in-process with
 
 ### 57.3 SupervisorConnection
 
-```text
-SupervisorConnection
-├── connection_id
-├── ui_instance_id
-├── supervisor_instance_id
-├── protocol_version
-├── installation_identity
-├── authenticated_user_scope
-├── project_scope
-├── last_event_sequence
-├── heartbeat_state
-├── supervisor_health
-└── reconnect_policy
-```
+> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §1.84. Owner: TA §57.3.
 
 The connection performs a protocol/version handshake, authenticates the UI instance, validates project scope, subscribes to durable events after a supplied sequence, reports supervisor health, and handles reconnect after UI crash, UI restart, supervisor restart, Windows reboot, and sleep/resume. A UI connection cannot impersonate another project, publish forged events, or invoke a command outside its capability scope.
 
@@ -3425,7 +3373,7 @@ Accept UI connections
 
 The supervisor must remain useful when the UI is closed. The UI reconnects to the existing authoritative state rather than recreating tasks from client memory.
 
-**Loop liveness scan (ADR-226).** On the worker-staleness schedule of §7.2, `SupervisorLifecycle` also reads the newest `LoopHeartbeat` (build spec §29.4; SCHEMAS §1.78) of every `RUNNING` task. A task whose newest heartbeat is older than the stall detection window is a hung loop, whatever its worker heartbeat says: the supervisor retires the lease through `WorkerRuntime`, records fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. `WorkerRuntime` applies the same retirement to a worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` for the configured consecutive count (§80.3 of the build spec), attaching the rejected proposals to the new lease. Neither rule counts tokens, requests, or elapsed goal time; both count the absence of a transition.
+**Loop liveness scan (ADR-226).** On the worker-staleness schedule of §7.2, `SupervisorLifecycle` also reads the newest `LoopHeartbeat` (build spec §29.4; SCHEMAS §1.78) of every `RUNNING` task. A task whose newest heartbeat is older than the stall detection window is a hung loop, whatever its worker heartbeat says: the supervisor retires the lease through `WorkerRuntime`, records fingerprint `LOOP_HUNG` with the last state entered, and forces `RECOVER` on a fresh lease. `WorkerRuntime` applies the same retirement to a worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` for the configured consecutive count (§80.3 of the build spec), attaching the failure fingerprint and the rejected proposals to the new lease. Neither rule counts tokens, requests, or elapsed goal time; both count the absence of a transition.
 
 ### 57.5 SQLite execution ledger
 
@@ -3547,7 +3495,7 @@ Control messages (`HEARTBEAT`, `CANCEL`, and lifecycle fencing messages) use `CO
 
 **Framed multiplexing and backpressure protocol.** To prevent large AST or proposal payloads from blocking critical lifecycle signals, `WorkerConnection` transmits all frames across an explicit channel envelope:
 - *Frame layout:* `[4-byte big-endian uint32 payload_length][1-byte uint8 channel_id][payload_bytes]`.
-- *Channel `0x00` (Control lane):* Carries `HEARTBEAT`, `CANCEL`, `CANCEL_ACK`, `PAUSE`, `RESUME`, `FENCE`, and `CLOSE`. Bounded input buffer with immediate unblocking.
+- *Channel `0x00` (Control lane):* Carries `HEARTBEAT`, `CANCEL`, `CANCEL_ACK`, `PAUSE`, `RESUME`, `FENCE`, and `CLOSE`. Bounded input buffer with immediate unblocking. This list is the published connection-control subset of lane `0x00`; the lane's canonical kind enum is `controlMessageKinds` (`nirman-schemas.md` §2.90).
 - *Channel `0x01` (Bulk Data lane):* Carries `REASONING_ARTIFACT`, `MODEL_CALL`, `PROPOSAL`, and `DELIBERATION_RECORD`.
 - *Framing bounds:* Maximum frame length is strictly 16 MB (`MAX_FRAME_SIZE = 16 * 1024 * 1024`). Frames exceeding this limit are rejected with an immediate pipe protocol violation error.
 - *High-water mark backpressure:* The supervisor maintains a 64 MB high-water mark buffer per connection. If bulk data queues exceed 64 MB, the supervisor pauses emitting `CYCLE_INPUT` and signals worker backpressure until the queue drains below the 16 MB low-water mark.
@@ -3603,7 +3551,7 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `ConversationContinuationResolver` | service | `nirman-control-plane` | Reconstruction of Continue state from durable conversation records (§86.2, §86.5) | `conversations`, `conversation_messages`, `conversation_rebase_records` | §86.2 |
 | `GoalInterpreter` | module | `nirman-kernel` | Turns the user request and the `AndroidConstructionContract` into the `GoalContract` (§16.1) and its acceptance conditions | proposals only; the contract is committed as a `LifecycleAuthority` event | §58.1 |
 | `TaskGraphCompiler` | module | `nirman-kernel` | Compiles the `GoalContract` into the `TaskGraph` (build spec §33.1; SCHEMAS §1.58) inside the admitted capability set (build spec §79.4) | proposals only; graph revisions are `LifecycleAuthority` events | §58.1, build spec §79.4 |
-| `ProgressEvaluator` | module | `nirman-kernel` | The EVALUATE_PROGRESS stage (§58.2): classifies a cycle as CONTINUE, VALIDATE, RECOVER, DELEGATE, REPLAN, or COMPLETE; not the completion evaluator of build spec §5.7.7 | `AgentLoopRecord.progress_status` through `AgentLoopReducer` | §58.1, §58.2 |
+| `ProgressEvaluator` | module | `nirman-kernel` | The EVALUATE_PROGRESS stage (§58.2): classifies a cycle as CONTINUE, RECOVER, DELEGATE, REPLAN, or COMPLETE; not the completion evaluator of build spec §5.7.7 | `AgentLoopRecord.progress_status` through `AgentLoopReducer` | §58.1, §58.2 |
 | `PlanCompiler` | module | `nirman-kernel` | With `Replanner`, plan revisions when evidence invalidates the plan (§58.12; build spec §52.13) | plan revision records (`planRevision`, `supersedesPlan`) | §58.12 |
 | `ContradictionDetector` | module | `nirman-kernel` | A controlled decision revision when `UncertaintyRegistry` facts contradict (§58.12) | `DecisionNode` proposals only | §58.12 |
 | `SwarmAdmissionController` | module | `nirman-control-plane` | Swarm admission evaluation over physical resource, queue, child-concurrency, emulator-slot, provider-concurrency, and recovery/validation-reserve signals (§58.5.1); a scheduler component, never an authority | none | §58.5.1 |
@@ -3629,10 +3577,10 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `AndroidCodeIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over `AndroidSymbolGraph`, `SemanticCodeFingerprintEngine`, `EpisodicRepairPatternCatalog`, and the project `ImpactGraph`; routes typed code-intelligence queries from kernel workers and IPC command handlers to the authoritative component without creating a second authority (§47.5.1; BS §43.1) | none — read-only; proposals routed through `MutationBroker` | §47.5.1 |
 | `AndroidArchitectureReasoningService` | module | `nirman-android` | Static what-if architectural impact analysis via bounded `AndroidSymbolGraph` and `ImpactGraph` traversal before any `ConstructionTransaction` opens; produces advisory `ArchitecturalImpactProjection` only (§47.5.2; BS §43.3) | none — read-only; no authority, no AI-usage budget | §47.5.2 |
 | `AndroidSecurityIntelligenceService` | service | `nirman-android` | Named service grouping `AppSecurityScanner`, `SecurityRiskScorer`, and `SecurityAuditGenerator`; coordinates exploit-pattern detection, severity-weighted risk scoring, and pre-promotion security audit report generation for the generated Android application (§70.1; §70.3; BS §58.2) | risk score and audit report records via `FindingDispositionStore` | §70.3 |
-| `SecurityRiskScorer` | module | `nirman-android` | Severity-weighted aggregation of `AppSecurityScanner` findings into a structured `SecurityRiskScore` bound to the artifact revision; read-only projection — `ProvenanceRecorder` remains the sole promotion gate (§70.1; §70.3) | `SecurityRiskScore` record in `FindingDispositionStore` | §70.3 |
+| `SecurityRiskScorer` | module | `nirman-android` | Severity-weighted aggregation of `AppSecurityScanner` findings into a structured `SecurityRiskScore` bound to the artifact revision; read-only projection — `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion (§70.1; §70.3) | `SecurityRiskScore` record in `FindingDispositionStore` | §70.3 |
 | `SecurityAuditGenerator` | module | `nirman-android` | Composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact record attached before promotion; read-only projection — promotion authority remains with `ProvenanceRecorder` (§70.1; §70.3) | security audit report artifact record | §70.3 |
 | `FindingDispositionStore` | module | `nirman-android` | Records security and dependency findings as blocking or accepted with reason; ensures findings are never silently dropped before artifact promotion (§70.1; BS §58.5) | security finding disposition records | §70.1 |
-| `DependencyIntelligenceService` | service | `nirman-android` | Read-only coordination facade over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore`; routes typed dependency-intelligence queries from kernel workers and IPC command handlers to authoritative components without creating a second authority; `ProvenanceRecorder` remains the sole promotion gate (§53.8.1; BS §58.3) | none — read-only; proposals routed through `MutationBroker` | §53.8.1 |
+| `DependencyIntelligenceService` | service | `nirman-android` | Read-only coordination facade over `DependencyHealthService`, `DependencyResolver`, `SubstitutionDetector`, `SbomBuilder`, and `FindingDispositionStore`; routes typed dependency-intelligence queries from kernel workers and IPC command handlers to authoritative components without creating a second authority; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion (§53.8.1; BS §58.3) | none — read-only; proposals routed through `MutationBroker` | §53.8.1 |
 | `AndroidTestIntelligenceService` | service | `nirman-android` | Read-only aggregate query facade over test comprehension engines; routes on-demand test-to-code mapping, coverage gap analysis, untested branch detection, test intent extraction, assertion strength analysis, flakiness detection, fixture tracing, mock boundary validation, pyramid balance, and redundant test elimination without creating a second authority (BS §47.5) | none — read-only; proposals routed through `MutationBroker` | §53.5.1 |
 | `TestToCodeMappingEngine` | module | `nirman-android` | Bi-directional symbol-to-test and test-to-symbol mapping across unit, instrumentation, and scenario tests (§53.5.2) | none — analytical queries | §53.5.2 |
 | `CoverageGapLocator` | module | `nirman-android` | Prioritized coverage gap locator synthesizing AST source coverage, state-space transitions, and requirement gaps (§53.5.3) | none — analytical queries | §53.5.3 |
@@ -3832,7 +3780,6 @@ UPDATE_STATE
   ↓
 EVALUATE_PROGRESS
   ├── CONTINUE
-  ├── VALIDATE
   ├── RECOVER
   ├── DELEGATE
   ├── REPLAN
@@ -4001,7 +3948,7 @@ No agent waits on an agent. Every cross-worker wait becomes a durable `AwaitCond
 
 ### 58.11.2 Reserved control lane
 
-`CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross a reserved-capacity control lane (`nirman-schemas.md` §2.90 `reservedControlLane`), not merely a higher-priority queue (ADR-246). Bulk traffic can never occupy the lane's capacity, so control delivery is bounded even under payload saturation. The lane changes delivery guarantees only; it grants no authority.
+`CANCEL`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, and `RECOVER` cross a reserved-capacity control lane (`nirman-schemas.md` §2.90 `reservedControlLane`), not merely a higher-priority queue (ADR-246). Bulk traffic can never occupy the lane's capacity, so control delivery is bounded even under payload saturation. The lane changes delivery guarantees only; it grants no authority. These six kinds are the published preemption subset of lane `0x00`; `HEARTBEAT` crosses the lane as well — it is part of `controlMessageKinds` (`nirman-schemas.md` §2.90) and of the connection-control subset (technical architecture §57.11) — but it is not part of this preemption subset.
 
 - `SupervisorPreemptionProtocol` — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes.
 
@@ -4575,6 +4522,8 @@ Implements build spec §56, which is canonical for the required scenario classes
 
 ### 62.1 Components
 
+> **Schema projection:** `ScenarioValidationMatrix` is defined in `nirman-schemas.md` §2.103.1. Owner: TA §62.1.
+
 | Component | Responsibility |
 |---|---|
 | ScenarioRegistry | Stores scenario definitions and requirement links |
@@ -5108,7 +5057,7 @@ Dependency blocking follows build spec §58.3: a verdict other than `verified` b
 
 `AppSecurityScanner` must run before packaging and must check the categories enumerated in build spec §58.2, operating on the generated sources and merged manifest rather than on model claims about them. Each finding records the file, location, category, and severity. In addition to the §58.2 enumerated categories, `AppSecurityScanner` applies exploit-pattern matching against a deterministic catalog of known Android exploit patterns (intent-redirection chains, fragment injection, unsafe broadcast receivers, exported provider access without read/write permission guards, and Parcel deserialization gadgets), producing a typed `ExploitPatternFinding` per match.
 
-After `AppSecurityScanner` completes, `SecurityRiskScorer` aggregates findings per build spec §58.2 — by severity, with the category breakdown as an implementation elaboration — into a structured `SecurityRiskScore` (critical count, high count, medium count, low count, overall risk level, and blocking status) bound to the artifact revision. `SecurityRiskScore` is a read-only projection; `ProvenanceRecorder` remains the sole promotion gate.
+After `AppSecurityScanner` completes, `SecurityRiskScorer` aggregates findings per build spec §58.2 — by severity, with the category breakdown as an implementation elaboration — into a structured `SecurityRiskScore` (critical count, high count, medium count, low count, overall risk level, and blocking status) bound to the artifact revision. `SecurityRiskScore` is a read-only projection; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 `SecurityAuditGenerator` then composes `FindingDispositionStore` records, the `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact that is attached to the artifact record before promotion. The security audit report is a read-only projection artifact; promotion authority remains with `ProvenanceRecorder`. Together, `AppSecurityScanner`, `SecurityRiskScorer`, and `SecurityAuditGenerator` constitute the `AndroidSecurityIntelligenceService` referenced by BS §58.2.
 
@@ -5140,7 +5089,7 @@ The runtime is correct only when a hardcoded secret blocks packaging; when an un
 3. *Privacy policy and data safety synthesis:* Invokes `PrivacyPolicyGenerator` (§70.7.4) to generate project-specific Privacy Policy documentation and Google Play Data Safety declaration drafts based on concrete codebase evidence.
 4. *Open-source notice composition:* Invokes `OpenSourceNoticeComposer` (§70.7.5) to assemble third-party library license notices from verified SBOM metadata into an in-app notice file and display surface.
 
-`AndroidPrivacyIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all privacy and documentation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidPrivacyIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all privacy and documentation proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 70.7.2 PiiFieldClassifier
 
@@ -5550,7 +5499,7 @@ Implements the configured-threshold rule of build spec §68.13: the threshold is
 Any coordinator, worker, skill, deliberation, or review prompt used for Android
 construction MUST conform to the IntentSynthesisPromptContract. The concrete
 prompt definitions remain owned by their respective prompt-class owners; this
-section defines the common contract boundary and does not imply that prompt classes are fully specified here; build spec §80.8 explicitly records the coordinator, worker, skill, deliberation, and review classes as not templated and owner-pending.
+section defines the common contract boundary and does not imply that prompt classes are fully specified here; build spec §80.8 explicitly records the worker, skill, deliberation, and review classes as not templated and owner-pending, and the coordinator class as derived through build spec §80.8.1.
 
 The user's conversation message is not itself the provider/model prompt. The runtime normalizes it into requirements and constructs an internal model instruction from current state, context, evidence, policy constraints, and the role contract. No user-facing prompt-template entity is created. Internal model instructions are versioned and auditable by identity and hash; the user request is preserved as task provenance and is never the assembled provider instruction.
 
@@ -5658,6 +5607,22 @@ VALIDATING
 ```
 
 `RUNNING_OBSERVED` requires a supervised process or device observation associated with the declared project revision. `PROMOTED_CURRENT` requires the canonical `PreviewPromotionGate` defined in §73.5.1 to pass. A model claim or a successful build alone cannot produce either state.
+
+The stages of this machine project onto the durable preview authority status (`previewAuthorityState`, `nirman-schemas.md` §1.35; build spec §69.4) as follows:
+
+| Pipeline stage (technical architecture §73.4) | `previewAuthorityState` |
+|---|---|
+| `NOT_REQUESTED` | — (no preview request exists; no authority state) |
+| `REQUEST_AUTHORIZED` | `REQUESTED` |
+| `BUILDING`, `BUILD_OBSERVED` | `BUILDING` |
+| `INSTALLING`, `INSTALL_OBSERVED` | `INSTALLING` |
+| `LAUNCHING` | `LAUNCHING` |
+| `RUNNING_OBSERVED`, `INTERACTION_OBSERVED`, `VALIDATING` | `OBSERVING` |
+| `PROMOTED_CURRENT` | `CONNECTED` |
+| `FAILED_CANDIDATE` | `BLOCKED` |
+| `STALE` | `STALE` |
+| `INVALIDATED` | `INVALIDATED` |
+| `RECOVERING` | `LOST` |
 
 ### 73.5 Truth labels and evidence classes
 
@@ -6000,7 +5965,7 @@ All Android intelligence services and analytical modules are **typed read-only p
 3. *Localization and string externalization:* Invokes `StringExternalizationEngine` (§73.16.4) to scan for hardcoded string literals, manage `strings.xml` and `<plurals>`, verify RTL mirroring (`start`/`end`), and check localized date/number formatters.
 4. *Dark pattern detection:* Invokes `DarkPatternDetector` (§73.16.5) to detect manipulative UX patterns, pre-selected consent boxes, and disguised cancellation actions.
 
-`AndroidDesignIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all UI/UX proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidDesignIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all UI/UX proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 73.16.2 VisualHierarchyAnalyzer
 
@@ -6056,7 +6021,7 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 3. *Nirman ingestion prohibition:* Nirman itself NEVER ingests published-app telemetry, production user analytics, or post-release crash reports.
 4. *Release artifact hygiene:* Validation-only instrumentation and debug diagnostics (including `InAppDiagnosticsScaffolder` dashboards and non-production loggers) MUST NOT silently enter release artifacts. ProGuard/R8 rules and build variant source isolation strip debug instrumentation from release APK or optional AAB packages, verified by a dedicated release stripping fixture in milestone M117.
 
-`AndroidAppObservabilityService` creates no second authority. It does not directly mutate project source or bypass policy; all observability scaffolding proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidAppObservabilityService` creates no second authority. It does not directly mutate project source or bypass policy; all observability scaffolding proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 73.17.2 StructuredLoggingScaffolder
 
@@ -6127,7 +6092,7 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 *Integration with established platform components:*
 `AndroidPlatformTargetService` directly integrates with and builds upon Nirman's established canonical platform analyzers: API level compliance and desugaring are enforced via `AndroidApiLevelValidator` (§47.4); Jetpack lifecycle flows are verified by `AndroidDataFlowAnalyzer` (§47.4) and the closed-world decision matrix (§73.2); background work execution is governed by `OfflineSyncProtocolPlanner` (§47.4) and WorkManager policies (§73.2); and multi-device matrix coverage is validated by `AndroidEmulatorScenarioCoordinator` (§65) against `DeviceMatrixEntry` profiles (BS §59.2).
 
-`AndroidPlatformTargetService` creates no second authority. It does not directly mutate project source or bypass policy; all platform target proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidPlatformTargetService` creates no second authority. It does not directly mutate project source or bypass policy; all platform target proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 73.18.2 ManifestPermissionDeriver
 
@@ -6360,7 +6325,7 @@ Required critical orchestration subgraphs additionally include:
 3. *Third-party vendor integration verification:* Invokes `ThirdPartyIntegrationAnalyzer` (§74.7.3) to validate SDK wrapper boundaries, circuit breakers, exponential backoff, and webhook HMAC signature handling.
 4. *Authentication and identity hardening:* Invokes `AuthFlowSecurityHardener` (§74.7.4) to audit OAuth 2.0 PKCE implementations, token refresh mutexes, biometric re-auth, Keystore encryption, and navigation route guards.
 
-`AndroidIntegrationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all integration proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the sole promotion gate.
+`AndroidIntegrationIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all integration proposals route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
 #### 74.7.2 ApiContractDriftDetector
 

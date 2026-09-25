@@ -240,6 +240,8 @@ User mental model: one Nirman application, not two applications.
 
 **Trade-off:** Provider-specific features cannot always be represented perfectly. Unsupported capabilities must be reported explicitly.
 
+**Supersession note:** ADR-207 is superseded by ADR-252; provider-backed model paths remain cloud-only, and a bounded local auxiliary decision engine is admitted outside them.
+
 ---
 
 ## ADR-020: Defer publishing and release signing behind approval
@@ -444,6 +446,8 @@ The following decisions remain intentionally open:
 **Reasoning:** Users need to configure custom base URLs and model IDs across supported cloud-hosted providers without changing the agent orchestrator for each provider. ADR-207 excludes local, offline, on-device, and self-hosted model runtimes from product scope.
 
 **Trade-off:** Some providers expose capabilities that cannot be mapped perfectly. The settings page must show detected capabilities and unsupported features explicitly.
+
+**Supersession note:** ADR-207 is superseded by ADR-252; local, offline, on-device, and self-hosted model runtimes remain excluded from the provider path, and a bounded local auxiliary decision engine is admitted outside it.
 
 ---
 
@@ -2851,6 +2855,8 @@ The `RetrievalCompletenessChecker` verifies context confidence (`coverage`, `fre
 
 **Reversal trigger:** A verifier or agent audit shows that the projection lines and owner lines cannot keep the schema location and the owning section in agreement (a merged block is edited without its owner section being updated, or the parity that §67.11 required between the Build Spec and Technical Architecture copies is lost with no rule catching it), or an accepted ADR requires a document that cannot be placed inside the ten-file set without a second authority for the same concept.
 
+**Fence taxonomy note:** fences in this document set are field-list, enumeration, vocabulary, diagram, or flow fences; a field block is defined by the field-line grammar, so blocks under three-level headings are field blocks inside the block set — the owner, block, and projection scans apply to them — while tree fences remain diagram fences, and enumeration, vocabulary, diagram, and flow fences do not move (`nirman-schemas.md` §3).
+
 ---
 
 ## ADR-221: The Android toolchain and emulator are provisioned by Nirman on first launch, never bundled and never built by Nirman
@@ -2946,7 +2952,7 @@ Under the one mode, the control loop has no self-inflicted stopping state. Five 
 2. **Liveness containment is mandatory.** Every provider request, tool invocation, build step, ADB command, and emulator operation runs under an operation-scoped liveness timeout; a hung operation is contained, fingerprinted, and handed to the Android runtime sub-ladder or the recovery ladder. There is still no goal deadline (ADR-218 unchanged).
 3. **The loop watches itself.** Every kernel transition stamps a `LoopHeartbeat` in the ledger; `SupervisorLifecycle` treats a `RUNNING` task with no transition inside the stall detection window as a hung loop and forces `RECOVER` with a fresh worker lease, exactly as it treats a stale worker.
 4. **Blocked requirements never idle the goal.** A requirement that is blocked at any recovery level records its `BLOCKED` decision and the goal continues every requirement that does not depend on it; a requirement that reaches recovery level 8 or 9 records its `USER_REQUIRED` decision and the goal continues every requirement that does not depend on it; the goal is `PARTIALLY_BLOCKED` only when nothing independent remains, and that state is reported truthfully, never as completion.
-5. **Recycled workers, not spinning workers.** A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` three consecutive times, or whose lease reaches the stale threshold without a transition, is retired by `WorkerRuntime` and its task re-leased with a fresh context and the failure fingerprint attached.
+5. **Recycled workers, not spinning workers.** A worker whose proposals are rejected `EVIDENCE_NOT_ACQUIRED` three consecutive times, or whose lease reaches the stale threshold without a transition, is retired by `WorkerRuntime` and its task re-leased with a fresh context, the failure fingerprint, and the rejected proposals attached.
 
 **Rationale:** The mode table existed to make authority visible, but the authority hierarchy (technical architecture §21), the three-outcome policy engine, and the hard gates already make it visible per action; a per-task mode switch was a second, coarser authority surface that let a model or a user "narrow" the loop into an attended one. Every pause-for-human state in the loop was a hang with a friendly name: the ladder (§28.2), the answer-or-proceed rule (ADR-225), and the sub-ladder already give the runtime a next action in every situation the guard could detect, so a durable pause added nothing but idleness.
 
@@ -3120,7 +3126,7 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 - Previously unexplored branches (deep links, notifications)
 - Test generation from discovered states
 
-**3. Causal surface identification (new service §62.4)**
+**3. Causal surface identification (new service §62.7)**
 - Requirement → UI → symbols → dependencies → scenario → evidence
 - On failure: identify smallest surface to inspect/repair
 - Replace broad "fix the crash" with "repair the lifecycle dependency"
@@ -3140,7 +3146,7 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 - RequirementCoverageReport becomes completion gate
 - Unproven requirements → clarification or acceptance risk
 
-**7. Architecture fitness evaluation (new service §62.5)**
+**7. Architecture fitness evaluation (new service §62.8)**
 - Post-generation: complexity, dependencies, lifecycle coupling, testability
 - Propose technology-plan revision, not endless patching
 - Continuous feedback loop to requirement synthesis
@@ -3149,7 +3155,7 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 
 **Locks:** `CONTRACT.RUNTIME.E2E`, `CONTRACT.RUNTIME.VERIFICATION`, `CONTRACT.RUNTIME.MEMORY`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
 
-**Locked surfaces:** TA §62.2/62.3/62.4/62.5; TA §30.3; BS §56.6; M9/M12/M58 milestones.
+**Locked surfaces:** TA §62.2/62.3/62.7/62.8; TA §30.3; BS §56.6; M9/M12/M58 milestones.
 
 ---
 
@@ -3199,7 +3205,7 @@ User Intent → Requirements → Architecture/Technology → Code/Symbols → Ru
 
 **7. Closure**
 
-ADR-236 declares one canonical causal pipeline. The ReasoningStreamEvent schema at SCHEMAS §2.97.1 is the canonical schema identity for the AI reasoning stream within that pipeline. SCHEMAS §2.97.1 is the sole authoritative field list for ReasoningStreamEvent; TA §55.2 is a projection of SCHEMAS §2.97.1. This registry entry and ADR-236 ensure canonical discovery and causal binding. The schema fields listed above are projected from SCHEMAS §2.97.1 into the registry verbatim; no schema field is invented here.
+ADR-232 declares the canonical causal wiring graph. The ReasoningStreamEvent schema at SCHEMAS §2.97.1 is the canonical schema identity for the AI reasoning stream (ADR-096; ADR-241) within that pipeline. SCHEMAS §2.97.1 is the sole authoritative field list for ReasoningStreamEvent; TA §55.2 is a projection of SCHEMAS §2.97.1. This registry entry and ADR-232 ensure canonical discovery and causal binding. The schema fields listed above are projected from SCHEMAS §2.97.1 into the registry verbatim; no schema field is invented here.
 
 **8. AndroidSemanticState schema (SCHEMAS §2.102)**
 - Screen → component → semantic role → current UI state → available actions
@@ -3324,11 +3330,11 @@ Performance degradation MUST be classified separately from functional correctnes
 
 **Rationale:** The original E2E contract (§56) established stateful verification but allowed completion on a single happy-path scenario. This creates false-positive completion when requirements have state-transition, failure, persistence, permission, lifecycle, or recovery dimensions. The strengthened contract ensures that verification actually tests resilience, regression safety, and evidence integrity.
 
-**Consequences:** Build spec §56.x, §57.6, §80.6.9; technical architecture §62.1, §64.6; schemas §1.20, §2.103, §2.103.1. M80 fixture already injects dependency/provider/stale-worker/emulator/requirement/validation failures, so this extends rather than duplicates.
+**Consequences:** Build spec §56.7, §57.6, §80.6.9; technical architecture §62.1, §64.6; schemas §1.20, §2.103, §2.103.1. M80 fixture already injects dependency/provider/stale-worker/emulator/requirement/validation failures, so this extends rather than duplicates.
 
 **Reversal trigger:** A product decision to accept completion from single happy-path scenarios, or a demonstrated inability to execute the strengthened verification without unacceptable runtime overhead (requiring a superseding ADR that proposes an alternative strength-preserving strategy).
 
-**Locked surfaces:** BS §56.2, §56.x, §57.6, §80.6.9; TA §62.1, §64.6; SCHEMAS §1.20, §2.103, §2.103.1.
+**Locked surfaces:** BS §56.2, §56.7, §57.6, §80.6.9; TA §62.1, §64.6; SCHEMAS §1.20, §2.103, §2.103.1.
 
 ---
 
@@ -3582,7 +3588,7 @@ through a superseding ADR.
 
 **Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.REASONING`
 
-**Amends:** ADR-207
+**Supersedes:** ADR-207
 
 **Status:** Accepted
 

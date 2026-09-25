@@ -322,6 +322,8 @@
 | `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
 | `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
 | `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
+| `PreflightReport` | §1.83 | TA §53.2 | CONTRACT.RUNTIME.EVIDENCE | BS §47.2, TA §53.2 |
+| `SupervisorConnection` | §1.84 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |

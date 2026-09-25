@@ -2537,6 +2537,41 @@ def check_semantic_documentation(docs, R, D, root="."):
             if _f not in _st_vals:
                 D.add("semantic documentation", "cycle projection",
                       f"`AgentLoopRecord.state` must carry TA §71.4 state {_f} (ADR-230)")
+    # ADR-230 Candidate 2: VALIDATE is deleted everywhere as a cycle branch —
+    # never renamed. The TA §58.2 branch list, the §57.12 ProgressEvaluator
+    # classification, the AgentLoopRecord.progress_status type, and milestone
+    # M65 must not reintroduce it.
+    _t582 = _section_text(ta, "58.2") or ""
+    _br = _t582.split("EVALUATE_PROGRESS", 1)[-1].split("```", 1)[0]
+    _branches = re.findall(r"[├└]──\s*([A-Z][A-Z_]+)", _br)
+    if "VALIDATE" in _branches or sorted(set(_branches)) != ["COMPLETE", "CONTINUE", "DELEGATE", "RECOVER", "REPLAN"]:
+        D.add("semantic documentation", "cycle projection",
+              f"TA §58.2 EVALUATE_PROGRESS branches must be CONTINUE, RECOVER, DELEGATE, REPLAN, "
+              f"COMPLETE with no VALIDATE branch (ADR-230); found {_branches}")
+    _pe_row = re.search(r"^\| `ProgressEvaluator` \|.*$", ta, re.M)
+    if _pe_row is None:
+        D.add("semantic documentation", "cycle projection",
+              "TA §57.12 lost the `ProgressEvaluator` component row")
+    else:
+        if re.search(r"\bVALIDATE\b", _pe_row.group(0)):
+            D.add("semantic documentation", "cycle projection",
+                  "the §57.12 `ProgressEvaluator` row reintroduces VALIDATE; the branch is deleted, never renamed (ADR-230)")
+        if "classifies a cycle as CONTINUE, RECOVER, DELEGATE, REPLAN, or COMPLETE" not in _pe_row.group(0):
+            D.add("semantic documentation", "cycle projection",
+                  "the §57.12 `ProgressEvaluator` row must classify a cycle as CONTINUE, RECOVER, DELEGATE, REPLAN, or COMPLETE")
+    if m_alr:
+        _ps = re.search(r"- progress_status: ([^\n]+)", m_alr.group(1))
+        _ps_vals = re.findall(r"[A-Z][A-Z_]{2,}", _ps.group(1)) if _ps else []
+        if sorted(_ps_vals) != ["COMPLETE", "CONTINUE", "DELEGATE", "RECOVER", "REPLAN"]:
+            D.add("semantic documentation", "cycle projection",
+                  f"`AgentLoopRecord.progress_status` must be typed CONTINUE | RECOVER | REPLAN | "
+                  f"DELEGATE | COMPLETE (ADR-230; no VALIDATE); found {_ps_vals}")
+    _m65 = re.search(r"^\| M65\s+\|.*$", dev, re.M)
+    if _m65 is None or re.search(r"validate", _m65.group(0), re.I) \
+            or "continue/recover/delegate/replan/complete" not in _m65.group(0):
+        D.add("semantic documentation", "cycle projection",
+              "milestone M65 must list the cycle branches as continue/recover/delegate/replan/complete "
+              "with no validate branch (ADR-230)")
     m_225 = re.search(r"## ADR-225:.*?(?=\n## ADR-|\Z)", dec, re.S)
     m_225 = m_225.group(0) if m_225 else ""
     for needle, why in (("**Locks:** `CONTRACT.RUNTIME.E2E`", "lock CONTRACT.RUNTIME.E2E"),
@@ -2674,6 +2709,31 @@ def check_semantic_documentation(docs, R, D, root="."):
             else:
                 i += 1
         return blocks
+
+    def _operation_blocks(text):
+        """Explicit `<Name> operations` declarations. Operations are a separate
+        namespace from fields: only the canonical declaration header registers an
+        operation (a ```text fence whose first line is `<Name> operations`, or the
+        same line as an in-block sub-heading); method-looking prose never does."""
+        ops = {}
+        lines = text.split("\n")
+        i = 0
+        while i < len(lines):
+            m = re.match(r"^([A-Z][A-Za-z0-9]+) operations\s*$", lines[i])
+            if m:
+                name = m.group(1)
+                j = i + 1
+                while j < len(lines) and (lines[j].startswith("- ")
+                                          or (lines[j][:1] in (" ", "\t") and lines[j].strip())):
+                    op = re.match(r"^- ([A-Za-z][A-Za-z0-9]*)\s*\(", lines[j])
+                    if op:
+                        ops.setdefault(name, set()).add(op.group(1))
+                    j += 1
+                i = j
+            else:
+                i += 1
+        return ops
+
     bs_blocks, ta_blocks = _field_blocks(fbs), _field_blocks(fta)
     reg_match = re.search(r"```text\nCanonicalSchemaRegistry\n(.*?)```", fta, re.S)
     registry_names = set(reg_match.group(1).split()) if reg_match else set()
@@ -2926,6 +2986,34 @@ def check_semantic_documentation(docs, R, D, root="."):
     if "### 71.2 Event-to-preview field ownership" not in bs:
         D.add("semantic documentation", "preview event ownership",
               "preview event-to-field ownership table is missing")
+    # §71.1 scope wording and the §71.2 table must agree with the SCHEMAS
+    # §1.37 eventType enum: the frame-transport events are limited to
+    # stream-state changes, OBSERVATION_CAPTURED is reserved for evidence
+    # capture, and every declared event type has exactly one table row (never
+    # a three-member runtime union).
+    m_711 = _section_text(bs, "71.1") or ""
+    if ("`STREAM_RECONNECTED`, `STREAM_GAP`) are limited to frame-transport stream-state changes, "
+            "with `OBSERVATION_CAPTURED` reserved for evidence capture" ) not in m_711:
+        D.add("semantic documentation", "preview event ownership",
+              "BS §71.1 must scope the frame-transport events to stream-state changes and reserve "
+              "OBSERVATION_CAPTURED for evidence capture; the event set is never a three-member union")
+    _t712 = bs.split("### 71.2 Event-to-preview field ownership", 1)[-1].split("### 71.3", 1)[0]
+    _evt_table = set(re.findall(r"^\| `([A-Z][A-Z_]+)` \|", _t712, re.M))
+    _m_137evt = re.search(r"```text\nPreviewSyncEvent\n(.*?)```", sch, re.S)
+    _evt_enum = set()
+    if _m_137evt:
+        _ev = re.search(r"- eventType: (.*?)(?=\n- |\n```)", _m_137evt.group(1), re.S)
+        _evt_enum = set(re.findall(r"[A-Z][A-Z_]{2,}", _ev.group(1))) if _ev else set()
+    if not _evt_table or not _evt_enum:
+        D.add("semantic documentation", "preview event ownership",
+              "the §71.2 table or the PreviewSyncEvent eventType enum could not be parsed")
+    else:
+        for _e in sorted(_evt_enum - _evt_table):
+            D.add("semantic documentation", "preview event ownership",
+                  f"eventType {_e} is declared in nirman-schemas.md §1.37 but §71.2 registers no row for it")
+        for _e in sorted(_evt_table - _evt_enum):
+            D.add("semantic documentation", "preview event ownership",
+                  f"§71.2 registers {_e} but the PreviewSyncEvent eventType enum does not carry it")
     if "### 71.3 Ordering, duplicate, stale, and reconnect rules" not in bs:
         D.add("semantic documentation", "preview replay rules",
               "preview duplicate, ordering, stale, and reconnect rules are missing")
@@ -3292,10 +3380,29 @@ def check_semantic_documentation(docs, R, D, root="."):
     for text in (fbs, fta):
         for name, occ in _field_blocks(text).items():
             ref_blocks.setdefault(name, set()).update(occ[0][1])
+    # Operations are a separate namespace from fields (explicit `<Name>
+    # operations` declarations only), so a dotted `Schema.member` reference may
+    # name a declared operation as well as a declared field.
+    op_blocks = {}
+    for text in (fbs, fta, ta, bs):
+        for name, ops in _operation_blocks(text).items():
+            op_blocks.setdefault(name, set()).update(ops)
+    # ADR-242 (amended by ADR-251 clause 7): `Project.currentRevision` is a
+    # derived logical storage-authority projection, not a persisted member. The
+    # allowance is derived from that canonical declaration — never hardcoded —
+    # so if the declaration is removed or reworded the references are defects.
+    derived_members = set()
+    for m in re.finditer(r"`([A-Z][A-Za-z0-9]*)\.([a-z][A-Za-z0-9]*)`\s+remains\s+a\s+logical\s+"
+                         r"storage-authority\s+projection,\s+not\s+a\s+persisted", dec):
+        derived_members.add((m.group(1), m.group(2)))
     seen_refs = set()
     for label, text in (("build spec", bs), ("architecture", ta), ("development plan", dev), ("schema document", sch)):
         for name, field in re.findall(r"`([A-Z][A-Za-z0-9]+)\.([a-z][A-Za-z0-9]*)`", strip_fences(text)):
-            if name in registered and name in ref_blocks and field not in ref_blocks[name] and (name, field) not in seen_refs:
+            if (name in registered and name in ref_blocks
+                    and field not in ref_blocks[name]
+                    and field not in op_blocks.get(name, set())
+                    and (name, field) not in derived_members
+                    and (name, field) not in seen_refs):
                 seen_refs.add((name, field))
                 D.add("semantic documentation", "schema field reference",
                       f"{label} refers to `{name}.{field}` but the {name} block has no field {field}")
@@ -5198,7 +5305,7 @@ def check_document_topology(docs, D, root):
                       f"has a fence in {elsewhere}; after ADR-220 every fenced schema lives in nirman-schemas.md")
             elif homes.count(DOCS["schemas"]) > 1:
                 D.add("structure", f"schema {name}", "has more than one fence in nirman-schemas.md")
-        owner_re = re.compile(r"^### (\d+\.\d+) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\* (BS|TA) §(\d+(?:\.\d+)*)", re.M)
+        owner_re = re.compile(r"^### (\d+(?:\.\d+)*) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\* (BS|TA) §(\d+(?:\.\d+)*)", re.M)
         owners = {m.group(2): (m.group(1), m.group(3), m.group(4)) for m in owner_re.finditer(schemas)}
         # (d) A schema block is a field list and nothing else. nirman-schemas.md
         # has no authority (ADR-220), and the authority-marker scan above strips
@@ -5210,7 +5317,7 @@ def check_document_topology(docs, D, root):
         # `<Adapter> operations` sub-heading. A sentence, a backtick-led
         # bullet, or any other text is a defect: prose belongs in the owner
         # section next to the projection line.
-        block_re = re.compile(r"^### (\d+\.\d+) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\*[^\n]*\n\n```text\n(.*?)\n```", re.M | re.S)
+        block_re = re.compile(r"^### (\d+(?:\.\d+)*) ([A-Z][A-Za-z0-9]+)\s*\n\n\*\*Owner:\*\*[^\n]*\n\n```text\n(.*?)\n```", re.M | re.S)
         line_ok = re.compile(r"^(?:- [A-Za-z_].*|\s+\S.*|[A-Z][A-Za-z0-9]+ operations)$")
         for m in block_re.finditer(schemas):
             ssec, name, body = m.groups()
@@ -5228,7 +5335,7 @@ def check_document_topology(docs, D, root):
                           "a schema block is a field list only — prose and requirement statements belong in the owner section (ADR-220)")
                     break
         proj_re = re.compile(r"^> \*\*Schema projection:\*\* `([A-Z][A-Za-z0-9]+)` is defined in `nirman-schemas\.md` "
-                             r"§(\d+\.\d+)\. Owner: (BS|TA) §(\d+(?:\.\d+)*)\.", re.M)
+                             r"§(\d+(?:\.\d+)*)\. Owner: (BS|TA) §(\d+(?:\.\d+)*)\.", re.M)
         for key, tag in (("bs", "BS"), ("ta", "TA")):
             text = docs[key]
             for m in proj_re.finditer(text):
