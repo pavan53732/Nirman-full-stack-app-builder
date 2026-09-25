@@ -1254,6 +1254,10 @@ CASES = {
         BS, "AAB generation is an optional separately declared release artifact",
         "AAB generation is not declared",
         "semantic documentation"),
+    "semantic undeclared lifecycle-like declaration": (
+        BS, "ProductLifecycleState =", "AuditLifecycleState =", "semantic documentation"),
+    "semantic orthogonal state vocabulary accepted": (
+        BS, "AssuranceState        = UNKNOWN", "AssuranceState        = UNKNOWN", "semantic documentation"),
     "semantic state vocabulary weakened": (
         BS, "AssuranceState        = UNKNOWN",
         "AssuranceStatus       = UNKNOWN",
