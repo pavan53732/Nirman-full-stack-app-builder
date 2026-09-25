@@ -2997,11 +2997,12 @@ AgentProfile
 
 ### 2.45 SkillExecutionRecord
 
-**Owner:** TA §58.4 · **Contract:** — · **Projected at:** —
+**Owner:** TA §58.4 · **Contract:** CONTRACT.RUNTIME.SKILL · **Projected at:** —
 
 ```text
 SkillExecutionRecord
 - execution_id
+- invocation_id
 - skill_id
 - skill_version
 - task_id
@@ -3117,7 +3118,7 @@ MemoryRecord
 - sourceEventIds
 - sourceRevision
 - confidence
-- scope: task | project | runtime_improvement
+- scope: session | project | runtime_improvement
 - retentionPolicy
 - supersededBy
 - createdAt
@@ -5479,6 +5480,7 @@ DocumentationCertificationReport
 ToolchainProvisioningManifest
 ToolchainProvisioningRecord
 RenderTransport
+AndroidToolchainLock
 WorkerConnection
 OrchestrationWiringMatrix
 ScreenGraphAnalysisRecord
@@ -5508,6 +5510,7 @@ FrameStamp
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
 
 - `WorkerContract` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).
+- `AndroidToolchainLock` — normative shape prose-defined at build spec §34.1; no projected field block (ADR-241).
 - `ValidationResult` — normative shape prose-defined at technical architecture §84.2; no projected field block (ADR-241).
 - `CertificationDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).
 - `CompletionDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).

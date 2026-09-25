@@ -1083,7 +1083,7 @@ The project workspace should contain the chat, file tree, editor or preview, act
 
 - The preview is the primary surface with the resizable execution panel of §4.4: task graph, worker steps, terminals, checkpoints, approvals, validation evidence, and next action.
 - Chat follows the §4.3 response structure; approval cards render inline and mirror the Action Center (§4.6).
-- Commands served are the agent-loop, checkpoint, build, preview, and export command kinds of §76.1; projections consumed are the seven typed projections of technical architecture §81.1.
+- Commands served are the agent-loop, build, preview, and export command kinds of §76.1; checkpoint actions commit transactional snapshots through the checkpoint authority (TA §18); projections consumed are the seven typed projections of technical architecture §81.1.
 - Stop is always enabled while any task is active (§80.2) and routes to the lifecycle authority as an explicit user command.
 
 ### Provider settings
@@ -1339,7 +1339,7 @@ This should be capacity-aware. The context engine must fit the selected provider
 
 ### 23.3 One operating mode: Autonomous-build
 
-Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one (ADR-226). The user states a goal; the runtime plans, builds, previews, tests, recovers, and packages under the authority hierarchy of technical architecture §21 without a per-task or per-project mode selection. There is no attended mode, no unattended profile, and no autonomy level to choose: authority is visible per action through the three-outcome policy engine of §23.7, the hard gates of §23.17, and the approval cards of §7, never through a mode switch.
+Nirman has exactly one operating mode, **Autonomous-build**, and it is the default because it is the only one (ADR-226). The user states a goal; the runtime plans, builds, previews, tests, recovers, and packages under the authority hierarchy of technical architecture §21 without a per-task or per-project mode selection. There is no attended mode, no unattended profile, and no autonomy level to choose: authority is visible per action through the three-outcome policy engine of §23.7, the hard gates of §23.17, and the approval cards of §4.3, never through a mode switch.
 
 What other tools expose as modes is expressed here as worker roles and policy: planning, exploration, review, security, performance, and adversarial critique are read-only worker roles of §23.4, and diagnosis and repair are the Debugging Worker and the recovery ladder of §28.2. A model, worker, or component cannot narrow the loop into an attended one, because no attended state exists to narrow into. The toolbar and every task record display the single mode name and the current worker role, so the absence of a choice is itself visible.
 
@@ -1655,6 +1655,8 @@ Nirman should not permit unlimited background workers. The scheduler should enfo
 The scheduler should reserve resources before launching a worker, release them after completion, and reduce parallelism when the system becomes constrained. A user should be able to pause new workers while allowing active workers to finish.
 
 Swarm admission MUST also enforce per-parent child concurrency, task queue depth, emulator-slot reservation, provider-concurrency reservation, and reserved recovery/validation capacity. These are physical/runtime controls only. AI token, request, monetary, reasoning, or elapsed-goal usage remains telemetry and MUST NOT enter admission or termination decisions.
+
+A paused worker MAY be terminated under physical memory pressure and relaunched from durable state when the task resumes (ADR-222). Pause never depends on process liveness, and this termination is a physical resource action — it is not an AI-usage, provider-request, monetary, or duration limit (§72; ADR-218).
 
 ### 26.4 Deterministic reconciliation of parallel changes
 
@@ -2296,7 +2298,7 @@ This PascalCase machine is the human-readable form of the session `ProductLifecy
 | `Cancelled` | `CANCELLED` |
 | `SafelyFailed` | `SAFELY_FAILED` |
 
-The session lifecycle contains the per-task execution states of §26.14 (`TaskExecutionState`): a task's `COMPLETED` or `ESCALATED` is an input to the session's next transition, never a session state itself. Two further vocabularies project onto these sets and add no states: a kernel cycle outcome (technical architecture §71.4: `COMPLETED`, `BLOCKED`, `WAITING`, `RECOVERED`, `SAFELY_FAILED`, `ESCALATED`) is the result of one reasoning cycle inside a `RUNNING` task and maps to the task states `VALIDATING`/`COMPLETED`, `WAITING_APPROVAL`/`WAITING_RESOURCE`, `RECOVERING`, `ESCALATED`, and to the session terminal `SafelyFailed`; a completion classification (§27.10: Completed, Completed with warnings, Blocked, Escalated, Cancelled, Failed) is the user-facing report of the terminal state a task or session reached and is derived from it.
+The session lifecycle contains the per-task execution states of §26.14 (`TaskExecutionState`): a task's `COMPLETED` or `ESCALATED` is an input to the session's next transition, never a session state itself. Two further vocabularies project onto these sets and add no states: a kernel cycle outcome (technical architecture §71.4: `COMPLETED`, `BLOCKED`, `WAITING`, `RECOVERED`, `SAFELY_FAILED`, `ESCALATED`) is the result of one reasoning cycle inside a `RUNNING` task and maps to the task states `VALIDATING`/`COMPLETED`, `WAITING_APPROVAL`/`WAITING_RESOURCE`, `RECOVERING`, `ESCALATED`, and to the session terminal `SafelyFailed`; a completion classification (§27.10: Completed, Completed with warnings, Blocked, Escalated, Cancelled, Failed, `PARTIALLY_BLOCKED`) is the user-facing report of the terminal state a task or session reached and is derived from it.
 
 Exactly one component commits transitions in either set: `LifecycleAuthority`, which is the pure session reducer of technical architecture §45.1 (`SessionReducer`; ADR-066, ADR-159). The kernel's `AgentLoopReducer` (technical architecture §58.2) derives the next *proposed* task state from a cycle outcome and submits it as a validated event; it holds no commit right. No other reducer, authority, projection, or continuity record may commit a lifecycle transition.
 
@@ -2314,7 +2316,7 @@ The layer must apply hard exclusions, canonical path normalization, project-root
 
 ### 34.1 Project Ingestion Version Compatibility
 
-When ingesting an existing Android codebase, the project-ingestion layer evaluates the project's Android Gradle Plugin (AGP), Gradle wrapper version, Kotlin version, and JDK level against `AndroidToolchainLock` (technical architecture §73.18), producing a three-outcome compatibility classification:
+When ingesting an existing Android codebase, the project-ingestion layer evaluates the project's Android Gradle Plugin (AGP), Gradle wrapper version, Kotlin version, and JDK level against `AndroidToolchainLock` (technical architecture §49.1), producing a three-outcome compatibility classification:
 
 1. `COMPATIBLE`: The existing project's toolchain matches the active `AndroidToolchainLock`. Admitted directly to the workspace without toolchain modification.
 2. `MIGRATABLE`: The project uses older but supported toolchain versions (e.g. AGP 8.0–8.5, Gradle 8.0–8.7). Admitted under a mandatory automated migration transaction: `GradleConfigSynthesizer` (technical architecture §73.18.3) upgrades AGP, Gradle wrapper, and Kotlin version catalog definitions to modern locked versions within an isolated `ConstructionTransaction`, verified via dry-run build prior to user task execution.
@@ -4429,11 +4431,11 @@ The following `ContractId` values are the registered normative contracts of this
 | ContractId | Authority | Extensions | Architecture | ADR | Milestone | Class |
 |---|---|---|---|---|---|---|
 | CONTRACT.RUNTIME.SCOPE | BS §5 | BS §69 | TA §47 | ADR-180 | M11 | FOUNDATIONAL |
-| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27 | ADR-066, ADR-216, ADR-253, ADR-254, ADR-255, ADR-256 | M65 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.AUTHORITY | BS §33 | BS §37, BS §52, BS §66, BS §67 | TA §21, TA §27, TA §46 | ADR-066, ADR-216, ADR-253, ADR-254, ADR-255, ADR-256 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.EVIDENCE | BS §37 | BS §47, BS §56, BS §57, BS §67 | TA §23 | ADR-071, ADR-254, ADR-256 | M65 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.MEMORY | BS §38 | BS §53 | TA §31, TA §59 | ADR-140, ADR-155, ADR-255 | M81 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.CONTEXT | BS §53 | — | TA §19, TA §59 | ADR-141, ADR-214, ADR-215, ADR-216, ADR-219 | M81 | CROSS_CUTTING |
-| CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8, TA §46 | ADR-068 | M69 | FOUNDATIONAL |
+| CONTRACT.RUNTIME.WORKSPACE | BS §22 | BS §54 | TA §8 | ADR-068 | M69 | FOUNDATIONAL |
 | CONTRACT.RUNTIME.RESERVATION | BS §54 | — | TA §60 | ADR-142, ADR-143 | M82 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.RECONCILIATION | BS §55 | — | TA §61 | ADR-144 | M83 | CROSS_CUTTING |
 | CONTRACT.RUNTIME.E2E | BS §56 | BS §59 | TA §62 | ADR-146, ADR-253 | M84 | CROSS_CUTTING |
@@ -6056,7 +6058,7 @@ The `requiredCapabilities` of the eighty-three built-in skills are drawn from th
 | `android-ui-navigation-routing` | `HOST_TOOL_OBSERVATION` |
 | `android-ui-list-performance` | `HOST_TOOL_OBSERVATION` |
 
-Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
+Each built-in skill ships a `SkillPackage` manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json` next to its instruction body. The manifest carries the §23.11 `SkillPackage` fields that are static for a built-in package (`skillId`, `name`, `description`, `version`, `scope: built_in`, `compatibleWorkerRoles`, `triggerConditions`, `requiredTools`, `requiredCapabilities`, `conditionalCapabilities`, `permissionRequests`, `inputSchema`, `outputSchema`, `sourcePath`); `scanStatus`, `trustStatus`, `enabled`, `installedAt`, and `lastUsedAt` are ledger state written by the registry, never by the manifest. `requiredCapabilities` in a manifest MUST equal the row above, and `conditionalCapabilities` MUST equal the §79.10 conditional-capability row for the same skill — both dimensions of the same capability set, never one restated in the other — `permissionRequests` MUST be empty for every built-in skill (CLAUSE.SKILL.NO_PERMISSION_GRANT), and `sourcePath` MUST name the sibling `SKILL.md`.
 
 Every skill registered in this table MUST have an instruction body at `crates/nirman-skills/skills/<group>/<skill>/SKILL.md` and a manifest at `crates/nirman-skills/skills/<group>/<skill>/skill.json`, and no body may name the excluded host stack (ADR-108, ADR-117, AGENTS.md §17) or a physical-device path (§4.4). A body states its gates only in the capability-id vocabulary above: every backticked `UPPER_SNAKE` identifier in a body that is a capability id MUST be one of the ids in the skill's own row (including the conditional ids named there), and no body may gate on a legacy lowercase id such as `android_build` or `cross_build_windows`. The contract-graph verifier (§67.11) enforces the body rules and the manifest rules (present, `scope: built_in`, `requiredCapabilities` equal to the table, empty `permissionRequests`, `sourcePath` naming the sibling body, no ledger-state field) whenever the skill tree is present in the working tree and records a skip, never a pass, when it is absent.
 

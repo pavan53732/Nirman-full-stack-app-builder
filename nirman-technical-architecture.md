@@ -390,7 +390,8 @@ Initial defaults should be configurable and conservative:
 | Default task time policy | No autonomous-goal completion deadline. Liveness timeouts MAY exist for hung operations and process containment but MUST NOT terminate a healthy goal for elapsed time |
 | Default task disk quota | 10 GB unless project policy overrides (build spec §26.3, §80.3 range 1–100 GB); emulator, build, cache, and checkpoint storage are charged against the same quota |
 | Default repair strategy changes | 3 |
-| Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal. |
+
+Exhaustion of materially equivalent attempts MUST trigger strategy transformation, delegation, backtracking, branching, or escalation. Exhaustion MUST NOT itself terminate the goal.
 
 ### 7.3 Background approval notifications
 
@@ -988,6 +989,8 @@ Skill admission and invocation are durable ledger records (M119), both registere
 > **Schema projection:** `SkillAdmission` is defined in `nirman-schemas.md` §2.15. Owner: TA §19.1.
 
 > **Schema projection:** `SkillInvocationRecord` is defined in `nirman-schemas.md` §2.16. Owner: TA §19.1.
+
+SkillInvocationRecord and SkillExecutionRecord are both written per invocation: the invocation record captures admission and version pinning before execution, and the execution record captures the execution outcome and telemetry after it. They are linked deterministically via the invocation_id.
 
 `SkillAdmission` is written before any instruction body loads or tool call runs; a skill with no `ADMITTED` admission for the current environment fingerprint cannot be invoked. `SkillInvocationRecord` pins the version admitted for the session (ADR-154), links every tool call and evidence item the invocation produced, and is invalidated (`invalidatedBy`) when the environment fingerprint, skill version, or project revision it was bound to changes.
 
@@ -1690,11 +1693,13 @@ Nirman should maintain three memory scopes:
 
 | Memory scope | Contents | Lifetime |
 |---|---|---|
-| Task memory | Current goal, plan, evidence, failures, checkpoints, and active assumptions | Until task retention expires |
+| Session memory | Current goal, plan, evidence, failures, checkpoints, and active assumptions | Until task retention expires |
 | Project memory | Architecture decisions, conventions, fixes, routes, dependencies, and validated preferences | Project lifetime, user-deletable |
 | Runtime improvement memory | Anonymized failure patterns, evaluation results, provider compatibility, and candidate outcomes | Runtime version lifetime, user-controlled |
 
 Memory should be written from validated events and user-confirmed decisions, not from every model statement. The user must be able to inspect, correct, export, and delete memory. Secrets, raw credentials, protected files, and unclassified private content must be excluded.
+
+Credential storage is a storage class, not a semantic scope. The three scopes above govern MemoryRecord.scope. Credentials, signing keys, and raw secrets remain in the credential store and never enter semantic memory per CLAUSE.MEMORY.SECRET_EXCLUSION (build spec §38).
 
 ### 31.3 Project Memory Learning Service
 
@@ -2322,7 +2327,7 @@ authority, written only through `EventStore` and `ConstructionTransactionManager
 
 A long-running autonomous session uses a renewable `SessionLease` rather than a fixed short execution token. The lease contains session ID, owner supervisor ID, issued time, expiry time, last progress time, heartbeat sequence, resource reservation, and revocation state.
 
-The lease is renewed only when the supervisor observes valid progress, such as a committed event, active provider response, running build, device operation, recovery action, or explicitly permitted waiting condition. A spinner or repeated identical event is not progress.
+The lease is renewed only while heartbeats, valid progress, and authority checks remain valid (BS §33.3). Valid progress includes a committed event, active provider response, running build, device operation, recovery action, or explicitly permitted waiting condition. A spinner or repeated identical event is not progress.
 
 On lease loss, the supervisor stops new work, revokes worker capabilities, preserves the workspace and event log, and resumes from the last durable checkpoint after restart.
 
@@ -3809,6 +3814,8 @@ A proposal is immutable after validation. Any change creates a new proposal revi
 `SkillRuntime` resolves skill discovery, compatibility, composition, input binding, context assembly, execution, tool mediation, output validation, and evidence capture. It verifies skill version, required ToolBroker version, Android profile, worker role, input/output schema, permissions, and resource requirements before execution. Input/output verification compares the invocation's declared names against the manifest and the body's `Emits` line, which the verifier pins identical; conformance to the `## Output contract` bullets is a worker instruction-following obligation.
 
 > **Schema projection:** `SkillExecutionRecord` is defined in `nirman-schemas.md` §2.45. Owner: TA §58.4.
+
+SkillExecutionRecord is written for every invocation that reaches execution — including failed and cancelled ones. It references SkillInvocationRecord.invocationId to enable deterministic join and audit reconstruction.
 
 A skill composition is a directed acyclic graph with bounded depth, explicit inputs/outputs, shared revision identity, and a single validation contract. A composed skill cannot grant another skill permissions.
 
@@ -6112,6 +6119,18 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 2. *Kotlin DSL convention plugins:* Synthesizes type-safe `build.gradle.kts` files using Gradle Kotlin DSL, applying standard Android Gradle Plugin (AGP) convention plugins (`com.android.application`, `com.android.library`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`).
 3. *Build variant and flavor configuration:* Configures `debug` and `release` build types, application ID suffixes, signing configurations, and optimization flags (`isMinifyEnabled`, `isShrinkResources`).
 
+#### 73.18.3 GradleConfigSynthesizer
+
+`GradleConfigSynthesizer` coordinates the synthesis and reconciliation of modern Android Gradle build configurations:
+
+1. *Version catalog management:* Generates and maintains `gradle/libs.versions.toml`, managing `[versions]`, `[libraries]`, and `[plugins]` blocks in accordance with single-writer reconciliation rules (BS §35).
+
+2. *Kotlin DSL convention plugins:* Synthesizes type-safe `build.gradle.kts` files using Gradle Kotlin DSL, applying standard Android Gradle Plugin (AGP) convention plugins (`com.android.application`, `com.android.library`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`).
+
+3. *Build variant and flavor configuration:* Configures `debug` and `release` build types, application ID suffixes, signing configurations, and optimization flags (`isMinifyEnabled`, `isShrinkResources`).
+
+4. *Migration of admitted legacy toolchains:* When project ingestion classifies a project as `MIGRATABLE`, `GradleConfigSynthesizer` upgrades AGP, Gradle wrapper, and Kotlin version catalog definitions to the versions pinned by the active `AndroidToolchainLock` (TA §49.1). The upgrade executes inside an isolated `ConstructionTransaction` and is verified by a dry-run build before any user task execution; a failed dry-run rolls back the transaction and the project is reclassified per the `UNSUPPORTED` path of BS §34.1.
+
 #### 73.18.4 ShrinkerRuleGenerator
 
 `ShrinkerRuleGenerator` synthesizes and validates ProGuard/R8 consumer shrinking and obfuscation rules:
@@ -6623,7 +6642,7 @@ Acceptance fixtures prove required APK delivery, optional declared AAB behavior,
 
 ### 84.1 Schemas
 
-`EnvironmentCapabilityRecord` (registry: §36.1): `environment_id`, `host_platform`, `host_architecture`, `target_platform`, `target_architecture`, `shell`, `compiler`, `linker`, `sdk`, `runtime`, `build_tools`, `installer_tools`, `native_dependencies`, `tool_versions`, `environment_fingerprint`, `capability_results`, `repair_attempts`, `required_user_actions`, `runtime_validation_available`, `cross_compilation_available`, `evidence_ids`, `recorded_at`, `supersedes`. Host and target are explicit fields; nothing downstream may re-infer them.
+`EnvironmentCapabilityRecord` (registry: §36.1): `environment_id`, `host_platform`, `host_architecture`, `target_platform`, `target_architecture`, `shell`, `compiler`, `linker`, `sdk`, `runtime`, `build_tools`, `installer_tools`, `native_dependencies`, `tool_versions`, `environment_fingerprint`, `capability_results`, `repair_attempts`, `required_user_actions`, `runtime_validation_available`, `cross_compilation_available`, `evidence_ids`. Host and target are explicit fields; nothing downstream may re-infer them.
 
 `PlatformCapabilityEntry` (registry: §36.1): `capability_id`, `host_platform`, `expected_result: available | environment_dependent | unavailable_by_platform`, `required_toolchain`, `evidence_requirements`, `matrix_version`. The matrix is a prior for preflight; the observed record wins.
 
@@ -6668,13 +6687,13 @@ Security-software interference is a Windows target-runtime facility already requ
 
 Hypervisor availability is a Windows target-runtime facility already required by BS §79.3. Per CLAUSE.PLATFORM.NO_RUNTIME_INFERENCE, target_runtime_validation is USER_REQUIRED absent a Windows observation.
 
-`ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_devices`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease_id`, `reserved_by_task`, `acquired_at`, `released_at`.
+`ValidationEnvironment` (registry: §36.1): `environment_id`, `platform`, `architecture`, `toolchain`, `runtime`, `available_tools`, `available_emulator_profiles`, `isolation_profile`, `network_policy`, `fingerprint`, `health`, `lease`.
 
 `BuildGateRecord` (registry: §36.1): `gate_id`, `stage: compile | target_build | bundle | artifact_inspection | install | launch | runtime_validation | platform_specific_validation | recovery_validation | certification`, `platform`, `environment_id`, `revision`, `command_or_operation_ref`, `evidence_ids`, `result: VERIFIED | UNVERIFIED | UNAVAILABLE | USER_REQUIRED | FAILED`, `recorded_at`.
 
 > **Schema projection:** `BuildGateRecord` is defined in `nirman-schemas.md` §2.112. Owner: TA §84.1.
 
-`WorkerContract` extension (canonical owner: the `WorkerContract` entry in §36.1): adds `required_host_platforms`, `required_target_platforms`, `required_architectures`, `required_capabilities`, `required_skills`, `required_toolchain`, `required_validation_environment`, `cross_compilation_allowed`, `native_execution_required`, `evidence_requirements`. The scheduler, not the worker, refuses a worker whose fields are not satisfied by the current `EnvironmentCapabilityRecord`.
+`WorkerContract` extension (canonical owner: build spec §79.12; prose-defined per ADR-241): adds `required_host_platforms`, `required_target_platforms`, `required_architectures`, `required_capabilities`, `required_skills`, `required_toolchain`, `required_validation_environment`, `cross_compilation_allowed`, `native_execution_required`, `evidence_requirements`. The scheduler, not the worker, refuses a worker whose fields are not satisfied by the current `EnvironmentCapabilityRecord`.
 
 ### 84.2 Persistence and invalidation
 
