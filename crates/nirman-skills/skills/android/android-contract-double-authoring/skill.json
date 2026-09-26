@@ -1,0 +1,30 @@
+{
+  "skillId": "android-contract-double-authoring",
+  "name": "Android Contract Double Authoring",
+  "description": "Authoring the fixtures and schema-derived bodies a supervisor-owned ContractDouble serves for a declared integration: declared scenario coverage, request/response/error bodies generated from the integration's declared schema references, deterministic fixture values, and DOUBLE_BACKED evidence classification. The double is supervisor-owned and loopback-bound, and this skill never opens it, never reaches it, and never contacts the real service (BS §79.7; TA §74.1; BS §76.5).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Integration Double Worker",
+    "Test and QA Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "integration_double_fixture_authoring",
+    "declared_schema_reference_change",
+    "double_evidence_reclassification"
+  ],
+  "requiredTools": [
+    "double_fixture_authoring",
+    "schema_conformance_check",
+    "scenario_matrix_build",
+    "double_evidence_classifier"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ContractDoubleAuthoringRequest",
+  "outputSchema": "ContractDoubleAuthoringResult",
+  "sourcePath": "SKILL.md"
+}

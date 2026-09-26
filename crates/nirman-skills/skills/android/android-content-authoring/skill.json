@@ -1,0 +1,30 @@
+{
+  "skillId": "android-content-authoring",
+  "name": "Android Content Authoring",
+  "description": "Writing and revising product copy, localization strings, and accessibility text for a generated Android application as ContentMutation proposals carrying a ContentRevisionDraft: terminology profile conformance, accessibility text that describes purpose, placeholder identity across locales, and dependency propagation scope. The worker proposes only; admission, validation, revision minting, and persistence belong to ContentTransactionCoordinator, ContentValidator, ContentAuthority, and ContentStore (BS §79.7; TA §85.1).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Content Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "product_copy_authoring",
+    "localization_string_revision",
+    "accessibility_text_authoring",
+    "terminology_propagation"
+  ],
+  "requiredTools": [
+    "terminology_profile_check",
+    "content_draft_authoring",
+    "locale_coverage_scan",
+    "accessibility_text_review"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ContentAuthoringRequest",
+  "outputSchema": "ContentAuthoringResult",
+  "sourcePath": "SKILL.md"
+}
