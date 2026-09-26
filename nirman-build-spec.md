@@ -3290,6 +3290,28 @@ The `ValidationPlanner` must choose checks from changed files, changed symbols, 
 
 A change to an Android screen, repository, permission, navigation route, data model, manifest, native module, or build file must expand validation to the affected behavior. The planner may select focused checks for low-risk changes and automatically expand to instrumentation, accessibility, security, visual, device, performance, regression, and release checks for high-risk changes.
 
+#### 52.10.1 Mandatory-check skill resolution
+
+A validation check is a check class, not an instruction body: selecting "visual validation" names a domain, not the package that implements it. Before any skill is admitted for a plan, the runtime MUST resolve every mandatory check named by `ValidationPlan.required_checks`, `ValidationPlan.focused_checks`, and `ValidationPlan.expanded_checks` to exactly one skill-resolution outcome, and MUST record that outcome in the plan's `check_bindings`.
+
+Resolution is deterministic and runs before `SkillAdmission` (technical architecture §19.1). For each mandatory check the runtime resolves the implementing `SkillPackage.skillId` from the §79.7 registry — never from model memory — and admits it. The outcome is exactly one of:
+
+- `ADMITTED` — the resolved skill was admitted and is the package that will execute the check;
+- `BLOCKED` — the skill exists and was resolved, but a required capability is not `AVAILABLE` or `REPAIRABLE` in the current environment record (technical architecture §19.1);
+- `NOT_FOUND` — the registry resolves no package for that check;
+- `NOT_INVOCABLE` — the package is unscanned or its trust status is revoked (technical architecture §19.1);
+- `NOT_APPLICABLE` — the check is not applicable to this project, recorded with the justification the inapplicability rule already requires (technical architecture §84.3).
+
+`BLOCKED`, `NOT_FOUND`, `NOT_INVOCABLE`, and `NOT_APPLICABLE` reuse the existing `SkillAdmission.decision` and `applicability` value sets; no new state machine, enum, or authority is created.
+
+**No mandatory check may vanish merely because no skill was selected.** Every mandatory check therefore appears in exactly one of two places: a `check_bindings` record naming its outcome, or `unresolved_mandatory_checks` carrying the check id and the canonical incomplete state that applies. A mandatory check absent from both is a defect, not a permitted outcome, and the runtime MUST refuse to report the plan as validation-complete while any such check exists.
+
+`NOT_APPLICABLE` is the only outcome that discharges a mandatory check, and it requires a recorded justification. The remaining incomplete outcomes leave the check outstanding, and the completion evaluator (build spec §5.7.7) MUST treat an outstanding mandatory check as missing current mandatory evidence: `NOT_EVALUATED` and `NOT_COMPLETE` (build spec §5.6) are reachable precisely because the binding made the gap representable. A model, worker, or UI that selects no skill for a mandatory check cannot convert that check into a pass; it can only leave the binding unresolved, and the completion predicate then fails closed.
+
+`WorkerContract.requiredSkills` (build spec §79.12) MAY carry the same skill ids as supporting worker-admission data, but it is not the canonical representation of which check a plan requires: the plan's own `check_bindings` is. The two must agree, and a disagreement is a defect.
+
+**Persistence, restart, and invalidation.** The plan and its bindings are part of the task's durable state and MUST survive supervisor restart, so that a replayed or resumed task re-resolves against the same plan revision rather than re-deriving checks from a model. A project revision change, a requirement revision change, an environment capability record change, or an evidence dependency change MUST invalidate the affected bindings and re-resolve them; a binding is never carried across a revision it was not computed for. Storage remains with the existing storage authority and SQLite ledger (technical architecture §57.5) under the existing task and recovery semantics; this section adds no second validation authority and no second ledger.
+
 The planner must emit a traceability chain:
 
 ```text

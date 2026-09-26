@@ -1132,6 +1132,28 @@ CASES = {
         "crates/nirman-skills/skills/android/android-compose-expert/SKILL.md",
         "## Recovery\n", "",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "mandatory-check skill resolution drops the unresolved-check record": (
+        BS,
+        "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",
+        "a record the check id was dropped",
+        "semantic documentation"),
+    "ValidationPlan drops the check binding fields": (
+        SCHEMAS,
+        "- unresolved_mandatory_checks: check ids with no admitted skill, each carrying its canonical incomplete state (build spec §52.10.1)",
+        "",
+        "semantic documentation"),
+    "skill body carries orphaned content after its closing statement": (
+        "crates/nirman-skills/skills/android/android-end-to-end-validation-orchestrator/SKILL.md",
+        "execution still passes through ToolBroker and PolicyAuthority.\n",
+        "execution still passes through ToolBroker and PolicyAuthority.\n"
+        "  * a stranded invariant fragment with no owning section\n",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill body truncates its final Evidence invariant mid-sentence": (
+        "crates/nirman-skills/skills/android/android-end-to-end-validation-orchestrator/SKILL.md",
+        "  * Each domain outcome is bound to the same revision and environment\n"
+        "    fingerprint as the run that produced it.\n",
+        "  * Each domain outcome is bound to the same revision and environment\n",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "capability with no consuming skill": (
         BS,
         '| `android-install-launch` | Install and launch the built artifact on the Nirman-managed emulator: artifact and target compatibility, install verification, cold and warm launch, first-frame evidence, and install and launch failure classification | `ANDROID_BUILD_TOOLCHAIN` |',

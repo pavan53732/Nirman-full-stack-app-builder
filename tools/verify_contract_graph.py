@@ -1740,6 +1740,42 @@ def check_semantic_documentation(docs, R, D, root="."):
     if m_prov is not None and "`C:\\Nirman\\<sid8>\\tc\\`" not in m_prov:
         D.add("semantic documentation", "toolchain provisioning",
               "TA §49.4 must place the toolchain under the BS §79.14 per-user root C:\\Nirman\\<sid8>\\tc\\")
+    # Mandatory-check skill resolution (BS §52.10.1, TA §58.9): every mandatory
+    # check a plan names must resolve to exactly one skill-resolution outcome
+    # before admission, and must appear in the plan's check_bindings or its
+    # unresolved_mandatory_checks. The binding reuses the existing
+    # SkillAdmission.decision and applicability value sets, so neither may be
+    # re-minted here, and WorkerContract.requiredSkills stays supporting data
+    # rather than the canonical representation.
+    m_res = re.search(r"^#### 52\.10\.1 .*$", bs, re.M)
+    if m_res is None:
+        D.add("semantic documentation", "mandatory-check skill resolution",
+              "BS must define §52.10.1 mandatory-check skill resolution")
+    else:
+        _rb = bs[m_res.end():]
+        _nx = _rb.find("\n#### ")
+        if _nx > 0:
+            _rb = _rb[:_nx]
+        for _phrase, _why in (
+            ("`check_bindings`", "record the per-check skill-resolution outcome"),
+            ("unresolved_mandatory_checks", "record a mandatory check with no admitted skill"),
+            ("`SkillAdmission`", "resolve the check before skill admission"),
+            ("NOT_FOUND", "reuse the SkillAdmission.decision value set"),
+            ("NOT_INVOCABLE", "reuse the SkillAdmission.decision value set"),
+            ("NOT_APPLICABLE", "reuse the existing applicability value"),
+            ("`NOT_EVALUATED`", "let an outstanding check fail the completion predicate closed"),
+        ):
+            if _phrase not in _rb:
+                D.add("semantic documentation", "mandatory-check skill resolution",
+                      f"BS §52.10.1 must {_why} (name {_phrase})")
+    if "check_bindings" not in sch:
+        D.add("semantic documentation", "mandatory-check skill resolution",
+              "the ValidationPlan block (SCHEMAS §2.49) must carry `check_bindings` so the "
+              "binding is traceable from the plan itself (BS §52.10.1)")
+    if "unresolved_mandatory_checks" not in sch:
+        D.add("semantic documentation", "mandatory-check skill resolution",
+              "the ValidationPlan block (SCHEMAS §2.49) must carry "
+              "`unresolved_mandatory_checks` so an unresolvable mandatory check is durable")
     for key, label in (("bs", "build spec"), ("ta", "technical architecture")):
         if "C:\\<root>\\" in docs[key]:
             D.add("semantic documentation", "toolchain provisioning",
@@ -4438,6 +4474,77 @@ def check_skill_bodies(docs, D, repo_root):
             continue
         with open(path, encoding="utf-8") as fh:
             body = fh.read()
+        # Body integrity (BS §79.7): the eleven contract sections must appear
+        # in order, and a body may end only with the permission-neutral closing
+        # statement. Content that follows that statement is an orphaned
+        # fragment no heading owns: it silently truncates the section it was
+        # written for while still passing a heading-order check.
+        _bh = re.findall(r"^## (.+)$", body, re.M)
+        if _bh:
+            _lines = body.split("\n")
+            _fi = next((i for i, t in enumerate(_lines)
+                        if "permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT)" in t), None)
+            if _fi is not None:
+                # The closing statement may wrap; it ends on the line that
+                # completes the ToolBroker/PolicyAuthority sentence.
+                _end = next((j for j in range(_fi, len(_lines))
+                             if "PolicyAuthority" in _lines[j]), _fi)
+                _after = [t for t in _lines[_end + 1:] if t.strip()]
+                if _after:
+                    D.add("semantic documentation", f"skill {name}",
+                          f"body carries {len(_after)} line(s) of orphaned content after its "
+                          f"permission-neutral closing statement; that statement ends the body "
+                          f"(BS §79.7)")
+        # An invariant bullet list must close inside its own section. A bullet
+        # that was cut mid-sentence leaves its continuation stranded after the
+        # closing statement, which the check above catches; a bullet cut with
+        # its continuation deleted entirely is caught here, by requiring that
+        # the section's last content line be a complete line of the list
+        # rather than a bare bullet prefix immediately preceding the next
+        # section. Punctuation is deliberately not the test, because a wrapped
+        # bullet legitimately ends on a word.
+        for _sec in CONTRACT_SECTIONS:
+            _bh2 = re.findall(r"^## (.+)$", body, re.M)
+            if _sec not in _bh2:
+                continue
+            _lines = body.split("\n")
+            _starts = [i for i, t in enumerate(_lines) if t.startswith("## ")]
+            _i = _bh2.index(_sec)
+            _a = _starts[_i]
+            _b = _starts[_i + 1] if _i + 1 < len(_starts) else len(_lines)
+            _seg = [t for t in _lines[_a + 1:_b] if t.strip()]
+            if not _seg:
+                continue
+            # A bullet opened with "* " is complete when it ends a sentence, or
+            # when its text continues on a more-indented "* " line inside this
+            # section. A bullet that does neither was cut and its continuation
+            # is missing. This is a structural test, not a word list, so a
+            # wrapped bullet that legitimately ends on a word is unaffected.
+            for _t in _seg:
+                _st = _t.lstrip()
+                if not _st.startswith("* "):
+                    continue
+                if re.search(r"[.!?:;)\]`\"']$", _st):
+                    continue
+                _k = _seg.index(_t) + 1
+                _cont = False
+                while _k < len(_seg):
+                    _nx = _seg[_k]
+                    if not _nx[:1].isspace():
+                        break
+                    if _nx.lstrip().startswith("* "):
+                        # A further bullet at this list's own indent is a
+                        # sibling item, not this bullet's continuation.
+                        break
+                    _cont = True
+                    break
+                if _cont:
+                    continue
+                D.add("semantic documentation", f"skill {name}",
+                      f"a list item in `## {_sec}` ends mid-sentence "
+                      f"({_st.strip()[:50]!r}) with no continuation; a bullet must be "
+                      f"complete within its section (BS §79.7)")
+                break
         for token in SKILL_BODY_BANNED:
             if token in body:
                 D.add("semantic documentation", f"skill {name}",

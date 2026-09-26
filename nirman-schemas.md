@@ -3102,6 +3102,8 @@ ValidationPlan
 - resource_reservations
 - stop_conditions
 - evidence_requirements
+- check_bindings: for every mandatory check named by required_checks, focused_checks, and expanded_checks, one record binding the check to its skill-resolution outcome (build spec §52.10.1)
+- unresolved_mandatory_checks: check ids with no admitted skill, each carrying its canonical incomplete state (build spec §52.10.1)
 ```
 
 ### 2.50 MemoryRecord

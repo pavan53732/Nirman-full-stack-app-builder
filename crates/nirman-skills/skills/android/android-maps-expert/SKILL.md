@@ -74,7 +74,7 @@ transaction (BS §50).
   * Geofences have a minimum radius — geofences smaller than 100 meters may
     not trigger reliably. Use dwell time to reduce false positives.
   * Map view lifecycle is managed — call onResume, onPause, onDestroy,
-  *  onLowMemory on MapView to avoid memory leaks.
+    onLowMemory on MapView to avoid memory leaks.
 - Every claim reduced to an observable: what was seen, on which device or
   host, at which revision — never a statement of intent.
 

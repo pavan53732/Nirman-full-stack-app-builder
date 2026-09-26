@@ -85,6 +85,15 @@ inside its scoped asset transaction (BS §50).
   * No domain outcome is reported without the observation it was derived from,
     and no unrun domain is reported as passed.
   * Each domain outcome is bound to the same revision and environment
+    fingerprint as the run that produced it.
+  * Ordering is preserved: a domain that consumes another domain's
+    observations never reports before that domain produced them.
+  * No mandatory check named by the plan resolves to no resolution outcome at
+    all; an unresolved mandatory check is reported with its canonical
+    incomplete state rather than omitted from the aggregate.
+- Every claim reduced to an observable: what was seen, on which device or
+  host, at which revision — never a statement of intent.
+
 ## Failure classification
 - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
@@ -96,9 +105,11 @@ inside its scoped asset transaction (BS §50).
   this skill must leave observable does not hold.
 - TIMEOUT — a wait exceeded its bound; an unbounded wait is a hang, not a
   slow step.
-- DOMAIN_NOT_EVALUATED — a domain the requirement set required neither ran nor
-  was reported as blocked or excluded; completeness is not established and the
-  aggregate result is not readiness.
+- NOT_EVALUATED — a domain the requirement set required neither ran nor was
+  reported as blocked or excluded; completeness is not established and the
+  aggregate result is not readiness. This is the canonical `NOT_EVALUATED`
+  state of the completion value set (BS §5.6); it is reported as such and is
+  never converted into readiness.
 - AGGREGATION_INCOMPLETE — a per-domain outcome could not be reconciled
   against the requirement set, so the aggregate result does not account for
   the whole set.
@@ -138,13 +149,9 @@ Emits `EndToEndValidationResult` from `EndToEndValidationRequest` (§23 SkillPac
 - Step 6 produces its expected outcome — Audit completeness: confirm that no domain required by the requirement set was skipped, silently deferred, or reported without an observation.
 - Step 7 produces its expected outcome — Emit one aggregate readiness result carrying the ordered domain outcomes, the uncovered requirement ids, the domains that could not run and why, and the overall readiness determination for the caller to evaluate.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
-- A required domain is silently omitted — reported as DOMAIN_NOT_EVALUATED, never as readiness
+- A required domain is silently omitted — reported as NOT_EVALUATED, never as readiness
 - An invariant of this skill is violated and is reported, not absorbed
 
 This skill is permission-neutral (CLAUSE.SKILL.NO_PERMISSION_GRANT); every
 execution still passes through ToolBroker and PolicyAuthority.
-
-    fingerprint as the run that produced it.
-  * Ordering is preserved: a domain that consumes another domain's
-    observations never reports before that domain produced them.
 
