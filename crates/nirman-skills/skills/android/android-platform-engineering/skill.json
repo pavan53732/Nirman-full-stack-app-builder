@@ -1,0 +1,31 @@
+{
+  "skillId": "android-platform-engineering",
+  "name": "Android Platform Engineering",
+  "description": "The Android platform source lanes beyond Compose and a single language: the View system with XML layouts and ViewBinding, Kotlin/Java interop across a mixed module, and NDK/CMake/JNI native modules including ABI selection and JNI signature correctness (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Android Platform Worker",
+    "UI Worker",
+    "Release Worker"
+  ],
+  "triggerConditions": [
+    "view_system_layout_required",
+    "mixed_kotlin_java_module",
+    "native_module_required"
+  ],
+  "requiredTools": [
+    "view_binding_codegen",
+    "interop_boundary_analysis",
+    "native_module_build",
+    "abi_inspection"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_BUILD_TOOLCHAIN",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "AndroidPlatformSourceRequest",
+  "outputSchema": "AndroidPlatformSourceResult",
+  "sourcePath": "SKILL.md"
+}

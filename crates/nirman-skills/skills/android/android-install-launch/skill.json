@@ -6,7 +6,8 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Release Worker",
-    "Test and QA Worker"
+    "Test and QA Worker",
+    "Emulator Driver Worker"
   ],
   "triggerConditions": [
     "artifact_install_required",

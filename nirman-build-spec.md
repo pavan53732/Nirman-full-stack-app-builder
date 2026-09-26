@@ -5933,6 +5933,7 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `android-network-debugging` | debugging the network layer on the Nirman-managed emulator — traffic capture, TLS and certificate pinning failures, offline and degraded-network behaviour, latency and failure injection, and verifying the app against the API contract it actually depends on (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_NETWORK_INTEGRATION` |
 | `android-build-repair` | diagnosing and repairing a failing Android build — Gradle and plugin errors, dependency and version-catalog resolution, resource and manifest merge conflicts, shrinker configuration, and incremental build corruption (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-resource-expert` | the Android resource system — how resources are qualified and resolved, drawables and vectors, themes and styles, string and plural resources, resource shrinking, and resolving merge and qualification conflicts (BS §79.7). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `android-platform-engineering` | the Android platform source lanes beyond Compose and a single language — the View system with XML layouts and ViewBinding, recycling and view-lifetime correctness, Kotlin/Java interop across a mixed module, and NDK/CMake/JNI native modules with ABI selection and JNI signature correctness; it does not restate Gradle configuration synthesis, permission derivation, shrinker rules, component lifecycle, or device APIs, which their own owners hold (BS §79.7; TA §73.18.1). | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
 | `windows-ipc-validation` | Nirman's named-pipe transport — connection establishment and teardown, framed message integrity, version negotiation between peers, peer disconnection behaviour, and backpressure under load (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-process-supervision` | supervision of Nirman's own processes — the expected process inventory, start and stop ordering, restart policy and the reason each restart records, orphan detection, and coordinated shutdown (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-job-object-validation` | Job Object isolation for Nirman's worker processes — the limits configured, what happens when a limit is hit, whether processes stay contained, the accounting counters, and the rules for nested job assignment (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
@@ -5950,6 +5951,7 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 | `windows-signing` | code signing for release packages — whether a signature is valid and its chain trusted, whether a timestamp is present and valid, whether the digest and publisher identity match, and verifying every binary the installer ships (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN` |
 | `windows-installer-validation` | validating the installer end to end — clean and in-place install paths, repair, how cleanly uninstall removes the product, per-user install without elevation, and upgrading across versions (BS §79.7). | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `android-backend-api-design` | the HTTP surface a generated Android application consumes, when a supporting backend is required by the application — resource modelling and naming, versioning, error semantics, pagination, idempotency, and auth boundaries | `HOST_TOOL_OBSERVATION` |
+| `android-backend-service-engineering` | implementation of the supporting backend/service layer a generated Android application consumes — REST/GraphQL handlers, server-side business logic, server schema and reversible migrations, server-side authentication and authorization, webhook signature verification and replay rejection, idempotent background jobs, backend integration tests, and deployment configuration for a backend the user owns; it does not restate HTTP surface design, the generated application's client and adapter normalization (TA §81.5), or reachability and functional state, which `AndroidServiceIntegration` owns (BS §5.7.5) (BS §79.7). | `HOST_TOOL_OBSERVATION`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-database-schema-design` | on-device database schema in a generated Android application — entity modelling, key stability, relationships and referential behaviour, constraints, indexing against real query patterns, and migration safety | `HOST_TOOL_OBSERVATION` |
 | `android-app-state-management` | state management in a generated Android application — owned versus derived state, mutation discipline around a single source of truth, scope and lifetime across configuration changes, and stale reads and update races | `HOST_TOOL_OBSERVATION` |
 | `android-offline-sync` | offline-first data in a generated Android application — queueing local writes while disconnected, detecting and resolving conflicts, replaying queued operations in a correct and idempotent order, and reconciling local state after a partition | `HOST_TOOL_OBSERVATION` |
@@ -5969,7 +5971,7 @@ Each platform skill is a `SkillPackage` (§23) declaring `requiredTools`, `requi
 
 A skill MUST NOT hard-code a capability as unavailable on a host platform; it declares the required capability and consumes the preflight classification.
 
-The `requiredCapabilities` of the eighty-seven built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
+The `requiredCapabilities` of the eighty-nine built-in skills are drawn from this closed capability-id vocabulary. Each id is a `capability_id` of the §79.3 matrix (`PlatformCapabilityEntry`, TA §84.1) and is classified per environment by `EnvironmentCapabilityPlanner`; a skill may name no id outside this table, and an id in this table may not be renamed without a change to this section:
 
 | Capability id | Meaning | Classified from |
 |---|---|---|
@@ -6054,6 +6056,7 @@ The `requiredCapabilities` of the eighty-seven built-in skills are drawn from th
 | `android-network-debugging` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_EMULATOR_EXECUTION`, `ANDROID_NETWORK_INTEGRATION` |
 | `android-build-repair` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_BUILD`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-resource-expert` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING`, `ANDROID_RELEASE_VALIDATION` |
+| `android-platform-engineering` | `ANDROID_BUILD_TOOLCHAIN`, `ANDROID_SOURCE_ENGINEERING` |
 | `windows-ipc-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-process-supervision` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `windows-job-object-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
@@ -6071,6 +6074,7 @@ The `requiredCapabilities` of the eighty-seven built-in skills are drawn from th
 | `windows-signing` | `WINDOWS_HOST_TOOLCHAIN` |
 | `windows-installer-validation` | `WINDOWS_HOST_TOOLCHAIN`, `WINDOWS_NATIVE_EXECUTION` |
 | `android-backend-api-design` | `HOST_TOOL_OBSERVATION` |
+| `android-backend-service-engineering` | `HOST_TOOL_OBSERVATION`, `ANDROID_SOURCE_ENGINEERING` |
 | `android-database-schema-design` | `HOST_TOOL_OBSERVATION` |
 | `android-app-state-management` | `HOST_TOOL_OBSERVATION` |
 | `android-offline-sync` | `HOST_TOOL_OBSERVATION` |
@@ -6100,7 +6104,7 @@ The capability table above classifies every capability id by the evidence that p
 |---|---|---|
 | Visual perception required | 18 | requires UI-hierarchy, screenshot, or accessibility observation |
 | Runtime perception required, non-visual | 17 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
-| Perception not required | 25 | gated only by build-toolchain or host observation |
+| Perception not required | 27 | gated only by build-toolchain or host observation |
 
 The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 
@@ -6116,7 +6120,7 @@ MUST explicitly state why runtime perception is unnecessary.
 The verifier MUST fail on any unresolved mismatch. This section MUST contain
 zero open inconsistency records in a documentation-certified corpus.
 
-`requiredTools` is an open vocabulary: the 87 skill packages name 156 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
+`requiredTools` is an open vocabulary: the 89 skill packages name 164 distinct tool identifiers, and no canonical document defines or closes that set. This asymmetry with `requiredCapabilities` — which technical architecture §84.1 fixes as closed — is deliberate: a tool name carries no authority and grants nothing; capability gating is the only admission test.
 
 ### 79.8 Validation Environment as a First-Class Resource
 
@@ -6955,7 +6959,7 @@ Task-graph fan-in state is durable on every join: `JoinBarrierState` records exp
 
 Every test fixture referenced in the build spec is defined here, and an agent MUST implement these exact fixtures.
 
-The scope of that claim is the build spec, and it is deliberately narrow. The eight `FIX-PROG-*` fixtures below are the fixture set the build spec references, and the verifier confirms that no `FIX-*` identifier appears in this document without a definition in this subsection. Seven further fixtures, `FIX-DEL-01`–`FIX-DEL-07`, are defined normatively in milestones §M95 (fault-injection fixtures) and are not restated here. Both sets are in force. A fixture defined in either location satisfies §80.1 rule 7 and §80.9 criterion 8, so the earlier unqualified wording — "every test fixture referenced in the specification" — overstated this subsection's reach by seven fixtures while the underlying requirement was already met elsewhere. An agent MUST implement the milestones §M95 fixtures to the same standard: each carries an injected condition and a required observable outcome, plus the two invariants that milestones §M95 states across all of them.
+The scope of that claim is the build spec, and it is deliberately narrow. The eight `FIX-PROG-*` fixtures below are the fixture set the build spec references, and the verifier confirms that no `FIX-*` identifier appears in this document without a definition in this subsection. Seven further fixtures, `FIX-DEL-01`–`FIX-DEL-07`, are defined normatively in milestones §M95 (fault-injection fixtures) and are not restated here. Two further fixtures, `FIX-PLAT-01`–`FIX-PLAT-02`, are defined normatively in milestones §M50 (Android platform lane fixtures: the Java/Views and NDK/CMake/JNI scenarios) and are not restated here. Both sets are in force. A fixture defined in either location satisfies §80.1 rule 7 and §80.9 criterion 8, so the earlier unqualified wording — "every test fixture referenced in the specification" — overstated this subsection's reach by nine fixtures while the underlying requirement was already met elsewhere. An agent MUST implement the milestones §M95 fixtures to the same standard: each carries an injected condition and a required observable outcome, plus the two invariants that milestones §M95 states across all of them.
 
 #### 80.6.1 FIX-PROG-01: Tip Calculator
 

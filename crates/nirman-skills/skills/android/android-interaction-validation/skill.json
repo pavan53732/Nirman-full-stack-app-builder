@@ -6,7 +6,8 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Test and QA Worker",
-    "UI Worker"
+    "UI Worker",
+    "Emulator Driver Worker"
   ],
   "triggerConditions": [
     "interaction_execution",

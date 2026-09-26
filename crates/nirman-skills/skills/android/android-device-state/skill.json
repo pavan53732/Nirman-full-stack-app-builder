@@ -6,7 +6,8 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Test and QA Worker",
-    "Debugging Worker"
+    "Debugging Worker",
+    "Emulator Driver Worker"
   ],
   "triggerConditions": [
     "device_state_reconcile",

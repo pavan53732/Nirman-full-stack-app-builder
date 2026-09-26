@@ -1,0 +1,31 @@
+{
+  "skillId": "android-backend-service-engineering",
+  "name": "Android Backend Service Engineering",
+  "description": "Implementation of the supporting backend/service layer a generated Android application consumes: REST/GraphQL handlers, server-side business logic, server schema and migrations, authentication and authorization, webhooks, background jobs, backend integration tests, and deployment configuration for the user's own backend; it does not restate HTTP surface design, which BS §79.7 gives android-backend-api-design (BS §79.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Backend & Service Engineering Worker",
+    "Android Data and Integration Worker"
+  ],
+  "triggerConditions": [
+    "integration_spec_implementation",
+    "server_schema_migration",
+    "backend_auth_enforcement",
+    "backend_deployment_configuration"
+  ],
+  "requiredTools": [
+    "service_handler_codegen",
+    "server_schema_migration",
+    "auth_middleware_scaffold",
+    "backend_integration_test"
+  ],
+  "requiredCapabilities": [
+    "HOST_TOOL_OBSERVATION",
+    "ANDROID_SOURCE_ENGINEERING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "BackendServiceImplementationRequest",
+  "outputSchema": "BackendServiceImplementationResult",
+  "sourcePath": "SKILL.md"
+}

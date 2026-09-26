@@ -6,7 +6,8 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Debugging Worker",
-    "Test and QA Worker"
+    "Test and QA Worker",
+    "Diagnostic Worker"
   ],
   "triggerConditions": [
     "runtime_fault_diagnosis",

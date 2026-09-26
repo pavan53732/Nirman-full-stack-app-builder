@@ -6,7 +6,8 @@
   "scope": "built_in",
   "compatibleWorkerRoles": [
     "Debugging Worker",
-    "Android Data and Integration Worker"
+    "Android Data and Integration Worker",
+    "Diagnostic Worker"
   ],
   "triggerConditions": [
     "network_failure_diagnosis",
