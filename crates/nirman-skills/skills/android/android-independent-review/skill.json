@@ -1,0 +1,29 @@
+{
+  "skillId": "android-independent-review",
+  "name": "Android Independent Review",
+  "description": "Android independent review: adversarial critique of construction plans, validation strategies, and completion claims before authorization and promotion, emitting read-only blocking, warning, and informational findings (BS \u00a779.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Critic Worker"
+  ],
+  "triggerConditions": [
+    "plan_critique",
+    "strategy_review",
+    "completion_claim_challenge"
+  ],
+  "requiredTools": [
+    "critique_planner",
+    "evidence_rebuttal_ledger",
+    "finding_severity_binder"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_SOURCE_ENGINEERING",
+    "ANDROID_EMULATOR_EXECUTION",
+    "ANDROID_RELEASE_VALIDATION"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "IndependentReviewRequest",
+  "outputSchema": "IndependentReviewResult",
+  "sourcePath": "SKILL.md"
+}

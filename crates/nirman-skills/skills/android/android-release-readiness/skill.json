@@ -1,0 +1,31 @@
+{
+  "skillId": "android-release-readiness",
+  "name": "Android Release Readiness",
+  "description": "Android release readiness: aggregate the cross-cutting release gate across build, manifest, permissions, signing, artifact, installability, runtime, tests, visual, accessibility, performance, privacy, dependency, and delivery evidence, emitting one readiness verdict (BS \u00a779.7).",
+  "version": "1.0.0",
+  "scope": "built_in",
+  "compatibleWorkerRoles": [
+    "Release Worker",
+    "Test and QA Worker"
+  ],
+  "triggerConditions": [
+    "release_gate",
+    "promotion_readiness",
+    "release_evidence_aggregate"
+  ],
+  "requiredTools": [
+    "release_gate_matrix",
+    "artifact_provenance_probe",
+    "promotion_block_ledger"
+  ],
+  "requiredCapabilities": [
+    "ANDROID_RELEASE_VALIDATION",
+    "ANDROID_ARTIFACT_INSPECTION",
+    "ANDROID_SIGNING_INSPECTION",
+    "ANDROID_PACKAGING"
+  ],
+  "permissionRequests": [],
+  "inputSchema": "ReleaseReadinessRequest",
+  "outputSchema": "ReleaseReadinessResult",
+  "sourcePath": "SKILL.md"
+}
