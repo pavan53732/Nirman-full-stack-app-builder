@@ -4705,6 +4705,89 @@ def check_skill_bodies(docs, D, repo_root):
               "skill requires it; every capability must have at least one "
               "consuming skill")
 
+    # §79.7.1 perception classification (BS): the three counts are derived from
+    # the manifests by the rule the section states, not maintained by hand. A
+    # hand-maintained figure drifted by two packages through four commits while
+    # §80.2, §80.9, §80.10 and the command registry were each pinned by a
+    # mutation; this was the one counted table with no derivation behind it.
+    _p79 = re.search(r"#### 79\.7\.1 .*?(?=\n#### |\n### |\n## )", bs, re.S)
+    if _p79:
+        # id -> its "Classified from" cell, read from the capability vocabulary
+        # table only, located by its own header. Scanning every table in the
+        # document would let an unrelated row clobber a classification, and
+        # `continue` rather than `break` on the cell-0 match so one odd row
+        # cannot truncate the set.
+        _cls = {}
+        _blines = bs.split("\n")
+        try:
+            _h = next(i for i, t in enumerate(_blines)
+                      if t.strip() == "| Capability id | Meaning | Classified from |")
+        except StopIteration:
+            _h = None
+        if _h is not None:
+            for _row in _blines[_h + 2:]:
+                if not _row.strip().startswith("|"):
+                    break
+                _cells = [c.strip() for c in _row.strip().strip("|").split("|")]
+                if len(_cells) < 3:
+                    continue
+                _mid = re.match(r"^`([A-Z][A-Z_]+)`$", _cells[0])
+                if _mid:
+                    _cls[_mid.group(1)] = _cells[2]
+        _visual = {"ANDROID_UI_OBSERVATION", "ANDROID_VISUAL_VALIDATION",
+                   "ANDROID_ACCESSIBILITY_VALIDATION"}
+        _rows = {"Visual perception required": 0,
+                 "Runtime perception required, non-visual": 0,
+                 "Perception not required": 0}
+        for _row in _p79.group(0).split("\n"):
+            _mc = re.match(r"^\| (Visual perception required|Runtime perception required, non-visual"
+                           r"|Perception not required) \| (\d+) \|", _row.strip())
+            if _mc:
+                _rows[_mc.group(1)] = int(_mc.group(2))
+        if len(_cls) < 2 or not any(_rows.values()):
+            D.add("semantic documentation", "BS §79.7.1",
+                  "perception classification table or the capability classification "
+                  "column it derives from could not be read")
+        else:
+            _got = dict.fromkeys(_rows, 0)
+            _n = 0
+            for _name in names:
+                _p = bodies.get(_name)
+                if _p is None or not os.path.exists(_p):
+                    continue
+                # The section classifies the Android skill packages specifically.
+                if os.path.basename(os.path.dirname(os.path.dirname(_p))) != "android":
+                    continue
+                _mp = os.path.join(os.path.dirname(_p), "skill.json")
+                if not os.path.exists(_mp):
+                    continue
+                try:
+                    with open(_mp, encoding="utf-8") as _fh:
+                        _man = _json.load(_fh)
+                except ValueError:
+                    continue
+                _caps = set(_man.get("requiredCapabilities") or [])
+                for _extra in (_man.get("conditionalCapabilities") or {}).values():
+                    _caps |= set(_extra)
+                _n += 1
+                if _caps & _visual:
+                    _got["Visual perception required"] += 1
+                elif any(_cls.get(c) == "emulator or device observation" for c in _caps):
+                    _got["Runtime perception required, non-visual"] += 1
+                else:
+                    _got["Perception not required"] += 1
+            for _label in sorted(_rows):
+                if _rows[_label] != _got[_label]:
+                    D.add("semantic documentation", "BS §79.7.1",
+                          f"'{_label}' is documented as {_rows[_label]} but the manifests "
+                          f"derive {_got[_label]}; these counts are derived from the "
+                          f"manifests, not maintained by hand (BS §79.7.1)")
+            if _n and sum(_rows.values()) != _n:
+                D.add("semantic documentation", "BS §79.7.1",
+                      f"the three documented counts sum to {sum(_rows.values())} but there "
+                      f"are {_n} Android skill packages; every package belongs to exactly "
+                      f"one row")
+
 
 def check_section_ownership(R, D):
     """Check 12: SECTION_OWNERSHIP — BS §68 has exactly one authoritative owner

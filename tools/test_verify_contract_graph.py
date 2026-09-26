@@ -1136,6 +1136,23 @@ CASES = {
         "crates/nirman-skills/skills/android/android-backend-service-engineering/SKILL.md",
         "owns (BS §5.7.5).", "owns (BS §574).",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    # §79.7.1 counts were wrong by two packages through four commits because
+    # nothing recomputed them, while §80.2, §80.9 and §80.10 were each pinned
+    # below. Two cases, because they fail differently: a wrong number must trip
+    # the per-row comparison, and a missing row must trip the population check
+    # that the per-row comparison alone would not reach.
+    #
+    # Both carry the skill-tree suffix because the derivation reads the
+    # manifests. Without the tree in the fixture, check_skill_bodies records a
+    # skip and returns before reaching the check, so the mutation would apply to
+    # a tree that cannot produce the defect and the case would pass vacuously.
+    "§79.7.1 perception count drifts from the manifests": (
+        BS, "| Perception not required | 32 | gated only by build-toolchain or host observation |",
+        "| Perception not required | 33 | gated only by build-toolchain or host observation |",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "§79.7.1 perception row removed": (
+        BS, "| Perception not required | 32 | gated only by build-toolchain or host observation |\n", "",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "mandatory-check skill resolution drops the unresolved-check record": (
         BS,
         "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",
