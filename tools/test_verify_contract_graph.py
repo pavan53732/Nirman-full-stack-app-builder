@@ -1132,6 +1132,10 @@ CASES = {
         "crates/nirman-skills/skills/android/android-compose-expert/SKILL.md",
         "## Recovery\n", "",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "skill body cites a nonexistent BS section": (
+        "crates/nirman-skills/skills/android/android-backend-service-engineering/SKILL.md",
+        "owns (BS §5.7.5).", "owns (BS §574).",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
     "mandatory-check skill resolution drops the unresolved-check record": (
         BS,
         "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",

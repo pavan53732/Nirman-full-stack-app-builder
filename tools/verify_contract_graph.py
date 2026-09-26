@@ -3874,6 +3874,42 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", "section reference",
                   f"{label} line {text[:m.start()].count(chr(10)) + 1} cites §{num} of the "
                   f"{m22_names[target]}, which has no such heading")
+    # The same rule, over the same heading sets and qualifiers, applies to skill
+    # instruction bodies (BS §79.7). Bodies were outside the loop above, so a bad
+    # `BS §n` pointer in a body passed while the identical error in the canonical
+    # document was reported. A body has no own numbered surface and BS §79.7 owns
+    # the skill set, so a bare `§n` resolves against the build spec — the same
+    # default the canonical rule uses for its containing document. Development-plan
+    # pointers stay unresolved as above: that document is milestone-numbered.
+    _skill_root = os.path.join(root, "crates", "nirman-skills", "skills")
+    if os.path.isdir(_skill_root):
+        for _sdir, _subdirs, _sfiles in os.walk(_skill_root):
+            if "SKILL.md" not in _sfiles:
+                continue
+            _sname = os.path.basename(_sdir)
+            try:
+                _stext = open(os.path.join(_sdir, "SKILL.md"), encoding="utf-8").read()
+            except OSError:
+                continue
+            _sseen = set()
+            for _sm in re.finditer(r"§\s*(\d+(?:\.\d+)*[a-z]?)", _stext):
+                _snum = _sm.group(1)
+                _spre = _stext[max(0, _sm.start() - 30):_sm.start() + 1]
+                _stgt = "bs"
+                for _spat, _sd in m22_qual:
+                    if re.search(_spat, _spre):
+                        _stgt = _sd
+                        break
+                else:
+                    _sl = m22_list.search(_stext[max(0, _sm.start() - 80):_sm.start()])
+                    if _sl:
+                        _stgt = m22_doc_of[_sl.group(1)]
+                if _stgt == "dev" or _snum in m22_heads[_stgt] or (_stgt, _snum) in _sseen:
+                    continue
+                _sseen.add((_stgt, _snum))
+                D.add("semantic documentation", "skill section reference",
+                      f"skill {_sname} cites §{_snum} of the {m22_names[_stgt]}, which has "
+                      f"no such heading (BS §79.7)")
     # §80.2 field-count fidelity (audit LOW): a resolution cell that says
     # "<word> `Schema` fields" must match the schema's actual field block
     # (BS block first, then TA), and the ModelEvent type-count claim must
