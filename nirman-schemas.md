@@ -292,12 +292,12 @@ SkillPackage
 
 **Canonical count authority.** The numbers that appear in these documents name four distinct things and MUST NOT be conflated:
 
-- `SkillInventoryCount` = the number of discoverable `/skills/*/SKILL.md` packages on disk. The v1 baseline is eighty-three; this is a runtime-loader fact, not a capability count.
+- `SkillInventoryCount` = the number of discoverable `/skills/*/SKILL.md` packages on disk. The v1 baseline is ninety-two; this is a runtime-loader fact, not a capability count.
 - `CapabilityRegistry` size = the number of registered capability contracts in BS §5.7 (twenty-eight). Capabilities are normative product abilities with required contracts, test identity, and evidence identity; they are not skill packages.
 - `SkillPackage` = one admitted skill (one `SKILL.md` plus its `skill.json` manifest). A skill names `requiredCapabilities` (drawn from the closed capability-id vocabulary of BS §79.7) and an open `requiredTools` vocabulary; it is a reusable worker instruction package, not a capability.
 - `SkillInvocation` = one runtime use of an admitted skill, recorded as `SkillInvocationRecord`. Invocation count is telemetry, not a count of skills or capabilities.
 
-A document that cites a count MUST name which of these four it means. "Twenty-eight" appears only as the `EvidenceRecord` field count (BS §80.2; nirman-schemas.md §2.19) and must not be read as a skill, capability, or package count.
+A document that cites a count MUST name which of these four it means. "Twenty-eight" names two of them in this corpus — the `CapabilityRegistry` size above and the `EvidenceRecord` field count (BS §80.2; nirman-schemas.md §2.19) — so a document citing twenty-eight MUST say which of the two it means. Neither meaning is a skill, skill-package, or invocation count.
 
 ### 1.13 WorkerMessage
 
