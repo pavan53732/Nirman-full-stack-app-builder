@@ -6110,7 +6110,9 @@ The capability table above classifies every capability id by the evidence that p
 |---|---|---|
 | Visual perception required | 18 | requires UI-hierarchy, screenshot, or accessibility observation |
 | Runtime perception required, non-visual | 17 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
-| Perception not required | 30 | gated only by build-toolchain or host observation |
+| Perception not required | 32 | gated only by build-toolchain or host observation |
+
+The three counts sum to the Android skill-package count. A skill belongs in the first row when one of its ids is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`; in the second when any of its ids is classified `emulator or device observation` above and none of the three visual ids is; and otherwise in the third. Every count is derived from the manifests by that rule rather than maintained by hand, and a package that is a member of none of the three rows is a defect in this table.
 
 The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 
