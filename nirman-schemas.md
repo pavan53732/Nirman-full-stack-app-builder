@@ -2053,6 +2053,46 @@ FrameStamp
 - pixelBufferGeneration
 ```
 
+### 1.87 CycleDecisionTrace
+
+**Owner:** BS §80.4.6 · **Contract:** CONTRACT.RUNTIME.AUTHORITY · **Projected at:** TA §58.1
+
+```text
+CycleDecisionTrace
+- traceId: uuid
+- cycleId: uuid
+- taskId: uuid
+- sessionId: uuid
+- decidedAtEventId: integer
+- inputsUsed:
+    reflectionOutcome: SUCCESS | PARTIAL | FAILURE | UNKNOWN
+    reflectionPlanImpact: none | revise_step | replan | change_strategy | escalate
+    evidenceFrontierHash: string
+    recoveryAttemptCount: integer
+    recoveryLevelApplicable: integer
+    pendingDirectiveIds: string[]
+    openHypothesisIds: string[]
+    untestedDiscriminatingTestRefs: string[]
+    trajectoryAssessmentRef: string?
+    trajectoryTriggerKind: string?
+    premiseInvalidationRef: string?
+    resourcePressureResponse: string
+    decisionNodeRef: string?
+    cancelRequested: boolean
+- orderedCriteriaEvaluated: integer[]
+- firstMatchingCriterion: integer
+- selectedBranch: continue | repair | replan | delegate | branch | terminate
+- terminalOutcome: COMPLETED | BLOCKED | WAITING | RECOVERED | SAFELY_FAILED | ESCALATED
+- terminatesGoal: boolean
+- goalLevelTerminalConditionRef: integer?
+- cycleTerminationReason: string?
+- decisionProcedureId: string
+- decisionProcedureVersion: string
+- recordedAt: timestamp
+```
+
+`orderedCriteriaEvaluated` is the list of criterion numbers tested, in order, before the match, which makes the ordering claim of build spec §80.4.6 auditable after the fact. `firstMatchingCriterion` is the row that matched, and it is the only row consulted after the match. `terminalOutcome` is populated only when `selectedBranch == terminate`. Exactly one of `goalLevelTerminalConditionRef` and `cycleTerminationReason` is populated: the former is required when `terminatesGoal` is true and carries a build spec §27.10 condition number 1–5; the latter is required when `terminatesGoal` is false and is `USER_DECISION_PENDING` for the unresolved-`DecisionNode` row or `RECOVERED_AWAITING_NEXT_CYCLE` for the recovered row. This is what makes the two-anchor terminal obligation checkable: a terminal that ends the goal names the condition that ended it, and a terminal that ends only the cycle names the reason it stopped.
+
 ## 2. Schemas owned by the Technical Architecture
 
 ### 2.1 TaskContract
@@ -5352,6 +5392,7 @@ PremiseInvalidationRecord
 TrajectoryAssessment
 BrandManifest
 AssetManifestEntry
+CycleDecisionTrace
 FeedbackRecord
 RequirementDelta
 AssetManifest

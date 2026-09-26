@@ -3740,4 +3740,22 @@ SCHEMAS §1.85 (12 fields), §1.86 (18 fields), and §3.1; BS §69.4.1 mapping r
 **Reversal trigger:**
 A preview architecture change that removes the supervisor-owned render transport, replaces frame identity stamping with a different canonical mechanism, or relocates launch-session identity, persistence, or the launch commit mapping into another canonical owner (device-session or task-lifecycle family), making §1.85, §1.86, the §69.4.1 mapping, and the §10.7 bindings obsolete.
 
+## ADR-261: Kernel cycle DECIDE branch selection criteria
+
+**Status:** Accepted
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.REASONING`
+
+**Amends:** ADR-230
+
+**Decision:** TA §71.4's `DECIDE` state selects its branch by the ordered, first-match-wins criteria table of BS §80.4.6. The table has twenty rows covering every TA §71.4 branch and every TA §71.4 terminal outcome. Every selection records a `CycleDecisionTrace` (SCHEMAS §1.87). Selection is deterministic for equal inputs.
+
+**Rationale:** BS §80.4.1–§80.4.5 specify criteria for five orchestration decisions; the sixth — the cycle's own branch selection — was unspecified, and two implementers reading TA §71.4 alone could build two different cycles. The gap is real and its remedy is a criteria table, not a container section. Every input the criteria draw on already exists in the corpus (`ReflectionRecord`, `EvidenceFrontier`, `RecoveryAttempt`, directives, `Hypothesis`, `TrajectoryAssessment`, `PremiseInvalidationRecord`, `ResourceIntegrityRecord`, `DecisionNode`), so no new infrastructure is required. Terminal rows anchor on the five goal-level terminal conditions of BS §27.10.
+
+**Consequences:**
+SCHEMAS §1.87 (16 fields) and §3.1; BS §80.4.6. ADR-230's `DECIDE` state now carries a specified selection rule; the coarse-projection table of BS §52.2 and the `AgentLoopRecord.progress_status` vocabulary are unchanged, because that field carries the §52.2 coarse branch projection by design rather than the fine branch set. Row 1 of the criteria table records user/policy cancellation as a BLOCKED disposition with a `cancelRequested` marker; the cancellation itself remains owned by `LifecycleAuthority` as before, and this ADR does not move it. Six TA §71.4 cycle terminal outcomes map to five BS §27.10 goal-level terminal conditions non-trivially: COMPLETED → condition 1; BLOCKED → condition 5; SAFELY_FAILED → condition 3 or 4 per recorded pressure cause; ESCALATED → condition 3, 4, or 5; and WAITING and RECOVERED end the cycle while the goal continues and carry no §27.10 anchor, discriminated by `CycleDecisionTrace.terminatesGoal`. The mapping is not 1:1 and is recorded here so that no reader assumes it is.
+
+**Reversal trigger:**
+Measured behaviour across M94 fixtures shows two runs with identical `CycleDecisionTrace.inputsUsed` selecting different branches, which would make the mechanism non-deterministic and require the criteria to be revised. The reachability obligation and the two-anchor terminal obligation survive any revision of the rows themselves.
+
 ---

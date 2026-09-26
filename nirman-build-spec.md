@@ -6903,6 +6903,60 @@ When selecting a checkpoint to restore, the runtime MUST use this ordered criter
 3. **Pre-mutation** — The checkpoint immediately before the failing mutation
 4. **Initial** — The initial project checkpoint (last resort)
 
+#### 80.4.6 Kernel cycle DECIDE branch selection
+
+When a cycle reaches `DECIDE`, `ProgressEvaluator` (TA §58.1) selects exactly one branch from the closed set {continue, repair, replan, delegate, branch, terminate} of TA §71.4. Selection is deterministic for equal inputs. The model may propose a branch; `ProgressEvaluator` selects.
+
+> **Schema projection:** `CycleDecisionTrace` is defined in `nirman-schemas.md` §1.87. Owner: BS §80.4.6.
+
+Inputs (mandatory; drawn from durable records only, never from model prose):
+
+1. `ReflectionRecord.outcome` — SUCCESS | PARTIAL | FAILURE | UNKNOWN
+2. `ReflectionRecord.planImpact` — none | revise_step | replan | change_strategy | escalate
+3. `EvidenceFrontier` slice for the active requirement
+4. `RecoveryAttempt` history for the current failure fingerprint, with the applicable TA §28.1 level
+5. Pending directives not yet applied (BS §61)
+6. Open hypotheses with untested discriminating tests (SCHEMAS §1.29)
+7. `TrajectoryAssessment` for the current (graphRevision, planRevision, executionEpochId, triggerKind) boundary
+8. `PremiseInvalidationRecord` history
+9. `ResourceIntegrityRecord.pressureResponse`
+10. Unresolved `DecisionNode` for the current cycle
+
+**Mechanism.** An ordered table; the first row whose condition holds selects the branch. Ordering is normative — rows are evaluated top-to-bottom, and no row after the matching row is consulted. This is a distinct mechanism from the per-level applicability table of §80.4.1 and does not inherit its semantics.
+
+**Reachability obligation.** Every TA §71.4 DECIDE branch and every terminal outcome (COMPLETED | BLOCKED | WAITING | RECOVERED | SAFELY_FAILED | ESCALATED) MUST be selected by at least one row.
+
+**Terminal obligation.** Every row selecting `terminate` MUST record in `CycleDecisionTrace` either (a) a goal-level terminal condition from BS §27.10, when the selected terminal outcome ends the goal, or (b) a cycle-scoped termination reason, when the selected terminal outcome ends the cycle while the goal continues. No other row may select `terminate` without one of these two anchors. Rows 3 and 9 are the only rows that select `terminate` under (b).
+
+| # | Condition | Selected branch |
+|---|---|---|
+| 1 | A pending directive requires `halt_surface` or task cancellation | terminate → BLOCKED (see note) |
+| 2 | `ResourceIntegrityRecord.pressureResponse == BLOCKED_NO_SAFE_PATH`, anchored to BS §27.10 condition 3 "hard safety or policy limit" or condition 4 "unresponsive or dangerous process must be stopped", per the specific pressure cause recorded in `observedPressure` | terminate → SAFELY_FAILED |
+| 3 | An unresolved `DecisionNode` exists for the current cycle | terminate → WAITING |
+| 4 | `planImpact == escalate` and no deliberation outcome resolves it | terminate → ESCALATED |
+| 5 | `PremiseInvalidationRecord` marks the current assignment INVALIDATED or REVALIDATION_REQUIRED | replan |
+| 6 | `TrajectoryAssessment` verdict TRAJECTORY_DRIFTED with proposal BRANCH_ALTERNATIVE for the current boundary | branch |
+| 7 | `TrajectoryAssessment` verdict TRAJECTORY_DRIFTED with proposal REPLAN for the current boundary | replan |
+| 8 | `outcome == SUCCESS` and the `EvidenceFrontier` for the active requirement has no UNRESOLVED, CONTRADICTED, or REQUIRED_VALIDATION items, and the cycle did not pass through a prior repair or replan | terminate → COMPLETED |
+| 9 | `outcome == SUCCESS` and the `EvidenceFrontier` for the active requirement has no UNRESOLVED, CONTRADICTED, or REQUIRED_VALIDATION items, and the cycle did pass through a prior repair or replan | terminate → RECOVERED |
+| 10 | `outcome == PARTIAL` and `planImpact` ∈ {none, revise_step} | repair |
+| 11 | `outcome == PARTIAL` and `planImpact` ∈ {replan, change_strategy} | replan |
+| 12 | `outcome == UNKNOWN` and a discriminating test is available | repair |
+| 13 | An open hypothesis has an untested discriminating test that is cheaper than the current strategy | repair |
+| 14 | `outcome == FAILURE` and the `RecoveryAttempt` count is below the configured `recoveryAttemptPolicy` for the current fingerprint, and TA §28.1 level 0–3 is applicable | repair |
+| 15 | `outcome == FAILURE` and TA §28.1 level 4–7 is applicable | replan |
+| 16 | `outcome == FAILURE` and TA §28.1 level 8 is applicable | terminate → ESCALATED |
+| 17 | `outcome == FAILURE` and TA §28.1 level 9 is applicable | terminate → SAFELY_FAILED |
+| 18 | `planImpact == escalate` and the applicable TA §28.1 level is 6 | delegate |
+| 19 | No independent work remains and at least one requirement carries BLOCKED or USER_REQUIRED | terminate → BLOCKED |
+| 20 | Otherwise | continue |
+
+Row 2 is anchored rather than self-authorizing: `BLOCKED_NO_SAFE_PATH` records that no safe path remains, while goal termination stays governed exclusively by the five goal-level terminal conditions of BS §27.10 (BS §72), so the row names which of conditions 3 and 4 applies from the recorded pressure cause.
+
+**Note on row 1.** User or policy cancellation is goal-level terminal condition 2 of BS §27.10, but cancellation is not a kernel cycle terminal — TA §71.4 lists COMPLETED, BLOCKED, WAITING, RECOVERED, SAFELY_FAILED, ESCALATED, and cancellation is a `ProductLifecycleState` (BS §33.2) carrying the Cancelled classification. Row 1 records the cycle's disposition as BLOCKED with `cancelRequested` set in `CycleDecisionTrace`, and cancellation itself is committed by `LifecycleAuthority` outside the cycle. This is the corpus's existing behavior for cancellation; §80.4.6 does not change it.
+
+Every selection MUST record a `CycleDecisionTrace` (SCHEMAS §1.87).
+
 ### 80.5 Complete schema definitions
 
 All schemas referenced in the specification are fully defined in the `nirman-schemas.md` blocks that the projection lines of this section name; this section is their owner (ADR-220). An agent MUST use these exact field definitions.
