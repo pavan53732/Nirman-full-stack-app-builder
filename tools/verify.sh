@@ -77,8 +77,15 @@ run_gate() {
 }
 
 PYTHON_BIN=""
+# Existence alone is not enough: the Microsoft Store execution alias makes
+# `python3` resolve to a stub that prints an install prompt and exits non-zero,
+# and a stub named first would otherwise be chosen over a real interpreter
+# further down the list. Probing is what separates them. Without it a broken
+# toolchain is recorded as FAIL, which claims a documentation defect that does
+# not exist; a toolchain that cannot run is USER_REQUIRED, the branch this
+# makes reachable. Kept aligned with tools/verify.ps1 (ADR-204).
 for candidate in python3 python py; do
-  if have "${candidate}"; then
+  if have "${candidate}" && "${candidate}" --version >/dev/null 2>&1; then
     PYTHON_BIN="${candidate}"
     break
   fi

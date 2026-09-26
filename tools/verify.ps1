@@ -57,6 +57,25 @@ function Get-Tool {
     return $null
 }
 
+function Get-Interpreter {
+    # A resolved name is not a working interpreter. The Microsoft Store
+    # execution alias makes `python3` resolve to a stub that prints an install
+    # prompt and exits non-zero, and a stub named first would otherwise be chosen
+    # over a real interpreter further down the list. Probing is what separates
+    # them. Without it a broken toolchain is recorded as FAIL, which claims a
+    # documentation defect that does not exist; a toolchain that cannot run is
+    # USER_REQUIRED, the branch this function makes reachable.
+    foreach ($name in @('python3', 'python', 'py')) {
+        $cmd = Get-Command $name -ErrorAction SilentlyContinue
+        if (-not $cmd) { continue }
+        $probe = & $cmd.Source --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and ($probe -join ' ') -match 'Python\s+\d') {
+            return $cmd.Source
+        }
+    }
+    return $null
+}
+
 function Invoke-GateSequence {
     param([string]$Id, [object[]]$Steps)
     $log = Join-Path $LogDir ($Id + '.log')
@@ -76,7 +95,7 @@ function Invoke-GateSequence {
     }
 }
 
-$Python = Get-Tool @('python3', 'python', 'py')
+$Python = Get-Interpreter
 
 Write-Output "Nirman local certification -- ADR-204, development plan M0"
 Write-Output "root: $Root"
