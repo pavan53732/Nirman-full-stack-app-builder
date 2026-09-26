@@ -3176,13 +3176,32 @@ Responsibilities within the asset scope include brand-intent extraction, BrandMa
 
 The asset scope is bound to the asset transaction: within it the UI Worker cannot modify unrelated source, change the technology plan, grant permissions, or mark the APK complete.
 
-### 56.2 BrandManifest and AssetManifest schemas
+### 56.2 BrandManifest and AssetManifestEntry schemas
+
+`BrandManifest` and `AssetManifestEntry` are the two projected identities of this
+section. `AssetManifest` is the versioned collection of `asset_manifest_entries` for
+a `BrandManifest` version (§57.5), carries no field block of its own, and is
+registered as a prose-defined identity under ADR-241; naming it here is naming the
+collection, not a third schema.
 
 > **Schema projection:** `BrandManifest` is defined in `nirman-schemas.md` §2.125. Owner: TA §56.2.
 >
 > **Schema projection:** `AssetManifestEntry` is defined in `nirman-schemas.md` §2.126. Owner: TA §56.2.
 
-Schemas are versioned and strict. Each asset entry is linked to the source revision and ConstructionTransaction that generated or changed it. `app_identity` is the display name of build spec §44.2 and §50.3 jointly. Provider/model metadata is jointly covered by `BrandManifest` and its entries and is stored only on `AssetManifestEntry.provider_model_metadata`. `source_prompt_hash` on `BrandManifest` hashes the brand-intent prompt; `source_prompt_hash` on an entry hashes that asset's generation-call prompt. `source_seed` is optional, recorded as an input, and never proof of identical output (§56.8; ADR-105).
+Schemas are versioned and strict. Each asset entry is linked to the source revision and ConstructionTransaction that generated or changed it. **That linkage is relational, not a field on the manifest:** an entry is joined to the transaction that produced it through the ledger, and neither identity carries a denormalized pointer to the other, for the same reason ADR-248 rejected a denormalized `currentRevision` pointer (`C₁` rejected) — a second copy of a ledger-owned fact is a fact that can disagree with the ledger. `app_identity` is the display name of build spec §44.2 and §50.3 jointly. Provider/model metadata is jointly covered by `BrandManifest` and its entries and is stored only on `AssetManifestEntry.provider_model_metadata`. `source_prompt_hash` on `BrandManifest` hashes the brand-intent prompt; `source_prompt_hash` on an entry hashes that asset's generation-call prompt. `source_seed` is optional, recorded as an input, and never proof of identical output (§56.8; ADR-105).
+
+The brand display intent that build spec §50.3 enumerates as "logo/icon/splash
+intent" has no field of its own and needs none. It is carried jointly by
+`BrandManifest.semantic_brand_description`, which states what the brand should
+look like, and `BrandManifest.requested_asset_types`, which names the asset types
+requested of it — logo, icon, and splash are asset types among those requested.
+The remaining build spec §50.3 items map one to one: display name to `app_identity`, light
+and dark colors to `color_system`, typography and spacing intent to
+`typography_intent` and `spacing_intent`, theme behavior to `theme_behavior`, asset
+requirements to `requested_asset_types`, accessibility expectations to
+`accessibility_expectations`, screenshot references to `source_screenshot_ids`, and
+manifest version to `version`. A build spec §50.3 item with no field above would be a defect
+in this mapping, not a missing field.
 
 ### 56.3 Asset state machine
 
