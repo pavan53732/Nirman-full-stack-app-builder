@@ -700,7 +700,7 @@ This list is closed for the file, command, and preview surface it covers: the to
 | Static analysis and validation before commit | automatic pre-commit gate | API-level, taint, and analyzer diagnostics rejected at pre-commit |
 | Artifact promotion, signing, completion, and credential resolution | supervisor authority, not agent-invocable | `LifecycleAuthority`, signing and evidence authorities |
 
-A capability in any row is reachable by the mechanism named in that row, and a class absent from this table has no defined path. Adding an operation means adding a row here as well as the operation itself.
+A capability in any row is reachable by the mechanism named in that row, and a class absent from this table has no defined path. Adding an operation means adding a row here as well as the operation itself. This table names classes rather than enumerating components, because a specific component's reachability is already stated in its own row of the component and authority registry (technical architecture §57.12): that row records what the component owns, which durable records it commits, and, where it commits none, the reason — a pre-commit verification gate, a read-only facade that routes on demand, or a worker-hosted module. A reader resolving one component reads its registry row rather than this table.
 
 `export_project` does not make a ZIP or Git bundle a deployment artifact. Source and project access remain user-owned workspace operations. Deployment delivery is governed separately by `PackagingProfile`: an installable APK is required for local completion, and AAB is produced only when an explicitly declared packaging profile requires it.
 
