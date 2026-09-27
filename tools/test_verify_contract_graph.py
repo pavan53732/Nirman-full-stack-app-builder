@@ -1166,6 +1166,23 @@ CASES = {
         SCHEMAS, "- availability: AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE",
         "- availability: available | environment_missing | user_required | unavailable",
         "semantic documentation"),
+    # The five figures the 7.1 index states in prose, each derived from a table
+    # or a schema block. Added because the thread's own finding is that every
+    # asserted figure was wrong before it was counted, and 7.1 asserted five at
+    # once. Three cases rather than five: the word-number, digit, and
+    # schema-derived mechanisms are each exercised, and the second adapter count
+    # shares its mechanism with the first.
+    "§7.1 tool count drifts from its own table": (
+        BS, "the fourteen tools as the entire agent surface",
+        "the fifteen tools as the entire agent surface",
+        "semantic documentation"),
+    "§7.1 device operation count drifts from the schema block": (
+        BS, "SCHEMAS §2.68, 28 operations", "SCHEMAS §2.68, 29 operations",
+        "semantic documentation"),
+    "§7.1 change-kind count drifts from the schema block": (
+        BS, "eleven change kinds across nine shared surfaces",
+        "ten change kinds across nine shared surfaces",
+        "semantic documentation"),
     "mandatory-check skill resolution drops the unresolved-check record": (
         BS,
         "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",

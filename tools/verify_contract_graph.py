@@ -4136,6 +4136,86 @@ def check_semantic_documentation(docs, R, D, root="."):
                           f"ADR-241 states {_n} prose-defined identities but "
                           f"nirman-schemas.md §3.1 enumerates {_bullets}")
 
+    # The §7.1 index figures. Five numbers are stated in prose there — the tool
+    # count, two adapter operation counts, and the SharedSurfaceChangeRequest
+    # cardinalities — and each derives from a table or a schema block. Derived
+    # here because five figures asserted in one edit is exactly how the §79.7.1
+    # table drifted through four commits. A check that cannot find its source
+    # reports rather than passing.
+    def _fig(tok):
+        tok = tok.strip()
+        return int(tok) if tok.isdigit() else spelled_number(tok)
+
+    _sch3 = docs.get("schemas") or ""
+    _s71 = re.search(r"### 7\.1 Required tools.*?(?=\n### |\n## |\Z)", bs, re.S)
+
+    def _table_rows(section, pat):
+        n = 0
+        for line in section.split("\n"):
+            st = line.strip()
+            if st.startswith("|"):
+                if re.match(pat, st):
+                    n += 1
+            elif n:
+                break
+        return n
+
+    def _ops(section, label):
+        """Count typed operations in a `<label> operations` block."""
+        m = re.search(re.escape(label) + r" operations\n((?:- .*\n|\s+- .*\n)+)", section)
+        if not m:
+            return None
+        return len(re.findall(r"(?m)^- [a-zA-Z][A-Za-z0-9]*\(", m.group(1)))
+
+    if _s71 and _sch3:
+        # 1. the §7.1 tool count
+        _tools = _table_rows(_s71.group(0), r"^\| `[a-z_]+` \|")
+        _mt = re.search(r"the (%s) tools" % _NUMBER_WORD, _s71.group(0))
+        if not _tools or not _mt:
+            D.add("semantic documentation", "§7.1 index figures",
+                  "the §7.1 tool table or its stated count could not be read")
+        elif _fig(_mt.group(1)) != _tools:
+            D.add("semantic documentation", "§7.1 index figures",
+                  f"§7.1 states {_fig(_mt.group(1))} tools but its table lists "
+                  f"{_tools}")
+
+        # 2 & 3. the two adapter operation counts
+        for _sec, _label, _tag in (("2.68", "AndroidDeviceAdapter", "device"),
+                                   ("2.69", "AndroidBuildAdapter", "build")):
+            _blk = re.search(r"### %s %s.*?(?=\n### |\n## |\Z)" % (_sec, _label), _sch3, re.S)
+            _n = _ops(_blk.group(0), _label) if _blk else None
+            _mb = re.search(r"SCHEMAS §%s, (\d+|%s)( operations)?\b"
+                            % (_sec, _NUMBER_WORD), _s71.group(0))
+            if _n is None or not _mb:
+                D.add("semantic documentation", "§7.1 index figures",
+                      f"the {_tag} adapter operation count or its §7.1 citation "
+                      f"could not be read")
+            elif _fig(_mb.group(1)) != _n:
+                D.add("semantic documentation", "§7.1 index figures",
+                      f"§7.1 states {_fig(_mb.group(1))} {_tag} operations but "
+                      f"SCHEMAS §{_sec} declares {_n}")
+
+        # 4 & 5. the SharedSurfaceChangeRequest cardinalities
+        _ssr = re.search(r"SharedSurfaceChangeRequest\n((?:- .*\n)+)", _sch3)
+        if not _ssr:
+            D.add("semantic documentation", "§7.1 index figures",
+                  "the SharedSurfaceChangeRequest block could not be read")
+        else:
+            _blk = _ssr.group(1)
+            for _field, _label in (("changeKind", "change kinds"),
+                                   ("sharedSurface", "shared surfaces")):
+                _mv = re.search(r"(?m)^- %s:\s*(.+)$" % _field, _blk)
+                _n = len([v for v in _mv.group(1).split("|") if v.strip()]) if _mv else None
+                _ms = re.search(r"(%s) %s\b" % (_NUMBER_WORD, _label), _s71.group(0))
+                if _n is None or not _ms:
+                    D.add("semantic documentation", "§7.1 index figures",
+                          f"the {_field} cardinality or its §7.1 citation could "
+                          f"not be read")
+                elif _fig(_ms.group(1)) != _n:
+                    D.add("semantic documentation", "§7.1 index figures",
+                          f"§7.1 states {_fig(_ms.group(1))} {_label} but "
+                          f"SharedSurfaceChangeRequest.{_field} declares {_n}")
+
     # CapabilityDescriptor.availability must carry the environment vocabulary of
     # BS §79.4, whose planner/record diagram states it. It previously carried its
     # own four values, of which `environment_missing` collapsed REPAIRABLE and
