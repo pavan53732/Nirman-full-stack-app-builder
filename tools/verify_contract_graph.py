@@ -5329,7 +5329,7 @@ def check_citation_identity(docs, D):
                 _owner_of[_m.group(2)] = _mo.group(1).strip()
                 _sec_of[_m.group(2)] = _m.group(1)
     for i, line in enumerate(docs.get("glossary", "").split("\n"), 1):
-        m = re.match(r"^\*\*([A-Za-z][A-Za-z0-9_.]*)\*\*\s+—\s+(.*)$", line)
+        m = re.match(r"^\*\*([^*]+?)\*\*\s+—\s+(.*)$", line)
         if not m:
             continue
         _term, _rest = m.group(1), m.group(2)
