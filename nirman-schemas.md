@@ -3360,7 +3360,7 @@ CapabilityDescriptor
 - evidenceKinds
 - failureStrategy
 - rollbackStrategy
-- availability: available | environment_missing | user_required | unavailable
+- availability: AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE
 ```
 
 ### 2.62 DeliberationSession
