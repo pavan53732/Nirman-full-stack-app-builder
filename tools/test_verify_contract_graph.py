@@ -1153,6 +1153,19 @@ CASES = {
     "§79.7.1 perception row removed": (
         BS, "| Perception not required | 32 | gated only by build-toolchain or host observation |\n", "",
         "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    # Three counts and vocabularies stated in prose that nothing recomputed.
+    # Each drifted in the corpus before any of these checks existed.
+    "skill baseline count drifts from the skill tree": (
+        README_MD, "ninety-two v1 skill instruction bodies", "ninety-one v1 skill instruction bodies",
+        "semantic documentation", SKILL_SOURCES + SKILL_MANIFESTS),
+    "ADR-241 prose-defined count drifts from the 3.1 list": (
+        ADRS, "The twenty-six identities registered without blocks",
+        "The twenty-five identities registered without blocks",
+        "semantic documentation"),
+    "availability vocabulary drifts from BS 79.4": (
+        SCHEMAS, "- availability: AVAILABLE | REPAIRABLE | USER_REQUIRED | UNAVAILABLE",
+        "- availability: available | environment_missing | user_required | unavailable",
+        "semantic documentation"),
     "mandatory-check skill resolution drops the unresolved-check record": (
         BS,
         "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",

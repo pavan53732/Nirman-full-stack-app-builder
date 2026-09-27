@@ -4109,7 +4109,80 @@ def check_semantic_documentation(docs, R, D, root="."):
         if not _vocab:
             D.add("semantic documentation", "§79.7 capability vocabulary",
                   "no capability ids parsed from §79.7; closure cannot be derived")
-        _skill_root = os.path.join(root, "crates", "nirman-skills", "skills")
+    # ADR-241's stated count of prose-defined identities, against the §3.1 list
+    # it enumerates. The count drifted by one and nothing recomputed it, because
+    # no check anywhere derived a number stated in an ADR. Lives here rather
+    # than beside the skill-baseline check because it needs only `adrs` and
+    # `schemas`, so it must not skip with the skill tree.
+    _adrs = docs.get("adrs") or ""
+    _sch2 = docs.get("schemas") or ""
+    _m241 = re.search(r"## ADR-241:.*?(?=\n## ADR-|\Z)", _adrs, re.S)
+    _m31 = re.search(r"### 3\.1 CanonicalSchemaRegistry.*?(?=\n### |\n## |\Z)", _sch2, re.S)
+    if _m241 and _m31:
+        _fence_end = _m31.group(0).find("\n```", 3)
+        _after = _m31.group(0)[_fence_end:] if _fence_end > 0 else ""
+        _bullets = len(re.findall(r"^- `[A-Za-z][A-Za-z0-9]*`", _after, re.M))
+        if not _bullets:
+            D.add("semantic documentation", "ADR-241 prose-defined count",
+                  "the §3.1 prose-defined identity list could not be read, so "
+                  "ADR-241's stated count cannot be checked against it")
+        else:
+            for _m in re.finditer(r"(?:%s) (?=identities registered without blocks)"
+                                  r"|(?:%s) (?=prose-defined identities)"
+                                  % (_NUMBER_WORD, _NUMBER_WORD), _m241.group(0)):
+                _n = spelled_number(_m.group(0))
+                if _n is not None and _n != _bullets:
+                    D.add("semantic documentation", "ADR-241 prose-defined count",
+                          f"ADR-241 states {_n} prose-defined identities but "
+                          f"nirman-schemas.md §3.1 enumerates {_bullets}")
+
+    # CapabilityDescriptor.availability must carry the environment vocabulary of
+    # BS §79.4, whose planner/record diagram states it. It previously carried its
+    # own four values, of which `environment_missing` collapsed REPAIRABLE and
+    # UNAVAILABLE into one, so a discovery result from TA §71.6 could not be
+    # consumed by EnvironmentCapabilityPlanner without a translation the corpus
+    # never defined. Derived from the owning section rather than a literal string,
+    # so a legitimate change to §79.4 moves the field with it.
+    _sch = docs.get("schemas") or ""
+    _env = re.search(r"### 79\.4 Environment Capability Resolution.*?(?=\n### |\n## |\Z)",
+                     bs, re.S)
+    if _env and _sch:
+        # The vocabulary may be stated as a bare line inside the section's
+        # diagram fence or as a single-cell table row, so match either rather
+        # than assuming a table shape.
+        _enum = re.compile(r"^[A-Z][A-Z_]*(\s*\|\s*[A-Z][A-Z_]*)+$")
+        _envset = None
+        for _l in _env.group(0).split("\n"):
+            _t = _l.strip()
+            if _t.startswith("|"):
+                _t = _t.strip("|").strip()
+            if _enum.match(_t) and "UNAVAILABLE" in _t:
+                _envset = tuple(x.strip() for x in _t.split("|"))
+                break
+        # Scoped to the CapabilityDescriptor block: nirman-schemas.md carries more
+        # than one `availability` field, and an unscoped search silently checked
+        # whichever came first.
+        _cd = re.search(r"### 2\.61 CapabilityDescriptor.*?(?=\n### |\n## |\Z)", _sch, re.S)
+        _av = re.search(r"^- availability:\s*(.+)$", _cd.group(0), re.M) if _cd else None
+        if not _envset:
+            # A check that cannot find its source must say so rather than pass.
+            D.add("semantic documentation", "environment capability vocabulary",
+                  "the environment capability vocabulary of BS §79.4 could not be "
+                  "read, so CapabilityDescriptor.availability cannot be checked "
+                  "against it")
+        elif not _av:
+            D.add("semantic documentation", "environment capability vocabulary",
+                  "CapabilityDescriptor.availability not found in its nirman-schemas.md block")
+        else:
+            _got = tuple(x.strip() for x in _av.group(1).split("|"))
+            if _got != _envset:
+                D.add("semantic documentation", "environment capability vocabulary",
+                      f"CapabilityDescriptor.availability is {list(_got)} but the "
+                      f"environment vocabulary of BS §79.4 is {list(_envset)}; a "
+                      f"discovery result and the planner must name one state")
+
+    _skill_root = os.path.join(root, "crates", "nirman-skills", "skills")
+    if os.path.isdir(_skill_root):
         if os.path.isdir(_skill_root):
             _used, _ondisk = set(), set()
             for _dirpath, _dirs, _files in os.walk(_skill_root):
@@ -4463,9 +4536,34 @@ SKILL_STORE_PUBLICATION_BANNED = (
 
 
 CONTRACT_SECTIONS = ("Trigger", "Required capabilities", "Preconditions",
-                    "Context requirements", "Allowed tools", "Procedure",
-                    "Evidence", "Failure classification", "Recovery",
-                    "Output contract", "Fixtures")
+                     "Context requirements", "Allowed tools", "Procedure",
+                     "Evidence", "Failure classification", "Recovery",
+                     "Output contract", "Fixtures")
+
+# Spelled-out cardinals, so a count written in prose can be compared with a count
+# derived from the thing it describes. Narrow on purpose: the survey that
+# preceded this rule matched four false positives in eight hits, every one the
+# word "one" in an unrelated sense ("exactly one skill-resolution outcome").
+_ONES = ("one two three four five six seven eight nine ten eleven twelve "
+         "thirteen fourteen fifteen sixteen seventeen eighteen nineteen").split()
+_TENS = ("twenty thirty forty fifty sixty seventy eighty ninety").split()
+_NUMBER_WORD = (r"(?:%s|%s)(?:-(?:%s))?" % ("|".join(_ONES), "|".join(_TENS),
+                                            "|".join(_ONES)))
+_ONES_MAP = {w: i + 1 for i, w in enumerate(_ONES)}
+_TENS_MAP = {w: (i + 2) * 10 for i, w in enumerate(_TENS)}
+
+
+def spelled_number(word):
+    """'ninety-two' -> 92, 'eight' -> 8, 'twenty' -> 20. None if unparseable."""
+    parts = [p for p in re.split(r"[\s-]+", word.strip().lower()) if p]
+    if not parts or len(parts) > 2:
+        return None
+    if parts[0] in _TENS_MAP:
+        if len(parts) == 1:
+            return _TENS_MAP[parts[0]]
+        return _TENS_MAP[parts[0]] + _ONES_MAP.get(parts[1], 0) if parts[1] in _ONES_MAP else None
+    return _ONES_MAP.get(parts[0])
+
 
 
 def check_skill_bodies(docs, D, repo_root):
@@ -4705,8 +4803,35 @@ def check_skill_bodies(docs, D, repo_root):
               "skill requires it; every capability must have at least one "
               "consuming skill")
 
-    # §79.7.1 perception classification (BS): the three counts are derived from
-    # the manifests by the rule the section states, not maintained by hand. A
+    # v1 skill baseline (BS §79.7, README, GLOSSARY, M119): derived from the
+    # packages on disk. Five carriers state this total and nothing recomputed
+    # it, so it sat at eighty-three in three of them while the build spec and
+    # the milestones read ninety-two.
+    #
+    # Narrowed on a baseline marker (`v1`, `built-in`, `baseline`) because the
+    # survey run before this rule showed a bare "number near the word skill"
+    # pattern matching four false positives in eight hits, all of them the word
+    # "one" in an unrelated sense. A total is what carries a baseline marker.
+    _pkg_total = sum(1 for _p, _ds, _fs in os.walk(skills_root) if "skill.json" in _fs)
+    if _pkg_total:
+        _marker = re.compile(r"(?:\bv1\b|built-?in|baseline)", re.I)
+        _claim = re.compile(_NUMBER_WORD + r"(?=\s+(?:\w+[- ]){0,3}?(?:skill|bodies|packages))",
+                            re.I)
+        for _key, _label in (("readme", "README.md"), ("glossary", "GLOSSARY.md"),
+                             ("bs", "BS"), ("dev", "M119")):
+            _text = docs.get(_key) or ""
+            for _ln, _line in enumerate(_text.split("\n"), 1):
+                if "skill" not in _line.lower() or not _marker.search(_line):
+                    continue
+                for _m in _claim.finditer(_line):
+                    _n = spelled_number(_m.group(0))
+                    if _n is not None and _n != _pkg_total:
+                        D.add("semantic documentation", "skill baseline count",
+                              f"{_label} states the v1 skill baseline as {_n} but "
+                              f"{_pkg_total} skill packages are present under "
+                              f"crates/nirman-skills/skills (BS §79.7)")
+
+    # §79.7.1 perception classification (BS): the three counts are derived from    # the manifests by the rule the section states, not maintained by hand. A
     # hand-maintained figure drifted by two packages through four commits while
     # §80.2, §80.9, §80.10 and the command registry were each pinned by a
     # mutation; this was the one counted table with no derivation behind it.
