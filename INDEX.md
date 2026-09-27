@@ -322,10 +322,6 @@
 | `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | CONTRACT.RUNTIME.REASONING | TA §58.17 |
 | `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
 | `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
-| `PreflightReport` | §1.83 | TA §53.2 | CONTRACT.RUNTIME.EVIDENCE | BS §47.2, TA §53.2 |
-| `SupervisorConnection` | §1.84 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
-| `LaunchSession` | §1.85 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
-| `FrameStamp` | §1.86 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
 | `CycleDecisionTrace` | §1.87 | BS §80.4.6 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §58.1 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
@@ -462,141 +458,145 @@
 | `ProviderRequestAttempt` | §2.131 | TA §24.6 | — | — |
 | `ContractDoubleScenario` | §2.132 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `AndroidArtifactInspectionRecord` | §2.133 | TA §74.3 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
+| `PreflightReport` | §2.134 | TA §53.2 | CONTRACT.RUNTIME.EVIDENCE | BS §47.2, TA §53.2 |
+| `SupervisorConnection` | §2.135 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
+| `LaunchSession` | §2.136 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
+| `FrameStamp` | §2.137 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
 
 Milestone blocks live in `nirman-milestones.md`; the section number is the heading under which the block sits.
 
-| Milestone | Heading |
-|---|---|
-| M0 | §3 Repository and Engineering Foundation |
-| M1 | §4 Nirman.exe WinUI Shell |
-| M2 | §5 Control Plane and Persistent State |
-| M3 | §6 Provider Runtime Foundation |
-| M4 | §7 Dynamic Android Project Synthesis and Local Runtime |
-| M5 | §8 Single-Worker Autonomous Development Loop |
-| M6 | §9 Permissions and Sandbox Profiles |
-| M7 | §10 Supervisor Survives UI Close/Restart |
-| M8 | §11 Multi-Worker Coordination |
-| M9 | §12 Android Emulator Runtime, Embedded Live Preview, and Visual Testing |
-| M10 | §13 Android Packaging |
-| M11 | §14 Android Capability Registry and Representative Profile Coverage |
-| M12 | §15 Advanced Extensibility |
-| M13 | Goal Mode and non-blocking background work |
-| M14 | Lifecycle hooks |
-| M15 | Scheduled automations |
-| M16 | Granular checkpoints and backtracking |
-| M17 | Context scaling and external-tool compatibility |
-| M18 | Durable task graph and nested execution tree |
-| M19 | Evidence-backed status and telemetry |
-| M20 | Autonomous validation coordinator |
-| M21 | Policy-boundary approvals and termination coordinator |
-| M22 | Provider-neutral AI settings and model gateway |
-| M23 | Controlled self-development loop |
-| M24 | Adaptive long-horizon provider execution |
-| M25 | Runtime supervisor and durable execution loop |
-| M26 | Graduated recovery ladder |
-| M27 | Self-observation and episode evaluation |
-| M28 | Self-improvement proposal manager |
-| M29 | Candidate canary, promotion, and rollback |
-| M30 | Canonical documentation and worker registry |
-| M31 | Autonomous-build policy and never-pause loop |
-| M32 | Persistent terminal subsystem |
-| M33 | Skills registry and invocation contract |
-| M34 | Windows lifecycle and multi-project resilience |
-| M35 | Long-horizon scale and unified execution surface |
-| M36 | Runtime authority and autonomous recovery invariants |
-| M37 | Android-only target contract |
-| M38 | Complete Android technology coverage |
-| M39 | AndroidConstructionContract and schema authority |
-| M40 | Pure session reducer and event replay |
-| M41 | ConstructionTransaction and commit barrier |
-| M42 | Renewable leases and operation capabilities |
-| M43 | AndroidToolchainManifest and clean-machine authority |
-| M44 | Provider bridge protocol and supervision |
-| M45 | Multi-language AndroidCodeIntelligence |
-| M46 | Structured mutation broker |
-| M47 | AndroidRequirementManifest and repair registry |
-| M48 | Preview fallback matrix and revision binding |
-| M49 | Decision trace, progressive disclosure, and resource governor |
-| M50 | End-to-end production acceptance |
-| M51 | IntegratedAndroidWorkflowCoordinator |
-| M52 | Preflight risk and feasibility engine |
-| M53 | Independent Android quality gate |
-| M54 | Failure-mode prevention catalogue |
-| M55 | Acceptance-test traceability |
-| M56 | Architecture and contract drift detection |
-| M57 | Project handbook, release intelligence, and runtime analysis |
-| M58 | Validated repair promotion and final integration |
-| M59 | Reasoning Visibility and Streaming Milestones |
-| M60 | Reasoning Visibility and Streaming Milestones |
-| M61 | Reasoning Visibility and Streaming Milestones |
-| M62 | Brand and Asset Completion Milestones |
-| M63 | Brand and Asset Completion Milestones |
-| M64 | Brand and Asset Completion Milestones |
-| M65 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M66 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M67 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M68 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M69 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M70 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M71 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M72 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M73 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M74 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M75 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M76 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M77 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M78 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M79 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M80 | Agent Execution Kernel and Long-Horizon Runtime Formalization |
-| M81 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M82 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M83 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M84 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M85 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M86 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M87 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M88 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M89 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M90 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M91 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M92 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M93 | Long-Horizon Intelligence, Verification, and Documentation Certification |
-| M94 | Agent Reasoning Runtime and Bounded Delegation |
-| M95 | Deep Deliberation Runtime |
-| M96 | IntentSynthesisPromptContract and no-template enforcement |
-| M97 | Revision-bound PreviewCoordinator |
-| M98 | Truthful stepwise preview projection |
-| M99 | End-to-end synthesis and preview certification |
-| M100 | Canonical state, artifact, and completion semantics |
-| M101 | Evidence dependencies and operational integrations |
-| M102 | External-effect and resource-accounting reconciliation |
-| M103 | Profile maturity, trust, signing, and reproducibility certification |
-| M104 | Hidden-human-dependency and runtime-proof fixtures |
-| M105 | Schema parity and cross-document conformance |
-| M106 | Documentation-verifier conformance |
-| M107 | Integration boundary contract and wiring conformance |
-| M108 | Preview synchronization protocol and first Android vertical slice |
-| M109 | Preview projection resilience and runtime-certification evidence |
-| M110 | Event-driven autonomous continuation and specialist gates |
-| M111 | Runtime resource integrity and adaptive execution |
-| M112 | Agent-layer trust boundary and extension security |
-| M113 | Context compaction and cache governance |
-| M114 | Android runtime integrity and honest coverage |
-| M115 | Frontend–control-plane protocol and generated service adapter |
-| M116 | Background continuity and interruption recovery |
-| M117 | Local APK export provenance and delivery admission |
-| M118 | Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures |
-| M119 | Platform Skill Registry Persistence and Fail-Closed Selection |
-| M120 | Content and Writing Intelligence |
-| M121 | Durable Conversation Context |
-| M122 | Change Intelligence |
-| M123 | Recovery-first autonomous continuity certification |
-| M124 | Orchestration wiring matrix and end-to-end pipeline certification |
-| M125 | Long-Horizon Swarm Coordination Integrity |
-| M126 | Bounded local auxiliary decision engine and Laya certification |
+| Milestone | Title | Located in |
+|---|---|---|
+| M0 | Repository and Engineering Foundation | §3 |
+| M1 | Nirman.exe WinUI Shell | §4 |
+| M2 | Control Plane and Persistent State | §5 |
+| M3 | Provider Runtime Foundation | §6 |
+| M4 | Dynamic Android Project Synthesis and Local Runtime | §7 |
+| M5 | Single-Worker Autonomous Development Loop | §8 |
+| M6 | Permissions and Sandbox Profiles | §9 |
+| M7 | Supervisor Survives UI Close/Restart | §10 |
+| M8 | Multi-Worker Coordination | §11 |
+| M9 | Android Emulator Runtime, Embedded Live Preview, and Visual Testing | §12 |
+| M10 | Android Packaging | §13 |
+| M11 | Android Capability Registry and Representative Profile Coverage | §14 |
+| M12 | Advanced Extensibility | §15 |
+| M13 | Goal Mode and non-blocking background work | §20 |
+| M14 | Lifecycle hooks | §20 |
+| M15 | Scheduled automations | §20 |
+| M16 | Granular checkpoints and backtracking | §20 |
+| M17 | Context scaling and external-tool compatibility | §20 |
+| M18 | Durable task graph and nested execution tree | §22 |
+| M19 | Evidence-backed status and telemetry | §22 |
+| M20 | Autonomous validation coordinator | §22 |
+| M21 | Policy-boundary approvals and termination coordinator | §22 |
+| M22 | Provider-neutral AI settings and model gateway | §24 |
+| M23 | Controlled self-development loop | §24 |
+| M24 | Adaptive long-horizon provider execution | §24 |
+| M25 | Runtime supervisor and durable execution loop | §26 |
+| M26 | Graduated recovery ladder | §26 |
+| M27 | Self-observation and episode evaluation | §26 |
+| M28 | Self-improvement proposal manager | §26 |
+| M29 | Candidate canary, promotion, and rollback | §26 |
+| M30 | Canonical documentation and worker registry | §29 |
+| M31 | Autonomous-build policy and never-pause loop | §29 |
+| M32 | Persistent terminal subsystem | §29 |
+| M33 | Skills registry and invocation contract | §29 |
+| M34 | Windows lifecycle and multi-project resilience | §29 |
+| M35 | Long-horizon scale and unified execution surface | §29 |
+| M36 | Runtime authority and autonomous recovery invariants | §30 |
+| M37 | Android-only target contract | §30 |
+| M38 | Complete Android technology coverage | §30 |
+| M39 | AndroidConstructionContract and schema authority | §45 |
+| M40 | Pure session reducer and event replay | §45 |
+| M41 | ConstructionTransaction and commit barrier | §45 |
+| M42 | Renewable leases and operation capabilities | §45 |
+| M43 | AndroidToolchainManifest and clean-machine authority | §45 |
+| M44 | Provider bridge protocol and supervision | §45 |
+| M45 | Multi-language AndroidCodeIntelligence | §45 |
+| M46 | Structured mutation broker | §45 |
+| M47 | AndroidRequirementManifest and repair registry | §45 |
+| M48 | Preview fallback matrix and revision binding | §45 |
+| M49 | Decision trace, progressive disclosure, and resource governor | §45 |
+| M50 | End-to-end production acceptance | §45 |
+| M51 | IntegratedAndroidWorkflowCoordinator | §45 |
+| M52 | Preflight risk and feasibility engine | §45 |
+| M53 | Independent Android quality gate | §45 |
+| M54 | Failure-mode prevention catalogue | §45 |
+| M55 | Acceptance-test traceability | §45 |
+| M56 | Architecture and contract drift detection | §45 |
+| M57 | Project handbook, release intelligence, and runtime analysis | §45 |
+| M58 | Validated repair promotion and final integration | §45 |
+| M59 | Reasoning Visibility and Streaming Milestones | §45 |
+| M60 | Reasoning Visibility and Streaming Milestones | §45 |
+| M61 | Reasoning Visibility and Streaming Milestones | §45 |
+| M62 | Brand and Asset Completion Milestones | §45 |
+| M63 | Brand and Asset Completion Milestones | §45 |
+| M64 | Brand and Asset Completion Milestones | §45 |
+| M65 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M66 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M67 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M68 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M69 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M70 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M71 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M72 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M73 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M74 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M75 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M76 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M77 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M78 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M79 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M80 | Agent Execution Kernel and Long-Horizon Runtime Formalization | §45 |
+| M81 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M82 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M83 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M84 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M85 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M86 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M87 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M88 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M89 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M90 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M91 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M92 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M93 | Long-Horizon Intelligence, Verification, and Documentation Certification | §45 |
+| M94 | Agent Reasoning Runtime and Bounded Delegation | §45 |
+| M95 | Deep Deliberation Runtime | §45 |
+| M96 | IntentSynthesisPromptContract and no-template enforcement | §45 |
+| M97 | Revision-bound PreviewCoordinator | §45 |
+| M98 | Truthful stepwise preview projection | §45 |
+| M99 | End-to-end synthesis and preview certification | §45 |
+| M100 | Canonical state, artifact, and completion semantics | §45 |
+| M101 | Evidence dependencies and operational integrations | §45 |
+| M102 | External-effect and resource-accounting reconciliation | §45 |
+| M103 | Profile maturity, trust, signing, and reproducibility certification | §45 |
+| M104 | Hidden-human-dependency and runtime-proof fixtures | §45 |
+| M105 | Schema parity and cross-document conformance | §45 |
+| M106 | Documentation-verifier conformance | §45 |
+| M107 | Integration boundary contract and wiring conformance | §45 |
+| M108 | Preview synchronization protocol and first Android vertical slice | §45 |
+| M109 | Preview projection resilience and runtime-certification evidence | §45 |
+| M110 | Event-driven autonomous continuation and specialist gates | §45 |
+| M111 | Runtime resource integrity and adaptive execution | §45 |
+| M112 | Agent-layer trust boundary and extension security | §45 |
+| M113 | Context compaction and cache governance | §45 |
+| M114 | Android runtime integrity and honest coverage | §45 |
+| M115 | Frontend–control-plane protocol and generated service adapter | §45 |
+| M116 | Background continuity and interruption recovery | §45 |
+| M117 | Local APK export provenance and delivery admission | §45 |
+| M118 | Platform Capability System, Platform Build Skills, and Cross-Build Adversarial Fixtures | §45 |
+| M119 | Platform Skill Registry Persistence and Fail-Closed Selection | §45 |
+| M120 | Content and Writing Intelligence | §45 |
+| M121 | Durable Conversation Context | §45 |
+| M122 | Change Intelligence | §45 |
+| M123 | Recovery-first autonomous continuity certification | §45 |
+| M124 | Orchestration wiring matrix and end-to-end pipeline certification | §45 |
+| M125 | Long-Horizon Swarm Coordination Integrity | §45 |
+| M126 | Bounded local auxiliary decision engine and Laya certification | §45 |
 
 ## 5. ADR ranges
 

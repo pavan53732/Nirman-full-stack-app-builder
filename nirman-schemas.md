@@ -2,7 +2,7 @@
 
 This document is the single location of every fenced field-list schema of the Nirman specification (ADR-220). A schema block holds no authority of its own: the **Owner** line names the Build Spec (BS) or Technical Architecture (TA) section that owns the schema, and the block carries that section's precedence. **Contract** names the ContractId of the owning section in the build spec §67.8 registry, or `—` when the section is not a contract authority. **Projected at** lists the other sections that carried this block before the migration; each of them, and the owner, now carries a projection line of the form `> **Schema projection:** ` naming this section. Where the Build Spec and the Technical Architecture both carried a fence for one name, the block below is the merged one: the larger field set, the more specific type annotations, and every comment of the other copy kept in parentheses. A field line ending with `(<document> §x addition; build spec §67.11)` names a field that only the other document's copy carried; it is part of the block, and a field count stated by the owning document (build spec §80.2) refers to the lines without that marker. Field names, types, comments, and the field-count claims of build spec §80.2 are verified against these blocks by `tools/verify_contract_graph.py`. A citation of the form `SCHEMAS §N.k` resolves against this document; a bare `§N` inside a block was qualified with its origin document when the block moved.
 
-Group 1 holds schemas owned by the Build Spec in owner-section order; group 2 holds schemas owned by the Technical Architecture; group 3 holds the `CanonicalSchemaRegistry` list (ADR-189).
+Group 1 holds schemas owned by the Build Spec in owner-section order; group 2 holds schemas owned by the Technical Architecture; group 3 holds the `CanonicalSchemaRegistry` list (ADR-189). Four numbers in this group are reserved and hold no block: the schemas formerly numbered 1.83 through 1.86 are Technical-Architecture-owned and now sit at the end of group 2 as `§2.134`–`§2.137`, and the gap is left in place rather than renumbering the blocks that followed them, which would churn their citations without changing any schema's meaning.
 
 ## 1. Schemas owned by the Build Spec
 
@@ -1216,7 +1216,7 @@ AndroidTechnologyPlan
 - requestedCapabilities: string[] (CAP.ANDROID.* identifiers the goal requires)
 - selectedLanguages: ("kotlin" | "java" | "cpp" | "c")[]
 - uiSystem: ("jetpack_compose" | "android_views" | "mixed")?
-- nativeModules: string[] (Maven coordinates or npm package names)
+- nativeModules: string[] (Maven coordinates)
 - buildSystem: ("gradle_kotlin" | "gradle_groovy")?
 - gradleVersion: string (semver)?
 - agpVersion: string (semver)?
@@ -1232,7 +1232,7 @@ AndroidTechnologyPlan
 - permissions: string[] (Android permission names)
 - features: string[] (Android feature names)
 - services: string[] (service class names)
-- dependencies: string[] (Maven coordinates or npm package names)
+- dependencies: string[] (Maven coordinates)
 - testFrameworks: string[] (e.g., "junit", "espresso", "compose_ui_test")
 - validationPlan: string? (ValidationPlanner plan identity, TA §58.9)
 - rationale: string (human-readable explanation of technology choices)
@@ -1963,94 +1963,6 @@ LockedDecision
 - admittedAt: timestamp
 - createdAt: timestamp
 - updatedAt: timestamp
-```
-
-### 1.83 PreflightReport
-
-**Owner:** TA §53.2 · **Contract:** CONTRACT.RUNTIME.EVIDENCE · **Projected at:** BS §47.2, TA §53.2
-
-```text
-PreflightReport
-- report_id
-- session_id
-- technology_plan_hash
-- environment_snapshot_id
-- checks[]
-  - area
-  - status
-  - severity
-  - probability
-  - blocker
-  - evidence_ids
-  - mitigation
-  - fallback
-  - autonomous_repair_allowed
-- overall_status
-```
-
-### 1.84 SupervisorConnection
-
-**Owner:** TA §57.3 · **Contract:** CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE · **Projected at:** BS §76, TA §57.3
-
-```text
-SupervisorConnection
-- connection_id
-- ui_instance_id
-- supervisor_instance_id
-- protocol_version
-- installation_identity
-- authenticated_user_scope
-- project_scope
-- last_event_sequence
-- heartbeat_state
-- supervisor_health
-- reconnect_policy
-```
-
-### 1.85 LaunchSession
-
-**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
-
-```text
-LaunchSession
-- launchSessionId
-- previewRevisionId
-- projectRevisionId
-- artifactId
-- artifactFingerprint
-- emulatorSessionId
-- deviceId
-- applicationProcessId
-- deviceSessionId
-- externalEffectId
-- startedAt
-- committedAt
-```
-
-### 1.86 FrameStamp
-
-**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
-
-```text
-FrameStamp
-- frameSequence
-- capturedAt
-- monotonicTimestamp
-- deviceId
-- emulatorSessionId
-- runtimeSessionId
-- renderTransportGeneration
-- previewRevisionId
-- projectRevisionId
-- artifactFingerprint
-- deviceStateFingerprint
-- applicationStateFingerprint
-- runtimeObservationId
-- interactionCausalityId
-- width
-- height
-- pixelFormat
-- pixelBufferGeneration
 ```
 
 ### 1.87 CycleDecisionTrace
@@ -4081,7 +3993,7 @@ RenderTransport
 - closedAt
 ```
 
-`frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; `FrameNotice`'s field set is owned by §2.111, and `FrameStamp`'s canonical field list is defined at §1.86 (volatile transport metadata, never durable evidence); the `FrameStamp` identity consumed by `FrameQualityObservation.frameStampId` is bound in §2.110. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
+`frameNotice` and `frameStamp` are volatile transport projections. They are not durable `PreviewSyncEvent` records, do not carry an `eventSequence`, are not replayed, and cannot independently update `PreviewProjection`; `FrameNotice`'s field set is owned by §2.111, and `FrameStamp`'s canonical field list is defined at §2.137 (volatile transport metadata, never durable evidence); the `FrameStamp` identity consumed by `FrameQualityObservation.frameStampId` is bound in §2.110. The canonical durable preview state is represented by `PreviewSyncEvent`, `PreviewProjection`, `PreviewProjectionReducer`, and `PreviewSyncEvidenceRecord` (build spec §71.1).
 
 ### 2.90 WorkerConnection
 
@@ -5290,6 +5202,95 @@ AndroidArtifactInspectionRecord
 ```
 
 
+### 2.134 PreflightReport
+
+**Owner:** TA §53.2 · **Contract:** CONTRACT.RUNTIME.EVIDENCE · **Projected at:** BS §47.2, TA §53.2
+
+```text
+PreflightReport
+- report_id
+- session_id
+- technology_plan_hash
+- environment_snapshot_id
+- checks[]
+  - area
+  - status
+  - severity
+  - probability
+  - blocker
+  - evidence_ids
+  - mitigation
+  - fallback
+  - autonomous_repair_allowed
+- overall_status
+```
+
+### 2.135 SupervisorConnection
+
+**Owner:** TA §57.3 · **Contract:** CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE · **Projected at:** BS §76, TA §57.3
+
+```text
+SupervisorConnection
+- connection_id
+- ui_instance_id
+- supervisor_instance_id
+- protocol_version
+- installation_identity
+- authenticated_user_scope
+- project_scope
+- last_event_sequence
+- heartbeat_state
+- supervisor_health
+- reconnect_policy
+```
+
+### 2.136 LaunchSession
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
+
+```text
+LaunchSession
+- launchSessionId
+- previewRevisionId
+- projectRevisionId
+- artifactId
+- artifactFingerprint
+- emulatorSessionId
+- deviceId
+- applicationProcessId
+- deviceSessionId
+- externalEffectId
+- startedAt
+- committedAt
+```
+
+### 2.137 FrameStamp
+
+**Owner:** TA §10.7 · **Contract:** CONTRACT.RUNTIME.PREVIEW_SYNC · **Projected at:** TA §10.7
+
+```text
+FrameStamp
+- frameSequence
+- capturedAt
+- monotonicTimestamp
+- deviceId
+- emulatorSessionId
+- runtimeSessionId
+- renderTransportGeneration
+- previewRevisionId
+- projectRevisionId
+- artifactFingerprint
+- deviceStateFingerprint
+- applicationStateFingerprint
+- runtimeObservationId
+- interactionCausalityId
+- width
+- height
+- pixelFormat
+- pixelBufferGeneration
+```
+
+
 ## 3. Canonical schema registry
 
 ### 3.1 CanonicalSchemaRegistry
@@ -5576,5 +5577,5 @@ The registered identities below are prose-defined normative records: their shape
 - `DecisionNode` — normative shape prose-defined at build spec §52.13 (decision nodes, uncertainty, contradiction, and plan recompilation); its implementing component is `DecisionNodeManager` (technical architecture §58.12); no projected field block (ADR-241).
 - `FailureContextPackage` — normative shape prose-defined at technical architecture §63.2 (localization pipeline) as the Diagnostic Worker's root-cause product; no projected field block (ADR-241).
 - `TargetPlatformSet` — normative shape prose-defined at build spec §5.7.8 (Android target and provider-context boundaries), where it is fixed to `{ANDROID}`; no projected field block (ADR-241).
-- `AndroidToolchainManifest` — normative shape prose-defined at build spec §79.7 (platform-specific build and validation skills), recording the locked JDK, Gradle, Android SDK, platform tools, and selected Node and package manager; no projected field block (ADR-241).
+- `AndroidToolchainManifest` — normative shape prose-defined at build spec §79.7 (platform-specific build and validation skills), recording the locked JDK, Gradle, Android SDK, and platform tools; no projected field block (ADR-241).
 - `ChangeIntelligenceRecoveryJob` — prose-defined normative identity of the `RecoveryAuthority`-owned reconstruction job described by build spec §83.2 and technical architecture §87.6; it is a durable, idempotent unit of recovery work keyed by `transactionId`, not a component, authority, or service, and commits only through `RecoveryAuthority`; no projected field block (ADR-241).

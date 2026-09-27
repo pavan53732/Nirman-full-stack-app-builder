@@ -16,7 +16,7 @@
 
 **NirmanWorker.exe** — The Rust reasoning host the supervisor spawns once per worker lease: an AppContainer process in its own Job Object with no authority, credential, file, socket, or child, whose only input and output is its `WorkerConnection`. — TA §3.5; TA §57.11; ADR-222.
 
-**SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; TA §57.3; SCHEMAS §1.84; ADR-117.
+**SupervisorConnection** — The authenticated named-pipe channel through which `Nirman.exe` talks to `NirmanSupervisor.exe`. — TA §14; TA §57.3; SCHEMAS §2.135; ADR-117.
 
 **ProviderRequestProvenance** — The durable metadata-only record for one logical provider request across attempts, with context, prompt-contract, model, adapter, response, retention, and validation lineage but no credentials, private reasoning, or unnecessary raw payload. — TA §24.4; SCHEMAS §2.130.
 
@@ -122,17 +122,17 @@
 
 **Frame-quality observation** — Revision-bound diagnostic evidence describing frame timing, drops, sequence continuity, visual freeze/blank conditions, and presentation-surface health without becoming preview truth. — TA §10.7; SCHEMAS §2.110; ADR-236.
 
-**FrameStamp** — The 18-field volatile transport metadata identity stamped on each delivered frame (frame sequence, capture time, device/emulator/runtime identity, revision and state fingerprints, geometry); it is never durable evidence, never an event, and never a promotion input. — TA §10.7; SCHEMAS §1.86.
+**FrameStamp** — The 18-field volatile transport metadata identity stamped on each delivered frame (frame sequence, capture time, device/emulator/runtime identity, revision and state fingerprints, geometry); it is never durable evidence, never an event, and never a promotion input. — TA §10.7; SCHEMAS §2.137.
 
 **IntegrationBoundaryContract** — The persisted envelope that identifies source, destination, adapter, authority, operation, and transaction domain for an integration boundary. — BS §70; TA §74; SCHEMAS §1.36.
 
 **IntegrationOperationality** — The aggregated connectivity, authentication, availability, functional, and acceptance states of one integration. — BS §5.7.5; SCHEMAS §1.3.
 
-**LaunchSession** — The first-class session identity of one application launch on the Nirman-managed local Android emulator, binding the preview revision, artifact, device session, and install/launch effect records; it carries no independent status lifecycle — launch state derives from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`. — TA §10.7; SCHEMAS §1.85.
+**LaunchSession** — The first-class session identity of one application launch on the Nirman-managed local Android emulator, binding the preview revision, artifact, device session, and install/launch effect records; it carries no independent status lifecycle — launch state derives from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`. — TA §10.7; SCHEMAS §2.136.
 
 **PackagingProfile** — The canonical artifact and delivery policy (required APK, optionally declared AAB). — BS §5.7.3; SCHEMAS §1.2.
 
-**PreflightReport** — The deterministic feasibility report `PreflightService` and `RiskAndFeasibilityEngine` produce before expensive generation begins, covering provider, toolchain, workspace, device, dependency, requirement, permission, signing, storage, and validation-capacity checks. — BS §47.2; TA §53.2; SCHEMAS §1.83.
+**PreflightReport** — The deterministic feasibility report `PreflightService` and `RiskAndFeasibilityEngine` produce before expensive generation begins, covering provider, toolchain, workspace, device, dependency, requirement, permission, signing, storage, and validation-capacity checks. — BS §47.2; TA §53.2; SCHEMAS §2.134.
 
 **PreviewRevision** — The revision-bound record of every preview panel state, with the closed `previewMode` enumeration. — BS §69.4; TA §73; SCHEMAS §1.35.
 
@@ -256,7 +256,7 @@
 
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
 
-**Execution profiles** — Exactly five sandbox profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. — BS §26.5; TA §9.
+**Sandbox profiles** — Exactly five process-isolation profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. These are the `profile.sandbox` concept of TA §16.2.2 and are distinct from the `profile.execution` concept of that section, which is a single PolicyAuthority approval policy. — BS §26.5; TA §9.1; TA §16.2.2.
 
 **FeatureUsageTracker** — The telemetry module scaffolding local feature adoption counters, first-use flags, and interaction frequency tracking via Jetpack DataStore. — TA §73.17.8; BS §43.1.
 

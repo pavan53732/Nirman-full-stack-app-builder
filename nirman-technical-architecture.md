@@ -213,17 +213,14 @@ The runtime must select and apply an eligible deterministic recovery strategy us
 This machine implements the canonical task-execution state set of build spec §26.14 (`TaskExecutionState`) with exactly its names; it adds none and omits none.
 
 ```text
-QUEUED → PLANNING → READY → RUNNING → VALIDATING → RECONCILING → COMPLETED
-                    │          │          │
-                    │          │          ├── WAITING_APPROVAL
-                    │          │          ├── WAITING_RESOURCE
-                    │          │          ├── RECOVERING
-                    │          │          ├── PAUSED
-                    │          │          └── CANCEL_REQUESTED
-                    │          │
-                    │          └── FAILED_RETRYABLE → RECOVERING
-                    │
-                    └── ESCALATED
+QUEUED → PLANNING → READY → RUNNING → VALIDATING → RECONCILING → COMPLETED or ESCALATED
+                            │
+                            ├── WAITING_APPROVAL
+                            ├── WAITING_RESOURCE
+                            ├── RECOVERING
+                            ├── PAUSED
+                            ├── FAILED_RETRYABLE → RECOVERING
+                            └── CANCEL_REQUESTED
 ```
 
 `RECONCILING` resolves unknown external effects, leases, emulator sessions, or provider responses after validation and before completion (build spec §77); `PAUSED` is entered only by a user or policy directive and resumes to `RUNNING`. Every transition should include a reason, actor, timestamp, task revision, and event ID. The transition function must reject invalid transitions, such as moving a cancelled task directly to completed without a new retry decision.
@@ -454,9 +451,9 @@ If integration fails, the integration workspace remains available for inspection
 
 ## 9. Sandbox and Security Architecture
 
-### 9.1 Execution profiles
+### 9.1 Sandbox profiles
 
-Nirman should implement the five execution profiles of build spec §26.5, which is the canonical profile set; this table restates it without adding or removing a profile:
+Nirman should implement the five sandbox profiles of build spec §26.5, which is the canonical profile set; this table restates it without adding or removing a profile. These are the `profile.sandbox` concept of §16.2.2 — process isolation and resource limits — and are distinct from the `profile.execution` concept of that section:
 
 | Profile | Characteristics |
 |---|---|
@@ -623,10 +620,10 @@ Failure kinds the watchdog reports:
 > **Schema projection:** `AndroidRuntimeObservation` is defined in `nirman-schemas.md` §2.109. Owner: TA §10.7.
 
 > **Schema projection:** `FrameQualityObservation` is defined in `nirman-schemas.md` §2.110. Owner: TA §10.7.
-> **Schema projection:** `LaunchSession` is defined in `nirman-schemas.md` §1.85. Owner: TA §10.7.
-> **Schema projection:** `FrameStamp` is defined in `nirman-schemas.md` §1.86. Owner: TA §10.7.
+> **Schema projection:** `LaunchSession` is defined in `nirman-schemas.md` §2.136. Owner: TA §10.7.
+> **Schema projection:** `FrameStamp` is defined in `nirman-schemas.md` §2.137. Owner: TA §10.7.
 
-**LaunchSession and FrameStamp binding.** `LaunchSession` is the durable session identity of one application launch. It is persisted by the storage authority within the launch transaction family of §36.5 and commits with the `LaunchTransactionCommitted` stage of build spec §69.4.1 — the launch `ExternalEffectRecord` committed with `LaunchSession.committedAt` (`nirman-schemas.md` §1.85) written and `DeviceTransaction.observationState` (`nirman-schemas.md` §2.35) at `LAUNCHED`; `startedAt` is written at launch begin. It carries no status field of its own: launch state derives from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState` (`nirman-schemas.md` §1.35) only. After supervisor restart or an interrupted launch, its state is reconstructed from `DeviceTransaction.observationState` and `ExternalEffectTransaction.reconciliationState` (`nirman-schemas.md` §2.36) under the existing recovery/reconciliation authority; an unresolved launch outcome stays in reconciliation until the effect and device records resolve it. Cancellation and restart follow the existing lifecycle authority and the external-effect compensation path — a cancelled or fenced launch commits no session record that can advance preview. A `LaunchSession` is invalidated by a newer `previewRevisionId`, by emulator-session or device loss, or by artifact-fingerprint mismatch, and is never evidence: `AndroidRuntimeObservation` records bind to it via `launchSessionId`, and device or session loss invalidates dependent runtime evidence under the existing evidence-invalidation rules. `FrameStamp` exists per delivered frame and transport generation only — never persisted as durable state or evidence, superseded by each new frame and by transport-generation rollover. M9 owns the runtime fixture family for both identities; the documentation verifier's mutation battery owns the negative fixtures.
+**LaunchSession and FrameStamp binding.** `LaunchSession` is the durable session identity of one application launch. It is persisted by the storage authority within the launch transaction family of §36.5 and commits with the `LaunchTransactionCommitted` stage of build spec §69.4.1 — the launch `ExternalEffectRecord` committed with `LaunchSession.committedAt` (`nirman-schemas.md` §2.136) written and `DeviceTransaction.observationState` (`nirman-schemas.md` §2.35) at `LAUNCHED`; `startedAt` is written at launch begin. It carries no status field of its own: launch state derives from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState` (`nirman-schemas.md` §1.35) only. After supervisor restart or an interrupted launch, its state is reconstructed from `DeviceTransaction.observationState` and `ExternalEffectTransaction.reconciliationState` (`nirman-schemas.md` §2.36) under the existing recovery/reconciliation authority; an unresolved launch outcome stays in reconciliation until the effect and device records resolve it. Cancellation and restart follow the existing lifecycle authority and the external-effect compensation path — a cancelled or fenced launch commits no session record that can advance preview. A `LaunchSession` is invalidated by a newer `previewRevisionId`, by emulator-session or device loss, or by artifact-fingerprint mismatch, and is never evidence: `AndroidRuntimeObservation` records bind to it via `launchSessionId`, and device or session loss invalidates dependent runtime evidence under the existing evidence-invalidation rules. `FrameStamp` exists per delivered frame and transport generation only — never persisted as durable state or evidence, superseded by each new frame and by transport-generation rollover. M9 owns the runtime fixture family for both identities; the documentation verifier's mutation battery owns the negative fixtures.
 
 **Baseline and permitted transport upgrade.** The transport is a named, versioned interface. Its required baseline is the emulator's local gRPC control endpoint on loopback, using its screenshot-stream RPC. Low frame rate, minimal dependencies, sufficient for a truthful preview. The permitted upgrade is a WebRTC/video-stream path for higher frame rate and input forwarding, admitted through the SAME `PreviewPromotionGate`. Not a second authority.
 
@@ -2854,7 +2851,7 @@ The coordinator must be idempotent at every boundary. Replaying a scheduling or 
 
 `PreflightService` gathers deterministic host, provider, workspace, toolchain, device, dependency, requirements, and resource facts. `RiskAndFeasibilityEngine` converts those facts into a `PreflightReport`.
 
-> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §1.83. Owner: TA §53.2.
+> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §2.134. Owner: TA §53.2.
 
 Routine environment repairs may be dispatched through authorized capabilities. The report must distinguish unavailable credentials, policy restrictions, required device absence, provider limitations, and repairable local deficiencies.
 
@@ -2996,7 +2993,7 @@ The analyzer must redact secrets, tokens, personal data, and full user content b
 
 ### 53.8 DependencyHealthService
 
-`DependencyHealthService` evaluates Gradle, Maven, npm/pnpm/yarn when selected, native module, and lockfile dependencies for version compatibility, transitive conflicts, known vulnerabilities, license policy, provenance, size impact, duplicate classes, and upgrade risk.
+`DependencyHealthService` evaluates Gradle, Maven, native module, and lockfile dependencies for version compatibility, transitive conflicts, known vulnerabilities, license policy, provenance, size impact, duplicate classes, and upgrade risk.
 
 Dependency changes are proposed through ConstructionTransaction and require restore, build, relevant tests, security review, and rollback evidence before commit.
 
@@ -3295,19 +3292,17 @@ The Rust side is one Cargo workspace under `crates/`. The crate boundaries follo
 | `nirman-domain` | Canonical schemas of §36.1 as Rust types, enumerations of build spec §5.7.2, `CanonicalSchemaRegistry` metadata | nothing internal |
 | `nirman-ipc` | `UICommandEnvelope`, `UIResponseEnvelope`, `UIErrorEnvelope`, `EventSubscription`, `command_registry()` mirroring build spec §76.1, the named-pipe `SupervisorConnection` protocol (§57.3) | `nirman-domain` |
 | `nirman-policy` | `PolicyAuthority`, permission profiles (build spec §26.5), operation capabilities | `nirman-domain` |
-| `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, `ConstructionTransactionManager` and the `CommitBarrier` (§45.3, §45.4), `LeaseManager` (§46), `CheckpointManager` (§18), `ToolBroker` (§57.8), `TerminalSupervisor` (§57.7), `UpdateController` (§57.4), `ResourceIntegrityAuthority` (§51.3), `ConversationContinuationResolver` (§86.2), the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc` | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
+| `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, `ConstructionTransactionManager` and the `CommitBarrier` (§45.3, §45.4), `LeaseManager` (§46), `CheckpointManager` (§18), `ToolBroker` (§57.8), `TerminalSupervisor` (§57.7), `UpdateController` (§57.4), `ResourceIntegrityAuthority` (§51.3), `ConversationContinuationResolver` (§86.2), the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc`, `LocalDecisionEngineProvisioner` (§49.5) | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
 | `nirman-evidence` | `EvidenceAuthority`, evidence dependency graph, `ExportVerificationRecord` verification, `CapabilityPromotionAuthority` (§36.5) | `nirman-domain` |
 | `nirman-provider` | `ModelGateway` (§48), `ProviderAdapter` implementations (§57.8.1), provider bridge lifecycle and failure behaviour (§48.1, §48.3), `UsageRecord` telemetry (§36.4) | `nirman-domain`, `nirman-policy` |
 | `nirman-context` | `ContextOrchestrator` and the §59.1 components, `MemoryStore` and `MemoryWriter` with `ProjectMemoryStore` (§59.5, §31), `ContextPackage` assembly (§59.6) | `nirman-domain`, `nirman-control-plane`, `nirman-evidence` |
 | `nirman-worker-ipc` | The `WorkerConnection` protocol (§57.11; §3.5): launch-token handshake, heartbeat, and the worker and supervisor message kinds | `nirman-domain` |
-| `nirman-kernel` | `AgentExecutionKernel` (§58): the AUTHORIZE through EVALUATE_PROGRESS stages, `AgentLoopReducer`, `WorkerRuntime` (spawns and supervises one `NirmanWorker.exe` per lease), `SwarmPlanner`, `DelegationProtocol`, `CapabilityBroker`, `GoalInterpreter`, `TaskGraphCompiler`, `ProgressEvaluator`, and the other §58.1 modules, the supervisor end of `WorkerConnection` | `nirman-domain`, `nirman-policy`, `nirman-control-plane`, `nirman-worker-ipc`, `nirman-provider`, `nirman-context` |
+| `nirman-kernel` | `AgentExecutionKernel` (§58): the AUTHORIZE through EVALUATE_PROGRESS stages, `AgentLoopReducer`, `WorkerRuntime` (spawns and supervises one `NirmanWorker.exe` per lease), `SwarmPlanner`, `DelegationProtocol`, `CapabilityBroker`, `GoalInterpreter`, `TaskGraphCompiler`, `ProgressEvaluator`, and the other §58.1 modules, the supervisor end of `WorkerConnection`, `LocalDecisionEngine` (§58.17) | `nirman-domain`, `nirman-policy`, `nirman-control-plane`, `nirman-worker-ipc`, `nirman-provider`, `nirman-context`, `nirman-evidence` |
 | `nirman-agents` | `AgentReasoningEngine` (§71), `DeepDeliberationRuntime` (§72), `PrivateReasoningRuntime`, `StructuredReasoningSummarizer` (§55.1), worker-role reasoning profiles, the worker end of `WorkerConnection`; linked by `NirmanWorker.exe` only | `nirman-domain`, `nirman-worker-ipc` |
 | `nirman-android` | `AndroidWorkflowCoordinator`, `AndroidTechnologyResolver` (§73.2) and the technology adapters (§73.10), build and device adapters, `ToolchainAuthority` with `ToolchainProvisioner` (§49), `RequirementAuthority` with `AndroidRepairRegistry` (§51.1) | `nirman-domain`, `nirman-policy`, `nirman-evidence` |
 | `nirman-preview` | `PreviewCoordinator`, `PreviewPromotionGate` (§73.5.1), `PreviewProjectionReducer`, `PreviewRequest`, `RenderTransport` (§10.7) | `nirman-domain`, `nirman-android`, `nirman-evidence` |
 | `nirman-artifacts` | `ArtifactAuthority`, `PackagingProfile` admission, local export handler (§83) | `nirman-domain`, `nirman-evidence`, `nirman-policy` |
 | `nirman-skills` | Skill registry, `SkillAdmission`/`SkillInvocationRecord` persistence (§19.1), built-in bodies and manifests under `skills/` | `nirman-domain`, `nirman-policy` |
-| `nirman-control-plane` | `LocalDecisionEngineProvisioner` (§49.5) | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
-| `nirman-kernel` | `LocalDecisionEngine` (§58.17) | `nirman-domain`, `nirman-control-plane`, `nirman-evidence` |
 
 `NirmanSupervisor.exe` links every crate of this table except `nirman-agents`; `NirmanWorker.exe` links `nirman-domain`, `nirman-worker-ipc`, and `nirman-agents` and nothing else — no ledger, no policy engine, no adapter, no provider client (§3.5); `Nirman.exe` links only the generated `nirman-ipc` client bindings. A crate that reaches across this table (for example `nirman-preview` writing the ledger directly, `nirman-ipc` containing domain logic, or `nirman-agents` depending on `nirman-control-plane`) or a binary that links outside its row violates §57.2 and §3.5 and is rejected at code review by the M0 module-boundary check (development plan M0, "Repository layout").
 
@@ -3356,7 +3351,7 @@ The first implementation may host the Rust control-plane modules in-process with
 
 ### 57.3 SupervisorConnection
 
-> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §1.84. Owner: TA §57.3.
+> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §2.135. Owner: TA §57.3.
 
 The connection performs a protocol/version handshake, authenticates the UI instance, validates project scope, subscribes to durable events after a supplied sequence, reports supervisor health, and handles reconnect after UI crash, UI restart, supervisor restart, Windows reboot, and sleep/resume. A UI connection cannot impersonate another project, publish forged events, or invoke a command outside its capability scope.
 

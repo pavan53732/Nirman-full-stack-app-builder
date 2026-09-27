@@ -1707,7 +1707,7 @@ Partial integration should be transactional. If the integrated workspace fails i
 
 ### 26.5 Sandbox profiles and operating-system isolation
 
-Path-based permissions are necessary but are not sufficient as a sandbox. Nirman should implement multiple execution profiles.
+Path-based permissions are necessary but are not sufficient as a sandbox. Nirman should implement multiple sandbox profiles.
 
 | Profile | Isolation approach | Intended use |
 |---|---|---|
@@ -1717,7 +1717,7 @@ Path-based permissions are necessary but are not sufficient as a sandbox. Nirman
 | Disposable/Isolated | Temporary, fully isolated environment destroyed after use; no access to the durable workspace, credentials, or host state | Unverified packages and untrusted code execution (§26.7; technical architecture §9.4) |
 | Review-only | No write access and no arbitrary process execution | Diff, security, and architecture analysis (§23.17) |
 
-This table is the canonical execution-profile set: exactly these five profiles exist, technical architecture §9.1 restates them without adding or removing one, and a profile that is not tabled here cannot be assigned to a worker. The exact isolation technology may vary by Windows edition and deployment environment, but the abstraction must be stable. Every worker receives a declared profile, workspace mount, environment variables, network policy, process quota, and cleanup policy.
+This table is the canonical sandbox-profile set: exactly these five profiles exist, technical architecture §9.1 restates them without adding or removing one, and a profile that is not tabled here cannot be assigned to a worker. They are sandbox profiles in the sense of technical architecture §16.2.2 — process isolation and resource limits — and are not the execution profile of that section, which is a distinct PolicyAuthority concept with exactly one instance. The exact isolation technology may vary by Windows edition and deployment environment, but the abstraction must be stable. Every worker receives a declared profile, workspace mount, environment variables, network policy, process quota, and cleanup policy.
 
 ### 26.6 Resource quota enforcement
 
@@ -1846,6 +1846,8 @@ This section defines advanced autonomy requirements for Nirman. These are produc
 ### 27.1 Goal Mode
 
 Nirman must provide a **Goal Mode** for tasks where the user defines a completion condition once and expects the application to continue working without repeated prompts.
+
+**Goal Mode is not a second operating mode.** ADR-226 leaves Nirman exactly one operating mode — Autonomous-build — and withdraws every user-selectable autonomy level, so the user never selects an autonomy level and instead states a goal; Goal Mode names the *long-horizon task shape* within that one mode, namely a task whose completion condition the user declares once, rather than an alternative to it. The seven modes ADR-226 withdraws (Plan, Explore, Assisted build, Autonomous build, Review, Debug, Release) and the two approval profiles it collapses were autonomy levels and approval profiles, and none of them is this task shape; what they encoded survives as observation-only and planning worker roles and as the single Autonomous-build approval policy. Every Goal Mode task therefore runs under the one policy of §23.3 and §23.7, and no Goal Mode task offers a selectable autonomy level.
 
 A Goal Mode task must contain:
 
@@ -2544,14 +2546,20 @@ Before a refinement, Nirman MUST calculate affected files, modules, resources, t
 
 The live preview coordinator MUST select a preview mode appropriate to the selected Android technology and current revision.
 
-| Preview mode | Use case | Required evidence |
-|---|---|---|
-| Incremental emulator install | Native changes that compile successfully | Install result, process health, screenshot |
-| Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
-| Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
-| Nirman-managed local Android emulator preview | Canonical Android live-preview runtime | Emulator identity, install, launch, interaction, capture, Logcat |
-| Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
-| Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
+The canonical `previewMode` vocabulary is the eight-value `PreviewRevision.previewMode` enumeration of SCHEMAS §1.35, restated by the resolver in TA §73.11. This table is the crosswalk between that enumeration and the prose names used elsewhere in the specification; a prose name is not a separate mode.
+
+| Canonical `previewMode` | Prose name | Use case | Required evidence |
+|---|---|---|---|
+| `COMPOSE_RELOAD` | Compose reload | Compose-compatible UI change | Reload event, state continuity, screenshot |
+| `INCREMENTAL_APK_INSTALL` | Incremental emulator install | Native changes that compile successfully | Install result, process health, screenshot |
+| `FULL_APK_REINSTALL` | Full APK reinstall | Manifest, resource, dependency, native, or major build change | APK hash, install, launch, screenshot |
+| `CONSERVATIVE_FULL_REINSTALL` | Conservative full reinstall | A full reinstall selected because the impact information was insufficient to prove a faster safe path, not because a faster path was proven unsafe (TA §73.11) | APK hash, install, launch, screenshot |
+| `HEADLESS_SMOKE` | Headless smoke test | Preview device unavailable | Test output, runtime logs, health result |
+| `DIAGNOSTIC_SOURCE_ONLY` | Diagnostic/source preview | Build unavailable during recovery | Diagnostics only; cannot satisfy completion |
+| `USER_REQUIRED` | User input required | The requirement, permission, or external fact the preview needs is genuinely missing (BS §27.10) | The recorded requirement-level decision; no preview is produced |
+| `BLOCKED` | Blocked | A dependency, environment capability, or permission is missing at the current recovery level (BS §27.10) | The recorded requirement-level decision; no preview is produced |
+
+The Nirman-managed local Android emulator is the canonical preview **runtime** (TA §10.7), not a preview mode: every mode that executes a build or interaction runs on it, and it is not an alternative to any row above.
 
 Every preview is bound to PreviewRevision, project revision, emulator identity, build variant, and technology plan. A stale preview MUST be visibly labeled and MUST NOT satisfy final completion gates.
 
@@ -2733,7 +2741,7 @@ The coordinator MUST persist each boundary as a durable event and MUST be able t
 
 ### 47.2 PreflightReport and feasibility gate
 
-> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §1.83. Owner: TA §53.2.
+> **Schema projection:** `PreflightReport` is defined in `nirman-schemas.md` §2.134. Owner: TA §53.2.
 
 Before expensive generation begins, Nirman MUST produce a `PreflightReport`. The report evaluates the selected or candidate technology plan against the local environment, project constraints, provider capabilities, privacy policy, emulator availability, and expected validation work.
 
@@ -5119,12 +5127,12 @@ stage of that chain is a mapping onto an existing canonical identity:
 | BuildArtifact | `ArtifactSet` / `ArtifactRecord` plus `AndroidBuildObservation` |
 | BuildArtifactValidated | `ValidationResult` |
 | InstallTransaction, InstallTransactionCommitted | install effects carried by `ExternalEffectRecord` plus device-transaction state (`DeviceTransaction.observationState` advancing to `INSTALLED`) |
-| LaunchSession | the launch session identity `LaunchSession` (`nirman-schemas.md` §1.85) |
-| LaunchTransactionCommitted | the launch effect's commit: the launch `ExternalEffectRecord` committed with `LaunchSession.committedAt` (`nirman-schemas.md` §1.85) written and `DeviceTransaction.observationState` (`nirman-schemas.md` §2.35) at `LAUNCHED` |
+| LaunchSession | the launch session identity `LaunchSession` (`nirman-schemas.md` §2.136) |
+| LaunchTransactionCommitted | the launch effect's commit: the launch `ExternalEffectRecord` committed with `LaunchSession.committedAt` (`nirman-schemas.md` §2.136) written and `DeviceTransaction.observationState` (`nirman-schemas.md` §2.35) at `LAUNCHED` |
 | AndroidApplicationProcess | `applicationProcessId` |
 | RuntimeStateObservation | `AndroidRuntimeObservation` |
 | FrameCapture | an `AndroidDeviceAdapter` operation |
-| FrameStamp | `FrameStamp` (`nirman-schemas.md` §1.86) — volatile transport metadata, not durable evidence |
+| FrameStamp | `FrameStamp` (`nirman-schemas.md` §2.137) — volatile transport metadata, not durable evidence |
 | RenderTransport, PreviewHost, PreviewProjection, EvidenceRecord | these identities remain canonical as already defined |
 
 No stage may substitute simulated UI, source rendering, detached emulator windows,
@@ -5442,7 +5450,7 @@ The reducer applies events by the durable per-project/task `eventSequence`. Reap
 
 An event whose sequence is older than `lastAppliedEventSequence` is accepted only as a replay match. It cannot overwrite a newer projection. An event with a project revision, checkpoint, source fingerprint, artifact fingerprint, emulator state fingerprint, application state fingerprint, environment state fingerprint, contract version, or branch identity incompatible with the active candidate is marked `STALE` or `INVALIDATED` and cannot update current preview fields.
 
-When the UI or event stream disconnects, the panel keeps the last durable projection, sets `streamStatus: STALE_STREAM`, and cannot advance lifecycle, execution truth, evidence, or promotion locally. On reconnect, the authenticated supervisor sends a snapshot and replays the missing event range. The reducer verifies the snapshot cursor, event continuity, and projection revision before returning to `CONNECTED`.
+When the UI or event stream disconnects, the panel keeps the last durable projection, sets `PreviewProjectionReducer.streamStatus` (SCHEMAS §1.39) to `STALE_STREAM`, and cannot advance lifecycle, execution truth, evidence, or promotion locally. `streamStatus` is a reducer field and is not a `PreviewProjection` dimension (SCHEMAS §1.38), which carries `*State` dimensions only. On reconnect, the authenticated supervisor sends a snapshot and replays the missing event range. The reducer verifies the snapshot cursor, event continuity, and projection revision before returning to `CONNECTED`.
 
 A late build, install, launch, screenshot, test, or worker event may contribute historical evidence to its matching candidate only. It cannot replace the active preview or last-known-good preview. Events received after cancellation, rollback, promotion, or worker fencing are historical or quarantined unless a new operation explicitly re-authorizes them under a new lineage.
 
@@ -5602,7 +5610,7 @@ Fixtures must cover applicable and inapplicable Play Integrity, ANR capture, sta
 **ContractId:** `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 **Registry role:** authoritative definition of `CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE`
 
-> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §1.84. Owner: TA §57.3.
+> **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §2.135. Owner: TA §57.3.
 
 `FrontendControlPlaneContract` is the registered identity of this section's normative contract family. Its authoritative field shape is the command-registry and envelope contract fixed by §76.1, §76.2, and §76.3; it carries no projected field block while that shape is declared pending (ADR-241).
 
@@ -5999,7 +6007,7 @@ The `requiredCapabilities` of the ninety-two built-in skills are drawn from this
 | `ENVIRONMENT_REPAIR` | Authorized toolchain, SDK, PATH, or configuration repair may execute | repair capability plus policy admission (§26.11) |
 | `WINDOWS_HOST_TOOLCHAIN` | .NET SDK, Windows App SDK, MSBuild, and the Rust toolchain for Windows x64 are present | toolchain preflight |
 | `WINDOWS_NATIVE_EXECUTION` | A leased Windows `ValidationEnvironment` (§79.8) can launch and observe Nirman's own executables | lease acquisition plus observation; `UNAVAILABLE` without a lease |
-| `ANDROID_BUILD_TOOLCHAIN` | JDK, Gradle, Android SDK, platform tools, and (when selected) Node and package manager are present and locked (`AndroidToolchainManifest`, TA §49) | Android toolchain authority |
+| `ANDROID_BUILD_TOOLCHAIN` | JDK, Gradle, Android SDK, and platform tools are present and locked (`AndroidToolchainManifest`, TA §49) | Android toolchain authority |
 | `ANDROID_EMULATOR_EXECUTION` | An accelerated Nirman-managed local emulator session can be leased (§79.16) | hypervisor and emulator preflight; `UNAVAILABLE` without acceleration; no physical-device substitutes (§4.4) |
 | `DESIGN_IMPORT` | A Figma access token or local design file is available for extracting design tokens and UI structure | Figma API connectivity or local file presence |
 | `ANDROID_SOURCE_ENGINEERING` | Android source code can be generated, edited, and statically analyzed | build toolchain observation |
@@ -6368,7 +6376,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.4 | "the system should preserve both alternatives in isolated branches and ask the user" | MUST preserve both and ask | When all four criteria tie or evidence is insufficient. Discarding either alternative is prohibited |
 | BS §26.4 | "Partial integration should be transactional" | MUST be transactional | Integration either fully applies or fully rolls back. A partially merged main workspace is an illegal state |
 | BS §26.4 | "Nirman should roll back to the parent checkpoint or keep the result isolated" | MUST roll back or isolate | Roll back when the parent checkpoint is intact; isolate when rollback would lose validated work. Never leave main half-merged |
-| BS §26.5 | "Nirman should implement multiple execution profiles" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only. Restricted process is the default for autonomous execution; TA §9.1 restates the same five |
+| BS §26.5 | "Nirman should implement multiple sandbox profiles" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only. Restricted process is the default for autonomous execution; TA §9.1 restates the same five |
 | BS §26.6 | "runtime should monitor CPU, memory, disk, process-count, output-size, elapsed time, and network usage" | MUST monitor all seven | Sampled at the §80.3 telemetry interval of 30 seconds |
 | BS §26.6 | "Ordinary usage thresholds should trigger telemetry, throttling, concurrency reduction, context compaction, or an approval request" | MUST trigger the graduated response | The three graduated thresholds and the constrained-host predicate are owner-approved and normatively defined in §26.6 (ADR-229); this row resolves the "should" and restates no value. Context compaction at 80% of context limit is a separate parameter owned by §80.3. Approval request only when the user configured one |
 | BS §26.6 | "Windows Job Objects should be used where appropriate" | MUST use Job Objects | For every supervised process tree, for accounting and termination. "Where appropriate" means wherever a child process is created |
@@ -6603,7 +6611,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | TA §7.5 | "the runtime should request an operating-system execution power policy where supported" | MUST request it during active Goal Mode work where the OS supports it; the user MAY disable it (default enabled) | The request is made only while a build, test, emulator, or provider operation is active and released when the last one ends; the setting is visible in the UI; where the OS does not support it the runtime records `unsupported` rather than claiming it was applied |
 | TA §7.5 | "the control plane should record the pending decision and show it on the next connection" | MUST record and re-present | A suppressed notification never results in a silently parked task; the pending decision is visible in the in-app queue regardless of notification state |
 | TA §7.5 | "The Autonomous-build policy should resolve routine approval states by policy" | MUST pre-resolve routine approvals by policy; MUST NOT waive hard-gated decisions | Routine reviewable actions are decided by the standing policy; the BS §23 per-action confirmations for publish, sign, and upload remain and are not waived by any setting |
-| TA §9.1 | "Nirman should implement the five execution profiles of build spec §26.5" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, and Review-only exist and are selectable; a sixth profile is a change to BS §26.5 rather than a runtime addition |
+| TA §9.1 | "Nirman should implement the five sandbox profiles of build spec §26.5" | MUST implement exactly the five tabled profiles | Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, and Review-only exist and are selectable; a sixth profile is a change to BS §26.5 rather than a runtime addition |
 | TA §9.1 | "The interface should explain when a requested operation requires a stronger profile" | MUST state the required profile and the reason | The message names the current profile, the required profile, and the specific capability that is missing; a bare refusal without the three is a defect |
 | TA §9.2 | "The Windows runtime should use process-tree management and resource accounting through Windows Job Objects where available" | MUST use Job Objects, unconditionally | Every spawned process tree is assigned to a Job Object before it is resumed (technical architecture §3.4). "Where available" is vacuous: the host is always Windows x64 (§79.1) and Job Objects exist on every supported Windows; a spawn that cannot be assigned to the job does not start and is recorded as a process-containment failure, never as a degraded-but-running state |
 | TA §9.2 | "It should use restricted process tokens, controlled environment variables, explicit working directories, and deny-by-default access to protected paths" | MUST apply all four | A process spawned without a restricted token, a filtered environment, an explicit working directory, and protected-path denial does not start; inherited ambient environment is prohibited |
@@ -6938,19 +6946,20 @@ Inputs (mandatory; drawn from durable records only, never from model prose):
 8. `PremiseInvalidationRecord` history
 9. `ResourceIntegrityRecord.pressureResponse`
 10. Unresolved `DecisionNode` for the current cycle
+11. `DeliberationRecord` for the current cycle (SCHEMAS §1.33), when one exists
 
 **Mechanism.** An ordered table; the first row whose condition holds selects the branch. Ordering is normative — rows are evaluated top-to-bottom, and no row after the matching row is consulted. This is a distinct mechanism from the per-level applicability table of §80.4.1 and does not inherit its semantics.
 
 **Reachability obligation.** Every TA §71.4 DECIDE branch and every terminal outcome (COMPLETED | BLOCKED | WAITING | RECOVERED | SAFELY_FAILED | ESCALATED) MUST be selected by at least one row.
 
-**Terminal obligation.** Every row selecting `terminate` MUST record in `CycleDecisionTrace` either (a) a goal-level terminal condition from BS §27.10, when the selected terminal outcome ends the goal, or (b) a cycle-scoped termination reason, when the selected terminal outcome ends the cycle while the goal continues. No other row may select `terminate` without one of these two anchors. Rows 3 and 9 are the only rows that select `terminate` under (b).
+**Terminal obligation.** Every row selecting `terminate` MUST record in `CycleDecisionTrace` either (a) a goal-level terminal condition from BS §27.10, when the selected terminal outcome ends the goal, or (b) a cycle-scoped termination reason, when the selected terminal outcome ends the cycle while the goal continues. No other row may select `terminate` without one of these two anchors. Rows 3, 9, 16, and 17 are the only rows that select `terminate` under (b). Rows 16 and 17 are cycle-scoped because TA §28.1 levels 8 and 9 record a requirement-level `USER_REQUIRED` or `BLOCKED` decision under BS §80.4.1 and BS §27.10, and BS §27.10 provides that a requirement-level decision never ends the goal — the goal continues every requirement that does not depend on it, and only BS §27.10 condition 5 ends the goal, which row 19 selects. The condition-5 guard on rows 16 and 17 keeps them from pre-empting row 19 under first-match-wins: when every remaining requirement carries `BLOCKED` or `USER_REQUIRED` and no independent work remains, rows 16 and 17 do not match and row 19 ends the goal.
 
 | # | Condition | Selected branch |
 |---|---|---|
 | 1 | A pending directive requires `halt_surface` or task cancellation | terminate → BLOCKED (see note) |
 | 2 | `ResourceIntegrityRecord.pressureResponse == BLOCKED_NO_SAFE_PATH`, anchored to BS §27.10 condition 3 "hard safety or policy limit" or condition 4 "unresponsive or dangerous process must be stopped", per the specific pressure cause recorded in `observedPressure` | terminate → SAFELY_FAILED |
 | 3 | An unresolved `DecisionNode` exists for the current cycle | terminate → WAITING |
-| 4 | `planImpact == escalate` and no deliberation outcome resolves it | terminate → ESCALATED |
+| 4 | `planImpact == escalate` and no `DeliberationRecord` of input 11 carries a `selectedStrategy` resolving the escalation | terminate → ESCALATED |
 | 5 | `PremiseInvalidationRecord` marks the current assignment INVALIDATED or REVALIDATION_REQUIRED | replan |
 | 6 | `TrajectoryAssessment` verdict TRAJECTORY_DRIFTED with proposal BRANCH_ALTERNATIVE for the current boundary | branch |
 | 7 | `TrajectoryAssessment` verdict TRAJECTORY_DRIFTED with proposal REPLAN for the current boundary | replan |
@@ -6962,10 +6971,10 @@ Inputs (mandatory; drawn from durable records only, never from model prose):
 | 13 | An open hypothesis has an untested discriminating test that is cheaper than the current strategy | repair |
 | 14 | `outcome == FAILURE` and the `RecoveryAttempt` count is below the configured `recoveryAttemptPolicy` for the current fingerprint, and TA §28.1 level 0–3 is applicable | repair |
 | 15 | `outcome == FAILURE` and TA §28.1 level 4–7 is applicable | replan |
-| 16 | `outcome == FAILURE` and TA §28.1 level 8 is applicable | terminate → ESCALATED |
-| 17 | `outcome == FAILURE` and TA §28.1 level 9 is applicable | terminate → SAFELY_FAILED |
+| 16 | `outcome == FAILURE` and TA §28.1 level 8 is applicable, and BS §27.10 condition 5 does not hold | terminate → ESCALATED (cycle-scoped) |
+| 17 | `outcome == FAILURE` and TA §28.1 level 9 is applicable, and BS §27.10 condition 5 does not hold | terminate → SAFELY_FAILED (cycle-scoped) |
 | 18 | `planImpact == escalate` and the applicable TA §28.1 level is 6 | delegate |
-| 19 | No independent work remains and at least one requirement carries BLOCKED or USER_REQUIRED | terminate → BLOCKED |
+| 19 | No independent work remains and every remaining requirement carries BLOCKED or USER_REQUIRED — BS §27.10 condition 5 | terminate → BLOCKED |
 | 20 | Otherwise | continue |
 
 Row 2 is anchored rather than self-authorizing: `BLOCKED_NO_SAFE_PATH` records that no safe path remains, while goal termination stays governed exclusively by the five goal-level terminal conditions of BS §27.10 (BS §72), so the row names which of conditions 3 and 4 applies from the recorded pressure cause.

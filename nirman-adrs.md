@@ -179,7 +179,7 @@ User mental model: one Nirman application, not two applications.
 ## ADR-014: Make sandbox strength explicit
 
 **Status:** Accepted  
-**Decision:** Nirman will expose native Windows execution profiles ranging from trusted local execution to restricted process and disposable emulator-snapshot environments. Isolation is enforced with restricted tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, and resource quotas.
+**Decision:** Nirman will expose native Windows sandbox profiles ranging from trusted local execution to restricted process and disposable emulator-snapshot environments. Isolation is enforced with restricted tokens, Windows Job Objects, ACL-scoped workspaces, environment filtering, process-tree supervision, and resource quotas.
 
 **Reasoning:** A path policy alone cannot contain every process or dependency. Different tasks have different trust levels and resource needs.
 
@@ -1999,8 +1999,8 @@ the parent contract, or integrate changes.
 
 **Locks:** `CONTRACT.RUNTIME.SUPPLY_CHAIN`
 
-**Status:** Accepted
-
+**Status:** Accepted  
+**Amended by ADR-257:** the "selected JavaScript/native tooling" of this decision is withdrawn. ADR-257 locks the generated application architecture to native Android — Kotlin, Java, Android Views, Jetpack Compose, NDK/CMake native modules, Android Gradle plugins, and Android platform APIs — and retires the React Native, Expo, and Metro branches that JavaScript tooling provisioned, which its rationale identifies as the source of the doubled toolchain surface area of Node, package managers, and the Metro bundler. The manifest therefore locks JDK, Gradle, AGP, Kotlin, Compose, Android SDK, build tools, platform tools, NDK, CMake, ADB, and emulator only; Node and package-manager selection are not manifest entries.
 **Decision:** JDK, Gradle, AGP, Kotlin, Compose, Android SDK, build tools, platform tools, NDK, CMake, ADB, emulator, and selected JavaScript/native tooling are resolved through an authoritative manifest and project lock.
 
 **Rationale:** Host-installed tools and configuration create nondeterministic builds and difficult recovery.
@@ -3726,19 +3726,19 @@ A product architecture change replacing container archive inspection with an alt
 **Status:** Accepted
 
 **Decision:**
-1. `LaunchSession` is a first-class schema identity whose canonical field list lives in `nirman-schemas.md` §1.85 (owner TA §10.7). It carries no independent status field or lifecycle: launch state is derived from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`.
-2. `FrameStamp` is promoted from the nested §2.89 transport restatement into the canonical field list at `nirman-schemas.md` §1.86 (same owner, same contract) and is volatile transport metadata — never durable evidence, never an event, never a promotion input.
-3. The §2.89 nested restatement moves to §1.86 under the single-location rule (ADR-220); the transport block keeps only the `frameStamp` field line.
+1. `LaunchSession` is a first-class schema identity whose canonical field list lives in `nirman-schemas.md` §2.136 (owner TA §10.7). It carries no independent status field or lifecycle: launch state is derived from `DeviceTransaction.observationState` and `PreviewRevision.previewAuthorityState`.
+2. `FrameStamp` is promoted from the nested §2.89 transport restatement into the canonical field list at `nirman-schemas.md` §2.137 (same owner, same contract) and is volatile transport metadata — never durable evidence, never an event, never a promotion input.
+3. The §2.89 nested restatement moves to §2.137 under the single-location rule (ADR-220); the transport block keeps only the `frameStamp` field line.
 4. No authority, lifecycle, completion, or promotion semantics change; no new authority is created.
 
 **Rationale:**
 The preview runtime chain of build spec §69.4.1 named `LaunchSession` and `FrameStamp` without canonical schema identities, so the `AndroidRuntimeObservation.launchSessionId` binding and the `FrameQualityObservation.frameSequence` equality could not resolve to registered field lists. Registering both as single-location identities makes the chain machine-resolvable while preserving the volatile classification of transport metadata.
 
 **Consequences:**
-SCHEMAS §1.85 (12 fields), §1.86 (18 fields), and §3.1; BS §69.4.1 mapping rows including the `LaunchTransactionCommitted` commit mapping; TA §10.7 projection lines and the LaunchSession/FrameStamp binding paragraph — persistence in the §36.5 transaction family, recovery/reconciliation via `DeviceTransaction.observationState` and `ExternalEffectTransaction.reconciliationState`, cancellation and restart under the existing lifecycle and external-effect compensation path, invalidation on a newer `previewRevisionId`, device loss, or artifact-fingerprint mismatch, evidence binding via `launchSessionId` with dependent-evidence invalidation, and M9 plus mutation-battery test ownership. `FrameStamp` must never be treated as durable evidence.
+SCHEMAS §2.136 (12 fields), §2.137 (18 fields), and §3.1; BS §69.4.1 mapping rows including the `LaunchTransactionCommitted` commit mapping; TA §10.7 projection lines and the LaunchSession/FrameStamp binding paragraph — persistence in the §36.5 transaction family, recovery/reconciliation via `DeviceTransaction.observationState` and `ExternalEffectTransaction.reconciliationState`, cancellation and restart under the existing lifecycle and external-effect compensation path, invalidation on a newer `previewRevisionId`, device loss, or artifact-fingerprint mismatch, evidence binding via `launchSessionId` with dependent-evidence invalidation, and M9 plus mutation-battery test ownership. `FrameStamp` must never be treated as durable evidence.
 
 **Reversal trigger:**
-A preview architecture change that removes the supervisor-owned render transport, replaces frame identity stamping with a different canonical mechanism, or relocates launch-session identity, persistence, or the launch commit mapping into another canonical owner (device-session or task-lifecycle family), making §1.85, §1.86, the §69.4.1 mapping, and the §10.7 bindings obsolete.
+A preview architecture change that removes the supervisor-owned render transport, replaces frame identity stamping with a different canonical mechanism, or relocates launch-session identity, persistence, or the launch commit mapping into another canonical owner (device-session or task-lifecycle family), making §2.136, §2.137, the §69.4.1 mapping, and the §10.7 bindings obsolete.
 
 ## ADR-261: Kernel cycle DECIDE branch selection criteria
 

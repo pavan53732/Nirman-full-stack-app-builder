@@ -2656,21 +2656,25 @@ def check_semantic_documentation(docs, R, D, root="."):
     if not exp_row or exp_row.group(1).strip() != "24 hours" or exp_row.group(2).strip() != "1-168 hours":
         D.add("semantic documentation", "approval expiry rules",
               "§80.3 approval-expiry row must read default 24 hours, range 1-168 hours (the values §26.13 and TA §7.3 cite)")
-    # Execution profiles: BS §26.5 is the canonical set; TA §9.1 must list the
+    # Sandbox profiles: BS §26.5 is the canonical set; TA §9.1 must list the
     # identical profile names (schema-style parity for the profile tables).
+    # These are the `profile.sandbox` concept of TA §16.2.2 — process isolation
+    # and resource limits — and are distinct from that section's single
+    # `profile.execution` PolicyAuthority concept; the two were formerly both
+    # called "execution profile", which is the collision this naming resolves.
     def _profile_names(text, heading, nxt):
         seg = text.split(heading, 1)[-1].split(nxt, 1)[0]
         return [m.strip() for m in re.findall(r"^\| ([^|`]+?) \| ", seg, re.M) if m.strip() not in ("Profile", "---")]
     bs_profiles = _profile_names(bs, "### 26.5 Sandbox profiles and operating-system isolation", "### 26.6")
-    ta_profiles = _profile_names(ta, "### 9.1 Execution profiles", "### 9.2")
+    ta_profiles = _profile_names(ta, "### 9.1 Sandbox profiles", "### 9.2")
     if not bs_profiles or not ta_profiles:
-        D.add("semantic documentation", "execution profile set", "BS §26.5 or TA §9.1 profile table not found")
+        D.add("semantic documentation", "sandbox profile set", "BS §26.5 or TA §9.1 profile table not found")
     elif bs_profiles != ta_profiles:
-        D.add("semantic documentation", "execution profile set",
+        D.add("semantic documentation", "sandbox profile set",
               f"TA §9.1 profiles {ta_profiles} differ from the canonical BS §26.5 set {bs_profiles}")
-    if "This table is the canonical execution-profile set: exactly these five profiles exist" not in bs:
-        D.add("semantic documentation", "execution profile set",
-              "BS §26.5 must declare itself the canonical execution-profile set")
+    if "This table is the canonical sandbox-profile set: exactly these five profiles exist" not in bs:
+        D.add("semantic documentation", "sandbox profile set",
+              "BS §26.5 must declare itself the canonical sandbox-profile set")
     # Platform fixtures run on the Windows host only (BS §2, ADR-108): a
     # fixture, exit gate, or example that requires a Linux/macOS/non-Windows
     # host describes a lane Nirman cannot execute.
@@ -5098,9 +5102,15 @@ def build_index(docs, R):
         for _, m in sorted(sch_rows, key=lambda p: p[0]):
             lines.append(f"| `{m.group(2)}` | §{m.group(1)} | {m.group(3)} | {m.group(4)} | {m.group(5)} |")
         lines.append("")
+    # E3: the source carries two milestone-heading conventions — M0–M12 sit in
+    # their own numbered sections ("## 3. M0: …") while M13 onward are unnumbered
+    # headings ("## M13: …") inside the §20 extension-milestones group. Rendering
+    # the raw heading mixed "§N Title" rows with bare-title rows. The map is now
+    # uniform: every row names the milestone title and the section it sits in, so
+    # an extension milestone reads "§20" rather than having no section at all.
     lines += ["## 4. Milestone → section", "", f"Milestone blocks live in `{DOCS['dev']}`; the section number is the heading under which the block sits.", "",
-              "| Milestone | Heading |", "|---|---|"]
-    fence, cur = False, "—"
+              "| Milestone | Title | Located in |", "|---|---|---|"]
+    fence, cur_title, cur_num = False, "—", "—"
     seen_ms = set()
     for line in dev.split("\n"):
         if line.startswith("```"):
@@ -5110,10 +5120,11 @@ def build_index(docs, R):
             continue
         m = re.match(r"^## (\d+)\. M(\d+): (.*\S)\s*$", line)
         if m:
-            cur = f"§{m.group(1)} {m.group(3)}"
+            cur_title = m.group(3)
+            cur_num = f"§{m.group(1)}"
             if m.group(2) not in seen_ms:
                 seen_ms.add(m.group(2))
-                lines.append(f"| M{m.group(2)} | §{m.group(1)} {m.group(3)} |")
+                lines.append(f"| M{m.group(2)} | {m.group(3)} | §{m.group(1)} |")
             continue
         m = re.match(r"^## M(\d+)(?:–M(\d+))?(?: — |: )(.*\S)\s*$", line)
         if m:
@@ -5122,16 +5133,20 @@ def build_index(docs, R):
             for mid in range(lo, hi + 1):
                 if str(mid) not in seen_ms:
                     seen_ms.add(str(mid))
-                    lines.append(f"| M{mid} | {m.group(3)} |")
+                    lines.append(f"| M{mid} | {m.group(3)} | {cur_num} |")
             continue
         if line.startswith("## "):
             s = re.match(r"^## (\d+)\. (.*\S)\s*$", line)
-            cur = f"§{s.group(1)} {s.group(2)}" if s else line[3:].strip()
+            if s:
+                cur_title = s.group(2)
+                cur_num = f"§{s.group(1)}"
+            else:
+                cur_title = line[3:].strip()
             continue
         tm = re.match(r"^\| M(\d+) \|", line)
         if tm and tm.group(1) not in seen_ms:
             seen_ms.add(tm.group(1))
-            lines.append(f"| M{tm.group(1)} | {cur} |")
+            lines.append(f"| M{tm.group(1)} | {cur_title} | {cur_num} |")
     lines.append("")
     lines += ["## 5. ADR ranges", "", f"ADR records live in `{DOCS['adrs']}` in ascending order.", "", "| Range | Count | Statuses |", "|---|---|---|"]
     ids = []

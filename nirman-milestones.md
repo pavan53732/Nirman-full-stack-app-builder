@@ -230,7 +230,7 @@ Make execution safe before enabling autonomous background work.
 2. Add path rules, command patterns, external-directory rules, network categories, and worker-specific policies.
 3. Add protected-file defaults for environment secrets, keychains, personal directories, and credentials.
 4. Add process-tree cancellation and resource quotas.
-5. Implement the five execution profiles of build spec §26.5 (Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only) with Restricted process as the autonomous default; a worker cannot switch itself to a weaker profile.
+5. Implement the five sandbox profiles of build spec §26.5 (Trusted local, Restricted process, High-risk restricted process, Disposable/Isolated, Review-only) with Restricted process as the autonomous default; a worker cannot switch itself to a weaker profile.
 6. Add native Windows restricted-process, ACL, Job Object, resource-quota, toolchain-isolation, and disposable-emulator-snapshot boundaries.
 7. Add dependency and artifact safety checks.
 8. Add repeated-action and doom-loop detection.
@@ -311,7 +311,7 @@ Add visual and Nirman-managed local Android emulator verification without exposi
 6. Add screenshot references to worker handoffs and final task results.
 7. Implement the authoritative InteractionExecutor for deterministic Android scenarios, including action execution, runtime-state observation, screenshots, UI-hierarchy evidence where supported, Logcat correlation, and assertion evaluation.
 8. Establish the Nirman-managed headless emulator as the canonical primary PreviewRuntime.
-9. Implement the supervisor-owned `RenderTransport` (TA §10.7; SCHEMAS §2.89): headless emulator launch (the `LaunchSession` identity; SCHEMAS §1.85) with the loopback gRPC control channel, screenshot-stream subscription, frame stamping with the revision binding (`FrameStamp`; SCHEMAS §1.86 — volatile transport metadata), the shared-memory frame ring with drop-oldest backpressure, and `IDLE`/`LOST` detection through the single reducer.
+9. Implement the supervisor-owned `RenderTransport` (TA §10.7; SCHEMAS §2.89): headless emulator launch (the `LaunchSession` identity; SCHEMAS §2.136) with the loopback gRPC control channel, screenshot-stream subscription, frame stamping with the revision binding (`FrameStamp`; SCHEMAS §2.137 — volatile transport metadata), the shared-memory frame ring with drop-oldest backpressure, and `IDLE`/`LOST` detection through the single reducer.
 10. Implement embedded WinUI PreviewHost rendering on a `SwapChainPanel` with the `WriteableBitmap` fallback recorded in `PreviewSurface.status`.
 11. Implement controlled preview input forwarding: `PreviewInteraction` → `SupervisorConnection` → `AndroidDeviceAdapter.interact()` → emulator input channel, with the interaction identity carried on the resulting frame stamp.
 12. Prove provisioning readiness end to end: from an empty toolchain root, `ToolchainProvisioner` reaches `READY` only when one stamped frame is observed inside PreviewHost, and a run that installs every component but delivers no frame is recorded as `PROVISIONED_UNVERIFIED`.
