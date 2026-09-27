@@ -3501,7 +3501,7 @@ a typed runtime outcome and enters the existing recovery path.
 
 Supervisor-local auxiliary decision invocations follow the separate local-engine lifecycle of §58.17 and MUST NOT be represented as `ProviderRequest`, `ProviderResponse`, or provider-stream events.
 
-Provider interruption behavior follows ADR-245: the route's `providerCircuitState` transitions CLOSED → OPEN → HALF_OPEN → CLOSED as defined in build spec §5.7.5; stream resumption requires a provider-supplied resume identity, otherwise the durable logical request is retried only through reconciliation/idempotency rules.
+Provider interruption behavior follows ADR-245: the route's `providerCircuitState` transitions CLOSED → OPEN → HALF_OPEN → CLOSED as defined in build spec §5.7.5a; stream resumption requires a provider-supplied resume identity, otherwise the durable logical request is retried only through reconciliation/idempotency rules.
 
 ### 57.9 Git and worktree subsystem
 

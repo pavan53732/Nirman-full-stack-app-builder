@@ -317,16 +317,16 @@
 | `ChangeImpactReport` | §1.75 | BS §83.1 | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE | TA §87.1 |
 | `ClarificationRecord` | §1.76 | BS §69.11 | CONTRACT.RUNTIME.PROMPT_CONTRACT | — |
 | `SharedSurfaceChangeRequest` | §1.77 | BS §54.2 | CONTRACT.RUNTIME.RESERVATION | — |
-| `LoopHeartbeat` | §1.78 | BS §29.4 | CONTRACT.RUNTIME.AUTHORITY | TA §57.4 |
-| `LocalDecisionProposal` | §1.79 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
-| `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | `CONTRACT.RUNTIME.REASONING` | TA §58.17 |
+| `LoopHeartbeat` | §1.78 | BS §29.4 | — | TA §57.4 |
+| `LocalDecisionProposal` | §1.79 | BS §66.10.1 | CONTRACT.RUNTIME.REASONING | TA §58.17 |
+| `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | CONTRACT.RUNTIME.REASONING | TA §58.17 |
 | `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
 | `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
 | `PreflightReport` | §1.83 | TA §53.2 | CONTRACT.RUNTIME.EVIDENCE | BS §47.2, TA §53.2 |
 | `SupervisorConnection` | §1.84 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
 | `LaunchSession` | §1.85 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
 | `FrameStamp` | §1.86 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
-| `CycleDecisionTrace` | §1.87 | BS §80.4.6 | CONTRACT.RUNTIME.AUTHORITY | TA §58.1 |
+| `CycleDecisionTrace` | §1.87 | BS §80.4.6 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §58.1 |
 | `TaskContract` | §2.1 | TA §6.1 | — | — |
 | `AndroidDeviceProfile` | §2.2 | TA §10.2 | — | — |
 | `InteractionExecutor` | §2.3 | TA §10.2 | — | — |

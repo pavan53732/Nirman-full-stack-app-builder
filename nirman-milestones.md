@@ -62,7 +62,7 @@ The team should keep the master specification stable as the product contract, up
 | M35       | Long-horizon scale and unified execution surface                | Map sharding, checkpoint retention, affected tests, side-by-side preview                                                                                                                                                |
 | M36       | Runtime authority and autonomous recovery invariants            | Deterministic authorities, model non-authority, safe recovery, evidence gates                                                                                                                                           |
 | M37       | Android-only target contract                                    | Android profiles, Nirman-managed local Android emulator validation, APK artifacts, and Android-only project resolution                                                                                                  |
-| M38       | Certified Android profile coverage and production acceptance    | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports                                                                                              |
+| M38       | Complete Android technology coverage                            | Certified profile matrix, mixed architectures, Android capability classes, end-to-end APK validation, and evidence reports                                                                                              |
 
 ---
 

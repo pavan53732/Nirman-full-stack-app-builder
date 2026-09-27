@@ -1841,7 +1841,7 @@ SharedSurfaceChangeRequest
 
 ### 1.78 LoopHeartbeat
 
-**Owner:** BS §29.4 · **Contract:** CONTRACT.RUNTIME.AUTHORITY · **Projected at:** TA §57.4
+**Owner:** BS §29.4 · **Contract:** — · **Projected at:** TA §57.4
 
 ```text
 LoopHeartbeat
@@ -1861,7 +1861,7 @@ LoopHeartbeat
 
 ### 1.79 LocalDecisionProposal
 
-**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
+**Owner:** BS §66.10.1 · **Contract:** CONTRACT.RUNTIME.REASONING · **Projected at:** TA §58.17
 
 ```text
 LocalDecisionProposal
@@ -1894,7 +1894,7 @@ LocalDecisionProposal
 
 ### 1.80 LocalDecisionAcceptanceProfile
 
-**Owner:** BS §66.10.1 · **Contract:** `CONTRACT.RUNTIME.REASONING` · **Projected at:** TA §58.17
+**Owner:** BS §66.10.1 · **Contract:** CONTRACT.RUNTIME.REASONING · **Projected at:** TA §58.17
 
 ```text
 LocalDecisionAcceptanceProfile
@@ -2055,7 +2055,7 @@ FrameStamp
 
 ### 1.87 CycleDecisionTrace
 
-**Owner:** BS §80.4.6 · **Contract:** CONTRACT.RUNTIME.AUTHORITY · **Projected at:** TA §58.1
+**Owner:** BS §80.4.6 · **Contract:** CONTRACT.RUNTIME.AGENT_BUILDABILITY · **Projected at:** TA §58.1
 
 ```text
 CycleDecisionTrace
@@ -5553,7 +5553,7 @@ FrameStamp
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
 
 - `WorkerContract` — normative shape prose-defined at build spec §79.12; no projected field block (ADR-241).
-- `AndroidToolchainLock` — normative shape prose-defined at build spec §34.1; no projected field block (ADR-241).
+- `AndroidToolchainLock` — normative shape prose-defined at technical architecture §49.1; no projected field block (ADR-241).
 - `ValidationResult` — normative shape prose-defined at technical architecture §84.2; no projected field block (ADR-241).
 - `CertificationDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).
 - `CompletionDecision` — normative shape prose-defined at build spec §5.7.7; no projected field block (ADR-241).

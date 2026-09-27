@@ -60,7 +60,7 @@ Nirman is a **local Windows desktop application** with the following distributio
 | Hosted platform dependency | **None** — no mandatory cloud service, no hosted execution, no platform account |
 | AI provider costs | **User's own responsibility** — user supplies their own API keys, base URLs, model IDs; Nirman does not proxy, resell, or charge for provider usage |
 | Distribution artifact | Windows MSIX package built from source; user builds locally or obtains it from a trusted source |
-| Source access | Full source code available; user may build, modify, redistribute per the eventual license |
+| Source access | Full source code available; user may build, modify, and redistribute under the Apache License 2.0 (ADR-237) |
 
 These invariants are binding product constraints. No future feature, integration, or workflow may introduce a mandatory account, subscription, license fee, or hosted-platform dependency for Nirman itself. AI provider usage remains the user's separate commercial relationship with their chosen provider(s).
 

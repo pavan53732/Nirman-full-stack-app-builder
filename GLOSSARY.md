@@ -30,7 +30,7 @@
 
 **CanonicalSchemaRegistry** — The single list of registered schema identities; owned by TA §36.1 and held as the list block at SCHEMAS §3.1. — TA §36.1; SCHEMAS §3.1; ADR-189.
 
-**Capability registry** — The table of capability identifiers (`CAP.ANDROID.GENERATE` and its peers) with their required contracts, test identity, evidence identity, and maturity. — BS §5.7.
+**Capability registry** — The table of capability identifiers (`CAP.ANDROID.GENERATE` and its peers) with their required contracts, test identity, evidence identity, and status. — BS §5.7.
 
 **ClauseId / Clause Registry** — A stable identifier for one normative clause, with its owning contract, authority section, value, and seal state. — BS §67.12.
 
@@ -90,7 +90,7 @@
 
 **AndroidConstructionContract** — The canonical contract that binds a construction session's intent, technology plan, and acceptance to one revision. — BS §42; SCHEMAS §1.54; ADR-158.
 
-**AndroidTechnologyPlan** — The record that resolves a session to one technology composition and toolchain lock through exactly one registered `AndroidTechnologyAdapter`. — BS §80.5.1; TA §73.10; SCHEMAS §1.48.
+**AndroidTechnologyPlan** — The record that resolves a session to one technology composition and toolchain lock through exactly one registered `AndroidTechnologyAdapter`. — BS §80.5.1; TA §10.5; SCHEMAS §1.48.
 
 **AttentionReliabilityProfile** — The per-model measurement of how reliably a provider attends to placed context (`reliableLiteralSpanTokens`, `attendabilityMap`, recall probes). — BS §53.11; TA §19.2; SCHEMAS §1.18; ADR-219.
 
@@ -116,7 +116,7 @@
 
 **EvidenceRecord / EvidenceDependency** — The canonical evidence node with its identity and dependency fields, and the typed dependency whose invalidation cascades. — BS §5.7.4; BS §37; TA §23.3; SCHEMAS §2.19; SCHEMAS §2.30.
 
-**ExportVerificationRecord** — The single export record (its `APKExportRecord` read-model view has no fields of its own) carrying delivery kind, destination policy, and signing lineage. — BS §78; TA §83; SCHEMAS §2.74; ADR-203.
+**ExportVerificationRecord** — The single export record (its `APKExportRecord` read-model view has no fields of its own) carrying delivery kind, destination policy, and signing lineage. — TA §74.3; SCHEMAS §2.74; BS §78.2; ADR-203.
 
 **ExternalEffectRecord** — The record every external side effect writes, whose `reconciliationState` (`UNKNOWN → RECONCILING → RESOLVED`) forbids retrying an unconfirmed effect. — BS §5.7.6; TA §36.4; SCHEMAS §2.32.
 
@@ -422,7 +422,7 @@
 
 **NOT_PROVEN (provenance status)** — The acknowledgement that a documented check has no proving mutation in the current tree (today: command payload coverage, whose anchors target Rust source); printed on the battery's summary line as `not proven: <check>`, distinct from both PASS and a defect. — tools/test_verify_contract_graph.py.
 
-**Command payload coverage** — The verifier check that the `ArtifactExportCommandPayload` Rust struct exposes the policy-mandatory payload fields; recorded as SKIP, never PASS, when no Rust source exists in the working tree. — technical architecture §73; `crates/`.
+**Command payload coverage** — The verifier check that the `ArtifactExportCommandPayload` Rust struct exposes the policy-mandatory payload fields; recorded as SKIP, never PASS, when no Rust source exists in the working tree. — technical architecture §74.3; `crates/`.
 
 
 **Coordination stall** — A durable condition where the worker processes remain live but the task frontier, dependencies, validated evidence, revision, or integration state does not advance over the configured coordination window. — technical architecture §58.13; `nirman-schemas.md` §2.118; ADR-244.
@@ -439,7 +439,7 @@
 
 **Application acknowledgement** — The state in which a message's authoritative state transition or result is durably committed (`processingState: APPLIED`), distinct from transport-level receipt (`deliveryState: ACKED`). — build spec §26.2; technical architecture §57.11.2; ADR-246.
 
-**Await condition** — The durable record of a cross-worker wait: predicate, owner, cancellation lineage, wake condition; no agent waits synchronously on another agent. — technical architecture §58.11.1; `nirman-schemas.md` §2.120; ADR-247.
+**Await condition** — The durable record of a cross-worker wait: predicate, owner, cancellation lineage, wake condition; no agent waits synchronously on another agent. — technical architecture §58.11; `nirman-schemas.md` §2.120; ADR-247.
 
 **Join barrier** — The durable fan-in state of a parent node: expected/completed/failed children, accepted results, quorum count, join revision, join state; the parent wakes only when the join contract becomes satisfiable. — technical architecture §58.5.1; `nirman-schemas.md` §2.121; build spec §80.5.4; ADR-247.
 
