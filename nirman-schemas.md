@@ -3622,6 +3622,24 @@ AndroidBuildAdapter
 - environmentFingerprint
 - commandPlan
 - artifactRules
+
+AndroidBuildAdapter operations
+- build() -> AndroidBuildObservation
+  - params: none (uses locked adapter state: technologyPlanHash, toolchainLockId, buildVariant)
+  - returns: buildId, exitCode, artifactIds, artifactFingerprints, diagnostics, logs, reproducibilityStatus
+  - errors: BuildError, ToolchainError, BuildTimeoutError
+- inspectArtifact(artifactId: str) -> ArtifactInspectionResult
+  - params: artifactId: str
+  - returns: artifactId, fingerprint, sizeBytes, signingState, manifestSummary
+  - errors: ArtifactInspectionError, ArtifactNotFoundError
+- sign(packageId: str, signingConfig: SigningConfig) -> SigningResult
+  - params: packageId: str, signingConfig: SigningConfig
+  - returns: signingId, certificateFingerprint, signingScheme, artifactFingerprint
+  - errors: SigningError, SigningPolicyViolationError
+- export(artifactId: str, destination: ExportDestination) -> ExportResult
+  - params: artifactId: str, destination: ExportDestination
+  - returns: exportId, destinationPath, byteCount, contentHash, reconciliationReference
+  - errors: ExportError, ExportTimeoutError, DestinationUnavailableError
 ```
 
 ### 2.70 AndroidBuildObservation
@@ -3643,24 +3661,6 @@ AndroidBuildObservation
 - logs
 - reproducibilityStatus
 - capturedAt
-
-AndroidBuildAdapter operations
-- build() -> AndroidBuildObservation
-  - params: none (uses locked adapter state: technologyPlanHash, toolchainLockId, buildVariant)
-  - returns: buildId, exitCode, artifactIds, artifactFingerprints, diagnostics, logs, reproducibilityStatus
-  - errors: BuildError, ToolchainError, BuildTimeoutError
-- inspectArtifact(artifactId: str) -> ArtifactInspectionResult
-  - params: artifactId: str
-  - returns: artifactId, fingerprint, sizeBytes, signingState, manifestSummary
-  - errors: ArtifactInspectionError, ArtifactNotFoundError
-- sign(packageId: str, signingConfig: SigningConfig) -> SigningResult
-  - params: packageId: str, signingConfig: SigningConfig
-  - returns: signingId, certificateFingerprint, signingScheme, artifactFingerprint
-  - errors: SigningError, SigningPolicyViolationError
-- export(artifactId: str, destination: ExportDestination) -> ExportResult
-  - params: artifactId: str, destination: ExportDestination
-  - returns: exportId, destinationPath, byteCount, contentHash, reconciliationReference
-  - errors: ExportError, ExportTimeoutError, DestinationUnavailableError
 ```
 
 ### 2.71 BoundaryOperationProjection
