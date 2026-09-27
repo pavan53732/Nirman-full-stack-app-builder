@@ -443,6 +443,14 @@ Agents MUST NOT make implementation edits when the request is documentation hard
 
 Agents MUST distinguish required normative edits, architecture clarifications, schema changes, milestone and test changes, explanatory edits, and unverified recommendations. A patch ledger is a planning artifact. It does not itself certify the documentation or the runtime, and it does not raise any capability above `PLANNED`.
 
+### Report delivery is inline, never a working file
+
+Analysis, audit, coverage-matrix, review, validation, reconciliation, and patch-ledger content MUST be delivered inline in the conversation. Agents MUST NOT create files for these artifacts — no audit, matrix, review, validation, or report file, and no equivalent, in `scratch/` or anywhere else in the working tree — unless the user explicitly asks for a file.
+
+The documentation patch ledger requirement above remains in force and is unchanged in substance: the ledger MUST still be produced before a cross-cutting edit. This rule constrains only its delivery surface, not its existence, its content, or its ordering. A ledger presented in the conversation satisfies that requirement.
+
+This rule governs agent-authored working artifacts only. It does not narrow the repository's canonical documents, and it creates no authority, schema, lifecycle, or contract.
+
 ## 16. Required engineering workflow
 
 Before changing code or documentation, inspect the current branch, working tree, relevant canonical sections, existing contracts, and dependencies. Preserve user changes and never overwrite unrelated work.
