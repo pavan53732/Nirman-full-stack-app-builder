@@ -466,6 +466,8 @@ During implementation:
 7. Update all canonical cross-document owners when a contract changes.
 8. Report remaining limitations honestly, distinguishing documentation status from runtime status.
 
+When a change adds or alters a check, prove the check is non-vacuous: perturb the source it reads, observe the failure it reports, then restore. Restore from saved bytes and confirm the content hash matches. Agents MUST NOT restore a perturbed file through a shell round-trip — a shell replace can silently drop a character and leave a stale value behind a clean diff, which is the worst combination. Perturb and restore in-process, and verify the restore byte-for-byte.
+
 Before committing:
 
 ```text
