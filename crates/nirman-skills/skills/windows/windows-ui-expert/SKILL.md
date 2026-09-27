@@ -7,7 +7,7 @@ verification (BS §79.7). This skill provides the domain
 knowledge that the `UI Worker` and `Visual QA Worker` consume.
 
 ## Trigger
-This skill is requested when winUI 3 and Windows App SDK desktop UI — XAML markup and data binding, MVVM structure, Fluent design and theming, navigation and the window lifecycle, accessibility and keyboard access, and WinUI verification (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when winUI 3 and Windows App SDK desktop UI — XAML markup and data binding, MVVM structure, Fluent design and theming, navigation and the window lifecycle, accessibility and keyboard access, and WinUI verification (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

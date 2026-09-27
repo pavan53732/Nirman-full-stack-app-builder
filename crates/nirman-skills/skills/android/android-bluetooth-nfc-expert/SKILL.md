@@ -7,7 +7,7 @@ Connections (BS §79.7). This skill provides the Bluetooth and NFC
 domain knowledge that the `Android Data and Integration Worker` consumes.
 
 ## Trigger
-This skill is requested when android Bluetooth and NFC — Bluetooth Low Energy (BLE) (GATT server, GATT client, scanning, connections), Classic Bluetooth (RFCOMM, SPP), NFC (NDEF reading/writing, HCE host card emulation), and Nearby Connections (BS §79.7). This skill provides the Bluetooth and NFC domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android Bluetooth and NFC — Bluetooth Low Energy (BLE) (GATT server, GATT client, scanning, connections), Classic Bluetooth (RFCOMM, SPP), NFC (NDEF reading/writing, HCE host card emulation), and Nearby Connections (BS §79.7). This skill provides the Bluetooth and NFC domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -55,8 +55,10 @@ transaction (BS §50).
 6. Handle permissions: request BLUETOOTH_SCAN, BLUETOOTH_CONNECT,
    BLUETOOTH_ADVERTISE (API 31+), NFC permission. Handle location
    permission for BLE scanning (API 30 and below).
-7. Test connectivity features: use BLE emulator for scanning/connections,
-   test NFC with physical tags, verify permission flows.
+7. Test connectivity features: use the Nirman-managed local emulator for
+   BLE scanning and connection flows, and verify permission flows. NFC has
+   no emulator surface, so record an emulator-observability exclusion for
+   the NFC feature (BS §79.7) instead of attempting it.
 
 ## Evidence
 - A record of each procedure step that executed, with the outcome observed,
@@ -122,7 +124,7 @@ Emits `BluetoothNFCResult` from `BluetoothNFCRequest` (§23 SkillPackage contrac
 - Step 4 produces its expected outcome — Implement BLE peripheral: use BluetoothGattServer for GATT server, create BluetoothGattService with characteristics, handle read/write requests in BluetoothGattServerCallback.
 - Step 5 produces its expected outcome — Implement NFC: use NfcAdapter for NFC operations, NdefMessage for NDEF data, enableReaderMode for reader/writer mode, HostApduService for HCE.
 - Step 6 produces its expected outcome — Handle permissions: request BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE (API 31+), NFC permission. Handle location permission for BLE scanning (API 30 and below).
-- Step 7 produces its expected outcome — Test connectivity features: use BLE emulator for scanning/connections, test NFC with physical tags, verify permission flows.
+- Step 7 produces its expected outcome — Test connectivity features: use the Nirman-managed local emulator for BLE scanning and connection flows, verify permission flows, and record an emulator-observability exclusion for the NFC feature (BS §79.7).
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed
 

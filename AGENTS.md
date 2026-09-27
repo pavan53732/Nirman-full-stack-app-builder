@@ -362,7 +362,7 @@ REQUESTED
 → VERIFIED | FAILED | BLOCKED
 ```
 
-An uncertain or interrupted copy cannot be retried until destination inspection and identity/hash reconciliation resolve it. Export success alone does not prove preview currency, integration functionality, runtime integrity, or user-goal completion.
+These are not a single linear chain: `UNKNOWN` is entered only when a copy may have partially completed, not by every export. The permitted transitions are exactly those of build spec §78.2, which is the authority for this state set. An uncertain or interrupted copy cannot be retried until destination inspection and identity/hash reconciliation resolve it. Export success alone does not prove preview currency, integration functionality, runtime integrity, or user-goal completion.
 
 Release signing must bind artifact hash, application identity, version, certificate fingerprint, signing scheme, keystore identity, build variant, signing policy version, and inspection evidence. Agents cannot access or reveal private signing material outside the approved signing authority.
 

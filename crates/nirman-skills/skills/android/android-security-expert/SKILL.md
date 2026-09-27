@@ -7,7 +7,7 @@ and security best practices (BS §79.7). This skill provides the
 security domain knowledge that the `Security Worker` consumes.
 
 ## Trigger
-This skill is requested when android security implementation — the Android key store system, BiometricPrompt, EncryptedSharedPreferences, EncryptedFile, network security config, certificate pinning, app signing (debug/release), Play App Signing, and security best practices (BS §79.7). This skill provides the security domain knowledge that the `Security Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android security implementation — the Android key store system, BiometricPrompt, EncryptedSharedPreferences, EncryptedFile, network security config, certificate pinning, app signing (debug/release), Play App Signing, and security best practices (BS §79.7). This skill provides the security domain knowledge that the `Security Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

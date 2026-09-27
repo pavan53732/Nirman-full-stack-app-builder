@@ -9,7 +9,7 @@ Cloud Functions (serverless backend), and Cloud Storage (file storage)
 `Android Data and Integration Worker` consumes.
 
 ## Trigger
-This skill is requested when firebase integration — Firebase Authentication (email, Google, Facebook, phone), Cloud Firestore (NoSQL database, real-time sync, offline persistence), Cloud Messaging (FCM push notifications), Analytics (user behavior tracking), Crashlytics (crash reporting), Cloud Functions (serverless backend), and Cloud Storage (file storage) (BS §79.7). This skill provides the Firebase domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when firebase integration — Firebase Authentication (email, Google, Facebook, phone), Cloud Firestore (NoSQL database, real-time sync, offline persistence), Cloud Messaging (FCM push notifications), Analytics (user behavior tracking), Crashlytics (crash reporting), Cloud Functions (serverless backend), and Cloud Storage (file storage) (BS §79.7). This skill provides the Firebase domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -8,7 +8,7 @@ WorkManager), and widget sizing (responsive layouts, categories)
 `UI Worker` consumes.
 
 ## Trigger
-This skill is requested when android app widgets — home screen widgets (AppWidgetProvider, RemoteViews), widget layouts (ListView, GridView, StackView), widget configuration activities, widget update strategies (AlarmManager, WorkManager), and widget sizing (responsive layouts, categories) (BS §79.7). This skill provides the widgets domain knowledge that the `UI Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android app widgets — home screen widgets (AppWidgetProvider, RemoteViews), widget layouts (ListView, GridView, StackView), widget configuration activities, widget update strategies (AlarmManager, WorkManager), and widget sizing (responsive layouts, categories) (BS §79.7). This skill provides the widgets domain knowledge that the `UI Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -4612,6 +4612,14 @@ def check_semantic_documentation(docs, R, D, root="."):
 SKILL_BODY_BANNED = (
     "Tauri", "Electron", "React ", "React/", "TypeScript", "Vite", "WebView",
     "physical device", "physical Android device", "attached device", "USB device",
+    # The literal "physical device" alone missed sibling phrasings that route
+    # the same excluded path (a hardware NFC tag, a real handset, a benchmark
+    # run on attached hardware). Ban the family, not one spelling (ADR-257;
+    # BS §4.4; TA §10.7).
+    "physical tag", "physical tags", "physical hardware", "physical handset",
+    "physical phone", "real device", "real devices", "real handset",
+    "real phone", "attached hardware", "hardware device", "hardware devices",
+    "on-device testing", "connected device", "connected devices",
 )
 SKILL_STORE_PUBLICATION_BANNED = (
     "create products in the Play Console",
@@ -4981,7 +4989,7 @@ def check_skill_bodies(docs, D, repo_root):
                 _n += 1
                 if _caps & _visual:
                     _got["Visual perception required"] += 1
-                elif any(_cls.get(c) == "emulator or device observation" for c in _caps):
+                elif any(_cls.get(c) == "emulator observation" for c in _caps):
                     _got["Runtime perception required, non-visual"] += 1
                 else:
                     _got["Perception not required"] += 1
@@ -5967,6 +5975,24 @@ def check_structure(docs, R, D):
             if mc and cur is not None and int(mc.group(1)) != cur:
                 D.add("structure", label,
                       f"subsection {mc.group(1)}.{mc.group(2)} sits under section {cur}")
+        # A section number identifies exactly one section. A duplicated
+        # number is a patch artifact that hides one block from every
+        # number-addressed reference and from the schema owner/block scans
+        # (TA §73.18.3 was once published twice). Fenced blocks are ignored.
+        fence, seen_num = False, {}
+        for line in text.split("\n"):
+            if line.startswith("```"):
+                fence = not fence
+                continue
+            if fence:
+                continue
+            mh = re.match(r"^#{2,4}\s+(\d+(?:\.\d+)*)\s", line)
+            if mh:
+                num = mh.group(1)
+                seen_num[num] = seen_num.get(num, 0) + 1
+                if seen_num[num] == 2:
+                    D.add("structure", label,
+                          f"section number §{num} is used by more than one heading")
         # Subsection order: within a section, `### N.k` headings ascend, and a
         # `### N.k.j` never precedes its parent `### N.k` (BS §77.1.1 once
         # preceded §77.1). Fenced blocks are ignored.

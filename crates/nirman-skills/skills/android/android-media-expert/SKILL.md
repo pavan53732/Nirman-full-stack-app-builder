@@ -7,7 +7,7 @@ This skill provides the media domain knowledge that the `Android Data
 and Integration Worker` and `UI Worker` consume.
 
 ## Trigger
-This skill is requested when android media and camera — CameraX (preview, image capture, video), Media3/ExoPlayer (audio/video playback), Coil (image loading), MediaSession, picture-in-picture, and media notifications (BS §79.7). This skill provides the media domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android media and camera — CameraX (preview, image capture, video), Media3/ExoPlayer (audio/video playback), Coil (image loading), MediaSession, picture-in-picture, and media notifications (BS §79.7). This skill provides the media domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

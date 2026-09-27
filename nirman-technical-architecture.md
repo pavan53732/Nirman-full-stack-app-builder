@@ -146,7 +146,7 @@ A worker-startup observation MAY inform resource scheduling or recovery ordering
 
 | Edge | Transport | Authentication | Carries |
 |---|---|---|---|
-| `Nirman.exe` ↔ supervisor | `SupervisorConnection` named pipe (§57.3) | protocol handshake, installation identity, user and project scope | `UICommandEnvelope`, `UIResponseEnvelope`, `ProjectionSnapshot`, durable events, `FrameNotice` |
+| `Nirman.exe` ↔ supervisor | `SupervisorConnection` named pipe (§57.3) | pipe DACL granting `CURRENT_USER_SID` only (no `ALL APPLICATION PACKAGES`); client process image and user-SID verification after accept; installation-identity and protocol handshake; user and project scope | `UICommandEnvelope`, `UIResponseEnvelope`, `ProjectionSnapshot`, durable events, `FrameNotice` |
 | supervisor → PreviewHost | shared-memory ring announced by `FrameNotice` (§10.7) | ring mapped read-only into `Nirman.exe` | frame pixels only |
 | supervisor ↔ `NirmanWorker.exe` | `WorkerConnection` named pipe, one per lease (§57.11) | one-time launch token on standard input; pipe DACL granting the invoking account and the worker's per-lease container SID only (no ALL APPLICATION PACKAGES) | `MODEL_CALL`, `PROPOSAL`, results, artifacts, records, heartbeats, cancellation |
 | supervisor ↔ emulator | loopback gRPC with a per-session token, and adb (§10.7) | token held by the supervisor only | screenshot stream, input, device control |
@@ -2447,7 +2447,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 4. If a method requires an API level higher than `minSdk`, verifies that the AST node is enclosed in an explicit version check (`if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.X)`) or guarded by `@RequiresApi`.
 5. Any unguarded invocation is flagged with pre-compilation diagnostic `API_LEVEL_UNGUARDED_CALL` and rejected at pre-commit.
 
-**Offline Android pattern and snippet retrieval.** The supervisor embeds `AndroidPatternLibrary` directly within `nirman-supervisor`:
+**Offline Android pattern and snippet retrieval.** The supervisor embeds `AndroidPatternLibrary` directly within `nirman-android` (§57.1):
 - Supplies verified, canonical code templates for every component in the closed-world decision matrix of §73.2 (Room DAOs with KSP, Jetpack Compose Navigation 2.8+ type-safe routes, WorkManager periodic workers, Material 3 Scaffolds).
 - Operates 100% locally on the user's Windows host, enabling workers to synthesize compliant, idiomatic Android architectures even during severed network connectivity (`SessionProviderMode.OFFLINE`).
 
@@ -2463,7 +2463,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Deterministic pre-inference lookup:* When a build compilation or emulator test fails, the `Debugging Worker` queries the catalog using Tree-sitter error classification before dispatching a model deliberation request. An exact match on AST error signature and `minSdk` compatibility applies the proven patch template directly under a speculative branch.
 3. *Validation gating and quarantine:* Applied catalog patches must pass complete test and emulator validation before promotion. Any catalog pattern that causes an unexpected regression or fails validation on a target project is immediately marked `QUARANTINED` in the local ledger and removed from the active lookup index.
 
-**Intra-procedural control flow and taint flow analysis.** Within `nirman-supervisor`, `AndroidDataFlowAnalyzer` extends Tree-sitter AST traversal with lightweight intra-procedural control flow graphs (CFGs) and data flow taint tracking:
+**Intra-procedural control flow and taint flow analysis.** Within `nirman-android` (§57.1), `AndroidDataFlowAnalyzer` extends Tree-sitter AST traversal with lightweight intra-procedural control flow graphs (CFGs) and data flow taint tracking:
 1. *Lifecycle and coroutine flow validation:* Constructs CFGs for `@Composable` functions, Activities, and Fragments to verify that asynchronous coroutine flows, channel collections, and StateFlow emissions are strictly bound to lifecycle-aware scopes (`repeatOnLifecycle`, `collectAsStateWithLifecycle`, or `viewModelScope`). Any unconstrained collection inside an event branch or recomposition loop without lifecycle gating is flagged as a potential memory leak or background execution hazard before compilation.
 2. *Local taint tracking and credential protection:* Traces data flow from sensitive sources (e.g. Android Keystore, user input text fields, biometrics) to external sinks (e.g. unencrypted SharedPreferences, cleartext HTTP loggers, intent bundles). Hardcoded API secrets, auth tokens, or private signing keys discovered in AST literals or flowing into unencrypted local persistence are rejected with pre-commit diagnostic `TAINT_SENSITIVE_LEAK`.
 3. *Exception and branch exhaustiveness:* Analyzes CFG branches across sealed classes, enum switches, and Android permission request results to guarantee exhaustive handling and prevent silent branch drops.
@@ -2483,7 +2483,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Dependency injection graph:* Traverses Dagger/Hilt `@Inject` constructors and `@Provides` module bindings to verify acyclic object graph construction, reporting pre-commit diagnostic `CIRCULAR_INJECTION_DEPENDENCY` on detected cycles.
 3. *Relational schema graph:* Inspects Room `@Entity` relations and `@ForeignKey` constraints to guarantee acyclic entity dependency hierarchies, preventing cascading delete deadlocks.
 
-**Documentation consistency and doc-code mismatch detection.** Within `nirman-supervisor`, `DocCodeMismatchDetector` ensures that codebase documentation faithfully matches actual implementation:
+**Documentation consistency and doc-code mismatch detection.** Within `nirman-android` (§57.1), `DocCodeMismatchDetector` ensures that codebase documentation faithfully matches actual implementation:
 1. *Tag-to-signature reconciliation:* Compares KDoc and Javadoc `@param`, `@return`, and `@throws` tags against the corresponding Tree-sitter AST method signatures. If a parameter is renamed, removed, or added without updating the documentation comment, the analyzer flags a `DOC_CODE_MISMATCH` diagnostic.
 2. *Type and visibility consistency:* Verifies that documented types and exception classes exist in the current project classpath and that private helper details are not exposed in public KDoc contracts.
 
@@ -2492,7 +2492,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Build and execution commands:* Emits exact local Gradle wrapper commands (`./gradlew assembleDebug`, `./gradlew test`) corresponding to the project's verified configuration.
 3. *Architecture summary:* Summarizes implemented screens, Room database entities, and background workers based strictly on verified `CapabilityRegistry` evidence.
 
-**Architecture boundary enforcement and drift detection.** Within `nirman-supervisor`, `ArchitectureDriftDetector` statically verifies that Android source code strictly adheres to Clean Architecture layer separation before staging transactions:
+**Architecture boundary enforcement and drift detection.** Within `nirman-android` (§57.1), `ArchitectureDriftDetector` statically verifies that Android source code strictly adheres to Clean Architecture layer separation before staging transactions:
 1. *UI to data layer isolation:* Analyzes Tree-sitter AST call expressions in `@Composable` functions and Android UI classes (Activities, Fragments, Custom Views) to guarantee they do not invoke Room DAOs, SQLite queries, or Retrofit/Ktor network interfaces directly. All data access must be mediated through a lifecycle-managed `ViewModel` exposing observable state.
 2. *Context and lifecycle leak prevention:* Inspects `ViewModel` class fields and constructor parameters to verify they do not retain references to Android `Context`, `Activity`, `Fragment`, or `View` objects. Any detected UI reference is rejected with pre-commit diagnostic `ARCHITECTURE_VIEWMODEL_CONTEXT_LEAK`.
 3. *Data layer immutability:* Verifies that Repository classes expose read-only `Flow` or `StateFlow` streams to consumers rather than mutable `MutableStateFlow` or `MutableLiveData` references, preventing uncontrolled state mutation across architectural layers.
@@ -2507,7 +2507,7 @@ The graph service calculates affected files, modules, resources, permissions, te
 2. *Symbol graph line anchor correlation:* Queries `AndroidSymbolGraph` to map the crash stack frames directly to active source file paths and AST node declarations, resolving generated class names (e.g. Composable lambdas, coroutine continuations) back to original source constructs.
 3. *Episodic catalog matching:* Matches the structured crash signature and active `minSdk` against `EpisodicRepairPatternCatalog` to retrieve validated AST repair transformations, enabling zero-inference speculative repair of recurring runtime defects before invoking model deliberation.
 
-**Placeholder residue detection.** Within `nirman-supervisor`, `PlaceholderResidueDetector` statically scans proposed source code mutations, string resources, and layout templates before transaction staging:
+**Placeholder residue detection.** Within `nirman-android` (§57.1), `PlaceholderResidueDetector` statically scans proposed source code mutations, string resources, and layout templates before transaction staging:
 1. *Code placeholder pattern matching:* Walks the Tree-sitter AST to identify unexpanded stub markers, including `TODO`, `FIXME`, calls to standard library stubs (`TODO()`, `error("Not implemented")`), hollow exception throws (`throw NotImplementedError()`, `throw UnsupportedOperationException()`), and empty method bodies returning default dummy literals.
 2. *Resource placeholder scanning:* Inspects XML resource files (`strings.xml`, `arrays.xml`) for filler text patterns (`Lorem ipsum`, `Sample Text`, `Placeholder`, `Title here`, `lorem_ipsum`).
 3. *Pre-commit rejection:* Emits a `PLACEHOLDER_RESIDUE_DETECTED` finding and rejects transaction staging, preventing incomplete or hollow code from reaching compilation or evidence ledger records.
@@ -3304,6 +3304,13 @@ The Rust side is one Cargo workspace under `crates/`. The crate boundaries follo
 | `nirman-artifacts` | `ArtifactAuthority`, `PackagingProfile` admission, local export handler (§83) | `nirman-domain`, `nirman-evidence`, `nirman-policy` |
 | `nirman-skills` | Skill registry, `SkillAdmission`/`SkillInvocationRecord` persistence (§19.1), built-in bodies and manifests under `skills/` | `nirman-domain`, `nirman-policy` |
 
+The workspace also contains exactly two binary crates. They are targets of this same workspace, not libraries: they hold no domain logic and are the only rows that may produce an executable.
+
+| Binary crate | Produces | May link |
+|---|---|---|
+| `nirman-supervisor` | `NirmanSupervisor.exe` — the authoritative local control plane (§57.2) | every library crate of the table above except `nirman-agents` |
+| `nirman-worker` | `NirmanWorker.exe` — the isolated reasoning process, one per lease (§3.5) | `nirman-domain`, `nirman-worker-ipc`, `nirman-agents`, and nothing else |
+
 `NirmanSupervisor.exe` links every crate of this table except `nirman-agents`; `NirmanWorker.exe` links `nirman-domain`, `nirman-worker-ipc`, and `nirman-agents` and nothing else — no ledger, no policy engine, no adapter, no provider client (§3.5); `Nirman.exe` links only the generated `nirman-ipc` client bindings. A crate that reaches across this table (for example `nirman-preview` writing the ledger directly, `nirman-ipc` containing domain logic, or `nirman-agents` depending on `nirman-control-plane`) or a binary that links outside its row violates §57.2 and §3.5 and is rejected at code review by the M0 module-boundary check (development plan M0, "Repository layout").
 
 ### 57.2 Process topology
@@ -3354,6 +3361,14 @@ The first implementation may host the Rust control-plane modules in-process with
 > **Schema projection:** `SupervisorConnection` is defined in `nirman-schemas.md` §2.135. Owner: TA §57.3.
 
 The connection performs a protocol/version handshake, authenticates the UI instance, validates project scope, subscribes to durable events after a supplied sequence, reports supervisor health, and handles reconnect after UI crash, UI restart, supervisor restart, Windows reboot, and sleep/resume. A UI connection cannot impersonate another project, publish forged events, or invoke a command outside its capability scope.
+
+**Transport and naming.** The production transport is a named pipe owned by `NirmanSupervisor.exe`. The pipe name is derived from the supervisor's per-installation identity and the current user's session, so two users on one host, or two installations, never share a pipe name; the name is discovered by `Nirman.exe` from the supervisor's per-user discovery record rather than being a fixed literal, and it is never accepted from the command line or the environment.
+
+**Peer authentication.** The supervisor creates the pipe with an explicit security descriptor whose DACL contains exactly one access-allowed ACE: full control for the invoking user's account (`CURRENT_USER_SID`). No ACE grants `ALL APPLICATION PACKAGES` (`S-1-15-2-1`) and none grants a broad group, so no AppContainer — including a `NirmanWorker.exe` — and no other user's process can open the pipe. The supervisor verifies the connecting client's process identity after accept, not merely the fact that a connection arrived: it resolves the client process ID to its image path and token, and requires that the image is the installed `Nirman.exe` for this installation and that the token's user SID matches the supervisor's own user. A connection whose client process is not that image, or whose user SID differs, is closed before the handshake completes and the attempt is recorded as an authentication failure.
+
+**Handshake.** `Nirman.exe` presents the installation identity it read from the installation's own discovery record — never a value supplied by a caller, a project, or a model — and the handshake binds protocol version, `ui_instance_id`, `supervisor_instance_id`, `installation_identity`, `authenticated_user_scope`, and the requested `project_scope`. A protocol-version mismatch is refused with a typed error rather than negotiated downward. A `project_scope` the caller is not entitled to is refused before any subscription is created.
+
+**Second UI instance.** The supervisor is a per-user singleton (§57.4). A second `Nirman.exe` for the same installation and user does not create a second supervisor: it connects to the running supervisor on the same pipe and is admitted as an additional `ui_instance_id` under the same installation and user scope, subject to the same command registry, project-scope checks, and capability ceiling. Its commands and subscriptions are attributed to its own `ui_instance_id` in the ledger, so two windows cannot be confused for one another. A second instance never gains authority the first lacks, and neither instance can address the other's pending commands.
 
 The canonical `UICommandEnvelope`, `ProjectionSnapshot`, `UIResponseEnvelope`, `UIErrorEnvelope`, and `EventSubscription` schemas, command registry, transaction ownership, and replay rules are defined by technical architecture §81. `SupervisorConnection` carries the authenticated transport and cursor required by that contract.
 
@@ -6127,13 +6142,6 @@ Cloud server alerting rules (Prometheus alertmanager, PagerDuty) and cloud error
 1. *AST framework API scanning:* Walks the Tree-sitter AST of source files to identify calls to protected Android framework APIs (e.g. location services, camera, Bluetooth, telephony, biometrics).
 2. *Manifest permission mapping:* Queries the `AndroidSymbolGraph` `REQUIRES_PERMISSION` edges (§47.3) to derive the exact `<uses-permission>` tags required in `AndroidManifest.xml`, distinguishing normal permissions from dangerous (runtime) permissions and special permissions (`SCHEDULE_EXACT_ALARM`, `MANAGE_EXTERNAL_STORAGE`).
 3. *Runtime permission flow scaffolding:* Scaffolds modern AndroidX `rememberLauncherForActivityResult` with `ActivityResultContracts.RequestPermission()` or `RequestMultiplePermissions()`, ensuring mandatory rationale dialogs and permission-denied fallbacks are generated for all dangerous permissions.
-
-#### 73.18.3 GradleConfigSynthesizer
-
-`GradleConfigSynthesizer` coordinates the synthesis and reconciliation of modern Android Gradle build configurations:
-1. *Version catalog management:* Generates and maintains `gradle/libs.versions.toml`, managing `[versions]`, `[libraries]`, and `[plugins]` blocks in accordance with single-writer reconciliation rules (BS §35).
-2. *Kotlin DSL convention plugins:* Synthesizes type-safe `build.gradle.kts` files using Gradle Kotlin DSL, applying standard Android Gradle Plugin (AGP) convention plugins (`com.android.application`, `com.android.library`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`).
-3. *Build variant and flavor configuration:* Configures `debug` and `release` build types, application ID suffixes, signing configurations, and optimization flags (`isMinifyEnabled`, `isShrinkResources`).
 
 #### 73.18.3 GradleConfigSynthesizer
 

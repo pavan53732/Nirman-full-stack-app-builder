@@ -7,7 +7,7 @@ config, ProGuard/R8 rules, dependency resolution, and build optimization
 the `Release Worker` and ToolchainAuthority consume.
 
 ## Trigger
-This skill is requested when android Gradle build system — version catalogs (libs.versions.toml), convention plugins, build variants (debug/release/staging), signing config, ProGuard/R8 rules, dependency resolution, and build optimization (BS §79.7). This skill provides the build-system domain knowledge that the `Release Worker` and ToolchainAuthority consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android Gradle build system — version catalogs (libs.versions.toml), convention plugins, build variants (debug/release/staging), signing config, ProGuard/R8 rules, dependency resolution, and build optimization (BS §79.7). This skill provides the build-system domain knowledge that the `Release Worker` and ToolchainAuthority consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

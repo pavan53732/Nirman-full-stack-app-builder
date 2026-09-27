@@ -7,7 +7,7 @@ state handover from the instant experience to the installed app (BS §79.7). Thi
 that the `Release Worker` and `Architecture Worker` consume.
 
 ## Trigger
-This skill is requested when shipping a trial-able app — instant-enabled app bundles, URL handling and app link verification, the instant size budget and the module split needed to meet it, runtime permission and storage differences, and state handover from the instant experience to the installed app (BS §79.7). This skill provides the domain knowledge that the `Release Worker` and `Architecture Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when shipping a trial-able app — instant-enabled app bundles, URL handling and app link verification, the instant size budget and the module split needed to meet it, runtime permission and storage differences, and state handover from the instant experience to the installed app (BS §79.7). This skill provides the domain knowledge that the `Release Worker` and `Architecture Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

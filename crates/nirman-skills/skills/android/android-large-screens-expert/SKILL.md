@@ -7,7 +7,7 @@ drag and drop, and the large-screen quality gates of the Play store (BS §79.7).
 that the `UI Worker` and `Visual QA Worker` consume.
 
 ## Trigger
-This skill is requested when adaptive UI for large screens — WindowSizeClass-driven layout switching, foldable postures and hinge handling, tablet two-pane and list-detail compositions, activity embedding, multi-window and multi-resume behavior, drag and drop, and the large-screen quality gates of the Play store (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when adaptive UI for large screens — WindowSizeClass-driven layout switching, foldable postures and hinge handling, tablet two-pane and list-detail compositions, activity embedding, multi-window and multi-resume behavior, drag and drop, and the large-screen quality gates of the Play store (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

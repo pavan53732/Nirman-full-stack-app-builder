@@ -7,7 +7,7 @@ This skill provides the payments domain knowledge that the `Android Data
 and Integration Worker` consumes.
 
 ## Trigger
-This skill is requested when google Play Billing — in-app purchases (consumable, non-consumable, subscriptions), subscription management (base plans, offers, upgrade/downgrade), purchase flow, purchase verification, and subscription status (BS §79.7). This skill provides the payments domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when google Play Billing — in-app purchases (consumable, non-consumable, subscriptions), subscription management (base plans, offers, upgrade/downgrade), purchase flow, purchase verification, and subscription status (BS §79.7). This skill provides the payments domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -8,7 +8,7 @@ notifications domain knowledge that the `Android Data and Integration Worker`
 consumes.
 
 ## Trigger
-This skill is requested when android notifications — notification channels (importance, sound, vibration, lights), notification types (basic, progress, media, messaging, call), rich notifications (images, actions, replies), notification groups, and notification permissions (BS §79.7). This skill provides the notifications domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android notifications — notification channels (importance, sound, vibration, lights), notification types (basic, progress, media, messaging, call), rich notifications (images, actions, replies), notification groups, and notification permissions (BS §79.7). This skill provides the notifications domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

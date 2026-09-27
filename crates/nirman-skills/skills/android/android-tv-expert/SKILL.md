@@ -7,7 +7,7 @@ spacing, and TV media playback with transport controls (BS §79.7). This skill p
 that the `UI Worker` and `Visual QA Worker` consume.
 
 ## Trigger
-This skill is requested when ten-foot Android TV and Google TV apps — D-pad focus movement and focus memory, Compose for TV and Leanback surfaces, browse and detail rows, channel and watch-next presentation, ten-foot typography and spacing, and TV media playback with transport controls (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when ten-foot Android TV and Google TV apps — D-pad focus movement and focus memory, Compose for TV and Leanback surfaces, browse and detail rows, channel and watch-next presentation, ten-foot typography and spacing, and TV media playback with transport controls (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Visual QA Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

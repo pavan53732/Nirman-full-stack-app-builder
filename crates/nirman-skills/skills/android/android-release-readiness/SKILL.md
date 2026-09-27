@@ -88,7 +88,6 @@ its scoped asset transaction (BS §50).
     host, at which revision — never a statement of intent.
 
 ## Failure classification
-## Failure classification
 - BLOCKED — a required capability resolves to UNAVAILABLE or USER_REQUIRED;
   the gated steps MUST NOT execute and the blocked state MUST be reported.
 - PRECONDITION_UNMET — a precondition below was not satisfied; the skill

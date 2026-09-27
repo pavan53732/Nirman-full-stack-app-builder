@@ -7,7 +7,7 @@ aggregations, and durable sync of health data (BS §79.7). This skill provides t
 that the `Android Data and Integration Worker` and `UI Worker` consume.
 
 ## Trigger
-This skill is requested when health and fitness data — Health Connect read and write with granular permissions and disclosure, Health Services exercise and passive sensor tracking on Wear OS, heart rate and location series, records and aggregations, and durable sync of health data (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when health and fitness data — Health Connect read and write with granular permissions and disclosure, Health Services exercise and passive sensor tracking on Wear OS, heart rate and location series, records and aggregations, and durable sync of health data (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

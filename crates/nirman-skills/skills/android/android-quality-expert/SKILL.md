@@ -6,7 +6,7 @@ detection, static analysis enforcement, and coding standard compliance
 `Security Worker` and `Reconciliation Worker` consume.
 
 ## Trigger
-This skill is requested when android code quality — Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, and coding standard compliance (BS §79.7). This skill provides the quality domain knowledge that the `Security Worker` and `Reconciliation Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android code quality — Android Lint, Detekt, Ktlint, code smell detection, static analysis enforcement, and coding standard compliance (BS §79.7). This skill provides the quality domain knowledge that the `Security Worker` and `Reconciliation Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

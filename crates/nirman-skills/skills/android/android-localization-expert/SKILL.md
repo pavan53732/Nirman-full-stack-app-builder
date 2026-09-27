@@ -7,7 +7,7 @@ formatting, per-locale app resources, and pseudo-locale verification (BS §79.7)
 that the `UI Worker` and `Android Data and Integration Worker` consume.
 
 ## Trigger
-This skill is requested when making an app correct in more than one language — string resource externalization, locale and region qualification, right-to-left mirroring, plural and gendered grammar, locale-correct date, number, and currency formatting, per-locale app resources, and pseudo-locale verification (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when making an app correct in more than one language — string resource externalization, locale and region qualification, right-to-left mirroring, plural and gendered grammar, locale-correct date, number, and currency formatting, per-locale app resources, and pseudo-locale verification (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

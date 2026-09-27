@@ -8,7 +8,7 @@ provides the data-layer domain knowledge that the `Android Data and
 Integration Worker` consumes.
 
 ## Trigger
-This skill is requested when android data persistence and synchronization — Room database (entities, DAOs, migrations, relationships), DataStore (Preferences and Proto), offline-first patterns, repository pattern, data sync strategies, and background data operations (BS §79.7). This skill provides the data-layer domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android data persistence and synchronization — Room database (entities, DAOs, migrations, relationships), DataStore (Preferences and Proto), offline-first patterns, repository pattern, data sync strategies, and background data operations (BS §79.7). This skill provides the data-layer domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

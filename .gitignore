@@ -44,9 +44,18 @@ scratch/
 # environment keeps its token at ~/.secrets/github-git-credentials, outside this repository,
 # and no remote URL in .git/config embeds a credential; this entry is the backstop that keeps
 # a stray copy from ever being staged onto main. Secrets never belong in provenance.
+#
+# Patterns are anchored to secret-shaped FILES, never to bare substrings. An unanchored
+# `*token*` / `*credentials*` also matches legitimate source — `crates/nirman-ipc/src/token.rs`,
+# `credentials_broker.rs`, and (under Windows' default core.ignorecase) `CancellationTokenSource.cs`
+# — which would be dropped from the tree silently. Keep these anchored.
 .secrets/
-*token*
-*credentials*
+*.token
+*.credentials
+*.credentials.json
+*token*.json
+*credentials*.json
 *.pem
 *.p12
 *.keystore
+*.jks

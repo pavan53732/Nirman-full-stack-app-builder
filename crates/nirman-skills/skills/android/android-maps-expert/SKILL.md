@@ -8,7 +8,7 @@ location domain knowledge that the `Android Data and Integration Worker`
 consumes.
 
 ## Trigger
-This skill is requested when google Maps integration — Maps SDK for Android (map views, markers, polylines, polygons, ground overlays), location services (Fused Location Provider, foreground location), geofencing, and custom map styling (BS §79.7). This skill provides the maps and location domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when google Maps integration — Maps SDK for Android (map views, markers, polylines, polygons, ground overlays), location services (Fused Location Provider, foreground location), geofencing, and custom map styling (BS §79.7). This skill provides the maps and location domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

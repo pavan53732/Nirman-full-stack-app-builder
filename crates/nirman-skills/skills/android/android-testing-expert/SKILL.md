@@ -7,7 +7,7 @@ domain knowledge that the `Test and QA Worker` and `Visual QA Worker`
 consume.
 
 ## Trigger
-This skill is requested when android testing — JUnit 5, Compose UI Test, Espresso, Paparazzi screenshot testing, Roborazzi, MockK, Turbine (Flow testing), and test fixture management (BS §79.7). This skill provides the testing domain knowledge that the `Test and QA Worker` and `Visual QA Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android testing — JUnit 5, Compose UI Test, Espresso, Paparazzi screenshot testing, Roborazzi, MockK, Turbine (Flow testing), and test fixture management (BS §79.7). This skill provides the testing domain knowledge that the `Test and QA Worker` and `Visual QA Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -7,7 +7,7 @@ skill provides the navigation domain knowledge that the `UI Worker`
 consumes.
 
 ## Trigger
-This skill is requested when android navigation — Navigation Component for Compose, type-safe navigation with Serialization, deep links, nested navigation graphs, back stack management, and multi-module navigation (BS §79.7). This skill provides the navigation domain knowledge that the `UI Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android navigation — Navigation Component for Compose, type-safe navigation with Serialization, deep links, nested navigation graphs, back stack management, and multi-module navigation (BS §79.7). This skill provides the navigation domain knowledge that the `UI Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -21,7 +21,7 @@
 | §11 | Data Model |
 | §12 | MVP Functional Requirements |
 | §13 | Non-Functional Requirements |
-| §14 | Suggested Application Directory Structure |
+| §14 | Application Directory Structure |
 | §15 | Implementation Roadmap |
 | §16 | Acceptance Criteria for the First Usable Release |
 | §17 | Risks and Mitigations |

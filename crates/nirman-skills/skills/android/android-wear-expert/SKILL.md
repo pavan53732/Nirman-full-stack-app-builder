@@ -8,7 +8,7 @@ This skill provides the Wear OS domain knowledge that the `UI Worker`
 consumes.
 
 ## Trigger
-This skill is requested when wear OS development — Wear OS UI (Compose for Wear, BoxInsetLayout, CurvedLayout, SwipeDismissFrameLayout), watch faces (CanvasWatchFaceService), complications (data providers for watch faces), tiles (quick actions), and health services (Heart Rate, Step Count, Location) (BS §79.7). This skill provides the Wear OS domain knowledge that the `UI Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when wear OS development — Wear OS UI (Compose for Wear, BoxInsetLayout, CurvedLayout, SwipeDismissFrameLayout), watch faces (CanvasWatchFaceService), complications (data providers for watch faces), tiles (quick actions), and health services (Heart Rate, Step Count, Location) (BS §79.7). This skill provides the Wear OS domain knowledge that the `UI Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

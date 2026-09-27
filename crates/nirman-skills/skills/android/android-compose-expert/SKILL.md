@@ -7,7 +7,7 @@ semantic testing annotations, and Compose-specific performance patterns
 domain knowledge that the `UI Worker` and `Visual QA Worker` consume.
 
 ## Trigger
-This skill is requested when jetpack Compose UI building — recomposition-aware state management, Modifier composition, Material3 theming, custom layouts, animations, semantic testing annotations, and Compose-specific performance patterns (BS §79.7; ADR-225 ScreenModel). This skill provides the Compose domain knowledge that the `UI Worker` and `Visual QA Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when jetpack Compose UI building — recomposition-aware state management, Modifier composition, Material3 theming, custom layouts, animations, semantic testing annotations, and Compose-specific performance patterns (BS §79.7; ADR-225 ScreenModel). This skill provides the Compose domain knowledge that the `UI Worker` and `Visual QA Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -47,9 +47,10 @@ transaction (BS §50).
 3. Build the Composable tree: use Box, Row, Column, LazyColumn,
    LazyRow, ConstraintLayout as appropriate. Compose modifiers in the
    correct order — modifier order affects behavior.
-4. Apply Material3 theming: use MaterialTheme.colorScheme,
-   MaterialTheme.typography, MaterialTheme.spacing. Support dynamic
-   color on Android 12+ with graceful fallback.
+4. Apply Material3 theming: use MaterialTheme.colorScheme and
+   MaterialTheme.typography, and define project spacing and shape tokens
+   in a local theme object (Material3 has no MaterialTheme.spacing).
+   Support dynamic color on Android 12+ with graceful fallback.
 5. Handle side effects correctly: use LaunchedEffect, DisposableEffect,
    produceState, derivedStateOf, snapshotFlow — never launch
    coroutines directly in composable scope.
@@ -119,7 +120,7 @@ Emits `ComposeBuildResult` from `ComposeBuildRequest` (§23 SkillPackage contrac
 - Step 1 produces its expected outcome — Analyze the design intent and map to Compose UI structure: identify screens, navigation destinations, reusable components, and state requirements.
 - Step 2 produces its expected outcome — Design state hoisting: determine what state lives at what level (remember, mutableStateOf, StateFlow, ViewModel), following unidirectional data flow. Avoid lifting state higher than its consumers.
 - Step 3 produces its expected outcome — Build the Composable tree: use Box, Row, Column, LazyColumn, LazyRow, ConstraintLayout as appropriate. Compose modifiers in the correct order — modifier order affects behavior.
-- Step 4 produces its expected outcome — Apply Material3 theming: use MaterialTheme.colorScheme, MaterialTheme.typography, MaterialTheme.spacing. Support dynamic color on Android 12+ with graceful fallback.
+- Step 4 produces its expected outcome — Apply Material3 theming: use MaterialTheme.colorScheme and MaterialTheme.typography, and define project spacing and shape tokens in a local theme object (Material3 has no MaterialTheme.spacing). Support dynamic color on Android 12+ with graceful fallback.
 - Step 5 produces its expected outcome — Handle side effects correctly: use LaunchedEffect, DisposableEffect, produceState, derivedStateOf, snapshotFlow — never launch coroutines directly in composable scope.
 - Step 6 produces its expected outcome — Add semantics for accessibility and testing: Modifier.semantics, Modifier.testTag, contentDescription. Every interactive element MUST have a semantic action and a test tag.
 - Step 7 produces its expected outcome — Validate in Preview: use `@Preview` composables and the live Preview surface to verify rendering before integration.

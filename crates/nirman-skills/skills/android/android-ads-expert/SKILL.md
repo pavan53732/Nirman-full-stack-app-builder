@@ -7,7 +7,7 @@ labeling, and test-ad verification before release (BS §79.7). This skill provid
 that the `Android Data and Integration Worker` and `Release Worker` consume.
 
 ## Trigger
-This skill is requested when earning from an app with ads — the Google Mobile Ads SDK, banner, interstitial, rewarded, and native formats, mediation and ad source configuration, privacy and consent signalling, ad disclosure and labeling, and test-ad verification before release (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `Release Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when earning from an app with ads — the Google Mobile Ads SDK, banner, interstitial, rewarded, and native formats, mediation and ad source configuration, privacy and consent signalling, ad disclosure and labeling, and test-ad verification before release (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `Release Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

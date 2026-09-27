@@ -7,7 +7,7 @@ keeping shortcuts consistent with app state (BS §79.7). This skill provides the
 that the `UI Worker` and `Android Data and Integration Worker` consume.
 
 ## Trigger
-This skill is requested when launcher and assistant entry points — static, dynamic, and pinned shortcuts through ShortcutManager, capability-based assistant entry, deep link targets with back-stack correctness, shortcut limits and ranking, and keeping shortcuts consistent with app state (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when launcher and assistant entry points — static, dynamic, and pinned shortcuts through ShortcutManager, capability-based assistant entry, deep link targets with back-stack correctness, shortcut limits and ranking, and keeping shortcuts consistent with app state (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

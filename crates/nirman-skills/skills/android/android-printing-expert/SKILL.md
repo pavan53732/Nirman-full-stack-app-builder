@@ -7,7 +7,7 @@ discovery and status reporting (BS §79.7). This skill provides the domain knowl
 that the `Android Data and Integration Worker` and `UI Worker` consume.
 
 ## Trigger
-This skill is requested when printing from an app — the platform print framework, print adapters for documents and images, PDF generation and rendering, custom print options and page ranges, the system print preview, and print service discovery and status reporting (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when printing from an app — the platform print framework, print adapters for documents and images, PDF generation and rendering, custom print options and page ranges, the system print preview, and print service discovery and status reporting (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `UI Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

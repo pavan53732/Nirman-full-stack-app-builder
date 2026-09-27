@@ -7,7 +7,7 @@ automotive quality gates that a car-hosted app must satisfy (BS §79.7). This sk
 that the `UI Worker` and `Android Data and Integration Worker` consume.
 
 ## Trigger
-This skill is requested when building for the car — the Car App Library, the fixed set of automotive templates, driver-distraction and step constraints, navigation and parked-mode surfaces, media and messaging templates, and the automotive quality gates that a car-hosted app must satisfy (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when building for the car — the Car App Library, the fixed set of automotive templates, driver-distraction and step constraints, navigation and parked-mode surfaces, media and messaging templates, and the automotive quality gates that a car-hosted app must satisfy (BS §79.7). This skill provides the domain knowledge that the `UI Worker` and `Android Data and Integration Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

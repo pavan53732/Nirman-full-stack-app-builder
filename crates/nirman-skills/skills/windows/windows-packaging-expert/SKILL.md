@@ -7,7 +7,7 @@ package verification (BS §79.7). This skill provides the domain
 knowledge that the `Release Worker` and `Architecture Worker` consume.
 
 ## Trigger
-This skill is requested when windows packaging and delivery — MSIX package authoring and manifest capability declaration, code signing and signature verification, installer and uninstaller behavior, version and update semantics, and package verification (BS §79.7). This skill provides the domain knowledge that the `Release Worker` and `Architecture Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when windows packaging and delivery — MSIX package authoring and manifest capability declaration, code signing and signature verification, installer and uninstaller behavior, version and update semantics, and package verification (BS §79.7). This skill provides the domain knowledge that the `Release Worker` and `Architecture Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

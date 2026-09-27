@@ -7,7 +7,7 @@ test and static-analysis practice (BS §79.7). This skill provides the domain
 knowledge that the `Architecture Worker` and `Debugging Worker` consume.
 
 ## Trigger
-This skill is requested when rust control-plane engineering — crate layout and workspace boundaries, async runtime discipline, typed error handling, named-pipe interprocess communication, structured logging and diagnostics, and Rust test and static-analysis practice (BS §79.7). This skill provides the domain knowledge that the `Architecture Worker` and `Debugging Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when rust control-plane engineering — crate layout and workspace boundaries, async runtime discipline, typed error handling, named-pipe interprocess communication, structured logging and diagnostics, and Rust test and static-analysis practice (BS §79.7). This skill provides the domain knowledge that the `Architecture Worker` and `Debugging Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

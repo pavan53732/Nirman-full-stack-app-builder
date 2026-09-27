@@ -7,7 +7,7 @@ unidirectional data flow, domain/data/UI layering, dependency injection
 the `Architecture Worker` and `Android Data and Integration Worker` consume.
 
 ## Trigger
-This skill is requested when android app architecture patterns — MVI/MVVM/MVP separation, unidirectional data flow, domain/data/UI layering, dependency injection (Hilt/Koin/manual), modularization strategy, and repository pattern (BS §79.7). This skill provides the architectural domain knowledge that the `Architecture Worker` and `Android Data and Integration Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android app architecture patterns — MVI/MVVM/MVP separation, unidirectional data flow, domain/data/UI layering, dependency injection (Hilt/Koin/manual), modularization strategy, and repository pattern (BS §79.7). This skill provides the architectural domain knowledge that the `Architecture Worker` and `Android Data and Integration Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

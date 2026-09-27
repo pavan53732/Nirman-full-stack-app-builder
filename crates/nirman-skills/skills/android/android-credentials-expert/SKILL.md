@@ -8,7 +8,7 @@ that makes a passkey valid (BS §79.7). This skill provides the domain knowledge
 that the `Android Data and Integration Worker` and `Security Worker` consume.
 
 ## Trigger
-This skill is requested when passwordless and password-based sign-in through the Credential Manager — passkey (FIDO2) creation and assertion, Sign in with Google, federated and password credentials, autofill integration, credential enumeration and recovery, and the origin and digital-asset-link binding that makes a passkey valid (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `Security Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when passwordless and password-based sign-in through the Credential Manager — passkey (FIDO2) creation and assertion, Sign in with Google, federated and password credentials, autofill integration, credential enumeration and recovery, and the origin and digital-asset-link binding that makes a passkey valid (BS §79.7). This skill provides the domain knowledge that the `Android Data and Integration Worker` and `Security Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

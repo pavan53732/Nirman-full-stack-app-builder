@@ -7,7 +7,7 @@ automation (BS §79.7). This skill provides the accessibility domain
 knowledge that the `Visual QA Worker` and `UI Worker` consume.
 
 ## Trigger
-This skill is requested when android accessibility — TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, and accessibility test automation (BS §79.7). This skill provides the accessibility domain knowledge that the `Visual QA Worker` and `UI Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when android accessibility — TalkBack support, content descriptions, touch target sizing (48dp minimum), color contrast ratios (4.5:1 for text), accessibility scanner, semantic roles, and accessibility test automation (BS §79.7). This skill provides the accessibility domain knowledge that the `Visual QA Worker` and `UI Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

@@ -951,43 +951,38 @@ Accessibility is a functional requirement with the same standing as truth and sa
 
 ---
 
-## 14. Suggested Application Directory Structure
+## 14. Application Directory Structure
+
+The repository layout is fixed by technical architecture §57.1, which is the authority for the Cargo workspace, its crate boundaries, the two binary crates, and the C#/.NET host solution. That section is the single source of the layout; this section states only the boundaries the layout must preserve.
 
 ```text
 Nirman/
-├── app/
-│   ├── desktop-shell/
-│   ├── frontend/
-│   └── shared-types/
-├── agent/
-│   ├── orchestrator/
-│   ├── tools/
-│   ├── policies/
-│   ├── context/
-│   └── prompts/
-├── runtime/
-│   ├── process-manager/
-│   ├── environment-diagnostics/
-│   ├── preview-manager/
-│   ├── test-runner/
-│   └── artifact-builder/
-├── providers/
-│   ├── provider-interface/
-│   ├── compatible-provider/
-│   └── capability-detection/
-├── android_bootstraps/
-│   ├── android-native-views/
-│   ├── android-native-compose/
-│   └── android-device-profiles/
-├── storage/
-│   ├── project-metadata/
-│   ├── checkpoints/
-│   └── activity-logs/
-├── docs/
-└── tests/
+├── crates/                 # one Cargo workspace (TA §57.1)
+│   ├── nirman-domain/      # canonical schemas as Rust types
+│   ├── nirman-ipc/         # the only crate the C#/.NET host binds to
+│   ├── nirman-policy/      # PolicyAuthority
+│   ├── nirman-control-plane/
+│   ├── nirman-evidence/
+│   ├── nirman-provider/    # ModelGateway
+│   ├── nirman-context/
+│   ├── nirman-worker-ipc/  # WorkerConnection protocol
+│   ├── nirman-kernel/
+│   ├── nirman-agents/      # linked by NirmanWorker.exe only
+│   ├── nirman-android/
+│   ├── nirman-preview/
+│   ├── nirman-artifacts/
+│   ├── nirman-skills/      # skill registry and built-in bodies
+│   ├── nirman-supervisor/  # binary: NirmanSupervisor.exe
+│   └── nirman-worker/      # binary: NirmanWorker.exe
+├── apps/desktop/           # C#/.NET + WinUI 3 host (Nirman.exe)
+├── tools/                  # verifier, harness, local certification entry points
+├── fixtures/
+└── docs/
 ```
 
 The exact repository layout may change during implementation, but the boundaries should remain clear. The desktop interface should not contain the complete agent implementation, and provider-specific behavior should not be scattered through the user interface.
+
+The four boundaries the layout must keep separate are the agent tools, the provider adapters, the internal Android bootstraps, and the UI (§13). Cross-boundary calls pass through declared interfaces only; no boundary may be merged into another.
 
 ---
 
@@ -1814,6 +1809,8 @@ COMPLETED or ESCALATED
 ```
 
 Every state transition should be persisted with a reason and event reference. A task may continue automatically only from states marked recoverable. The recoverable states are `FAILED_RETRYABLE` and `RECOVERING`. A task that reaches `ESCALATED` must require a new user action or explicit retry strategy. `CANCEL_REQUESTED` marks requested, in-flight cancellation: the task performs no further autonomous transitions once entered, teardown completes through cancellation propagation (BS §52.12), and the §27.10 completion classification derives `Cancelled` from this state.
+
+`CANCEL_REQUESTED` is a **terminal** member of this state set. There is no `CANCELLED` task-execution state and none may be added: the set above is closed. "Teardown finished" is not a task state and is never represented as one — it is observed through the §27.10 goal-level completion classification (`Cancelled`) and the cancellation-propagation record of §52.12, which are separate vocabularies that cite the task state rather than extending it. A consumer that needs to know whether teardown has completed reads the propagation record and the completion classification; it must not infer completion from, or wait for, a further task transition that will never arrive.
 
 This is the canonical **task-execution state set** (`TaskExecutionState`). It is the only vocabulary for the state of one autonomous task, and technical architecture §5.1 implements it with exactly these names. It is distinct from, and nested inside, the **session product lifecycle** of §33.2 (`ProductLifecycleState`, whose machine-readable enum is fixed in §5.7.2): a session in `Implementing` may own many tasks, each in one of the states above. Kernel cycle outcomes (technical architecture §71.4) and completion classifications (§27.10) are neither task nor session states; the §33.2 mapping table fixes how each of them projects onto these two sets. No document may introduce a further task or session state vocabulary (AGENTS.md: one canonical lifecycle).
 
@@ -5788,7 +5785,25 @@ This contract governs local deployment delivery of a verified Android artifact. 
 A deployment export is admitted only when an immutable `PackagingProfile` is identified by `packagingProfileId`, declares the artifact kind, the artifact has passed the required build, signing, validation, and promotion authorities, and the destination is `LOCAL_WINDOWS_FILESYSTEM`. The required local deliverable is an installable APK. AAB is optional only when the profile is `APK_AND_AAB`; it is never implied by source export or by a generic artifact request. Deployment export admission requires mandatory structural and content inspection of candidate APK and AAB binaries via `AndroidArtifactInspector`, emitting an authoritative `AndroidArtifactInspectionRecord` (technical architecture §74.3, SCHEMAS §2.133; ADR-259) committed to `EvidenceAuthority`. Tampered archives, checksum mismatches, signature discrepancies, unmanaged permissions, debuggable release artifacts, or embedded plaintext secrets fail inspection and prohibit promotion or deployment export. External deployment destinations are rejected in the current product scope.
 
 ### 78.2 Canonical provenance and lifecycle
-`ExportVerificationRecord` in TA §74.3 is the canonical durable record. For an APK deployment it is exposed as an `APKExportRecord` view containing `artifactKind`, `packagingProfileId`, source revision, checkpoint, source and destination file identities, request fingerprint, idempotency key, signing identity binding, validation decision, promotion decision, reconciliation reference, source and destination hashes, byte count, copy state, `deploymentDelivery: REQUIRED_APK`, `destinationKind: LOCAL_WINDOWS_FILESYSTEM`, post-copy verification, failure evidence, evidence references, and timestamp. The lifecycle is `REQUESTED → COPYING → COPIED → UNKNOWN → RECONCILING → VERIFIED` or `FAILED | BLOCKED`; interrupted or unknown copies remain durable and must be reconciled before retry.
+`ExportVerificationRecord` in TA §74.3 is the canonical durable record. For an APK deployment it is exposed as an `APKExportRecord` view containing `artifactKind`, `packagingProfileId`, source revision, checkpoint, source and destination file identities, request fingerprint, idempotency key, signing identity binding, validation decision, promotion decision, reconciliation reference, source and destination hashes, byte count, copy state, `deploymentDelivery: REQUIRED_APK`, `destinationKind: LOCAL_WINDOWS_FILESYSTEM`, post-copy verification, failure evidence, evidence references, and timestamp.
+
+The copy states are `REQUESTED`, `COPYING`, `COPIED`, `UNKNOWN`, `RECONCILING`, `VERIFIED`, `FAILED`, and `BLOCKED`. They are not a single linear chain: `UNKNOWN` is entered only when a copy may have partially completed, not by every export. The permitted transitions are exactly:
+
+| From | To | Condition |
+|---|---|---|
+| `REQUESTED` | `COPYING` | Admission passes and the destination is opened |
+| `REQUESTED` | `BLOCKED` | Admission fails: undeclared artifact kind, unverified artifact, wrong packaging profile, or a rejected destination |
+| `COPYING` | `COPIED` | The copy completes and post-copy hash comparison is available |
+| `COPYING` | `UNKNOWN` | The copy is interrupted, or its outcome cannot be determined |
+| `COPYING` | `FAILED` | The copy reports a definite failure with no ambiguity about what was written |
+| `COPIED` | `VERIFIED` | Post-copy identity and hash verification passes |
+| `COPIED` | `FAILED` | Post-copy verification reports an identity or hash mismatch |
+| `UNKNOWN` | `RECONCILING` | Destination inspection begins |
+| `RECONCILING` | `VERIFIED` | Inspection and source/destination identity and hash comparison resolve the outcome as a complete, correct copy |
+| `RECONCILING` | `FAILED` | Inspection resolves the outcome as an incomplete or incorrect copy |
+| `RECONCILING` | `BLOCKED` | Inspection cannot resolve the outcome, or the destination is no longer available for inspection |
+
+`VERIFIED`, `FAILED`, and `BLOCKED` are terminal. A `FAILED` or `BLOCKED` export may be superseded by a new export under a new request fingerprint and idempotency key; the record itself is never reopened. Interrupted or unknown copies remain durable and must be reconciled before retry: an export in `UNKNOWN` or `RECONCILING` may not be retried, and a retry of a `FAILED` export whose destination was never inspected is itself `BLOCKED` until reconciliation resolves what the first attempt wrote.
 
 ### 78.3 Source-access separation and completion
 `SOURCE_ACCESS_ONLY` may produce a user-approved workspace, ZIP, or Git export, but it cannot create deployment evidence, satisfy the required APK gate, or advance Android completion. When source access is requested, `ProjectReadmeSynthesizer` (technical architecture §47.4, §76.3) synthesizes a verified, deterministic `README.md` at the export root containing exact Gradle build commands, Android SDK targets, and capability summaries; and `DocCodeMismatchDetector` (technical architecture §47.4) validates that all exported public interface documentation is free of doc-code drift. Deployment completion requires source/destination identity and hash equality, approved destination scope, durable post-copy verification, matching packaging-profile, artifact, signing, validation, promotion, and evidence references, and a resolved `reconciliationReference` whenever the copy entered `UNKNOWN` or `RECONCILING`. Export success does not independently prove preview currency, integration functionality, runtime integrity, or user-goal completion.
@@ -6012,21 +6027,28 @@ The `requiredCapabilities` of the ninety-two built-in skills are drawn from this
 | `DESIGN_IMPORT` | A Figma access token or local design file is available for extracting design tokens and UI structure | Figma API connectivity or local file presence |
 | `ANDROID_SOURCE_ENGINEERING` | Android source code can be generated, edited, and statically analyzed | build toolchain observation |
 | `ANDROID_BUILD` | Android projects can be compiled, packaged, and produce APK or optional AAB artifacts | Gradle build observation |
-| `ANDROID_INSTALL_LAUNCH` | APK artifacts can be installed and launched on the target runtime | emulator or device observation |
-| `ANDROID_UI_OBSERVATION` | The running application UI hierarchy can be captured and analyzed | emulator or device observation |
-| `ANDROID_INTERACTION_EXECUTION` | User interactions (tap, scroll, input) can be executed on the running application | emulator or device observation |
-| `ANDROID_LOGCAT_DIAGNOSTICS` | Logcat and runtime diagnostics can be captured from the target | emulator or device observation |
-| `ANDROID_VISUAL_VALIDATION` | Screenshots can be captured and compared against design specifications | emulator or device observation |
-| `ANDROID_ACCESSIBILITY_VALIDATION` | Accessibility properties (TalkBack, contrast, touch targets) can be verified | emulator or device observation |
-| `ANDROID_PERFORMANCE_VALIDATION` | Performance metrics (startup, memory, frame timing) can be measured | emulator or device observation |
-| `ANDROID_BACKGROUND_EXECUTION` | Background work (WorkManager, services) can be executed and observed | emulator or device observation |
-| `ANDROID_NATIVE_DEVICE_CAPABILITIES` | Native device capabilities (camera, BLE, NFC, location, sensors) can be accessed | emulator or device observation |
-| `ANDROID_NETWORK_INTEGRATION` | Network integrations (Firebase, Maps, Payments, APIs) can be executed and verified | emulator or device observation |
-| `ANDROID_AUTHENTICATION` | Authentication flows (biometric, OAuth, Firebase Auth) can be executed | emulator or device observation |
+| `ANDROID_INSTALL_LAUNCH` | APK artifacts can be installed and launched on the target runtime | emulator observation |
+| `ANDROID_UI_OBSERVATION` | The running application UI hierarchy can be captured and analyzed | emulator observation |
+| `ANDROID_INTERACTION_EXECUTION` | User interactions (tap, scroll, input) can be executed on the running application | emulator observation |
+| `ANDROID_LOGCAT_DIAGNOSTICS` | Logcat and runtime diagnostics can be captured from the target | emulator observation |
+| `ANDROID_VISUAL_VALIDATION` | Screenshots can be captured and compared against design specifications | emulator observation |
+| `ANDROID_ACCESSIBILITY_VALIDATION` | Accessibility properties (TalkBack, contrast, touch targets) can be verified | emulator observation |
+| `ANDROID_PERFORMANCE_VALIDATION` | Performance metrics (startup, memory, frame timing) can be measured | emulator observation |
+| `ANDROID_BACKGROUND_EXECUTION` | Background work (WorkManager, services) can be executed and observed | emulator observation |
+| `ANDROID_NATIVE_DEVICE_CAPABILITIES` | Native device capabilities (camera, BLE, NFC, location, sensors) can be accessed | emulator observation |
+| `ANDROID_NETWORK_INTEGRATION` | Network integrations (Firebase, Maps, Payments, APIs) can be executed and verified | emulator observation |
+| `ANDROID_AUTHENTICATION` | Authentication flows (biometric, OAuth, Firebase Auth) can be executed | emulator observation |
 | `ANDROID_PACKAGING` | App packaging (bundles, dynamic delivery, asset packs) can be produced and inspected | build toolchain observation |
 | `ANDROID_ARTIFACT_INSPECTION` | Produced artifacts (APK, AAB) can be inspected for content and structure | build toolchain observation |
 | `ANDROID_SIGNING_INSPECTION` | Signing configuration and certificate fingerprints can be verified | build toolchain observation |
 | `ANDROID_RELEASE_VALIDATION` | Release readiness (lint, quality, performance gates) can be verified | build toolchain observation |
+
+**Emulator observability of native device capabilities.** `ANDROID_NATIVE_DEVICE_CAPABILITIES` is a single capability id covering several distinct hardware features, and the sole validation runtime of §4.4 and technical architecture §10.7 is the Nirman-managed local Android emulator. The emulator does not expose every one of those features. The rule is therefore per-capability and deterministic:
+
+- A hardware feature the emulator can present and that a runtime observation can confirm (for example camera, location, and sensors, which the emulator implements through its own virtual devices and which are observable through the standard device APIs) is classified `AVAILABLE` on emulator evidence, and the capability is satisfied for that feature.
+- A hardware feature the emulator cannot present (for example NFC, which the Android emulator does not emulate, and Bluetooth, which it supports only in limited or experimental form) has no admissible observation on the sole validation runtime. Its absence is not a runtime failure and MUST NOT be reported as one.
+
+For a feature in the second class the runtime MUST record an explicit, durable **emulator-observability exclusion** naming the capability id, the specific feature, the reason it is not observable on the emulator, and the applicable decision — rather than reporting a pass, an implicit skip, or a blanket `UNAVAILABLE` for the whole capability id. An exclusion is a declared limitation with a recorded rationale, not a silent gap, and it is subject to the honest-coverage rule of §79.6 and the applicability rule of `CLAUSE.INTEGRITY.APPLICABILITY_EXPLICIT`: a requirement that depends on the excluded feature is reported as `USER_REQUIRED` with the exclusion as its reason, and every requirement that does not depend on it continues. A skill MUST NOT hard-code the exclusion; it declares the capability id and consumes the classification and exclusion the preflight produces. Because ADR-257 excludes physical-device validation, no requirement may be resolved by substituting physical hardware for the emulator.
 
 | Skill | `requiredCapabilities` |
 |---|---|
@@ -6129,7 +6151,7 @@ Every skill registered in this table MUST have an instruction body at `crates/ni
 
 #### 79.7.1 Perception classification of the platform skill set
 
-The capability table above classifies every capability id by the evidence that produces it. That column is the authoritative test for whether a skill requires perception: a skill requires runtime perception exactly when one of its `requiredCapabilities` is classified `emulator or device observation`, and it requires *visual* perception when that capability is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`. Applying that test to the Android skill packages yields:
+The capability table above classifies every capability id by the evidence that produces it. That column is the authoritative test for whether a skill requires perception: a skill requires runtime perception exactly when one of its `requiredCapabilities` is classified `emulator observation`, and it requires *visual* perception when that capability is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`. Applying that test to the Android skill packages yields:
 
 | Class | Count | Meaning |
 |---|---|---|
@@ -6137,7 +6159,7 @@ The capability table above classifies every capability id by the evidence that p
 | Runtime perception required, non-visual | 17 | requires emulator, logcat, performance, device-capability, network, or authentication observation |
 | Perception not required | 32 | gated only by build-toolchain or host observation |
 
-The three counts sum to the Android skill-package count. A skill belongs in the first row when one of its ids is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`; in the second when any of its ids is classified `emulator or device observation` above and none of the three visual ids is; and otherwise in the third. Every count is derived from the manifests by that rule rather than maintained by hand, and a package that is a member of none of the three rows is a defect in this table.
+The three counts sum to the Android skill-package count. A skill belongs in the first row when one of its ids is `ANDROID_UI_OBSERVATION`, `ANDROID_VISUAL_VALIDATION`, or `ANDROID_ACCESSIBILITY_VALIDATION`; in the second when any of its ids is classified `emulator observation` above and none of the three visual ids is; and otherwise in the third. Every count is derived from the manifests by that rule rather than maintained by hand, and a package that is a member of none of the three rows is a defect in this table.
 
 The capability vocabulary is complete for the skills that require perception: every perception-requiring skill resolves to an id already declared above, and no skill requires a perception capability that this section does not define. Skills that provably do not require perception carry no perception dependency, and none is to be given one decoratively.
 

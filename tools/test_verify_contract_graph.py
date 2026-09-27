@@ -1017,7 +1017,7 @@ CASES = {
         BS, "## 62. Regression Localization", "## 62. Locale and Language Resources",
         "canonical identity"),
     "TA task state machine drops a BS §26.14 state": (
-        TA, "                    │          │          ├── PAUSED\n", "",
+        TA, "                            ├── PAUSED\n", "",
         "semantic documentation"),
     "TA session lifecycle drifts from BS §33.2": (
         TA, "  → Testing → Recovering → Revalidating → Packaging → Completed\n```\n\nTerminal states are",
@@ -1318,8 +1318,8 @@ CASES = {
     "semantic missing profile identity": (
         SCHEMAS, "- profileId", "- profileIdentifier", "semantic documentation"),
     "semantic duplicate milestone outcome": (
-        DEV, "| M38       | Certified Android profile coverage and production acceptance    |",
-        "| M38       | Android capability registry and representative profile coverage |",
+        DEV, "| M38       | Complete Android technology coverage                            |",
+        "| M11       | Android capability registry and representative profile coverage |",
         "semantic documentation"),
     "semantic missing approval precedence": (
         TA, "### 16.2.1 The Autonomous-build policy and approval precedence",
@@ -2304,8 +2304,8 @@ CASES = {
         "semantic documentation"),
     "the PreflightReport field block is renamed while its projections remain": (
         SCHEMAS,
-        "### 1.83 PreflightReport",
-        "### 1.83 PreflightReportRenamed",
+        "### 2.134 PreflightReport",
+        "### 2.134 PreflightReportRenamed",
         "structure"),
     # G5: the three-level schema blocks (§2.97.1, §2.103.1) flow through the
     # same owner/block/projection scans as two-level blocks.
@@ -2321,18 +2321,18 @@ CASES = {
         "structure"),
     "the SupervisorConnection field block is renamed while its projections remain": (
         SCHEMAS,
-        "### 1.84 SupervisorConnection",
-        "### 1.84 SupervisorConnectionRenamed",
+        "### 2.135 SupervisorConnection",
+        "### 2.135 SupervisorConnectionRenamed",
         "structure"),
     "the LaunchSession field block is renamed while its projections remain": (
         SCHEMAS,
-        "### 1.85 LaunchSession",
-        "### 1.85 LaunchSessionRenamed",
+        "### 2.136 LaunchSession",
+        "### 2.136 LaunchSessionRenamed",
         "structure"),
     "the FrameStamp field block is renamed while its projections remain": (
         SCHEMAS,
-        "### 1.86 FrameStamp",
-        "### 1.86 FrameStampRenamed",
+        "### 2.137 FrameStamp",
+        "### 2.137 FrameStampRenamed",
         "structure"),
     "FrameStamp.frameSequence is dropped while the equality reference remains": (
         SCHEMAS,
@@ -3236,7 +3236,9 @@ def main():
             bad += 1
         print(f"{'PASS' if ok else 'FAIL' if ok is False else 'SKIP':<5} {name:<{width}}  {detail}")
     executed = len(results) - skip
-    print(f"\n{executed}/{len(results)} checks executed and passed")
+    passed = executed - bad
+    print(f"\n{passed}/{len(results)} checks executed and passed"
+          + (f" ({bad} failed)" if bad else ""))
     print(f"{skip} skipped in this working tree (per-case reason on each SKIP line)")
     covered_checks = covered & expected_checks
     missing = sorted(expected_checks - covered_checks)

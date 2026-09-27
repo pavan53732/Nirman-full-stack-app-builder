@@ -7,7 +7,7 @@ network performance (BS §79.7). This skill provides the performance
 domain knowledge that the `Performance Worker` consumes.
 
 ## Trigger
-This skill is requested when android performance optimization — Baseline Profiles, Macrobenchmark, startup optimization, memory profiling (LeakCanary, Android Studio Profiler), layout performance, RecyclerView/Compose lazy list optimization, and network performance (BS §79.7). This skill provides the performance domain knowledge that the `Performance Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android performance optimization — Baseline Profiles, Macrobenchmark, startup optimization, memory profiling (LeakCanary, Android Studio Profiler), layout performance, RecyclerView/Compose lazy list optimization, and network performance (BS §79.7). This skill provides the performance domain knowledge that the `Performance Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
@@ -55,8 +55,9 @@ transaction (BS §50).
    and pagination for large datasets. Use Coil for image loading with
    memory and disk caching.
 6. Measure with Macrobenchmark: write MacrobenchmarkTest for startup,
-   scroll jank, and frame timing. Run on real devices for accurate
-   results.
+   scroll jank, and frame timing. Run on the Nirman-managed local
+   emulator, which is the sole validation runtime (BS §4.4); record the
+   emulator identity with the measurements.
 7. Monitor in production: use Firebase Performance Monitoring for
    real-user metrics, custom traces for critical user journeys.
 
@@ -122,7 +123,7 @@ Emits `PerformanceOptimizationResult` from `PerformanceOptimizationRequest` (§2
 - Step 3 produces its expected outcome — Optimize UI rendering: use Compose derivedStateOf to avoid unnecessary recomposition, `key()` in lazy lists, remember for expensive calculations, and avoid layout nesting depth.
 - Step 4 produces its expected outcome — Optimize memory: detect leaks with LeakCanary, use WeakReference for listeners, avoid static references to Activities/Contexts, and profile allocations with Android Studio Profiler.
 - Step 5 produces its expected outcome — Optimize network: use HTTP/2, connection pooling, response caching, and pagination for large datasets. Use Coil for image loading with memory and disk caching.
-- Step 6 produces its expected outcome — Measure with Macrobenchmark: write MacrobenchmarkTest for startup, scroll jank, and frame timing. Run on real devices for accurate results.
+- Step 6 produces its expected outcome — Measure with Macrobenchmark: write MacrobenchmarkTest for startup, scroll jank, and frame timing. Run on the Nirman-managed local emulator, which is the sole validation runtime (BS §4.4), and record the emulator identity with the measurements.
 - Step 7 produces its expected outcome — Monitor in production: use Firebase Performance Monitoring for real-user metrics, custom traces for critical user journeys.
 - A required capability is UNAVAILABLE — blocked, nothing attempted
 - An invariant of this skill is violated and is reported, not absorbed

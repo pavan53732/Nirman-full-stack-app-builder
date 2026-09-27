@@ -8,7 +8,7 @@ provides the camera and ML domain knowledge that the `Android Data and
 Integration Worker` consumes.
 
 ## Trigger
-This skill is requested when android camera and ML Kit — CameraX (preview, image capture, video analysis), ML Kit (barcode scanning, face detection, text recognition, image labeling, pose detection, selfie segmentation), and custom model integration (TensorFlow Lite) (BS §79.7). This skill provides the camera and ML domain knowledge that the `Android Data and Integration Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android camera and ML Kit — CameraX (preview, image capture, video analysis), ML Kit (barcode scanning, face detection, text recognition, image labeling, pose detection, selfie segmentation), and custom model integration (TensorFlow Lite) (BS §79.7). This skill provides the camera and ML domain knowledge that the `Android Data and Integration Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

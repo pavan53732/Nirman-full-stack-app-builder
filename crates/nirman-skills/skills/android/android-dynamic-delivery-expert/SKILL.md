@@ -7,7 +7,7 @@ on-demand), and app bundles (BS §79.7). This skill provides the dynamic
 delivery domain knowledge that the `Release Worker` consumes.
 
 ## Trigger
-This skill is requested when android dynamic delivery — dynamic feature modules (on-demand delivery, conditional delivery), Play Feature Delivery (install-time, on-demand, conditional), Play Asset Delivery (install-time, fast-follow, on-demand), and app bundles (BS §79.7). This skill provides the dynamic delivery domain knowledge that the `Release Worker` consumes.. It does not replace a worker role — it supplies the domain
+This skill is requested when android dynamic delivery — dynamic feature modules (on-demand delivery, conditional delivery), Play Feature Delivery (install-time, on-demand, conditional), Play Asset Delivery (install-time, fast-follow, on-demand), and app bundles (BS §79.7). This skill provides the dynamic delivery domain knowledge that the `Release Worker` consumes. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 

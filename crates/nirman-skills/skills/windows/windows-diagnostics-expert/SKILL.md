@@ -7,7 +7,7 @@ event-log and crash-dump evidence (BS §79.7). This skill provides the domain
 knowledge that the `Debugging Worker` and `Release Worker` consume.
 
 ## Trigger
-This skill is requested when windows runtime diagnostics — ConPTY console hosting and stream capture, Job Object isolation and resource limits, named-pipe transport failures, process supervision and restart behavior, and collecting event-log and crash-dump evidence (BS §79.7). This skill provides the domain knowledge that the `Debugging Worker` and `Release Worker` consume.. It does not replace a worker role — it supplies the domain
+This skill is requested when windows runtime diagnostics — ConPTY console hosting and stream capture, Job Object isolation and resource limits, named-pipe transport failures, process supervision and restart behavior, and collecting event-log and crash-dump evidence (BS §79.7). This skill provides the domain knowledge that the `Debugging Worker` and `Release Worker` consume. It does not replace a worker role — it supplies the domain
 instruction the worker executes inside its scoped asset
 transaction (BS §50).
 
