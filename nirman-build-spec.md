@@ -689,6 +689,19 @@ This list is closed for the file, command, and preview surface it covers: the to
 
 **Service-side work needs no operation outside this list, and the reason is worth stating so it is not re-derived.** A supporting backend or service is authored as files: a schema change is a `BUILD_CONFIG` file edit reached through `write_file` and `patch_file`, dependency installation is already an `OperationCapability` (technical architecture §46.2), and a migration is written rather than applied to a server the user owns. A credential reference is supplied by the user and resolved by the supervisor, which owns credential custody — workers and generated-project processes must not receive the credential store, so an agent-side operation to create one must not exist. Deployment configuration is emitted as files naming a target the user owns; Nirman does not stand up, operate, or depend on a Nirman-operated hosted service, and no resolver path may produce a second generated deployable target (§5.7.8). A tool identifier a skill lists in `requiredTools` is descriptive only: that vocabulary is open, carries no authority, grants nothing, and no canonical document defines or closes it, so it is never evidence that an operation is missing (BS §79.7).
 
+**Operation classes and how each is reached.** §7.1 is the model-facing subset, not the whole surface. A reader who takes the fourteen tools as the entire agent surface will conclude the system is under-specified, so the classes and their invocation paths are indexed here:
+
+| Operation class | Reached by | Owner |
+|---|---|---|
+| File authoring, command execution, preview lifecycle, checkpoint, export | model tool call | §7.1 |
+| Android build, install, launch, interaction, and observation | worker delegation, never a model tool call | `AndroidDeviceAdapter` (SCHEMAS §2.68, 28 operations), `AndroidBuildAdapter` (SCHEMAS §2.69, 4) |
+| Build-config, dependency, version-catalog, manifest, navigation, theme, and resource changes | a typed change request through a reservation and a commit barrier | `SharedSurfaceChangeRequest` (SCHEMAS §1.77): eleven change kinds across nine shared surfaces |
+| Build and resource synthesis | worker-hosted module | `GradleConfigSynthesizer`, `ManifestPermissionDeriver`, `ShrinkerRuleGenerator` |
+| Static analysis and validation before commit | automatic pre-commit gate | API-level, taint, and analyzer diagnostics rejected at pre-commit |
+| Artifact promotion, signing, completion, and credential resolution | supervisor authority, not agent-invocable | `LifecycleAuthority`, signing and evidence authorities |
+
+A capability in any row is reachable by the mechanism named in that row, and a class absent from this table has no defined path. Adding an operation means adding a row here as well as the operation itself.
+
 `export_project` does not make a ZIP or Git bundle a deployment artifact. Source and project access remain user-owned workspace operations. Deployment delivery is governed separately by `PackagingProfile`: an installable APK is required for local completion, and AAB is produced only when an explicitly declared packaging profile requires it.
 
 ### 7.2 Agent task lifecycle
