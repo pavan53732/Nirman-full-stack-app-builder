@@ -481,7 +481,9 @@ python tools/test_verify_contract_graph.py     # verifier mutation and conforman
 
 The local certification entry point is the preferred gate because it orchestrates the complete available validation sequence; on this documentation-only tree its foundation, Rust, host, and fixture gates report `UNAVAILABLE`, and the two Python commands above remain the complete documentation-scope gate. On a documentation-only tree the mutation battery records its command-payload coverage mutations as skips and prints the line `not proven: command payload coverage`; that line is acknowledged provenance (GLOSSARY §6), the battery's exit code is 0, and a non-zero exit is a battery-anchor or documentation defect that must be reconciled before committing (§6). Direct verifier, conformance, Rust, .NET/WinUI, and fixture commands remain useful for diagnosis. Do not require a remote workflow or hosted service to interpret a local pass/fail result.
 
-A commit must contain only the intended coherent change, use a descriptive message, and never include secrets, generated credentials, temporary migration scripts, unrelated files, or unreviewed artifacts. Push only when explicitly requested. After pushing, fetch the remote and confirm that local `HEAD` and `origin/main` match.
+A commit must contain only the intended coherent change, use a descriptive message, and never include secrets, generated credentials, temporary migration scripts, unrelated files, or unreviewed artifacts. Push only when explicitly requested.
+
+**Standing authorisation.** For the documentation-hardening line of work in progress on this repository, the user has recorded a standing authorisation to push and sync `main` without a per-commit request. The authorisation is scoped to that line of work and does not extend to any other; it remains in force until the user withdraws it, and a withdrawal restores the default rule above. After pushing, fetch the remote and confirm that local `HEAD` and `origin/main` match.
 
 ## 17. Prohibited behavior checklist
 
