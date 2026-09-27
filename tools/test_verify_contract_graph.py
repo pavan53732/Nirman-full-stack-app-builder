@@ -1183,6 +1183,10 @@ CASES = {
         BS, "eleven change kinds across nine shared surfaces",
         "ten change kinds across nine shared surfaces",
         "semantic documentation"),
+    "GLOSSARY schema entry drops its owner-section citation": (
+        GLOSSARY, "BS §42; BS §80.5.3; SCHEMAS §1.54; ADR-158.",
+        "BS §42; SCHEMAS §1.54; ADR-158.",
+        "semantic documentation"),
     "mandatory-check skill resolution drops the unresolved-check record": (
         BS,
         "`unresolved_mandatory_checks` carrying the check id and the canonical incomplete state",

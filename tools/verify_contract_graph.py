@@ -5309,6 +5309,53 @@ def check_citation_identity(docs, D):
                       f"GLOSSARY.md line {i}: `{term}` cites {why}; a citation must point at the section "
                       "that actually defines the identity (ADR-241 §3.1 pattern)")
 
+    # (c) GLOSSARY.md schema-backed entries must reach the OWNER section.
+    # Rule (a) above only asks whether a cited section NAMES the term, so a
+    # pointer that names the term from an unrelated section passes it — the
+    # adapter's own section cited for the plan it resolves, for instance.
+    # ADR-220 makes the SCHEMAS owner line authoritative for a schema
+    # identity, so a schema-backed GLOSSARY entry must cite that owner section
+    # or an ancestor of it. Ancestors are accepted because several entries
+    # legitimately cite the parent section that introduces the concept
+    # (BS §29 for the identity owned at BS §29.2), and rejecting those would
+    # force edits that make the entries worse.
+    _owner_of, _sec_of = {}, {}
+    _sl = text_of["schemas"].split("\n")
+    for _i, _l in enumerate(_sl):
+        _m = re.match(r"^### (\d+(?:\.\d+)*[a-z]?) ([A-Za-z0-9_]+)\s*$", _l)
+        if _m and _i + 2 < len(_sl) and _sl[_i + 2].startswith("**Owner:**"):
+            _mo = re.search(r"\*\*Owner:\*\*\s*([^\u00b7]+?)\s*\u00b7", _sl[_i + 2])
+            if _mo:
+                _owner_of[_m.group(2)] = _mo.group(1).strip()
+                _sec_of[_m.group(2)] = _m.group(1)
+    for i, line in enumerate(docs.get("glossary", "").split("\n"), 1):
+        m = re.match(r"^\*\*([A-Za-z][A-Za-z0-9_.]*)\*\*\s+—\s+(.*)$", line)
+        if not m:
+            continue
+        _term, _rest = m.group(1), m.group(2)
+        _hit = next((n for n in _owner_of if norm(n) == norm(_term)), None)
+        if _hit is None:
+            continue
+        _mo = re.match(r"(\w[\w ]*?)\s*§\s*(\d+(?:\.\d+)*[a-z]?)", _owner_of[_hit])
+        if not _mo:
+            continue
+        _odoc = {"build spec": "bs", "bs": "bs", "technical architecture": "ta",
+                 "ta": "ta", "schema document": "schemas", "schemas": "schemas"}.get(
+                     _mo.group(1).strip().lower())
+        if _odoc is None:
+            continue
+        _osec = _mo.group(2)
+        _cited = list(citations(_rest))
+        if any(_d == _odoc and (_s == _osec or _osec.startswith(_s + "."))
+               for _d, _s in _cited):
+            continue
+        _seen = ", ".join(sorted({f"{doc_name[_d]} §{_s}" for _d, _s in _cited})) or "nothing"
+        D.add("semantic documentation", "citation identity",
+              f"GLOSSARY.md line {i}: `{_term}` is the schema identity of SCHEMAS §{_sec_of[_hit]}, "
+              f"whose owner line names {_owner_of[_hit]}; the entry cites {_seen}, which never "
+              "reaches the owning section or an ancestor of it (ADR-220 makes the owner line "
+              "authoritative for the identity)")
+
     # (b) nirman-milestones.md inline component pointers: `Ident` (…citations…).
     for i, line in enumerate(docs.get("dev", "").split("\n"), 1):
         for m in re.finditer(r"`([A-Z][A-Za-z0-9]*)`\s*\(([^()]*§[^()]*)\)", line):
