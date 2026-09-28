@@ -3741,7 +3741,7 @@ SCHEMAS §1.87 (16 fields) and §3.1; BS §80.4.6. ADR-230's `DECIDE` state now 
 Measured behaviour across M94 fixtures shows two runs with identical `CycleDecisionTrace.inputsUsed` selecting different branches, which would make the mechanism non-deterministic and require the criteria to be revised. The reachability obligation and the two-anchor terminal obligation survive any revision of the rows themselves.
 
 ---
-## ADR-262: Keep AI model inference external-provider-only
+## ADR-262: Remove the local auxiliary decision engine
 
 **Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.REASONING`
 
