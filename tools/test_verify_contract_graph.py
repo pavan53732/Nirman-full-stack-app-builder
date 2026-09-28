@@ -2127,7 +2127,7 @@ CASES = {
         "semantic documentation"),
     "§1.58 loses the dependencySemantics join field": (
         SCHEMAS,
-        "- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
+        "- dependencySemantics: { toPhase: string, dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
         "",
         "semantic documentation"),
     "§1.13 loses the durable delivery-state field": (

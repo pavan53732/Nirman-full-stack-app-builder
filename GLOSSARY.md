@@ -22,7 +22,7 @@
 
 **ProviderRequestAttempt** — One externally issued attempt under a logical provider request, linked to its own `ExternalEffectRecord`, model events, provider IDs, and usage records. — TA §24.6; SCHEMAS §2.131.
 
-**WorkerConnection** — The per-lease authenticated named pipe between the supervisor's `WorkerRuntime` and one `NirmanWorker.exe`, carrying `MODEL_CALL`, `PROPOSAL`, results, artifacts, heartbeats, and cancellation. — TA §57.11; SCHEMAS §2.90; ADR-222.
+**WorkerConnection** — The per-lease authenticated named pipe between the supervisor's `WorkerRuntime` and one `NirmanWorker.exe`, carrying the canonical eleven control kinds (`HEARTBEAT`, `CANCEL`, `CANCEL_ACK`, `PAUSE`, `RESUME`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, `RECOVER`, `CLOSE`) plus `MODEL_CALL`, `PROPOSAL`, results, artifacts, and cancellation. Defines `workerMessageKinds`, `supervisorMessageKinds`, and `controlMessageKinds` enums. — TA §57.11; SCHEMAS §2.90; ADR-222; ADR-263.
 
 ## 2. Registries and document machinery
 
@@ -70,7 +70,11 @@
 
 **CompletionState / CompletionDecision** — The recorded outcome of the completion predicate, including `NOT_COMPLETE`; certification is not completion. — BS §5.7.2; BS §5.7.7; TA §36.4.
 
+**DeliveryAttemptPolicy** — Node-owned transport redelivery bound (default 3, range 1–8) that governs `WorkerMessage` retry on the wire; independent of `recoveryAttemptPolicy` and does not increment `TaskNode.attemptCount`. Defined in `TaskNode` schema field `deliveryAttemptPolicy`. — SCHEMAS §1.60; ADR-263.
+
 **DeliveryState** — The export lifecycle from `NOT_REQUESTED` to an exported, provenance-complete artifact. — BS §5.7.2.
+
+**DependencySemantics** — The `TaskGraph` field keyed by `toPhase`; exactly one entry per dependent phase with incoming graph dependencies. Values: `ALL` (every incoming dependency must satisfy), `ANY` (one must satisfy), `QUORUM` (`quorumCount` must satisfy), each with `failurePolicy` of `HARD` (blocks), `SOFT` (records without blocking), or `INDEPENDENT` (never blocks). Graph-level semantics are not reinterpreted by node-level `joinPolicy`/`dependencyFailurePolicy`; `OPTIONAL` is node-level only. Defined in `TaskGraph` schema field `dependencySemantics`. — SCHEMAS §1.58; ADR-263.
 
 **IntegrationState** — The operationality vocabulary of an external integration (`NOT_REQUIRED` … `BLOCKED`), aggregated in `IntegrationOperationality`. — BS §5.7.2; SCHEMAS §2.72.
 
@@ -148,7 +152,7 @@
 
 **SkillPackage / SkillInvocationRecord / SkillAdmission** — The explanatory names for a registered platform skill (ninety-two v1 bodies under `crates/nirman-skills/skills/`), its invocation record, and its fail-closed admission. — BS §23; BS §79.7; TA §19.1; SCHEMAS §1.12; M119.
 
-**TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13.
+**TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. `WorkerMessage` carries durable delivery state `PERSISTED → DISPATCHED → ACKED | REJECTED | DEAD_LETTERED`, duplicate deduplication via immutable payload fingerprint, and durable quarantine fields `quarantineReason`/`quarantinedAt` (write-once, retained outside deletion). — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13; ADR-263.
 
 **ToolchainProvisioningManifest / ToolchainProvisioningRecord** — The pinned, signed component list Nirman downloads on first launch, and the evidence record of one provisioning run with its state, licence acceptance, hypervisor action, and readiness frame. — TA §49.4; SCHEMAS §2.87; SCHEMAS §2.88.
 

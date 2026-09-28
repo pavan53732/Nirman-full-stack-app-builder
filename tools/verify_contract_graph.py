@@ -5262,7 +5262,7 @@ def check_orchestration_hardening(docs, D):
          "lease/handoff, worker replacement, and execution-epoch rollover never advance a TaskRevision.",
          "technical architecture §45.3: the non-advancement exclusions for TaskRevision are gone"),
         ("schemas",
-         "- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
+         "- dependencySemantics: { toPhase: string, dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]",
          "nirman-schemas.md §1.58: TaskGraph lost the dependencySemantics join/failure-policy field"),
         ("schemas",
          "- deliveryState: PERSISTED | DISPATCHED | ACKED | REJECTED | DEAD_LETTERED\n- deliveryAttempt",

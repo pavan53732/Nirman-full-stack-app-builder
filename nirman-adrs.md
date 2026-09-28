@@ -3556,36 +3556,17 @@ through a superseding ADR.
 
 **Supersedes:** ADR-207
 
-**Status:** Superseded
 **Superseded by:** ADR-262
 
-**Decision:** Nirman may provision and execute a bounded local auxiliary decision engine under supervisor control. The first supported implementation target is `convaiinnovations/laya-typed-decisions`, pinned by an immutable model revision and SHA-256 digest recorded in a Nirman-controlled signed release manifest.
+**Status:** Superseded
 
-The local auxiliary decision engine is not a `ProviderProfile`, is not a provider adapter, does not use `ModelGateway` for inference, does not hold provider credentials, and does not establish a provider network connection.
+**Decision:** This ADR is fully superseded by ADR-262. Nirman MUST NOT ship, embed, provision, download, load, execute, or expose any local, on-device, self-hosted, or auxiliary AI model runtime for model inference or typed decision generation. All model inference uses the configured external provider path. The local auxiliary decision engine (`convaiinnovations/laya-typed-decisions`), its provisioning, lifecycle, persistence, acceptance profiles, proposals, and M126 milestone are removed. The external provider contract remains cloud-hosted and network-reachable only.
 
-The local-engine runtime adapter is a separately versioned implementation dependency and MUST be identified by `runtimeAdapterId` and `runtimeAdapterVersion`. M126 MUST admit exactly one verified runtime adapter for the selected model revision before runtime certification. The adapter implementation, dependency closure, process boundary, and resource profile MUST be recorded in the release manifest; an unverified community conversion or runtime MUST NOT be silently substituted for the declared adapter.
+**Rationale:** ADR-262 eliminates the local auxiliary engine to simplify the architecture and remove a separate model artifact/runtime trust boundary without losing any correctness property. The existing deterministic runtime plus external-provider reasoning path is sufficient.
 
-The local auxiliary decision engine is limited to typed decision primitives `CHOICE`, `SCORE`, and `NOUL`, and to explicitly registered purposes: `FAILURE_CLASSIFICATION`, `ROUTING`, `RECOVERY_CLASSIFICATION`, and `ESCALATION_RECOMMENDATION`. It is not a general text-generation, code-generation, vision, embedding, or deep-deliberation model.
+**Consequences:** All LDE contract text removed from BS, TA, Schemas, Milestones, and Glossary. M126 and its fixtures removed. Schema numbers 1.79, 1.80, and 2.129 remain reserved gaps. INDEX.md regenerated.
 
-Every local-engine result is represented as a `LocalDecisionProposal`. A proposal is advisory input only. It MUST NOT authorize a command, grant a permission, mutate authoritative state, promote an artifact or preview, change a policy, alter a capability status, mark a task complete, override an evidence gate, or override any deterministic authority.
-
-Local-engine provisioning may occur automatically during Nirman's existing first-launch bootstrap. Provisioning MUST use a signed pinned manifest, HTTPS acquisition, SHA-256 verification, license metadata recording, isolated installation paths, and a post-install self-test. Model bytes MUST NOT be acquired from a mutable `latest` or `main` reference.
-
-Local-engine availability is optional. A provisioning failure, model-integrity failure, runtime failure, insufficient local resources, or unavailable local engine MUST NOT block Nirman startup, planning-only operation, external cloud-provider configuration, or deterministic local features. The runtime falls back to the existing non-local path or continues without the auxiliary proposal.
-
-The local auxiliary engine has its own lifecycle and health state and does not alter `SessionProviderMode`. `SessionProviderMode` continues to describe the availability of Nirman's external provider-backed model path only.
-
-The external provider contract remains cloud-hosted and network-reachable. Localhost, loopback, RFC-1918, and self-hosted provider endpoints remain rejected by the provider configuration path. The local auxiliary decision engine is an internal supervisor service and is not a provider endpoint.
-
-A locally provisioned model revision is immutable after admission. A change of model revision, model digest, runtime adapter version, manifest version, or decision contract invalidates prior local decision proposals that depend on the changed identity.
-
-Initial local-engine admission is `EXPERIMENTAL` and MUST remain non-authoritative until the dedicated milestone evidence proves deterministic behavior, reproducibility, resource behavior, security/provenance requirements, and decision-quality thresholds on representative Nirman fixtures. Promotion to `ACTIVE` requires the M126 exit gate.
-
-**Rationale:** Nirman already distinguishes external model reasoning from deterministic runtime authority. A bounded local typed-decision engine can provide low-latency classification and routing without introducing a second general-purpose reasoning stack or weakening the provider abstraction. Keeping it outside `ModelGateway` prevents provider semantics from becoming ambiguous while allowing automatic first-launch provisioning through the existing trusted bootstrap architecture.
-
-**Consequences:** `nirman-build-spec.md` narrows the meaning of `SessionProviderMode`, introduces the local auxiliary decision path, updates the local-first/provider boundary, and records local proposal semantics. `nirman-technical-architecture.md` gains `LocalDecisionEngine` and `LocalDecisionEngineProvisioner` as supervisor-owned components, a local-engine profile and proposal lifecycle, persistence records, boot admission, recovery, and orchestration wiring. `nirman-schemas.md` gains `LocalDecisionEngineProfile` and `LocalDecisionProposal`. `nirman-milestones.md` adds a contract-gated M126 milestone. `GLOSSARY.md`, `README.md`, and generated `INDEX.md` are updated to describe the new bounded capability. The existing ModelGateway provider contract remains external-provider-only.
-
-**Reversal trigger:** Reversal is justified if local-engine decisions fail the required Nirman fixture thresholds, cannot maintain reproducible model identity and provenance, materially violate resource-integrity constraints, introduce unacceptable security or supply-chain risk, or create a persistent architectural contradiction with the provider, authority, or evidence model.
+**Reversal trigger:** none foreseeable.
 
 ---
 ## ADR-253: Canonical construction requirements remain under ConstraintRegistry authority
@@ -3780,5 +3761,28 @@ Measured behaviour across M94 fixtures shows two runs with identical `CycleDecis
 **Consequences:** `nirman-build-spec.md` removes the local fast-decision path, local-model bootstrap behavior, local proposal semantics, and local-engine references; `nirman-technical-architecture.md` removes the local engine provisioning/lifecycle, component-registry rows, persistence records, and traversal; `nirman-schemas.md` retires `LocalDecisionProposal`, `LocalDecisionAcceptanceProfile`, and `LocalDecisionEngineProfile` while preserving later schema numbers; `nirman-milestones.md` removes M126 and its constituent evidence; `GLOSSARY.md`, `README.md`, and `AGENTS.md` remove active local-engine references. `TEST-RSN-001` / `EV-RSN-001` remain the reasoning capability test/evidence identities and no longer depend on a local-engine constituent.
 
 **Reversal trigger:** none foreseeable.
+
+---
+## ADR-263: Canonical worker coordination contract closure
+
+**Locks:** `CONTRACT.RUNTIME.AUTHORITY`, `CONTRACT.RUNTIME.RECONCILIATION`, `CONTRACT.RUNTIME.AGENT_BUILDABILITY`
+
+**Status:** Accepted
+
+**Decision:** Four contracts are closed so that exactly one implementation of worker coordination is possible.
+
+**P1 — Durable delivery and quarantine (build spec §26.2, TA §57.11.2, SCHEMAS §1.13).** Worker-message delivery has durable state `PERSISTED → DISPATCHED → ACKED`, with `REJECTED` and `DEAD_LETTERED` terminal delivery outcomes. A duplicate `messageId` or deduplication key is a no-op only when its immutable payload fingerprint matches; a conflicting duplicate is rejected and quarantined. A message becomes `DEAD_LETTERED` when deserialization/digest verification fails or its node-declared `deliveryAttemptPolicy` is exhausted without `ACKED`. Quarantine is durable state on `WorkerMessage`: `quarantineReason` and `quarantinedAt` are required when quarantined, write-once, and retained outside ordinary message deletion. Late results after a terminal join are stored as non-mutating `WorkerMessage` records with `quarantineReason`/`quarantinedAt` and cannot alter authoritative state.
+
+**P2 — Keyed dependency semantics and graph/node layering (build spec §80.5.4, SCHEMAS §1.58, §1.60).** `TaskGraph.dependencySemantics` is keyed by `toPhase`. Exactly one semantics entry applies to each dependent phase with incoming graph dependencies. `ALL` requires every incoming dependency to satisfy; `ANY` requires one; `QUORUM` requires `quorumCount`. `HARD` makes an unsatisfied dependency blocking, `SOFT` records failure without making it inherently blocking, and `INDEPENDENT` never blocks the dependent phase. `TaskNode.joinPolicy` and `dependencyFailurePolicy` apply only to `TaskNode.dependencies` after the containing phase is admitted. They do not reinterpret graph-level `dependencySemantics`. `OPTIONAL` is a node-level join policy and does not create a graph-level `HARD` dependency. `TaskNode.deliveryAttemptPolicy` governs transport redelivery only. It defaults to 3 and permits 1–8 attempts. Delivery redelivery does not increment `attemptCount` and does not consume `recoveryAttemptPolicy`.
+
+**P3 — The reserved control lane is a closed eleven-kind set (TA §57.11, SCHEMAS §2.90).** The canonical reserved control lane carries exactly eleven control kinds: `HEARTBEAT`, `CANCEL`, `CANCEL_ACK`, `PAUSE`, `RESUME`, `FENCE`, `REPLACE`, `PLAN_SUPERSEDED`, `RECONCILE`, `RECOVER`, `CLOSE`. Every control kind has one direction, one correlation/causation contract, one typed payload shape, and one lifecycle effect. `CANCEL` is supervisor→worker and is acknowledged only by `CANCEL_ACK` worker→supervisor. All other control kinds are supervisor→worker except `HEARTBEAT` and `CANCEL_ACK`. No control kind is peer-to-peer. `PREEMPT` is not a wire kind. `SupervisorPreemptionProtocol` emits `FENCE` with `fenceReason=PREEMPTION`, target `leaseId`, `attemptId`, and cancellation watermark.
+
+**P4 — The three `WorkerConnection` kind enums are the single transport vocabulary.** `workerMessageKinds` is `HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT`; `supervisorMessageKinds` is `WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE | FENCE | REPLACE | PLAN_SUPERSEDED | RECONCILE | RECOVER`; `controlMessageKinds` is the eleven-kind set of P3. No control kind outside `controlMessageKinds` may cross the reserved control lane, and no kind set gains a member without a superseding decision.
+
+**Rationale:** Each of the four was previously describable in more than one way, so two implementers reading the corpus could build two different coordination runtimes. P1 leaves `deliveryAttemptPolicy` indistinguishable from `recoveryAttemptPolicy` and leaves quarantine an unnamed store. P2 leaves `dependencySemantics` unkeyed, so a graph with two dependent phases cannot say which mode applies where, and leaves graph-level and node-level policy free to reinterpret each other. P3 leaves the control lane an open enumeration, and the previous corpus used `PREEMPT` as if it were a wire kind although the preemption protocol actually emits `FENCE`. P4 leaves the supervisor kind set silent on the five fencing/lifecycle kinds that the lane already carries. All four are now single-valued, and none introduces a new authority: ownership remains with the existing lifecycle, policy, recovery, and evidence authorities.
+
+**Consequences:** SCHEMAS §1.13 gains `quarantineReason` and `quarantinedAt`; §1.58 keys `dependencySemantics` by `toPhase`; §1.60 gains `deliveryAttemptPolicy`; §2.90 states all three canonical kind enums. BS §26.2 states the durable delivery and quarantine contract, §80.2 resolves the `WorkerMessage` field count to thirty-four, and §80.3 states the explicit nesting-depth default (orchestrator 0, worker 1, diagnostic child 2, probe child 3). BS §80.5.4 states the keyed semantics, the graph/node layering rule, and the node-owned delivery policy. TA §57.11 states the eleven-kind lane, the direction/acknowledgement invariant, and the `PREEMPT`-is-not-a-wire-kind rule, and the channel `0x00` list is the same canonical set. TA §57.11.2 removes the `quarantined_messages` table reference and binds `deliveryAttemptPolicy` to the node. M125 required results 2, 3, and 9 and fixtures `FIX-SWARM-05`, `FIX-SWARM-11`, and `FIX-SWARM-15` are extended to prove P1–P4. `README.md`, `AGENTS.md`, and `nirman-decisions.md` are unchanged: their ownership and precedence rules already establish ADR → BS → TA → milestones.
+
+**Reversal trigger:** Evidence from implementation fixtures demonstrating that one of these contracts cannot be implemented without changing the selected ownership model.
 
 ---

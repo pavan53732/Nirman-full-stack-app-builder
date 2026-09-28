@@ -1436,6 +1436,8 @@ TaskGraph
 - graphFence
 ```
 
+The glossary identity for the field is `DependencySemantics`.
+
 
 ### 1.59 TaskPhase
 
@@ -1483,6 +1485,8 @@ TaskNode
 - executionEpochId
 - staleOutcomePolicy: REJECT | REVALIDATE
 ```
+
+The glossary identity for the field is `DeliveryAttemptPolicy`.
 
 
 ### 1.61 WorkerAssignment
@@ -3962,7 +3966,7 @@ WorkerConnection
 - capsVersion
 - launchTokenDigest
 - workerMessageKinds: HELLO | HEARTBEAT | MODEL_CALL | PROPOSAL | CAPABILITY_QUERY | REASONING_ARTIFACT | DELIBERATION_RECORD | CANCEL_ACK | EXIT
-- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE
+- supervisorMessageKinds: WELCOME | CYCLE_INPUT | MODEL_EVENT | PROPOSAL_RESULT | CAPABILITY_ANSWER | DECISION | PAUSE | RESUME | CANCEL | CLOSE | FENCE | REPLACE | PLAN_SUPERSEDED | RECONCILE | RECOVER
 - admittedAt
 - heartbeatIntervalMs
 - lastHeartbeatAt
