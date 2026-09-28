@@ -182,7 +182,7 @@ orchestrator agent
 Permitted specialist sub-agent roles for documentation-phase work include but are not limited to:
 
 - **Schema auditor** — validates every schema block in `nirman-schemas.md` against its owning Build Spec or Technical Architecture section
-- **Contract graph reviewer** — traces every `CONTRACT.RUNTIME.*` entry through its authority, architecture, and milestone references
+- **Contract graph reviewer** — traces every contract registered in §67.8 through its authority, architecture, and milestone references
 - **ADR consistency checker** — verifies every accepted ADR is reflected in the relevant Build Spec, Technical Architecture, and milestone sections
 - **Milestone exit-gate auditor** — confirms every milestone's acceptance conditions are fully specified and cross-referenced
 - **Verifier conformance reviewer** — checks that `tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py` cover every registered contract, schema, and lifecycle state
