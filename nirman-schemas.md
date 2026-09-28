@@ -338,6 +338,8 @@ WorkerMessage
 - nextAttemptAt
 - lastAttemptAt
 - failureCode
+- quarantineReason: string?
+- quarantinedAt: timestamp?
 ```
 
 
@@ -1428,7 +1430,7 @@ TaskGraph
 - updatedAt: timestamp
 - lockedAt: timestamp
 - lockedBy: string (worker or authority ID)
-- dependencySemantics: { dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]
+- dependencySemantics: { toPhase: string, dependencyMode: ALL | ANY | QUORUM, quorumCount: integer?, failurePolicy: HARD | SOFT | INDEPENDENT }[]
 - cancellationPolicy
 - planRevision
 - graphFence
@@ -1476,6 +1478,7 @@ TaskNode
 - completedAt: timestamp?
 - joinPolicy: ALL | ANY | QUORUM | OPTIONAL
 - dependencyFailurePolicy: PROPAGATE | ISOLATE | ESCALATE
+- deliveryAttemptPolicy: integer (1-8; default 3)
 - planRevision
 - executionEpochId
 - staleOutcomePolicy: REJECT | REVALIDATE
@@ -3971,7 +3974,7 @@ WorkerConnection
 - reconnectPolicy: RESUMABLE | FRESH
 - resumeCursor (last durably applied sequence per ordering stream at disconnect)
 - reservedControlLane: boolean (true means reserved-capacity control lane, not merely higher priority)
-- controlMessageKinds: CANCEL | FENCE | REPLACE | PLAN_SUPERSEDED | RECONCILE | RECOVER | HEARTBEAT
+- controlMessageKinds: HEARTBEAT | CANCEL | CANCEL_ACK | PAUSE | RESUME | FENCE | REPLACE | PLAN_SUPERSEDED | RECONCILE | RECOVER | CLOSE
 - lastAckAppliedSequence
 ```
 
