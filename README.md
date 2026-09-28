@@ -31,7 +31,6 @@ Nirman has one host application target and one generated project target.
 | Nirman host | Windows desktop `.exe` | Chat, settings, control plane, workers, local execution, preview panel, evidence, recovery, and delivery UI |
 | Generated user project | Android only | Application synthesized from the user’s intent, screenshots, assets, integrations, and emulator requirements |
 | External AI services | Cloud providers selected by the user | General-purpose planning, reasoning, coding, vision, embeddings, and interpretation |
-| Local auxiliary intelligence | Supervisor-local, release-pinned | Bounded typed decisions for routing/classification/recovery/escalation; advisory only |
 | Execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifacts |
 
 Nirman must not become a web app builder, Windows app generator, PWA generator, cloud execution service, remote build service, Docker-based system, container-based system, VM-based system, WSL-based system, or generic multi-platform generator. Native modules, build plugins, and supporting services are allowed only when they are dependencies of Nirman or of a generated Android project.
@@ -171,8 +170,6 @@ Rust/Tokio NirmanSupervisor
         ├── workers/leases → NirmanWorker.exe × N (sandboxed reasoning processes)
         ├── policy/tool broker
         ├── ModelGateway
-        ├── LocalDecisionEngine
-        ├── LocalDecisionEngineProvisioner
         ├── recovery/evidence
         ├── Android build/emulator runtime
         └── artifact/completion gates
@@ -380,7 +377,7 @@ The recommended build sequence is deliberately vertical and evidence-driven:
 5. M39–M64 — Construction transaction, leases, toolchain, provider bridge, mutation, repair, preview, validation, and resource governance.
 6. M65–M80 — Autonomous execution kernel and first end-to-end runtime certification.
 7. M81–M122 — Long-horizon intelligence, contract certification, preview synchronization, continuity, frontend/control-plane certification, APK export, platform capabilities, skills, writing intelligence, durable conversation context, and change intelligence.
-8. M123–M126 — Recovery-first autonomous continuity certification, orchestration wiring matrix and end-to-end certification, long-horizon swarm coordination integrity, and bounded local auxiliary decision-engine/Laya certification.
+8. M123–M125 — Recovery-first autonomous continuity certification, orchestration wiring matrix and end-to-end certification, and long-horizon swarm coordination integrity.
 9. Windows `.exe` release certification follows the runtime gates and is not implied by documentation certification.
 
 Certification vocabulary is explicit: `DOCUMENTATION_CERTIFIED` means the contract graph, identity, and traceability checks pass; `RUNTIME_CERTIFIED` means an executable fixture and runtime evidence pass; and `PRODUCT_COMPLETED` means the user's `GoalContract` completion predicate passes. The word "certified" must not be used without one of these scopes. The verifier's terminal line on a zero-defect run is either `CERTIFICATION: DOCUMENTATION_CERTIFIED` (every check evaluated) or `CERTIFICATION: DOCUMENTATION_CERTIFIED_WITH_RUNTIME_SOURCE_SKIPS` (implementation-facing field coverage was not evaluated because the Rust source is absent — the current state of this specification-only repository; the unevaluated subjects are listed individually). Both exit with code 0; exit code 0 means zero defects, not complete evaluation, and neither status is runtime certification (spec §67.11). The local-certification entry points `tools/verify.sh` and `tools/verify.ps1` additionally emit the terminal line `CERTIFICATION: LOCAL_CERTIFICATION_INCOMPLETE` on this documentation-only tree; that third terminal line comes from the local-certification wrapper, not from the contract-graph verifier, and AGENTS.md §15 names it as the expected terminal status of a clean run.

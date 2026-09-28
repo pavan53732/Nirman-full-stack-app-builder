@@ -240,7 +240,7 @@ User mental model: one Nirman application, not two applications.
 
 **Trade-off:** Provider-specific features cannot always be represented perfectly. Unsupported capabilities must be reported explicitly.
 
-**Supersession note:** ADR-207 is superseded by ADR-252; provider-backed model paths remain cloud-only, and a bounded local auxiliary decision engine is admitted outside them.
+**Supersession note:** ADR-207 and ADR-252 are historical superseded decisions; the active model-locality boundary is ADR-262, and provider-backed model inference remains cloud-only.
 
 ---
 
@@ -447,7 +447,7 @@ The following decisions remain intentionally open:
 
 **Trade-off:** Some providers expose capabilities that cannot be mapped perfectly. The settings page must show detected capabilities and unsupported features explicitly.
 
-**Supersession note:** ADR-207 is superseded by ADR-252; local, offline, on-device, and self-hosted model runtimes remain excluded from the provider path, and a bounded local auxiliary decision engine is admitted outside it.
+**Supersession note:** ADR-207 and ADR-252 are historical superseded decisions; the active model-locality boundary is ADR-262, and local, offline, on-device, and self-hosted model runtimes are outside Nirman model-inference scope.
 
 ---
 
@@ -3556,7 +3556,8 @@ through a superseding ADR.
 
 **Supersedes:** ADR-207
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** ADR-262
 
 **Decision:** Nirman may provision and execute a bounded local auxiliary decision engine under supervisor control. The first supported implementation target is `convaiinnovations/laya-typed-decisions`, pinned by an immutable model revision and SHA-256 digest recorded in a Nirman-controlled signed release manifest.
 
@@ -3757,5 +3758,27 @@ SCHEMAS §1.87 (16 fields) and §3.1; BS §80.4.6. ADR-230's `DECIDE` state now 
 
 **Reversal trigger:**
 Measured behaviour across M94 fixtures shows two runs with identical `CycleDecisionTrace.inputsUsed` selecting different branches, which would make the mechanism non-deterministic and require the criteria to be revised. The reachability obligation and the two-anchor terminal obligation survive any revision of the rows themselves.
+
+---
+## ADR-262: Keep AI model inference external-provider-only
+
+**Locks:** `CONTRACT.RUNTIME.INVARIANTS`, `CONTRACT.RUNTIME.REASONING`
+
+**Status:** Accepted
+
+**Supersedes:** ADR-252
+
+**Decision:**
+1. Nirman MUST NOT ship, embed, provision, download, load, execute, or expose any local, on-device, self-hosted, or auxiliary AI model runtime for model inference or typed decision generation.
+2. All model inference — including planning, reasoning, coding, vision, embeddings, classification, routing, recovery recommendation, and escalation recommendation — MUST use the configured external provider path through `ProviderProfile` and `ModelGateway`.
+3. `SessionProviderMode` describes only the external provider-backed model path. `PLANNING_ONLY` and `OFFLINE` provide no local-model fallback; deterministic local runtime facilities may continue where their own contracts permit.
+4. Deterministic decision, recovery, permission, evidence, and completion authorities remain local runtime components, but they are not model runtimes and MUST NOT be implemented by a model.
+5. This is a product/architecture prohibition, not a deferred extension point. Reintroducing local model inference would require a new explicit superseding product and architecture decision.
+
+**Rationale:** The local auxiliary engine added a second model lifecycle, supply-chain surface, resource-management path, profile/acceptance machinery, persistence, evidence wiring, and recovery branches without adding a new authority or a correctness property unavailable to the existing deterministic runtime plus external-provider reasoning path. Removing it simplifies the architecture and eliminates a separate model artifact/runtime trust boundary.
+
+**Consequences:** `nirman-build-spec.md` removes the local fast-decision path, local-model bootstrap behavior, local proposal semantics, and local-engine references; `nirman-technical-architecture.md` removes the local engine provisioning/lifecycle, component-registry rows, persistence records, and traversal; `nirman-schemas.md` retires `LocalDecisionProposal`, `LocalDecisionAcceptanceProfile`, and `LocalDecisionEngineProfile` while preserving later schema numbers; `nirman-milestones.md` removes M126 and its constituent evidence; `GLOSSARY.md`, `README.md`, and `AGENTS.md` remove active local-engine references. `TEST-RSN-001` / `EV-RSN-001` remain the reasoning capability test/evidence identities and no longer depend on a local-engine constituent.
+
+**Reversal trigger:** none foreseeable.
 
 ---

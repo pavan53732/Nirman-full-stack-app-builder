@@ -8,7 +8,7 @@
 
 **Embedded emulator preview** — The generated app renders inside Nirman's own window through a Nirman-managed local Android emulator (the Google Android Emulator, provisioned by Nirman on first launch, never bundled or built by Nirman); no physical device plays any role. — BS §69; TA §10; TA §49.4; ADR-221.
 
-**Nirman** — A Windows desktop application that autonomously plans, builds, previews, tests, repairs, packages, and exports Android applications from product intent using external user-configured AI providers and, when admitted, a bounded supervisor-local auxiliary decision engine. — BS §1; BS §66.10.1.
+**Nirman** — A Windows desktop application that autonomously plans, builds, previews, tests, repairs, packages, and exports Android applications from product intent using external user-configured AI providers. — BS §1.
 
 **Nirman.exe** — The C#/.NET WinUI 3 user-facing process; a presentation-only projection client of the control plane. — TA §57; ADR-108; ADR-201.
 
@@ -78,7 +78,7 @@
 
 **ReproducibilityLevel** — The vocabulary that grades how repeatable a build or validation is; named as its own field on the evidence contracts. — BS §5.7.2; TA §36.4.
 
-**SessionProviderMode** — The vocabulary for the availability of Nirman's external provider-backed model path: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`; supervisor-local auxiliary decision-engine availability is represented separately. — BS §5.7.2; TA §41.
+**SessionProviderMode** — The vocabulary for the availability of Nirman's external provider-backed model path: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`; it has no local-model fallback. — BS §5.7.2; TA §41.
 
 **SigningState** — The signing lifecycle of a build output, from `NOT_REQUIRED` and `UNSIGNED_DEBUG` upward. — BS §5.7.2.
 
@@ -272,15 +272,10 @@
 
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
 
-**LocalDecisionAcceptanceProfile** — The immutable, versioned acceptance-criteria record used to evaluate a local auxiliary decision by purpose and primitive. — BS §66.10.1; SCHEMAS §1.80; M126.
 
-**LocalDecisionEngine** — The supervisor-local bounded inference service that produces `LocalDecisionProposal` records and has no execution or policy authority. — TA §58.17; ADR-252.
 
-**LocalDecisionEngineProfile** — The revision-pinned identity and admission/health record for a supervisor-local auxiliary decision engine. — SCHEMAS §2.129; TA §49.5.
 
-**LocalDecisionEngineProvisioner** — The supervisor-owned service that installs, verifies, profiles, self-tests, and admits the pinned auxiliary decision engine. — TA §49.5; ADR-252.
 
-**LocalDecisionProposal** — A typed advisory decision produced by the supervisor-local auxiliary engine and consumed only as candidate input by existing deterministic decision/recovery/routing components. — BS §66.10.1; SCHEMAS §1.79; TA §58.17.
 
 **ManifestPermissionDeriver** — The static permission analysis module deriving required `<uses-permission>` tags and scaffolding modern ActivityResultContracts runtime permission flows from framework API calls. — TA §73.18.2; BS §43.1.
 
@@ -308,7 +303,7 @@
 
 **PlaceholderResidueDetector** — The pre-commit static analysis module detecting unexpanded stub markers (TODO, FIXME, NotImplementedError, Lorem ipsum) in generated code and XML resources. — TA §47.4; BS §43.1.
 
-**Planning-only mode / Offline Mode** — `PLANNING_ONLY` and `OFFLINE` describe absence or unavailability of the external provider-backed model path; deterministic local facilities and an admitted supervisor-local auxiliary decision engine are governed separately and do not change `SessionProviderMode`. — BS §5.7.2; TA §41; ADR-252.
+**Planning-only mode / Offline Mode** — `PLANNING_ONLY` and `OFFLINE` describe absence or unavailability of the external provider-backed model path; deterministic local facilities continue to operate where their contracts permit, and no local model fallback exists. — BS §5.7.2; TA §41; ADR-262.
 
 **PreviewCoordinator** — The service that owns preview promotion; `PreviewProjectionReducer` remains the sole projection reducer. — TA §50; TA §75.
 

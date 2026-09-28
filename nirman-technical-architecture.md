@@ -40,11 +40,6 @@ The architecture should prefer small, typed interfaces over implicit communicati
 │ Workspaces   │ │ Policies   │ │ Builds │ │ Cloud AI        │
 │ Worktrees    │ │ Sandboxes  │ │ Preview│ │ Models          │
 └──────────────┘ └────────────┘ └────────┘ └─────────────────┘
-            │
-      LocalDecisionEngine
-            │
-      Local Model Root
-      (pinned Laya checkpoint)
 ```
 
 The control plane should communicate with the user interface through a local authenticated IPC channel. The production transport is named pipes. A loopback HTTP or WebSocket API may be used internally for development and debugging, but it must require a per-installation secret or operating-system authenticated channel and must not be used for the production SupervisorConnection. The interface must not be able to impersonate another project or bypass task policies by modifying client-side state.
@@ -116,7 +111,7 @@ Nirman's production installation consists of exactly three executables (ADR-222)
 
 **Worker host.** A worker is never a thread, Tokio task, or module inside `NirmanSupervisor.exe` or `Nirman.exe`. `WorkerRuntime` spawns one `NirmanWorker.exe` per worker lease after the lease and its launch intent are committed, assigns the process to its own Job Object before it is resumed — `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, an active-process limit of 1 so the worker cannot spawn, and the worker process memory limit of build spec §80.3 (default 2 GB) — and starts it as an AppContainer process with a filtered environment: a LowBox token created with no network capability, so the kernel refuses every socket, and with a per-lease container SID, so the kernel refuses every file that carries no access-control entry for that SID — the supervisor never writes one on a workspace, the toolchain root, or the ledger, and only the versioned application directory carries the read-and-execute entry for `ALL APPLICATION PACKAGES` that lets the worker binary load. The sandbox capability report of §9.2 marks the worker host's filesystem isolation, network restriction, process limit, and memory limit active only after the M6 worker-host fixture has observed each refusal. The worker holds no provider credential, opens no network connection, opens no file in any workspace or toolchain directory, and spawns no process. Everything it knows arrives over its `WorkerConnection` (§57.11) and everything it wants leaves the same way. A `MODEL_CALL` names the purpose of the request and the context items it needs by reference — files, symbols, observations, memory entries, and its own hypotheses, rejected strategies, effort grant, and pending evidence triggers as the constraint-class content of §72.9; the supervisor's `ContextOrchestrator` assembles the `ContextPackage` (§59.6), `ModelGateway` resolves the credential and makes the provider request (§48), and the worker receives the normalized response events and the context manifest — never the assembled package, the raw provider request, or the key. A `PROPOSAL` is an `AgentProposal` (§58.3) that the kernel's AUTHORIZE step (§58.2) passes to `PolicyAuthority` and `ToolBroker`; the outcome returns as a `PROPOSAL_RESULT` carrying the decision and, for an executed action, the observation identity and content the worker cites in its next request. The declared execution profile of build spec §26.5 governs those tool executions — the workspace paths, network category, and process quota of the Gradle, adb, or shell processes the supervisor runs on the worker's behalf; the worker host process itself always runs under the fixed profile above, whatever profile its contract declares, and the pre-M7 allowance of §57.2 to host the control-plane modules inside `Nirman.exe` never extends to a worker: from M5, the first milestone that runs one, every worker is a `NirmanWorker.exe` process spawned by whichever process hosts the control plane.
 
-**Placement rule.** A component of §58, §71, or §72 is worker-hosted when its only inputs and outputs are messages: `PrivateReasoningRuntime`, `AgentReasoningEngine`, `HypothesisManager`, `StrategySelector`, `ReflectionEngine`, `StructuredReasoningSummarizer`, and every §72.2 component except the three that grant, persist, or store. A component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted: the whole of §58 including `AgentLoopReducer`, `WorkerRuntime`, `SwarmPlanner`, and `DelegationProtocol`, together with `CapabilityRegistry`, `CapabilityBroker`, `DelegationManager`, `SwarmGraphManager`, `ReasoningStreamFilter`, `ReasoningEffortSelector`, `DeliberationContinuationManager`, `DeliberationRecordStore`, `ContextOrchestrator`, `ModelGateway`, and `ToolBroker`. A worker-hosted component that needs one of these — a capability query, an effort grant, a model escalation chosen by `DeliberationModelRouter`, a record to persist — sends the corresponding `WorkerConnection` message and receives the supervisor's answer; the effort level and the model profile a `MODEL_CALL` names are requests the supervisor admits or reduces under the worker's unchanged permission ceiling. The kernel's OBSERVE, UNDERSTAND, PLAN, and SELECT_ACTION stages are filled by the worker's `ReasoningArtifact`s and proposed action (§71.1); AUTHORIZE through EVALUATE_PROGRESS run in the supervisor, and `AgentLoopRecord` (§58.3) is written only there. ADR-119's separation of loop state from process lifecycle state is therefore a process boundary: the loop state lives in the supervisor's ledger and survives the worker, and the worker process is disposable. This supervisor-hosting rule explicitly includes §58.17 `LocalDecisionEngine` and `LocalDecisionProposalValidator`; neither component is loaded into `NirmanWorker.exe`, despite the implementation crate name `nirman-kernel`.
+**Placement rule.** A component of §58, §71, or §72 is worker-hosted when its only inputs and outputs are messages: `PrivateReasoningRuntime`, `AgentReasoningEngine`, `HypothesisManager`, `StrategySelector`, `ReflectionEngine`, `StructuredReasoningSummarizer`, and every §72.2 component except the three that grant, persist, or store. A component that opens the ledger, a file, a socket, or a process handle, or that authorizes, grants, registers, schedules, or persists, is supervisor-hosted: the whole of §58 including `AgentLoopReducer`, `WorkerRuntime`, `SwarmPlanner`, and `DelegationProtocol`, together with `CapabilityRegistry`, `CapabilityBroker`, `DelegationManager`, `SwarmGraphManager`, `ReasoningStreamFilter`, `ReasoningEffortSelector`, `DeliberationContinuationManager`, `DeliberationRecordStore`, `ContextOrchestrator`, `ModelGateway`, and `ToolBroker`. A worker-hosted component that needs one of these — a capability query, an effort grant, a model escalation chosen by `DeliberationModelRouter`, a record to persist — sends the corresponding `WorkerConnection` message and receives the supervisor's answer; the effort level and the model profile a `MODEL_CALL` names are requests the supervisor admits or reduces under the worker's unchanged permission ceiling. The kernel's OBSERVE, UNDERSTAND, PLAN, and SELECT_ACTION stages are filled by the worker's `ReasoningArtifact`s and proposed action (§71.1); AUTHORIZE through EVALUATE_PROGRESS run in the supervisor, and `AgentLoopRecord` (§58.3) is written only there. ADR-119's separation of loop state from process lifecycle state is therefore a process boundary: the loop state lives in the supervisor's ledger and survives the worker, and the worker process is disposable.
 
 **Lifecycle.** A worker process lives for one lease attempt: launched when the lease is granted, exited when the worker reaches `COMPLETED`, `FAILED`, `TIMED_OUT`, or `CANCELLED` (§5.2), never pooled or reused across leases. Its one-time launch token is delivered on its standard input, never on the command line or in the environment; it connects to the per-lease pipe named in that token, completes the `WorkerConnection` handshake, and sends a heartbeat every worker heartbeat interval (build spec §26.3, 10 seconds). The supervisor declares a worker dead only from both signals of §5.2 — the process handle and heartbeat freshness: a process exit is a worker crash (§32; §27.4: preserve the workspace, record the interruption, requeue or recover), and a live process past the stale threshold (60 seconds) is terminated through `TerminateJobObject` and follows the same path. Cancellation (§58.11) is cooperative first — a `CANCEL` message the worker acknowledges after sending its last artifact — then forced through the Job Object. Resumption never depends on a paused process being alive: every artifact a worker produced is already in the ledger, so the supervisor terminates a paused worker whenever the resource policy of build spec §26.3 needs the memory and relaunches a fresh process from durable state on resume. Workers do not outlive the supervisor — closing the supervisor closes every worker Job Object — and the recovery scan of §57.4 treats a lease whose process is gone as a worker crash. A worker that exits, hangs, leaks, or is replaced never takes another worker, the supervisor, or the UI with it, and never leaves a descendant: it has none.
 
@@ -1200,9 +1195,7 @@ The `reasoningCapabilityProfile` field holds the provider's discovered reasoning
 
 `maxReasoningTokens` is provider capability metadata: the largest per-request reasoning allocation the provider accepts (a request's `ReasoningSettings.maxReasoningTokensOptional` is bounded by it). It is never a Nirman execution budget, authorization ceiling, or termination condition; it bounds what ModelGateway may request from the provider, and reasoning usage reported against it is telemetry only (BS §72).
 
-`ProviderProfile` represents an external network-reachable AI provider only. It cannot represent a local auxiliary decision engine.
-
-Supervisor-local auxiliary decision engines use `LocalDecisionEngineProfile` (§49.5; SCHEMAS §2.129) and do not have provider URLs, provider credentials, provider compatibility modes, or provider network state.
+`ProviderProfile` represents the only supported model-inference path: an external network-reachable AI provider.
 
 ### 24.3 AI Settings page behavior
 
@@ -2707,65 +2700,6 @@ The provisioning state machine is `NOT_PROVISIONED → CONSENT_REQUIRED → DOWN
 
 ---
 
-### 49.5 Local auxiliary decision-engine provisioning
-
-`LocalDecisionEngineProvisioner` is a supervisor-owned provisioning service for the bounded auxiliary decision engine permitted by ADR-252.
-
-It uses a Nirman release-pinned manifest rather than provider configuration. The manifest entry identifies the engine version, exact model revision, immutable HTTPS source, SHA-256 digest, byte size, license identity/hash, runtime adapter version, install path, supported decision primitives, supported languages, and admission profile.
-
-Provisioning MUST:
-1. validate the Nirman release manifest;
-2. validate the immutable model source identity;
-3. acquire artifacts only over HTTPS;
-4. verify SHA-256 before execution or model load;
-5. install below the Nirman-managed local model root;
-6. record environment identity and artifact identity;
-7. run the local-engine self-test;
-8. persist the resulting `LocalDecisionEngineProfile` and the frozen `LocalDecisionAcceptanceProfile`; and
-9. admit the engine only when all required integrity and runtime checks pass.
-
-The frozen `LocalDecisionAcceptanceProfile` used for admission and proposal validation MUST be persisted in `local_decision_acceptance_profiles` by its exact immutable `profileId`. Proposal replay MUST resolve the exact stored acceptance-profile version; a mutable or reconstructed acceptance profile is not sufficient for replay or evidence validation.
-
-A local-engine profile MUST NOT use a mutable `main`, `latest`, floating branch, or unpinned model alias as its identity.
-
-The first-launch bootstrap MAY provision the engine automatically. No additional user installation workflow is required. Provisioning is independent of external provider configuration and MAY proceed while `SessionProviderMode` is `PLANNING_ONLY`.
-
-Local-engine health-state progression is:
-
-`NOT_INSTALLED → MANIFEST_VERIFIED → PROVISIONING → READY`
-
-with `DEGRADED`, `WAITING_NETWORK`, `FAILED_INTEGRITY`, `FAILED_RUNTIME`, and `UNAVAILABLE` side states.
-
-`admissionState` and `healthState` are orthogonal state dimensions and MUST NOT be conflated.
-
-`admissionState` determines whether a local-engine profile is admitted for use:
-- `DISABLED` — the profile cannot be loaded or invoked;
-- `EXPERIMENTAL` — the profile may execute only under the M126 experimental/shadow constraints;
-- `ACTIVE` — the profile may provide normal advisory proposals when health and acceptance requirements pass;
-- `QUARANTINED` — the profile is not admitted for new inference.
-
-`healthState` determines the current operational condition of an admitted profile. `READY` permits inference. `DEGRADED`, `UNAVAILABLE`, and all failure/provisioning states are non-ready states and require the consumer's declared fallback.
-
-`DEGRADED` is a health state, not an admission state and MUST NOT be represented as an `ACTIVE → DEGRADED` admission transition.
-
-`QUARANTINED` is an admission decision. A quarantined profile MUST NOT load for new inference and MUST NOT produce `ACCEPTED_AS_INPUT` proposals.
-
-Re-entry from `QUARANTINED` requires the applicable profile validation and admission gate again; a quarantined profile MUST NOT return directly to `ACTIVE` merely because the immediate failure condition disappears.
-
-The engine MUST NOT block supervisor startup, deterministic runtime operation, toolchain provisioning, project creation, planning-only mode, or external-provider configuration.
-
-`LocalDecisionEngineProfile.admissionState` begins as `EXPERIMENTAL`. A profile may become `ACTIVE` only after M126 evidence passes.
-
-Changing the engine revision, runtime adapter, model digest, manifest version, or decision contract invalidates prior local decision proposals tied to the previous profile identity.
-
-The local engine MUST be loaded and retained only when admitted by the existing resource-integrity authority. Under memory or CPU pressure it may be unloaded or marked unavailable without blocking the task.
-
-The local engine has no authority over filesystem mutation, process execution, provider credentials, emulator control, policy, evidence promotion, artifact promotion, or completion.
-
-> **Schema projection:** `LocalDecisionEngineProfile` is defined in `nirman-schemas.md` §2.129. Owner: TA §49.5.
-
----
-
 ## 50. Preview Coordinator and Android Runtime Validation
 
 `PreviewCoordinator` selects the least expensive valid preview mode for the current change and falls back when that mode cannot prove the requested behavior.
@@ -3292,12 +3226,12 @@ The Rust side is one Cargo workspace under `crates/`. The crate boundaries follo
 | `nirman-domain` | Canonical schemas of §36.1 as Rust types, enumerations of build spec §5.7.2, `CanonicalSchemaRegistry` metadata | nothing internal |
 | `nirman-ipc` | `UICommandEnvelope`, `UIResponseEnvelope`, `UIErrorEnvelope`, `EventSubscription`, `command_registry()` mirroring build spec §76.1, the named-pipe `SupervisorConnection` protocol (§57.3) | `nirman-domain` |
 | `nirman-policy` | `PolicyAuthority`, permission profiles (build spec §26.5), operation capabilities | `nirman-domain` |
-| `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, `ConstructionTransactionManager` and the `CommitBarrier` (§45.3, §45.4), `LeaseManager` (§46), `CheckpointManager` (§18), `ToolBroker` (§57.8), `TerminalSupervisor` (§57.7), `UpdateController` (§57.4), `ResourceIntegrityAuthority` (§51.3), `ConversationContinuationResolver` (§86.2), the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc`, `LocalDecisionEngineProvisioner` (§49.5) | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
+| `nirman-control-plane` | `LifecycleAuthority` (`SessionReducer` + `EventStore`), `TaskScheduler`, `WorkerRegistry`, `RecoveryAuthority`, `ConstructionTransactionManager` and the `CommitBarrier` (§45.3, §45.4), `LeaseManager` (§46), `CheckpointManager` (§18), `ToolBroker` (§57.8), `TerminalSupervisor` (§57.7), `UpdateController` (§57.4), `ResourceIntegrityAuthority` (§51.3), `ConversationContinuationResolver` (§86.2), the SQLite execution ledger (§57.5), use-case handlers reached from `nirman-ipc` | `nirman-domain`, `nirman-ipc`, `nirman-policy`, `nirman-evidence` |
 | `nirman-evidence` | `EvidenceAuthority`, evidence dependency graph, `ExportVerificationRecord` verification, `CapabilityPromotionAuthority` (§36.5) | `nirman-domain` |
 | `nirman-provider` | `ModelGateway` (§48), `ProviderAdapter` implementations (§57.8.1), provider bridge lifecycle and failure behaviour (§48.1, §48.3), `UsageRecord` telemetry (§36.4) | `nirman-domain`, `nirman-policy` |
 | `nirman-context` | `ContextOrchestrator` and the §59.1 components, `MemoryStore` and `MemoryWriter` with `ProjectMemoryStore` (§59.5, §31), `ContextPackage` assembly (§59.6) | `nirman-domain`, `nirman-control-plane`, `nirman-evidence` |
 | `nirman-worker-ipc` | The `WorkerConnection` protocol (§57.11; §3.5): launch-token handshake, heartbeat, and the worker and supervisor message kinds | `nirman-domain` |
-| `nirman-kernel` | `AgentExecutionKernel` (§58): the AUTHORIZE through EVALUATE_PROGRESS stages, `AgentLoopReducer`, `WorkerRuntime` (spawns and supervises one `NirmanWorker.exe` per lease), `SwarmPlanner`, `DelegationProtocol`, `CapabilityBroker`, `GoalInterpreter`, `TaskGraphCompiler`, `ProgressEvaluator`, and the other §58.1 modules, the supervisor end of `WorkerConnection`, `LocalDecisionEngine` (§58.17) | `nirman-domain`, `nirman-policy`, `nirman-control-plane`, `nirman-worker-ipc`, `nirman-provider`, `nirman-context`, `nirman-evidence` |
+| `nirman-kernel` | `AgentExecutionKernel` (§58): the AUTHORIZE through EVALUATE_PROGRESS stages, `AgentLoopReducer`, `WorkerRuntime` (spawns and supervises one `NirmanWorker.exe` per lease), `SwarmPlanner`, `DelegationProtocol`, `CapabilityBroker`, `GoalInterpreter`, `TaskGraphCompiler`, `ProgressEvaluator`, and the other §58.1 modules | `nirman-domain`, `nirman-policy`, `nirman-control-plane`, `nirman-worker-ipc`, `nirman-provider`, `nirman-context`, `nirman-evidence` |
 | `nirman-agents` | `AgentReasoningEngine` (§71), `DeepDeliberationRuntime` (§72), `PrivateReasoningRuntime`, `StructuredReasoningSummarizer` (§55.1), worker-role reasoning profiles, the worker end of `WorkerConnection`; linked by `NirmanWorker.exe` only | `nirman-domain`, `nirman-worker-ipc` |
 | `nirman-android` | `AndroidWorkflowCoordinator`, `AndroidTechnologyResolver` (§73.2) and the technology adapters (§73.10), build and device adapters, `ToolchainAuthority` with `ToolchainProvisioner` (§49), `RequirementAuthority` with `AndroidRepairRegistry` (§51.1) | `nirman-domain`, `nirman-policy`, `nirman-evidence` |
 | `nirman-preview` | `PreviewCoordinator`, `PreviewPromotionGate` (§73.5.1), `PreviewProjectionReducer`, `PreviewRequest`, `RenderTransport` (§10.7) | `nirman-domain`, `nirman-android`, `nirman-evidence` |
@@ -3387,7 +3321,6 @@ Singleton enforcement:
 - Second-instance refusal: any additional supervisor process beyond the singleton must terminate immediately without acquiring leases or opening the ledger.
 - Supervisor takeover after crash: on crash recovery, the new supervisor fences abandoned leases, reconciles unknown outcomes, and resumes only eligible operations.
 
-The supervisor validates the local auxiliary decision-engine manifest and profile records. Invalid profiles are quarantined and do not prevent supervisor startup. An admitted `ACTIVE` or `EXPERIMENTAL` profile may be loaded once into the resident local decision runtime when resource-integrity admission succeeds. The supervisor then continues the normal session/task recovery scan.
 
 `NirmanSupervisor.exe` starts at Windows user login when an eligible session or scheduled task exists, owns all long-running process trees, and records graceful or abnormal shutdown. Its first bootstrap stage is the stable `UpdateController` of §25.2 (ADR-039): it reads the active-version pointer, verifies the active application directory, and only then loads the control-plane modules of that version; a failed health check after a self-update rolls the pointer back to the previous known-good directory before the control plane starts. On startup it validates SQLite integrity, migrations, leases, checkpoints, project fingerprints, process records, terminal sessions, preview revisions, and pending provider requests.
 
@@ -3431,8 +3364,6 @@ brand_manifests, asset_manifest_entries,
 construction_transactions, change_report_records, conversations,
 conversation_messages, conversation_rebase_records, content_revisions,
 export_verification_records, environment_capability_records,
-local_decision_engine_profiles, local_decision_acceptance_profiles,
-local_decision_proposals,
 build_gate_records, skill_admissions, skill_invocation_records,
 resource_integrity_records, background_continuity_records
 ```
@@ -3508,8 +3439,6 @@ Cancellation terminates the provider stream and returns control to the
 kernel without committing a partial proposal.
 Provider failure, stream truncation, schema failure, or disconnect creates
 a typed runtime outcome and enters the existing recovery path.
-
-Supervisor-local auxiliary decision invocations follow the separate local-engine lifecycle of §58.17 and MUST NOT be represented as `ProviderRequest`, `ProviderResponse`, or provider-stream events.
 
 Provider interruption behavior follows ADR-245: the route's `providerCircuitState` transitions CLOSED → OPEN → HALF_OPEN → CLOSED as defined in build spec §5.7.5a; stream resumption requires a provider-supplied resume identity, otherwise the durable logical request is retried only through reconciliation/idempotency rules.
 
@@ -3694,9 +3623,6 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `UncertaintyCommunicator` | module | `nirman-kernel` | Subscribes to `UncertaintyRegistry` and `ContradictionDetector` (§58.12) and surfaces unresolved uncertainty findings as structured decision nodes in the execution tree (§23.2); converts internal uncertainty entries to a user-facing `UncertaintyNotice` routed to `DecisionNodeManager`; does not resolve uncertainty | none — advisory surface only | §44.3.2 |
 | `PlanPreviewRenderer` | alias | — | alias of the execution-plan projection derived from the `TaskGraph` (SCHEMAS §1.58) by `TaskGraphCompiler` and presented in the execution tree UI (§23.2, BS §4.3) | — | §44.3.2 |
 | `CostTimeEstimatePresenter` | alias | — | alias of the cost-and-elapsed-time telemetry projection (TA §23.4, BS §23.8 activity panel) sourced from `ResourceGovernor` and `EventStore`; AI monetary spend is telemetry only and never an execution gate (ADR-218) | — | §44.3.2 |
-| `LocalDecisionEngineProvisioner` | service | `nirman-control-plane` | Supervisor-owned provisioning service that installs, verifies, profiles, self-tests, and admits the bounded auxiliary decision engine (ADR-252); uses release-pinned manifests with SHA-256 verification and HTTPS acquisition | `local_decision_engine_profiles, local_decision_acceptance_profiles` | §49.5 |
-| `LocalDecisionEngine` | service | `nirman-kernel` | Supervisor-local bounded inference service that accepts typed decision requests and returns `LocalDecisionProposal` records; has no filesystem, process, provider, emulator, policy, evidence, artifact, or completion authority; advisory output only | none — produces `LocalDecisionProposal` records consumed by decision/recovery/routing components | §58.17 |
-| `LocalDecisionProposalValidator` | module | `nirman-kernel` | Validates typed decision results from `LocalDecisionEngine` against primitive domains and calibration state; rejects malformed or stale proposals before they reach decision/recovery/routing consumers | none — validation only; rejects invalid proposals | §58.17 |
 | `BlockerReportGenerator` | module | `nirman-control-plane` | Monitors the task graph for `BLOCKED` / `USER_REQUIRED` requirement nodes (BS §27.10) and assembles a structured blocker report surfaced through the Action Center (BS §4.6) and `PARTIALLY_BLOCKED` path; does not set blocked decisions | none — read-only assembly | §44.3.2 |
 | `QuestionBatchingEngine` | module | `nirman-kernel` | Implements the clarification gate of BS §69.11: groups, deduplicates, and prioritizes pending clarification questions before surfacing them as a single batched `ClarificationRequest`; routes answers back through `GoalInterpreter` as requirement-level updates | none — batching and routing only | §44.3.2 |
 | `CompletionReportComposer` | module | `nirman-control-plane` | Assembles the final `TaskResult` (BS §23.9, §30, SCHEMAS §1.11) from `EvidenceAuthority` ledger, `EventStore` records, and `ArtifactAuthority` promotion records on completion decision; reads authoritative records only — does not produce evidence or decide completion | none — read-only composition | §44.3.2 |
@@ -3756,8 +3682,6 @@ AgentExecutionKernel
       ├── BackpressureController
       ├── CancellationPropagationManager
       ├── DecisionNodeManager
-      ├── LocalDecisionEngine
-      ├── LocalDecisionProposalValidator
       ├── UncertaintyRegistry
       ├── PlanCompiler / Replanner
       └── ExecutionHistoryManager
@@ -4108,72 +4032,6 @@ Deliberation checkpoints, rejected strategies, alternative hypotheses, and prove
 15. No acknowledgement means "applied" unless the authoritative state transition is durable (§57.11.2).
 16. No worker continues execution from a superseded epoch or revision.
 17. No repeated coordination state may loop forever (§58.13 livelock rule).
-18. Local auxiliary inference is advisory and never authoritative.
-19. Failure or absence of the optional local auxiliary engine MUST NOT invalidate the core runtime contract.
-
-### 58.17 LocalDecisionEngine and LocalDecisionProposal lifecycle
-
-`LocalDecisionEngine` is a supervisor-local bounded inference service. It accepts typed decision requests and returns `LocalDecisionProposal` records.
-
-It has no direct workspace access, no direct filesystem authority, no provider credential access, no network authority, no emulator authority, no policy authority, and no promotion authority.
-
-> **Schema projection:** `LocalDecisionEngineProfile` is defined in `nirman-schemas.md` §2.129. Owner: TA §49.5.
->
-> **Schema projection:** `LocalDecisionProposal` is defined in `nirman-schemas.md` §1.79. Owner: BS §66.10.1.
->
-> **Schema projection:** `LocalDecisionAcceptanceProfile` is defined in `nirman-schemas.md` §1.80. Owner: BS §66.10.1.
-
-The local execution path is:
-
-```text
-Decision request
-→ profile admission
-→ health/resource admission
-→ input/context fingerprint
-→ local inference
-→ typed result validation
-→ acceptance-profile evaluation
-→ LocalDecisionProposal
-→ consumer-declared fallback or deterministic consumer
-```
-
-The proposal is valid only while its profile identity, model revision, input revision, context package identity, state hash, purpose, calibration state, decision-acceptance profile identity, and freshness (`expiresAt`) remain valid.
-
-A proposal is rejected or invalidated when:
-- the decision-acceptance profile identity or criterion-set revision changes;
-- the proposal's admission or health preconditions are no longer satisfied;
-- the applicable acceptance predicate changes;
-- the profile is no longer `ACTIVE` when the consumer requires active local admission;
-- calibration requirements of the acceptance profile are no longer satisfied;
-- the model revision changes;
-- the local profile is disabled or quarantined;
-- the underlying project revision changes;
-- the context package identity changes;
-- the decision purpose is not permitted by the profile;
-- the result is malformed or outside its primitive domain;
-- calibration is invalid;
-- required evidence is no longer fresh; or
-- the current time is at or after `expiresAt`.
-
-`ACCEPTED_AS_INPUT` is permitted only when:
-1. `admissionState = ACTIVE`;
-2. `healthState = READY`;
-3. the profile/model/runtime identity matches the current admitted identity;
-4. the proposal passes primitive-domain validation;
-5. required calibration conditions pass;
-6. the applicable `LocalDecisionAcceptanceProfile` has `status = FROZEN`, its exact `profileId` matches `decisionAcceptanceProfileId`, and its target model/profile/runtime identities match the currently admitted identity;
-7. `acceptanceOutcome = ACCEPTED`;
-8. revision, context, state, and freshness checks all pass.
-
-`EXPERIMENTAL` and `QUARANTINED` profiles MUST NOT produce `ACCEPTED_AS_INPUT`.
-
-Local-engine failure classes are deterministic: `ENGINE_UNAVAILABLE`, `PROFILE_NOT_ADMITTED`, `RESOURCE_NOT_ADMITTED`, `MODEL_INTEGRITY_FAILURE`, `MODEL_RUNTIME_FAILURE`, `INVALID_RESULT`, and `PROPOSAL_STALE`.
-
-A local-engine failure MUST NOT itself become a task failure when the engine is optional. The consumer MUST use its declared fallback path.
-
-The engine may be loaded once and reused for multiple calls inside its admitted lifecycle. Shutdown, supervisor restart, profile invalidation, or resource pressure may unload it. No task correctness property may depend on process residency.
-
-No local-engine output can bypass PolicyAuthority, ToolBroker, MutationBroker, ConstructionTransaction, evidence validation, promotion, or completion authorities.
 
 ## 59. Memory/Context Runtime
 
@@ -6394,17 +6252,6 @@ Required critical orchestration subgraphs additionally include:
 1. *OAuth 2.0 PKCE compliance:* Verifies that mobile OAuth authorization flows implement Proof Key for Code Exchange (PKCE) with cryptographically random code verifiers and SHA-256 code challenges, rejecting insecure client-secret embedding.
 2. *Thread-safe token refresh:* Analyzes OkHttp `Authenticator` and Ktor auth plugins to ensure JWT token refresh routines synchronize concurrent requests using mutex locks, preventing race conditions and duplicate refresh token exchanges.
 3. *Keystore-backed storage and route guarding:* Verifies that auth tokens are stored in `EncryptedSharedPreferences` backed by the Android KeyStore, checks that biometric authentication utilizes AndroidX `BiometricPrompt`, and asserts that Jetpack Compose navigation graphs define explicit route guards redirecting unauthenticated sessions to login.
-
-### 74.6.1 Local fast-decision traversal
-
-| Traversal | Producer | Consumer | Schema | Authority | Persistence | Failure / Recovery | Invalidation | Test |
-|---|---|---|---|---|---|---|---|---|
-| `LDE-INPUT` | DecisionNodeManager / recovery classifier / router | LocalDecisionEngine | LocalDecisionEngineProfile + LocalDecisionAcceptanceProfile + typed decision request | Supervisor runtime admission | local_decision_engine_profiles + local_decision_acceptance_profiles | profile/resource/runtime/acceptance-profile failure → consumer-declared fallback | profile/model/runtime-adapter/acceptance-profile identity or input-state change | TEST-LDE-001 |
-| `LDE-OUTPUT` | LocalDecisionEngine | DecisionNodeManager / recovery classifier / router | LocalDecisionProposal + LocalDecisionAcceptanceProfile | Deterministic consumer authority | local_decision_proposals + local_decision_acceptance_profiles | invalid/stale/below-acceptance/quarantined/mismatched-profile proposal → reject/fallback | model/profile/runtime-adapter/acceptance-profile revision, context hash, state hash, input revision, `expiresAt` | TEST-LDE-001 |
-
-The consumer-declared fallback is part of the owning decision contract. A consumer with no explicit fallback declaration is an integration defect and MUST NOT invent fallback behavior at implementation time.
-
-The local fast-decision traversal is an optional internal branch. It does not create a provider request edge and does not replace the mandatory provider-backed reasoning traversal of BS §84.1.
 
 ## 75. Preview Synchronization Implementation Contract
 

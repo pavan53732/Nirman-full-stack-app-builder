@@ -2,7 +2,7 @@
 
 This document is the single location of every fenced field-list schema of the Nirman specification (ADR-220). A schema block holds no authority of its own: the **Owner** line names the Build Spec (BS) or Technical Architecture (TA) section that owns the schema, and the block carries that section's precedence. **Contract** names the ContractId of the owning section in the build spec §67.8 registry, or `—` when the section is not a contract authority. **Projected at** lists the other sections that carried this block before the migration; each of them, and the owner, now carries a projection line of the form `> **Schema projection:** ` naming this section. Where the Build Spec and the Technical Architecture both carried a fence for one name, the block below is the merged one: the larger field set, the more specific type annotations, and every comment of the other copy kept in parentheses. A field line ending with `(<document> §x addition; build spec §67.11)` names a field that only the other document's copy carried; it is part of the block, and a field count stated by the owning document (build spec §80.2) refers to the lines without that marker. Field names, types, comments, and the field-count claims of build spec §80.2 are verified against these blocks by `tools/verify_contract_graph.py`. A citation of the form `SCHEMAS §N.k` resolves against this document; a bare `§N` inside a block was qualified with its origin document when the block moved.
 
-Group 1 holds schemas owned by the Build Spec in owner-section order; group 2 holds schemas owned by the Technical Architecture; group 3 holds the `CanonicalSchemaRegistry` list (ADR-189). Four numbers in this group are reserved and hold no block: the schemas formerly numbered 1.83 through 1.86 are Technical-Architecture-owned and now sit at the end of group 2 as `§2.134`–`§2.137`, and the gap is left in place rather than renumbering the blocks that followed them, which would churn their citations without changing any schema's meaning.
+Group 1 holds schemas owned by the Build Spec in owner-section order; group 2 holds schemas owned by the Technical Architecture; group 3 holds the `CanonicalSchemaRegistry` list (ADR-189). Six numbers in group 1 are reserved and hold no block: the schemas formerly numbered 1.79 and 1.80 are retired local-decision schemas; the schemas formerly numbered 1.83 through 1.86 are Technical-Architecture-owned and now sit at the end of group 2 as `§2.134`–`§2.137`. These gaps remain in place rather than renumbering the blocks that followed them, which would churn citations without changing schema meaning. Group 2 also reserves 2.129, whose local-decision profile schema was retired.
 
 ## 1. Schemas owned by the Build Spec
 
@@ -1858,57 +1858,6 @@ LoopHeartbeat
 ```
 
 `stateEntered` carries the **coarse durable-projection vocabulary** of build spec §52.2, not the fine-grained cycle states of technical architecture §71.4. Every technical architecture §71.4 cycle state projects onto exactly one of these nine names through the total, surjective table in build spec §52.2, so a heartbeat exists for every cycle transition and `LOOP_HUNG` can always name a last coarse state. The fine state is recoverable from the accompanying kernel event, which records the technical architecture §71.4 state; the heartbeat is the supervisor's liveness projection and is deliberately coarser (ADR-230).
-
-### 1.79 LocalDecisionProposal
-
-**Owner:** BS §66.10.1 · **Contract:** CONTRACT.RUNTIME.REASONING · **Projected at:** TA §58.17
-
-```text
-LocalDecisionProposal
-- proposalId: string (uuid)
-- sessionId: string
-- taskId: string
-- workerId: string | null
-- purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION
-- decisionPrimitive: CHOICE | SCORE | NOUL
-- profileId: string
-- modelRevision: string
-- inputRevisionId: string
-- contextPackageHash: string
-- stateHash: string
-- choiceValue: string | null
-- choiceProbabilities: { option: string, probability: float (0.0-1.0) }[] | null
-- scoreValue: float | null
-- scoreDistribution: { level: string, probability: float (0.0-1.0) }[] | null
-- noulProbability: float (0.0-1.0) | null
-- confidence: float (0.0-1.0) | null
-- calibrationState: UNPROFILED | PROFILED | FAILED | INVALIDATED
-- calibrationProfileId: string | null
-- decisionAcceptanceProfileId: string
-- acceptanceOutcome: NOT_EVALUATED | ACCEPTED | BELOW_THRESHOLD | INVALID | FALLBACK_REQUIRED
-- generatedAt: timestamp
-- expiresAt: timestamp
-- status: SHADOW_ONLY | PROPOSED | ACCEPTED_AS_INPUT | REJECTED | QUARANTINED | INVALIDATED
-- evidenceIds: string[]
-```
-
-### 1.80 LocalDecisionAcceptanceProfile
-
-**Owner:** BS §66.10.1 · **Contract:** CONTRACT.RUNTIME.REASONING · **Projected at:** TA §58.17
-
-```text
-LocalDecisionAcceptanceProfile
-- profileId: string (immutable versioned identity; e.g. LDE-ACP-001@1)
-- targetLocalDecisionEngineProfileId: string
-- targetModelRevision: string
-- targetRuntimeAdapterVersion: string
-- fixtureSetId: string
-- criterionSetRevision: string
-- runtimeCriteria: { purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION; decisionPrimitive: CHOICE | SCORE | NOUL; calibrationRequired: boolean; minConfidence: float (0.0-1.0) | null; minPrimaryProbability: float (0.0-1.0) | null; maxChoiceOptions: integer | null; probabilityNormalizationTolerance: float (0.0-1.0) | null }[]
-- evaluationCriteria: { purpose: FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION; decisionPrimitive: CHOICE | SCORE | NOUL; minAccuracy: float (0.0-1.0); maxFalsePositiveRate: float (0.0-1.0); maxFalseNegativeRate: float (0.0-1.0); maxExpectedCalibrationError: float (0.0-1.0) | null; maxBrierScore: float (0.0-1.0) | null }[]
-- immutableDigest: string (SHA-256 over the canonical serialized acceptance profile)
-- status: DRAFT | FROZEN | RETIRED
-```
 
 ### 1.81 ConstructionRequirement
 
@@ -5027,44 +4976,6 @@ RequirementDelta
 - timestamp
 ```
 
-### 2.129 LocalDecisionEngineProfile
-
-**Owner:** TA §49.5 · **Contract:** — · **Projected at:** TA §58.17
-
-```text
-LocalDecisionEngineProfile
-- profileId: string (uuid)
-- manifestVersion: string
-- engineId: string
-- engineVersion: string
-- modelId: string
-- modelRevision: string (immutable source revision; never a mutable branch or tag)
-- sourceRef: string (HTTPS manifest source reference)
-- modelSha256: string
-- modelByteSize: integer
-- licenseId: string
-- licenseHash: string
-- installPath: string
-- maxContextTokens: integer
-- maxChoiceOptions: integer | null
-- decisionPrimitives: (CHOICE | SCORE | NOUL)[]
-- languageCodes: string[]
-- purposeSet: (FAILURE_CLASSIFICATION | ROUTING | RECOVERY_CLASSIFICATION | ESCALATION_RECOMMENDATION)[]
-- decisionAcceptanceProfileId: string
-- autoProvision: boolean
-- admissionState: DISABLED | EXPERIMENTAL | ACTIVE | QUARANTINED
-- healthState: NOT_INSTALLED | MANIFEST_VERIFIED | PROVISIONING | READY | DEGRADED | WAITING_NETWORK | FAILED_INTEGRITY | FAILED_RUNTIME | UNAVAILABLE
-- environmentId: string
-- runtimeAdapterId: string
-- runtimeAdapterVersion: string
-- manifestSha256: string
-- manifestSignatureKeyId: string
-- selfTestEvidenceId: string | null
-- lastLoadedAt: timestamp | null
-- lastVerifiedAt: timestamp | null
-- failureReason: string | null
-```
-
 ### 2.130 ProviderRequestProvenance
 
 **Owner:** TA §24.4 · **Contract:** — · **Projected at:** —
@@ -5404,9 +5315,6 @@ FailureContextPackage
 TargetPlatformSet
 AndroidToolchainManifest
 ChangeIntelligenceRecoveryJob
-LocalDecisionEngineProfile
-LocalDecisionProposal
-LocalDecisionAcceptanceProfile
 ConstructionRequirement
 LockedDecision
 ProviderRequestProvenance

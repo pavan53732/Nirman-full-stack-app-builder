@@ -318,8 +318,6 @@
 | `ClarificationRecord` | §1.76 | BS §69.11 | CONTRACT.RUNTIME.PROMPT_CONTRACT | — |
 | `SharedSurfaceChangeRequest` | §1.77 | BS §54.2 | CONTRACT.RUNTIME.RESERVATION | — |
 | `LoopHeartbeat` | §1.78 | BS §29.4 | — | TA §57.4 |
-| `LocalDecisionProposal` | §1.79 | BS §66.10.1 | CONTRACT.RUNTIME.REASONING | TA §58.17 |
-| `LocalDecisionAcceptanceProfile` | §1.80 | BS §66.10.1 | CONTRACT.RUNTIME.REASONING | TA §58.17 |
 | `ConstructionRequirement` | §1.81 | BS §42.1 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §59.1 |
 | `LockedDecision` | §1.82 | BS §42.1 | CONTRACT.RUNTIME.AUTHORITY | TA §59.1 |
 | `CycleDecisionTrace` | §1.87 | BS §80.4.6 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | TA §58.1 |
@@ -453,7 +451,6 @@
 | `AssetManifestEntry` | §2.126 | TA §56.2 | — | — |
 | `FeedbackRecord` | §2.127 | TA §44.3.3 | — | — |
 | `RequirementDelta` | §2.128 | TA §44.3.3 | — | — |
-| `LocalDecisionEngineProfile` | §2.129 | TA §49.5 | — | TA §58.17 |
 | `ProviderRequestProvenance` | §2.130 | TA §24.4 | — | — |
 | `ProviderRequestAttempt` | §2.131 | TA §24.6 | — | — |
 | `ContractDoubleScenario` | §2.132 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
@@ -596,7 +593,6 @@ Milestone blocks live in `nirman-milestones.md`; the section number is the headi
 | M123 | Recovery-first autonomous continuity certification | §45 |
 | M124 | Orchestration wiring matrix and end-to-end pipeline certification | §45 |
 | M125 | Long-Horizon Swarm Coordination Integrity | §45 |
-| M126 | Bounded local auxiliary decision engine and Laya certification | §45 |
 
 ## 5. ADR ranges
 
@@ -609,4 +605,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-261 | 12 | Accepted 12 |
+| ADR-250–ADR-262 | 13 | Accepted 12, Superseded 1 |

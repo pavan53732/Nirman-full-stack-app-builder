@@ -1416,7 +1416,6 @@ Test and evidence identity follows the same rule. A contract's capability-level 
 | M120      | CONTRACT.RUNTIME.CONTENT_INTELLIGENCE                            | ADR-211                                                                                  | TEST-CONTENT-001   | EV-CONTENT-001   | Content and Writing Intelligence                                                                                        |
 | M121      | CONTRACT.RUNTIME.CONVERSATION_CONTEXT                            | ADR-212                                                                                  | TEST-CONV-001      | EV-CONV-001      | Durable Conversation Context                                                                                            |
 | M122      | CONTRACT.RUNTIME.CHANGE_INTELLIGENCE                             | ADR-213                                                                                  | TEST-CHANGE-001    | EV-CHANGE-001    | Change Intelligence                                                                                                     |
-| M126      | extends CONTRACT.RUNTIME.REASONING                               | ADR-252                                                                                  | TEST-LDE-001       | EV-LDE-001       | Bounded local auxiliary decision-engine constituent gate                                                                |
 
 M93 must additionally run the contract-graph verifier of build spec §67.11 across all twelve §67.11 contract-graph checks in both traversal directions, plus the verifier's document-structure checks (which are additional to, not counted among, the twelve). It must fail on any duplicate authority, unregistered contract, undeclared extension, authority cycle, clause contradiction, unversioned override, dangling reference, forward break, reverse break, orphan contract, canonical-identity violation, section-ownership violation, or structure violation.
 
@@ -2254,49 +2253,3 @@ certification.
 **Exit gate:** all twenty-six fixtures pass with runtime evidence and M124 wiring coverage resolves every new traversal. Documentation certification remains separate from runtime certification.
 
 ---
-
-## M126: Bounded local auxiliary decision engine and Laya certification
-
-Implement the supervisor-local `LocalDecisionEngine` contract and `LocalDecisionEngineProvisioner` defined by ADR-252. Add the immutable release-manifest model identity, SHA-256 verification, local installation root, profile persistence, local inference lifecycle, typed `CHOICE` / `SCORE` / `NOUL` validation, proposal provenance, calibration state, invalidation, failure classification, fallback behavior, resource admission, shutdown/restart behavior, and orchestration wiring.
-
-The first implementation target is the pinned `convaiinnovations/laya-typed-decisions` checkpoint. The implementation MUST use an immutable revision and digest from the Nirman release manifest and MUST NOT consume a mutable `main` or `latest` model reference.
-
-The engine remains `EXPERIMENTAL` until this milestone's exit gate passes. It MUST NOT become a required dependency of the general agent loop or external-provider path.
-
-For the initial `convaiinnovations/laya-typed-decisions` profile, M126 MUST record English-only language support and a maximum context of 1024 tokens. `CHOICE` questions exceeding the model's documented option-count operating range MUST be rejected or transformed before inference. Probability-bearing outputs MUST remain non-production/advisory until Nirman-specific held-out calibration evidence is available.
-
-**Test identity:** `TEST-LDE-001`
-**Evidence identity:** `EV-LDE-001`
-
-**Fixtures:**
-- LDE-FIX-001 — failure classification corpus
-- LDE-FIX-002 — worker-routing corpus
-- LDE-FIX-003 — recovery-classification corpus
-- LDE-FIX-004 — escalation classification corpus
-- LDE-FIX-005 — malformed-output, stale-proposal, below-acceptance, and acceptance-profile-mismatch corpus
-- LDE-FIX-006 — resource-pressure and engine-unavailable corpus
-
-M126's `TEST-LDE-001` / `EV-LDE-001` are milestone-level constituent identities of `TEST-RSN-001` / `EV-RSN-001`. `EV-LDE-001` is a constituent of the capability-level evidence `EV-RSN-001`, and `EV-RSN-001` is not complete while `EV-LDE-001` is missing.
-
-**Decision-acceptance profile family:** `LDE-ACP-001`
-**Initial frozen acceptance-profile identity:** `LDE-ACP-001@1`
-
-`LDE-ACP-001` is represented by `LocalDecisionAcceptanceProfile` in `nirman-schemas.md` §1.80. Its `profileId` MUST use an immutable versioned identity (for example `LDE-ACP-001@1`), and each evaluated `LocalDecisionEngineProfile` and `LocalDecisionProposal` MUST reference that exact versioned identity.
-
-`LDE-ACP-001@1` is the initial frozen acceptance-profile record covering every registered M126 decision purpose and primitive combination. Its runtime acceptance criteria govern individual proposal acceptance. Its evaluation criteria govern population-level model/profile evaluation. The profile MUST be immutable for the fixture execution run.
-
-The profile MUST be bound to the exact `LocalDecisionEngineProfile` identity, model revision, and runtime-adapter version under evaluation. It MUST NOT be reused after any of those identities change without a new acceptance-profile version and fresh evaluation evidence.
-
-Before fixture execution, M126 MUST freeze `LDE-ACP-001@1` with predeclared runtime-acceptance and population-level evaluation criteria. Thresholds MUST be fixed before execution and MUST NOT be chosen, tuned, or changed after inspecting fixture results.
-
-For M126:
-- `CHOICE`: runtime acceptance evaluates declared choice probabilities and/or confidence; the choice label itself is not confidence.
-- `SCORE`: runtime acceptance evaluates the score distribution and/or confidence; the raw score value is not confidence.
-- `NOUL`: runtime acceptance evaluates `noulProbability` and/or confidence.
-- accuracy, false-positive rate, false-negative rate, ECE, and Brier score are population-level evaluation metrics and MUST NOT be used as per-proposal confidence values.
-
-A proposal with an unprofiled or invalid calibration state MUST NOT satisfy a production acceptance predicate when the applicable runtime acceptance criteria require calibrated probability or confidence.
-
-M126 establishes baseline decision-quality and calibration evidence for the admitted model/profile identity. It does not create a separate continuous production drift-monitoring authority unless a later milestone and contract define that authority explicitly. A later drift/degradation monitor MUST NOT be inferred from M126 solely because longitudinal metrics are retained.
-
-**Exit gate:** the supervisor can automatically provision the pinned local engine, verify its artifact identity, load it when admitted, execute representative typed decisions, persist complete proposal provenance, reject malformed or stale proposals, recover from runtime failure without corrupting the task, unload or bypass the engine under resource pressure, survive supervisor restart, and demonstrate that every local proposal remains advisory and cannot bypass deterministic policy, evidence, mutation, promotion, or completion authorities. The fixture results, latency/resource measurements, model revision, artifact digest, and decision-quality metrics are retained as evidence. The exit gate MUST additionally demonstrate that a frozen acceptance profile is bound to the evaluated model/profile/runtime identities, that below-acceptance proposals are rejected or routed to the declared fallback, that an acceptance-profile mismatch invalidates the proposal, and that population-level evaluation metrics are never treated as individual proposal confidence.
