@@ -164,6 +164,34 @@ Streaming reasoning is presentation of approved structured progress, not a chann
 
 Every agent or worker must have a declared role, task contract, model profile, workspace, capability ceiling, permission profile, physical resource requirements, allowed paths, denied paths, expected output schema, dependencies, timeout policy, cancellation policy, and evidence requirements.
 
+### Mandatory sub-agent decomposition for documentation-phase work
+
+Any AI agent performing documentation auditing, cross-document review, specification hardening, schema consistency checking, contract graph validation, milestone cross-checking, ADR conformance review, or verifier fixture coverage analysis on this repository MUST decompose that work into specialist sub-agents rather than attempting it monolithically in a single agent loop.
+
+The required decomposition pattern is:
+
+```text
+orchestrator agent
+→ identifies scope and affected canonical documents
+→ spawns specialist sub-agents per domain (one per document or concern)
+→ each sub-agent performs deep semantic reading of its assigned document(s)
+→ each sub-agent produces a structured finding report
+→ orchestrator reconciles findings, resolves conflicts, and produces the final output
+```
+
+Permitted specialist sub-agent roles for documentation-phase work include but are not limited to:
+
+- **Schema auditor** — validates every schema block in `nirman-schemas.md` against its owning Build Spec or Technical Architecture section
+- **Contract graph reviewer** — traces every `CONTRACT.RUNTIME.*` entry through its authority, architecture, and milestone references
+- **ADR consistency checker** — verifies every accepted ADR is reflected in the relevant Build Spec, Technical Architecture, and milestone sections
+- **Milestone exit-gate auditor** — confirms every milestone's acceptance conditions are fully specified and cross-referenced
+- **Verifier conformance reviewer** — checks that `tools/verify_contract_graph.py` and `tools/test_verify_contract_graph.py` cover every registered contract, schema, and lifecycle state
+- **Cross-document reconciler** — identifies any field, lifecycle state, authority name, or component that appears in more than one document with inconsistent definitions
+
+An orchestrating agent MUST NOT perform a documentation audit, review, or validation pass by reading all ten canonical documents sequentially in a single context window and producing a single inline report. That approach produces shallow coverage and misses cross-document inconsistencies that only emerge when each document is read deeply by a dedicated sub-agent.
+
+This rule applies to all AI agents and CLI tools operating in this repository during the Documentation & Architectural Hardening Phase, including but not limited to Claude Code, Codex, Gemini CLI, Cursor, and any other agentic tool. Failure to use sub-agents for documentation-phase work is a process violation equivalent to skipping the local certification gate.
+
 The primary orchestrator decomposes goals, routes work, reconciles outputs, and owns the task graph. Specialist workers may handle requirements, architecture, UI, Android data and integrations, coding, testing, debugging, security, visual QA, performance, documentation, release preparation, and reconciliation. A worker may propose results but cannot directly promote a capability, artifact, preview, evidence result, or completion decision.
 
 Delegation is bounded. Child capabilities cannot exceed their parent capability ceiling, resource ceiling, workspace scope, or permission profile. Worker nesting is limited by the active contract. Parallel workers require explicit file and interface boundaries, isolated workspaces or worktrees, typed handoffs, and reconciliation before integration.
@@ -513,6 +541,134 @@ An agent must not:
 A task is complete only when the requested behavior is implemented within scope, deterministic authorities admit the result, relevant tests and validation execute, evidence is current and linked to the correct revision, recovery and invalidation rules are satisfied, and the user receives an honest summary of what is implemented, what is environment-dependent, and what remains planned.
 
 When any required proof is missing, use an explicit status such as `PLANNED`, `SUPPORTED_WITH_ENVIRONMENT_REQUIREMENTS`, `DEGRADED`, `USER_REQUIRED`, `UNAVAILABLE`, `BLOCKED`, `STALE`, `INVALIDATED`, or `SAFELY_FAILED`. Never convert uncertainty into success.
+
+## 19. Additional agent behavioral requirements
+
+### 19.1 Sub-agent output format enforcement
+
+Sub-agents MUST produce structured, typed output — not prose summaries. An orchestrator agent cannot reliably reconcile findings that arrive as unstructured narrative text. Every sub-agent performing documentation auditing, schema review, contract graph validation, or verifier conformance analysis MUST return its findings as a typed record containing at minimum:
+
+- `sub_agent_role` — the declared specialist role (e.g., `schema_auditor`, `adr_consistency_checker`)
+- `assigned_documents` — the exact canonical documents and sections reviewed
+- `findings` — a list of typed finding entries, each with: finding ID, severity (`DEFECT` | `GAP` | `INCONSISTENCY` | `OBSERVATION`), exact location (filename + section), quoted current text, and proposed resolution
+- `no_finding_sections` — sections explicitly reviewed and found conformant (proves coverage, not just silence)
+- `review_revision` — the git commit or document hash at time of review
+
+An orchestrator MUST NOT accept a sub-agent report that omits `no_finding_sections`, as absence of findings without explicit coverage proof is indistinguishable from a shallow or incomplete review.
+
+### 19.2 Orchestrator must not re-interpret sub-agent findings
+
+An orchestrator agent MUST pass sub-agent findings through to the final output verbatim or as typed records. It MUST NOT paraphrase, summarize, or restate sub-agent findings in ways that lose precision, drop quoted evidence, or merge distinct findings into a single generalized observation. If two sub-agents produce conflicting findings about the same section, the orchestrator MUST surface both findings explicitly and flag the conflict — it MUST NOT silently resolve the conflict by choosing one finding over the other without a documented reconciliation rationale.
+
+### 19.3 Context handoff protocol when spawning sub-agents
+
+When an orchestrator spawns a sub-agent, it MUST provide a formal handoff package containing:
+
+- `task_contract` — the specific task the sub-agent is being asked to perform, with acceptance criteria
+- `assigned_scope` — the exact canonical documents, sections, schema names, contract IDs, or milestone entries the sub-agent is responsible for
+- `document_revision` — the current git commit hash or document content hash for each assigned document
+- `forbidden_scope` — sections or documents explicitly NOT assigned to this sub-agent (prevents overlap and duplication)
+- `output_schema` — the expected structured output format the sub-agent must return
+- `escalation_condition` — the condition under which the sub-agent must stop and escalate rather than proceeding
+
+A sub-agent that receives an incomplete handoff package MUST report `HANDOFF_INCOMPLETE` and request the missing fields rather than proceeding with assumed scope.
+
+### 19.4 Sub-agent failure handling and escalation
+
+When a sub-agent returns an error, times out, produces an empty finding set without coverage proof, or returns findings that conflict with another sub-agent's findings on the same section, the orchestrator MUST:
+
+1. Record the failure or conflict as a typed `SubAgentFailureRecord` with: sub-agent role, assigned scope, failure kind (`TIMEOUT` | `ERROR` | `EMPTY_WITHOUT_COVERAGE` | `CONFLICT` | `HANDOFF_INCOMPLETE`), and the raw sub-agent output
+2. NOT silently discard the failure or substitute a guess for the missing findings
+3. Either re-spawn the sub-agent with a corrected handoff, assign the scope to a different sub-agent, or escalate to the user with an explicit `BLOCKED` status identifying the unresolved scope
+
+An orchestrator MUST NOT report documentation review or validation as complete when any sub-agent's assigned scope remains unresolved, failed, or in conflict.
+
+### 19.5 Prohibition on inventing schema or contract names
+
+Agents MUST NOT invent, introduce, or use schema names, contract IDs, authority names, lifecycle state tokens, or component names that do not appear in the canonical registry (Technical Architecture §57.12, `nirman-schemas.md` §3, Build Spec §67). This prohibition applies in all contexts: inline reasoning, proposed patches, handoff packages, sub-agent instructions, and completion reports.
+
+If an agent encounters a concept that appears to require a new name, the correct action is to stop, identify the closest existing canonical name, and either use that name or report a `GAP` finding requesting a new canonical registration — not to invent a name and proceed. An invented name that reaches a patch or a commit is a documentation certification failure.
+
+### 19.6 Agent must verify its own proposed changes against the verifier before reporting complete
+
+Before presenting any proposed documentation change to the user as ready to commit, the agent MUST run:
+
+```text
+python tools/verify_contract_graph.py .
+python tools/test_verify_contract_graph.py
+```
+
+and confirm the output contains zero defects among the evaluated gates. An agent MUST NOT report a documentation change as complete, correct, or ready to commit based solely on its own reasoning about the change. The verifier is the authoritative gate for documentation certification; agent self-assessment is not a substitute.
+
+If the verifier reports a defect introduced by the agent's proposed change, the agent MUST fix the defect before reporting completion. If the verifier reports `LOCAL_CERTIFICATION_INCOMPLETE` on gates that were already incomplete before the change (foundation, Rust, host, fixture gates on a documentation-only tree), that is expected and does not block completion — only newly introduced defects block completion.
+
+### 19.7 Context pressure must trigger sub-agent delegation, not degraded continuation
+
+When an agent's active context window is approaching capacity — indicated by the runtime reporting high token utilization, by the agent observing that earlier canonical document content is no longer reliably attendable, or by the agent having already processed more than five of the ten canonical documents in a single context — the agent MUST NOT continue the current task with degraded context coverage. Instead it MUST:
+
+1. Checkpoint its current findings and progress as a typed record
+2. Identify the remaining unprocessed scope
+3. Spawn a fresh sub-agent with a formal handoff package (per §19.3) covering the remaining scope
+4. Pass the checkpoint record to the sub-agent as prior context, not as authoritative state
+5. Await the sub-agent's structured findings before proceeding with reconciliation
+
+An agent that continues processing canonical documents after context pressure is detected, without delegating to a sub-agent, is producing unreliable output. Any findings produced under context pressure without delegation MUST be flagged as `CONTEXT_DEGRADED` and MUST NOT be treated as complete coverage. The orchestrator MUST re-assign degraded-coverage scope to a fresh sub-agent before the review is considered complete.
+
+### 19.8 Agent identity declaration at session start
+
+Every AI agent or CLI tool beginning a work session on this repository MUST declare its identity before performing any read, audit, patch, or commit operation. The declaration MUST include:
+
+- `agent_id` — a stable identifier for the agent tool (e.g., `claude-code`, `gemini-cli`, `codex`, `cursor`)
+- `agent_version` — the tool version or model version in use
+- `session_role` — the role this agent is taking in the current session (`ORCHESTRATOR` | `SUB_AGENT` | `REVIEWER` | `SOLO`)
+- `capability_profile` — the set of operations this agent is permitted to perform in this session (e.g., `READ_ONLY`, `PATCH_DOCS`, `PATCH_CODE`, `COMMIT`, `SPAWN_SUB_AGENTS`)
+- `parent_agent_id` — if this agent was spawned as a sub-agent, the identity of the orchestrator that spawned it; `NONE` if this is a top-level session
+
+An agent that cannot declare its identity MUST operate as `READ_ONLY` until identity is established. An orchestrator MUST record the declared identities of all sub-agents it spawns as part of the session's coordination record. Identity declarations are not authoritative state — they are session metadata for traceability and conflict detection.
+
+### 19.9 Concurrent agent conflict prevention
+
+When two or more agents may be operating on the same repository simultaneously (e.g., Claude Code and Gemini CLI both active), each agent MUST check for concurrent modifications before applying any patch to a canonical document. Before patching, the agent MUST:
+
+1. Record the current git commit hash of the target file
+2. Verify that hash matches the `document_revision` in its handoff package or session start state
+3. If the hash has changed since the agent's session started or since its last read of that file, the agent MUST stop, re-read the file, re-evaluate whether its proposed patch still applies cleanly, and either re-plan the patch or report `CONCURRENT_MODIFICATION_DETECTED` to the user before proceeding
+
+An agent MUST NOT apply a patch to a file it has not re-read since another agent's commit was detected. Silently overwriting a concurrent change is a workspace integrity violation equivalent to overwriting a newer revision (§6).
+
+### 19.10 Agent session resumption requires canonical document re-read
+
+When an agent resumes a previously interrupted session — whether due to context window expiry, tool restart, user-initiated pause, or any other interruption — it MUST NOT rely on its prior session's memory, summaries, or cached understanding of the canonical documents. Before resuming work, the agent MUST:
+
+1. Re-read every canonical document that is in scope for the resumed task
+2. Verify the current git commit hash of each document against the hash recorded at the prior session's checkpoint
+3. If any document has changed since the prior session's checkpoint, re-evaluate the prior session's findings and proposed patches for validity against the new content
+4. Report any prior findings that are now stale, superseded, or invalidated by the intervening changes as `SESSION_STALE` before proceeding
+
+An agent that resumes work based on prior session memory without re-reading the canonical documents is operating on potentially stale context. Any findings or patches produced from stale context MUST be flagged `SESSION_STALE` and MUST NOT be committed without re-validation against the current document state.
+
+### 19.11 Structured gap report format
+
+When an agent discovers a specification gap — an underspecified contract, missing authority, undefined state transition, unmapped dependency, absent schema field, or any other ambiguity that would cause an autonomous implementation agent to hallucinate or invent its own pattern — it MUST report the gap using the following structured format before stopping work:
+
+```text
+GAP REPORT
+  gap_id:          <unique identifier, e.g., GAP-001>
+  severity:        BLOCKING | SIGNIFICANT | MINOR
+  discovered_by:   <agent_id and session_role>
+  location:        <filename> §<section> [line range if known]
+  gap_type:        UNDERSPECIFIED_CONTRACT | MISSING_AUTHORITY | UNDEFINED_STATE_TRANSITION |
+                   UNMAPPED_DEPENDENCY | ABSENT_SCHEMA_FIELD | INCONSISTENT_DEFINITION |
+                   MISSING_MILESTONE | MISSING_ADR | MISSING_TEST_IDENTITY | OTHER
+  quoted_context:  <exact quoted text from the document that is ambiguous or missing>
+  gap_description: <precise description of what is missing or ambiguous>
+  impact:          <which autonomous implementation decisions would be affected>
+  affected_docs:   <list of canonical documents that need updating to resolve this gap>
+  proposed_resolution: <the agent's recommended resolution, clearly marked as a proposal>
+  blocking_work:   <what work cannot proceed until this gap is resolved>
+```
+
+A `BLOCKING` gap MUST halt all work in the affected scope until the gap is resolved by a human or by an authorized documentation update. A `SIGNIFICANT` gap MUST be reported and acknowledged before the affected scope is implemented. A `MINOR` gap MAY be noted and deferred. An agent MUST NOT proceed past a `BLOCKING` gap by inventing a resolution — it must stop, deliver the gap report, and await instruction.
 
 ## References
 
