@@ -53,8 +53,13 @@ scratch/
 *.token
 *.credentials
 *.credentials.json
-*token*.json
-*credentials*.json
+# Anchored to a filename suffix, per the rule above. The unanchored forms this
+# replaces also swallowed `fixtures/design-tokens.json` and `fixtures/figma/
+# tokens.json`, which the design-token import path legitimately produces.
+# `*token.json` still catches `token.json` and `github-token.json`;
+# `*credentials.json` still catches `provider-credentials.json`.
+*token.json
+*credentials.json
 *.pem
 *.p12
 *.keystore

@@ -1264,6 +1264,19 @@ CASES = {
         ADRS, "## ADR-150:", "## ADR-1500:", "structure"),
     "duplicate References section": (
         TA, "## References", "## References\n\n## References", "structure"),
+    # The duplicate-section-number check matched `^#{2,4}\s+(\d+...)\s`, so a
+    # trailing space was required and no `## N. Title` heading could ever match:
+    # every top-level number in this corpus carries a period, not a space. These
+    # two cases pin both reachable forms, so the widened pattern cannot silently
+    # regress to the old, blind one (AGENTS.md §16 non-vacuity).
+    "duplicate top-level section number": (
+        BS, "## 80. Agent-Buildability Contract",
+        "## 80. Agent-Buildability Contract\n\n## 80. Agent-Buildability Contract (duplicate)",
+        "structure"),
+    "duplicate subsection number": (
+        BS, "### 67.8 Contract Authority Registry",
+        "### 67.8 Contract Authority Registry\n\n### 67.8 Contract Authority Registry (duplicate)",
+        "structure"),
     "child subsection precedes its parent": (
         BS, "### 77.1 Orthogonal continuity dimensions and aggregate precedence",
         "### 77.1.1 Orthogonal continuity dimensions and aggregate precedence",

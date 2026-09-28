@@ -137,10 +137,14 @@ if (-not (Test-Path 'Cargo.toml')) {
 }
 
 # ------------------------------------------------------------------------- rust
-if (-not $Cargo) {
-    Record 'rust' 'USER_REQUIRED' 'cargo is not installed'
-} elseif (-not (Test-Path 'Cargo.toml')) {
+# Subject first, then toolchain. A tree with no Cargo.toml has no Rust subject
+# to evaluate, so it is UNAVAILABLE whether or not cargo is installed; the
+# toolchain question is only reachable once the subject exists. The POSIX entry
+# point applies the same order (ADR-204 keeps the two aligned).
+if (-not (Test-Path 'Cargo.toml')) {
     Record 'rust' 'UNAVAILABLE' 'Rust supervisor sources not created yet'
+} elseif (-not $Cargo) {
+    Record 'rust' 'USER_REQUIRED' 'cargo is not installed'
 } else {
     Invoke-GateSequence 'rust' @(
         @{ Exe = $Cargo; Arguments = @('fmt', '--all', '--check') },
@@ -152,17 +156,20 @@ if (-not $Cargo) {
 # WinUI 3 / Windows App SDK / .NET host. There is no web frontend (DP M0).
 $Dotnet = Get-Tool @('dotnet')
 $Solution = $null
-if ($Dotnet) {
-    $found = Get-ChildItem -Path . -Recurse -Include '*.sln', '*.slnx' -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '[\\/](target|bin|obj)[\\/]' } |
-        Select-Object -First 1
-    if ($found) { $Solution = $found.FullName }
-}
+# Subject first, then toolchain (same order as the rust and foundation gates).
+# The search runs whether or not dotnet is installed, so a host-less tree is
+# UNAVAILABLE on every machine; otherwise the same tree would report
+# USER_REQUIRED on a machine without dotnet and UNAVAILABLE on one with it.
+# -Depth 3 matches -maxdepth 3 in verify.sh (ADR-204 alignment).
+$found = Get-ChildItem -Path . -Recurse -Depth 3 -Include '*.sln', '*.slnx' -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '[\\/](target|bin|obj)[\\/]' } |
+    Select-Object -First 1
+if ($found) { $Solution = $found.FullName }
 
-if (-not $Dotnet) {
-    Record 'host' 'USER_REQUIRED' 'dotnet is not installed'
-} elseif (-not $Solution) {
+if (-not $Solution) {
     Record 'host' 'UNAVAILABLE' 'no .NET solution found; host sources not created yet'
+} elseif (-not $Dotnet) {
+    Record 'host' 'USER_REQUIRED' 'dotnet is not installed'
 } else {
     Invoke-GateSequence 'host' @(
         @{ Exe = $Dotnet; Arguments = @('build', $Solution, '--nologo') },

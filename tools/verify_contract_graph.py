@@ -5986,7 +5986,15 @@ def check_structure(docs, R, D):
                 continue
             if fence:
                 continue
-            mh = re.match(r"^#{2,4}\s+(\d+(?:\.\d+)*)\s", line)
+            # The delimiter after the number was a bare `\s`, which no
+            # `## N. Title` heading can satisfy: every top-level number in this
+            # corpus carries a period, not a space, so the check was blind to
+            # all of them and could only ever see H3/H4 subsections. Accepting a
+            # period introduces no new false positives because the delimiter is
+            # anchored: a letter-suffixed subsection such as `### 5.7.5a` has no
+            # whitespace or period-terminated suffix after a truncated number, so
+            # it still cannot be mis-read as `5.7` (see the §5.7/§58/§30 trap).
+            mh = re.match(r"^#{2,4}\s+(\d+(?:\.\d+)*)(?:\s|\.(?:\s|$))", line)
             if mh:
                 num = mh.group(1)
                 seen_num[num] = seen_num.get(num, 0) + 1

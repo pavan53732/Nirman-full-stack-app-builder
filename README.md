@@ -73,7 +73,7 @@ None of this runs today. It is the specified behavior, written down so it can be
 
 This repository currently contains the specification for Nirman, not an implementation of it. The ten root documents (ADR-220), the contract-graph verifier and its harness under `tools/`, and the ninety-two v1 skill instruction bodies with their `skill.json` manifests are part of the working tree; the ten root Markdown files are the complete canonical root document set.
 
-The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108 as superseded, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
+The host architecture was migrated to C#/.NET + WinUI 3 with the Windows App SDK, communicating with a Rust/Tokio supervisor over a named-pipe SupervisorConnection, with native WinUI editor and terminal surfaces (ADR-108, and the host-migration decisions that followed it). That target architecture is settled and is described throughout the canonical documents. No source implementing it has been written yet.
 
 An earlier working tree held a pre-migration prototype built on React, Vite, TypeScript and Tauri. It was removed in commit b3c7ffe because the migration decision excludes that stack (AGENTS.md §17). Its history remains in git. Any status statement carried over from that prototype does not describe the current architecture and is not evidence for it.
 
@@ -297,6 +297,8 @@ REQUESTED
 → RECONCILING
 → VERIFIED | FAILED | BLOCKED
 ```
+
+These are not a single linear chain: `UNKNOWN` is entered only when a copy may have partially completed, not by every export, and `BLOCKED` is reachable directly from `REQUESTED` when admission fails. Build spec §78.2 is the authority for the complete transition set.
 
 No retry is allowed until destination inspection and identity/hash reconciliation resolve the uncertain outcome.
 

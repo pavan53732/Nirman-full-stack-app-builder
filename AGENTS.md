@@ -544,13 +544,15 @@ When any required proof is missing, use an explicit status such as `PLANNED`, `S
 
 ## 19. Additional agent behavioral requirements
 
+The record, token, and state names introduced by this section — for example `SubAgentFailureRecord`, `HANDOFF_INCOMPLETE`, `CONCURRENT_MODIFICATION_DETECTED`, `SESSION_STALE`, and `CONTEXT_DEGRADED` — are agent-process metadata. They describe how an agent conducts and reports its own work. They are not product records, schemas, contracts, authorities, lifecycle states, or components; they create no registry entry and carry no authority over product behavior. §19.5's prohibition on inventing names applies to the product surface, and naming agent-process metadata here is what keeps that surface closed rather than open-ended.
+
 ### 19.1 Sub-agent output format enforcement
 
 Sub-agents MUST produce structured, typed output — not prose summaries. An orchestrator agent cannot reliably reconcile findings that arrive as unstructured narrative text. Every sub-agent performing documentation auditing, schema review, contract graph validation, or verifier conformance analysis MUST return its findings as a typed record containing at minimum:
 
 - `sub_agent_role` — the declared specialist role (e.g., `schema_auditor`, `adr_consistency_checker`)
 - `assigned_documents` — the exact canonical documents and sections reviewed
-- `findings` — a list of typed finding entries, each with: finding ID, severity (`DEFECT` | `GAP` | `INCONSISTENCY` | `OBSERVATION`), exact location (filename + section), quoted current text, and proposed resolution
+- `findings` — a list of typed finding entries, each with: finding ID, kind (`DEFECT` | `GAP` | `INCONSISTENCY` | `OBSERVATION`), severity (`BLOCKING` | `SIGNIFICANT` | `MINOR`), exact location (filename + section), quoted current text, and proposed resolution
 - `no_finding_sections` — sections explicitly reviewed and found conformant (proves coverage, not just silence)
 - `review_revision` — the git commit or document hash at time of review
 

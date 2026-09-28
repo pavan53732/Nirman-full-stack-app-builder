@@ -124,10 +124,14 @@ else
 fi
 
 # ------------------------------------------------------------------------- rust
-if ! have cargo; then
-  record "rust" "USER_REQUIRED" "cargo is not installed"
-elif [ ! -f "Cargo.toml" ]; then
+# Subject first, then toolchain. A tree with no Cargo.toml has no Rust subject
+# to evaluate, so it is UNAVAILABLE whether or not cargo is installed; the
+# toolchain question is only reachable once the subject exists. The PowerShell
+# entry point applies the same order (ADR-204 keeps the two aligned).
+if [ ! -f "Cargo.toml" ]; then
   record "rust" "UNAVAILABLE" "Rust supervisor sources not created yet"
+elif ! have cargo; then
+  record "rust" "USER_REQUIRED" "cargo is not installed"
 else
   run_gate "rust" bash -c 'cargo fmt --all --check && cargo test --workspace'
 fi
@@ -135,18 +139,21 @@ fi
 # ------------------------------------------------------------------------- host
 # WinUI 3 / Windows App SDK / .NET host. There is no web frontend (DP M0).
 HOST_SOLUTION=""
-if have dotnet; then
-  for candidate in $(find . -maxdepth 3 \( -name '*.sln' -o -name '*.slnx' \) \
-      -not -path '*/target/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null); do
-    HOST_SOLUTION="${candidate}"
-    break
-  done
-fi
+for candidate in $(find . -maxdepth 3 \( -name '*.sln' -o -name '*.slnx' \) \
+    -not -path '*/target/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null); do
+  HOST_SOLUTION="${candidate}"
+  break
+done
 
-if ! have dotnet; then
-  record "host" "USER_REQUIRED" "dotnet is not installed"
-elif [ -z "${HOST_SOLUTION}" ]; then
+# Subject first, then toolchain (same order as the rust and foundation gates).
+# The search above deliberately runs whether or not dotnet is installed, so a
+# host-less tree is UNAVAILABLE on every machine; otherwise the same tree would
+# report USER_REQUIRED on a machine without dotnet and UNAVAILABLE on one with
+# it. The -maxdepth 3 bound matches -Depth 3 in verify.ps1 (ADR-204 alignment).
+if [ -z "${HOST_SOLUTION}" ]; then
   record "host" "UNAVAILABLE" "no .NET solution found; host sources not created yet"
+elif ! have dotnet; then
+  record "host" "USER_REQUIRED" "dotnet is not installed"
 else
   run_gate "host" bash -c "dotnet build '${HOST_SOLUTION}' --nologo && dotnet test '${HOST_SOLUTION}' --nologo"
 fi
@@ -180,7 +187,12 @@ else
   SECRETS=""
   while IFS= read -r tracked; do
     base="$(basename "${tracked}")"
-    case "${base}" in
+    # Case-insensitive, matching the PowerShell gate's -like operator: Windows
+    # filesystems are case-insensitive, so SECRET.PEM and secret.pem are the
+    # same file and both entry points must catch it (ADR-204 alignment). Uses
+    # tr rather than ${base,,} so the script still runs on bash 3.2 (macOS).
+    base_lc="$(printf '%s' "${base}" | tr '[:upper:]' '[:lower:]')"
+    case "${base_lc}" in
       .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.keystore|*.jks|*.mobileprovision|\
 *.publishsettings|secrets.json|id_rsa|id_dsa|id_ecdsa|id_ed25519)
         SECRETS="${SECRETS}    ${tracked}"$'\n'
