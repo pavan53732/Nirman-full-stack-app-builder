@@ -307,6 +307,7 @@ A document that cites a count MUST name which of these four it means. "Twenty-ei
 WorkerMessage
 - messageId
 - taskId
+- taskNodeId: string (uuid)
 - contractId: (technical architecture §6.2 addition; build spec §67.11)
 - senderWorkerId
 - recipientWorkerId or broadcastTopic
@@ -3982,7 +3983,7 @@ WorkerConnection
 - lastAckAppliedSequence
 ```
 
-Worker-to-supervisor message kinds are `HELLO`, `HEARTBEAT`, `MODEL_CALL`, `PROPOSAL`, `CAPABILITY_QUERY`, `REASONING_ARTIFACT`, `DELIBERATION_RECORD`, `CANCEL_ACK`, and `EXIT`; supervisor-to-worker kinds are `WELCOME`, `CYCLE_INPUT`, `MODEL_EVENT`, `PROPOSAL_RESULT`, `CAPABILITY_ANSWER`, `DECISION`, `PAUSE`, `RESUME`, `CANCEL`, and `CLOSE`.
+Worker-to-supervisor message kinds are HELLO, HEARTBEAT, MODEL_CALL, PROPOSAL, CAPABILITY_QUERY, REASONING_ARTIFACT, DELIBERATION_RECORD, CANCEL_ACK, and EXIT; supervisor-to-worker message kinds are WELCOME, CYCLE_INPUT, MODEL_EVENT, PROPOSAL_RESULT, CAPABILITY_ANSWER, DECISION, PAUSE, RESUME, CANCEL, CLOSE, FENCE, REPLACE, PLAN_SUPERSEDED, RECONCILE, and RECOVER.
 
 ### 2.91 ScreenModel
 
