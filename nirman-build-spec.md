@@ -1636,7 +1636,7 @@ Every worker message should contain the following fields:
 
 > **Schema projection:** `WorkerMessage` is defined in `nirman-schemas.md` §1.13. Owner: BS §26.2.
 
-Supported message types should include `task_claimed`, `progress_update`, `question`, `dependency_ready`, `implementation_summary`, `test_result`, `review_finding`, `merge_request`, `approval_required`, `worker_failed`, and `task_completed`, and `message_acknowledged`. A worker that receives a message with `requiresAcknowledgement` set must send `message_acknowledged` carrying the acknowledged `messageId`.
+`WorkerMessage.messageType` is a logical application-message classification carried inside the `WorkerMessage` payload/envelope; it is distinct from the `WorkerConnection` transport kind vocabulary in SCHEMAS §2.90. The supported logical classifications are `task_claimed`, `progress_update`, `question`, `dependency_ready`, `implementation_summary`, `test_result`, `review_finding`, `merge_request`, `approval_required`, `worker_failed`, and `task_completed`, and `message_acknowledged`. A worker that receives a message with `requiresAcknowledgement` set must send `message_acknowledged` carrying the acknowledged `messageId`.
 
 Workers should use heartbeats while active. A worker that misses a configured number of heartbeats should be marked stale, its process should be inspected, and its task should be requeued or escalated. Messages should be idempotent so that replay after a daemon restart does not create duplicate changes.
 
@@ -6293,7 +6293,7 @@ Every "should" in the canonical documents is resolved here with explicit criteri
 | BS §26.1 | "daemon should rehydrate tasks from the database" after restart | MUST rehydrate | On start: load non-terminal tasks, verify each worker PID and workspace exists, mark absent ones as recoverable failures, offer resume-from-checkpoint. MUST NOT represent execution as uninterrupted |
 | BS §26.2 | "Workers should communicate through a local event bus and durable task ledger" | MUST use the event bus and ledger | Markdown files MUST NOT be a coordination mechanism. Markdown output is human-readable summary only and carries no machine authority |
 | BS §26.2 | "Every worker message should contain the following fields" | MUST contain all listed fields | All thirty-five `WorkerMessage` fields of §26.2 are mandatory (technical architecture §6.2 adds only the persistence field `contractId`). A message missing any field is rejected by the reducer and never applied |
-| BS §26.2 | "Supported message types should include" the twelve listed | MUST support all twelve | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
+| BS §26.2 | "`WorkerMessage.messageType` is a logical application-message classification" | MUST support all twelve listed logical classifications | The listed set is the minimum. An unrecognised `messageType` is rejected, not ignored |
 | BS §26.2 | "Workers should use heartbeats while active" | MUST heartbeat | Every 10 seconds per §26.3 |
 | BS §26.2 | "A worker that misses a configured number of heartbeats should be marked stale" | MUST mark stale | At 60 seconds without heartbeat (§26.3 stale threshold) — six missed intervals |
 | BS §26.2 | "its process should be inspected" | MUST inspect | On stale: confirm process liveness, capture exit code if dead, capture last output, record a durable failure record before any requeue |

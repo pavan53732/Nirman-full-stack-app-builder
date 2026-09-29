@@ -2225,17 +2225,17 @@ certification.
 - `FIX-SWARM-02` conflicting handoff against advanced project revision.
 - `FIX-SWARM-03` reservation deadlock A→B/B→A.
 - `FIX-SWARM-04` plan revision while three workers are active.
-- `FIX-SWARM-05` duplicate/lost/reordered WorkerMessage, including a conflicting duplicate (immutable payload fingerprint mismatch) rejected and quarantined with durable `quarantineReason`/`quarantinedAt`, and a message driven to `DEAD_LETTERED` when its node-declared `deliveryAttemptPolicy` is exhausted without `ACKED`.
+- `FIX-SWARM-05` duplicate/lost/reordered WorkerMessage, including a conflicting duplicate (immutable payload fingerprint mismatch) rejected and quarantined with durable `quarantineReason`/`quarantinedAt`, and a message driven to `DEAD_LETTERED` when its TaskNode-identified, node-declared `deliveryAttemptPolicy` is exhausted without `ACKED`.
 - `FIX-SWARM-06` healthy workers with zero frontier progress.
 - `FIX-SWARM-07` worker kill at every critical cycle cut-point.
 - `FIX-SWARM-08` supervisor restart during pending message/commit/effect.
 - `FIX-SWARM-09` provider stream interruption with supported resume and unsupported-resume reconciliation.
 - `FIX-SWARM-10` execution-epoch rollover and replay equivalence.
-- `FIX-SWARM-11` reserved control lane delivers all eleven canonical control kinds (HEARTBEAT, CANCEL, CANCEL_ACK, PAUSE, RESUME, FENCE, REPLACE, PLAN_SUPERSEDED, RECONCILE, RECOVER, CLOSE) under bulk saturation without starvation, with CANCEL acknowledged only by CANCEL_ACK and no control kind peer-to-peer.
+- `FIX-SWARM-11` reserved control lane delivers all eleven canonical control kinds (HEARTBEAT, CANCEL, CANCEL_ACK, PAUSE, RESUME, FENCE, REPLACE, PLAN_SUPERSEDED, RECONCILE, RECOVER, CLOSE) under bulk saturation without starvation, with CANCEL acknowledged only by CANCEL_ACK and no control kind peer-to-peer; proves supervisor resolves `deliveryAttemptPolicy` from `taskNodeId`-identified `TaskNode` revision.
 - `FIX-SWARM-12` worker kill between receive and apply at every in-boundary cut-point; an `APPLIED` transition is never reduplicated.
 - `FIX-SWARM-13` supervisor restart resumes every coordination stream from durable mailbox/order watermarks; in-flight reconciles before new dispatch.
 - `FIX-SWARM-14` `AwaitCondition` lifecycle (wait → wake → cancel → supersede) with no synchronous agent-on-agent waiting in any trace.
-- `FIX-SWARM-15` durable join barriers for ALL/ANY/QUORUM/OPTIONAL: a parent wakes only when its join contract is satisfiable, with `toPhase`-keyed `dependencySemantics` (exactly one entry per dependent phase) and graph/node policy separation verified — node `joinPolicy`/`dependencyFailurePolicy` never reinterpret graph-level semantics and `OPTIONAL` never creates a graph-level `HARD` dependency.
+- `FIX-SWARM-15` durable join barriers for ALL/ANY/QUORUM/OPTIONAL: a parent wakes only when its join contract is satisfiable, with `toPhase`-keyed `dependencySemantics` (exactly one entry per dependent phase) and graph/node policy separation verified — node `joinPolicy`/`dependencyFailurePolicy` never reinterpret graph-level semantics and `OPTIONAL` never creates a graph-level `HARD` dependency; proves `taskNodeId` → `TaskNode` revision → `deliveryAttemptPolicy` resolution.
 - `FIX-SWARM-16` livelock detection: a coordination signature repeated N times routes REPLAN → REPARTITION → SERIALIZE → REPLACE → BACKTRACK → ESCALATE.
 - `FIX-SWARM-17` partition: fencing survives partition, no dual-authority action occurs, and reconcile-on-heal restores single-writer order.
 - `FIX-SWARM-18` mid-run premise falsification: admission → propagation marks every dependent active assignment; no worker continues consequential work on the falsified dependency.
