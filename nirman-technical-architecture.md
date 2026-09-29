@@ -3938,6 +3938,8 @@ On reconnect (`reconnectPolicy: RESUMABLE`) the Supervisor reconciles each conne
 
 `DecisionNodeManager` represents ambiguous architecture or recovery choices with a question, options, evidence, trade-offs, recommendation, impact, and resume conditions. A decision node is separate from a generic command approval and remains bound to a task and plan revision.
 
+`DecisionNodeManager` is advisory and does not commit authoritative state. Its score and recommendation are inputs to the owning LifecycleAuthority, RecoveryAuthority, Planning/Replanner, or other applicable authority. It cannot grant permission, satisfy evidence, promote artifacts, or mark completion.
+
 **Deterministic decision scoring equation.** When competing architectural strategies, recovery branches, or technology proposals are evaluated, `DecisionNodeManager` calculates a deterministic score for each alternative $A$:
 $$\text{Score}(A) = w_e \cdot \text{EvidenceCoverage}(A) + w_r \cdot (1 - \text{RegressionRisk}(A)) - w_u \cdot \text{UncertaintyPenalty}(A) - w_c \cdot \text{ComplexityWeight}(A)$$
 where all metrics are normalized to $[0.0, 1.0]$:
