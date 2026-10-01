@@ -1987,7 +1987,7 @@ J. projector failure and recovery lifecycle:
 7.  a transaction whose committed project-state witness set W equals its base witness set terminates without commit and mints no ProjectRevisionId
 8.  no ChangeReportRecord obligation is created for that no-op, so no committed record is ever required to carry a projectRevisionAfter equal to its base revision
 9.  a transaction whose only change is the toolchain lock or the dependency snapshot has a nonzero W-delta, commits, and mints exactly one revision
-10. the committed-transaction event of clause 3 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
+10. the committed-transaction event of clause 4 is emitted atomically with the commit, and Project.currentRevision resolves to its projectRevisionAfter
 11. the tip is reconstructed after compaction and after restart from preserved committed-transaction provenance, without replaying discarded events
 12. a committed-transaction event of a different project never contributes to this project's tip
     N. requirement revision invalidation handling: verifies that requirement mutations admitted under `RequirementDelta` propagate through `ChangeIntelligenceEngine` and the impact graph according to the requirement revision invalidation matrix (TA §44.3.3.1), invalidating dependent tests, evidence, preview, and artifacts.
