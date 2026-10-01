@@ -224,11 +224,10 @@ QUEUED → PLANNING → READY → RUNNING → VALIDATING → RECONCILING → COM
 
 ```text
 CREATED → STARTING → ACTIVE → WAITING_TOOL → ACTIVE
-                      │          │
-                      │          ├── WAITING_APPROVAL
-                      │          ├── WAITING_DEPENDENCY
-                      │          └── PAUSED
                       │
+                      ├── WAITING_APPROVAL → ACTIVE
+                      ├── WAITING_DEPENDENCY → ACTIVE
+                      ├── PAUSED → ACTIVE
                       ├── COMPLETED
                       ├── FAILED
                       ├── TIMED_OUT
@@ -3923,8 +3922,8 @@ No agent waits on an agent. Every cross-worker wait becomes a durable `AwaitCond
 - `SupervisorPreemptionProtocol` — The supervisor protocol that deterministically revokes worker leases, invalidates write capabilities, and preempts stalled or anomalous processes.
 
 **Supervisor preemption protocol.** When the supervisor detects a premise invalidation (`PREMISE_MISMATCH`), an anomaly (`WorkerAnomalyDetector`), a hard safety boundary violation, or an explicit user cancellation, `SupervisorPreemptionProtocol` executes atomic preemption:
-1. *Fenced control notice:* Emits a high-priority `PREEMPT` control notice across Reserved Control Lane `0x00` carrying the eviction reason, target lease ID, and cancellation watermark.
-2. *Atomic capability severance:* `WorkspaceLeaseManager` immediately marks the active lease `PREEMPTED` in the SQLite ledger, and `ToolBroker` / `ConstructionTransactionManager` reject any in-flight mutation tokens from that worker as `LEASE_FENCED`.
+1. *Fenced control notice:* Emits a high-priority `FENCE` control notice with `fenceReason=PREEMPTION` across Reserved Control Lane `0x00`, carrying the eviction reason, target lease ID, and cancellation watermark.
+2. *Atomic capability severance:* `WorkspaceLeaseManager` immediately marks the active lease `FENCED` in the SQLite ledger, and `ToolBroker` / `ConstructionTransactionManager` reject any in-flight mutation tokens from that worker as `LEASE_FENCED`.
 3. *Process termination & containment:* Gives the worker a 500ms grace window to flush its in-memory telemetry, after which the supervisor terminates the worker's Job Object via `TerminateJobObject`. Uncommitted workspace edits are quarantined in an isolated recovery branch, preventing half-applied modifications from leaking into the primary workspace.
 4. *Audit logging:* Writes an immutable `PREEMPTION_EVENT` to the execution ledger containing causal trigger details, invalidated token counts, and downstream recovery requirements.
 
