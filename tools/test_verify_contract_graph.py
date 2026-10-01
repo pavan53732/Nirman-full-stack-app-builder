@@ -1928,6 +1928,32 @@ CASES = {
         "plan and do not wait for the user",
         "5. Stop and escalate if blocked",
         "semantic documentation"),
+    # ---- New windows for stop-condition closure (L-STOP-01) ----
+    "TA §23.7 restates a withdrawn stop list instead of citing §27.10": (
+        TA,
+        "The coordinator must stop only on one of the five goal-level terminal conditions of build spec §27.10. A required decision, a missing environment capability, or an unavailable provider is a requirement-level `BLOCKED` or `USER_REQUIRED` decision under build spec §27.10, never a termination; exhaustion of the recovery ladder records that decision and escalates per technical architecture §28.1 level 9. Ordinary resource thresholds must cause adaptation rather than automatic termination.",
+        "The coordinator must stop only when a required hard safety or policy limit is reached, a dangerous or unresponsive process must be terminated, the user cancels, the environment/provider is unavailable, or no safe recovery path remains. Ordinary resource thresholds must cause adaptation rather than automatic termination.",
+        "semantic documentation"),
+    "MS M21 exit gate restates a withdrawn stop list instead of citing §27.10": (
+        DEV,
+        "tasks stop only on one of the five goal-level terminal conditions of BS §27.10: all required completion conditions pass; the user or policy cancels the task; an explicit hard safety or policy limit is reached; an unresponsive or dangerous process must be stopped to protect the computer; or every remaining requirement carries `BLOCKED` or `USER_REQUIRED` with no independent work left",
+        "tasks stop only for a defined completion, decision, explicit hard safety or policy limit, cancellation, environment failure, or unrecoverable error",
+        "semantic documentation"),
+    "MS §23 evaluation matrix restates a withdrawn stop list instead of citing §27.10": (
+        DEV,
+        "Task stops only on one of the five goal-level terminal conditions of BS §27.10",
+        "Task stops only at a defined completion, decision, limit, cancellation, environment failure, or unrecoverable failure",
+        "semantic documentation"),
+    "MS M26 exit gate conflates recovery ladder with goal stop": (
+        DEV,
+        "stops only on one of the five goal-level terminal conditions of BS §27.10; exhaustion of the recovery ladder (TA §28.1 level 9) records a requirement-level decision and escalates",
+        "stops only when no safe recovery path remains",
+        "semantic documentation"),
+    "MS §36 acceptance criterion conflates unrecoverable blockers with goal stop": (
+        DEV,
+        "unrecoverable blockers are requirement-level decisions under BS §27.10; independent work continues. Tasks stop only on one of the five goal-level terminal conditions of BS §27.10.",
+        "unrecoverable blockers remain gated or terminate safely",
+        "semantic documentation"),
 
     # ---- recovery ladder ownership: TA §28.1 is canonical and BS §80.4.1 must
     # mirror every level verbatim, so "level 8 or 9" cannot mean two actions.

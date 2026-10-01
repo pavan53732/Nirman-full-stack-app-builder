@@ -2424,8 +2424,9 @@ def check_semantic_documentation(docs, R, D, root="."):
             D.add("semantic documentation", "single mode", f"ADR-226 must {why}")
     # Stop-condition closure (ADR-226 rule 4). BS §27.10 owns the only stop
     # vocabulary, split into requirement-level decisions and a closed set of
-    # goal-level terminal conditions; §27.7 and §27.11 must cite it rather than
-    # restate a competing list. An earlier revision carried three different
+    # goal-level terminal conditions; §27.7, §27.11, TA §23.7, and the milestone
+    # exit gates and evaluation matrices must cite it rather than restate a
+    # competing list. An earlier revision carried three different
     # stop lists (six, nine, and seven items) and a §80.2 row that resolved the
     # six-item list as "those four conditions", none of which the graph could
     # see; these rules make that regression a defect.
@@ -2446,12 +2447,30 @@ def check_semantic_documentation(docs, R, D, root="."):
         if needle not in m_2710:
             D.add("semantic documentation", "stop-condition closure",
                   f"BS §27.10 must {why} (ADR-226 rule 4)")
+    # Citation arm: each window must cite the five goal-level terminal conditions of BS §27.10
+    # Windows: BS §27.7, BS §27.11, TA §23.7, MS M21, MS §23, MS M26, MS §36
+    stop_windows = [
+        ("build spec", "27.7", bs),
+        ("build spec", "27.11", bs),
+        ("technical architecture", "23.7", ta),
+        ("milestones", "M21", dev),
+        ("milestones", "23", dev),
+        ("milestones", "M26", dev),
+        ("milestones", "36", dev),
+    ]
+    for label, sec, doc_text in stop_windows:
+        _body = _section_text(doc_text, sec) or ""
+        # Accept "§27.10", "build spec §27.10", and "BS §27.10" as valid citations
+        has_citation = ("five goal-level terminal conditions of §27.10" in _body or
+                        "five goal-level terminal conditions of build spec §27.10" in _body or
+                        "five goal-level terminal conditions of BS §27.10" in _body)
+        if not has_citation:
+            D.add("semantic documentation", "stop-condition closure",
+                  f"{label} §{sec} must cite the five goal-level terminal conditions of BS §27.10 "
+                  "instead of restating a stop list (ADR-226 rule 4)")
+    # Literal withdrawn tokens: only BS §27.7 and §27.11 (the sections where they historically appeared)
     for _sec in ("27.7", "27.11"):
         _body = _section_text(bs, _sec) or ""
-        if "five goal-level terminal conditions of §27.10" not in _body:
-            D.add("semantic documentation", "stop-condition closure",
-                  f"BS §{_sec} must cite the five goal-level terminal conditions of §27.10 "
-                  "instead of restating a stop list (ADR-226 rule 4)")
         for _token in ("an unavailable environment/provider", "or an unrecoverable failure occurs"):
             if _token in _body:
                 D.add("semantic documentation", "stop-condition closure",

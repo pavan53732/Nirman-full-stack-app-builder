@@ -544,7 +544,7 @@ Every required behavioral acceptance condition must execute through `CONTRACT.RU
 
 Refine approvals so routine reversible actions in an approved workspace do not interrupt the user, while protected-file access, risky dependencies, external services, credentials, destructive actions, publishing, and signing create precise approval requests. Implement the completion classifications of build spec §27.10 (completed, completed with warnings, blocked, escalated, cancelled, failed) as reports derived from the task-execution states of build spec §26.14 and the session lifecycle of §33.2, not as a further state set.
 
-**Exit gate:** Safe work runs without approval spam, privileged work pauses at the exact boundary, ordinary usage thresholds trigger adaptation rather than termination, and tasks stop only for a defined completion, decision, explicit hard safety or policy limit, cancellation, environment failure, or unrecoverable error.
+**Exit gate:** Safe work runs without approval spam, privileged work pauses at the exact boundary, ordinary usage thresholds trigger adaptation rather than termination, and tasks stop only on one of the five goal-level terminal conditions of BS §27.10: all required completion conditions pass; the user or policy cancels the task; an explicit hard safety or policy limit is reached; an unresponsive or dangerous process must be stopped to protect the computer; or every remaining requirement carries `BLOCKED` or `USER_REQUIRED` with no independent work left.
 
 ## 23. Execution-Surface Evaluation Matrix
 
@@ -558,7 +558,7 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 | Validation loop      | Required preview, tests, build, security, reliability, and visual/device checks run or block completion               |
 | Policy boundaries    | Routine actions are not approval-blocked; privileged actions create precise approval requests                         |
 | Reconnection         | UI close or disconnect does not lose task state or event history                                                      |
-| Termination          | Task stops only at a defined completion, decision, limit, cancellation, environment failure, or unrecoverable failure |
+| Termination          | Task stops only on one of the five goal-level terminal conditions of BS §27.10 |
 | Final result         | Changed files, checkpoints, evidence, tests, warnings, blockers, usage, and completion classification are available   |
 
 ## 24. Provider Runtime and Self-Development Milestones
@@ -627,7 +627,7 @@ Implement `RepairPattern` (TA §51.1; SCHEMAS §2.96; ADR-225) and `EpisodicRepa
 
 Before promoting any APK or AAB artifact, `SecurityRiskScorer` (TA §70.3; BS §58.2) must aggregate all `AppSecurityScanner` findings into a `SecurityRiskScore`, and `SecurityAuditGenerator` (TA §70.3; BS §58.2) must produce a security audit report artifact covering all finding dispositions, risk score, SBOM completeness, and artifact provenance. An artifact without a complete security audit report or with an unresolved blocking finding must not be promoted as a deliverable (BS §58.5). Dependency-intelligence queries from the artifact release gate — health status, finding enumeration, SBOM completeness, and disposition record lookup — are coordinated via `DependencyIntelligenceService` (TA §53.8.1; BS §58.3).
 
-**Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only when no safe recovery path remains. Recovery ladder behavior is proven across all 10 provider crash points, reconciling pending attempts before retrying or escalating.
+**Exit gate:** A fixture task with repeated compiler, runtime, environment, provider, and merge failures automatically changes strategy, preserves the last known-good state, and stops only on one of the five goal-level terminal conditions of BS §27.10; exhaustion of the recovery ladder (TA §28.1 level 9) records a requirement-level decision and escalates. Recovery ladder behavior is proven across all 10 provider crash points, reconciling pending attempts before retrying or escalating.
 
 ## M27: Self-observation and episode evaluation
 
@@ -842,7 +842,7 @@ The Autonomous-build policy must allow routine project-local actions to continue
 
 ### Acceptance criteria
 
-Editing, dependency installation, terminal execution, emulator launch, testing, screenshots, repair, checkpoints, worker handoffs, reconciliation, and local artifact creation proceed automatically under the configured policy. Credentials, destructive operations, publishing, signing, protected paths, hard safety violations, and unrecoverable blockers remain gated or terminate safely.
+Editing, dependency installation, terminal execution, emulator launch, testing, screenshots, repair, checkpoints, worker handoffs, reconciliation, and local artifact creation proceed automatically under the configured policy. Credentials, destructive operations, publishing, signing, protected paths, hard safety violations, and unrecoverable blockers are requirement-level decisions under BS §27.10; independent work continues. Tasks stop only on one of the five goal-level terminal conditions of BS §27.10.
 
 ## 37. Production Runtime Contracts and Lifecycle Authority
 

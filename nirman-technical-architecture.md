@@ -1155,7 +1155,7 @@ The termination coordinator evaluates whether a task may continue after every va
 | Cancelled | User or policy cancellation was requested |
 | Failed | No safe recoverable path remains |
 
-The coordinator must stop only when a required hard safety or policy limit is reached, a dangerous or unresponsive process must be terminated, the user cancels, the environment/provider is unavailable, or no safe recovery path remains. Ordinary resource thresholds must cause adaptation rather than automatic termination. It must not interpret an active model response, recent tool call, or optimistic worker summary as proof that continuing is safe. A task may continue when its next action is allowed, attached to a live goal contract, and protected by adaptive resource management.
+The coordinator must stop only on one of the five goal-level terminal conditions of build spec §27.10. A required decision, a missing environment capability, or an unavailable provider is a requirement-level `BLOCKED` or `USER_REQUIRED` decision under build spec §27.10, never a termination; exhaustion of the recovery ladder records that decision and escalates per technical architecture §28.1 level 9. Ordinary resource thresholds must cause adaptation rather than automatic termination. It must not interpret an active model response, recent tool call, or optimistic worker summary as proof that continuing is safe. A task may continue when its next action is allowed, attached to a live goal contract, and protected by adaptive resource management.
 
 ### 23.8 Architecture tests for the execution surface
 
