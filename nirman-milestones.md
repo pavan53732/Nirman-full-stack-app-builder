@@ -1585,7 +1585,7 @@ Implement separate fields and reducers for product lifecycle, assurance, capabil
 
 ## M101 — Evidence dependencies and operational integrations
 
-Implement the `Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision` dependency chain with explicit freshness, supersession, and cascading invalidation. Add operationality states for required APIs and external services, including configured, reachable, functional, degraded, user-required, unavailable, blocked, and unknown. Build and launch evidence must not satisfy a required integration by themselves.
+Implement the `Observation → EvidenceRecord → ValidationResult → CertificationDecision → CompletionDecision` dependency chain with explicit freshness, supersession, and cascading invalidation. Add operationality states for required APIs and external services, including configured, reachable, functional, degraded, user-required, unavailable, blocked, and unknown. Build and launch evidence must not satisfy a required integration by themselves.
 
 **Exit gate:** changing a source revision, asset manifest, toolchain lock, emulator session, artifact, validation policy, dependency snapshot, or required integration invalidates all dependent completion claims unless the dependency graph proves independence. A required integration without functional evidence remains non-complete.
 

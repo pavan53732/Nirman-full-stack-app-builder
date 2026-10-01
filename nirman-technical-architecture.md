@@ -1095,7 +1095,7 @@ The evidence ledger records the facts that justify task status. An evidence reco
 
 > **Schema projection:** `EvidenceRecord` is defined in `nirman-schemas.md` §2.19. Owner: TA §23.3.
 
-The first twelve fields describe the observation; the remaining sixteen are the identity and dependency fields that build spec §5.7.4 requires of every evidence node (source event, operation, session, project revision, checkpoint, artifact or preview identity, device and toolchain identity, validation-policy version, freshness interval, dependency ids, supersession, invalidation reason). `artifactId`, `previewRevisionId`, `deviceIdentity`, and `toolchainLockId` are null only when the evidence type has no such subject; a build, install, device, or preview observation without them is rejected at capture. `dependencyIds` are `EvidenceDependency` ids (§36.4); `supersedes`/`supersededBy` implement the immutability rule below, and `invalidationReason` is written only by the evidence authority when a §36.4 dependency is invalidated. An `EvidenceRecord` lacking these fields cannot participate in the `Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision` chain.
+The first twelve fields describe the observation; the remaining sixteen are the identity and dependency fields that build spec §5.7.4 requires of every evidence node (source event, operation, session, project revision, checkpoint, artifact or preview identity, device and toolchain identity, validation-policy version, freshness interval, dependency ids, supersession, invalidation reason). `artifactId`, `previewRevisionId`, `deviceIdentity`, and `toolchainLockId` are null only when the evidence type has no such subject; a build, install, device, or preview observation without them is rejected at capture. `dependencyIds` are `EvidenceDependency` ids (§36.4); `supersedes`/`supersededBy` implement the immutability rule below, and `invalidationReason` is written only by the evidence authority when a §36.4 dependency is invalidated. An `EvidenceRecord` lacking these fields cannot participate in the `Observation → EvidenceRecord → ValidationResult → CertificationDecision → CompletionDecision` chain.
 
 Evidence types should include command results, test reports, build artifacts, screenshots, device results, security scans, dependency scans, review findings, user approvals, and environment diagnostics. Evidence must be immutable after capture; corrections create a new record linked to the old one.
 
@@ -1872,7 +1872,7 @@ For provider/model requests, `ProviderRequestProvenance` owns logical-request id
 The canonical evidence chain is:
 
 ```text
-Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision
+Observation → EvidenceRecord → ValidationResult → CertificationDecision → CompletionDecision
 ```
 
 A source revision, asset manifest, toolchain lock, emulator session, dependency snapshot, validation policy, or required integration change invalidates dependent evidence and completion claims unless the dependency graph proves independence. `EvidenceAuthority`, `PreviewPromotionGate`, `ArtifactAuthority`, `AndroidQualityGate`, and the completion evaluator consume the same dependency relation.

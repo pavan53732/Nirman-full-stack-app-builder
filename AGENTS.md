@@ -307,7 +307,7 @@ Evidence follows:
 
 ```text
 Observation
-→ EvidenceArtifact
+→ EvidenceRecord
 → ValidationResult
 → CertificationDecision
 → CompletionDecision

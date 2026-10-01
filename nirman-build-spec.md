@@ -443,7 +443,7 @@ Every artifact belongs to an `ArtifactSet` with a shared source revision, asset 
 Evidence is a dependency graph rather than an unqualified list. The canonical chain is:
 
 ```text
-Observation → EvidenceArtifact → ValidationResult → CertificationDecision → CompletionDecision
+Observation → EvidenceRecord → ValidationResult → CertificationDecision → CompletionDecision
 ```
 
 Each evidence node MUST record source event, operation, session, project revision, checkpoint, artifact or preview identity when applicable, device and toolchain identity when applicable, validation-policy version, freshness interval, dependency IDs, supersession, and invalidation reason; these are fields of the canonical `EvidenceRecord` (technical architecture §23.3), not annotations kept beside it. If a source revision, asset manifest, toolchain lock, emulator session, dependency snapshot, validation policy, or required integration changes, every dependent evidence and completion claim MUST be invalidated unless independence is proven by the dependency graph.
@@ -7640,7 +7640,7 @@ affected UI / locale / accessibility / preview / tests / evidence
 Changing any upstream node traverses the `ImpactGraph` to identify all dependent `ContentRevision`s. Traversal propagates cascading invalidation:
 1. Dependent `ContentRevision` records are marked `invalidatedBy` with the causing transaction reference.
 2. Dependent UI layouts, string resources, and preview surfaces transition to `STALE`/`INVALIDATED`.
-3. Dependent `ValidationResult` and `EvidenceArtifact` records are invalidated by `EvidenceAuthority`.
+3. Dependent `ValidationResult` and `EvidenceRecord` records are invalidated by `EvidenceAuthority`.
 4. Revalidation across all traversed surfaces is required before task completion.
 
 ### 81.4 Boundary with Android locale resources and regression localization

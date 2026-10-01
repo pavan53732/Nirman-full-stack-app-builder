@@ -305,7 +305,7 @@ Nirman uses the following evidence chain:
 
 ```text
 Observation
-→ EvidenceArtifact
+→ EvidenceRecord
 → ValidationResult
 → CertificationDecision
 → CompletionDecision
