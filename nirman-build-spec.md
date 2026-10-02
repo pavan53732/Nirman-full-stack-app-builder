@@ -7912,15 +7912,15 @@ WinUI 3
   → UICommandEnvelope
   → UICommandRegistry/schema validation
   → application use case
-  → GoalInterpreter (§58)
+  → GoalInterpreter (TA §58.1)
   → normalized goal
-  → requirements/frontier (ConstraintRegistry, §59; MemoryStore, §59)
-  → AndroidConstructionContract (BS §69.4)
-  → preflight (PreflightService, BS §5.7)
+  → requirements/frontier (ConstraintRegistry, TA §59.1; MemoryStore, TA §59.1)
+  → AndroidConstructionContract (BS §42.1)
+  → preflight (PreflightService, TA §53.2)
   → technology plan (AndroidTechnologyResolver, technical architecture §73.2)
-  → compiled TaskGraph (TaskGraphCompiler, BS §58)
-  → dependency analysis (TaskScheduler, BS §7)
-  → worker selection (SwarmPlanner, BS §6.5)
+  → compiled TaskGraph (TaskGraphCompiler, TA §58.1)
+  → dependency analysis (TaskScheduler, TA §7.1)
+  → worker selection (SwarmPlanner, BS §52.6)
   → lease (WorkspaceLeaseManager, technical architecture §58.7)
   → WorkerRuntime → NirmanWorker.exe launch-token handshake → WorkerConnection
   → WorkerConnection → ContextOrchestrator → ContextPackage
@@ -7928,31 +7928,31 @@ WinUI 3
   → provider response → ModelGateway → normalized response → WorkerConnection
   → WorkerConnection → AgentReasoningEngine (BS §66, TA §71)
   → deliberation at HYPOTHESIZE/STRATEGIZE (DeepDeliberationRuntime, BS §68, TA §72)
-  → [optional read-only observation] → ToolBroker (BS §49) → EvidenceRecord → HypothesisEvaluator
+  → [optional read-only observation] → ToolBroker (TA §58.16) → EvidenceRecord → HypothesisEvaluator
   → ReasoningArtifact (BS §66.2, with selectionBasis) → AgentExecutionKernel (TA §58)
-  → proposal (Schema-validated, BS §69.2)
+  → proposal (Schema-validated, TA §58.3)
   → authorization (PolicyAuthority, BS §23.7)
-  → CapabilityBroker → tool execution (ToolBroker, BS §49)
+  → CapabilityBroker → tool execution (ToolBroker, TA §58.16)
   → authorized mutation → ConstructionTransaction → Checkpoint → validation/evidence
   → observation (AndroidDeviceAdapter, technical architecture §73.12)
   → observation → EvidenceRecord → dependency/freshness validation → EvidenceAuthority
-  → state update (AgentLoopReducer, BS §58)
-  → progress evaluation (ProgressEvaluator, BS §58)
-  → next-node scheduling (TaskScheduler, BS §7)
-  → reconciliation (Reconciliation Worker, BS §6.5)
+  → state update (AgentLoopReducer, TA §58.2)
+  → progress evaluation (ProgressEvaluator, TA §58.1)
+  → next-node scheduling (TaskScheduler, TA §7.1)
+  → reconciliation (Reconciliation Worker, TA §6.5)
   → build (AndroidBuildAdapter, technical architecture §73.13)
-  → artifact (ArtifactAuthority, BS §49)
-  → emulator install (Emulator Driver Worker, BS §6.5)
+  → artifact (ArtifactAuthority, TA §44.1)
+  → emulator install (Emulator Driver Worker, TA §6.5)
   → launch (AndroidDeviceAdapter, technical architecture §73.12)
   → Android emulator → RenderTransport → stamped frame → shared-memory ring → FrameNotice → PreviewHost → SwapChainPanel
   → Preview UI input → SupervisorConnection → PreviewCoordinator → AndroidDeviceAdapter → emulator → resulting stamped frame
-  → ScreenGraph/ScreenModel (technical architecture §74.2)
-  → E2E validation (ValidationPlanner, BS §64)
-  → visual validation (Visual QA Worker, BS §6.5)
-  → evidence validation/promotion (EvidenceAuthority, BS §23.3)
+  → ScreenGraph/ScreenModel (TA §62.1, TA §74.2)
+  → E2E validation (ValidationPlanner, BS §52.10)
+  → visual validation (Visual QA Worker, TA §6.5)
+  → evidence validation/promotion (EvidenceAuthority, TA §23.3)
   → PreviewRevision promotion (PreviewPromotionGate, technical architecture §73.5.1)
   → artifact → Signing/validation gates
-  → ExportVerification
+  → ExportVerificationRecord
   → approved local destination
   → destination hash/identity verification
   → EvidenceAuthority → CompletionDecision (build spec §5.7.7)
