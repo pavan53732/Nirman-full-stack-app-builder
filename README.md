@@ -30,7 +30,7 @@ Nirman has one host application target and one generated project target.
 |---|---|---|
 | Nirman host | Windows desktop `.exe` | Chat, settings, control plane, workers, local execution, preview panel, evidence, recovery, and delivery UI |
 | Generated user project | Android only | Application synthesized from the user’s intent, screenshots, assets, integrations, and emulator requirements |
-| External AI services | Cloud providers selected by the user | General-purpose planning, reasoning, coding, vision, embeddings, and interpretation |
+| External AI services | Cloud providers selected by the user | General-purpose planning, reasoning, coding, vision, and interpretation |
 | Execution | Local Windows machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifacts |
 
 Nirman must not become a web app builder, Windows app generator, PWA generator, cloud execution service, remote build service, Docker-based system, container-based system, VM-based system, WSL-based system, or generic multi-platform generator. Native modules, build plugins, and supporting services are allowed only when they are dependencies of Nirman or of a generated Android project.

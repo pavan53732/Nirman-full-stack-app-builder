@@ -565,7 +565,7 @@ Refine approvals so routine reversible actions in an approved workspace do not i
 
 ## M22: Provider-neutral AI settings and model gateway
 
-Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision/embedding models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
+Implement provider profiles with custom base URLs, API-key references, model IDs, protocol selection, capability probes, optional vision models, privacy policies, network policies, health status, and normalized reasoning capability profiles.
 
 The ModelGateway must normalize Chat Completions, Responses-style, message-oriented, and compatible cloud-provider requests. Persist metadata-only `ProviderRequestProvenance` for each logical request and a `ProviderRequestAttempt` for every externally issued attempt, with one linked `ExternalEffectRecord` per attempt, normalized events, usage references, provider IDs, retention class, and restart-safe reconciliation. It must support structured output, multimodal input, tool calls, streaming, cancellation, usage accounting, request IDs, context-capacity detection, reasoning-effort configuration, provider-native reasoning capability detection, reasoning-token accounting, and deterministic mapping between Nirman's reasoning levels and provider-specific parameters.
 

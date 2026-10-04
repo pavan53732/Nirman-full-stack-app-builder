@@ -950,6 +950,8 @@ The context engine exposes an **Adaptive Context Architecture** operating across
 
 Dynamic selection is governed by the twelve criteria established in BS §19.1: task phase, model context capacity, admissible context share, dependency distance, symbol relationships, temporal recency, evidence freshness, failure relevance, unresolved uncertainty, current project revision, plan revision, and context-cache availability.
 
+`SEMANTIC` is **not** vector similarity and does not require an embedding index. It is a retrieval strategy in which the planner converts conceptual intent into typed search hypotheses and structural retrieval operations — conceptual intent, identifier and synonym expansion, symbol discovery, graph traversal, and advisory ranking — executed against parser-derived symbols and the Repository Semantic Graph (§59.2). No embedding model, vector store, or precomputed embedding of repository source participates in repository intelligence, and embeddings MUST NOT be a required bootstrap step (ADR-264). The deterministic local index that serves `EXACT` retrieval is advisory for candidate discovery only: repository source remains authoritative, and a candidate set that cannot be verified against revision-bound source MUST NOT be used as mutation evidence.
+
 The context package records included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode. If a large-context estimate exceeds the provider's actual context capacity, the orchestrator falls back to semantic/exact retrieval rather than silently truncating critical files, and records the capacity-driven omissions.
 
 The repository map scales incrementally via the Repository Semantic Graph (§59.2). It updates changed files and affected dependency regions instead of rebuilding the entire map after every action. Large projects use sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction. The map manager exposes freshness, shard size, rebuild progress, and stale-region warnings to the task runtime.
@@ -999,7 +1001,7 @@ Nirman adapts around the model by measuring its recall with deterministic probes
 
 ### Symbol Reference Optimization (optional)
 
-Workers MAY request symbol/file references through the Supervisor retrieval API to reduce context assembly cost. The resulting context remains a derived `ContextPackage` (BS §53.3) bound to the revision and evidence ledger. This optimization must not become an independent memory/index authority or bypass the existing ContextOrchestrator contract.
+Workers MAY request symbol/file references through the Supervisor retrieval API to reduce context assembly cost. The resulting context remains a derived `ContextPackage` (BS §53.3) bound to the revision and evidence ledger. This optimization must not become an independent memory/index authority or bypass the existing ContextOrchestrator contract. The index is advisory for candidate discovery only: repository source remains authoritative, and a candidate set that cannot be verified against revision-bound source MUST NOT be used as mutation evidence (ADR-264).
 
 ## 20. External Tool Protocol Adapter
 
@@ -1202,7 +1204,7 @@ The settings interface should allow the user to create, duplicate, test, disable
 
 The connection test should discover or validate the configured endpoint, verify authentication, test the selected model, detect available features, measure a basic response, and record the provider request ID. Model discovery through a models endpoint is optional; a user must be able to enter a model ID manually when discovery is unavailable.
 
-The page should show capability badges for text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, embeddings, reasoning, supported reasoning effort levels, reasoning usage reporting, context capacity, and attention reliability. A capability badge must be based on a successful probe or explicit user override, not a provider name alone. The attention reliability badge shows the profile `source` and `reliableLiteralSpanTokens`; the connection test runs the recall probe fixture and saves the profile as `UNPROFILED` when the probe cannot complete, never as a declared value.
+The page should show capability badges for text, vision, file input, tool calls, structured output, streaming, cancellation, background requests, reasoning, supported reasoning effort levels, reasoning usage reporting, context capacity, and attention reliability. A capability badge must be based on a successful probe or explicit user override, not a provider name alone. The attention reliability badge shows the profile `source` and `reliableLiteralSpanTokens`; the connection test runs the recall probe fixture and saves the profile as `UNPROFILED` when the probe cannot complete, never as a declared value.
 
 Reasoning capability must be displayed separately from general text generation. A model that can generate text but does not expose or support provider-native reasoning must not be presented as supporting the configured deep-reasoning capability.
 

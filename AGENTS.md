@@ -103,7 +103,7 @@ Nirman is a **Windows-first desktop application** for building Android applicati
 |---|---|---|
 | Nirman host application | Windows desktop `.exe` (x64 only) | Chat, control plane, agents, local execution, preview, evidence, recovery, and artifact delivery |
 | Generated project | Native Android only | User-requested application synthesized and built by Nirman |
-| AI providers | External cloud, user configured | General-purpose planning, coding, reasoning, vision, embeddings, and other provider-backed model services |
+| AI providers | External cloud, user configured | General-purpose planning, coding, reasoning, vision, and other provider-backed model services |
 | Code execution | Local Windows x64 machine | Workspace mutation, tools, builds, Nirman-managed Android emulators, tests, and artifact creation |
 
 No implementation may add a hosted web/server product, PWA, Windows-app generation, cloud execution, Docker, containers, VMs, WSL, Windows Sandbox, remote build execution, or any non-Android generated target. The generated target is native Android and only native Android. Permitted implementation technologies include Kotlin, Java, Android Views, Jetpack Compose, Android native modules (NDK/CMake), Gradle plugins, Android device APIs, and Android background services. Cross-platform application frameworks, web wrappers, and hybrid runtimes are outside current scope (ADR-257). Local Nirman control-plane and supervisor processes and supporting services are permitted implementation components when they remain local and do not become independent generated product targets.

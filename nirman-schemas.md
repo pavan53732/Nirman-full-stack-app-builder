@@ -1528,12 +1528,10 @@ ProviderProfile
 - customHeadersSecretRefs: string[] (credential refs for sensitive headers, never header values)
 - modelId: string
 - visionModelId: string?
-- embeddingModelId: string?
-- rerankerModelId: string?
 - reasoningModelId: string?
 - organizationId: string?
 - projectId: string?
-- capabilities: ("text" | "vision" | "structured_output" | "tool_calling" | "reasoning" | "embeddings")[]
+- capabilities: ("text" | "vision" | "structured_output" | "tool_calling" | "reasoning")[]
 - capabilityOverrides: { capability: string, enabled: boolean }[] (user overrides of discovered capabilities)
 - attentionCapabilities: AttentionReliabilityProfile (TA §19.2; BS §53.11; carries declaredContextTokens, the physical context capacity)
 - reasoningCapabilityProfile: ReasoningCapabilityProfile

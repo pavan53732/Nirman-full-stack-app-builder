@@ -605,4 +605,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-263 | 14 | Accepted 13, Superseded 1 |
+| ADR-250–ADR-264 | 15 | Accepted 14, Superseded 1 |
