@@ -4206,14 +4206,10 @@ The orchestrator executes the following deterministic sequence:
    - `SemanticRetriever`: Bidirectional traversal over `RepositorySemanticGraph`.
    - `TemporalRetriever`: Recent causal execution chains from Warm memory.
    - `MemoryRetriever`: Failure fingerprints and historical invariants.
+   - `EvidenceRetriever`: Queries the active `EvidenceFrontier` to prioritize unresolved, contradicted, and required-validation claims over settled background facts (BS §53.6).
+   - `DependencyExpander`: Computes graph neighborhoods and affected compilation units from the `ImpactGraph`, and expands the retrieval set over `RepositorySemanticGraph` edges; re-invoked whenever the terminal sufficiency gate reports insufficient coverage (BS §53.4).
 5. **Fidelity Mapping**: `ContextFidelityManager` assigns fidelity levels (`EXACT`, `STRUCTURAL`, `SEMANTIC`, `SUMMARY`, `HISTORICAL`) ensuring edited regions and interfaces remain `EXACT`.
-5b. **Placement & Attendability Mapping**: `PlacementPlanner` assigns every item to a block of the BS §53.11 layout, computes `placementPlan`, and marks each item `EXPECTED_RELIABLE`, `EXPECTED_DEGRADED`, or `UNKNOWN` in `attendabilityMap` from the provider model's `AttentionReliabilityProfile`; `RecallProbeService` embeds probes when a structural event schedules them.
-6. **Sufficiency & Completeness Gate**:
-   ```text
-   CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
-   ```
-   `RetrievalCompletenessChecker` evaluates context confidence. If confidence is `MEDIUM` or `LOW`, the invocation prohibition and remediation owned by build spec §53.4 apply.
-7. **Context Fusion**:
+6. **Context Fusion**:
    Combine:
    - exact source
    - structural graph context
@@ -4222,13 +4218,19 @@ The orchestrator executes the following deterministic sequence:
    - causal memory
    - evidence frontier
    - active decisions and constraints
-8. **Capacity Adaptation**: `ContextCapacityPlanner` first fits the DENSE block inside the measured reliable recall span by re-projecting required items and, when necessary, narrowing the step so fewer mutation targets are active at once; only then, if the selected representation exceeds the provider's actual context capacity, it progressively transforms non-required items:
+7. **Capacity Adaptation**: `ContextCapacityPlanner` first fits the DENSE block inside the measured reliable recall span by re-projecting required items and, when necessary, narrowing the step so fewer mutation targets are active at once; only then, if the selected representation exceeds the provider's actual context capacity, it progressively transforms non-required items:
    ```text
    EXACT → STRUCTURAL → SEMANTIC → SUMMARY
    ```
    only for items whose fidelity rules permit transformation. Eviction, fidelity, and `omittedForCapacity` recording follow build spec §53.3 and §53.5.
+8. **Placement & Attendability Mapping**: `PlacementPlanner` assigns every item to a block of the BS §53.11 layout, computes `placementPlan`, and marks each item `EXPECTED_RELIABLE`, `EXPECTED_DEGRADED`, or `UNKNOWN` in `attendabilityMap` from the provider model's `AttentionReliabilityProfile`; `RecallProbeService` embeds probes when a structural event schedules them.
 9. **Privacy Filtering**: `RedactionFilter` removes secrets, credentials, and private content.
 10. **Payload Assembly & Ledger Emission**: `ContextAssembler` serializes the manifest defined in BS §53.3 and emits the cryptographically hashed package to the event ledger.
+11. **Sufficiency & Completeness Gate**:
+   ```text
+   CONTEXT_ASSEMBLE → COVERAGE_CHECK → INTEGRITY_CHECK → MODEL
+   ```
+   `RetrievalCompletenessChecker` evaluates context confidence against the assembled package. If confidence is `MEDIUM` or `LOW`, the invocation prohibition and remediation owned by build spec §53.4 apply, including re-invocation of `DependencyExpander` at step 4. The gate is terminal: it is the last step before model dispatch, and it MUST NOT precede privacy filtering or payload assembly.
 
 Recovery behavior:
 When context integrity fails (`STALE_CONTEXT`, `CONTRADICTED_FACT`, `REVISION_MISMATCH`), the orchestrator aborts model dispatch, generates an integrity diagnostic, and triggers `RegroundingService` to re-synchronize working state from the durable ledger before re-attempting context assembly. When attendability fails (`RECALL_PROBE_FAILED`, `PREMISE_MISMATCH`), the orchestrator records the failure in the `AttentionReliabilityProfile` and applies the response order and authority boundary owned by build spec §53.4 and §53.11 (re-project, narrow step, select provider model by reliability, re-ground or escalate; never a pass count, never a pause of valid work).
@@ -4309,7 +4311,7 @@ S4 Exact-source authority for mutation. Mutation-affecting context MUST resolve 
 
 S5 Precedence. On conflict between a deterministic skeleton fact and an interpreted claim, the skeleton fact MUST prevail. `ContextOrchestrator`, through its `HierarchicalSynthesizer` subcomponent, compares each interpreted claim against the corresponding deterministic skeleton fact before that summary is admitted to the synthesis artifact or cache or served in a `ContextPackage`. A mismatching interpreted claim is not admitted or served as authoritative synthesis content. The conflict MUST be recorded as `CONTRADICTED_FACT` and the §59.6 recovery path aborts model dispatch, generates the integrity diagnostic, and invokes `RegroundingService`. An interpreted claim MUST NOT override a deterministic structural fact.
 
-S6 Compatibility. Synthesis output MUST enter `WorkingSetPlanner` partitions as anchored supporting content. `ContextCapacityPlanner` MUST account synthesis bytes against provider capacity like any other context. Synthesis staleness MUST feed the §59.9 re-grounding triggers. The §59.6 ten-step sequence is unchanged.
+S6 Compatibility. Synthesis output MUST enter `WorkingSetPlanner` partitions as anchored supporting content. `ContextCapacityPlanner` MUST account synthesis bytes against provider capacity like any other context. Synthesis staleness MUST feed the §59.9 re-grounding triggers. The §59.6 assembly sequence remains the single authoritative order, and its sufficiency gate is terminal: the gate MUST follow privacy filtering and payload assembly, and MUST NOT be sequenced before either.
 
 S7 Bounded cost. Skeleton derivation MUST be incremental per region and deterministic. Interpreted summaries MUST be generated lazily per level on demand and cached with revision binding. All synthesis model calls MUST be governed by `ReasoningEffortSelector` effort grants and `ResourceIntegrityAuthority` budgets; synthesis MUST NOT create a separate budget class.
 

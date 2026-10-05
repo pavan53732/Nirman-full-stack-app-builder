@@ -404,6 +404,12 @@ ContextPackage
 - supportingItems
 - historicalItems
 - excludedItems
+- includedPaths
+- excludedPaths
+- summaries
+- tokenEstimates
+- redactions
+- selectionScores
 - fidelityMap
 - semanticAnchors
 - temporalAnchors

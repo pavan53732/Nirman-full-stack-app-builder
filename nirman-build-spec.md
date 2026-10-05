@@ -1192,6 +1192,8 @@ The cognitive context engine operates across exactly six normative retrieval mod
 | `LARGE_CONTEXT` | Broad architectural synthesis, multi-module refactoring, cross-cutting reviews | Context packing up to the provider's actual context capacity with prefix and structured cache alignment |
 | `COMPACTED` | Long-horizon continuity, multi-session continuation, checkpoint re-grounding | Non-destructive semantic compaction preserving causal chains and invariant proofs |
 
+The six mode tokens are the **selection** axis. They are distinct from the context-fidelity ladder of technical architecture §59.3 (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`, plus `HISTORICAL`), which is the **representation** axis. `EXACT` and `SEMANTIC` occur in both vocabularies and name different things: as modes they select which retrieval path runs, and as fidelity levels they state how faithfully a selected item is represented. A mode never implies a fidelity, and a fidelity never selects a mode; `EXACT` fidelity remains mandatory for active mutation targets and interfaces regardless of which modes ran.
+
 Dynamic mode selection and context capacity allocation are governed by twelve mandatory selection dimensions:
 1. `task_phase`: specification, synthesis, build, test, repair, or packaging.
 2. `goal_relevance`: direct topical and functional relationship to active user intent and acceptance contract.
@@ -3440,7 +3442,7 @@ A model statement is never a memory write. Only validated events, approved decis
 
 ### 53.3 Context assembly contract
 
-Before any model call, the runtime must assemble a context package that declares:
+Before any model call, the runtime must assemble a context package that declares included paths, excluded paths, summaries, token estimates, redactions, selection scores, and the reason for selecting each mode. All seven are carried by canonical fields of `nirman-schemas.md` §1.16 — `includedPaths`, `excludedPaths`, `summaries`, `tokenEstimates`, `redactions`, `selectionScores`, and `selectionReasons` respectively — and an untraceable context package is a defect (§80.2).
 
 > **Schema projection:** `ContextPackage` is defined in `nirman-schemas.md` §1.16. Owner: BS §53.3.
 
