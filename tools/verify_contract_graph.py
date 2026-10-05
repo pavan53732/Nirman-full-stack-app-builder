@@ -985,12 +985,19 @@ def check_orphan(R, adj, D):
                         reachable.add(cid)
                         changed = True
     # contracts required by other contracts' architecture columns
+    # Token membership, never substring: the arch/adr/mile cells are raw cell
+    # strings, so a substring test would let CONTRACT.RUNTIME.SCOPE satisfy the
+    # requirement edge of CONTRACT.RUNTIME.SCOPE_EXTENDED.
     required_by_contract = {}
+    _cid_token = re.compile(r"CONTRACT\.[A-Z0-9_.]+")
     for cid, r in contracts.items():
         for other, o in contracts.items():
             if other == cid:
                 continue
-            if cid in (o["arch"] + o["adr"] + o["mile"]):
+            cited = set()
+            for cell in (o["arch"], o["adr"], o["mile"]):
+                cited.update(_cid_token.findall(cell or ""))
+            if cid in cited:
                 required_by_contract.setdefault(cid, []).append(other)
 
     for cid, r in sorted(contracts.items()):
@@ -4126,7 +4133,11 @@ def check_semantic_documentation(docs, R, D, root="."):
             _claim = _words.get(_m841.group(1))
             if _claim is None:
                 _claim = int(_m841.group(1)) if _m841.group(1).isdigit() else None
-            if _claim is not None and _claim != len(_vocab):
+            if _claim is None:
+                D.add("semantic documentation", "§79.7 capability vocabulary",
+                      f"TA §84.1 states an unparseable upper-case row count "
+                      f"{_m841.group(1)!r}; §79.7 declares {len(_vocab)}")
+            elif _claim != len(_vocab):
                 D.add("semantic documentation", "§79.7 capability vocabulary",
                       f"TA §84.1 states {_claim} upper-case rows but §79.7 declares {len(_vocab)}")
         if not _vocab:
@@ -5611,7 +5622,12 @@ def check_android_intelligence_output_boundary(docs, D):
         if not line.startswith("|"):
             continue
         parts = [p.strip() for p in line.split("|")[1:-1]]
-        if len(parts) != 6 or parts[0] in ("Name", "") or parts[0].startswith("---"):
+        if parts[0] in ("Name", "") or parts[0].startswith("---"):
+            continue
+        if len(parts) != 6:
+            D.add("semantic documentation", "§57.12 component registry",
+                  f"registry row {parts[0]!r} has {len(parts)} cells, expected 6; "
+                  f"a malformed row must not be skipped silently")
             continue
         name = parts[0].replace("`", "")
         kind = parts[1].lower()

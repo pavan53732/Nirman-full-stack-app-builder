@@ -289,6 +289,14 @@ CASES = {
         TA, "| `ProjectIndex` | service | `nirman-context` |",
         "| `ProjectIndex` | module | `nirman-context` |",
         "semantic documentation"),
+    "registry row loses a cell": (
+        TA, "| index revision and freshness records; no authoritative state | §47.6 |",
+        "| index revision and freshness records; no authoritative state |",
+        "semantic documentation"),
+    "capability row count stated in an unparseable word": (
+        TA, "The twenty-four upper-case rows are the closed skill capability-id vocabulary",
+        "The forty upper-case rows are the closed skill capability-id vocabulary",
+        "semantic documentation"),
 
     # ---- ADR-218: AI-usage budget vocabulary must not return
     "budget exhaustion outcome reintroduced": (
@@ -2552,9 +2560,12 @@ def failed_checks(out):
     """
     # Only the DEFECTS block counts. The UNEVALUATED CHECKS block itemises
     # skips with the same "[class] subject" shape; a skip is not a detection.
-    body = out.split("\nDEFECTS\n", 1)[1] if "\nDEFECTS\n" in out else ""
-    body = body.split("\nCERTIFICATION:", 1)[0]
-    hits = {m.group(1) for m in re.finditer(r"^\s*\[([a-z ]+)\] ", body, re.M)}
+    # Every DEFECTS block counts, not just the first: reading one block would
+    # hide the detection classes reported by any later block.
+    hits = set()
+    for block in out.split("\nDEFECTS\n")[1:]:
+        body = block.split("\nCERTIFICATION:", 1)[0]
+        hits.update(m.group(1) for m in re.finditer(r"^\s*\[([a-z ]+)\] ", body, re.M))
     if "FATAL:" in out:
         hits.add("FATAL")
     return hits
