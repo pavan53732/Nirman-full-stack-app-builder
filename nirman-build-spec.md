@@ -1948,7 +1948,7 @@ Nirman must distinguish between a new strategy and a repeated variation of the s
 
 ### 27.8 Context-scaling modes
 
-Nirman must support two context strategies because configured providers may have very different context capacities.
+Nirman must support two context strategies because configured providers may have very different context capacities. These two strategies are a coarse scaling projection over the six normative retrieval modes of §19.1, not a competing taxonomy: *indexed retrieval mode* selects among `EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, and `COMPACTED`, while *large-context mode* corresponds to `LARGE_CONTEXT`. The six modes of §19.1 remain the normative set; this section introduces no seventh mode and no alternative enumeration.
 
 | Context mode | Behavior | Best use |
 |---|---|---|
@@ -2525,6 +2525,10 @@ Every model-proposed mutation is a `StructuredPatch` bound to the `ContextPackag
 > **Schema projection:** `StructuredPatch` is defined in `nirman-schemas.md` §1.15. Owner: BS §43.2.
 
 `anchorHashes` are the hashes of the `EXACT` regions the proposal edits, as they appeared in the originating package; `premises` are the symbol identities and signature hashes the proposal relies on, as they appeared at `STRUCTURAL` or `EXACT` fidelity. Before syntax validation and before any `ConstructionTransaction` opens, the broker compares `baseRevision`, `anchorHashes`, and `premises` against the originating package and the current project revision. Any mismatch is rejected with the typed outcome `PREMISE_MISMATCH`, is recorded as a recall failure for the provider model's `AttentionReliabilityProfile` (§53.11), and is never repaired by silently re-anchoring the patch. A patch that names no anchors for an `EXACT` edit is rejected as malformed.
+
+**Symbol identity and the signature hash (ADR-266).** A *symbol identity* is the tuple `(symbolId, declarationKind, qualifiedName)` minted by the language adapter when it parses the declaring file, where `symbolId` is stable for the same declaration across revisions of the same project and is never reused for a different declaration. A *signature hash* is a deterministic content hash over the symbol's **canonical declaration signature** — its declaration kind, qualified name, visibility, parameter types and names, return type, type parameters, and declared annotations — and deliberately **not** over its body, its formatting, its comments, or its byte offset. Two revisions therefore share a `signatureHash` for a symbol whose declaration is unchanged even when the body is rewritten, and differ when any element of the declaration changes. `premises` is a list of `(symbolId, declarationKind, qualifiedName, signatureHash, observedFidelity)` entries, each recorded as observed at `STRUCTURAL` or `EXACT` fidelity in the originating package.
+
+Before syntax validation and before any `ConstructionTransaction` opens, the broker resolves every premise against the current project revision and rejects the patch with `PREMISE_MISMATCH` when any of the following holds: the `symbolId` does not resolve at the current revision; the resolved symbol's `declarationKind` or `qualifiedName` differs; or the resolved symbol's `signatureHash` differs from the recorded one. The comparison is exact and set-based — a premise with no matching declaration is a mismatch, never a warning. A body-only change does not produce `PREMISE_MISMATCH`, because the signature hash deliberately excludes the body; a declaration change does, even when the body is untouched. Because the signature hash is a function of the declaration alone, the same patch evaluated against the same revision always yields the same outcome.
 
 Prior to transaction staging, `MutationBroker` validates that no patch targets lines guarded by `RegenerationSafeZoneMarker` boundaries (`// nirman:protected-start` ... `// nirman:protected-end` or `@NirmanProtected`); mutations touching protected zones are rejected with `PROTECTED_ZONE_VIOLATION`. Where manual workspace modifications diverge from base revisions during active generation, `MutationBroker` invokes `ThreeWayAstMergeEngine` (technical architecture §47.4) to reconcile non-overlapping AST subtrees or escalate unresolvable structural conflicts to the user.
 
@@ -3473,13 +3477,15 @@ MODEL invocation prohibited
 
 The model invocation is strictly prohibited. The runtime automatically expands retrieval over the Repository Semantic Graph or triggers `RegroundingService` to resolve missing context. If coverage is sufficient but attendability is not, the runtime re-projects the affected items into the DENSE block, narrows the step so the DENSE block fits the reliable recall span, or selects a provider model whose profile satisfies the step, in that order; only when none applies does it re-ground or escalate. None of these responses is a usage control: they change what is sent and how it is verified, never whether valid work may proceed.
 
+**Model-initiated expansion.** The gate above is the pre-dispatch gate, and it is not the model's only means of obtaining context. A model that discovers mid-turn that its package is insufficient MAY emit a retrieval-expansion request naming canonical anchors; the runtime resolves it through the same retrievers and the same `DependencyExpander` used by the automatic expansion path, appends the result as a revision-bound round, and subjects that round to this same two-stage gate. A model-initiated expansion is a proposal to retrieve, never an authority: it cannot introduce a constraint, a locked decision, an approval, or a completion claim, cannot bypass redaction, and cannot relax this gate. An anchor a retriever cannot ground is reported as an explicit unresolved result rather than answered with a substitute. This path adds no component and no authority; its implementation is TA §59.14.
+
 ### 53.5 Cognitive Working Set
 
 The runtime partitions session context into an authoritative `WorkingSet`:
 
 > **Schema projection:** `WorkingSet` is defined in `nirman-schemas.md` §1.17. Owner: BS §53.5.
 
-`required context` contains locked decisions, active constraints, target-platform invariants, and mandatory evidence contracts. **Required context can never be evicted.** When total context exceeds the provider's context capacity, the `WorkingSetPlanner` evicts or compacts historical and supporting context in accordance with `ContextCachePolicy`, never required context.
+`requiredContext` contains locked decisions, active constraints, target-platform invariants, and mandatory evidence contracts. **Required context can never be evicted.** When total context exceeds the provider's context capacity, the `WorkingSetPlanner` evicts or compacts `historicalContext` and `supportingContext` in accordance with `ContextCachePolicy`, never `requiredContext`. Every working set carries a `workingSetId`, which is the identity that `ContextPackage.workingSetId` (`nirman-schemas.md` §1.16) references; the remaining partitions are `activeContext`, `excludedContext`, `semanticAnchors`, `temporalAnchors`, and `evidenceAnchors`.
 
 ### 53.6 Evidence Frontier
 

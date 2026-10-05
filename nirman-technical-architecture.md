@@ -2618,6 +2618,28 @@ Ranking of index results is advisory ordering only. It is owned by `ProjectIndex
 
 Large-project mechanisms — sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction — apply once the repository map classifies the project as large (BS §80.2). That classification is an internal repository-map decision; it is not a configurable parameter and gains no BS §80.3 row.
 
+**Observable contract.** `ProjectIndex` exposes a query interface whose observable behaviour is normative even though its internal representation is not. Every query is issued against a named `projectRevision` and resolves to that revision, the candidate set, the freshness state of every region the candidates were drawn from, and whether the candidate set is complete or truncated. The interface MUST support at least:
+
+- **Literal lookup** — an exact string or identifier resolves to every indexed occurrence, with file and byte range.
+- **Pattern lookup** — a regular-expression or glob pattern resolves to a candidate set that the caller then confirms against repository source; a pattern is never answered from the index alone as though it were confirmed.
+- **Path lookup** — a path or path prefix resolves to the indexed files beneath it.
+- **Changed-file enumeration** — the overlay of files changed since a named revision.
+
+**Required capability floor.** Whatever representation is chosen, `ProjectIndex` MUST satisfy these properties, and a representation that cannot is non-conforming:
+
+1. **Candidate soundness** — every file containing a match for a literal query is in the returned candidate set. A false negative on a literal query is a defect, not a tuning trade-off.
+2. **Candidate boundedness** — a pattern query may over-approximate by returning files that do not ultimately match, but MUST NOT silently under-approximate a literal sub-pattern it contains. This is what permits a two-phase candidate-then-confirm execution without permitting a missed match.
+3. **Bounded staleness** — the freshness state of every region is readable, and no query returns content from a region whose staleness is undetectable (BS §80.2).
+4. **Incremental equivalence** — for any revision, the candidate set from an incrementally updated index is identical to the candidate set from a full rebuild at that revision (BS §80.2).
+5. **Deterministic ordering** — for equal inputs at an equal revision, the advisory ranking is identical.
+6. **Local-only** — the index is a local artifact of the active project; no query transmits repository source, and no index artifact is shared between projects.
+
+**Representation is deliberately not fixed.** The internal structure — postings, n-gram or trigram tables, masks, trees, or any other deterministic layout — is an implementation choice, not a contract. Nirman does not mandate a data structure, so that the mechanism may be replaced without a contract change. What is fixed is the capability floor above, the observable contract, the freshness and revision obligations, and the prohibition below.
+
+**No embedding or vector path.** `ProjectIndex` MUST NOT build, store, or consult an embedding, vector store, or similarity index of repository source. Candidate discovery is lexical and structural. `SEMANTIC` in BS §19.1 names a selection mode whose fidelity comes from the `RepositorySemanticGraph` and the §59.3 ladder, never from vector similarity (ADR-264).
+
+**Lexical search and structural traversal.** *Lexical search* is candidate discovery by matching query text — a literal, an identifier, or a pattern — against indexed source text, which is what `ProjectIndex` performs. It is the complement of *structural traversal*, which reaches code by following graph edges (containment, dependency, call, test) from an already-identified node. Neither subsumes the other: a symbol reachable only by traversal may have no distinctive name to match, and a symbol named only in a comment or a string literal is reachable lexically but not structurally. A lexical search needs a seed string and a structural traversal needs a seed node, which is why the §59.6 sequence uses both rather than choosing between them. Lexical search is a substrate operation of this section and is not one of the six normative retrieval modes of BS §19.1.
+
 ---
 
 ## 48. Provider Bridge and ModelGateway
@@ -3723,6 +3745,8 @@ These modules produce proposals and state transitions, but LifecycleAuthority, P
 3. *Schema deviation anomaly (`SCHEMA_DEVIATION_ANOMALY`):* A worker emits $> 2$ consecutive malformed payloads failing `WorkerConnection` schema validation or containing unparseable JSON/bincode structures.
 Upon detecting any of these three conditions, `WorkerAnomalyDetector` flags the attempt, revokes the worker's AppContainer lease via `WorkspaceLeaseManager`, records an `ANOMALY_REVOCATION` event in the execution ledger, and signals `RecoveryAuthority` to quarantine the attempt and dispatch a replacement worker under an escalated reasoning profile.
 
+These three thresholds are process-liveness and workspace-integrity protections, not usage controls. The 180-second stall window, the three-proposal thrash window, and the two-payload deviation window are liveness and integrity predicates under the process-liveness permission of ADR-218, and none of them is a token, request, monetary, reasoning, or autonomous-goal-duration budget. A worker that is making progress is never stopped by elapsed time: the stall predicate requires the simultaneous absence of proposals, observation requests, and evidence queries, so a worker that is reasoning slowly but productively is not a stall.
+
 ### 58.1.1 RepairOscillationDetector
 
 `RepairOscillationDetector` operates within `WorkerAnomalyDetector` to prevent cyclic repair oscillation ("fix A breaks test B, fix B breaks test A"):
@@ -3773,6 +3797,8 @@ EVALUATE_PROGRESS
   ├── REPLAN
   └── COMPLETE
 ```
+
+`EVALUATE_PROGRESS` is the kernel's coarse progress classification, not a second cycle machine. Its five branches are durable progress verdicts — what the kernel concluded about progress in the cycle just completed — and they are neither fine cycle states nor terminal cycle outcomes. The canonical cycle state machine is §71.4, which is the single authority over cycle transitions (ADR-230) and whose thirteen fine states, six terminal outcomes, and build spec §52.2 coarse projection are not restated here. `SELECT_ACTION` is likewise an operation rather than a state: its rule is the frontier-first selection given below. An implementation MUST reject and record any cycle transition not drawn in §71.4, and MUST NOT treat the five `EVALUATE_PROGRESS` branches as legal transitions.
 
 `SELECT_ACTION` applies the frontier-first rule of build spec §52.3 (ADR-225): the kernel reads the `EvidenceFrontier` slice for the active requirement and the open hypotheses from `HypothesisManager` (§71.5); while an `UNRESOLVED`, `CONTRADICTED`, or `REQUIRED_VALIDATION` item or an untested discriminating test exists, only observation proposals are admissible, and a mutation proposal is answered `EVIDENCE_NOT_ACQUIRED` without reaching `PolicyAuthority`. Every admitted mutation `AgentProposal` carries `targetFrontierItemId` and `motivatingEvidenceId`; `ProgressEvaluator` treats a cycle that acquired evidence as progress even when no file changed, and a cycle that changed files against an unobserved frontier as none.
 
@@ -4113,8 +4139,6 @@ The architecture retains three dedicated implementation collaborators:
 
 ### 59.2 Repository Semantic Graph
 
-> **Schema projection:** `DeviceMatrixRiskProfile` is defined in `nirman-schemas.md` §2.108. Owner: TA §59.2.
-
 The workspace maintains a typed, queryable `RepositorySemanticGraph` updated incrementally on every workspace mutation. It structures code into a strict physical-to-semantic containment hierarchy:
 
 ```text
@@ -4337,6 +4361,22 @@ S6 Compatibility. Synthesis output MUST enter `WorkingSetPlanner` partitions as 
 S7 Bounded cost. Skeleton derivation MUST be incremental per region and deterministic. Interpreted summaries MUST be generated lazily per level on demand and cached with revision binding. All synthesis model calls MUST be governed by `ReasoningEffortSelector` effort grants and `ResourceIntegrityAuthority` budgets; synthesis MUST NOT create a separate budget class.
 
 S8 Rebuildability. The synthesis artifact MUST be rebuildable from the graph plus projectRevision. Any persisted synthesis form MUST be revision-bound and MUST carry the S4 labels, so that no cache is ever mistaken for source.
+
+### 59.14 Model-initiated retrieval expansion
+
+The §59.6 assembly sequence is a pre-dispatch pipeline, and a `ContextPackage` is a snapshot at one `projectRevision`. Neither substitutes for a model that discovers mid-turn that its package is insufficient: a worker reading an unfamiliar module may need the dependency neighborhood of a symbol it has just seen, a caller graph, or the source of a file named only in a tool result. Without a defined path for that request the model can only guess, which is the invented-seed failure mode.
+
+This section defines that path. It adds no authority and no component: the request is a model proposal, and every decision remains with `ContextOrchestrator`, the retrievers of §59.1, `DependencyExpander`, `ContextIntegrityVerifier`, and `RetrievalCompletenessChecker`.
+
+**Request form.** A model MAY emit a retrieval-expansion request naming canonical anchors, never free prose in place of an anchor. The permitted anchor kinds are the `WorkingSet` anchors — `semanticAnchors`, `temporalAnchors`, and `evidenceAnchors` — together with a `symbolId` premise, a repository path, or a path prefix. A request naming no anchor is rejected as malformed and is not dispatched to a retriever.
+
+**Routing.** `ContextOrchestrator` resolves a request through the existing retriever set of §59.1 and the `DependencyExpander` of §59.6 step 4: a `symbolId` or path resolves through `ExactRetriever` at `EXACT` fidelity; a dependency or caller/callee neighborhood resolves through `DependencyExpander` over the `ImpactGraph`, and through `RepositorySemanticGraph` containment for hierarchical neighborhoods; a temporal or causal anchor resolves through `TemporalRetriever`; and a claim or evidence anchor resolves through `EvidenceRetriever` and the `EvidenceFrontier`. An expansion a retriever cannot ground is reported to the model as an explicit unresolved result; it MUST NOT be answered with a plausible substitute and MUST NOT be silently dropped.
+
+**Binding and integrity.** An expansion result is appended to the working set as a new revision-bound round carrying its own `projectRevision`, its §59.3 fidelity label, its provenance, and its selection score. It is subject to the same `ContextIntegrityVerifier` check and the same `RetrievalCompletenessChecker` sufficiency gate as the initial assembly: a round failing either gate is not admitted, and the failure is reported rather than absorbed. A result whose `projectRevision` no longer matches the active revision is stale and MUST be re-derived, never served.
+
+**Steering is not authority.** A model-initiated expansion changes what the model can see; it never changes what the runtime decides. An expansion MUST NOT introduce a constraint, a locked decision, an approval, or a completion claim, MUST NOT bypass `RedactionFilter`, and MUST NOT relax the §59.6 terminal sufficiency gate. `EXACT` source required for a mutation remains `EXACT` and MUST NOT be replaced by an expansion summary.
+
+**Determinism and cost.** For equal anchors at an equal revision, an expansion returns an identical result set and identical advisory ordering. Expansion is bounded by the physical and provider-capacity rules of `ResourceIntegrityAuthority` and `ContextCapacityPlanner`, and by no token, request, duration, or pass budget (ADR-218). Request count and outcomes are telemetry.
 
 ## 60. Peer Coordination and Semantic Reservations
 
@@ -4734,6 +4774,8 @@ A repair is not verified by the newly passing assertion alone; repair verificati
 **Role:** implementation of the named contract; adds no normative clause to it.
 
 Implements build spec §59, which is canonical for matrix declaration, the primary-profile rule, divergence semantics, and the capability-status mapping; this section defines its implementation. Extends §49 (Android Toolchain Authority and Environment) and §50 (Preview Coordinator), which remain the authority on device health and session lifecycle.
+
+> **Schema projection:** `DeviceMatrixRiskProfile` is defined in `nirman-schemas.md` §2.108. Owner: TA §65.
 
 ### 65.1 Components
 
@@ -6133,8 +6175,12 @@ UI-hierarchy evidence may support accessibility, navigation, state, and visual c
 
 > **Schema projection:** `ScreenModel` is defined in `nirman-schemas.md` §2.91. Owner: TA §74.2.
 > **Schema projection:** `VisualObservation` is defined in `nirman-schemas.md` §2.97. Owner: TA §74.2.
+> **Schema projection:** `NormalizationProfile` is defined in `nirman-schemas.md` §2.138. Owner: TA §74.2.
+> **Schema projection:** `MaskedRegion` is defined in `nirman-schemas.md` §2.139. Owner: TA §74.2.
 
 `VisualObservation` is the visual supplement to the primary `ScreenModel` perception of §74.2 and carries contract `CONTRACT.RUNTIME.E2E`.
+
+`NormalizationProfile` (`nirman-schemas.md` §2.138) and `MaskedRegion` (`nirman-schemas.md` §2.139) make the visual comparison of `nirman-schemas.md` §2.97 reproducible. A `NormalizationProfile` is the deterministic, revision-bound recipe applied to a captured frame before comparison — target geometry, scale mode, pixel format, colour space, and system-UI and animation handling — so that two comparisons at the same `projectRevision` under the same profile are comparable. A `MaskedRegion` is a revision-bound region excluded from comparison — volatile content, a clock, an animation, platform chrome, or a privacy region — expressed as bounds, a polygon, or an element selection against the `ScreenModel`. Both carry contract `CONTRACT.RUNTIME.E2E` and MUST be revision-bound and evidence-backed: a `VisualObservation` whose `normalizationProfileRef` or `maskedRegionRefs` does not resolve at its own `sourceRevision` is stale evidence and MUST NOT support a visual comparison verdict.
 
 `ScreenModel` is the text-native perception channel of the autonomous loop (ADR-225). `AndroidDeviceAdapter.captureUiHierarchy` produces the raw hierarchy; the device layer normalizes it into a `ScreenModel` whose elements carry identity, text, bounds, and actionability, and whose `screenFingerprint` is stable across captures of the same screen state. Workers and `ScenarioSynthesizer` act on the `ScreenModel`, never on pixels: a tap targets an element identity, an assertion names an element property, and a screen is recognized by its fingerprint. Screenshots remain evidence for humans and for visual criteria; a vision model (`visionModelId`) is optional and its absence marks visual criteria `NOT_OBSERVED` — it never blocks functional completion and never substitutes for a `ScreenModel`. A `ScreenModel` whose `windowKind` is not `APP` is a system surface handled by the device adapter (§73.12), not by a worker — except `INPUT_METHOD`, which is part of the application interaction (§73.12).
 

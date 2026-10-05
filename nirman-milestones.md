@@ -963,7 +963,7 @@ Implement protocol handshake, loopback authentication, provider/model capability
 
 ## M45 — Multi-language AndroidCodeIntelligence
 
-Implement language adapters and graph indexing for Kotlin, Java, XML, manifests, Gradle Kotlin DSL/Groovy, C/C++ native modules, JSON/YAML/TOML, SQL, and lockfiles (ADR-257). Add file/module/symbol/resource/permission/navigation/test/device impact graphs.
+Implement language adapters and graph indexing for Kotlin, Java, XML, manifests, Gradle Kotlin DSL/Groovy, C/C++ native modules, JSON/YAML/TOML, SQL, and lockfiles (ADR-257). Add file/module/symbol/resource/permission/navigation/test/device impact graphs. This milestone implements the language-adapter and graph-indexing surface of `CONTRACT.RUNTIME.SCOPE` (build spec §43.1; technical architecture §47), whose canonical owning milestone is M11 in the build spec §67.8 registry. M45 adds behavior to that contract and is not a second owner of it, and it introduces no new contract.
 
 **Exit gate:** lightweight discovery upgrades to full semantic mode before mutation; affected files and tests are computed for representative Android projects across selected technology plans.
 

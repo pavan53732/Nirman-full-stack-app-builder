@@ -430,7 +430,7 @@
 | `ProofSynthesis` | §2.105 | BS §56.6 | CONTRACT.RUNTIME.E2E | — |
 | `ArchitectureFitnessReport` | §2.106 | TA §62.8 | CONTRACT.RUNTIME.AGENT_BUILDABILITY | — |
 | `RepairExperimentationRecord` | §2.107 | TA §30.3 | CONTRACT.RUNTIME.E2E | — |
-| `DeviceMatrixRiskProfile` | §2.108 | TA §59.2 | CONTRACT.RUNTIME.DEVICE_MATRIX | — |
+| `DeviceMatrixRiskProfile` | §2.108 | TA §65 | CONTRACT.RUNTIME.DEVICE_MATRIX | — |
 | `AndroidRuntimeObservation` | §2.109 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameQualityObservation` | §2.110 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
 | `FrameNotice` | §2.111 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | — |
@@ -459,6 +459,8 @@
 | `SupervisorConnection` | §2.135 | TA §57.3 | CONTRACT.RUNTIME.FRONTEND_CONTROL_PLANE | BS §76, TA §57.3 |
 | `LaunchSession` | §2.136 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
 | `FrameStamp` | §2.137 | TA §10.7 | CONTRACT.RUNTIME.PREVIEW_SYNC | TA §10.7 |
+| `NormalizationProfile` | §2.138 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
+| `MaskedRegion` | §2.139 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
 | `CanonicalSchemaRegistry` | §3.1 | TA §36.1 | — | — |
 
 ## 4. Milestone → section
@@ -605,4 +607,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-265 | 16 | Accepted 15, Superseded 1 |
+| ADR-250–ADR-266 | 17 | Accepted 16, Superseded 1 |

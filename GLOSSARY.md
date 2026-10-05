@@ -80,6 +80,8 @@
 
 **ProductLifecycleState** — The authoritative session lifecycle enum, mapped name by name to the TA §36.2 state machine. — BS §5.7.2; BS §33.2; TA §36.2.
 
+**Retrieval modes** — The six normative retrieval modes of BS §19.1 — `EXACT`, `SEMANTIC`, `TEMPORAL`, `STRUCTURED_MEMORY`, `LARGE_CONTEXT`, `COMPACTED` — which are the *selection* axis, distinct from the TA §59.3 fidelity ladder (`EXACT → STRUCTURAL → SEMANTIC → SUMMARY`), which is the *representation* axis; `EXACT` and `SEMANTIC` name different things on the two axes, and lexical candidate discovery is a `ProjectIndex` substrate operation, never a seventh mode. — BS §19.1; TA §47.6.
+
 **ReproducibilityLevel** — The vocabulary that grades how repeatable a build or validation is; named as its own field on the evidence contracts. — BS §5.7.2; TA §36.4.
 
 **SessionProviderMode** — The vocabulary for the availability of Nirman's external provider-backed model path: `PLANNING_ONLY`, `PROVIDER_CONFIGURED`, `PROVIDER_VALIDATED`, `OFFLINE`; it has no local-model fallback. — BS §5.7.2; TA §41.
@@ -155,6 +157,8 @@
 **TaskContract / TaskGraph / WorkerMessage** — The declared contract every worker receives, the phased graph of task nodes, and the inter-worker message envelope. `WorkerMessage` carries durable delivery state `PERSISTED → DISPATCHED → ACKED | REJECTED | DEAD_LETTERED`, duplicate deduplication via immutable payload fingerprint, and durable quarantine fields `quarantineReason`/`quarantinedAt` (write-once, retained outside deletion). — TA §6; BS §80.5.4; SCHEMAS §2.1; SCHEMAS §1.58; SCHEMAS §1.13; ADR-263.
 
 **ToolchainProvisioningManifest / ToolchainProvisioningRecord** — The pinned, signed component list Nirman downloads on first launch, and the evidence record of one provisioning run with its state, licence acceptance, hypervisor action, and readiness frame. — TA §49.4; SCHEMAS §2.87; SCHEMAS §2.88.
+
+**WorkingSet** — The authoritative partition of session context into `requiredContext`, `activeContext`, `supportingContext`, `historicalContext`, `excludedContext`, `semanticAnchors`, `temporalAnchors`, and `evidenceAnchors`, identified by the `workingSetId` that `ContextPackage.workingSetId` references; `requiredContext` can never be evicted. — BS §53.5; SCHEMAS §1.17.
 
 **UICommandEnvelope / UIResponseEnvelope / UIErrorEnvelope / ProjectionSnapshot** — The typed frontend–control-plane protocol: command, response, error, and snapshot-plus-event replay. — BS §76; TA §81; ADR-201.
 
@@ -260,6 +264,8 @@
 
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
 
+**EvidenceFrontier** — The runtime's explicit record of the empirical state of every project claim, in six states (`VERIFIED`, `STALE`, `UNRESOLVED`, `CONTRADICTED`, `PREDICTED`, `REQUIRED_VALIDATION`); its state is owned by `EvidenceAuthority`, it is read by `EvidenceRetriever` and `WorkingSetPlanner`, and it drives frontier-first action selection. — BS §53.6; TA §59.1.
+
 **FeatureUsageTracker** — The telemetry module scaffolding local feature adoption counters, first-use flags, and interaction frequency tracking via Jetpack DataStore. — TA §73.17.8; BS §43.1.
 
 **FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8.
@@ -273,6 +279,8 @@
 **ImplicitRequirementMiner** — The requirement expansion module deterministically expanding high-level user goals into mandatory companion requirements for authentication, data listing, and transactional flows. — TA §73.15.1; BS §42.1.
 
 **InAppDiagnosticsScaffolder** — The debug diagnostics module generating an in-app debug Compose health dashboard and ZIP/Share Intent diagnostic report exporter. — TA §73.17.6; BS §43.1.
+
+**Lexical search** — Candidate discovery by matching query text — a literal, an identifier, or a pattern — against indexed source text, performed by `ProjectIndex`; the complement of structural traversal over the `RepositorySemanticGraph`, `AndroidSymbolGraph`, and `ImpactGraph`, which reaches code by following graph edges from an already-identified node. A lexical search needs a seed string and a structural traversal needs a seed node, which is why the TA §59.6 sequence uses both; it is a substrate operation and not one of the six normative retrieval modes. — TA §47.6; TA §59.2.
 
 **Local certification** — `tools/verify.sh` / `tools/verify.ps1` and the verifier pair are the authoritative gate; hosted CI is optional and never a certification authority. — ADR-204; M0.
 
@@ -328,6 +336,8 @@
 **RegulatoryComplianceAnalyzer** — The compliance audit module evaluating declared permissions, API targets, and data collection against Google Play policies and privacy regulations. — TA §73.15.6; BS §42.1.
 
 **RoomSchemaMigrationAnalyzer** — The database evolution verifier statically diffing Room schema JSONs, validating migration paths, detecting destructive schema drops, and verifying foreign key integrity. — TA §47.4; BS §43.1.
+
+**RepositorySemanticGraph** — The typed, queryable containment and dependency graph over the repository (Repository → Module → File → Symbol → Region → Exact source), updated incrementally on every workspace mutation; the structural projection that `SemanticRetriever` and `DependencyExpander` traverse. Distinct from `AndroidSymbolGraph` (the Android-language structural graph) and `ImpactGraph` (the mutation-impact graph), and it maintains no independent lexical index. — TA §59.2.
 
 **RepairOscillationDetector** — The supervisor sentinel inside `WorkerAnomalyDetector` that detects cyclical patch regressions across transaction checkpoints and forces escalation on the recovery ladder. — TA §58.1.1; BS §42.4.
 

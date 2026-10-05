@@ -3836,3 +3836,28 @@ Measured behaviour across M94 fixtures shows two runs with identical `CycleDecis
 **Reversal trigger:** Evidence from implementation fixtures that the single-index rule cannot be implemented without either a second authoritative index or an unacceptable coupling between lexical discovery and structural projection — in which case the substrate may be partitioned only by adding explicit, non-authoritative partitions of `ProjectIndex` rather than a second competing index.
 
 ---
+
+## ADR-266: Symbol identity and the signature hash
+
+**Locks:** `CONTRACT.RUNTIME.CONTEXT`, `CONTRACT.RUNTIME.SCOPE`
+
+**Status:** Accepted
+
+**Amends:** ADR-011
+
+**Decision:** BS §43.2 requires `MutationBroker` to compare a patch's `premises` — "the symbol identities and signature hashes" — against the current project revision, and to reject a mismatch as `PREMISE_MISMATCH`. Neither *symbol identity* nor *signature hash* was defined anywhere in the corpus, so that comparison had no implementable meaning. This decision fixes both.
+
+1. A **symbol identity** is the tuple `(symbolId, declarationKind, qualifiedName)`, minted by the language adapter when it parses the declaring file. `symbolId` is stable for the same declaration across revisions of the same project and MUST NOT be reused for a different declaration.
+2. A **signature hash** is a deterministic content hash over the symbol's **canonical declaration signature**: declaration kind, qualified name, visibility, parameter types and names, return type, type parameters, and declared annotations. It is deliberately **not** a hash of the body, the formatting, the comments, or the byte offset.
+3. `premises` is a list of `(symbolId, declarationKind, qualifiedName, signatureHash, observedFidelity)` entries, each recorded at the `STRUCTURAL` or `EXACT` fidelity at which it was observed in the originating package.
+4. The comparison is exact and set-based. `PREMISE_MISMATCH` is produced when a `symbolId` does not resolve at the current revision, when `declarationKind` or `qualifiedName` differs, or when `signatureHash` differs. A premise with no matching declaration is a mismatch, never a warning.
+5. A body-only change MUST NOT produce `PREMISE_MISMATCH`; a declaration change MUST produce it even when the body is untouched. Excluding the body from the hash is what produces this asymmetry, and the asymmetry is the design.
+6. The comparison is a pure function of the patch and the revision: the same patch evaluated against the same revision always yields the same outcome.
+
+**Rationale:** ADR-011 established context as an indexed retrieval problem and BS §43.2 made premise agreement a precondition for opening a `ConstructionTransaction`, but the identity being compared was never defined. An implementer could therefore satisfy the letter of BS §43.2 with any hash of anything, or with none, and the `PREMISE_MISMATCH` path that AGENTS.md §1.1 depends on would be unimplementable in practice. Defining the hash over the declaration alone — rather than the whole symbol or the whole file — is what makes the check useful: it catches the change that actually invalidates a premise, while not rejecting every patch whose target file was edited elsewhere in the body.
+
+**Consequences:** `nirman-schemas.md` §1.15 types the previously opaque `anchorHashes` and `premises` fields; BS §43.2 carries the normative definition. No new authority, schema, contract, clause, milestone, or budget is introduced, and no component is added or renamed. The signature hash is a runtime constant function; like the index representation of ADR-265, its algorithm is an implementation choice and is not fixed here. `CONTRACT.RUNTIME.SCOPE` is locked because symbol identity is minted by the language adapter of BS §43.1, and `CONTRACT.RUNTIME.CONTEXT` is locked because `observedFidelity` is a §59.3 fidelity level.
+
+**Reversal trigger:** Evidence from implementation fixtures that a required `PREMISE_MISMATCH` cannot be detected without hashing the symbol body or the file content — for example a language whose declarations cannot be canonicalized independently of their bodies — in which case the hash input may be widened only by an explicit amendment that records the added false-positive cost.
+
+---

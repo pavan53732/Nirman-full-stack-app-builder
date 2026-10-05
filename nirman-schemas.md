@@ -380,8 +380,8 @@ StructuredPatch
 - contextId
 - baseRevision
 - targetSymbolIds
-- anchorHashes
-- premises
+- anchorHashes: list of { anchorId, contentHash, byteRange }
+- premises: list of { symbolId, declarationKind, qualifiedName, signatureHash, observedFidelity: STRUCTURAL | EXACT }
 - operations
 - proposedBy
 ```
@@ -433,14 +433,15 @@ ContextPackage
 
 ```text
 WorkingSet
-- required context
-- active context
-- supporting context
-- historical context
-- excluded context
-- semantic anchors
-- temporal anchors
-- evidence anchors
+- workingSetId
+- requiredContext
+- activeContext
+- supportingContext
+- historicalContext
+- excludedContext
+- semanticAnchors
+- temporalAnchors
+- evidenceAnchors
 ```
 
 ### 1.18 AttentionReliabilityProfile
@@ -4496,7 +4497,7 @@ RepairExperimentationRecord
 
 ### 2.108 DeviceMatrixRiskProfile
 
-**Owner:** TA §59.2 · **Contract:** CONTRACT.RUNTIME.DEVICE_MATRIX · **Projected at:** —
+**Owner:** TA §65 · **Contract:** CONTRACT.RUNTIME.DEVICE_MATRIX · **Projected at:** —
 
 ```text
 DeviceMatrixRiskProfile
@@ -5212,6 +5213,45 @@ FrameStamp
 - pixelBufferGeneration
 ```
 
+### 2.138 NormalizationProfile
+
+**Owner:** TA §74.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+NormalizationProfile
+- normalizationProfileId
+- projectRevision
+- label
+- normalizationKind: EXACT_PIXELS | SCALED | RESAMPLED | COLOR_NORMALIZED | LAYOUT_ALIGNED | CUSTOM
+- targetWidth: integer
+- targetHeight: integer
+- scaleMode: NONE | FIT | FILL | STRETCH
+- pixelFormat: string
+- colorSpace: string
+- systemUiHandling: INCLUDE | EXCLUDE
+- animationHandling: SETTLE_THEN_CAPTURE | IGNORE_REGION
+- createdAt
+- evidenceIds: list<string>
+```
+
+### 2.139 MaskedRegion
+
+**Owner:** TA §74.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+
+```text
+MaskedRegion
+- maskedRegionId
+- projectRevision
+- normalizationProfileRef: reference<NormalizationProfile>
+- label
+- regionKind: RECTANGLE | POLYGON | ELEMENT_BOUNDS | FULL_FRAME
+- bounds: { x: integer, y: integer, width: integer, height: integer } | null
+- polygonPoints: list of { x: integer, y: integer } | null
+- elementSelector: string | null
+- reason: VOLATILE_CONTENT | CLOCK | ANIMATION | ADVERTISEMENT | PRIVACY | PLATFORM_CHROME | CUSTOM
+- createdAt
+- evidenceIds: list<string>
+```
 
 ## 3. Canonical schema registry
 
@@ -5468,6 +5508,8 @@ PreflightReport
 SupervisorConnection
 LaunchSession
 FrameStamp
+NormalizationProfile
+MaskedRegion
 ```
 
 The registered identities below are prose-defined normative records: their shape is fixed by the cited section's normative text, and they carry no projected field block by declaration (ADR-241). An identity here that gains a field block MUST be removed from this list in the same change; a registered name with neither a field block nor an entry here is a structure defect (build spec §67.11).
