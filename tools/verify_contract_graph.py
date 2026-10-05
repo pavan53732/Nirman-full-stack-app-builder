@@ -5507,6 +5507,67 @@ def check_plan_assignment_migration_lock(docs, D):
             D.add("semantic documentation", "52.13", msg)
 
 
+def check_repository_intelligence_determinism(docs, D):
+    """ADR-264 and ADR-265 repository-intelligence determinism lock.
+
+    ADR-264 fixes repository intelligence as structural and deterministic and
+    removes the embedding provider surface; ADR-265 names the physical
+    substrate (`ProjectIndex`) and forbids a second repository index. This
+    check enforces both. Re-adding an embedding surface, permitting a second
+    repository index, dropping the named substrate's owner binding, defining
+    section or registry row, or turning the six normative retrieval modes into
+    a different count is a semantic-documentation defect, not an editorial act.
+    Comparisons normalise whitespace, so re-wrapping a paragraph is not a
+    defect."""
+    bs = docs.get("bs", "")
+    ta = docs.get("ta", "")
+    sch = docs.get("schemas", "")
+    adrs = adr_text(docs)
+    a264 = _adr_body(adrs, 264)
+    a265 = _adr_body(adrs, 265)
+    locks = [
+        (bool(a264), "decision log",
+         "ADR-264 (repository intelligence is structural and deterministic) is absent"),
+        (bool(a265), "decision log",
+         "ADR-265 (the project index is a named, supervisor-owned retrieval substrate) is absent"),
+        ("**Locks:** `CONTRACT.RUNTIME.CONTEXT`" in a264, "ADR-264",
+         "ADR-264 lost its `CONTRACT.RUNTIME.CONTEXT` lock"),
+        ("**Locks:** `CONTRACT.RUNTIME.CONTEXT`" in a265, "ADR-265",
+         "ADR-265 lost its `CONTRACT.RUNTIME.CONTEXT` lock"),
+        ("**Reversal trigger:**" in a264, "ADR-264", "ADR-264 lost its reversal trigger"),
+        ("**Reversal trigger:**" in a265, "ADR-265", "ADR-265 lost its reversal trigger"),
+        # The removed provider surface must stay removed.
+        (not _sec_has(sch, "1.62", "embeddingModelId"), "SCHEMAS §1.62",
+         "`ProviderProfile` regained `embeddingModelId` (ADR-264 clause 5)"),
+        (not _sec_has(sch, "1.62", "rerankerModelId"), "SCHEMAS §1.62",
+         "`ProviderProfile` regained `rerankerModelId` (ADR-264 clause 5)"),
+        # The structural and single-index rules stay stated in their owner section.
+        (_sec_has(bs, "43.1",
+                  "no embedding model, vector store, or precomputed embedding of repository source "
+                  "participates in repository intelligence"),
+         "BS §43.1", "§43.1 lost the no-embedding repository-intelligence rule (ADR-264)"),
+        (_sec_has(bs, "43.1", "no second repository index is permitted"),
+         "BS §43.1", "§43.1 lost the single-repository-index prohibition (ADR-265 clause 4)"),
+        # The named substrate keeps its owner binding, defining section and registry row.
+        (_sec_has(bs, "6.5", "`ProjectIndex`"), "BS §6.5",
+         "§6.5 no longer names `ProjectIndex` as the project-index owner (ADR-265)"),
+        (_sec_has(ta, "47.6", "`ProjectIndex`"), "TA §47.6",
+         "§47.6 lost the `ProjectIndex` defining section (ADR-265)"),
+        (re.search(r"^\| `ProjectIndex` \| service \| `nirman-context` \|", ta, re.M) is not None,
+         "TA §57.12", "§57.12 lost the `ProjectIndex` service row for `nirman-context` (ADR-265)"),
+        # The retrieval substrate keeps its expansion wiring (ADR-264 rule 6).
+        (_sec_has(ta, "59.1", "DependencyExpander"), "TA §59.1",
+         "§59.1 lost `DependencyExpander`, the component that expands retrieval over the ImpactGraph"),
+        # The six normative retrieval modes stay exactly six: lexical candidate
+        # discovery is a substrate operation, never a seventh mode.
+        (re.search(r"exactly six normative retrieval modes", bs) is not None, "BS §19.1",
+         "§19.1 lost the exactly-six normative retrieval modes invariant"),
+    ]
+    for ok, where, msg in locks:
+        if not ok:
+            D.add("semantic documentation", where, msg)
+
+
 def check_android_intelligence_output_boundary(docs, D):
     """ADR-228 intelligence-result boundary documentation lock."""
     ta = docs["ta"]
@@ -6029,6 +6090,7 @@ def verify(root):
     check_plan_assignment_migration_lock(docs, D)
     check_document_topology(docs, D, root)
     check_android_intelligence_output_boundary(docs, D)
+    check_repository_intelligence_determinism(docs, D)
     check_index_drift(docs, R, D)
     check_skill_bodies(docs, D, root)
     check_command_payload_field_coverage(docs, R, D, root)

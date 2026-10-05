@@ -260,8 +260,6 @@
 
 **Evidence ledger / Task Ledger** — The SQLite execution ledger owned by `NirmanSupervisor.exe`; files are projections of it. — TA §23.3; TA §57.5; ADR-110.
 
-**Sandbox profiles** — Exactly five process-isolation profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. These are the `profile.sandbox` concept of TA §16.2.2 and are distinct from the `profile.execution` concept of that section, which is a single PolicyAuthority approval policy. — BS §26.5; TA §9.1; TA §16.2.2.
-
 **FeatureUsageTracker** — The telemetry module scaffolding local feature adoption counters, first-use flags, and interaction frequency tracking via Jetpack DataStore. — TA §73.17.8; BS §43.1.
 
 **FixtureDependencyTracer** — The test fixture dependency module mapping tests to shared fixtures, seed data, and test assets, and computing fixture change blast radius. — TA §53.5.8.
@@ -269,6 +267,8 @@
 **FlakyTestSignatureDetector** — The static test analysis module detecting non-deterministic timing, unseeded randomness, unconfined coroutine dispatchers, and missing Compose synchronization anti-patterns before execution. — TA §53.5.7; BS §57.5.
 
 **GradleConfigSynthesizer** — The build configuration module scaffolding and reconciling Kotlin DSL build.gradle.kts, settings.gradle.kts, and libs.versions.toml version catalogs. — TA §73.18.3; BS §43.1.
+
+**ImpactGraph** — The supervisor-owned mutation-impact graph: the typed dependency graph over which affected files, compilation units, tests, and evidence are computed for a proposed or committed change, and from which `DependencyExpander` derives retrieval neighborhoods. Distinct from `RepositorySemanticGraph` (the context-facing structural projection) and `AndroidSymbolGraph` (the Android-language structural graph); it is not a repository index. — TA §47.5.1; TA §59.1; TA §85.4; BS §43.1; ADR-265.
 
 **ImplicitRequirementMiner** — The requirement expansion module deterministically expanding high-level user goals into mandatory companion requirements for authentication, data listing, and transactional flows. — TA §73.15.1; BS §42.1.
 
@@ -336,6 +336,8 @@
 **RequirementTestabilityScorer** — The requirement verification module statically evaluating observable post-conditions and testability of requirements on Android. — TA §73.15.3; BS §69.11.
 
 **Resource integrity (`ResourceIntegrityAuthority`, also `ResourceGovernor`)** — The deterministic authority over physical host resources; AI usage is telemetry only. — BS §72; TA §77; ADR-217; ADR-218.
+
+**Sandbox profiles** — Exactly five process-isolation profiles (trusted local, restricted process, high-risk restricted process, disposable/isolated, review-only) applied through native Windows isolation. These are the `profile.sandbox` concept of TA §16.2.2 and are distinct from the `profile.execution` concept of that section, which is a single PolicyAuthority approval policy. — BS §26.5; TA §9.1; TA §16.2.2.
 
 **SecurityAuditGenerator** — The report synthesizer that composes `FindingDispositionStore` records, `SecurityRiskScore`, SBOM completeness, and `ArtifactProvenance` identity into a security audit report artifact attached to the artifact record before promotion. Read-only projection; `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion. Part of the `AndroidSecurityIntelligenceService` service. — TA §70.1; TA §70.3; BS §58.2.
 

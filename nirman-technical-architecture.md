@@ -2598,6 +2598,26 @@ Responsibilities:
 
 `AndroidDataIntelligenceService` creates no second authority. It does not directly mutate project source or bypass policy; all data layer mutations route through `MutationBroker` (BS §43.2) and commit via `ConstructionTransaction` (BS §42.2). `ProvenanceRecorder` remains the provenance gate inside `ArtifactAuthority`'s promotion.
 
+### 47.6 Project index
+
+> **Component:** `ProjectIndex` is registered in the §57.12 component and authority registry. Owner: BS §6.5. Crate: `nirman-context`.
+
+`ProjectIndex` is the supervisor-owned, local, rebuildable, revision-anchored, incrementally maintained retrieval substrate over the repository. It is the physical substrate named by the "project index" of BS §6.5, the "lightweight index" of BS §43.1, and the repository map of BS §23.2; it is the discovery substrate beneath `AndroidCodeIntelligenceService` (§47.5.1) and the retriever set of §59.1.
+
+Responsibilities:
+- **File and path indexing** over the workspace, honouring the ignore and exclusion rules of the active project.
+- **Lexical candidate discovery**: n-gram or token postings sufficient to answer a literal, identifier, or pattern query with a candidate set. This is candidate discovery only.
+- **Changed-file overlay**: a revision-anchored base plus an overlay of the files changed since that revision.
+- **Revision and fingerprint tracking**: every index read resolves against a `projectRevision`, and index staleness is detectable (ADR-264 rule 6; ADR-011).
+- **Refresh**: the four triggers of BS §6.5 — manual edits, generated changes, dependency installation, and branch or checkpoint changes — and the incremental obligation of BS §80.2. A full rebuild after every action is prohibited; the incremental path is proven by comparing an incrementally updated index against a full rebuild on the same revision.
+- **Freshness exposure**: freshness, shard size, rebuild progress, and stale-region warnings, so that a reader of a stale region receives the warning with the content.
+
+`ProjectIndex` holds no authority. It MUST NOT own semantic interpretation, mutation authority, evidence authority, ranking authority, or `ContextPackage` assembly. Its results are advisory candidate discovery: repository source remains authoritative, and a worker MUST be able to request full file source when index-backed discovery is insufficient (ADR-264 rule 6). It creates no second repository index — `RepositorySemanticGraph` (§59.2) is a structural context projection over the same indexed repository and MUST NOT maintain an independent lexical index of its own, and `AndroidSymbolGraph` and `ImpactGraph` remain the structural and mutation-impact graphs respectively.
+
+Ranking of index results is advisory ordering only. It is owned by `ProjectIndex`, is never evidence, authority, or completion support (ADR-264 rule 3), and is unit-tested as the repository-map ranking required by BS §80.2.
+
+Large-project mechanisms — sharded indexes, symbol-level summaries, dependency fingerprints, cache invalidation, and background compaction — apply once the repository map classifies the project as large (BS §80.2). That classification is an internal repository-map decision; it is not a configurable parameter and gains no BS §80.3 row.
+
 ---
 
 ## 48. Provider Bridge and ModelGateway
@@ -3519,6 +3539,7 @@ This table is the single inventory of Nirman's authorities and of every componen
 | `TerminalSupervisor` | service | `nirman-control-plane` | ConPTY terminal sessions, prompt classification, and output rotation (§57.7; §11.4) | `terminal_sessions`, `process_records` | §57.7, §11.4 |
 | `ModelGateway` | service | `nirman-provider` | Provider bridge lifecycle, request normalization, credential resolution, and every provider request (§48; §57.8; §3.5) | provider request events, `UsageRecord`s (§36.4) | §48 |
 | `ProjectMemoryStore` | module | `nirman-context` | The project-scope partition of `MemoryStore` (§59.1): `MemoryRecord`s with `scope: project` (§59.5; §31) | project-scope `MemoryRecord`s written by `MemoryWriter` | §31, §59.1 |
+| `ProjectIndex` | service | `nirman-context` | The supervisor-owned, local, rebuildable, revision-anchored retrieval substrate of §47.6: file and path indexing, lexical candidate discovery, the changed-file overlay, revision and fingerprint tracking, incremental refresh on the four BS §6.5 triggers, freshness and stale-region exposure, and advisory ordering of its own results. Advisory candidate discovery only (ADR-264 rule 6); holds no authority and owns no semantic interpretation, mutation, evidence, or `ContextPackage` assembly | index revision and freshness records; no authoritative state | §47.6 |
 | `UpdateController` | service | `nirman-control-plane` | The first bootstrap stage of `NirmanSupervisor.exe` (§57.4): active-version pointer, update lock, health check, and rollback (§25.2) | the active-version pointer and update events | §25.2, §57.4 |
 | `ConversationContinuationResolver` | service | `nirman-control-plane` | Reconstruction of Continue state from durable conversation records (§86.2, §86.5) | `conversations`, `conversation_messages`, `conversation_rebase_records` | §86.2 |
 | `GoalInterpreter` | module | `nirman-kernel` | Turns the user request and the `AndroidConstructionContract` into the `GoalContract` (§16.1) and its acceptance conditions | proposals only; the contract is committed as a `LifecycleAuthority` event | §58.1 |

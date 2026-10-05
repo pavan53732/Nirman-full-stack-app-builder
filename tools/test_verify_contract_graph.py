@@ -275,6 +275,21 @@ CASES = {
         "- authorityContractId: CONTRACT.RUNTIME.DELIBERATION\n- authoritySection: §66\n- extendingSection: §68",
         "section ownership"),
 
+    # ---- ADR-264/ADR-265: the embedding surface and the single-repository-index
+    # rule must not return, and the named substrate must keep its bindings
+    "second repository index permitted again": (
+        BS, "no second repository index is permitted",
+        "a second repository index is permitted",
+        "semantic documentation"),
+    "retrieval mode count widened past six": (
+        BS, "exactly six normative retrieval modes",
+        "exactly seven normative retrieval modes",
+        "semantic documentation"),
+    "project index registry row kind changed": (
+        TA, "| `ProjectIndex` | service | `nirman-context` |",
+        "| `ProjectIndex` | module | `nirman-context` |",
+        "semantic documentation"),
+
     # ---- ADR-218: AI-usage budget vocabulary must not return
     "budget exhaustion outcome reintroduced": (
         SCHEMAS, "- outcome: SUFFICIENT | NO_PROGRESS | ESCALATED | ABANDONED",

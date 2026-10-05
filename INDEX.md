@@ -417,7 +417,7 @@
 | `GoldenSnapshot` | §2.94 | TA §10.3 | CONTRACT.RUNTIME.E2E | — |
 | `ContractDouble` | §2.95 | TA §74.1 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `RepairPattern` | §2.96 | TA §51.1 | CONTRACT.RUNTIME.VERIFICATION | — |
-| `VisualObservation` | §2.97 | TA §74.2 supplement | CONTRACT.RUNTIME.E2E | — |
+| `VisualObservation` | §2.97 | TA §74.2 | CONTRACT.RUNTIME.E2E | — |
 | `ReasoningStreamEvent` | §2.97.1 | TA §55.2 | — | TA §55.2 |
 | `OrchestrationWiringMatrix` | §2.98 | BS §84 | CONTRACT.RUNTIME.INTEGRATION_BOUNDARY | — |
 | `ScreenGraphAnalysisRecord` | §2.99 | TA §62.2 | CONTRACT.RUNTIME.E2E | — |
@@ -605,4 +605,4 @@ ADR records live in `nirman-adrs.md` in ascending order.
 | ADR-100–ADR-149 | 50 | Accepted 50 |
 | ADR-150–ADR-199 | 50 | Accepted 49, Superseded 1 |
 | ADR-200–ADR-249 | 50 | Accepted 49, Superseded 1 |
-| ADR-250–ADR-264 | 15 | Accepted 14, Superseded 1 |
+| ADR-250–ADR-265 | 16 | Accepted 15, Superseded 1 |

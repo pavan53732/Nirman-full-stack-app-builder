@@ -4171,7 +4171,7 @@ RepairPattern
 
 ### 2.97 VisualObservation
 
-**Owner:** TA §74.2 supplement · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
+**Owner:** TA §74.2 · **Contract:** CONTRACT.RUNTIME.E2E · **Projected at:** —
 
 ```text
 VisualObservation
@@ -4572,7 +4572,6 @@ FrameQualityObservation
 - surfaceHealth: HEALTHY | DEGRADED | LOST
 - sequenceGapDetected: boolean
 ```
-|
 
 ### 2.111 FrameNotice
 
